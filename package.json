@@ -1,0 +1,74 @@
+{
+  "name": "restful-client",
+  "description": "A swagger client generator for typescript",
+  "version": "0.0.1",
+  "main": "lib/index.js",
+  "license": "MIT",
+  "files": [
+    "lib"
+  ],
+  "bin": {
+    "restful-client": "lib/bin/restful-client.js"
+  },
+  "keywords": [
+    "rest",
+    "client",
+    "swagger",
+    "fetch",
+    "data fetching"
+  ],
+  "author": {
+    "name": "Victor Bury",
+    "email": "victor@hackages.io"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hackages/restful-client"
+  },
+  "scripts": {
+    "start": "operational-scripts start",
+    "test": "operational-scripts test",
+    "build": "operational-scripts build --for npm && rollup -c rollup.config.js",
+    "preversion": "npm run build",
+    "lint": "tslint src/**/*{ts,tsx} --project .",
+    "prepublishOnly": "operational-scripts prepare && rollup -c rollup.config.js",
+    "ci": "[ ! -z $DANGER_GITHUB_API_TOKEN ] && yarn danger ci || echo \"Skipping Danger for External Contributor\"",
+    "examples": "run-p example:*",
+    "example:github": "node lib/bin/restful-client.js import --github OAI:OpenAPI-Specification:master:examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
+    "example:file": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
+    "example:directory": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx --directory ./model",
+    "example:advanced": "node lib/bin/restful-client.js import --config examples/restful-client.config.js"
+  },
+  "devDependencies": {
+    "@operational/scripts": "1.4.0-1c795b9",
+    "@types/chalk": "^2.2.0",
+    "@types/commander": "^2.12.2",
+    "@types/inquirer": "0.0.44",
+    "@types/lodash": "^4.14.123",
+    "@types/node": "^11.11.3",
+    "@types/request": "^2.48.3",
+    "@types/yamljs": "^0.2.30",
+    "danger": "^4.0.1",
+    "husky": "^0.14.3",
+    "lint-staged": "^7.2.0",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^1.16.4",
+    "rollup": "^0.67.3",
+    "rollup-plugin-typescript2": "^0.20.1",
+    "tslint": "^5.10.0",
+    "tslint-config-prettier": "^1.13.0",
+    "tslint-plugin-blank-line": "^0.0.9",
+    "typescript": "^3.3.4000"
+  },
+  "dependencies": {
+    "case": "^1.6.1",
+    "chalk": "^2.4.2",
+    "commander": "^2.19.0",
+    "ibm-openapi-validator": "^0.3.1",
+    "inquirer": "^6.2.2",
+    "lodash": "^4.17.11",
+    "openapi3-ts": "^0.12.0",
+    "swagger2openapi": "^3.2.14",
+    "yamljs": "^0.3.0"
+  }
+}
