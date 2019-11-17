@@ -1,13 +1,23 @@
-import { camel, pascal } from 'case';
+import {camel, pascal} from 'case';
 import chalk from 'chalk';
-import { appendFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
+import {appendFileSync, existsSync, mkdirSync, writeFileSync} from 'fs';
 import openApiValidator from 'ibm-openapi-validator';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
 import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
-import { ComponentsObject, OpenAPIObject, OperationObject, ParameterObject, PathItemObject, ReferenceObject, RequestBodyObject, ResponseObject, SchemaObject } from 'openapi3-ts';
-import { join } from 'path';
+import {
+  ComponentsObject,
+  OpenAPIObject,
+  OperationObject,
+  ParameterObject,
+  PathItemObject,
+  ReferenceObject,
+  RequestBodyObject,
+  ResponseObject,
+  SchemaObject,
+} from 'openapi3-ts';
+import {join} from 'path';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
 
@@ -293,7 +303,6 @@ export const getApiCall = (
   operationIds: string[],
   parameters: Array<ReferenceObject | ParameterObject> = [],
   schemasComponents?: ComponentsObject,
-  /*  customProps: AdvancedOptions['customProps'] = {}, */
 ) => {
   if (!operation.operationId) {
     throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
@@ -316,12 +325,9 @@ export const getApiCall = (
   const componentName = pascal(operation.operationId!);
 
   const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) => statusCode.toString().startsWith('2');
-  //const isError = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
-  //  statusCode.toString().startsWith('4') || statusCode.toString().startsWith('5') || statusCode === 'default';
 
   const responseTypes = getResReqTypes(Object.entries(operation.responses).filter(isOk));
 
-  //const errorTypes = getResReqTypes(Object.entries(operation.responses).filter(isError)) || 'unknown';
   const requestBodyTypes = getResReqTypes([['body', operation.requestBody!]]);
   const needAResponseComponent = responseTypes.includes('{');
 
@@ -359,7 +365,7 @@ export const getApiCall = (
     paramsTypes && requestBodyTypes ? ', ' : ''
   }${requestBodyTypes ? `${camel(requestBodyTypes)}: ${requestBodyTypes}` : ''}${
     (paramsTypes || requestBodyTypes) && queryParamsType ? ', ' : ''
-  }${queryParamsType ? `params: { ${queryParamsType} }` : ''}): AxiosResponse<${
+  }${queryParamsType ? `params: { ${queryParamsType} }` : ''}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }>`;
 
@@ -396,15 +402,7 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[], directory?:
   Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
     Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
       if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = getApiCall(
-          operation,
-          verb,
-          route,
-          operationIds,
-          verbs.parameters,
-          specs.components,
-          /*  customProps, */
-        );
+        const call = getApiCall(operation, verb, route, operationIds, verbs.parameters, specs.components);
         imports = [...imports, ...call.imports];
         definition += `${call.definition};`;
         value += call.value;
@@ -418,7 +416,7 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[], directory?:
     directory
       ? `${generateImports(
           uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
-          '../model',
+          directory,
         )}\n`
       : ''
   }${definition}\n\n${value}`;
@@ -636,8 +634,7 @@ const importOpenApi = async ({
   transformer,
   validation,
   directory,
-}:
-{
+}: {
   data: string;
   format: 'yaml' | 'json';
   transformer?: (specs: OpenAPIObject) => OpenAPIObject;
@@ -654,10 +651,10 @@ const importOpenApi = async ({
     await validate(specs);
   }
 
-  if(directory){
-    const isExist = existsSync(join(process.cwd(), directory))
-    if(!isExist){
-      mkdirSync(join(process.cwd(), directory))
+  if (directory) {
+    const isExist = existsSync(join(process.cwd(), directory));
+    if (!isExist) {
+      mkdirSync(join(process.cwd(), directory));
     }
     writeFileSync(join(process.cwd(), `${directory}/index.ts`), '');
   }
@@ -665,7 +662,6 @@ const importOpenApi = async ({
   resolveDiscriminator(specs);
 
   let output = '';
-
 
   output += generateSchemasDefinition(specs.components && specs.components.schemas, directory);
   output += generateResponsesDefinition(specs.components && specs.components.responses, directory);
@@ -677,7 +673,7 @@ const importOpenApi = async ({
   output =
     `/* Generated */
 
-import { AxiosResponse, AxiosInstance } from 'axios'
+import { AxiosPromise, AxiosInstance } from 'axios'
 ` + output;
   return output;
 };
