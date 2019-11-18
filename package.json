@@ -33,7 +33,7 @@
     "examples": "run-p example:*",
     "example:github": "node lib/bin/restful-client.js import --github OAI:OpenAPI-Specification:master:examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
     "example:file": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
-    "example:directory": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx --directory ./model",
+    "example:directory": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx --types ./model",
     "example:advanced": "node lib/bin/restful-client.js import --config examples/restful-client.config.js"
   },
   "devDependencies": {
@@ -64,6 +64,7 @@
     "inquirer": "^6.2.2",
     "lodash": "^4.17.11",
     "openapi3-ts": "^0.12.0",
+    "request": "^2.88.0",
     "swagger2openapi": "^3.2.14",
     "yamljs": "^0.3.0"
   },

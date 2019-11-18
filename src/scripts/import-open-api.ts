@@ -1,6 +1,5 @@
 import {camel, pascal} from 'case';
 import chalk from 'chalk';
-import {appendFileSync, existsSync, mkdirSync, writeFileSync} from 'fs';
 import openApiValidator from 'ibm-openapi-validator';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
@@ -17,7 +16,6 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts';
-import {join} from 'path';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
 
@@ -237,10 +235,6 @@ export const getResReqTypes = (
     }),
   ).join(' | ');
 
-const generateImports = (imports: string[] = [], path: string = '.') => {
-  return imports.sort().reduce((acc, imp) => acc + `import { ${imp} } from \'${path}/${imp}\'; \n`, '');
-};
-
 /**
  * Return every params in a path
  *
@@ -393,7 +387,7 @@ export const getApiCall = (
   return {value: output, definition, imports: [responseTypes, requestBodyTypes]};
 };
 
-export const getApi = (specs: OpenAPIObject, operationIds: string[], directory?: string) => {
+export const getApi = (specs: OpenAPIObject, operationIds: string[]) => {
   let imports: string[] = [];
   let definition = '';
   definition += `export interface ${pascal(specs.info.title)} {`;
@@ -412,14 +406,10 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[], directory?:
   definition += '\n};';
   value += '})';
 
-  return `${
-    directory
-      ? `${generateImports(
-          uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
-          directory,
-        )}\n`
-      : ''
-  }${definition}\n\n${value}`;
+  return {
+    output: `${definition}\n\n${value}`,
+    imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+  };
 };
 
 /**
@@ -429,21 +419,23 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[], directory?:
  * @param name interface name
  * @param schema
  */
-export const generateInterface = (name: string, schema: SchemaObject, directory?: string) => {
+export const generateInterface = (name: string, schema: SchemaObject) => {
   const {value, imports} = getScalar(schema);
   const isEmptyObject = value === '{}';
-  let output = '';
 
-  if (directory) {
+  /*  if (directory) {
     output += generateImports(imports);
     output += '\n';
-  }
-  output += isEmptyObject
-    ? `// tslint:disable-next-line:no-empty-interface
-export interface ${pascal(name)} ${value}`
-    : `export interface ${pascal(name)} ${value}`;
+  } */
 
-  return output;
+  return {
+    name: pascal(name),
+    model: isEmptyObject
+      ? `// tslint:disable-next-line:no-empty-interface
+export interface ${pascal(name)} ${value}`
+      : `export interface ${pascal(name)} ${value}`,
+    imports,
+  };
 };
 
 /**
@@ -486,13 +478,14 @@ export const resolveDiscriminator = (specs: OpenAPIObject) => {
  *
  * @param schemas
  */
-export const generateSchemasDefinition = (schemas: ComponentsObject['schemas'] = {}, directory?: string) => {
+export const generateSchemasDefinition = (
+  schemas: ComponentsObject['schemas'] = {},
+): Array<{name: string; model: string; imports?: string[]}> => {
   if (isEmpty(schemas)) {
-    return '';
+    return [];
   }
 
   const models = Object.entries(schemas).map(([name, schema]) => {
-    let output = '';
     if (
       (!schema.type || schema.type === 'object') &&
       !schema.allOf &&
@@ -500,14 +493,11 @@ export const generateSchemasDefinition = (schemas: ComponentsObject['schemas'] =
       !isReference(schema) &&
       !schema.nullable
     ) {
-      output = generateInterface(name, schema, directory);
+      return generateInterface(name, schema);
     } else {
       const {value, imports, isEnum} = resolveValue(schema);
 
-      if (directory) {
-        output += generateImports(imports);
-        output += '\n';
-      }
+      let output = '';
       output += `export type ${pascal(name)} = ${value};`;
 
       if (isEnum) {
@@ -515,21 +505,16 @@ export const generateSchemasDefinition = (schemas: ComponentsObject['schemas'] =
           .split(' | ')
           .reduce((acc, val) => acc + `  ${val.replace(/\W|_/g, '')}: ${val} as ${pascal(name)},\n`, '')}};`;
       }
-    }
 
-    if (directory) {
-      writeFileSync(join(process.cwd(), `${directory}/${pascal(name)}.ts`), output);
-      appendFileSync(join(process.cwd(), `${directory}/index.ts`), `export * from './${pascal(name)}'\n`);
+      return {name: pascal(name), model: output, imports};
     }
-
-    return output;
   });
 
-  if (directory) {
+  /*  if (directory) {
     return '';
   }
-
-  return models.join('\n\n') + '\n';
+ */
+  return models;
 };
 
 /**
@@ -537,41 +522,34 @@ export const generateSchemasDefinition = (schemas: ComponentsObject['schemas'] =
  *
  * @param responses
  */
-export const generateResponsesDefinition = (responses: ComponentsObject['responses'] = {}, directory?: string) => {
+export const generateResponsesDefinition = (
+  responses: ComponentsObject['responses'] = {},
+): Array<{name: string; model: string; imports?: string[]}> => {
   if (isEmpty(responses)) {
-    return '';
+    return [];
   }
 
   const models = Object.entries(responses).map(([name, response]) => {
     const type = getResReqTypes([['', response]]);
     const isEmptyInterface = type === '{}';
 
+    let imports: string[] = [];
     let model = '';
     if (isEmptyInterface) {
       model = `// tslint:disable-next-line:no-empty-interface \nexport interface ${pascal(name)}Response ${type}`;
     } else if (type.includes('{') && !type.includes('|') && !type.includes('&')) {
       model = `export interface ${pascal(name)}Response ${type}`;
     } else {
-      model = `${directory && type ? `import { ${type} } from \"./${type}\";\n\n` : ''}export type ${pascal(
-        name,
-      )}Response = ${type || 'unknown'};`;
+      if (type) {
+        imports = [...imports, `import { ${type} } from \"./${type}\";`];
+      }
+      model = `export type ${pascal(name)}Response = ${type || 'unknown'};`;
     }
 
-    if (directory) {
-      writeFileSync(join(process.cwd(), `${directory}/${pascal(name)}Response.ts`), model);
-      appendFileSync(join(process.cwd(), `${directory}/index.ts`), `export * from './${pascal(name)}Response'\n`);
-    }
-
-    return model;
+    return {name: `${pascal(name)}Response`, model, imports};
   });
 
-  const output = '\n' + models.join('\n\n') + '\n';
-
-  if (directory) {
-    return '';
-  }
-
-  return output;
+  return models;
 };
 
 /**
@@ -633,13 +611,11 @@ const importOpenApi = async ({
   format,
   transformer,
   validation,
-  directory,
 }: {
   data: string;
   format: 'yaml' | 'json';
   transformer?: (specs: OpenAPIObject) => OpenAPIObject;
   validation?: boolean;
-  directory?: string;
 }) => {
   const operationIds: string[] = [];
   let specs = await importSpecs(data, format);
@@ -651,31 +627,20 @@ const importOpenApi = async ({
     await validate(specs);
   }
 
-  if (directory) {
-    const isExist = existsSync(join(process.cwd(), directory));
-    if (!isExist) {
-      mkdirSync(join(process.cwd(), directory));
-    }
-    writeFileSync(join(process.cwd(), `${directory}/index.ts`), '');
-  }
-
   resolveDiscriminator(specs);
 
-  let output = '';
+  const schemaDefinition = generateSchemasDefinition(specs.components && specs.components.schemas);
+  const responseDefinition = generateResponsesDefinition(specs.components && specs.components.responses);
 
-  output += generateSchemasDefinition(specs.components && specs.components.schemas, directory);
-  output += generateResponsesDefinition(specs.components && specs.components.responses, directory);
-  if (!directory) {
-    output += '\n';
-  }
-  output += getApi(specs, operationIds, directory);
+  const models = [...schemaDefinition, ...responseDefinition];
 
-  output =
-    `/* Generated */
+  const api = getApi(specs, operationIds);
+
+  const base = `/* Generated by restful-client */
 
 import { AxiosPromise, AxiosInstance } from 'axios'
-` + output;
-  return output;
+`;
+  return {base, api, models};
 };
 
 export default importOpenApi;

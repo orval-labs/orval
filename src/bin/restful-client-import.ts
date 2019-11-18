@@ -1,21 +1,24 @@
 import chalk from 'chalk';
 import program from 'commander';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import {appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync} from 'fs';
 import inquirer from 'inquirer';
 import difference from 'lodash/difference';
-import { join, parse } from 'path';
+import {join, parse} from 'path';
 import request from 'request';
 import importOpenApi from '../scripts/import-open-api';
+import {resolvePath} from '../utils/resolvePath';
 
 const log = console.log; // tslint:disable-line:no-console
 
 export interface Options {
-  output: string;
+  output?: string;
+  outputFile?: string;
+  outputTypes?: string;
+  workDir?: string;
   file?: string;
   github?: string;
   transformer?: string;
   validation?: boolean;
-  directory?: string;
 }
 
 export type AdvancedOptions = Options;
@@ -25,7 +28,8 @@ export interface ExternalConfigFile {
 }
 
 program.option('-o, --output [value]', 'output file destination');
-program.option('-d, --directory [value]', 'directory destination');
+program.option('-t, --types [value]', 'output types destination');
+program.option('-d, --workDir [value]', 'directory destination');
 program.option('-f, --file [value]', 'input file (yaml or json openapi specs)');
 program.option('-g, --github [value]', 'github path (format: `owner:repo:branch:path`)');
 program.option('-t, --transformer [value]', 'transformer function path');
@@ -38,7 +42,17 @@ const createSuccessMessage = (backend?: string) =>
 
 const successWithoutOutputMessage = chalk.yellow('Success! No output path specified; printed to standard output.');
 
-const importSpecs = async (options: AdvancedOptions) => {
+const generateImports = (imports: string[] = [], path: string = '.') => {
+  return imports.sort().reduce((acc, imp) => acc + `import { ${imp} } from \'${path}/${imp}\'; \n`, '');
+};
+
+const importSpecs = async (
+  options: AdvancedOptions,
+): Promise<{
+  base: string;
+  api: {output: string; imports?: string[]};
+  models: Array<{name: string; model: string; imports?: string[]}>;
+}> => {
   const transformer = options.transformer ? require(join(process.cwd(), options.transformer)) : undefined;
 
   if (!options.file && !options.github) {
@@ -55,7 +69,6 @@ const importSpecs = async (options: AdvancedOptions) => {
       format,
       transformer,
       validation: options.validation,
-      directory: options.directory,
     });
   } else if (options.github) {
     const {github} = options;
@@ -182,14 +195,46 @@ if (program.config) {
 } else {
   // Use flags as configuration
   importSpecs((program as any) as Options)
-    .then(data => {
-      if (program.output) {
-        writeFileSync(join(process.cwd(), program.output), data);
+    .then(({base, api, models}) => {
+      const {output, types, workDir = ''} = program;
+      if (types) {
+        const isExist = existsSync(join(process.cwd(), workDir, types));
+        if (!isExist) {
+          mkdirSync(join(process.cwd(), workDir, types));
+        }
+
+        models.forEach(({name, model, imports}) => {
+          let file = generateImports(imports);
+          file += model;
+          writeFileSync(join(process.cwd(), workDir, `${types}/${name}.ts`), file);
+          appendFileSync(join(process.cwd(), workDir, `${types}/index.ts`), `export * from './${name}'\n`);
+        });
+      }
+
+      if (output) {
+        if (types) {
+          let data = base;
+          data += generateImports(
+            api.imports,
+            resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
+          );
+          data += api.output;
+          writeFileSync(join(process.cwd(), workDir, output), data);
+
+          writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
+        } else {
+          let data = base;
+          data += models.reduce((acc, {model}) => acc + `${model}\n\n`, '');
+          data += api.output;
+          writeFileSync(join(process.cwd(), workDir, output), data);
+        }
         log(createSuccessMessage());
-      } else {
+      }
+
+      /*  else {
         log(data);
         log(successWithoutOutputMessage);
-      }
+      } */
     })
     .catch(err => {
       log(chalk.red(err));
