@@ -1,19 +1,19 @@
 import chalk from 'chalk';
 import program from 'commander';
-import {appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync} from 'fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import inquirer from 'inquirer';
 import difference from 'lodash/difference';
-import {join, parse} from 'path';
+import { join, parse } from 'path';
 import request from 'request';
 import importOpenApi from '../scripts/import-open-api';
-import {resolvePath} from '../utils/resolvePath';
+import { resolvePath } from '../utils/resolvePath';
 
 const log = console.log; // tslint:disable-line:no-console
 
 export interface Options {
   output?: string;
   outputFile?: string;
-  outputTypes?: string;
+  types?: string;
   workDir?: string;
   file?: string;
   github?: string;
@@ -21,7 +21,16 @@ export interface Options {
   validation?: boolean;
 }
 
-export type AdvancedOptions = Options;
+export type AdvancedOptions = Options & {
+  defaultParams?: {
+    [key: string]: {
+      name?: string;
+      path?: string;
+      default?: unknown;
+      type?: string;
+    };
+  };
+};
 
 export interface ExternalConfigFile {
   [backend: string]: AdvancedOptions;
@@ -40,7 +49,7 @@ program.parse(process.argv);
 const createSuccessMessage = (backend?: string) =>
   chalk.green(`${backend || ''}🎉  Your OpenAPI spec has been converted into ready to use restful-client!`);
 
-const successWithoutOutputMessage = chalk.yellow('Success! No output path specified; printed to standard output.');
+/* const successWithoutOutputMessage = chalk.yellow('Success! No output path specified; printed to standard output.'); */
 
 const generateImports = (imports: string[] = [], path: string = '.') => {
   return imports.sort().reduce((acc, imp) => acc + `import { ${imp} } from \'${path}/${imp}\'; \n`, '');
@@ -50,8 +59,8 @@ const importSpecs = async (
   options: AdvancedOptions,
 ): Promise<{
   base: string;
-  api: {output: string; imports?: string[]};
-  models: Array<{name: string; model: string; imports?: string[]}>;
+  api: { output: string; imports?: string[] };
+  models: Array<{ name: string; model: string; imports?: string[] }>;
 }> => {
   const transformer = options.transformer ? require(join(process.cwd(), options.transformer)) : undefined;
 
@@ -61,7 +70,7 @@ const importSpecs = async (
 
   if (options.file) {
     const data = readFileSync(join(process.cwd(), options.file), 'utf-8');
-    const {ext} = parse(options.file);
+    const { ext } = parse(options.file);
     const format = ['.yaml', '.yml'].includes(ext.toLowerCase()) ? 'yaml' : 'json';
 
     return importOpenApi({
@@ -69,16 +78,17 @@ const importSpecs = async (
       format,
       transformer,
       validation: options.validation,
+      defaultParams: options.defaultParams,
     });
   } else if (options.github) {
-    const {github} = options;
+    const { github } = options;
 
     let accessToken: string;
     const githubTokenPath = join(__dirname, '.githubToken');
     if (existsSync(githubTokenPath)) {
       accessToken = readFileSync(githubTokenPath, 'utf-8');
     } else {
-      const answers = await inquirer.prompt<{githubToken: string; saveToken: boolean}>([
+      const answers = await inquirer.prompt<{ githubToken: string; saveToken: boolean }>([
         {
           type: 'input',
           name: 'githubToken',
@@ -128,7 +138,7 @@ const importSpecs = async (
         const body = JSON.parse(rawBody);
         if (!body.data) {
           if (body.message === 'Bad credentials') {
-            const answers = await inquirer.prompt<{removeToken: boolean}>([
+            const answers = await inquirer.prompt<{ removeToken: boolean }>([
               {
                 type: 'confirm',
                 name: 'removeToken',
@@ -150,6 +160,7 @@ const importSpecs = async (
             format,
             transformer,
             validation: options.validation,
+            defaultParams: options.defaultParams,
           }),
         );
       });
@@ -178,13 +189,41 @@ if (program.config) {
     .filter(([backend]) => (program.args.length === 0 ? true : program.args.includes(backend)))
     .forEach(([backend, options]) => {
       importSpecs(options)
-        .then(data => {
-          if (options.output) {
-            writeFileSync(join(process.cwd(), options.output), data);
+        .then(({ base, api, models }) => {
+          const { output, types, workDir = '' } = options;
+
+          if (types) {
+            const isExist = existsSync(join(process.cwd(), workDir, types));
+            if (!isExist) {
+              mkdirSync(join(process.cwd(), workDir, types));
+            }
+
+            models.forEach(({ name, model, imports }) => {
+              let file = generateImports(imports);
+              file += model;
+              writeFileSync(join(process.cwd(), workDir, `${types}/${name}.ts`), file);
+              appendFileSync(join(process.cwd(), workDir, `${types}/index.ts`), `export * from './${name}'\n`);
+            });
+          }
+
+          if (output) {
+            if (types) {
+              let data = base;
+              data += generateImports(
+                api.imports,
+                resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
+              );
+              data += api.output;
+              writeFileSync(join(process.cwd(), workDir, output), data);
+
+              writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
+            } else {
+              let data = base;
+              data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
+              data += api.output;
+              writeFileSync(join(process.cwd(), workDir, output), data);
+            }
             log(createSuccessMessage(backend));
-          } else {
-            log(data);
-            log(successWithoutOutputMessage);
           }
         })
         .catch(err => {
@@ -195,15 +234,15 @@ if (program.config) {
 } else {
   // Use flags as configuration
   importSpecs((program as any) as Options)
-    .then(({base, api, models}) => {
-      const {output, types, workDir = ''} = program;
+    .then(({ base, api, models }) => {
+      const { output, types, workDir = '' } = program;
       if (types) {
         const isExist = existsSync(join(process.cwd(), workDir, types));
         if (!isExist) {
           mkdirSync(join(process.cwd(), workDir, types));
         }
 
-        models.forEach(({name, model, imports}) => {
+        models.forEach(({ name, model, imports }) => {
           let file = generateImports(imports);
           file += model;
           writeFileSync(join(process.cwd(), workDir, `${types}/${name}.ts`), file);
@@ -224,7 +263,7 @@ if (program.config) {
           writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
         } else {
           let data = base;
-          data += models.reduce((acc, {model}) => acc + `${model}\n\n`, '');
+          data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
           data += api.output;
           writeFileSync(join(process.cwd(), workDir, output), data);
         }

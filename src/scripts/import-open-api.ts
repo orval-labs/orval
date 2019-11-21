@@ -1,4 +1,4 @@
-import {camel, pascal} from 'case';
+import { camel, pascal } from 'case';
 import chalk from 'chalk';
 import openApiValidator from 'ibm-openapi-validator';
 import get from 'lodash/get';
@@ -18,6 +18,7 @@ import {
 } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
+import { AdvancedOptions } from '../bin/restful-client-import';
 
 const generalJSTypes = 'number string null unknown undefined object blobpart';
 
@@ -47,14 +48,14 @@ export const getScalar = (item: SchemaObject) => {
     case 'long':
     case 'float':
     case 'double':
-      return {value: 'number' + nullable};
+      return { value: 'number' + nullable };
 
     case 'boolean':
-      return {value: 'boolean' + nullable};
+      return { value: 'boolean' + nullable };
 
     case 'array': {
-      const {value, imports} = getArray(item);
-      return {value: value + nullable, imports};
+      const { value, imports } = getArray(item);
+      return { value: value + nullable, imports };
     }
 
     case 'string':
@@ -76,13 +77,13 @@ export const getScalar = (item: SchemaObject) => {
         value = 'BlobPart';
       }
 
-      return {value: value + nullable, isEnum};
+      return { value: value + nullable, isEnum };
     }
 
     case 'object':
     default: {
-      const {value, imports} = getObject(item);
-      return {value: value + nullable, imports};
+      const { value, imports } = getObject(item);
+      return { value: value + nullable, imports };
     }
   }
 };
@@ -111,14 +112,14 @@ export const getRef = ($ref: ReferenceObject['$ref']) => {
  *
  * @param item item with type === "array"
  */
-export const getArray = (item: SchemaObject): {value: string; imports?: string[]} => {
+export const getArray = (item: SchemaObject): { value: string; imports?: string[] } => {
   if (item.items) {
     if (!isReference(item.items) && (item.items.oneOf || item.items.allOf)) {
-      const {value, imports} = resolveValue(item.items);
-      return {value: `(${value})[]`, imports};
+      const { value, imports } = resolveValue(item.items);
+      return { value: `(${value})[]`, imports };
     } else {
-      const {value, imports} = resolveValue(item.items);
-      return {value: `${value}[]`, imports};
+      const { value, imports } = resolveValue(item.items);
+      return { value: `${value}[]`, imports };
     }
   } else {
     throw new Error('All arrays must have an `items` key define');
@@ -130,10 +131,10 @@ export const getArray = (item: SchemaObject): {value: string; imports?: string[]
  *
  * @param item item with type === "object"
  */
-export const getObject = (item: SchemaObject): {value: string; imports?: string[]} => {
+export const getObject = (item: SchemaObject): { value: string; imports?: string[] } => {
   if (isReference(item)) {
     const value = getRef(item.$ref);
-    return {value, imports: [value]};
+    return { value, imports: [value] };
   }
 
   if (item.allOf) {
@@ -183,11 +184,11 @@ export const getObject = (item: SchemaObject): {value: string; imports?: string[
   }
 
   if (item.additionalProperties) {
-    const {value, imports} = resolveValue(item.additionalProperties);
-    return {value: `{[key: string]: ${value}}`, imports};
+    const { value, imports } = resolveValue(item.additionalProperties);
+    return { value: `{[key: string]: ${value}}`, imports };
   }
 
-  return {value: item.type === 'object' ? '{}' : 'any'};
+  return { value: item.type === 'object' ? '{}' : 'any' };
 };
 
 /**
@@ -197,7 +198,7 @@ export const getObject = (item: SchemaObject): {value: string; imports?: string[
 export const resolveValue = (schema: SchemaObject) => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
-    return {value, imports: [value]};
+    return { value, imports: [value] };
   }
 
   return getScalar(schema);
@@ -268,7 +269,7 @@ const importSpecs = (data: string, extension: 'yaml' | 'json'): Promise<OpenAPIO
 
   return new Promise((resolve, reject) => {
     if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-      swagger2openapi.convertObj(schema, {}, (err, {openapi}) => {
+      swagger2openapi.convertObj(schema, {}, (err, { openapi }) => {
         if (err) {
           reject(err);
         } else {
@@ -297,6 +298,7 @@ export const getApiCall = (
   operationIds: string[],
   parameters: Array<ReferenceObject | ParameterObject> = [],
   schemasComponents?: ComponentsObject,
+  defaultParams?: AdvancedOptions['defaultParams'],
 ) => {
   if (!operation.operationId) {
     throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
@@ -326,7 +328,7 @@ export const getApiCall = (
   const needAResponseComponent = responseTypes.includes('{');
 
   const paramsInPath = getParamsInPath(route).filter(param => !(verb === 'delete' && param === lastParamInTheRoute));
-  const {query: queryParams = [], path: pathParams = [] /* , header: headerParams = [] */} = groupBy(
+  const { query: queryParams = [], path: pathParams = [] /* , header: headerParams = [] */ } = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
         return get(schemasComponents, p.$ref.replace('#/components/', '').replace('/', '.'));
@@ -340,7 +342,7 @@ export const getApiCall = (
   const paramsTypes = paramsInPath
     .map(p => {
       try {
-        const {name, required, schema} = pathParams.find(i => i.name === p)!;
+        const { name, required, schema } = pathParams.find(i => i.name === p)!;
         return `${name}${required ? '' : '?'}: ${resolveValue(schema!).value}`;
       } catch (err) {
         throw new Error(`The path params ${p} can't be found in parameters (${operation.operationId})`);
@@ -352,6 +354,23 @@ export const getApiCall = (
     .map(p => `${p.name}${p.required ? '' : '?'}: ${resolveValue(p.schema!).value}`)
     .join(', ');
 
+  const getFormatedDefaultParams = (params: AdvancedOptions['defaultParams'] = {}) => {
+    return Object.entries(params)
+      .map(([key, { name, path, type, default: _default }]) => ({
+        path: `/${(path || key).replace(/\W|_/g, '')}${'${'}${name || key}${'}'}`,
+        property: `${name || key}: ${type || 'unkown'}${_default ? ` = ${_default}` : ''}`,
+      }))
+      .reduce(
+        (acc, { path, property }) => ({
+          path: acc.path + path,
+          property: acc.property ? acc.property + ', ' + property : property,
+        }),
+        { path: '', property: '' },
+      );
+  };
+
+  const { path: defaultParamsPath, property: defaultParamsProperty } = getFormatedDefaultParams(defaultParams);
+
   let definition = `
   ${operation.summary ? '// ' + operation.summary : ''}\n`;
 
@@ -359,12 +378,16 @@ export const getApiCall = (
     paramsTypes && requestBodyTypes ? ', ' : ''
   }${requestBodyTypes ? `${camel(requestBodyTypes)}: ${requestBodyTypes}` : ''}${
     (paramsTypes || requestBodyTypes) && queryParamsType ? ', ' : ''
-  }${queryParamsType ? `params: { ${queryParamsType} }` : ''}): AxiosPromise<${
+  }${queryParamsType ? `params?: { ${queryParamsType} }` : ''}${
+    (paramsTypes || requestBodyTypes || queryParamsType) && defaultParams ? ', ' : ''
+  }${defaultParams ? defaultParamsProperty : ''}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }>`;
 
   output = `${callDefinition} {
-    return axios.${verb}(\`${route}\` ${requestBodyTypes ? `, ${camel(requestBodyTypes)}` : ''} ${
+    return axios.${verb}(\`${defaultParams ? defaultParamsPath : ''}${route}\` ${
+    requestBodyTypes ? `, ${camel(requestBodyTypes)}` : ''
+  } ${
     queryParamsType || responseTypes === 'BlobPart'
       ? `,
       {
@@ -384,10 +407,14 @@ export const getApiCall = (
 
   definition += callDefinition;
 
-  return {value: output, definition, imports: [responseTypes, requestBodyTypes]};
+  return { value: output, definition, imports: [responseTypes, requestBodyTypes] };
 };
 
-export const getApi = (specs: OpenAPIObject, operationIds: string[]) => {
+export const getApi = (
+  specs: OpenAPIObject,
+  operationIds: string[],
+  defaultParams?: AdvancedOptions['defaultParams'],
+) => {
   let imports: string[] = [];
   let definition = '';
   definition += `export interface ${pascal(specs.info.title)} {`;
@@ -396,7 +423,15 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[]) => {
   Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
     Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
       if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = getApiCall(operation, verb, route, operationIds, verbs.parameters, specs.components);
+        const call = getApiCall(
+          operation,
+          verb,
+          route,
+          operationIds,
+          verbs.parameters,
+          specs.components,
+          defaultParams,
+        );
         imports = [...imports, ...call.imports];
         definition += `${call.definition};`;
         value += call.value;
@@ -420,7 +455,7 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[]) => {
  * @param schema
  */
 export const generateInterface = (name: string, schema: SchemaObject) => {
-  const {value, imports} = getScalar(schema);
+  const { value, imports } = getScalar(schema);
   const isEmptyObject = value === '{}';
 
   /*  if (directory) {
@@ -451,7 +486,7 @@ export const resolveDiscriminator = (specs: OpenAPIObject) => {
       if (!schema.discriminator || !schema.discriminator.mapping) {
         return;
       }
-      const {mapping, propertyName} = schema.discriminator;
+      const { mapping, propertyName } = schema.discriminator;
 
       Object.entries(mapping).map(([name, ref]) => {
         if (!ref.startsWith('#/components/schemas/')) {
@@ -480,7 +515,7 @@ export const resolveDiscriminator = (specs: OpenAPIObject) => {
  */
 export const generateSchemasDefinition = (
   schemas: ComponentsObject['schemas'] = {},
-): Array<{name: string; model: string; imports?: string[]}> => {
+): Array<{ name: string; model: string; imports?: string[] }> => {
   if (isEmpty(schemas)) {
     return [];
   }
@@ -495,7 +530,7 @@ export const generateSchemasDefinition = (
     ) {
       return generateInterface(name, schema);
     } else {
-      const {value, imports, isEnum} = resolveValue(schema);
+      const { value, imports, isEnum } = resolveValue(schema);
 
       let output = '';
       output += `export type ${pascal(name)} = ${value};`;
@@ -506,7 +541,7 @@ export const generateSchemasDefinition = (
           .reduce((acc, val) => acc + `  ${val.replace(/\W|_/g, '')}: ${val} as ${pascal(name)},\n`, '')}};`;
       }
 
-      return {name: pascal(name), model: output, imports};
+      return { name: pascal(name), model: output, imports };
     }
   });
 
@@ -524,7 +559,7 @@ export const generateSchemasDefinition = (
  */
 export const generateResponsesDefinition = (
   responses: ComponentsObject['responses'] = {},
-): Array<{name: string; model: string; imports?: string[]}> => {
+): Array<{ name: string; model: string; imports?: string[] }> => {
   if (isEmpty(responses)) {
     return [];
   }
@@ -546,7 +581,7 @@ export const generateResponsesDefinition = (
       model = `export type ${pascal(name)}Response = ${type || 'unknown'};`;
     }
 
-    return {name: `${pascal(name)}Response`, model, imports};
+    return { name: `${pascal(name)}Response`, model, imports };
   });
 
   return models;
@@ -569,7 +604,7 @@ const validate = async (specs: OpenAPIObject) => {
     wasConsoleLogCalledFromBlackBox = true;
     log(...props);
   };
-  const {errors, warnings} = await openApiValidator(specs);
+  const { errors, warnings } = await openApiValidator(specs);
   console.log = log; // reset console.log because we're done with the black box
 
   if (wasConsoleLogCalledFromBlackBox) {
@@ -611,11 +646,13 @@ const importOpenApi = async ({
   format,
   transformer,
   validation,
+  defaultParams,
 }: {
   data: string;
   format: 'yaml' | 'json';
   transformer?: (specs: OpenAPIObject) => OpenAPIObject;
   validation?: boolean;
+  defaultParams?: AdvancedOptions['defaultParams'];
 }) => {
   const operationIds: string[] = [];
   let specs = await importSpecs(data, format);
@@ -634,13 +671,13 @@ const importOpenApi = async ({
 
   const models = [...schemaDefinition, ...responseDefinition];
 
-  const api = getApi(specs, operationIds);
+  const api = getApi(specs, operationIds, defaultParams);
 
   const base = `/* Generated by restful-client */
 
 import { AxiosPromise, AxiosInstance } from 'axios'
 `;
-  return {base, api, models};
+  return { base, api, models };
 };
 
 export default importOpenApi;
