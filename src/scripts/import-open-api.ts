@@ -277,12 +277,22 @@ export const getParamsTypes = ({
       };
 
       if (type === 'definition') {
-        return `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema).value}`;
+        return {
+          name,
+          definition: `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema).value}`,
+          default: schema.default,
+          required,
+        };
       }
 
-      return `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema).value}${
-        schema.default ? ` = ${schema.default}` : ''
-      }`;
+      return {
+        name,
+        definition: `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema).value}${
+          schema.default ? ` = ${schema.default}` : ''
+        }`,
+        default: schema.default,
+        required,
+      };
     } catch (err) {
       throw new Error(`The path params ${p} can't be found in parameters (${operation.operationId})`);
     }
@@ -304,12 +314,22 @@ export const getQueryParamsTypes = ({
     };
 
     if (type === 'definition') {
-      return `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema!).value}`;
+      return {
+        name,
+        definition: `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema!).value}`,
+        default: schema.default,
+        required,
+      };
     }
 
-    return `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema!).value}${
-      schema.default ? ` = ${schema.default}` : ''
-    }`;
+    return {
+      name,
+      definition: `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema!).value}${
+        schema.default ? ` = ${schema.default}` : ''
+      }`,
+      default: schema.default,
+      required,
+    };
   });
 };
 
@@ -395,20 +415,78 @@ export const getApiCall = (
 
   const propsDefinition = [
     ...getParamsTypes({ params: paramsInPath, pathParams, operation }),
-    ...(requestBodyTypes ? [camel(requestBodyTypes)] : []),
-    ...(queryParams.length ? [`params?: { ${getQueryParamsTypes({ queryParams }).join(', ')} }`] : []),
+    ...(requestBodyTypes
+      ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
+      : []),
+    ...(queryParams.length
+      ? [
+          {
+            definition: `params?: { ${getQueryParamsTypes({ queryParams })
+              .map(({ definition }) => definition)
+              .join(', ')} }`,
+            default: false,
+            required: false,
+          },
+        ]
+      : []),
   ]
-    .sort(a => (a.includes('?') ? 1 : -1))
+    .sort((a, b) => {
+      if (a.default) {
+        return 1;
+      }
+
+      if (b.default) {
+        return -1;
+      }
+
+      if (a.required) {
+        return -1;
+      }
+
+      if (b.required) {
+        return 1;
+      }
+      return -1;
+    })
+    .map(({ definition }) => definition)
     .join(', ');
 
   const props = [
     ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
-    ...(requestBodyTypes ? [camel(requestBodyTypes)] : []),
+    ...(requestBodyTypes
+      ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
+      : []),
     ...(queryParams.length
-      ? [`params?: { ${getQueryParamsTypes({ queryParams, type: 'implementation' }).join(', ')} }`]
+      ? [
+          {
+            definition: `params?: { ${getQueryParamsTypes({ queryParams, type: 'implementation' })
+              .map(({ definition }) => definition)
+              .join(', ')} }`,
+            default: false,
+            required: false,
+          },
+        ]
       : []),
   ]
-    .sort(a => (a.includes('?') || a.includes('=') ? 1 : -1))
+    .sort((a, b) => {
+      if (a.default) {
+        return 1;
+      }
+
+      if (b.default) {
+        return -1;
+      }
+
+      if (a.required) {
+        return -1;
+      }
+
+      if (b.required) {
+        return 1;
+      }
+      return -1;
+    })
+    .map(({ definition }) => definition)
     .join(', ');
 
   const definition = `

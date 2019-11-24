@@ -12,6 +12,6 @@ module.exports = {
     file: 'examples/petstore.yaml',
     output: 'examples/petstoreFromFileSpecWithTransformer.tsx',
     types: './model',
-    transform: 'examples/transformer-add-version.js',
+    transformer: 'examples/transformer-add-version.js',
   },
 };
