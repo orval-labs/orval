@@ -1,7 +1,7 @@
 {
   "name": "@hackages/restful-client",
   "description": "A swagger client generator for typescript",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "license": "MIT",
   "files": [
     "lib"
@@ -25,9 +25,8 @@
     "url": "https://github.com/hackages/restful-client"
   },
   "scripts": {
-    "copy": "cp package.json lib/package.json && cp README.md lib/README.md",
     "rollup": "rollup -c rollup.config.js",
-    "build": "tsc && yarn rollup && yarn copy",
+    "build": "tsc && yarn rollup",
     "lint": "tslint src/**/*{ts,tsx} --project .",
     "ci": "[ ! -z $DANGER_GITHUB_API_TOKEN ] && yarn danger ci || echo \"Skipping Danger for External Contributor\"",
     "examples": "run-p example:*",
