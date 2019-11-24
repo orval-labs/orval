@@ -53,7 +53,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /pets/{petId}/x/{xf}:
+  /pets/{petId}:
     get:
       summary: Info for a specific pet
       operationId: showPetById
@@ -61,13 +61,6 @@ paths:
         - pets
       parameters:
         - name: petId
-          in: path
-          required: false
-          description: The id of the pet to retrieve
-          schema:
-            type: string
-            default: 1
-        - name: xf
           in: path
           required: true
           description: The id of the pet to retrieve

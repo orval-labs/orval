@@ -202,6 +202,7 @@ if (program.config) {
                 api.imports,
                 resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
               );
+              data += '\n'
               data += api.output;
               writeFileSync(join(process.cwd(), workDir, output), data);
 
@@ -209,6 +210,7 @@ if (program.config) {
             } else {
               let data = base;
               data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
+              data += '\n'
               data += api.output;
               writeFileSync(join(process.cwd(), workDir, output), data);
             }
@@ -246,6 +248,7 @@ if (program.config) {
             api.imports,
             resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
           );
+          data += '\n'
           data += api.output;
           writeFileSync(join(process.cwd(), workDir, output), data);
 
@@ -253,6 +256,7 @@ if (program.config) {
         } else {
           let data = base;
           data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
+          data += '\n'
           data += api.output;
           writeFileSync(join(process.cwd(), workDir, output), data);
         }
