@@ -1,7 +1,7 @@
 {
   "name": "@hackages/restful-client",
   "description": "A swagger client generator for typescript",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "license": "MIT",
   "files": [
     "lib"

@@ -18,7 +18,6 @@ import {
 } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
-import { AdvancedOptions } from '../bin/restful-client-import';
 
 const generalJSTypes = 'number string null unknown undefined object blobpart';
 
@@ -258,6 +257,62 @@ export const getParamsInPath = (path: string) => {
   return output;
 };
 
+export const getParamsTypes = ({
+  params,
+  pathParams,
+  operation,
+  type = 'definition',
+}: {
+  params: string[];
+  pathParams: ParameterObject[];
+  operation: OperationObject;
+  type?: 'definition' | 'implementation';
+}) => {
+  return params.map(p => {
+    try {
+      const { name, required, schema } = pathParams.find(i => i.name === p) as {
+        name: string;
+        required: boolean;
+        schema: SchemaObject;
+      };
+
+      if (type === 'definition') {
+        return `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema).value}`;
+      }
+
+      return `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema).value}${
+        schema.default ? ` = ${schema.default}` : ''
+      }`;
+    } catch (err) {
+      throw new Error(`The path params ${p} can't be found in parameters (${operation.operationId})`);
+    }
+  });
+};
+
+export const getQueryParamsTypes = ({
+  queryParams,
+  type,
+}: {
+  queryParams: ParameterObject[];
+  type?: 'definition' | 'implementation';
+}) => {
+  return queryParams.map(p => {
+    const { name, required, schema } = p as {
+      name: string;
+      required: boolean;
+      schema: SchemaObject;
+    };
+
+    if (type === 'definition') {
+      return `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema!).value}`;
+    }
+
+    return `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema!).value}${
+      schema.default ? ` = ${schema.default}` : ''
+    }`;
+  });
+};
+
 /**
  * Import and parse the openapi spec from a yaml/json
  *
@@ -298,7 +353,6 @@ export const getApiCall = (
   operationIds: string[],
   parameters: Array<ReferenceObject | ParameterObject> = [],
   schemasComponents?: ComponentsObject,
-  defaultParams?: AdvancedOptions['defaultParams'],
 ) => {
   if (!operation.operationId) {
     throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
@@ -328,7 +382,7 @@ export const getApiCall = (
   const needAResponseComponent = responseTypes.includes('{');
 
   const paramsInPath = getParamsInPath(route).filter(param => !(verb === 'delete' && param === lastParamInTheRoute));
-  const { query: queryParams = [], path: pathParams = [] /* , header: headerParams = [] */ } = groupBy(
+  const { query: queryParams = [], path: pathParams = [] } = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
         return get(schemasComponents, p.$ref.replace('#/components/', '').replace('/', '.'));
@@ -339,59 +393,38 @@ export const getApiCall = (
     'in',
   );
 
-  const paramsTypes = paramsInPath
-    .map(p => {
-      try {
-        const { name, required, schema } = pathParams.find(i => i.name === p)!;
-        return `${name}${required ? '' : '?'}: ${resolveValue(schema!).value}`;
-      } catch (err) {
-        throw new Error(`The path params ${p} can't be found in parameters (${operation.operationId})`);
-      }
-    })
+  const propsDefinition = [
+    ...getParamsTypes({ params: paramsInPath, pathParams, operation }),
+    ...(requestBodyTypes ? [camel(requestBodyTypes)] : []),
+    ...(queryParams.length ? [`params?: { ${getQueryParamsTypes({ queryParams }).join(', ')} }`] : []),
+  ]
+    .sort(a => (a.includes('?') ? 1 : -1))
     .join(', ');
 
-  const queryParamsType = queryParams
-    .map(p => `${p.name}${p.required ? '' : '?'}: ${resolveValue(p.schema!).value}`)
+  const props = [
+    ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
+    ...(requestBodyTypes ? [camel(requestBodyTypes)] : []),
+    ...(queryParams.length
+      ? [`params?: { ${getQueryParamsTypes({ queryParams, type: 'implementation' }).join(', ')} }`]
+      : []),
+  ]
+    .sort(a => (a.includes('?') || a.includes('=') ? 1 : -1))
     .join(', ');
 
-  const getFormatedDefaultParams = (params: AdvancedOptions['defaultParams'] = {}) => {
-    return Object.entries(params)
-      .map(([key, { name, path, type, default: _default }]) => ({
-        path: `/${(path || key).replace(/\W|_/g, '')}${'${'}${name || key}${'}'}`,
-        property: `${name || key}: ${type || 'unkown'}${_default ? ` = ${_default}` : ''}`,
-      }))
-      .reduce(
-        (acc, { path, property }) => ({
-          path: acc.path + path,
-          property: acc.property ? acc.property + ', ' + property : property,
-        }),
-        { path: '', property: '' },
-      );
-  };
-
-  const { path: defaultParamsPath, property: defaultParamsProperty } = getFormatedDefaultParams(defaultParams);
-
-  let definition = `
-  ${operation.summary ? '// ' + operation.summary : ''}\n`;
-
-  const callDefinition = `  ${camel(componentName)}(${paramsTypes ? `${paramsTypes}` : ''}${
-    paramsTypes && requestBodyTypes ? ', ' : ''
-  }${requestBodyTypes ? `${camel(requestBodyTypes)}: ${requestBodyTypes}` : ''}${
-    (paramsTypes || requestBodyTypes) && queryParamsType ? ', ' : ''
-  }${queryParamsType ? `params?: { ${queryParamsType} }` : ''}${
-    (paramsTypes || requestBodyTypes || queryParamsType) && defaultParams ? ', ' : ''
-  }${defaultParams ? defaultParamsProperty : ''}): AxiosPromise<${
+  const definition = `
+  ${operation.summary ? '// ' + operation.summary : ''}
+  ${camel(componentName)}(${propsDefinition}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }>`;
 
-  output = `${callDefinition} {
-    return axios.${verb}(\`${defaultParams ? defaultParamsPath : ''}${route}\` ${
-    requestBodyTypes ? `, ${camel(requestBodyTypes)}` : ''
-  } ${
-    queryParamsType || responseTypes === 'BlobPart'
+  output = `  ${camel(componentName)}(${props}): AxiosPromise<${
+    needAResponseComponent ? componentName + 'Response' : responseTypes
+  }> {
+    return axios.${verb}(\`${route}\` ${requestBodyTypes ? `, ${camel(requestBodyTypes)}` : ''} ${
+    queryParams.length || responseTypes === 'BlobPart'
       ? `,
       {
-        ${queryParamsType ? 'params' : ''}${queryParamsType && responseTypes === 'BlobPart' ? ',' : ''}${
+        ${queryParams.length ? 'params' : ''}${queryParams.length && responseTypes === 'BlobPart' ? ',' : ''}${
           responseTypes === 'BlobPart'
             ? `responseType: 'arraybuffer',
         headers: {
@@ -405,16 +438,10 @@ export const getApiCall = (
   },
 `;
 
-  definition += callDefinition;
-
   return { value: output, definition, imports: [responseTypes, requestBodyTypes] };
 };
 
-export const getApi = (
-  specs: OpenAPIObject,
-  operationIds: string[],
-  defaultParams?: AdvancedOptions['defaultParams'],
-) => {
+export const getApi = (specs: OpenAPIObject, operationIds: string[]) => {
   let imports: string[] = [];
   let definition = '';
   definition += `export interface ${pascal(specs.info.title)} {`;
@@ -423,15 +450,7 @@ export const getApi = (
   Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
     Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
       if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = getApiCall(
-          operation,
-          verb,
-          route,
-          operationIds,
-          verbs.parameters,
-          specs.components,
-          defaultParams,
-        );
+        const call = getApiCall(operation, verb, route, operationIds, verbs.parameters, specs.components);
         imports = [...imports, ...call.imports];
         definition += `${call.definition};`;
         value += call.value;
@@ -646,13 +665,11 @@ const importOpenApi = async ({
   format,
   transformer,
   validation,
-  defaultParams,
 }: {
   data: string;
   format: 'yaml' | 'json';
   transformer?: (specs: OpenAPIObject) => OpenAPIObject;
   validation?: boolean;
-  defaultParams?: AdvancedOptions['defaultParams'];
 }) => {
   const operationIds: string[] = [];
   let specs = await importSpecs(data, format);
@@ -671,7 +688,7 @@ const importOpenApi = async ({
 
   const models = [...schemaDefinition, ...responseDefinition];
 
-  const api = getApi(specs, operationIds, defaultParams);
+  const api = getApi(specs, operationIds);
 
   const base = `/* Generated by restful-client */
 

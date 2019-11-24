@@ -21,16 +21,7 @@ export interface Options {
   validation?: boolean;
 }
 
-export type AdvancedOptions = Options & {
-  defaultParams?: {
-    [key: string]: {
-      name?: string;
-      path?: string;
-      default?: unknown;
-      type?: string;
-    };
-  };
-};
+export type AdvancedOptions = Options
 
 export interface ExternalConfigFile {
   [backend: string]: AdvancedOptions;
@@ -78,7 +69,6 @@ const importSpecs = async (
       format,
       transformer,
       validation: options.validation,
-      defaultParams: options.defaultParams,
     });
   } else if (options.github) {
     const { github } = options;
@@ -160,7 +150,6 @@ const importSpecs = async (
             format,
             transformer,
             validation: options.validation,
-            defaultParams: options.defaultParams,
           }),
         );
       });
