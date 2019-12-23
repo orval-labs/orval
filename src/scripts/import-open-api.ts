@@ -439,6 +439,10 @@ export const getApiCall = (
         return -1;
       }
 
+      if (a.required && b.required) {
+        return 1;
+      }
+
       if (a.required) {
         return -1;
       }
@@ -446,7 +450,7 @@ export const getApiCall = (
       if (b.required) {
         return 1;
       }
-      return -1;
+      return 1;
     })
     .map(({ definition }) => definition)
     .join(', ');
@@ -477,6 +481,10 @@ export const getApiCall = (
         return -1;
       }
 
+      if (a.required && b.required) {
+        return 1;
+      }
+
       if (a.required) {
         return -1;
       }
@@ -484,7 +492,7 @@ export const getApiCall = (
       if (b.required) {
         return 1;
       }
-      return -1;
+      return 1;
     })
     .map(({ definition }) => definition)
     .join(', ');
@@ -554,11 +562,6 @@ export const getApi = (specs: OpenAPIObject, operationIds: string[]) => {
 export const generateInterface = (name: string, schema: SchemaObject) => {
   const { value, imports } = getScalar(schema);
   const isEmptyObject = value === '{}';
-
-  /*  if (directory) {
-    output += generateImports(imports);
-    output += '\n';
-  } */
 
   return {
     name: pascal(name),
@@ -642,10 +645,6 @@ export const generateSchemasDefinition = (
     }
   });
 
-  /*  if (directory) {
-    return '';
-  }
- */
   return models;
 };
 
@@ -673,7 +672,7 @@ export const generateResponsesDefinition = (
       model = `export interface ${pascal(name)}Response ${type}`;
     } else {
       if (type) {
-        imports = [...imports, `import { ${type} } from \"./${type}\";`];
+        imports = [...imports, type];
       }
       model = `export type ${pascal(name)}Response = ${type || 'unknown'};`;
     }
