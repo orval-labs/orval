@@ -677,7 +677,11 @@ export const generateResponsesDefinition = (
       model = `export type ${pascal(name)}Response = ${type || 'unknown'};`;
     }
 
-    return { name: `${pascal(name)}Response`, model, imports };
+    return {
+      name: `${pascal(name)}Response`,
+      model,
+      imports: imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())),
+    };
   });
 
   return models;
