@@ -641,7 +641,11 @@ export const generateSchemasDefinition = (
           .reduce((acc, val) => acc + `  ${val.replace(/\W|_/g, '')}: ${val} as ${pascal(name)},\n`, '')}};`;
       }
 
-      return { name: pascal(name), model: output, imports };
+      return {
+        name: pascal(name),
+        model: output,
+        imports: imports && uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+      };
     }
   });
 
@@ -680,7 +684,7 @@ export const generateResponsesDefinition = (
     return {
       name: `${pascal(name)}Response`,
       model,
-      imports: imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())),
+      imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
     };
   });
 
