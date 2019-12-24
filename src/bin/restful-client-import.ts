@@ -21,7 +21,7 @@ export interface Options {
   validation?: boolean;
 }
 
-export type AdvancedOptions = Options
+export type AdvancedOptions = Options;
 
 export interface ExternalConfigFile {
   [backend: string]: AdvancedOptions;
@@ -42,7 +42,19 @@ const createSuccessMessage = (backend?: string) =>
 
 /* const successWithoutOutputMessage = chalk.yellow('Success! No output path specified; printed to standard output.'); */
 
-const generateImports = (imports: string[] = [], path: string = '.') => {
+const generateImports = (imports: string[] = [], path: string = '.', pathOnly: boolean = false) => {
+  if (pathOnly) {
+    return imports.sort().reduce((acc, imp, index) => {
+      if (!acc) {
+        return `import { ${imp},\n`;
+      }
+      if (imports.length - 1 === index) {
+        return acc + `  ${imp},\n} from \'${path}\'; \n`;
+      }
+
+      return acc + `  ${imp},\n`;
+    }, '');
+  }
   return imports.sort().reduce((acc, imp) => acc + `import { ${imp} } from \'${path}/${imp}\'; \n`, '');
 };
 
@@ -187,6 +199,7 @@ if (program.config) {
               mkdirSync(join(process.cwd(), workDir, types));
             }
 
+            writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
             models.forEach(({ name, model, imports }) => {
               let file = generateImports(imports);
               file += model;
@@ -201,16 +214,15 @@ if (program.config) {
               data += generateImports(
                 api.imports,
                 resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
+                true,
               );
-              data += '\n'
+              data += '\n';
               data += api.output;
               writeFileSync(join(process.cwd(), workDir, output), data);
-
-              writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
             } else {
               let data = base;
               data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
-              data += '\n'
+              data += '\n';
               data += api.output;
               writeFileSync(join(process.cwd(), workDir, output), data);
             }
@@ -233,6 +245,7 @@ if (program.config) {
           mkdirSync(join(process.cwd(), workDir, types));
         }
 
+        writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
         models.forEach(({ name, model, imports }) => {
           let file = generateImports(imports);
           file += model;
@@ -247,16 +260,15 @@ if (program.config) {
           data += generateImports(
             api.imports,
             resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
+            true,
           );
-          data += '\n'
+          data += '\n';
           data += api.output;
           writeFileSync(join(process.cwd(), workDir, output), data);
-
-          writeFileSync(join(process.cwd(), workDir, `${types}/index.ts`), '');
         } else {
           let data = base;
           data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
-          data += '\n'
+          data += '\n';
           data += api.output;
           writeFileSync(join(process.cwd(), workDir, output), data);
         }

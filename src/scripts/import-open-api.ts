@@ -569,7 +569,7 @@ export const generateInterface = (name: string, schema: SchemaObject) => {
       ? `// tslint:disable-next-line:no-empty-interface
 export interface ${pascal(name)} ${value}`
       : `export interface ${pascal(name)} ${value}`,
-    imports,
+    imports: uniq(imports).filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())),
   };
 };
 
@@ -644,7 +644,7 @@ export const generateSchemasDefinition = (
       return {
         name: pascal(name),
         model: output,
-        imports: imports && uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+        imports: uniq(imports).filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())),
       };
     }
   });
@@ -684,7 +684,7 @@ export const generateResponsesDefinition = (
     return {
       name: `${pascal(name)}Response`,
       model,
-      imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+      imports: uniq(imports).filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())),
     };
   });
 
