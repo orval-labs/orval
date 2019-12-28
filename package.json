@@ -43,7 +43,6 @@
     "@types/node": "^11.11.3",
     "@types/request": "^2.48.3",
     "@types/yamljs": "^0.2.30",
-    "danger": "^4.0.1",
     "husky": "^0.14.3",
     "lint-staged": "^7.2.0",
     "npm-run-all": "^4.1.5",
