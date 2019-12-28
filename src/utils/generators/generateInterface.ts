@@ -1,8 +1,8 @@
 import { pascal } from 'case';
 import uniq from 'lodash/uniq';
 import { SchemaObject } from 'openapi3-ts';
-import { generalJSTypes } from '../constants/generalJsTypes';
-import { getScalar } from '../utils/getScalar';
+import { generalJSTypes } from '../../constants/generalJsTypes';
+import { getScalar } from '../getters/getScalar';
 
 /**
  * Generate the interface string

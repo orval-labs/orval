@@ -2,8 +2,8 @@ import { pascal } from 'case';
 import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 import { ComponentsObject } from 'openapi3-ts';
-import { generalJSTypes } from '../constants/generalJsTypes';
-import { getResReqTypes } from '../utils/getResReqTypes';
+import { generalJSTypes } from '../../constants/generalJsTypes';
+import { getResReqTypes } from '../getters/getResReqTypes';
 
 /**
  * Extract all types from #/components/responses

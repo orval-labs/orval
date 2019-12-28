@@ -2,10 +2,10 @@ import { pascal } from 'case';
 import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
 import { ComponentsObject } from 'openapi3-ts';
-import { generalJSTypes } from '../constants/generalJsTypes';
+import { generalJSTypes } from '../../constants/generalJsTypes';
+import { isReference } from '../isReference';
+import { resolveValue } from '../resolvers/resolveValue';
 import { generateInterface } from './generateInterface';
-import { isReference } from '../utils/isReference';
-import { resolveValue } from '../utils/resolveValue';
 
 /**
  * Extract all types from #/components/schemas

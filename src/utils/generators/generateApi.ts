@@ -11,12 +11,36 @@ import {
   ReferenceObject,
   ResponseObject,
 } from 'openapi3-ts';
-import { generalJSTypes } from '../constants/generalJsTypes';
-import { getParamsInPath } from '../utils/getParamsInPath';
-import { getParamsTypes } from '../utils/getParamsTypes';
-import { getQueryParamsTypes } from '../utils/getQueryParamsTypes';
-import { getResReqTypes } from '../utils/getResReqTypes';
-import { isReference } from '../utils/isReference';
+import { generalJSTypes } from '../../constants/generalJsTypes';
+import { getParamsInPath } from '../getters/getParamsInPath';
+import { getParamsTypes } from '../getters/getParamsTypes';
+import { getQueryParamsTypes } from '../getters/getQueryParamsTypes';
+import { getResReqTypes } from '../getters/getResReqTypes';
+import { isReference } from '../isReference';
+
+const sortParams = (arr: { default?: boolean; required?: boolean; definition: string }[]) =>
+  arr.sort((a, b) => {
+    if (a.default) {
+      return 1;
+    }
+
+    if (b.default) {
+      return -1;
+    }
+
+    if (a.required && b.required) {
+      return 1;
+    }
+
+    if (a.required) {
+      return -1;
+    }
+
+    if (b.required) {
+      return 1;
+    }
+    return 1;
+  });
 
 /**
  * Generate a restful-client component from openapi operation specs
@@ -74,7 +98,7 @@ const generateApiCalls = (
     'in',
   );
 
-  const propsDefinition = [
+  const propsDefinition = sortParams([
     ...getParamsTypes({ params: paramsInPath, pathParams, operation }),
     ...(requestBodyTypes
       ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
@@ -90,33 +114,11 @@ const generateApiCalls = (
           },
         ]
       : []),
-  ]
-    .sort((a, b) => {
-      if (a.default) {
-        return 1;
-      }
-
-      if (b.default) {
-        return -1;
-      }
-
-      if (a.required && b.required) {
-        return 1;
-      }
-
-      if (a.required) {
-        return -1;
-      }
-
-      if (b.required) {
-        return 1;
-      }
-      return 1;
-    })
+  ])
     .map(({ definition }) => definition)
     .join(', ');
 
-  const props = [
+  const props = sortParams([
     ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
     ...(requestBodyTypes
       ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
@@ -132,29 +134,7 @@ const generateApiCalls = (
           },
         ]
       : []),
-  ]
-    .sort((a, b) => {
-      if (a.default) {
-        return 1;
-      }
-
-      if (b.default) {
-        return -1;
-      }
-
-      if (a.required && b.required) {
-        return 1;
-      }
-
-      if (a.required) {
-        return -1;
-      }
-
-      if (b.required) {
-        return 1;
-      }
-      return 1;
-    })
+  ])
     .map(({ definition }) => definition)
     .join(', ');
 
