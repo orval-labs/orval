@@ -26,7 +26,7 @@
   },
   "scripts": {
     "rollup": "rollup -c rollup.config.js",
-    "build": "tsc && yarn rollup",
+    "build": "rm -R ./lib && tsc && yarn rollup",
     "lint": "tslint src/**/*{ts,tsx} --project .",
     "ci": "[ ! -z $DANGER_GITHUB_API_TOKEN ] && yarn danger ci || echo \"Skipping Danger for External Contributor\"",
     "examples": "run-p example:*",
