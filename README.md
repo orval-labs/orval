@@ -1,4 +1,5 @@
 # `restful-client`
+
 Inspired by [restful-react](https://github.com/contiamo/restful-react)
 
 - [Code Generation](#code-generation)
@@ -134,15 +135,10 @@ interface RestfulClientConfig {
     // classic configuration
     output: string;
     file?: string;
+    types?: string;
     github?: string;
     transformer?: string;
     validation?: boolean;
-
-    // advanced configuration
-    customImport?: string;
-    customProps?: {
-      base?: string;
-    };
   };
 }
 ```
@@ -152,16 +148,16 @@ interface RestfulClientConfig {
 ```js
 // restful-client.config.js
 module.exports = {
-  myFirstBackend: {
-    output: 'src/queries/myFirstBackend.tsx',
-    file: 'specs/my-first-backend.yaml',
-    customProps: {
-      base: `"http://my-first-backend.com"`,
-    },
+  'petstore-file': {
+    file: 'examples/petstore.yaml',
+    output: 'examples/petstoreFromFileSpecWithConfig.tsx',
+    types: './model',
   },
-  configurableBackend: {
-    output: 'src/queries/configurableBackend.tsx',
-    github: 'contiamo:restful-client:master:docs/swagger.json',
+  'petstore-file-transfomer': {
+    file: 'examples/petstore.yaml',
+    output: 'examples/petstoreFromFileSpecWithTransformer.tsx',
+    types: './model',
+    transformer: 'examples/transformer-add-version.js',
   },
 };
 ```
