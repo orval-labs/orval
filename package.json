@@ -29,7 +29,6 @@
     "prebuild": "rimraf ./lib && mkdir lib",
     "build": "tsc && yarn rollup",
     "lint": "tslint src/**/*{ts,tsx} --project .",
-    "ci": "[ ! -z $DANGER_GITHUB_API_TOKEN ] && yarn danger ci || echo \"Skipping Danger for External Contributor\"",
     "examples": "run-p example:*",
     "example:github": "node lib/bin/restful-client.js import --github OAI:OpenAPI-Specification:master:examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
     "example:file": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
