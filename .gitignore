@@ -102,6 +102,7 @@ package-lock.json
 
 # examples artefacts
 examples/*.tsx
+examples/model/*
 
 # Files managed by operational-scripts
 tslint.json

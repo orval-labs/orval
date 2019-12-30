@@ -18,7 +18,7 @@ export const generateResponsesDefinition = (
   }
 
   const models = Object.entries(responses).map(([name, response]) => {
-    const type = getResReqTypes([['', response]]);
+    const type = getResReqTypes([['', response]]).join(' | ');
     const isEmptyInterface = type === '{}';
 
     let imports: string[] = [];

@@ -11,6 +11,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
   base,
   api,
   models,
+  mocks,
 }: {
   base: string;
   api: {
@@ -22,6 +23,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
     model: string;
     imports?: string[] | undefined;
   }[];
+  mocks: string;
 }) => {
   const { output, types, workDir = '' } = options;
 
@@ -41,22 +43,21 @@ export const writeSpecs = (options: Options, backend?: string) => ({
   }
 
   if (output) {
+    let data = base;
     if (types) {
-      let data = base;
       data += generateImports(
         api.imports,
         resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
         true,
       );
-      data += '\n';
-      data += api.output;
-      writeFileSync(join(process.cwd(), workDir, output), data);
     } else {
-      let data = base;
       data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
-      data += '\n';
-      data += api.output;
-      writeFileSync(join(process.cwd(), workDir, output), data);
+    }
+    data += '\n';
+    data += api.output;
+    writeFileSync(join(process.cwd(), workDir, output), data);
+    if (options.mock) {
+      appendFileSync(join(process.cwd(), workDir, output), mocks);
     }
     log(createSuccessMessage(backend));
   }

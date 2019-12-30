@@ -46,14 +46,14 @@
     "husky": "^0.14.3",
     "lint-staged": "^7.2.0",
     "npm-run-all": "^4.1.5",
-    "prettier": "^1.16.4",
+    "prettier": "^1.19.1",
     "rimraf": "^3.0.0",
     "rollup": "^0.67.3",
     "rollup-plugin-typescript2": "^0.20.1",
     "tslint": "^5.10.0",
     "tslint-config-prettier": "^1.13.0",
     "tslint-plugin-blank-line": "^0.0.9",
-    "typescript": "^3.3.4000"
+    "typescript": "^3.7.4"
   },
   "dependencies": {
     "case": "^1.6.1",
