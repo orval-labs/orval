@@ -1,7 +1,7 @@
 import { pascal } from 'case';
 import isEmpty from 'lodash/isEmpty';
 import uniq from 'lodash/uniq';
-import { ComponentsObject } from 'openapi3-ts';
+import { SchemaObject } from 'openapi3-ts';
 import { generalJSTypes } from '../../constants/generalJsTypes';
 import { isReference } from '../isReference';
 import { resolveValue } from '../resolvers/resolveValue';
@@ -13,7 +13,7 @@ import { generateInterface } from './generateInterface';
  * @param schemas
  */
 export const generateSchemasDefinition = (
-  schemas: ComponentsObject['schemas'] = {},
+  schemas: SchemaObject = {},
 ): Array<{ name: string; model: string; imports?: string[] }> => {
   if (isEmpty(schemas)) {
     return [];

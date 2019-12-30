@@ -61,6 +61,9 @@ export const getObject = (item: SchemaObject): { value: string; imports?: string
   }
 
   if (item.additionalProperties) {
+    if(typeof item.additionalProperties === 'boolean'){
+      return {value: `{[key: string]: object}`};
+    }
     const { value, imports } = resolveValue(item.additionalProperties);
     return { value: `{[key: string]: ${value}}`, imports };
   }

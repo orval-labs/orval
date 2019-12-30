@@ -70,6 +70,9 @@ const getObject = (item: SchemaObject, schemas: { [key: string]: SchemaObject },
   }
 
   if (item.additionalProperties) {
+    if (typeof item.additionalProperties === 'boolean') {
+      return { value: `{}` };
+    }
     return resolveValue(item.additionalProperties, schemas);
   }
 
