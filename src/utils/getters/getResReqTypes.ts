@@ -34,4 +34,4 @@ export const getResReqTypes = (
         return 'unknown';
       }
     }),
-  ).join(' | ');
+  );

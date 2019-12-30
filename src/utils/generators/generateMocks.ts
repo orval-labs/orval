@@ -1,7 +1,6 @@
 import { camel, pascal } from 'case';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
-import uniq from 'lodash/uniq';
 import {
   ComponentsObject,
   OpenAPIObject,
@@ -10,8 +9,10 @@ import {
   PathItemObject,
   ReferenceObject,
   ResponseObject,
+  SchemaObject,
 } from 'openapi3-ts';
 import { generalJSTypes } from '../../constants/generalJsTypes';
+import { getMockDefinition } from '../getters/getMockDefinition';
 import { getParamsInPath } from '../getters/getParamsInPath';
 import { getParamsTypes } from '../getters/getParamsTypes';
 import { getQueryParamsTypes } from '../getters/getQueryParamsTypes';
@@ -42,31 +43,13 @@ const sortParams = (arr: { default?: boolean; required?: boolean; definition: st
     return 1;
   });
 
-/**
- * Generate a restful-client component from openapi operation specs
- *
- * @param operation
- * @param verb
- * @param route
- * @param baseUrl
- * @param operationIds - List of `operationId` to check duplication
- */
-const generateApiCalls = (
+const generateMocksCalls = (
   operation: OperationObject,
   verb: string,
   route: string,
-  operationIds: string[],
   parameters: Array<ReferenceObject | ParameterObject> = [],
   schemasComponents?: ComponentsObject,
 ) => {
-  if (!operation.operationId) {
-    throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
-  }
-  if (operationIds.includes(operation.operationId)) {
-    throw new Error(`"${operation.operationId}" is duplicated in your schema definition!`);
-  }
-  operationIds.push(operation.operationId);
-
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
 
   // Remove the last param of the route if we are in the DELETE case
@@ -80,7 +63,9 @@ const generateApiCalls = (
 
   const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) => statusCode.toString().startsWith('2');
 
-  const responseTypes = getResReqTypes(Object.entries(operation.responses).filter(isOk)).join(' | ');
+  const allResponseTypes = getResReqTypes(Object.entries(operation.responses).filter(isOk));
+
+  const responseTypes = allResponseTypes.join(' | ');
 
   const requestBodyTypes = getResReqTypes([['body', operation.requestBody!]]).join(' | ');
   const needAResponseComponent = responseTypes.includes('{');
@@ -96,26 +81,6 @@ const generateApiCalls = (
     }),
     'in',
   );
-
-  const propsDefinition = sortParams([
-    ...getParamsTypes({ params: paramsInPath, pathParams, operation }),
-    ...(requestBodyTypes
-      ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
-      : []),
-    ...(queryParams.length
-      ? [
-          {
-            definition: `params?: { ${getQueryParamsTypes({ queryParams })
-              .map(({ definition }) => definition)
-              .join(', ')} }`,
-            default: false,
-            required: false,
-          },
-        ]
-      : []),
-  ])
-    .map(({ definition }) => definition)
-    .join(', ');
 
   const props = sortParams([
     ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
@@ -137,64 +102,55 @@ const generateApiCalls = (
     .map(({ definition }) => definition)
     .join(', ');
 
-  const definition = `
-  ${operation.summary ? '// ' + operation.summary : ''}
-  ${camel(componentName)}(${propsDefinition}): AxiosPromise<${
-    needAResponseComponent ? componentName + 'Response' : responseTypes
-  }>`;
+  const schemas = Object.entries(schemasComponents?.schemas || []).reduce(
+    (acc, [name, type]) => ({ ...acc, [name]: type }),
+    {},
+  ) as { [key: string]: SchemaObject };
+
+  const mocks = allResponseTypes.map(type => {
+    if (!type) {
+      return 'Promise.resolve()';
+    }
+
+    if (!generalJSTypes.includes(type)) {
+      const schema = schemas[type];
+      if (!schema) {
+        return 'Promise.resolve()';
+      }
+
+      return `Promise.resolve({data: ${getMockDefinition(schema, schemas).value}})`;
+    }
+
+    return 'Promise.resolve()';
+  });
+
+  const mocksDefinition = '[' + mocks.join(', ') + ']';
 
   const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }> {
-    return axios.${verb}(\`${route}\` ${requestBodyTypes ? `, ${camel(requestBodyTypes)}` : ''} ${
-    queryParams.length || responseTypes === 'BlobPart'
-      ? `,
-      {
-        ${queryParams.length ? 'params' : ''}${queryParams.length && responseTypes === 'BlobPart' ? ',' : ''}${
-          responseTypes === 'BlobPart'
-            ? `responseType: 'arraybuffer',
-        headers: {
-          Accept: 'application/pdf',
-        },`
-            : ''
-        }
-      }`
-      : ''
-  });
+    return ${mocks.length > 1 ? `faker.helpers.randomize(${mocksDefinition})` : mocks[0]}
   },
 `;
 
-  const mock = `  ${camel(componentName)}(${props}): AxiosPromise<${
-    needAResponseComponent ? componentName + 'Response' : responseTypes
-  }> {
-    return
-  },
-`;
-
-  return { value: output, definition, mock, imports: [responseTypes, requestBodyTypes] };
+  return { value: output };
 };
 
-export const generateApi = (specs: OpenAPIObject, operationIds: string[]) => {
-  let imports: string[] = [];
-  let definition = '';
-  definition += `export interface ${pascal(specs.info.title)} {`;
+export const generateMocks = (specs: OpenAPIObject) => {
   let value = '';
-  value += `export const get${pascal(specs.info.title)} = (axios: AxiosInstance): ${pascal(specs.info.title)} => ({\n`;
+
+  value += `export const get${pascal(specs.info.title)}Mock = (): ${pascal(specs.info.title)} => ({\n`;
   Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
     Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
       if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = generateApiCalls(operation, verb, route, operationIds, verbs.parameters, specs.components);
-        imports = [...imports, ...call.imports];
-        definition += `${call.definition};`;
+        const call = generateMocksCalls(operation, verb, route, verbs.parameters, specs.components);
         value += call.value;
       }
     });
   });
-  definition += '\n};';
   value += '})';
 
   return {
-    output: `${definition}\n\n${value}`,
-    imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+    output: `\n\n${value}`,
   };
 };

@@ -13,5 +13,6 @@ module.exports = {
     output: 'examples/petstoreFromFileSpecWithTransformer.tsx',
     types: 'examples/model',
     transformer: 'examples/transformer-add-version.js',
+    mock: true,
   },
 };

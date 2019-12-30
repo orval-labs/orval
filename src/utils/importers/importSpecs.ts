@@ -44,6 +44,7 @@ export const importSpecs = async (
   base: string;
   api: { output: string; imports?: string[] };
   models: Array<{ name: string; model: string; imports?: string[] }>;
+  mocks: string;
 }> => {
   const transformer = options.transformer ? require(join(process.cwd(), options.transformer)) : undefined;
 

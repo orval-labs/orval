@@ -7,6 +7,7 @@ export interface Options {
   github?: string;
   transformer?: string;
   validation?: boolean;
+  mock?: boolean;
 }
 
 export type AdvancedOptions = Options;

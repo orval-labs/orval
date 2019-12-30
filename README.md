@@ -139,6 +139,7 @@ interface RestfulClientConfig {
     github?: string;
     transformer?: string;
     validation?: boolean;
+    mock?: boolean;
   };
 }
 ```
@@ -158,6 +159,7 @@ module.exports = {
     output: 'examples/petstoreFromFileSpecWithTransformer.tsx',
     types: './model',
     transformer: 'examples/transformer-add-version.js',
+    mock: true
   },
 };
 ```
