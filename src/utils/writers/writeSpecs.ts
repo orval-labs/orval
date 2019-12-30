@@ -46,7 +46,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
 import { AxiosPromise, AxiosInstance } from 'axios'
 `;
     if (options.mock) {
-      data += "import faker from 'faker'";
+      data += "import faker from 'faker' \n";
     }
 
     if (types) {
