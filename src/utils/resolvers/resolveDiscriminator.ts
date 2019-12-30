@@ -1,4 +1,4 @@
-import { OpenAPIObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
 
 /**
  * Propagate every `discriminator.propertyName` mapping to the original ref
@@ -9,7 +9,7 @@ import { OpenAPIObject } from 'openapi3-ts';
  */
 export const resolveDiscriminator = (specs: OpenAPIObject) => {
   if (specs.components && specs.components.schemas) {
-    Object.values(specs.components.schemas).forEach(schema => {
+    Object.values(specs.components.schemas).forEach((schema: SchemaObject) => {
       if (!schema.discriminator || !schema.discriminator.mapping) {
         return;
       }
@@ -23,9 +23,9 @@ export const resolveDiscriminator = (specs: OpenAPIObject) => {
           specs.components &&
           specs.components.schemas &&
           specs.components.schemas[ref.slice('#/components/schemas/'.length)] &&
-          specs.components.schemas[ref.slice('#/components/schemas/'.length)].properties &&
-          specs.components.schemas[ref.slice('#/components/schemas/'.length)].properties![propertyName] &&
-          !specs.components.schemas[ref.slice('#/components/schemas/'.length)].properties![propertyName].$ref
+          (specs.components.schemas[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties &&
+          (specs.components.schemas[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties![propertyName] &&
+          !(specs.components.schemas[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties![propertyName].$ref
         ) {
           // @ts-ignore This is check on runtime
           specs.components.schemas[ref.slice('#/components/schemas/'.length)].properties![propertyName].enum = [name];

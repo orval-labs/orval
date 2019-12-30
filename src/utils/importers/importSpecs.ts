@@ -41,7 +41,6 @@ const getGithubSpecReq = ({
 export const importSpecs = async (
   options: AdvancedOptions,
 ): Promise<{
-  base: string;
   api: { output: string; imports?: string[] };
   models: Array<{ name: string; model: string; imports?: string[] }>;
   mocks: string;
