@@ -20,12 +20,9 @@ export const resolveDiscriminator = (specs: OpenAPIObject) => {
           throw new Error('Discriminator mapping outside of `#/components/schemas` is not supported');
         }
         if (
-          specs.components &&
-          specs.components.schemas &&
-          specs.components.schemas[ref.slice('#/components/schemas/'.length)] &&
-          (specs.components.schemas[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties &&
-          (specs.components.schemas[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties![propertyName] &&
-          !(specs.components.schemas[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties![propertyName].$ref
+          !(specs?.components?.schemas?.[ref.slice('#/components/schemas/'.length)] as SchemaObject).properties![
+            propertyName
+          ]?.$ref
         ) {
           // @ts-ignore This is check on runtime
           specs.components.schemas[ref.slice('#/components/schemas/'.length)].properties![propertyName].enum = [name];

@@ -1,6 +1,7 @@
 import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
+import { MockOptions } from '../../types';
 import { generateApi } from '../generators/generateApi';
 import { generateMocks } from '../generators/generateMocks';
 import { generateResponsesDefinition } from '../generators/generateResponsesDefinition';
@@ -45,13 +46,14 @@ export const importOpenApi = async ({
   format,
   transformer,
   validation,
+  mockOptions,
 }: {
   data: string;
   format: 'yaml' | 'json';
   transformer?: (specs: OpenAPIObject) => OpenAPIObject;
   validation?: boolean;
+  mockOptions?: MockOptions;
 }) => {
-  const operationIds: string[] = [];
   let specs = await importSpecs(data, format);
   if (transformer) {
     specs = transformer(specs);
@@ -68,9 +70,9 @@ export const importOpenApi = async ({
 
   const models = [...schemaDefinition, ...responseDefinition];
 
-  const api = generateApi(specs, operationIds);
+  const api = generateApi(specs);
 
-  const mocks = generateMocks(specs);
+  const mocks = generateMocks(specs, mockOptions);
 
-  return { api, mocks: mocks.output, models };
+  return { api, mocks, models };
 };

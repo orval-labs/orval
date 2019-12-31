@@ -55,17 +55,12 @@ const generateApiCalls = (
   operation: OperationObject,
   verb: string,
   route: string,
-  operationIds: string[],
   parameters: Array<ReferenceObject | ParameterObject> = [],
   schemasComponents?: ComponentsObject,
 ) => {
   if (!operation.operationId) {
     throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
   }
-  if (operationIds.includes(operation.operationId)) {
-    throw new Error(`"${operation.operationId}" is duplicated in your schema definition!`);
-  }
-  operationIds.push(operation.operationId);
 
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
 
@@ -174,7 +169,7 @@ const generateApiCalls = (
   return { value: output, definition, mock, imports: [responseTypes, requestBodyTypes] };
 };
 
-export const generateApi = (specs: OpenAPIObject, operationIds: string[]) => {
+export const generateApi = (specs: OpenAPIObject) => {
   let imports: string[] = [];
   let definition = '';
   definition += `export interface ${pascal(specs.info.title)} {`;
@@ -183,7 +178,7 @@ export const generateApi = (specs: OpenAPIObject, operationIds: string[]) => {
   Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
     Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
       if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = generateApiCalls(operation, verb, route, operationIds, verbs.parameters, specs.components);
+        const call = generateApiCalls(operation, verb, route, verbs.parameters, specs.components);
         imports = [...imports, ...call.imports];
         definition += `${call.definition};`;
         value += call.value;
