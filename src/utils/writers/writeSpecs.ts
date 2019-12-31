@@ -21,7 +21,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
     model: string;
     imports?: string[] | undefined;
   }[];
-  mocks: string;
+  mocks: { output: string; imports?: string[] };
 }) => {
   const { output, types, workDir = '' } = options;
 
@@ -51,7 +51,7 @@ import { AxiosPromise, AxiosInstance } from 'axios'
 
     if (types) {
       data += generateImports(
-        api.imports,
+        options.mock ? [...api.imports, ...mocks.imports] : api.imports,
         resolvePath(join(process.cwd(), workDir, output), join(process.cwd(), workDir, types)),
         true,
       );
@@ -62,7 +62,7 @@ import { AxiosPromise, AxiosInstance } from 'axios'
     data += api.output;
     writeFileSync(join(process.cwd(), workDir, output), data);
     if (options.mock) {
-      appendFileSync(join(process.cwd(), workDir, output), mocks);
+      appendFileSync(join(process.cwd(), workDir, output), mocks.output);
     }
     log(createSuccessMessage(backend));
   }

@@ -43,7 +43,7 @@ export const importSpecs = async (
 ): Promise<{
   api: { output: string; imports?: string[] };
   models: Array<{ name: string; model: string; imports?: string[] }>;
-  mocks: string;
+  mocks: { output: string; imports?: string[] };
 }> => {
   const transformer = options.transformer ? require(join(process.cwd(), options.transformer)) : undefined;
 
@@ -61,6 +61,7 @@ export const importSpecs = async (
       format,
       transformer,
       validation: options.validation,
+      ...(typeof options.mock === 'object' ? { mockOptions: options.mock } : {}),
     });
   } else if (options.github) {
     const { github } = options;
@@ -121,6 +122,7 @@ export const importSpecs = async (
             format,
             transformer,
             validation: options.validation,
+            ...(typeof options.mock === 'object' ? { mockOptions: options.mock } : {}),
           }),
         );
       });
