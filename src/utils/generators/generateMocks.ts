@@ -20,6 +20,7 @@ import { getParamsTypes } from '../getters/getParamsTypes';
 import { getQueryParamsTypes } from '../getters/getQueryParamsTypes';
 import { getResReqTypes } from '../getters/getResReqTypes';
 import { isReference } from '../isReference';
+import { stringify } from '../stringify';
 
 const sortParams = (arr: { default?: boolean; required?: boolean; definition: string }[]) =>
   arr.sort((a, b) => {
@@ -146,6 +147,7 @@ const generateMocksCalls = ({
             (acc, [key, value]) => ({
               ...acc,
               [key]: {
+                ...value,
                 ...(value.properties
                   ? {
                       properties: typeof value.properties === 'function' ? value.properties(specs) : value.properties,
@@ -186,10 +188,17 @@ const generateMocksCalls = ({
 
   const mocksDefinition = '[' + mocks.join(', ') + ']';
 
+  const mockData =
+    typeof mockOptions?.responses?.[operationId]?.data === 'function'
+      ? `(${mockOptions?.responses?.[operationId]?.data})()`
+      : stringify(mockOptions?.responses?.[operationId]?.data);
+
   const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }> {
-    return ${mocks.length > 1 ? `faker.helpers.randomize(${mocksDefinition})` : mocks[0]}
+    return ${
+      mockData ? toAxiosPromise(mockData) : mocks.length > 1 ? `faker.helpers.randomize(${mocksDefinition})` : mocks[0]
+    }
   },
 `;
 
