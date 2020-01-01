@@ -19,6 +19,7 @@ export interface MockOptions<T = MockProperties> {
   responses?: {
     [operationId: string]: {
       properties?: T;
+      data?: T;
     };
   };
 }
