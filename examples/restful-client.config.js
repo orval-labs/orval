@@ -6,14 +6,14 @@ const faker = require('faker');
 module.exports = {
   'petstore-file': {
     file: 'examples/petstore.yaml',
-    output: 'examples/petstoreFromFileSpecWithConfig.tsx',
-    types: './model',
+    output: 'examples/petstoreFromFileSpecWithConfig.ts',
+    types: 'examples/model',
     mock: true,
   },
   'petstore-file-transfomer': {
     file: 'examples/petstore.yaml',
-    output: 'examples/petstoreFromFileSpecWithTransformer.tsx',
-    types: './model',
+    output: 'examples/petstoreFromFileSpecWithTransformer.ts',
+    types: 'examples/model',
     transformer: 'examples/transformer-add-version.js',
     mock: {
       properties: {
