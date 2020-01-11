@@ -2,15 +2,7 @@ import { camel, pascal } from 'case';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
 import uniq from 'lodash/uniq';
-import {
-  ComponentsObject,
-  OpenAPIObject,
-  OperationObject,
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-  ResponseObject,
-} from 'openapi3-ts';
+import { ComponentsObject, OpenAPIObject, OperationObject, ParameterObject, PathItemObject, ReferenceObject, ResponseObject } from 'openapi3-ts';
 import { generalJSTypes } from '../../constants/generalJsTypes';
 import { getParamsInPath } from '../getters/getParamsInPath';
 import { getParamsTypes } from '../getters/getParamsTypes';
@@ -43,7 +35,7 @@ const sortParams = (arr: { default?: boolean; required?: boolean; definition: st
   });
 
 /**
- * Generate a restful-client component from openapi operation specs
+ * Generate a orval component from openapi operation specs
  *
  * @param operation
  * @param verb
