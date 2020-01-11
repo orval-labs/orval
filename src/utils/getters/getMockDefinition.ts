@@ -1,5 +1,5 @@
 import { pascal } from 'case';
-import faker from 'faker';
+import cuid from 'cuid'
 import get from 'lodash/get';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { MockOptions } from '../../types';
@@ -158,7 +158,7 @@ const getObject = ({
     return {
       ...resolvedValue,
       value: `{
-        '${faker.random.uuid()}': ${resolvedValue.value}
+        '${cuid()}': ${resolvedValue.value}
       }`,
     };
   }

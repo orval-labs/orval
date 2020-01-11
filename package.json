@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "license": "MIT",
   "files": [
     "lib"
@@ -59,6 +59,7 @@
     "case": "^1.6.2",
     "chalk": "^3.0.0",
     "commander": "^4.0.1",
+    "cuid": "^2.1.8",
     "ibm-openapi-validator": "^0.16.0",
     "inquirer": "^7.0.1",
     "lodash": "^4.17.15",
