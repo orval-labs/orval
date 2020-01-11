@@ -1,13 +1,13 @@
 {
-  "name": "@hackages/restful-client",
+  "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "0.0.14",
+  "version": "1.0.0",
   "license": "MIT",
   "files": [
     "lib"
   ],
   "bin": {
-    "restful-client": "lib/bin/restful-client.js"
+    "orval": "lib/bin/orval.js"
   },
   "keywords": [
     "rest",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hackages/restful-client"
+    "url": "https://github.com/hackages/orval"
   },
   "scripts": {
     "rollup": "rollup -c rollup.config.js",
@@ -30,10 +30,10 @@
     "build": "tsc && yarn rollup",
     "lint": "tslint src/**/*{ts,tsx} --project .",
     "examples": "run-p example:*",
-    "example:github": "node lib/bin/restful-client.js import --github OAI:OpenAPI-Specification:master:examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
-    "example:file": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
-    "example:directory": "node lib/bin/restful-client.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx --types ./model",
-    "example:advanced": "node lib/bin/restful-client.js import --config examples/restful-client.config.js"
+    "example:github": "node lib/bin/orval.js import --github OAI:OpenAPI-Specification:master:examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
+    "example:file": "node lib/bin/orval.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
+    "example:directory": "node lib/bin/orval.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx --types ./model",
+    "example:advanced": "node lib/bin/orval.js import --config examples/orval.config.js"
   },
   "devDependencies": {
     "@types/chalk": "^2.2.0",

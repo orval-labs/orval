@@ -22,7 +22,7 @@ const getGithubSpecReq = ({
   url: 'https://api.github.com/graphql',
   headers: {
     'content-type': 'application/json',
-    'user-agent': 'restful-client-importer',
+    'user-agent': 'orval-importer',
     authorization: `bearer ${accessToken}`,
   },
   body: JSON.stringify({

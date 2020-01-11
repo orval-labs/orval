@@ -6,5 +6,5 @@ const { version } = JSON.parse(readFileSync(join(__dirname, '../../package.json'
 
 program
   .version(version)
-  .command('import [open-api-file]', 'generate restful-client type-safe from OpenAPI specs')
+  .command('import [open-api-file]', 'generate orval type-safe from OpenAPI specs')
   .parse(process.argv);

@@ -34,7 +34,7 @@ const importSpecs = (data: string, extension: 'yaml' | 'json'): Promise<OpenAPIO
 };
 
 /**
- * Main entry of the generator. Generate restful-client from openAPI.
+ * Main entry of the generator. Generate orval from openAPI.
  *
  * @param options.data raw data of the spec
  * @param options.format format of the spec

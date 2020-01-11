@@ -1,5 +1,5 @@
 /**
- * Transformer function for restful-react.
+ * Transformer function for orval.
  *
  * @param {OpenAPIObject} schema
  * @return {OpenAPIObject}
