@@ -7,8 +7,6 @@ module.exports = {
   'petstore-file': {
     file: 'examples/petstore.yaml',
     output: 'examples/petstoreFromFileSpecWithConfig.ts',
-    types: 'examples/model',
-    mock: true,
   },
   'petstore-file-transfomer': {
     file: 'examples/petstore.yaml',

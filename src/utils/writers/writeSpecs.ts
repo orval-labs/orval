@@ -15,6 +15,11 @@ export const writeSpecs = (options: Options, backend?: string) => ({
   api: {
     output: string;
     imports?: string[] | undefined;
+    queryParamDefinitions?: {
+      name: string;
+      model: string;
+      imports?: string[] | undefined;
+    }[];
   };
   models: {
     name: string;
@@ -38,6 +43,15 @@ export const writeSpecs = (options: Options, backend?: string) => ({
       writeFileSync(join(process.cwd(), workDir, `${types}/${name}.ts`), file);
       appendFileSync(join(process.cwd(), workDir, `${types}/index.ts`), `export * from './${name}'\n`);
     });
+
+    if (api.queryParamDefinitions) {
+      api.queryParamDefinitions.forEach(({ name, model, imports }) => {
+        let file = generateImports(imports);
+        file += model;
+        writeFileSync(join(process.cwd(), workDir, `${types}/${name}.ts`), file);
+        appendFileSync(join(process.cwd(), workDir, `${types}/index.ts`), `export * from './${name}'\n`);
+      });
+    }
   }
 
   if (output) {
@@ -57,6 +71,9 @@ import { AxiosPromise, AxiosInstance } from 'axios'
       );
     } else {
       data += models.reduce((acc, { model }) => acc + `${model}\n\n`, '');
+      if (api.queryParamDefinitions) {
+        data += api.queryParamDefinitions.reduce((acc, { model }) => acc + `${model}\n\n`, '');
+      }
     }
     data += '\n';
     data += api.output;

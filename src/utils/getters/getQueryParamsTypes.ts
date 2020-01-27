@@ -15,22 +15,26 @@ export const getQueryParamsTypes = ({
       schema: SchemaObject;
     };
 
+    const { value, imports } = resolveValue(schema!);
+
     if (type === 'definition') {
       return {
         name,
-        definition: `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema!).value}`,
+        definition: `${name}${!required || schema.default ? '?' : ''}: ${value}`,
         default: schema.default,
         required,
+        imports,
       };
     }
 
     return {
       name,
-      definition: `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema!).value}${
+      definition: `${name}${!required && !schema.default ? '?' : ''}: ${value}${
         schema.default ? ` = ${schema.default}` : ''
       }`,
       default: schema.default,
       required,
+      imports,
     };
   });
 };

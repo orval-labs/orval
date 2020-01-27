@@ -2,7 +2,15 @@ import { camel, pascal } from 'case';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
 import uniq from 'lodash/uniq';
-import { ComponentsObject, OpenAPIObject, OperationObject, ParameterObject, PathItemObject, ReferenceObject, ResponseObject } from 'openapi3-ts';
+import {
+  ComponentsObject,
+  OpenAPIObject,
+  OperationObject,
+  ParameterObject,
+  PathItemObject,
+  ReferenceObject,
+  ResponseObject,
+} from 'openapi3-ts';
 import { generalJSTypes } from '../../constants/generalJsTypes';
 import { getParamsInPath } from '../getters/getParamsInPath';
 import { getParamsTypes } from '../getters/getParamsTypes';
@@ -49,7 +57,16 @@ const generateApiCalls = (
   route: string,
   parameters: Array<ReferenceObject | ParameterObject> = [],
   schemasComponents?: ComponentsObject,
-) => {
+): {
+  value: string;
+  definition: string;
+  imports: string[];
+  queryParamDefinition?: {
+    name: string;
+    model: string;
+    imports: string[];
+  };
+} => {
   if (!operation.operationId) {
     throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
   }
@@ -68,8 +85,8 @@ const generateApiCalls = (
   const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) => statusCode.toString().startsWith('2');
 
   const responseTypes = getResReqTypes(Object.entries(operation.responses).filter(isOk)).join(' | ');
-
   const requestBodyTypes = getResReqTypes([['body', operation.requestBody!]]).join(' | ');
+  let imports: string[] = [responseTypes, requestBodyTypes];
   const needAResponseComponent = responseTypes.includes('{');
 
   const paramsInPath = getParamsInPath(route).filter(param => !(verb === 'delete' && param === lastParamInTheRoute));
@@ -84,6 +101,22 @@ const generateApiCalls = (
     'in',
   );
 
+  const queryParamsTypes = getQueryParamsTypes({ queryParams });
+  const queryParamsImports = queryParamsTypes.reduce<string[]>((acc, { imports = [] }) => [...acc, ...imports], []);
+  const queryParamsDefinitioName = `${camel(componentName)}Params`;
+
+  if (queryParams.length) {
+    imports = [...imports, queryParamsDefinitioName];
+  }
+
+  const queryParamDefinition = {
+    name: queryParamsDefinitioName,
+    model: `export type ${queryParamsDefinitioName} = { ${queryParamsTypes
+      .map(({ definition }) => definition)
+      .join(', ')} }`,
+    imports: queryParamsImports,
+  };
+
   const propsDefinition = sortParams([
     ...getParamsTypes({ params: paramsInPath, pathParams, operation }),
     ...(requestBodyTypes
@@ -92,9 +125,7 @@ const generateApiCalls = (
     ...(queryParams.length
       ? [
           {
-            definition: `params?: { ${getQueryParamsTypes({ queryParams })
-              .map(({ definition }) => definition)
-              .join(', ')} }`,
+            definition: `params?: ${queryParamsDefinitioName}`,
             default: false,
             required: false,
           },
@@ -112,9 +143,7 @@ const generateApiCalls = (
     ...(queryParams.length
       ? [
           {
-            definition: `params?: { ${getQueryParamsTypes({ queryParams, type: 'implementation' })
-              .map(({ definition }) => definition)
-              .join(', ')} }`,
+            definition: `params?: ${queryParamsDefinitioName}`,
             default: false,
             required: false,
           },
@@ -151,18 +180,17 @@ const generateApiCalls = (
   },
 `;
 
-  const mock = `  ${camel(componentName)}(${props}): AxiosPromise<${
-    needAResponseComponent ? componentName + 'Response' : responseTypes
-  }> {
-    return
-  },
-`;
-
-  return { value: output, definition, mock, imports: [responseTypes, requestBodyTypes] };
+  return {
+    value: output,
+    definition,
+    imports,
+    ...(queryParams.length ? { queryParamDefinition } : {}),
+  };
 };
 
 export const generateApi = (specs: OpenAPIObject) => {
   let imports: string[] = [];
+  let queryParamDefinitions: Array<{ name: string; model: string; imports?: string[] }> = [];
   let definition = '';
   definition += `export interface ${pascal(specs.info.title)} {`;
   let value = '';
@@ -171,6 +199,9 @@ export const generateApi = (specs: OpenAPIObject) => {
     Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
       if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
         const call = generateApiCalls(operation, verb, route, verbs.parameters, specs.components);
+        if (call.queryParamDefinition) {
+          queryParamDefinitions = [...queryParamDefinitions, call.queryParamDefinition];
+        }
         imports = [...imports, ...call.imports];
         definition += `${call.definition};`;
         value += call.value;
@@ -183,5 +214,6 @@ export const generateApi = (specs: OpenAPIObject) => {
   return {
     output: `${definition}\n\n${value}`,
     imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+    queryParamDefinitions,
   };
 };
