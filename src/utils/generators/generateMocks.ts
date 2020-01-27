@@ -17,7 +17,6 @@ import { MockOptions } from '../../types';
 import { getMockDefinition } from '../getters/getMockDefinition';
 import { getParamsInPath } from '../getters/getParamsInPath';
 import { getParamsTypes } from '../getters/getParamsTypes';
-import { getQueryParamsTypes } from '../getters/getQueryParamsTypes';
 import { getResReqTypes } from '../getters/getResReqTypes';
 import { isReference } from '../isReference';
 import { stringify } from '../stringify';
@@ -101,6 +100,8 @@ const generateMocksCalls = ({
     'in',
   );
 
+  const queryParamsDefinitioName = `${camel(componentName)}Params`;
+
   const props = sortParams([
     ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
     ...(requestBodyTypes
@@ -109,9 +110,7 @@ const generateMocksCalls = ({
     ...(queryParams.length
       ? [
           {
-            definition: `params?: { ${getQueryParamsTypes({ queryParams, type: 'implementation' })
-              .map(({ definition }) => definition)
-              .join(', ')} }`,
+            definition: `params?: ${queryParamsDefinitioName}`,
             default: false,
             required: false,
           },
