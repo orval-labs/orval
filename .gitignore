@@ -103,8 +103,3 @@ package-lock.json
 # examples artefacts
 examples/*.ts
 examples/model/*
-
-# Files managed by operational-scripts
-tslint.json
-tsconfig.json
-.prettierrc
