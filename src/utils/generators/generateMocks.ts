@@ -1,4 +1,4 @@
-import { camel, pascal } from 'case';
+import {camel, pascal} from 'case';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
 import uniq from 'lodash/uniq';
@@ -10,18 +10,20 @@ import {
   PathItemObject,
   ReferenceObject,
   ResponseObject,
-  SchemaObject,
+  SchemaObject
 } from 'openapi3-ts';
-import { generalJSTypes } from '../../constants/generalJsTypes';
-import { MockOptions } from '../../types';
-import { getMockDefinition } from '../getters/getMockDefinition';
-import { getParamsInPath } from '../getters/getParamsInPath';
-import { getParamsTypes } from '../getters/getParamsTypes';
-import { getResReqTypes } from '../getters/getResReqTypes';
-import { isReference } from '../isReference';
-import { stringify } from '../stringify';
+import {generalJSTypes} from '../../constants/generalJsTypes';
+import {MockOptions} from '../../types';
+import {getMockDefinition} from '../getters/getMockDefinition';
+import {getParamsInPath} from '../getters/getParamsInPath';
+import {getParamsTypes} from '../getters/getParamsTypes';
+import {getResReqTypes} from '../getters/getResReqTypes';
+import {isReference} from '../isReference';
+import {stringify} from '../stringify';
 
-const sortParams = (arr: { default?: boolean; required?: boolean; definition: string }[]) =>
+const sortParams = (
+  arr: {default?: boolean; required?: boolean; definition: string}[]
+) =>
   arr.sort((a, b) => {
     if (a.default) {
       return 1;
@@ -52,7 +54,7 @@ const generateMocksCalls = ({
   specs,
   parameters = [],
   schemasComponents,
-  mockOptions,
+  mockOptions
 }: {
   operation: OperationObject;
   verb: string;
@@ -63,10 +65,12 @@ const generateMocksCalls = ({
   mockOptions?: MockOptions;
 }) => {
   if (!operation.operationId) {
-    throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
+    throw new Error(
+      `Every path must have a operationId - No operationId set for ${verb} ${route}`
+    );
   }
 
-  const { operationId, responses, requestBody } = operation;
+  const {operationId, responses, requestBody} = operation;
 
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
 
@@ -79,45 +83,64 @@ const generateMocksCalls = ({
   }
   const componentName = pascal(operationId!);
 
-  const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) => statusCode.toString().startsWith('2');
+  const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
+    statusCode.toString().startsWith('2');
 
-  const allResponseTypes = getResReqTypes(Object.entries(responses).filter(isOk));
+  const allResponseTypes = getResReqTypes(
+    Object.entries(responses).filter(isOk)
+  );
 
   const responseTypes = allResponseTypes.join(' | ');
 
   const requestBodyTypes = getResReqTypes([['body', requestBody!]]).join(' | ');
   const needAResponseComponent = responseTypes.includes('{');
 
-  const paramsInPath = getParamsInPath(route).filter(param => !(verb === 'delete' && param === lastParamInTheRoute));
-  const { query: queryParams = [], path: pathParams = [] } = groupBy(
+  const paramsInPath = getParamsInPath(route).filter(
+    param => !(verb === 'delete' && param === lastParamInTheRoute)
+  );
+  const {query: queryParams = [], path: pathParams = []} = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
-        return get(schemasComponents, p.$ref.replace('#/components/', '').replace('/', '.'));
+        return get(
+          schemasComponents,
+          p.$ref.replace('#/components/', '').replace('/', '.')
+        );
       } else {
         return p;
       }
     }),
-    'in',
+    'in'
   );
 
   const queryParamsDefinitioName = `${camel(componentName)}Params`;
 
   const props = sortParams([
-    ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
+    ...getParamsTypes({
+      params: paramsInPath,
+      pathParams,
+      operation,
+      type: 'implementation'
+    }),
     ...(requestBodyTypes
-      ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
+      ? [
+          {
+            definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
+            default: false,
+            required: false
+          }
+        ]
       : []),
     ...(queryParams.length
       ? [
           {
             definition: `params?: ${queryParamsDefinitioName}`,
             default: false,
-            required: false,
-          },
+            required: false
+          }
         ]
-      : []),
+      : [])
   ])
-    .map(({ definition }) => definition)
+    .map(({definition}) => definition)
     .join(', ');
 
   const toAxiosPromise = (value?: unknown) =>
@@ -126,18 +149,31 @@ const generateMocksCalls = ({
     }>`;
 
   const schemas = Object.entries(schemasComponents?.schemas || []).reduce(
-    (acc, [name, type]) => ({ ...acc, [name]: type }),
-    {},
-  ) as { [key: string]: SchemaObject };
+    (acc, [name, type]) => ({...acc, [name]: type}),
+    {}
+  ) as {[key: string]: SchemaObject};
 
   let imports: string[] = [];
+
+  const mockWithoutFunc = (properties: any) =>
+    Object.entries(
+      typeof properties === 'function' ? properties(specs) : properties
+    ).reduce(
+      (acc, [key, value]) => ({
+        ...acc,
+        [key]:
+          typeof value === 'function'
+            ? `(${value})()`
+            : stringify(value as string)
+      }),
+      {}
+    );
 
   const mockOptionsWithoutFunc = {
     ...mockOptions,
     ...(mockOptions?.properties
       ? {
-          properties:
-            typeof mockOptions.properties === 'function' ? mockOptions.properties(specs) : mockOptions.properties,
+          properties: mockWithoutFunc(mockOptions.properties)
         }
       : {}),
     ...(mockOptions?.responses
@@ -149,15 +185,15 @@ const generateMocksCalls = ({
                 ...value,
                 ...(value.properties
                   ? {
-                      properties: typeof value.properties === 'function' ? value.properties(specs) : value.properties,
+                      properties: mockWithoutFunc(value.properties)
                     }
-                  : {}),
-              },
+                  : {})
+              }
             }),
-            {},
-          ),
+            {}
+          )
         }
-      : {}),
+      : {})
   };
 
   const mocks = allResponseTypes.map(type => {
@@ -168,12 +204,17 @@ const generateMocksCalls = ({
     }
 
     if (!generalJSTypes.includes(type)) {
-      const schema = { name: type, ...schemas[type] };
+      const schema = {name: type, ...schemas[type]};
       if (!schema) {
         return defaultResponse;
       }
 
-      const definition = getMockDefinition({ item: schema, schemas, mockOptions: mockOptionsWithoutFunc, operationId });
+      const definition = getMockDefinition({
+        item: schema,
+        schemas,
+        mockOptions: mockOptionsWithoutFunc,
+        operationId
+      });
 
       if (imports) {
         imports = [...imports, ...definition.imports];
@@ -196,40 +237,57 @@ const generateMocksCalls = ({
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }> {
     return ${
-      mockData ? toAxiosPromise(mockData) : mocks.length > 1 ? `faker.helpers.randomize(${mocksDefinition})` : mocks[0]
+      mockData
+        ? toAxiosPromise(mockData)
+        : mocks.length > 1
+        ? `faker.helpers.randomize(${mocksDefinition})`
+        : mocks[0]
     }
   },
 `;
 
-  return { value: output, imports };
+  return {value: output, imports};
 };
 
-export const generateMocks = (specs: OpenAPIObject, mockOptions?: MockOptions) => {
+export const generateMocks = (
+  specs: OpenAPIObject,
+  mockOptions?: MockOptions
+) => {
   let value = '';
   let imports: string[] = [];
 
-  value += `export const get${pascal(specs.info.title)}Mock = (): ${pascal(specs.info.title)} => ({\n`;
-  Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
-    Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
-      if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = generateMocksCalls({
-          operation,
-          verb,
-          route,
-          parameters: verbs.parameters,
-          schemasComponents: specs.components,
-          mockOptions,
-          specs,
-        });
-        value += call.value;
-        imports = [...imports, ...call.imports];
-      }
-    });
-  });
+  value += `export const get${pascal(specs.info.title)}Mock = (): ${pascal(
+    specs.info.title
+  )} => ({\n`;
+  Object.entries(specs.paths).forEach(
+    ([route, verbs]: [string, PathItemObject]) => {
+      Object.entries(verbs).forEach(
+        ([verb, operation]: [string, OperationObject]) => {
+          if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
+            const call = generateMocksCalls({
+              operation,
+              verb,
+              route,
+              parameters: verbs.parameters,
+              schemasComponents: specs.components,
+              mockOptions,
+              specs
+            });
+            value += call.value;
+            imports = [...imports, ...call.imports];
+          }
+        }
+      );
+    }
+  );
   value += '})';
 
   return {
     output: `\n\n${value}`,
-    imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
+    imports: uniq(
+      imports.filter(
+        imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())
+      )
+    )
   };
 };
