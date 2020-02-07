@@ -1,10 +1,30 @@
-import { pascal } from 'case';
-import cuid from 'cuid'
+import {pascal} from 'case';
+import cuid from 'cuid';
 import get from 'lodash/get';
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { MockOptions } from '../../types';
-import { isReference } from '../isReference';
-import { getRef } from './getRef';
+import {ReferenceObject, SchemaObject} from 'openapi3-ts';
+import {MockOptions} from '../../types';
+import {isReference} from '../isReference';
+import {getRef} from './getRef';
+
+const resolveMockProperties = (
+  properties: any = {},
+  item: SchemaObject & {name: string; parent?: string}
+) =>
+  Object.entries(properties).reduce((acc, [key, value]) => {
+    const regex =
+      key[0] === '/' && key[key.length - 1] === '/'
+        ? new RegExp(key.slice(1, key.length - 1))
+        : new RegExp(key);
+
+    if (acc || !regex.test(item.name)) {
+      return acc;
+    }
+    return {
+      value: getNullable(value as string, item.nullable),
+      imports: [],
+      name: item.name
+    };
+  }, undefined as any);
 
 const getNullable = (value: string, nullable?: boolean) =>
   nullable ? `faker.helpers.randomize([${value}, null])` : value;
@@ -14,30 +34,42 @@ const resolveValue = ({
   schemas,
   allOf,
   mockOptions,
-  operationId,
+  operationId
 }: {
-  schema: SchemaObject & { name: string; parent?: string };
-  schemas: { [key: string]: SchemaObject };
+  schema: SchemaObject & {name: string; parent?: string};
+  schemas: {[key: string]: SchemaObject};
   operationId: string;
   allOf?: boolean;
-  mockOptions?: MockOptions<{ [key: string]: unknown }>;
+  mockOptions?: MockOptions<{[key: string]: unknown}>;
 }): MockDefinition => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
     const newSchema = {
       ...schemas[value],
       name: value,
-      parent: schema.parent ? `${schema.parent}.${schema.name}` : schema.name,
+      parent: schema.parent ? `${schema.parent}.${schema.name}` : schema.name
     };
 
     if (!newSchema) {
-      return { value: 'undefined', imports: [], name: value };
+      return {value: 'undefined', imports: [], name: value};
     }
 
-    return getMockDefinition({ item: newSchema, schemas, allOf, mockOptions, operationId });
+    return getMockDefinition({
+      item: newSchema,
+      schemas,
+      allOf,
+      mockOptions,
+      operationId
+    });
   }
 
-  return getMockDefinition({ item: schema, schemas, allOf, mockOptions, operationId });
+  return getMockDefinition({
+    item: schema,
+    schemas,
+    allOf,
+    mockOptions,
+    operationId
+  });
 };
 
 /**
@@ -50,27 +82,32 @@ const getObject = ({
   schemas,
   allOf,
   mockOptions,
-  operationId,
+  operationId
 }: {
-  item: SchemaObject & { name: string; parent?: string };
-  schemas: { [key: string]: SchemaObject };
+  item: SchemaObject & {name: string; parent?: string};
+  schemas: {[key: string]: SchemaObject};
   operationId: string;
   allOf?: boolean;
-  mockOptions?: MockOptions<{ [key: string]: unknown }>;
+  mockOptions?: MockOptions<{[key: string]: unknown}>;
 }): MockDefinition => {
   if (isReference(item)) {
-    return resolveValue({ schema: { ...item, schemas, name: item.name }, schemas, mockOptions, operationId });
+    return resolveValue({
+      schema: {...item, schemas, name: item.name},
+      schemas,
+      mockOptions,
+      operationId
+    });
   }
 
   if (item.allOf) {
     let imports: string[] = [];
     const value = item.allOf.reduce((acc, val, index, arr) => {
       const resolvedValue = resolveValue({
-        schema: { ...val, name: item.name },
+        schema: {...val, name: item.name},
         schemas,
         allOf: true,
         mockOptions,
-        operationId,
+        operationId
       });
 
       imports = [...imports, ...resolvedValue.imports];
@@ -86,7 +123,7 @@ const getObject = ({
     return {
       value,
       imports,
-      name: item.name,
+      name: item.name
     };
   }
 
@@ -94,12 +131,17 @@ const getObject = ({
     let imports: string[] = [];
     return {
       value: `faker.helpers.randomize(${item.oneOf.map(val => {
-        const resolvedValue = resolveValue({ schema: { ...val, name: item.name }, schemas, mockOptions, operationId });
+        const resolvedValue = resolveValue({
+          schema: {...val, name: item.name},
+          schemas,
+          mockOptions,
+          operationId
+        });
         imports = [...imports, ...resolvedValue.imports];
         return resolvedValue.value;
       })})`,
       imports,
-      name: item.name,
+      name: item.name
     };
   }
 
@@ -110,28 +152,53 @@ const getObject = ({
       .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
         const isRequired = (item.required || []).includes(key);
 
-        if (item.parent && mockOptions?.responses?.[operationId]?.properties?.[`${item.parent}.${key}`]) {
+        if (
+          item.parent &&
+          mockOptions?.responses?.[operationId]?.properties?.[
+            `${item.parent}.${key}`
+          ]
+        ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${
-              mockOptions?.responses?.[operationId]?.properties?.[`${item.parent}.${key}`]
+              mockOptions?.responses?.[operationId]?.properties?.[
+                `${item.parent}.${key}`
+              ]
             }, undefined])`;
           }
 
-          return `${key}: ${mockOptions?.responses?.[operationId]?.properties?.[`${item.parent}.${key}`]}`;
+          return `${key}: ${
+            mockOptions?.responses?.[operationId]?.properties?.[
+              `${item.parent}.${key}`
+            ]
+          }`;
         }
 
-        if (item.parent && get(mockOptions?.responses?.[operationId]?.properties, `${item.parent}.${key}`)) {
+        if (
+          item.parent &&
+          get(
+            mockOptions?.responses?.[operationId]?.properties,
+            `${item.parent}.${key}`
+          )
+        ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${get(
               mockOptions?.responses?.[operationId]?.properties,
-              `${item.parent}.${key}`,
+              `${item.parent}.${key}`
             )}, undefined])`;
           }
 
-          return `${key}: ${get(mockOptions?.responses?.[operationId]?.properties, `${item.parent}.${key}`)}`;
+          return `${key}: ${get(
+            mockOptions?.responses?.[operationId]?.properties,
+            `${item.parent}.${key}`
+          )}`;
         }
 
-        const resolvedValue = resolveValue({ schema: { ...prop, name: key }, schemas, mockOptions, operationId });
+        const resolvedValue = resolveValue({
+          schema: {...prop, name: key},
+          schemas,
+          mockOptions,
+          operationId
+        });
         imports = [...imports, ...resolvedValue.imports];
         if (!isRequired) {
           return `${key}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
@@ -141,33 +208,33 @@ const getObject = ({
       })
       .join(', ');
     value += !allOf ? '}' : '';
-    return { value, imports, name: item.name };
+    return {value, imports, name: item.name};
   }
 
   if (item.additionalProperties) {
     if (typeof item.additionalProperties === 'boolean') {
-      return { value: `{}`, imports: [], name: item.name };
+      return {value: `{}`, imports: [], name: item.name};
     }
     const resolvedValue = resolveValue({
-      schema: { ...item.additionalProperties, name: item.name },
+      schema: {...item.additionalProperties, name: item.name},
       schemas,
       mockOptions,
-      operationId,
+      operationId
     });
 
     return {
       ...resolvedValue,
       value: `{
         '${cuid()}': ${resolvedValue.value}
-      }`,
+      }`
     };
   }
 
-  return { value: '{}', imports: [], name: item.name };
+  return {value: '{}', imports: [], name: item.name};
 };
 
 interface MockDefinition {
-  value: string | string[] | { [key: string]: MockDefinition };
+  value: string | string[] | {[key: string]: MockDefinition};
   enums?: string[];
   imports: string[];
   name: string;
@@ -184,32 +251,27 @@ export const getMockDefinition = ({
   schemas,
   allOf,
   mockOptions,
-  operationId,
+  operationId
 }: {
-  item: SchemaObject & { name: string; parent?: string };
-  schemas: { [key: string]: SchemaObject };
+  item: SchemaObject & {name: string; parent?: string};
+  schemas: {[key: string]: SchemaObject};
   allOf?: boolean;
-  mockOptions?: MockOptions<{ [key: string]: unknown }>;
+  mockOptions?: MockOptions<{[key: string]: unknown}>;
   operationId: string;
 }): MockDefinition => {
-  if (
-    mockOptions?.responses?.[operationId]?.properties?.[item.name] &&
-    item.type !== 'object' &&
-    item.type !== 'array'
-  ) {
-    return {
-      value: getNullable(mockOptions?.responses?.[operationId]?.properties?.[item.name] as string, item.nullable),
-      imports: [],
-      name: item.name,
-    };
+  const rProperty = resolveMockProperties(
+    mockOptions?.responses?.[operationId]?.properties,
+    item
+  );
+
+  if (rProperty) {
+    return rProperty;
   }
 
-  if (mockOptions?.properties?.[item.name] && item.type !== 'object' && item.type !== 'array') {
-    return {
-      value: getNullable(mockOptions?.properties?.[item.name] as string, item.nullable),
-      imports: [],
-      name: item.name,
-    };
+  const property = resolveMockProperties(mockOptions?.properties, item);
+
+  if (property) {
+    return property;
   }
 
   switch (item.type) {
@@ -220,24 +282,28 @@ export const getMockDefinition = ({
     case 'long':
     case 'float':
     case 'double': {
-      return { value: getNullable('faker.random.number()', item.nullable), imports: [], name: item.name };
+      return {
+        value: getNullable('faker.random.number()', item.nullable),
+        imports: [],
+        name: item.name
+      };
     }
 
     case 'boolean': {
-      return { value: 'faker.random.boolean()', imports: [], name: item.name };
+      return {value: 'faker.random.boolean()', imports: [], name: item.name};
     }
 
     case 'array': {
       if (!item.items) {
-        return { value: [], imports: [], name: item.name };
+        return {value: [], imports: [], name: item.name};
       }
 
-      const { value, enums, imports, name } = resolveValue({
-        schema: { ...item.items, name: item.name },
+      const {value, enums, imports, name} = resolveValue({
+        schema: {...item.items, name: item.name},
         schemas,
         allOf,
         mockOptions,
-        operationId,
+        operationId
       });
 
       if (enums) {
@@ -250,14 +316,14 @@ export const getMockDefinition = ({
             }
           },{ values: [], enums: Object.values(${name})})`,
           imports,
-          name: item.name,
+          name: item.name
         };
       }
 
       return {
         value: `[...Array(faker.random.number({min: 1, max: 10}))].map(() => (${value}))`,
         imports,
-        name: item.name,
+        name: item.name
       };
     }
 
@@ -278,13 +344,13 @@ export const getMockDefinition = ({
         value: getNullable(value, item.nullable),
         enums: item.enum,
         name: item.name,
-        imports: item.enum ? [pascal(item.name)] : [],
+        imports: item.enum ? [pascal(item.name)] : []
       };
     }
 
     case 'object':
     default: {
-      return getObject({ item, schemas, allOf, mockOptions, operationId });
+      return getObject({item, schemas, allOf, mockOptions, operationId});
     }
   }
 };
