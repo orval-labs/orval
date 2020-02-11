@@ -1,3 +1,5 @@
+import { camel } from "case";
+
 export const generateImports = (imports: string[] = [], path: string = '.', pathOnly: boolean = false) => {
   if (pathOnly) {
     return imports.sort().reduce((acc, imp, index) => {
@@ -11,5 +13,5 @@ export const generateImports = (imports: string[] = [], path: string = '.', path
       return acc + `  ${imp},\n`;
     }, '');
   }
-  return imports.sort().reduce((acc, imp) => acc + `import { ${imp} } from \'${path}/${imp}\'; \n`, '');
+  return imports.sort().reduce((acc, imp) => acc + `import { ${imp} } from \'${path}/${camel(imp)}\'; \n`, '');
 };
