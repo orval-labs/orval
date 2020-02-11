@@ -1,6 +1,6 @@
-import { SchemaObject } from 'openapi3-ts';
-import { getArray } from './getArray';
-import { getObject } from './getObject';
+import {SchemaObject} from 'openapi3-ts';
+import {getArray} from './getArray';
+import {getObject} from './getObject';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -19,14 +19,14 @@ export const getScalar = (item: SchemaObject) => {
     case 'long':
     case 'float':
     case 'double':
-      return { value: 'number' + nullable };
+      return {value: 'number' + nullable};
 
     case 'boolean':
-      return { value: 'boolean' + nullable };
+      return {value: 'boolean' + nullable};
 
     case 'array': {
-      const { value, imports } = getArray(item);
-      return { value: value + nullable, imports };
+      const {value, imports} = getArray(item);
+      return {value: value + nullable, imports};
     }
 
     case 'string':
@@ -48,13 +48,13 @@ export const getScalar = (item: SchemaObject) => {
         value = 'BlobPart';
       }
 
-      return { value: value + nullable, isEnum };
+      return {value: value + nullable, isEnum};
     }
 
     case 'object':
     default: {
-      const { value, imports } = getObject(item);
-      return { value: value + nullable, imports };
+      const {value, imports} = getObject(item);
+      return {value: value + nullable, imports};
     }
   }
 };

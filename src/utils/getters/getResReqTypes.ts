@@ -30,6 +30,9 @@ export const getResReqTypes = (
         } else if (res.content && res.content['application/pdf']) {
           const schema = res.content['application/pdf'].schema!;
           return resolveValue(schema).value;
+        } else if(res.content && res.content['multipart/form-data']) {
+          const schema = res.content['multipart/form-data'].schema!;
+          return resolveValue(schema).value;
         }
         return 'unknown';
       }
