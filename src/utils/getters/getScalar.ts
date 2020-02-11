@@ -18,15 +18,24 @@ export const getScalar = (item: SchemaObject) => {
     case 'integer':
     case 'long':
     case 'float':
-    case 'double':
-      return {value: 'number' + nullable};
+    case 'double': {
+      let value = 'number';
+      let isEnum = false;
+
+      if (item.enum) {
+        value = item.enum.join(' | ');
+        isEnum = true;
+      }
+
+      return {value: value + nullable, isEnum, type: 'number'};
+    }
 
     case 'boolean':
-      return {value: 'boolean' + nullable};
+      return {value: 'boolean' + nullable, type: 'boolean'};
 
     case 'array': {
       const {value, imports} = getArray(item);
-      return {value: value + nullable, imports};
+      return {value: value + nullable, imports, type: 'array'};
     }
 
     case 'string':
@@ -48,13 +57,13 @@ export const getScalar = (item: SchemaObject) => {
         value = 'BlobPart';
       }
 
-      return {value: value + nullable, isEnum};
+      return {value: value + nullable, isEnum, type: 'string'};
     }
 
     case 'object':
     default: {
       const {value, imports} = getObject(item);
-      return {value: value + nullable, imports};
+      return {value: value + nullable, imports, type: 'object'};
     }
   }
 };
