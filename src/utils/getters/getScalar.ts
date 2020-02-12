@@ -54,7 +54,7 @@ export const getScalar = (item: SchemaObject) => {
       }
 
       if (item.format === 'binary') {
-        value = 'BlobPart';
+        value = 'Blob';
       }
 
       return {value: value + nullable, isEnum, type: 'string'};
