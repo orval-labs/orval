@@ -1,4 +1,4 @@
-import { camel, pascal } from 'case';
+import {camel, pascal} from 'case';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
 import uniq from 'lodash/uniq';
@@ -9,16 +9,18 @@ import {
   ParameterObject,
   PathItemObject,
   ReferenceObject,
-  ResponseObject,
+  ResponseObject
 } from 'openapi3-ts';
-import { generalJSTypes } from '../../constants/generalJsTypes';
-import { getParamsInPath } from '../getters/getParamsInPath';
-import { getParamsTypes } from '../getters/getParamsTypes';
-import { getQueryParamsTypes } from '../getters/getQueryParamsTypes';
-import { getResReqTypes } from '../getters/getResReqTypes';
-import { isReference } from '../isReference';
+import {generalJSTypes} from '../../constants/generalJsTypes';
+import {getParamsInPath} from '../getters/getParamsInPath';
+import {getParamsTypes} from '../getters/getParamsTypes';
+import {getQueryParamsTypes} from '../getters/getQueryParamsTypes';
+import {getResReqTypes} from '../getters/getResReqTypes';
+import {isReference} from '../isReference';
 
-const sortParams = (arr: { default?: boolean; required?: boolean; definition: string }[]) =>
+const sortParams = (
+  arr: {default?: boolean; required?: boolean; definition: string}[]
+) =>
   arr.sort((a, b) => {
     if (a.default) {
       return 1;
@@ -56,7 +58,7 @@ const generateApiCalls = (
   verb: string,
   route: string,
   parameters: Array<ReferenceObject | ParameterObject> = [],
-  schemasComponents?: ComponentsObject,
+  schemasComponents?: ComponentsObject
 ): {
   value: string;
   definition: string;
@@ -68,7 +70,9 @@ const generateApiCalls = (
   };
 } => {
   if (!operation.operationId) {
-    throw new Error(`Every path must have a operationId - No operationId set for ${verb} ${route}`);
+    throw new Error(
+      `Every path must have a operationId - No operationId set for ${verb} ${route}`
+    );
   }
 
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
@@ -82,27 +86,40 @@ const generateApiCalls = (
   }
   const componentName = pascal(operation.operationId!);
 
-  const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) => statusCode.toString().startsWith('2');
+  const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
+    statusCode.toString().startsWith('2');
 
-  const responseTypes = getResReqTypes(Object.entries(operation.responses).filter(isOk)).join(' | ');
-  const requestBodyTypes = getResReqTypes([['body', operation.requestBody!]]).join(' | ');
+  const responseTypes = getResReqTypes(
+    Object.entries(operation.responses).filter(isOk)
+  ).join(' | ');
+  const requestBodyTypes = getResReqTypes([
+    ['body', operation.requestBody!]
+  ]).join(' | ');
   let imports: string[] = [responseTypes, requestBodyTypes];
   const needAResponseComponent = responseTypes.includes('{');
 
-  const paramsInPath = getParamsInPath(route).filter(param => !(verb === 'delete' && param === lastParamInTheRoute));
-  const { query: queryParams = [], path: pathParams = [] } = groupBy(
+  const paramsInPath = getParamsInPath(route).filter(
+    param => !(verb === 'delete' && param === lastParamInTheRoute)
+  );
+  const {query: queryParams = [], path: pathParams = []} = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
-        return get(schemasComponents, p.$ref.replace('#/components/', '').replace('/', '.'));
+        return get(
+          schemasComponents,
+          p.$ref.replace('#/components/', '').replace('/', '.')
+        );
       } else {
         return p;
       }
     }),
-    'in',
+    'in'
   );
 
-  const queryParamsTypes = getQueryParamsTypes({ queryParams });
-  const queryParamsImports = queryParamsTypes.reduce<string[]>((acc, { imports = [] }) => [...acc, ...imports], []);
+  const queryParamsTypes = getQueryParamsTypes({queryParams});
+  const queryParamsImports = queryParamsTypes.reduce<string[]>(
+    (acc, {imports = []}) => [...acc, ...imports],
+    []
+  );
   const queryParamsDefinitioName = `${camel(componentName)}Params`;
 
   if (queryParams.length) {
@@ -112,45 +129,62 @@ const generateApiCalls = (
   const queryParamDefinition = {
     name: queryParamsDefinitioName,
     model: `export type ${queryParamsDefinitioName} = { ${queryParamsTypes
-      .map(({ definition }) => definition)
+      .map(({definition}) => definition)
       .join(', ')} }`,
-    imports: queryParamsImports,
+    imports: queryParamsImports
   };
 
   const propsDefinition = sortParams([
-    ...getParamsTypes({ params: paramsInPath, pathParams, operation }),
+    ...getParamsTypes({params: paramsInPath, pathParams, operation}),
     ...(requestBodyTypes
-      ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
+      ? [
+          {
+            definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
+            default: false,
+            required: false
+          }
+        ]
       : []),
     ...(queryParams.length
       ? [
           {
             definition: `params?: ${queryParamsDefinitioName}`,
             default: false,
-            required: false,
-          },
+            required: false
+          }
         ]
-      : []),
+      : [])
   ])
-    .map(({ definition }) => definition)
+    .map(({definition}) => definition)
     .join(', ');
 
   const props = sortParams([
-    ...getParamsTypes({ params: paramsInPath, pathParams, operation, type: 'implementation' }),
+    ...getParamsTypes({
+      params: paramsInPath,
+      pathParams,
+      operation,
+      type: 'implementation'
+    }),
     ...(requestBodyTypes
-      ? [{ definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`, default: false, required: false }]
+      ? [
+          {
+            definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
+            default: false,
+            required: false
+          }
+        ]
       : []),
     ...(queryParams.length
       ? [
           {
             definition: `params?: ${queryParamsDefinitioName}`,
             default: false,
-            required: false,
-          },
+            required: false
+          }
         ]
-      : []),
+      : [])
   ])
-    .map(({ definition }) => definition)
+    .map(({definition}) => definition)
     .join(', ');
 
   const definition = `
@@ -162,12 +196,27 @@ const generateApiCalls = (
   const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }> {
-    return axios.${verb}(\`${route}\` ${requestBodyTypes ? `, ${camel(requestBodyTypes)}` : ''} ${
-    queryParams.length || responseTypes === 'BlobPart'
+    ${
+      requestBodyTypes === 'Blob'
+        ? `const formData = new FormData(); formData.append('file', ${camel(
+            requestBodyTypes
+          )});`
+        : ''
+    }
+    return axios.${verb}(\`${route}\` ${
+    requestBodyTypes
+      ? requestBodyTypes === 'Blob'
+        ? ', formData'
+        : `, ${camel(requestBodyTypes)}`
+      : ''
+  } ${
+    queryParams.length || responseTypes === 'Blob'
       ? `,
       {
-        ${queryParams.length ? 'params' : ''}${queryParams.length && responseTypes === 'BlobPart' ? ',' : ''}${
-          responseTypes === 'BlobPart'
+        ${queryParams.length ? 'params' : ''}${
+          queryParams.length && responseTypes === 'Blob' ? ',' : ''
+        }${
+          responseTypes === 'Blob'
             ? `responseType: 'arraybuffer',
         headers: {
           Accept: 'application/pdf',
@@ -184,36 +233,59 @@ const generateApiCalls = (
     value: output,
     definition,
     imports,
-    ...(queryParams.length ? { queryParamDefinition } : {}),
+    ...(queryParams.length ? {queryParamDefinition} : {})
   };
 };
 
 export const generateApi = (specs: OpenAPIObject) => {
   let imports: string[] = [];
-  let queryParamDefinitions: Array<{ name: string; model: string; imports?: string[] }> = [];
+  let queryParamDefinitions: Array<{
+    name: string;
+    model: string;
+    imports?: string[];
+  }> = [];
   let definition = '';
   definition += `export interface ${pascal(specs.info.title)} {`;
   let value = '';
-  value += `export const get${pascal(specs.info.title)} = (axios: AxiosInstance): ${pascal(specs.info.title)} => ({\n`;
-  Object.entries(specs.paths).forEach(([route, verbs]: [string, PathItemObject]) => {
-    Object.entries(verbs).forEach(([verb, operation]: [string, OperationObject]) => {
-      if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-        const call = generateApiCalls(operation, verb, route, verbs.parameters, specs.components);
-        if (call.queryParamDefinition) {
-          queryParamDefinitions = [...queryParamDefinitions, call.queryParamDefinition];
+  value += `export const get${pascal(
+    specs.info.title
+  )} = (axios: AxiosInstance): ${pascal(specs.info.title)} => ({\n`;
+  Object.entries(specs.paths).forEach(
+    ([route, verbs]: [string, PathItemObject]) => {
+      Object.entries(verbs).forEach(
+        ([verb, operation]: [string, OperationObject]) => {
+          if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
+            const call = generateApiCalls(
+              operation,
+              verb,
+              route,
+              verbs.parameters,
+              specs.components
+            );
+            if (call.queryParamDefinition) {
+              queryParamDefinitions = [
+                ...queryParamDefinitions,
+                call.queryParamDefinition
+              ];
+            }
+            imports = [...imports, ...call.imports];
+            definition += `${call.definition};`;
+            value += call.value;
+          }
         }
-        imports = [...imports, ...call.imports];
-        definition += `${call.definition};`;
-        value += call.value;
-      }
-    });
-  });
+      );
+    }
+  );
   definition += '\n};';
   value += '})';
 
   return {
     output: `${definition}\n\n${value}`,
-    imports: uniq(imports.filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase()))),
-    queryParamDefinitions,
+    imports: uniq(
+      imports.filter(
+        imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())
+      )
+    ),
+    queryParamDefinitions
   };
 };

@@ -1,8 +1,8 @@
 import uniq from 'lodash/uniq';
-import { ReferenceObject, RequestBodyObject, ResponseObject } from 'openapi3-ts';
-import { isReference } from '../isReference';
-import { resolveValue } from '../resolvers/resolveValue';
-import { getRef } from './getRef';
+import {ReferenceObject, RequestBodyObject, ResponseObject} from 'openapi3-ts';
+import {isReference} from '../isReference';
+import {resolveValue} from '../resolvers/resolveValue';
+import {getRef} from './getRef';
 
 /**
  * Extract responses / request types from open-api specs
@@ -10,7 +10,9 @@ import { getRef } from './getRef';
  * @param responsesOrRequests reponses or requests object from open-api specs
  */
 export const getResReqTypes = (
-  responsesOrRequests: Array<[string, ResponseObject | ReferenceObject | RequestBodyObject]>,
+  responsesOrRequests: Array<
+    [string, ResponseObject | ReferenceObject | RequestBodyObject]
+  >
 ) =>
   uniq(
     responsesOrRequests.map(([_, res]) => {
@@ -21,20 +23,20 @@ export const getResReqTypes = (
       if (isReference(res)) {
         return getRef(res.$ref);
       } else {
-        if (res.content && res.content['application/json']) {
+        if (res.content?.['application/json']) {
           const schema = res.content['application/json'].schema!;
           return resolveValue(schema).value;
-        } else if (res.content && res.content['application/octet-stream']) {
+        } else if (res.content?.['application/octet-stream']) {
           const schema = res.content['application/octet-stream'].schema!;
           return resolveValue(schema).value;
-        } else if (res.content && res.content['application/pdf']) {
+        } else if (res.content?.['application/pdf']) {
           const schema = res.content['application/pdf'].schema!;
           return resolveValue(schema).value;
-        } else if(res.content && res.content['multipart/form-data']) {
+        } else if (res.content?.['multipart/form-data']) {
           const schema = res.content['multipart/form-data'].schema!;
           return resolveValue(schema).value;
         }
         return 'unknown';
       }
-    }),
+    })
   );
