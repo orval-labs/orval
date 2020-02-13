@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "license": "MIT",
   "files": [
     "lib"
@@ -18,11 +18,11 @@
   ],
   "author": {
     "name": "Victor Bury",
-    "email": "victor@hackages.io"
+    "email": "bury.victor@gmail.com"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hackages/orval"
+    "url": "https://github.com/anymaniax/orval"
   },
   "scripts": {
     "rollup": "rollup -c rollup.config.js",
