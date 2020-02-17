@@ -1,6 +1,12 @@
-![alt text](/logo/orval-logo-horizontal.png?raw=true "Title")
-
-Inspired by [restful-react](https://github.com/contiamo/restful-react)
+<p align="center">
+  <img src="/logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="Orval - Restfull Client Generator" />
+</p>
+<h3 align="center">
+  Inspired by [restful-react](https://github.com/contiamo/restful-react)
+</h3>
+<br/>
+<br/>
+## Summary
 
 - [Code Generation](#code-generation)
   - [Usage](#usage)
