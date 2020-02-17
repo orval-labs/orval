@@ -4,8 +4,7 @@
 <h3 align="center">
   Inspired by [restful-react](https://github.com/contiamo/restful-react)
 </h3>
-<br/>
-<br/>
+
 ## Summary
 
 - [Code Generation](#code-generation)
