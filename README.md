@@ -1,4 +1,3 @@
-# `orval`
 ![alt text](/logo/orval-logo-horizontal.png?raw=true "Title")
 
 Inspired by [restful-react](https://github.com/contiamo/restful-react)
