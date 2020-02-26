@@ -1,7 +1,6 @@
 import {camel, pascal} from 'case';
 import get from 'lodash/get';
 import groupBy from 'lodash/groupBy';
-import uniq from 'lodash/uniq';
 import {
   ComponentsObject,
   OpenAPIObject,
@@ -14,6 +13,7 @@ import {
 } from 'openapi3-ts';
 import {generalJSTypes} from '../../constants/generalJsTypes';
 import {MockOptions} from '../../types';
+import {generalTypesFilter} from '../generalTypesFilter';
 import {getMockDefinition} from '../getters/getMockDefinition';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
@@ -284,10 +284,6 @@ export const generateMocks = (
 
   return {
     output: `\n\n${value}`,
-    imports: uniq(
-      imports.filter(
-        imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())
-      )
-    )
+    imports: generalTypesFilter(imports)
   };
 };
