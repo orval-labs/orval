@@ -1,8 +1,7 @@
-import { pascal } from 'case';
-import uniq from 'lodash/uniq';
-import { SchemaObject } from 'openapi3-ts';
-import { generalJSTypes } from '../../constants/generalJsTypes';
-import { getScalar } from '../getters/getScalar';
+import {pascal} from 'case';
+import {SchemaObject} from 'openapi3-ts';
+import {generalTypesFilter} from '../generalTypesFilter';
+import {getScalar} from '../getters/getScalar';
 
 /**
  * Generate the interface string
@@ -12,7 +11,7 @@ import { getScalar } from '../getters/getScalar';
  * @param schema
  */
 export const generateInterface = (name: string, schema: SchemaObject) => {
-  const { value, imports } = getScalar(schema);
+  const {value, imports} = getScalar(schema);
   const isEmptyObject = value === '{}';
 
   return {
@@ -21,6 +20,6 @@ export const generateInterface = (name: string, schema: SchemaObject) => {
       ? `// tslint:disable-next-line:no-empty-interface
 export interface ${pascal(name)} ${value}`
       : `export interface ${pascal(name)} ${value}`,
-    imports: uniq(imports).filter(imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())),
+    imports: generalTypesFilter(imports)
   };
 };

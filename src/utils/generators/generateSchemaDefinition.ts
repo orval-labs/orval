@@ -1,8 +1,7 @@
 import {pascal, upper} from 'case';
 import isEmpty from 'lodash/isEmpty';
-import uniq from 'lodash/uniq';
 import {SchemaObject} from 'openapi3-ts';
-import {generalJSTypes} from '../../constants/generalJsTypes';
+import {generalTypesFilter} from '../generalTypesFilter';
 import {isReference} from '../isReference';
 import {resolveValue} from '../resolvers/resolveValue';
 import {generateInterface} from './generateInterface';
@@ -52,9 +51,7 @@ export const generateSchemasDefinition = (
       return {
         name: pascal(name),
         model: output,
-        imports: uniq(imports).filter(
-          imp => imp && !generalJSTypes.includes(imp.toLocaleLowerCase())
-        )
+        imports: generalTypesFilter(imports)
       };
     }
   });
