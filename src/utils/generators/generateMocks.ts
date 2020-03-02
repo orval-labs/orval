@@ -11,9 +11,8 @@ import {
   ResponseObject,
   SchemaObject
 } from 'openapi3-ts';
-import {generalJSTypes} from '../../constants/generalJsTypes';
 import {MockOptions} from '../../types';
-import {generalTypesFilter} from '../generalTypesFilter';
+import {generalJSTypesRegex, generalTypesFilter} from '../generalTypesFilter';
 import {getMockDefinition} from '../getters/getMockDefinition';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
@@ -34,7 +33,7 @@ const sortParams = (
     }
 
     if (a.required && b.required) {
-      return 1;
+      return -1;
     }
 
     if (a.required) {
@@ -109,6 +108,10 @@ const generateMocksCalls = ({
 
   const queryParamsDefinitioName = `${camel(componentName)}Params`;
 
+  const formatedRequestBodyTypes = generalJSTypesRegex.test(requestBodyTypes)
+    ? 'payload'
+    : camel(requestBodyTypes);
+
   const props = sortParams([
     ...getParamsTypes({
       params: paramsInPath,
@@ -119,9 +122,9 @@ const generateMocksCalls = ({
     ...(requestBodyTypes
       ? [
           {
-            definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
+            definition: `${formatedRequestBodyTypes}: ${requestBodyTypes}`,
             default: false,
-            required: false
+            required: true
           }
         ]
       : []),
@@ -196,7 +199,7 @@ const generateMocksCalls = ({
       return defaultResponse;
     }
 
-    if (!generalJSTypes.includes(type)) {
+    if (!generalJSTypesRegex.test(type)) {
       const schema = {name: type, ...schemas[type]};
       if (!schema) {
         return defaultResponse;
