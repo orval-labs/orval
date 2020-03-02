@@ -10,7 +10,7 @@ import {
   ReferenceObject,
   ResponseObject
 } from 'openapi3-ts';
-import {generalTypesFilter} from '../generalTypesFilter';
+import {generalJSTypesRegex, generalTypesFilter} from '../generalTypesFilter';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
 import {getQueryParamsTypes} from '../getters/getQueryParamsTypes';
@@ -30,7 +30,7 @@ const sortParams = (
     }
 
     if (a.required && b.required) {
-      return 1;
+      return -1;
     }
 
     if (a.required) {
@@ -105,7 +105,7 @@ const generateApiCalls = (
 
   const needAResponseComponent = responseTypes.includes('{');
 
-  const paramsInPath = getParamsInPath(route)
+  const paramsInPath = getParamsInPath(route);
   const {query: queryParams = [], path: pathParams = []} = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
@@ -139,14 +139,18 @@ const generateApiCalls = (
     imports: queryParamsImports
   };
 
+  const formatedRequestBodyTypes = generalJSTypesRegex.test(requestBodyTypes)
+    ? 'payload'
+    : camel(requestBodyTypes);
+
   const propsDefinition = sortParams([
     ...getParamsTypes({params: paramsInPath, pathParams, operation}),
     ...(requestBodyTypes
       ? [
           {
-            definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
+            definition: `${formatedRequestBodyTypes}: ${requestBodyTypes}`,
             default: false,
-            required: false
+            required: true
           }
         ]
       : []),
@@ -173,9 +177,9 @@ const generateApiCalls = (
     ...(requestBodyTypes
       ? [
           {
-            definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
+            definition: `${formatedRequestBodyTypes}: ${requestBodyTypes}`,
             default: false,
-            required: false
+            required: true
           }
         ]
       : []),
@@ -212,7 +216,7 @@ const generateApiCalls = (
     requestBodyTypes
       ? requestBodyTypes === 'Blob'
         ? ', formData'
-        : `, ${camel(requestBodyTypes)}`
+        : `, ${formatedRequestBodyTypes}`
       : ''
   } ${
     queryParams.length || responseTypes === 'Blob'
