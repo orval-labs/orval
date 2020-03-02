@@ -38,9 +38,6 @@ export const generateResponsesDefinition = (
     ) {
       model = `export interface ${pascal(name)}Response ${type}`;
     } else {
-      if (type) {
-        imports = [...imports, type];
-      }
       model = `export type ${pascal(name)}Response = ${type || 'unknown'};`;
     }
 
