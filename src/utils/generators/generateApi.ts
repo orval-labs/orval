@@ -16,32 +16,7 @@ import {getParamsTypes} from '../getters/getParamsTypes';
 import {getQueryParamsTypes} from '../getters/getQueryParamsTypes';
 import {getResReqTypes} from '../getters/getResReqTypes';
 import {isReference} from '../isReference';
-
-const sortParams = (
-  arr: {default?: boolean; required?: boolean; definition: string}[]
-) =>
-  arr.sort((a, b) => {
-    if (a.default) {
-      return 1;
-    }
-
-    if (b.default) {
-      return -1;
-    }
-
-    if (a.required && b.required) {
-      return -1;
-    }
-
-    if (a.required) {
-      return -1;
-    }
-
-    if (b.required) {
-      return 1;
-    }
-    return 1;
-  });
+import { sortParams } from '../sortParams';
 
 /**
  * Generate a orval component from openapi operation specs
