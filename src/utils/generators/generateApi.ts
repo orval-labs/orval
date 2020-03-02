@@ -30,7 +30,7 @@ const sortParams = (
     }
 
     if (a.required && b.required) {
-      return -1;
+      return 1;
     }
 
     if (a.required) {
@@ -146,7 +146,7 @@ const generateApiCalls = (
           {
             definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
             default: false,
-            required: true
+            required: false
           }
         ]
       : []),
@@ -175,7 +175,7 @@ const generateApiCalls = (
           {
             definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
             default: false,
-            required: true
+            required: false
           }
         ]
       : []),
