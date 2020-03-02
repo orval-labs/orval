@@ -1,45 +1,47 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { getRef } from './getRef';
-import { isReference } from '../isReference';
-import { resolveValue } from '../resolvers/resolveValue';
+import {ReferenceObject, SchemaObject} from 'openapi3-ts';
+import {isReference} from '../isReference';
+import {resolveValue} from '../resolvers/resolveValue';
+import {getRef} from './getRef';
 
 /**
  * Return the output type from an object
  *
  * @param item item with type === "object"
  */
-export const getObject = (item: SchemaObject): { value: string; imports?: string[] } => {
+export const getObject = (
+  item: SchemaObject
+): {value: string; imports?: string[]} => {
   if (isReference(item)) {
     const value = getRef(item.$ref);
-    return { value, imports: [value] };
+    return {value, imports: [value]};
   }
 
   if (item.allOf) {
-    let imports: string[] = [];
-    return {
-      value: item.allOf
-        .map(val => {
-          const resolvedValue = resolveValue(val);
-          imports = [...imports, ...(resolvedValue.imports || [])];
-          return resolvedValue.value;
-        })
-        .join(' & '),
-      imports,
-    };
+    return item.allOf.reduce<{value: string; imports?: string[]}>(
+      (acc, val) => {
+        const {value, imports = []} = resolveValue(val);
+        return {
+          ...acc,
+          value: acc.value ? `${acc.value} & ${value}` : value,
+          imports: [...acc.imports, ...imports]
+        };
+      },
+      {value: '', imports: []}
+    );
   }
 
   if (item.oneOf) {
-    let imports: string[] = [];
-    return {
-      value: item.oneOf
-        .map(val => {
-          const resolvedValue = resolveValue(val);
-          imports = [...imports, ...(resolvedValue.imports || [])];
-          return resolvedValue.value;
-        })
-        .join(' | '),
-      imports,
-    };
+    return item.oneOf.reduce<{value: string; imports?: string[]}>(
+      (acc, val) => {
+        const {value, imports = []} = resolveValue(val);
+        return {
+          ...acc,
+          value: acc.value ? `${acc.value} | ${value}` : value,
+          imports: [...acc.imports, ...imports]
+        };
+      },
+      {value: '', imports: []}
+    );
   }
 
   if (item.properties) {
@@ -56,17 +58,17 @@ export const getObject = (item: SchemaObject): { value: string; imports?: string
           })
           .join('; ') +
         '}',
-      imports,
+      imports
     };
   }
 
   if (item.additionalProperties) {
-    if(typeof item.additionalProperties === 'boolean'){
+    if (typeof item.additionalProperties === 'boolean') {
       return {value: `{[key: string]: object}`};
     }
-    const { value, imports } = resolveValue(item.additionalProperties);
-    return { value: `{[key: string]: ${value}}`, imports };
+    const {value, imports} = resolveValue(item.additionalProperties);
+    return {value: `{[key: string]: ${value}}`, imports};
   }
 
-  return { value: item.type === 'object' ? '{}' : 'any' };
+  return {value: item.type === 'object' ? '{}' : 'any'};
 };

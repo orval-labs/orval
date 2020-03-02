@@ -10,12 +10,12 @@ import {
   ReferenceObject,
   ResponseObject
 } from 'openapi3-ts';
+import {generalTypesFilter} from '../generalTypesFilter';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
 import {getQueryParamsTypes} from '../getters/getQueryParamsTypes';
 import {getResReqTypes} from '../getters/getResReqTypes';
 import {isReference} from '../isReference';
-import { generalTypesFilter } from '../generalTypesFilter';
 
 const sortParams = (
   arr: {default?: boolean; required?: boolean; definition: string}[]
@@ -30,7 +30,7 @@ const sortParams = (
     }
 
     if (a.required && b.required) {
-      return 1;
+      return -1;
     }
 
     if (a.required) {
@@ -76,31 +76,36 @@ const generateApiCalls = (
 
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
 
-  // Remove the last param of the route if we are in the DELETE case
-  let lastParamInTheRoute: string | null = null;
-  if (verb === 'delete') {
-    const lastParamInTheRouteRegExp = /\/\$\{(\w+)\}$/;
-    lastParamInTheRoute = (route.match(lastParamInTheRouteRegExp) || [])[1];
-    route = route.replace(lastParamInTheRouteRegExp, ''); // `/pet/${id}` => `/pet`
-  }
   const componentName = pascal(operation.operationId!);
 
   const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
     statusCode.toString().startsWith('2');
 
-  const responseTypes = getResReqTypes(
+  let imports: string[] = [];
+
+  // gesture response types
+  const allResponseTypes = getResReqTypes(
     Object.entries(operation.responses).filter(isOk)
-  ).join(' | ');
-  const requestBodyTypes = getResReqTypes([
-    ['body', operation.requestBody!]
-  ]).join(' | ');
-  console.log(responseTypes, requestBodyTypes)
-  let imports: string[] = [responseTypes, requestBodyTypes];
+  );
+  const allResponseTypesImports = allResponseTypes.reduce<string[]>(
+    (acc, {imports = []}) => [...acc, ...imports],
+    []
+  );
+  imports = [...imports, ...allResponseTypesImports];
+  const responseTypes = allResponseTypes.map(({value}) => value).join(' | ');
+
+  // gesture body types
+  const allBodyTypes = getResReqTypes([['body', operation.requestBody!]]);
+  const allBodyTypesImports = allBodyTypes.reduce<string[]>(
+    (acc, {imports = []}) => [...acc, ...imports],
+    []
+  );
+  imports = [...imports, ...allBodyTypesImports];
+  const requestBodyTypes = allBodyTypes.map(({value}) => value).join(' | ');
+
   const needAResponseComponent = responseTypes.includes('{');
 
-  const paramsInPath = getParamsInPath(route).filter(
-    param => !(verb === 'delete' && param === lastParamInTheRoute)
-  );
+  const paramsInPath = getParamsInPath(route)
   const {query: queryParams = [], path: pathParams = []} = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
@@ -141,7 +146,7 @@ const generateApiCalls = (
           {
             definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
             default: false,
-            required: false
+            required: true
           }
         ]
       : []),
@@ -170,7 +175,7 @@ const generateApiCalls = (
           {
             definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
             default: false,
-            required: false
+            required: true
           }
         ]
       : []),

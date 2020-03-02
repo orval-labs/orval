@@ -34,7 +34,7 @@ const sortParams = (
     }
 
     if (a.required && b.required) {
-      return 1;
+      return -1;
     }
 
     if (a.required) {
@@ -70,34 +70,29 @@ const generateMocksCalls = ({
     );
   }
 
-  const {operationId, responses, requestBody} = operation;
+  let imports: string[] = [];
+  const {operationId} = operation;
 
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
 
-  // Remove the last param of the route if we are in the DELETE case
-  let lastParamInTheRoute: string | null = null;
-  if (verb === 'delete') {
-    const lastParamInTheRouteRegExp = /\/\$\{(\w+)\}$/;
-    lastParamInTheRoute = (route.match(lastParamInTheRouteRegExp) || [])[1];
-    route = route.replace(lastParamInTheRouteRegExp, ''); // `/pet/${id}` => `/pet`
-  }
   const componentName = pascal(operationId!);
 
   const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
     statusCode.toString().startsWith('2');
 
+  // gesture response types
   const allResponseTypes = getResReqTypes(
-    Object.entries(responses).filter(isOk)
+    Object.entries(operation.responses).filter(isOk)
   );
+  const responseTypes = allResponseTypes.map(({value}) => value).join(' | ');
 
-  const responseTypes = allResponseTypes.join(' | ');
+  // gesture body types
+  const allBodyTypes = getResReqTypes([['body', operation.requestBody!]]);
+  const requestBodyTypes = allBodyTypes.map(({value}) => value).join(' | ');
 
-  const requestBodyTypes = getResReqTypes([['body', requestBody!]]).join(' | ');
   const needAResponseComponent = responseTypes.includes('{');
 
-  const paramsInPath = getParamsInPath(route).filter(
-    param => !(verb === 'delete' && param === lastParamInTheRoute)
-  );
+  const paramsInPath = getParamsInPath(route);
   const {query: queryParams = [], path: pathParams = []} = groupBy(
     [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
       if (isReference(p)) {
@@ -126,7 +121,7 @@ const generateMocksCalls = ({
           {
             definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
             default: false,
-            required: false
+            required: true
           }
         ]
       : []),
@@ -152,8 +147,6 @@ const generateMocksCalls = ({
     (acc, [name, type]) => ({...acc, [name]: type}),
     {}
   ) as {[key: string]: SchemaObject};
-
-  let imports: string[] = [];
 
   const mockWithoutFunc = (properties: any) =>
     Object.entries(
@@ -196,7 +189,7 @@ const generateMocksCalls = ({
       : {})
   };
 
-  const mocks = allResponseTypes.map(type => {
+  const mocks = allResponseTypes.map(({value: type}) => {
     const defaultResponse = toAxiosPromise(undefined);
 
     if (!type) {
