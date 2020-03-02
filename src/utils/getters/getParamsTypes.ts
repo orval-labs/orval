@@ -1,11 +1,11 @@
-import { OperationObject, ParameterObject, SchemaObject } from 'openapi3-ts';
-import { resolveValue } from '../resolvers/resolveValue';
+import {OperationObject, ParameterObject, SchemaObject} from 'openapi3-ts';
+import {resolveValue} from '../resolvers/resolveValue';
 
 export const getParamsTypes = ({
   params,
   pathParams,
   operation,
-  type = 'definition',
+  type = 'definition'
 }: {
   params: string[];
   pathParams: ParameterObject[];
@@ -14,7 +14,7 @@ export const getParamsTypes = ({
 }) => {
   return params.map(p => {
     try {
-      const { name, required, schema } = pathParams.find(i => i.name === p) as {
+      const {name, required, schema} = pathParams.find(i => i.name === p) as {
         name: string;
         required: boolean;
         schema: SchemaObject;
@@ -23,22 +23,26 @@ export const getParamsTypes = ({
       if (type === 'definition') {
         return {
           name,
-          definition: `${name}${!required || schema.default ? '?' : ''}: ${resolveValue(schema).value}`,
+          definition: `${name}${!required || schema.default ? '?' : ''}: ${
+            resolveValue(schema).value
+          }`,
           default: schema.default,
-          required,
+          required
         };
       }
 
       return {
         name,
-        definition: `${name}${!required && !schema.default ? '?' : ''}: ${resolveValue(schema).value}${
-          schema.default ? ` = ${schema.default}` : ''
-        }`,
+        definition: `${name}${!required && !schema.default ? '?' : ''}: ${
+          resolveValue(schema).value
+        }${schema.default ? ` = ${schema.default}` : ''}`,
         default: schema.default,
-        required,
+        required
       };
     } catch (err) {
-      throw new Error(`The path params ${p} can't be found in parameters (${operation.operationId})`);
+      throw new Error(
+        `The path params ${p} can't be found in parameters (${operation.operationId})`
+      );
     }
   });
 };

@@ -17,10 +17,15 @@ export const generateResponsesDefinition = (
   }
 
   const models = Object.entries(responses).map(([name, response]) => {
-    const type = getResReqTypes([['', response]]).join(' | ');
-    const isEmptyInterface = type === '{}';
-
     let imports: string[] = [];
+    const allResponseTypes = getResReqTypes([['', response]]);
+    const allResponseTypesImports = allResponseTypes.reduce<string[]>(
+      (acc, {imports = []}) => [...acc, ...imports],
+      []
+    );
+    imports = [...imports, ...allResponseTypesImports];
+    const type = allResponseTypes.map(({value}) => value).join(' | ');
+    const isEmptyInterface = type === '{}';
     let model = '';
     if (isEmptyInterface) {
       model = `// tslint:disable-next-line:no-empty-interface \nexport interface ${pascal(

@@ -13,30 +13,34 @@ export const getResReqTypes = (
   responsesOrRequests: Array<
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >
-) =>
+): Array<{
+  value: string;
+  isEnum?: boolean;
+  type?: string;
+  imports?: string[];
+}> =>
   uniq(
-    responsesOrRequests.map(([_, res]) => {
-      if (!res) {
-        return;
-      }
-
-      if (isReference(res)) {
-        return getRef(res.$ref);
-      } else {
-        if (res.content?.['application/json']) {
-          const schema = res.content['application/json'].schema!;
-          return resolveValue(schema).value;
-        } else if (res.content?.['application/octet-stream']) {
-          const schema = res.content['application/octet-stream'].schema!;
-          return resolveValue(schema).value;
-        } else if (res.content?.['application/pdf']) {
-          const schema = res.content['application/pdf'].schema!;
-          return resolveValue(schema).value;
-        } else if (res.content?.['multipart/form-data']) {
-          const schema = res.content['multipart/form-data'].schema!;
-          return resolveValue(schema).value;
+    responsesOrRequests
+      .filter(([_, res]) => Boolean(res))
+      .map(([_, res]) => {
+        if (isReference(res)) {
+          const value = getRef(res.$ref);
+          return {value, imports: [value]};
+        } else {
+          if (res.content?.['application/json']) {
+            const schema = res.content['application/json'].schema!;
+            return resolveValue(schema);
+          } else if (res.content?.['application/octet-stream']) {
+            const schema = res.content['application/octet-stream'].schema!;
+            return resolveValue(schema);
+          } else if (res.content?.['application/pdf']) {
+            const schema = res.content['application/pdf'].schema!;
+            return resolveValue(schema);
+          } else if (res.content?.['multipart/form-data']) {
+            const schema = res.content['multipart/form-data'].schema!;
+            return resolveValue(schema);
+          }
+          return {value: 'unknown'};
         }
-        return 'unknown';
-      }
-    })
+      })
   );
