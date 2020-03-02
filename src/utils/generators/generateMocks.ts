@@ -34,7 +34,7 @@ const sortParams = (
     }
 
     if (a.required && b.required) {
-      return -1;
+      return 1;
     }
 
     if (a.required) {
@@ -121,7 +121,7 @@ const generateMocksCalls = ({
           {
             definition: `${camel(requestBodyTypes)}: ${requestBodyTypes}`,
             default: false,
-            required: true
+            required: false
           }
         ]
       : []),
