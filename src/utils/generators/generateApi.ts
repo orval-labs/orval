@@ -10,13 +10,16 @@ import {
   ReferenceObject,
   ResponseObject
 } from 'openapi3-ts';
-import {generalJSTypesRegex, generalTypesFilter} from '../generalTypesFilter';
+import {
+  generalJSTypesWithArray,
+  generalTypesFilter
+} from '../generalTypesFilter';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
 import {getQueryParamsTypes} from '../getters/getQueryParamsTypes';
 import {getResReqTypes} from '../getters/getResReqTypes';
 import {isReference} from '../isReference';
-import { sortParams } from '../sortParams';
+import {sortParams} from '../sortParams';
 
 /**
  * Generate a orval component from openapi operation specs
@@ -114,7 +117,9 @@ const generateApiCalls = (
     imports: queryParamsImports
   };
 
-  const formatedRequestBodyTypes = generalJSTypesRegex.test(requestBodyTypes)
+  const formatedRequestBodyTypes = generalJSTypesWithArray.includes(
+    requestBodyTypes
+  )
     ? 'payload'
     : camel(requestBodyTypes);
 
