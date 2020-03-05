@@ -88,7 +88,7 @@ const getObject = ({
   schemas: {[key: string]: SchemaObject};
   operationId: string;
   allOf?: boolean;
-  mockOptions?: MockOptions<{[key: string]: unknown}>;
+  mockOptions?: MockOptions<{[key: string]: any}>;
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveValue({
@@ -256,7 +256,7 @@ export const getMockDefinition = ({
   item: SchemaObject & {name: string; parent?: string};
   schemas: {[key: string]: SchemaObject};
   allOf?: boolean;
-  mockOptions?: MockOptions<{[key: string]: unknown}>;
+  mockOptions?: MockOptions<{[key: string]: any}>;
   operationId: string;
 }): MockDefinition => {
   const rProperty = resolveMockProperties(
