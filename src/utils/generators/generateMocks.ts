@@ -12,14 +12,17 @@ import {
   SchemaObject
 } from 'openapi3-ts';
 import {MockOptions} from '../../types';
-import {generalJSTypesRegex, generalTypesFilter} from '../generalTypesFilter';
+import {
+  generalJSTypesWithArray,
+  generalTypesFilter
+} from '../generalTypesFilter';
 import {getMockDefinition} from '../getters/getMockDefinition';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
 import {getResReqTypes} from '../getters/getResReqTypes';
 import {isReference} from '../isReference';
+import {sortParams} from '../sortParams';
 import {stringify} from '../stringify';
-import { sortParams } from '../sortParams';
 
 const generateMocksCalls = ({
   operation,
@@ -83,7 +86,9 @@ const generateMocksCalls = ({
 
   const queryParamsDefinitioName = `${camel(componentName)}Params`;
 
-  const formatedRequestBodyTypes = generalJSTypesRegex.test(requestBodyTypes)
+  const formatedRequestBodyTypes = generalJSTypesWithArray.includes(
+    requestBodyTypes
+  )
     ? 'payload'
     : camel(requestBodyTypes);
 
@@ -174,7 +179,7 @@ const generateMocksCalls = ({
       return defaultResponse;
     }
 
-    if (!generalJSTypesRegex.test(type)) {
+    if (!generalJSTypesWithArray.includes(type)) {
       const schema = {name: type, ...schemas[type]};
       if (!schema) {
         return defaultResponse;
