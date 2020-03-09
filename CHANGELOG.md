@@ -1,3 +1,14 @@
+# Changelog
+
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+### 1.2.1 (2020-03-09)
+
+
+### Bug Fixes
+
+* **generator:** response types ([1418546](https://github.com/anymaniax/orval/commit/1418546b103546d0a262ebdda0131b1b187625bc))
+
 ## 1.2.0 (2020-03-05)
 
 
@@ -60,5 +71,3 @@
 * **version:** 1.1.7 ([4884e7e](https://github.com/anymaniax/orval/commit/4884e7eb6ceed6d3722c99ecd7a93e62290f678f))
 * **version:** 1.1.8 ([43bf7a6](https://github.com/anymaniax/orval/commit/43bf7a6e9fd427114d50b2c1ee2a354a8b4b3463))
 * **version:** 1.1.9 ([c4d6b21](https://github.com/anymaniax/orval/commit/c4d6b210ba1fc6dad6a2ca27f88a82e7eee6b1b3))
-
-
