@@ -203,7 +203,7 @@ const generateApiCalls = (
       {
         ${queryParams.length ? 'params' : ''}${
           queryParams.length && responseTypes === 'Blob' ? ',' : ''
-        }${responseTypes === 'Blob' ? `responseType: 'Blob',` : ''}
+        }${responseTypes === 'Blob' ? `responseType: 'blob',` : ''}
       }`
       : ''
   }`;
