@@ -8,7 +8,7 @@ import {getObject} from './getObject';
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
  */
-export const getScalar = (item: SchemaObject) => {
+export const getScalar = (item: SchemaObject, name?: string) => {
   const nullable = item.nullable ? ' | null' : '';
 
   switch (item.type) {
@@ -34,7 +34,7 @@ export const getScalar = (item: SchemaObject) => {
       return {value: 'boolean' + nullable, type: 'boolean'};
 
     case 'array': {
-      const {value, imports} = getArray(item);
+      const {value, imports} = getArray(item, name);
       return {value: value + nullable, imports, type: 'array'};
     }
 
@@ -62,8 +62,8 @@ export const getScalar = (item: SchemaObject) => {
 
     case 'object':
     default: {
-      const {value, imports} = getObject(item);
-      return {value: value + nullable, imports, type: 'object'};
+      const {value, imports, schemas} = getObject(item, name);
+      return {value: value + nullable, imports, type: 'object', schemas};
     }
   }
 };
