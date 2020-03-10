@@ -1,5 +1,6 @@
 import {pascal} from 'case';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
+import {generalTypesFilter} from '../generalTypesFilter';
 import {isReference} from '../isReference';
 import {resolveValue} from '../resolvers/resolveValue';
 import {getRef} from './getRef';
@@ -95,7 +96,7 @@ export const getObject = (
             {
               name: propName,
               model: `export interface ${propName} ${resolvedValue.value}`,
-              imports: resolvedValue.imports
+              imports: generalTypesFilter(resolvedValue.imports)
             }
           ];
 
