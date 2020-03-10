@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.3.1](https://github.com/anymaniax/orval/compare/v1.3.0...v1.3.1) (2020-03-10)
+
+
+### Bug Fixes
+
+* **generator:** operations add transformer types ([44bd798](https://github.com/anymaniax/orval/commit/44bd7981be1a9bf6ec4f67fc38d07043027d5e7a))
+
 ## 1.3.0 (2020-03-10)
 
 
