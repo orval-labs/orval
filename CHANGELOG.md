@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/anymaniax/orval/compare/v1.3.2...v1.4.0) (2020-03-10)
+
+
+### Features
+
+* **generator:** create type for child object ([c2b33f5](https://github.com/anymaniax/orval/commit/c2b33f506d52ea47ec0febc785487d5c2aa9dcc9))
+
 ### [1.3.2](https://github.com/anymaniax/orval/compare/v1.3.1...v1.3.2) (2020-03-10)
 
 
