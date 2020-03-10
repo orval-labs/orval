@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.1](https://github.com/anymaniax/orval/compare/v1.4.0...v1.4.1) (2020-03-10)
+
+
+### Bug Fixes
+
+* **generator:** child object type uniq import ([6838047](https://github.com/anymaniax/orval/commit/6838047bc2b2ee4860edb487a45dac5554063c47))
+
 ## [1.4.0](https://github.com/anymaniax/orval/compare/v1.3.2...v1.4.0) (2020-03-10)
 
 
