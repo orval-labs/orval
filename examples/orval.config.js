@@ -13,10 +13,14 @@ module.exports = {
     output: 'examples/petstoreFromFileSpecWithTransformer.ts',
     types: 'examples/model',
     transformer: 'examples/transformer-add-version.js',
-    mock: {
-      properties: {
-        id: faker.random.number({min: 1, max: 9999})
+    override: {
+      operations: {
+        listPets: {
+          transformer: 'examples/transformer-response-type.js'
+        }
       },
+    },
+    mock: {
       responses: {
         listPets: {
           properties: () => {

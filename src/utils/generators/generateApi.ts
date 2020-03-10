@@ -10,6 +10,8 @@ import {
   ReferenceObject,
   ResponseObject
 } from 'openapi3-ts';
+import {join} from 'path';
+import {OverrideOptions} from '../../types';
 import {
   generalJSTypesWithArray,
   generalTypesFilter
@@ -35,7 +37,8 @@ const generateApiCalls = (
   verb: string,
   route: string,
   parameters: Array<ReferenceObject | ParameterObject> = [],
-  schemasComponents?: ComponentsObject
+  schemasComponents?: ComponentsObject,
+  override?: OverrideOptions
 ): {
   value: string;
   definition: string;
@@ -54,7 +57,13 @@ const generateApiCalls = (
 
   route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
 
-  const componentName = pascal(operation.operationId!);
+  const operationOptions = override?.operations?.[operation.operationId];
+
+  const transformer = operationOptions?.transformer
+    ? require(join(process.cwd(), operationOptions.transformer))
+    : undefined;
+
+  const componentName = pascal(operation.operationId);
 
   const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
     statusCode.toString().startsWith('2');
@@ -182,17 +191,7 @@ const generateApiCalls = (
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }>`;
 
-  const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
-    needAResponseComponent ? componentName + 'Response' : responseTypes
-  }> {
-    ${
-      requestBodyTypes === 'Blob'
-        ? `const formData = new FormData(); formData.append('file', ${camel(
-            requestBodyTypes
-          )});`
-        : ''
-    }
-    return axios.${verb}(\`${route}\` ${
+  const axiosProps = `\`${route}\` ${
     requestBodyTypes
       ? requestBodyTypes === 'Blob'
         ? ', formData'
@@ -204,16 +203,30 @@ const generateApiCalls = (
       {
         ${queryParams.length ? 'params' : ''}${
           queryParams.length && responseTypes === 'Blob' ? ',' : ''
-        }${
-          responseTypes === 'Blob'
-            ? `responseType: 'arraybuffer',
-        headers: {
-          Accept: 'application/pdf',
-        },`
-            : ''
-        }
+        }${responseTypes === 'Blob' ? `responseType: 'Blob',` : ''}
       }`
       : ''
+  }`;
+
+  const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
+    needAResponseComponent ? componentName + 'Response' : responseTypes
+  }> {
+    ${
+      transformer
+        ? `const transformer = ${transformer} as [string, ${
+            requestBodyTypes ? `${requestBodyTypes}, ` : ''
+          } AxiosRequestConfig]`
+        : ''
+    }
+    ${
+      requestBodyTypes === 'Blob'
+        ? `const formData = new FormData(); formData.append('file', ${camel(
+            requestBodyTypes
+          )});`
+        : ''
+    }
+    return axios.${verb}(${
+    transformer ? `...transformer(${axiosProps})` : axiosProps
   });
   },
 `;
@@ -226,7 +239,10 @@ const generateApiCalls = (
   };
 };
 
-export const generateApi = (specs: OpenAPIObject) => {
+export const generateApi = (
+  specs: OpenAPIObject,
+  override?: OverrideOptions
+) => {
   let imports: string[] = [];
   let queryParamDefinitions: Array<{
     name: string;
@@ -249,7 +265,8 @@ export const generateApi = (specs: OpenAPIObject) => {
               verb,
               route,
               verbs.parameters,
-              specs.components
+              specs.components,
+              override
             );
             if (call.queryParamDefinition) {
               queryParamDefinitions = [
