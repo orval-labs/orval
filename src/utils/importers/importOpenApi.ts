@@ -1,13 +1,13 @@
-import { OpenAPIObject } from 'openapi3-ts';
+import {OpenAPIObject} from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
-import { MockOptions } from '../../types';
-import { generateApi } from '../generators/generateApi';
-import { generateMocks } from '../generators/generateMocks';
-import { generateResponsesDefinition } from '../generators/generateResponsesDefinition';
-import { generateSchemasDefinition } from '../generators/generateSchemaDefinition';
-import { resolveDiscriminator } from '../resolvers/resolveDiscriminator';
-import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
+import {MockOptions, OverrideOptions} from '../../types';
+import {generateApi} from '../generators/generateApi';
+import {generateMocks} from '../generators/generateMocks';
+import {generateResponsesDefinition} from '../generators/generateResponsesDefinition';
+import {generateSchemasDefinition} from '../generators/generateSchemaDefinition';
+import {resolveDiscriminator} from '../resolvers/resolveDiscriminator';
+import {ibmOpenapiValidator} from '../validators/ibm-openapi-validator';
 
 /**
  * Import and parse the openapi spec from a yaml/json
@@ -15,12 +15,15 @@ import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
  * @param data raw data of the spec
  * @param format format of the spec
  */
-const importSpecs = (data: string, extension: 'yaml' | 'json'): Promise<OpenAPIObject> => {
+const importSpecs = (
+  data: string,
+  extension: 'yaml' | 'json'
+): Promise<OpenAPIObject> => {
   const schema = extension === 'yaml' ? YAML.parse(data) : JSON.parse(data);
 
   return new Promise((resolve, reject) => {
     if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-      swagger2openapi.convertObj(schema, {}, (err, { openapi }) => {
+      swagger2openapi.convertObj(schema, {}, (err, {openapi}) => {
         if (err) {
           reject(err);
         } else {
@@ -47,11 +50,13 @@ export const importOpenApi = async ({
   transformer,
   validation,
   mockOptions,
+  override
 }: {
   data: string;
   format: 'yaml' | 'json';
   transformer?: (specs: OpenAPIObject) => OpenAPIObject;
   validation?: boolean;
+  override?: OverrideOptions;
   mockOptions?: MockOptions;
 }) => {
   let specs = await importSpecs(data, format);
@@ -65,14 +70,18 @@ export const importOpenApi = async ({
 
   resolveDiscriminator(specs);
 
-  const schemaDefinition = generateSchemasDefinition(specs.components && specs.components.schemas);
-  const responseDefinition = generateResponsesDefinition(specs.components && specs.components.responses);
+  const schemaDefinition = generateSchemasDefinition(
+    specs.components && specs.components.schemas
+  );
+  const responseDefinition = generateResponsesDefinition(
+    specs.components && specs.components.responses
+  );
 
   const models = [...schemaDefinition, ...responseDefinition];
 
-  const api = generateApi(specs);
+  const api = generateApi(specs, override);
 
   const mocks = generateMocks(specs, mockOptions);
 
-  return { api, mocks, models };
+  return {api, mocks, models};
 };

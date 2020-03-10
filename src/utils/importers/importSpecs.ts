@@ -61,6 +61,7 @@ export const importSpecs = async (
       format,
       transformer,
       validation: options.validation,
+      override: options.override,
       ...(typeof options.mock === 'object' ? { mockOptions: options.mock } : {}),
     });
   } else if (options.github) {
@@ -121,6 +122,7 @@ export const importSpecs = async (
             data: body.data.repository.object.text,
             format,
             transformer,
+            override: options.override,
             validation: options.validation,
             ...(typeof options.mock === 'object' ? { mockOptions: options.mock } : {}),
           }),

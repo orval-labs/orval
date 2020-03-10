@@ -1,4 +1,4 @@
-import { OpenAPIObject } from 'openapi3-ts';
+import {OpenAPIObject} from 'openapi3-ts';
 
 export interface Options {
   output?: string;
@@ -10,9 +10,12 @@ export interface Options {
   transformer?: string;
   validation?: boolean;
   mock?: boolean | MockOptions;
+  override?: OverrideOptions
 }
 
-export type MockProperties = { [key: string]: unknown } | ((specs: OpenAPIObject) => { [key: string]: unknown });
+export type MockProperties =
+  | {[key: string]: unknown}
+  | ((specs: OpenAPIObject) => {[key: string]: unknown});
 
 export interface MockOptions<T = MockProperties> {
   properties?: T;
@@ -29,3 +32,11 @@ export type AdvancedOptions = Options;
 export interface ExternalConfigFile {
   [backend: string]: AdvancedOptions;
 }
+
+export type OverrideOptions = {
+  operations?: {[key: string]: OperationOptions};
+}
+
+export type OperationOptions = {
+  transformer?: string;
+};
