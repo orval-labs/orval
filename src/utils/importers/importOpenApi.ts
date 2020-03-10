@@ -83,5 +83,5 @@ export const importOpenApi = async ({
 
   const mocks = generateMocks(specs, mockOptions);
 
-  return {api, mocks, models};
+  return {api, mocks, models, info: specs.info};
 };
