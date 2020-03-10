@@ -208,14 +208,18 @@ const generateApiCalls = (
       : ''
   }`;
 
+  const transformerType = `(url: string,${
+    requestBodyTypes ? ` data: ${requestBodyTypes}, ` : ''
+  } config: AxiosRequestConfig) => [string, ${
+    requestBodyTypes ? `${requestBodyTypes}, ` : ''
+  } AxiosRequestConfig]`;
+
   const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
     needAResponseComponent ? componentName + 'Response' : responseTypes
   }> {
     ${
       transformer
-        ? `const transformer = ${transformer} as [string, ${
-            requestBodyTypes ? `${requestBodyTypes}, ` : ''
-          } AxiosRequestConfig]`
+        ? `const transformer: ${transformerType} = ${transformer}`
         : ''
     }
     ${
