@@ -11,15 +11,18 @@ import {getScalar} from '../getters/getScalar';
  * @param schema
  */
 export const generateInterface = (name: string, schema: SchemaObject) => {
-  const {value, imports} = getScalar(schema);
+  const {value, imports, schemas} = getScalar(schema, name);
   const isEmptyObject = value === '{}';
 
-  return {
-    name: pascal(name),
-    model: isEmptyObject
-      ? `// tslint:disable-next-line:no-empty-interface
+  return [
+    ...schemas,
+    {
+      name: pascal(name),
+      model: isEmptyObject
+        ? `// tslint:disable-next-line:no-empty-interface
 export interface ${pascal(name)} ${value}`
-      : `export interface ${pascal(name)} ${value}`,
-    imports: generalTypesFilter(imports)
-  };
+        : `export interface ${pascal(name)} ${value}`,
+      imports: generalTypesFilter(imports)
+    }
+  ];
 };

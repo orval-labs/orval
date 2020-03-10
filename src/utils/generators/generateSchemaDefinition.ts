@@ -1,10 +1,10 @@
-import {pascal, upper} from 'case';
+import { pascal, upper } from 'case';
 import isEmpty from 'lodash/isEmpty';
-import {SchemaObject} from 'openapi3-ts';
-import {generalTypesFilter} from '../generalTypesFilter';
-import {isReference} from '../isReference';
-import {resolveValue} from '../resolvers/resolveValue';
-import {generateInterface} from './generateInterface';
+import { SchemaObject } from 'openapi3-ts';
+import { generalTypesFilter } from '../generalTypesFilter';
+import { isReference } from '../isReference';
+import { resolveValue } from '../resolvers/resolveValue';
+import { generateInterface } from './generateInterface';
 
 /**
  * Extract all types from #/components/schemas
@@ -18,7 +18,9 @@ export const generateSchemasDefinition = (
     return [];
   }
 
-  const models = Object.entries(schemas).map(([name, schema]) => {
+  const models = Object.entries(schemas).reduce<
+    Array<{name: string; model: string; imports?: string[]}>
+  >((acc, [name, schema]) => {
     if (
       (!schema.type || schema.type === 'object') &&
       !schema.allOf &&
@@ -26,9 +28,12 @@ export const generateSchemasDefinition = (
       !isReference(schema) &&
       !schema.nullable
     ) {
-      return generateInterface(name, schema);
+      return [...acc, ...generateInterface(name, schema)];
     } else {
-      const {value, imports, isEnum, type} = resolveValue(schema);
+      const {value, imports, isEnum, type, schemas = []} = resolveValue(
+        schema,
+        name
+      );
 
       let output = '';
       output += `export type ${pascal(name)} = ${value};`;
@@ -47,14 +52,19 @@ export const generateSchemasDefinition = (
             );
           }, '')}};`;
       }
-
-      return {
-        name: pascal(name),
-        model: output,
-        imports: generalTypesFilter(imports)
-      };
+      
+      return [
+        ...acc,
+        ...schemas,
+        {
+          name: pascal(name),
+          model: output,
+          imports: generalTypesFilter(imports)
+        },
+      ];
     }
-  });
+  }, []);
+
 
   return models;
 };
