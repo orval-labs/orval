@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.4](https://github.com/anymaniax/orval/compare/v1.4.3...v1.4.4) (2020-03-11)
+
+
+### Bug Fixes
+
+* **generator:** child object use type instead of interface ([69027a9](https://github.com/anymaniax/orval/commit/69027a9963d813b03c84ad161ce99fa1610d6dea))
+
 ### [1.4.3](https://github.com/anymaniax/orval/compare/v1.4.2...v1.4.3) (2020-03-10)
 
 
