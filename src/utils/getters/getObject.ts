@@ -95,7 +95,7 @@ export const getObject = (
             ...schemas,
             {
               name: propName,
-              model: `export interface ${propName} ${resolvedValue.value}`,
+              model: `export type ${propName} = ${resolvedValue.value}`,
               imports: generalTypesFilter(resolvedValue.imports)
             }
           ];
