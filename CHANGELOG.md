@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.5](https://github.com/anymaniax/orval/compare/v1.4.4...v1.4.5) (2020-03-12)
+
+
+### Bug Fixes
+
+* **generator:** pathOnly generation with only 1 element in imports array now works ([#20](https://github.com/anymaniax/orval/issues/20)) ([1f53dd2](https://github.com/anymaniax/orval/commit/1f53dd2ffa2026fb55fbddb703de8970a63a8eae))
+
 ### [1.4.4](https://github.com/anymaniax/orval/compare/v1.4.3...v1.4.4) (2020-03-11)
 
 
