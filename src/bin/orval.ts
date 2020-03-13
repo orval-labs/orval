@@ -1,13 +1,11 @@
 import chalk from 'chalk';
 import program from 'commander';
-import {readFileSync} from 'fs';
-import {join} from 'path';
+import {log} from '../messages/logs';
+import {getConfig} from '../utils/getConfig';
 
-const {name, version, description} = JSON.parse(
-  readFileSync(join(__dirname, '../../package.json'), 'utf-8')
-);
+const {name, version, description} = getConfig();
 
-console.log(
+log(
   `🍺 Start ${chalk.cyan.bold(name)} ${chalk.green(
     `v${version}`
   )} - ${description}`
