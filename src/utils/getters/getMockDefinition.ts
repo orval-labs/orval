@@ -112,9 +112,15 @@ const getObject = ({
 
       imports = [...imports, ...resolvedValue.imports];
       if (!index && !allOf) {
+        if (resolvedValue.enums) {
+          return 'faker.helpers.randomize([' + resolvedValue.value + ',';
+        }
         return '{' + resolvedValue.value + ',';
       }
       if (arr.length - 1 === index) {
+        if (resolvedValue.enums) {
+          return acc + resolvedValue.value + (!allOf ? '])' : '');
+        }
         return acc + resolvedValue.value + (!allOf ? '}' : '');
       }
       return acc + resolvedValue.value + ',';
