@@ -1,5 +1,3 @@
-import uniq from 'lodash/uniq';
-
 export const generalJSTypes = [
   'number',
   'string',
@@ -14,7 +12,3 @@ export const generalJSTypesWithArray = generalJSTypes.reduce<string[]>(
   (acc, type) => [...acc, type, `Array<${type}>`, `${type}[]`],
   []
 );
-
-export const generalTypesFilter = (values: string[] = []) => {
-  return uniq(values.filter(value => !generalJSTypesWithArray.includes(value)));
-};

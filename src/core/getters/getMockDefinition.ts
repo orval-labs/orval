@@ -3,8 +3,8 @@ import cuid from 'cuid';
 import get from 'lodash/get';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {MockOptions} from '../../types';
-import {isReference} from '../isReference';
 import {getRef} from './getRef';
+import { isReference } from '../../utils/is';
 
 const resolveMockProperties = (
   properties: any = {},

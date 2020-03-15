@@ -11,18 +11,16 @@ import {
   ResponseObject,
   SchemaObject
 } from 'openapi3-ts';
+import {generalJSTypesWithArray} from '../../constants';
 import {MockOptions} from '../../types';
-import {
-  generalJSTypesWithArray,
-  generalTypesFilter
-} from '../generalTypesFilter';
+import {generalTypesFilter} from '../../utils/filters';
+import {isReference} from '../../utils/is';
+import {sortParams} from '../../utils/sort';
+import {stringify} from '../../utils/stringify';
 import {getMockDefinition} from '../getters/getMockDefinition';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
 import {getResReqTypes} from '../getters/getResReqTypes';
-import {isReference} from '../isReference';
-import {sortParams} from '../sortParams';
-import {stringify} from '../stringify';
 
 const generateMocksCalls = ({
   operation,

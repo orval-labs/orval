@@ -11,17 +11,15 @@ import {
   ResponseObject
 } from 'openapi3-ts';
 import {join} from 'path';
+import {generalJSTypesWithArray} from '../../constants';
 import {OverrideOptions} from '../../types';
-import {
-  generalJSTypesWithArray,
-  generalTypesFilter
-} from '../generalTypesFilter';
+import {generalTypesFilter} from '../../utils/filters';
+import {isReference} from '../../utils/is';
+import {sortParams} from '../../utils/sort';
 import {getParamsInPath} from '../getters/getParamsInPath';
 import {getParamsTypes} from '../getters/getParamsTypes';
 import {getQueryParamsTypes} from '../getters/getQueryParamsTypes';
 import {getResReqTypes} from '../getters/getResReqTypes';
-import {isReference} from '../isReference';
-import {sortParams} from '../sortParams';
 
 /**
  * Generate a orval component from openapi operation specs

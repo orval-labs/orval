@@ -1,7 +1,7 @@
 import {pascal} from 'case';
 import {SchemaObject} from 'openapi3-ts';
-import {generalTypesFilter} from '../generalTypesFilter';
 import {getScalar} from '../getters/getScalar';
+import { generalTypesFilter } from '../../utils/filters';
 
 /**
  * Generate the interface string

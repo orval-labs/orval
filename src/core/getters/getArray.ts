@@ -1,6 +1,6 @@
 import {SchemaObject} from 'openapi3-ts';
-import {isReference} from '../isReference';
 import {resolveValue} from '../resolvers/resolveValue';
+import { isReference } from '../../utils/is';
 
 /**
  * Return the output type from an array

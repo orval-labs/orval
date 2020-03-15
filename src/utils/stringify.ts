@@ -1,4 +1,6 @@
-export const stringify = (data?: string | any[] | { [key: string]: any }): string | undefined => {
+export const stringify = (
+  data?: string | any[] | {[key: string]: any}
+): string | undefined => {
   if (typeof data === 'undefined' || data === null) {
     return;
   }
@@ -7,7 +9,11 @@ export const stringify = (data?: string | any[] | { [key: string]: any }): strin
     return `'${data}'`;
   }
 
-  if (typeof data === 'number' || typeof data === 'boolean' || typeof data === 'function') {
+  if (
+    typeof data === 'number' ||
+    typeof data === 'boolean' ||
+    typeof data === 'function'
+  ) {
     return `${data}`;
   }
 

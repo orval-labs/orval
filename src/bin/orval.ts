@@ -1,9 +1,9 @@
 import chalk from 'chalk';
 import program from 'commander';
-import {log} from '../messages/logs';
-import {getConfig} from '../utils/getConfig';
+import {getPackage} from '../utils/packages';
+import { log } from '../utils/messages/logs';
 
-const {name, version, description} = getConfig();
+const {name, version, description} = getPackage();
 
 log(
   `🍺 Start ${chalk.cyan.bold(name)} ${chalk.green(

@@ -1,14 +1,16 @@
 import {appendFileSync, existsSync, mkdirSync, writeFileSync} from 'fs';
 import {join} from 'path';
-import {getFilesHeader} from '../../messages/inline';
-import {log} from '../../messages/logs';
 import {Options} from '../../types';
 import {WriteSpecsProps} from '../../types/writeSpecs';
-import {createSuccessMessage} from '../createSuccessMessage';
+import {
+  createSuccessMessage,
+  getFilesHeader
+} from '../../utils/messages/inline';
+import {log} from '../../utils/messages/logs';
 import {generateImports} from '../generators/generateImports';
-import {generateModels} from '../generators/generateModels';
 import {generateModelsInline} from '../generators/generateModelsInline';
 import {resolvePath} from '../resolvers/resolvePath';
+import {writeModels} from './writeModels';
 
 export const writeSpecs = (options: Options, backend?: string) => ({
   api,
@@ -28,10 +30,10 @@ export const writeSpecs = (options: Options, backend?: string) => ({
 
     writeFileSync(join(path, '/index.ts'), '');
 
-    generateModels(models, path, info);
+    writeModels(models, path, info);
 
     if (api.queryParamDefinitions) {
-      generateModels(api.queryParamDefinitions, path, info);
+      writeModels(api.queryParamDefinitions, path, info);
     }
   }
 
@@ -52,7 +54,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
       data += generateModelsInline(models);
 
       if (api.queryParamDefinitions) {
-        generateModelsInline(api.queryParamDefinitions);
+        data += generateModelsInline(api.queryParamDefinitions);
       }
     }
 
