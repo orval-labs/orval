@@ -1,10 +1,10 @@
-import { pascal, upper } from 'case';
+import {pascal, upper} from 'case';
 import isEmpty from 'lodash/isEmpty';
-import { SchemaObject } from 'openapi3-ts';
-import { generalTypesFilter } from '../generalTypesFilter';
-import { isReference } from '../isReference';
-import { resolveValue } from '../resolvers/resolveValue';
-import { generateInterface } from './generateInterface';
+import {SchemaObject} from 'openapi3-ts';
+import {generalTypesFilter} from '../../utils/filters';
+import {isReference} from '../../utils/is';
+import {resolveValue} from '../resolvers/resolveValue';
+import {generateInterface} from './generateInterface';
 
 /**
  * Extract all types from #/components/schemas
@@ -52,7 +52,7 @@ export const generateSchemasDefinition = (
             );
           }, '')}};`;
       }
-      
+
       return [
         ...acc,
         ...schemas,
@@ -60,11 +60,10 @@ export const generateSchemasDefinition = (
           name: pascal(name),
           model: output,
           imports: generalTypesFilter(imports)
-        },
+        }
       ];
     }
   }, []);
-
 
   return models;
 };

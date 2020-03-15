@@ -1,8 +1,8 @@
 import {pascal} from 'case';
 import isEmpty from 'lodash/isEmpty';
 import {ComponentsObject} from 'openapi3-ts';
-import {generalTypesFilter} from '../generalTypesFilter';
 import {getResReqTypes} from '../getters/getResReqTypes';
+import { generalTypesFilter } from '../../utils/filters';
 
 /**
  * Extract all types from #/components/responses

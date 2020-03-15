@@ -1,4 +1,4 @@
-import { ReferenceObject } from 'openapi3-ts';
+import {ReferenceObject} from 'openapi3-ts';
 
 /**
  * Discriminator helper for `ReferenceObject`

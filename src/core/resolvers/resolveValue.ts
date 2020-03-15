@@ -1,7 +1,7 @@
 import {SchemaObject} from 'openapi3-ts';
 import {getRef} from '../getters/getRef';
 import {getScalar} from '../getters/getScalar';
-import {isReference} from '../isReference';
+import { isReference } from '../../utils/is';
 
 /**
  * Resolve the value of a schema object to a proper type definition.

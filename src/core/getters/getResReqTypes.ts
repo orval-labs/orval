@@ -5,9 +5,9 @@ import {
   RequestBodyObject,
   ResponseObject
 } from 'openapi3-ts';
-import {isReference} from '../isReference';
 import {resolveValue} from '../resolvers/resolveValue';
 import {getRef} from './getRef';
+import { isReference } from '../../utils/is';
 
 const CONTENT_TYPES = [
   'application/json',
