@@ -5,9 +5,10 @@ import {
   RequestBodyObject,
   ResponseObject
 } from 'openapi3-ts';
+import {ResolverValue} from '../../types/resolvers';
+import {isReference} from '../../utils/is';
 import {resolveValue} from '../resolvers/resolveValue';
 import {getRef} from './getRef';
-import { isReference } from '../../utils/is';
 
 const CONTENT_TYPES = [
   'application/json',
@@ -18,7 +19,13 @@ const CONTENT_TYPES = [
 
 const getResReqContentTypes = (type: string, mediaType: MediaTypeObject) => {
   if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
-    return {value: 'unknown'};
+    return {
+      value: 'unknown',
+      imports: [],
+      schemas: [],
+      type: 'unknow',
+      isEnum: false
+    };
   }
 
   return resolveValue(mediaType.schema);
@@ -33,35 +40,35 @@ export const getResReqTypes = (
   responsesOrRequests: Array<
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >
-): Array<{
-  value: string;
-  isEnum?: boolean;
-  type?: string;
-  imports?: string[];
-}> =>
+): Array<ResolverValue> =>
   uniq(
     responsesOrRequests
       .filter(([_, res]) => Boolean(res))
       .map(([_, res]) => {
         if (isReference(res)) {
           const value = getRef(res.$ref);
-          return {value, imports: [value]};
+          return {
+            value,
+            imports: [value],
+            schemas: [],
+            type: 'ref',
+            isEnum: false
+          };
         } else {
           return res.content
             ? Object.entries(res.content).map(([type, mediaType]) =>
                 getResReqContentTypes(type, mediaType)
               )
-            : {value: 'unknown'};
+            : {
+                value: 'unknown',
+                imports: [],
+                schemas: [],
+                type: 'unknow',
+                isEnum: false
+              };
         }
       })
-      .reduce<
-        Array<{
-          value: string;
-          isEnum?: boolean;
-          type?: string;
-          imports?: string[];
-        }>
-      >((acc, it) => {
+      .reduce<Array<ResolverValue>>((acc, it) => {
         if (Array.isArray(it)) {
           return [...acc, ...it];
         }

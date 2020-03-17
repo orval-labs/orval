@@ -2,8 +2,8 @@ import {OpenAPIObject} from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
 import {MockOptions, OverrideOptions} from '../../types';
+import {WriteSpecsProps} from '../../types/writers';
 import {generateApi} from '../generators/generateApi';
-import {generateMocks} from '../generators/generateMocks';
 import {generateResponsesDefinition} from '../generators/generateResponsesDefinition';
 import {generateSchemasDefinition} from '../generators/generateSchemaDefinition';
 import {resolveDiscriminator} from '../resolvers/resolveDiscriminator';
@@ -49,8 +49,8 @@ export const importOpenApi = async ({
   format,
   transformer,
   validation,
-  mockOptions,
-  override
+  override,
+  mockOptions
 }: {
   data: string;
   format: 'yaml' | 'json';
@@ -58,7 +58,7 @@ export const importOpenApi = async ({
   validation?: boolean;
   override?: OverrideOptions;
   mockOptions?: MockOptions;
-}) => {
+}): Promise<WriteSpecsProps> => {
   let specs = await importSpecs(data, format);
   if (transformer) {
     specs = transformer(specs);
@@ -70,18 +70,15 @@ export const importOpenApi = async ({
 
   resolveDiscriminator(specs);
 
-  const schemaDefinition = generateSchemasDefinition(
-    specs.components && specs.components.schemas
-  );
+  const schemaDefinition = generateSchemasDefinition(specs.components?.schemas);
   const responseDefinition = generateResponsesDefinition(
-    specs.components && specs.components.responses
+    specs.components?.responses
   );
 
-  const models = [...schemaDefinition, ...responseDefinition];
+  const api = generateApi(specs, override, mockOptions);
+  const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
 
-  const api = generateApi(specs, override);
+  //const mocks = generateMocks(specs, mockOptions);
 
-  const mocks = generateMocks(specs, mockOptions);
-
-  return {api, mocks, models, info: specs.info};
+  return {...api, schemas, info: specs.info};
 };

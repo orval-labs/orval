@@ -1,7 +1,7 @@
 import {appendFileSync, existsSync, mkdirSync, writeFileSync} from 'fs';
 import {join} from 'path';
 import {Options} from '../../types';
-import {WriteSpecsProps} from '../../types/writeSpecs';
+import {WriteSpecsProps} from '../../types/writers';
 import {
   createSuccessMessage,
   getFilesHeader
@@ -13,9 +13,11 @@ import {resolvePath} from '../resolvers/resolvePath';
 import {writeModels} from './writeModels';
 
 export const writeSpecs = (options: Options, backend?: string) => ({
-  api,
-  models,
-  mocks,
+  definition,
+  implementation,
+  implementationMocks,
+  imports,
+  schemas,
   info
 }: WriteSpecsProps) => {
   const {types, output, workDir = ''} = options;
@@ -30,11 +32,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
 
     writeFileSync(join(path, '/index.ts'), '');
 
-    writeModels(models, path, info);
-
-    if (api.queryParamDefinitions) {
-      writeModels(api.queryParamDefinitions, path, info);
-    }
+    writeModels(schemas, path, info);
   }
 
   if (output) {
@@ -46,25 +44,23 @@ export const writeSpecs = (options: Options, backend?: string) => ({
 
     if (types) {
       data += generateImports(
-        [...api.imports, ...mocks.imports],
+        imports,
         resolvePath(path, join(dir, types)),
         true
       );
     } else {
-      data += generateModelsInline(models);
-
-      if (api.queryParamDefinitions) {
-        data += generateModelsInline(api.queryParamDefinitions);
-      }
+      data += generateModelsInline(schemas);
     }
 
     data += '\n';
-    data += api.output;
+    data += definition;
+    data += '\n\n';
+    data += implementation;
 
     writeFileSync(path, data);
 
     if (options.mock) {
-      appendFileSync(path, mocks.output);
+      appendFileSync(path, implementationMocks);
     }
 
     log(createSuccessMessage(backend));

@@ -54,7 +54,7 @@ const resolveValue = ({
       return {value: 'undefined', imports: [], name: value};
     }
 
-    return getMockDefinition({
+    return getMockScalar({
       item: newSchema,
       schemas,
       allOf,
@@ -63,7 +63,7 @@ const resolveValue = ({
     });
   }
 
-  return getMockDefinition({
+  return getMockScalar({
     item: schema,
     schemas,
     allOf,
@@ -252,7 +252,7 @@ interface MockDefinition {
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
  */
-export const getMockDefinition = ({
+export const getMockScalar = ({
   item,
   schemas,
   allOf,

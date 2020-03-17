@@ -1,4 +1,5 @@
 import {SchemaObject} from 'openapi3-ts';
+import {ResolverValue} from '../../types/resolvers';
 import {getArray} from './getArray';
 import {getObject} from './getObject';
 
@@ -8,7 +9,7 @@ import {getObject} from './getObject';
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
  */
-export const getScalar = (item: SchemaObject, name?: string) => {
+export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
   const nullable = item.nullable ? ' | null' : '';
 
   switch (item.type) {
@@ -27,15 +28,30 @@ export const getScalar = (item: SchemaObject, name?: string) => {
         isEnum = true;
       }
 
-      return {value: value + nullable, isEnum, type: 'number'};
+      return {
+        value: value + nullable,
+        isEnum,
+        type: 'number',
+        schemas: [],
+        imports: []
+      };
     }
 
     case 'boolean':
-      return {value: 'boolean' + nullable, type: 'boolean'};
+      return {
+        value: 'boolean' + nullable,
+        type: 'boolean',
+        isEnum: false,
+        schemas: [],
+        imports: []
+      };
 
     case 'array': {
-      const {value, imports} = getArray(item, name);
-      return {value: value + nullable, imports, type: 'array'};
+      const {value, ...rest} = getArray(item, name);
+      return {
+        value: value + nullable,
+        ...rest
+      };
     }
 
     case 'string':
@@ -57,13 +73,19 @@ export const getScalar = (item: SchemaObject, name?: string) => {
         value = 'Blob';
       }
 
-      return {value: value + nullable, isEnum, type: 'string'};
+      return {
+        value: value + nullable,
+        isEnum,
+        type: 'string',
+        imports: [],
+        schemas: []
+      };
     }
 
     case 'object':
     default: {
-      const {value, imports, schemas} = getObject(item, name);
-      return {value: value + nullable, imports, type: 'object', schemas};
+      const {value, ...rest} = getObject(item, name);
+      return {value: value + nullable, ...rest};
     }
   }
 };

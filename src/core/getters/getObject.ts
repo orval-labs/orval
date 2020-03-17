@@ -1,36 +1,31 @@
 import {pascal} from 'case';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
+import {ResolverValue} from '../../types/resolvers';
+import {isReference} from '../../utils/is';
 import {resolveValue} from '../resolvers/resolveValue';
 import {getRef} from './getRef';
-import { generalTypesFilter } from '../../utils/filters';
-import { isReference } from '../../utils/is';
 
 /**
  * Return the output type from an object
  *
  * @param item item with type === "object"
  */
-export const getObject = (
-  item: SchemaObject,
-  name?: string
-): {
-  value: string;
-  imports?: string[];
-  schemas?: Array<{name: string; model: string; imports?: string[]}>;
-} => {
+export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
   if (isReference(item)) {
     const value = getRef(item.$ref);
-    return {value, imports: [value]};
+    return {
+      value,
+      imports: [value],
+      schemas: [],
+      isEnum: false,
+      type: 'object'
+    };
   }
 
   if (item.allOf) {
-    return item.allOf.reduce<{
-      value: string;
-      imports?: string[];
-      schemas?: Array<{name: string; model: string; imports?: string[]}>;
-    }>(
+    return item.allOf.reduce<ResolverValue>(
       (acc, val) => {
-        const {value, imports = [], schemas = []} = resolveValue(val, name);
+        const {value, imports, schemas} = resolveValue(val, name);
         return {
           ...acc,
           value: acc.value ? `${acc.value} & ${value}` : value,
@@ -38,18 +33,14 @@ export const getObject = (
           schemas: [...acc.schemas, ...schemas]
         };
       },
-      {value: '', imports: [], schemas: []}
+      {value: '', imports: [], schemas: [], isEnum: false, type: 'object'}
     );
   }
 
   if (item.oneOf) {
-    return item.oneOf.reduce<{
-      value: string;
-      imports?: string[];
-      schemas?: Array<{name: string; model: string; imports?: string[]}>;
-    }>(
+    return item.oneOf.reduce<ResolverValue>(
       (acc, val) => {
-        const {value, imports = [], schemas = []} = resolveValue(val, name);
+        const {value, imports, schemas} = resolveValue(val, name);
         return {
           ...acc,
           value: acc.value ? `${acc.value} | ${value}` : value,
@@ -57,16 +48,12 @@ export const getObject = (
           schemas: [...acc.schemas, ...schemas]
         };
       },
-      {value: '', imports: [], schemas: []}
+      {value: '', imports: [], schemas: [], isEnum: false, type: 'object'}
     );
   }
 
   if (item.properties) {
-    return Object.entries(item.properties).reduce<{
-      value: string;
-      imports?: string[];
-      schemas?: Array<{name: string; model: string; imports?: string[]}>;
-    }>(
+    return Object.entries(item.properties).reduce<ResolverValue>(
       (
         acc,
         [key, prop]: [string, ReferenceObject | SchemaObject],
@@ -96,13 +83,13 @@ export const getObject = (
             {
               name: propName,
               model: `export type ${propName} = ${resolvedValue.value}`,
-              imports: generalTypesFilter(resolvedValue.imports)
+              imports: resolvedValue.imports
             }
           ];
 
           value = value + `${key}${isRequired ? '' : '?'}: ${propName};`;
         } else {
-          imports = [...imports, ...(resolvedValue.imports || [])];
+          imports = [...imports, ...resolvedValue.imports];
           value =
             value + `${key}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
         }
@@ -112,6 +99,7 @@ export const getObject = (
         }
 
         return {
+          ...acc,
           value,
           imports,
           schemas
@@ -120,21 +108,41 @@ export const getObject = (
       {
         imports: [],
         schemas: [],
-        value: ''
+        value: '',
+        isEnum: false,
+        type: 'object'
       }
     );
   }
 
   if (item.additionalProperties) {
     if (typeof item.additionalProperties === 'boolean') {
-      return {value: `{[key: string]: object}`};
+      return {
+        value: `{[key: string]: object}`,
+        imports: [],
+        schemas: [],
+        isEnum: false,
+        type: 'object'
+      };
     }
     const {value, imports = [], schemas = []} = resolveValue(
       item.additionalProperties,
       name
     );
-    return {value: `{[key: string]: ${value}}`, imports, schemas};
+    return {
+      value: `{[key: string]: ${value}}`,
+      imports,
+      schemas,
+      isEnum: false,
+      type: 'object'
+    };
   }
 
-  return {value: item.type === 'object' ? '{}' : 'any'};
+  return {
+    value: item.type === 'object' ? '{}' : 'any',
+    imports: [],
+    schemas: [],
+    isEnum: false,
+    type: 'object'
+  };
 };

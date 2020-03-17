@@ -1,8 +1,8 @@
 import {pascal} from 'case';
 import isEmpty from 'lodash/isEmpty';
 import {ComponentsObject} from 'openapi3-ts';
+import {GeneratorSchema} from '../../types/generator';
 import {getResReqTypes} from '../getters/getResReqTypes';
-import { generalTypesFilter } from '../../utils/filters';
 
 /**
  * Extract all types from #/components/responses
@@ -11,7 +11,7 @@ import { generalTypesFilter } from '../../utils/filters';
  */
 export const generateResponsesDefinition = (
   responses: ComponentsObject['responses'] = {}
-): Array<{name: string; model: string; imports?: string[]}> => {
+): Array<GeneratorSchema> => {
   if (isEmpty(responses)) {
     return [];
   }
@@ -44,7 +44,7 @@ export const generateResponsesDefinition = (
     return {
       name: `${pascal(name)}Response`,
       model,
-      imports: generalTypesFilter(imports)
+      imports
     };
   });
 

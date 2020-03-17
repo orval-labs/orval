@@ -1,5 +1,5 @@
-export const sortParams = (
-  arr: {default?: boolean; required?: boolean; definition: string}[]
+export const sortByPriority = <T>(
+  arr: (T & {default?: boolean; required?: boolean})[]
 ) =>
   arr.sort((a, b) => {
     if (a.default) {

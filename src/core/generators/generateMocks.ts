@@ -1,263 +1,194 @@
-import {camel, pascal} from 'case';
-import get from 'lodash/get';
-import groupBy from 'lodash/groupBy';
-import {
-  ComponentsObject,
-  OpenAPIObject,
-  OperationObject,
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-  ResponseObject,
-  SchemaObject
-} from 'openapi3-ts';
+import {OpenAPIObject, SchemaObject} from 'openapi3-ts';
 import {generalJSTypesWithArray} from '../../constants';
 import {MockOptions} from '../../types';
-import {generalTypesFilter} from '../../utils/filters';
-import {isReference} from '../../utils/is';
-import {sortParams} from '../../utils/sort';
+import {
+  GeneratorVerbOptions,
+  GeneratorVerbsOptions
+} from '../../types/generator';
+import {GetterResponse} from '../../types/getters';
 import {stringify} from '../../utils/stringify';
-import {getMockDefinition} from '../getters/getMockDefinition';
-import {getParamsInPath} from '../getters/getParamsInPath';
-import {getParamsTypes} from '../getters/getParamsTypes';
-import {getResReqTypes} from '../getters/getResReqTypes';
+import {getMockScalar} from '../getters/getMockScalar';
 
-const generateMocksCalls = ({
-  operation,
-  verb,
-  route,
-  specs,
-  parameters = [],
-  schemasComponents,
-  mockOptions
-}: {
-  operation: OperationObject;
-  verb: string;
-  route: string;
-  specs: OpenAPIObject;
-  parameters?: Array<ReferenceObject | ParameterObject>;
-  schemasComponents?: ComponentsObject;
-  mockOptions?: MockOptions;
-}) => {
-  if (!operation.operationId) {
-    throw new Error(
-      `Every path must have a operationId - No operationId set for ${verb} ${route}`
-    );
-  }
-
-  let imports: string[] = [];
-  const {operationId} = operation;
-
-  route = route.replace(/\{/g, '${'); // `/pet/{id}` => `/pet/${id}`
-
-  const componentName = pascal(operationId!);
-
-  const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
-    statusCode.toString().startsWith('2');
-
-  // gesture response types
-  const allResponseTypes = getResReqTypes(
-    Object.entries(operation.responses).filter(isOk)
-  );
-  const responseTypes = allResponseTypes.map(({value}) => value).join(' | ');
-
-  // gesture body types
-  const allBodyTypes = getResReqTypes([['body', operation.requestBody!]]);
-  const requestBodyTypes = allBodyTypes.map(({value}) => value).join(' | ');
-
-  const needAResponseComponent = responseTypes.includes('{');
-
-  const paramsInPath = getParamsInPath(route);
-  const {query: queryParams = [], path: pathParams = []} = groupBy(
-    [...parameters, ...(operation.parameters || [])].map<ParameterObject>(p => {
-      if (isReference(p)) {
-        return get(
-          schemasComponents,
-          p.$ref.replace('#/components/', '').replace('/', '.')
-        );
-      } else {
-        return p;
-      }
+const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
+  Object.entries(
+    typeof properties === 'function' ? properties(specs) : properties
+  ).reduce(
+    (acc, [key, value]) => ({
+      ...acc,
+      [key]:
+        typeof value === 'function'
+          ? `(${value})()`
+          : stringify(value as string)
     }),
-    'in'
-  );
-
-  const queryParamsDefinitioName = `${camel(componentName)}Params`;
-
-  const formatedRequestBodyTypes = generalJSTypesWithArray.includes(
-    requestBodyTypes
-  )
-    ? 'payload'
-    : camel(requestBodyTypes);
-
-  const props = sortParams([
-    ...getParamsTypes({
-      params: paramsInPath,
-      pathParams,
-      operation,
-      type: 'implementation'
-    }),
-    ...(requestBodyTypes
-      ? [
-          {
-            definition: `${formatedRequestBodyTypes}: ${requestBodyTypes}`,
-            default: false,
-            required: true
-          }
-        ]
-      : []),
-    ...(queryParams.length
-      ? [
-          {
-            definition: `params?: ${queryParamsDefinitioName}`,
-            default: false,
-            required: false
-          }
-        ]
-      : [])
-  ])
-    .map(({definition}) => definition)
-    .join(', ');
-
-  const toAxiosPromise = (value?: unknown) =>
-    `Promise.resolve(${value}).then(data => ({data})) as AxiosPromise<${
-      needAResponseComponent ? componentName + 'Response' : responseTypes
-    }>`;
-
-  const schemas = Object.entries(schemasComponents?.schemas || []).reduce(
-    (acc, [name, type]) => ({...acc, [name]: type}),
     {}
-  ) as {[key: string]: SchemaObject};
+  );
 
-  const mockWithoutFunc = (properties: any) =>
-    Object.entries(
-      typeof properties === 'function' ? properties(specs) : properties
-    ).reduce(
-      (acc, [key, value]) => ({
-        ...acc,
-        [key]:
-          typeof value === 'function'
-            ? `(${value})()`
-            : stringify(value as string)
-      }),
-      {}
-    );
+const getMockWithoutFunc = (
+  specs: OpenAPIObject,
+  mockOptions?: MockOptions
+) => ({
+  ...mockOptions,
+  ...(mockOptions?.properties
+    ? {
+        properties: getMockPropertiesWithoutFunc(mockOptions.properties, specs)
+      }
+    : {}),
+  ...(mockOptions?.responses
+    ? {
+        responses: Object.entries(mockOptions.responses).reduce(
+          (acc, [key, value]) => ({
+            ...acc,
+            [key]: {
+              ...value,
+              ...(value.properties
+                ? {
+                    properties: getMockPropertiesWithoutFunc(
+                      value.properties,
+                      specs
+                    )
+                  }
+                : {})
+            }
+          }),
+          {}
+        )
+      }
+    : {})
+});
 
-  const mockOptionsWithoutFunc = {
-    ...mockOptions,
-    ...(mockOptions?.properties
-      ? {
-          properties: mockWithoutFunc(mockOptions.properties)
-        }
-      : {}),
-    ...(mockOptions?.responses
-      ? {
-          responses: Object.entries(mockOptions.responses).reduce(
-            (acc, [key, value]) => ({
-              ...acc,
-              [key]: {
-                ...value,
-                ...(value.properties
-                  ? {
-                      properties: mockWithoutFunc(value.properties)
-                    }
-                  : {})
-              }
-            }),
-            {}
-          )
-        }
-      : {})
-  };
+const toAxiosPromiseMock = (value: unknown, definition: string) =>
+  `Promise.resolve(${value}).then(data => ({data})) as AxiosPromise<${definition}>`;
 
-  const mocks = allResponseTypes.map(({value: type}) => {
-    const defaultResponse = toAxiosPromise(undefined);
+const getResponsesMockDefinition = (
+  operationId: string,
+  response: GetterResponse,
+  schemas: {
+    [key: string]: SchemaObject;
+  },
+  mockOptionsWithoutFunc: MockOptions
+) => {
+  return response.types.reduce(
+    (acc, {value: type}) => {
+      if (!type || generalJSTypesWithArray.includes(type)) {
+        acc.definitions = [
+          ...acc.definitions,
+          toAxiosPromiseMock(undefined, response.definition)
+        ];
+        return acc;
+      }
 
-    if (!type) {
-      return defaultResponse;
-    }
-
-    if (!generalJSTypesWithArray.includes(type)) {
       const schema = {name: type, ...schemas[type]};
       if (!schema) {
-        return defaultResponse;
+        return acc;
       }
 
-      const definition = getMockDefinition({
+      const {value, imports} = getMockScalar({
         item: schema,
         schemas,
         mockOptions: mockOptionsWithoutFunc,
         operationId
       });
 
-      if (imports) {
-        imports = [...imports, ...definition.imports];
-      }
+      acc.imports = [...acc.imports, ...imports];
+      acc.definitions = [
+        ...acc.definitions,
+        toAxiosPromiseMock(value, response.definition)
+      ];
 
-      return toAxiosPromise(definition.value);
+      return acc;
+    },
+    {
+      definitions: [] as string[],
+      imports: [] as string[]
     }
+  );
+};
 
-    return defaultResponse;
-  });
+const getMockDefinition = (
+  operationId: string,
+  response: GetterResponse,
+  specs: OpenAPIObject,
+  mockOptions?: MockOptions
+) => {
+  const schemas = Object.entries(specs.components?.schemas || []).reduce(
+    (acc, [name, type]) => ({...acc, [name]: type}),
+    {}
+  ) as {[key: string]: SchemaObject};
 
-  const mocksDefinition = '[' + mocks.join(', ') + ']';
+  const mockOptionsWithoutFunc = getMockWithoutFunc(specs, mockOptions);
 
-  const mockData =
-    typeof mockOptions?.responses?.[operationId]?.data === 'function'
-      ? `(${mockOptions?.responses?.[operationId]?.data})()`
-      : stringify(mockOptions?.responses?.[operationId]?.data);
+  const {definitions, imports} = getResponsesMockDefinition(
+    operationId,
+    response,
+    schemas,
+    mockOptionsWithoutFunc
+  );
 
-  const output = `  ${camel(componentName)}(${props}): AxiosPromise<${
-    needAResponseComponent ? componentName + 'Response' : responseTypes
-  }> {
+  return {
+    definition: '[' + definitions.join(', ') + ']',
+    definitions,
+    imports
+  };
+};
+
+const getMockOptionsDataOverride = (
+  operationId: string,
+  mockOptions?: MockOptions
+) => {
+  return typeof mockOptions?.responses?.[operationId]?.data === 'function'
+    ? `(${mockOptions?.responses?.[operationId]?.data})()`
+    : stringify(mockOptions?.responses?.[operationId]?.data);
+};
+
+const generateMockImplementation = (
+  {operationId, response, definitionName, props}: GeneratorVerbOptions,
+  specs: OpenAPIObject,
+  mockOptions?: MockOptions
+) => {
+  const {definition, definitions, imports} = getMockDefinition(
+    operationId,
+    response,
+    specs,
+    mockOptions
+  );
+
+  const mockData = getMockOptionsDataOverride(operationId, mockOptions);
+
+  const implementation = `  ${definitionName}(${
+    props.definition
+  }): AxiosPromise<${response.definition}> {
     return ${
       mockData
-        ? toAxiosPromise(mockData)
-        : mocks.length > 1
-        ? `faker.helpers.randomize(${mocksDefinition})`
-        : mocks[0]
+        ? toAxiosPromiseMock(mockData, response.definition)
+        : definitions.length > 1
+        ? `faker.helpers.randomize(${definition})`
+        : definitions[0]
     }
   },
 `;
 
-  return {value: output, imports};
+  return {implementation, imports};
 };
 
 export const generateMocks = (
+  verbsOptions: GeneratorVerbsOptions,
   specs: OpenAPIObject,
   mockOptions?: MockOptions
 ) => {
-  let value = '';
-  let imports: string[] = [];
-
-  value += `export const get${pascal(specs.info.title)}Mock = (): ${pascal(
-    specs.info.title
-  )} => ({\n`;
-  Object.entries(specs.paths).forEach(
-    ([route, verbs]: [string, PathItemObject]) => {
-      Object.entries(verbs).forEach(
-        ([verb, operation]: [string, OperationObject]) => {
-          if (['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
-            const call = generateMocksCalls({
-              operation,
-              verb,
-              route,
-              parameters: verbs.parameters,
-              schemasComponents: specs.components,
-              mockOptions,
-              specs
-            });
-            value += call.value;
-            imports = [...imports, ...call.imports];
-          }
-        }
+  return verbsOptions.reduce(
+    (acc, verbOption) => {
+      const {implementation, imports} = generateMockImplementation(
+        verbOption,
+        specs,
+        mockOptions
       );
+      acc.implementation += implementation;
+      acc.imports = [...acc.imports, ...imports];
+      return acc;
+    },
+    {
+      implementation: '',
+      imports: [] as string[]
     }
   );
-  value += '})';
-
-  return {
-    output: `\n\n${value}`,
-    imports: generalTypesFilter(imports)
-  };
 };
