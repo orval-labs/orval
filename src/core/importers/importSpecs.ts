@@ -1,6 +1,6 @@
-import {InfoObject} from 'openapi3-ts';
 import {parse} from 'path';
 import {AdvancedOptions} from '../../types';
+import {WriteSpecsProps} from '../../types/writers';
 import {getGithubOpenApi} from '../../utils/github';
 import {dynamicImport} from '../../utils/imports';
 import {dynamicReader} from '../../utils/reader';
@@ -8,12 +8,7 @@ import {importOpenApi} from './importOpenApi';
 
 export const importSpecs = async (
   options: AdvancedOptions
-): Promise<{
-  api: {output: string; imports?: string[]};
-  models: Array<{name: string; model: string; imports?: string[]}>;
-  mocks: {output: string; imports?: string[]};
-  info: InfoObject;
-}> => {
+): Promise<WriteSpecsProps> => {
   const transformer = options.transformer
     ? dynamicImport(options.transformer)
     : undefined;

@@ -1,7 +1,6 @@
 import {pascal} from 'case';
 import {SchemaObject} from 'openapi3-ts';
 import {getScalar} from '../getters/getScalar';
-import { generalTypesFilter } from '../../utils/filters';
 
 /**
  * Generate the interface string
@@ -22,7 +21,7 @@ export const generateInterface = (name: string, schema: SchemaObject) => {
         ? `// tslint:disable-next-line:no-empty-interface
 export interface ${pascal(name)} ${value}`
         : `export interface ${pascal(name)} ${value}`,
-      imports: generalTypesFilter(imports)
+      imports
     }
   ];
 };

@@ -2,13 +2,13 @@ import {camel} from 'case';
 import {appendFileSync, writeFileSync} from 'fs';
 import {InfoObject} from 'openapi3-ts';
 import {join} from 'path';
-import {WriteSpecsModel} from '../../types/writeSpecs';
+import {GeneratorSchema} from '../../types/generator';
 import {getFilesHeader} from '../../utils/messages/inline';
 import {generateImports} from '../generators/generateImports';
 
 const getModel = (
   info: InfoObject,
-  {imports, model}: WriteSpecsModel
+  {imports, model}: GeneratorSchema
 ): string => {
   let file = getFilesHeader(info);
   file += generateImports(imports);
@@ -22,13 +22,13 @@ const getPath = (path: string, name: string): string =>
 export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n\n`;
 
-export const writeModelsInline = (array: WriteSpecsModel[]): string =>
+export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, {model}) => writeModelInline(acc, model), '');
 
 export const writeModel = (
   path: string,
   info: InfoObject,
-  spec: WriteSpecsModel
+  spec: GeneratorSchema
 ) => {
   const name = camel(spec.name);
   writeFileSync(getPath(path, name), getModel(info, spec));
@@ -36,7 +36,7 @@ export const writeModel = (
 };
 
 export const writeModels = (
-  models: WriteSpecsModel[],
+  models: GeneratorSchema[],
   path: string,
   info: InfoObject
 ) => models.forEach(model => writeModel(path, info, model));
