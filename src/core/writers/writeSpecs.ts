@@ -2,11 +2,8 @@ import {appendFileSync, existsSync, mkdirSync, writeFileSync} from 'fs';
 import {join} from 'path';
 import {Options} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
-import {
-  createSuccessMessage,
-  getFilesHeader
-} from '../../utils/messages/inline';
-import {log} from '../../utils/messages/logs';
+import {getFilesHeader} from '../../utils/messages/inline';
+import {createSuccessMessage} from '../../utils/messages/logs';
 import {generateImports} from '../generators/generateImports';
 import {generateModelsInline} from '../generators/generateModelsInline';
 import {resolvePath} from '../resolvers/resolvePath';
@@ -63,6 +60,6 @@ export const writeSpecs = (options: Options, backend?: string) => ({
       appendFileSync(path, implementationMocks);
     }
 
-    log(createSuccessMessage(backend));
+    createSuccessMessage(backend);
   }
 };
