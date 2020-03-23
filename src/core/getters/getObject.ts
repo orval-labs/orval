@@ -2,6 +2,7 @@ import {pascal} from 'case';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {ResolverValue} from '../../types/resolvers';
 import {isReference} from '../../utils/is';
+import {resolveObject} from '../resolvers/resolveObject';
 import {resolveValue} from '../resolvers/resolveValue';
 import {getRef} from './getRef';
 
@@ -25,12 +26,16 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
   if (item.allOf) {
     return item.allOf.reduce<ResolverValue>(
       (acc, val) => {
-        const {value, imports, schemas} = resolveValue(val, name);
+        const propName = name ? name + 'Data' : undefined;
+        const resolvedValue = resolveObject(val, propName);
+
         return {
           ...acc,
-          value: acc.value ? `${acc.value} & ${value}` : value,
-          imports: [...acc.imports, ...imports],
-          schemas: [...acc.schemas, ...schemas]
+          value: acc.value
+            ? `${acc.value} & ${resolvedValue.value}`
+            : resolvedValue.value,
+          imports: [...acc.imports, ...resolvedValue.imports],
+          schemas: [...acc.schemas, ...resolvedValue.schemas]
         };
       },
       {value: '', imports: [], schemas: [], isEnum: false, type: 'object'}
@@ -40,12 +45,15 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
   if (item.oneOf) {
     return item.oneOf.reduce<ResolverValue>(
       (acc, val) => {
-        const {value, imports, schemas} = resolveValue(val, name);
+        const propName = name ? name + 'Data' : undefined;
+        const resolvedValue = resolveObject(val, propName);
         return {
           ...acc,
-          value: acc.value ? `${acc.value} | ${value}` : value,
-          imports: [...acc.imports, ...imports],
-          schemas: [...acc.schemas, ...schemas]
+          value: acc.value
+            ? `${acc.value} | ${resolvedValue.value}`
+            : resolvedValue.value,
+          imports: [...acc.imports, ...resolvedValue.imports],
+          schemas: [...acc.schemas, ...resolvedValue.schemas]
         };
       },
       {value: '', imports: [], schemas: [], isEnum: false, type: 'object'}
@@ -60,50 +68,22 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         index,
         arr
       ) => {
-        let value = acc.value;
-        let imports = acc.imports;
-        let schemas = acc.schemas;
         const isRequired = (item.required || []).includes(key);
         const propName = name ? name + pascal(key) : undefined;
-        const resolvedValue = resolveValue(prop, propName);
+        const resolvedValue = resolveObject(prop, propName);
         if (!index) {
-          value = value + '{';
+          acc.value += '{';
         }
-        if (
-          propName &&
-          !resolvedValue.isEnum &&
-          resolvedValue?.type === 'object' &&
-          resolvedValue.value.includes('{') &&
-          resolvedValue.value.includes('}')
-        ) {
-          imports = [...imports, propName];
 
-          schemas = [
-            ...schemas,
-            {
-              name: propName,
-              model: `export type ${propName} = ${resolvedValue.value}`,
-              imports: resolvedValue.imports
-            }
-          ];
-
-          value = value + `${key}${isRequired ? '' : '?'}: ${propName};`;
-        } else {
-          imports = [...imports, ...resolvedValue.imports];
-          value =
-            value + `${key}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
-        }
+        acc.imports = [...acc.imports, ...resolvedValue.imports];
+        acc.value += `${key}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
+        acc.schemas = [...acc.schemas, ...resolvedValue.schemas];
 
         if (arr.length - 1 === index) {
-          value = value + '}';
+          acc.value += '}';
         }
 
-        return {
-          ...acc,
-          value,
-          imports,
-          schemas
-        };
+        return acc;
       },
       {
         imports: [],
