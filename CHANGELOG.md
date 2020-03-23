@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.6](https://github.com/anymaniax/orval/compare/v1.4.5...v1.4.6) (2020-03-23)
+
+
+### Features
+
+* **github-template:** add templates for pull requests & issues ([#22](https://github.com/anymaniax/orval/issues/22)) ([04db4d3](https://github.com/anymaniax/orval/commit/04db4d3faa99bde5e7b1635cd4e87a81b2f4e5ce))
+
+
+### Bug Fixes
+
+* **generator-mock:** allOf enums definition ([78352b5](https://github.com/anymaniax/orval/commit/78352b5a5c5da397564e789c04e5ac9709813b76))
+* **types:** recursive definition object ([2494a16](https://github.com/anymaniax/orval/commit/2494a165c3458fc202b251dac7db780b1eb2a04d))
+
 ### [1.4.5](https://github.com/anymaniax/orval/compare/v1.4.4...v1.4.5) (2020-03-12)
 
 
