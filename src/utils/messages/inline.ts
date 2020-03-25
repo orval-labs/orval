@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import {InfoObject} from 'openapi3-ts';
 import {getPackage} from '../packages';
 
@@ -10,9 +9,3 @@ export const getFilesHeader = ({title, description, version}: InfoObject) =>
   }${description ? `* ${description}\n` : ''}${
     version ? `* OpenAPI spec version: ${version}` : ''
   }\n*/\n`;
-
-export const createSuccessMessage = (backend?: string) =>
-  chalk.green(
-    `${backend ||
-      ''}🎉  Your OpenAPI spec has been converted into ready to use orval!`
-  );

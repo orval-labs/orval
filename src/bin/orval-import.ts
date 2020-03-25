@@ -1,12 +1,10 @@
-import chalk from 'chalk';
 import program from 'commander';
 import difference from 'lodash/difference';
 import {join} from 'path';
 import {importSpecs} from '../core/importers/importSpecs';
 import {writeSpecs} from '../core/writers/writeSpecs';
 import {ExternalConfigFile, Options} from '../types';
-
-const log = console.log; // tslint:disable-line:no-console
+import {errorMessage, mismatchArgsMessage} from '../utils/messages/logs';
 
 program.option('-o, --output [value]', 'output file destination');
 program.option('-t, --types [value]', 'output types destination');
@@ -24,6 +22,11 @@ program.option(
 program.option('--config [value]', 'override flags by a config file');
 program.parse(process.argv);
 
+const catchError = (err: string) => {
+  errorMessage(err);
+  process.exit(1);
+}
+
 if (program.config) {
   // Use config file as configuration (advanced usage)
 
@@ -35,13 +38,7 @@ if (program.config) {
 
   const mismatchArgs = difference(program.args, Object.keys(config));
   if (mismatchArgs.length) {
-    log(
-      chalk.yellow(
-        `${mismatchArgs.join(', ')} ${
-          mismatchArgs.length === 1 ? 'is' : 'are'
-        } not defined in your configuration!`
-      )
-    );
+    mismatchArgsMessage(mismatchArgs);
   }
 
   Object.entries(config)
@@ -51,17 +48,11 @@ if (program.config) {
     .forEach(([backend, options]) => {
       importSpecs(options)
         .then(writeSpecs(options, backend))
-        .catch(err => {
-          log(chalk.red(err));
-          process.exit(1);
-        });
+        .catch(catchError);
     });
 } else {
   // Use flags as configuration
   importSpecs((program as any) as Options)
     .then(writeSpecs((program as any) as Options))
-    .catch(err => {
-      log(chalk.red(err));
-      process.exit(1);
-    });
+    .catch(catchError);
 }

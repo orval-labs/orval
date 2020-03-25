@@ -1,15 +1,10 @@
-import chalk from 'chalk';
 import program from 'commander';
+import {startMessage} from '../utils/messages/logs';
 import {getPackage} from '../utils/packages';
-import { log } from '../utils/messages/logs';
 
 const {name, version, description} = getPackage();
 
-log(
-  `🍺 Start ${chalk.cyan.bold(name)} ${chalk.green(
-    `v${version}`
-  )} - ${description}`
-);
+startMessage({name, version, description});
 
 program
   .version(version)
