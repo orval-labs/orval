@@ -5,7 +5,7 @@ import {
   GetterProps,
   GetterResponse
 } from './getters';
-import {OperationOptions} from './index';
+import {OperationOptions, Verbs} from './index';
 
 export type GeneratorSchema = {name: string; model: string; imports: string[]};
 
@@ -18,7 +18,7 @@ export type GeneratorApiResponse = {
 };
 
 export type GeneratorVerbOptions = {
-  verb: string;
+  verb: Verbs;
   operationId: string;
   definitionName: string;
   overrideOperation: OperationOptions | undefined;
