@@ -1,4 +1,6 @@
 import {camel} from 'case';
+import {VERBS_WITH_BODY} from '../../constants';
+import {Verbs} from '../../types';
 import {
   GeneratorOptions,
   GeneratorSchema,
@@ -6,33 +8,62 @@ import {
 } from '../../types/generator';
 import {GetterBody, GetterResponse} from '../../types/getters';
 
+const generateBodyProps = (body: GetterBody, verb: Verbs) => {
+  if (!VERBS_WITH_BODY.includes(verb)) {
+    return '';
+  }
+
+  if (body.isBlob) {
+    return ', formData';
+  }
+
+  return `, ${body.implementation || 'undefined'}`;
+};
+
+const generateQueryParamsProps = (
+  response: GetterResponse,
+  queryParams?: GeneratorSchema
+) => {
+  if (!queryParams && !response.isBlob) {
+    return '';
+  }
+
+  let value = ',{';
+
+  if (queryParams) {
+    value += 'params';
+  }
+
+  if (queryParams && response.isBlob) {
+    value += ',';
+  }
+
+  if (response.isBlob) {
+    value += `responseType: 'blob',`;
+  }
+
+  value += '}';
+
+  return value;
+};
+
 const generateAxiosProps = ({
   route,
   body,
   queryParams,
-  response
+  response,
+  verb
 }: {
   route: string;
   body: GetterBody;
   queryParams?: GeneratorSchema;
   response: GetterResponse;
+  verb: Verbs;
 }) => {
-  return `\`${route}\` ${
-    body.definition
-      ? body.isBlob
-        ? ', formData'
-        : `, ${body.implementation}`
-      : ''
-  } ${
-    queryParams || response.isBlob
-      ? `,
-      {
-        ${queryParams ? 'params' : ''}${
-          queryParams && response.isBlob ? ',' : ''
-        }${response.isBlob ? `responseType: 'blob',` : ''}
-      }`
-      : ''
-  }`;
+  return `\`${route}\` ${generateBodyProps(
+    body,
+    verb
+  )} ${generateQueryParamsProps(response, queryParams)}`;
 };
 
 const generateAxiosDefinition = (
@@ -41,6 +72,16 @@ const generateAxiosDefinition = (
 ) => {
   return `${summary ? '// ' + summary : ''}
   ${definitionName}(${props.definition}): AxiosPromise<${response.definition}>`;
+};
+
+const generateFormData = (body: GetterBody) => {
+  if (!body.isBlob) {
+    return '';
+  }
+
+  return `const formData = new FormData(); formData.append('file', ${camel(
+    body.implementation
+  )});`;
 };
 
 const generateAxiosImplementation = (
@@ -55,17 +96,17 @@ const generateAxiosImplementation = (
   }: GeneratorVerbOptions,
   {route}: GeneratorOptions
 ) => {
-  const axiosProps = generateAxiosProps({route, body, queryParams, response});
+  const axiosProps = generateAxiosProps({
+    route,
+    body,
+    queryParams,
+    response,
+    verb
+  });
 
   return `  ${definitionName}(${props.implementation}): AxiosPromise<${
     response.definition
-  }> {${transformer}${
-    body.isBlob
-      ? `const formData = new FormData(); formData.append('file', ${camel(
-          body.implementation
-        )});`
-      : ''
-  }
+  }> {${transformer}${generateFormData(body)}
     return axios.${verb}(${
     transformer ? `...transformer(${axiosProps})` : axiosProps
   });

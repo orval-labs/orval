@@ -6,7 +6,7 @@ import {
   PathItemObject,
   ReferenceObject
 } from 'openapi3-ts';
-import {OverrideOptions} from '../../types';
+import {OverrideOptions, Verbs} from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions
@@ -70,7 +70,7 @@ const generateVerbOptions = ({
   });
 
   return {
-    verb,
+    verb: verb as Verbs,
     operationId: operationId!,
     definitionName,
     overrideOperation,
@@ -97,7 +97,7 @@ export const generateVerbsOptions = ({
 }): GeneratorVerbsOptions =>
   Object.entries(verbs).reduce<GeneratorVerbsOptions>(
     (acc, [verb, operation]: [string, OperationObject]) => {
-      if (!['get', 'post', 'patch', 'put', 'delete'].includes(verb)) {
+      if (!Object.values(Verbs).includes(verb as Verbs)) {
         return acc;
       }
 
