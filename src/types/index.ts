@@ -10,7 +10,7 @@ export interface Options {
   transformer?: string;
   validation?: boolean;
   mock?: boolean | MockOptions;
-  override?: OverrideOptions
+  override?: OverrideOptions;
 }
 
 export type MockProperties =
@@ -35,8 +35,18 @@ export interface ExternalConfigFile {
 
 export type OverrideOptions = {
   operations?: {[key: string]: OperationOptions};
-}
+};
 
 export type OperationOptions = {
   transformer?: string;
+};
+
+export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';
+
+export const Verbs = {
+  POST: 'post' as Verbs,
+  PUT: 'put' as Verbs,
+  GET: 'get' as Verbs,
+  PATCH: 'patch' as Verbs,
+  DELETE: 'delete' as Verbs
 };
