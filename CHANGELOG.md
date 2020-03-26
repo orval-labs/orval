@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.8](https://github.com/anymaniax/orval/compare/v1.4.7...v1.4.8) (2020-03-26)
+
+
+### Bug Fixes
+
+* **generator:** duplicate import ([03abb55](https://github.com/anymaniax/orval/commit/03abb552d86692d2395d33dd5c6f409f2218c814))
+
 ### [1.4.7](https://github.com/anymaniax/orval/compare/v1.4.6...v1.4.7) (2020-03-26)
 
 
