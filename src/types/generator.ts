@@ -19,6 +19,7 @@ export type GeneratorApiResponse = {
 
 export type GeneratorVerbOptions = {
   verb: Verbs;
+  summary?: string;
   operationId: string;
   definitionName: string;
   overrideOperation: OperationOptions | undefined;
@@ -33,4 +34,4 @@ export type GeneratorVerbOptions = {
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
 
-export type GeneratorOptions = {route: string; summary?: string};
+export type GeneratorOptions = {route: string};

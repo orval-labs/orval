@@ -66,12 +66,21 @@ const generateAxiosProps = ({
   )} ${generateQueryParamsProps(response, queryParams)}`;
 };
 
-const generateAxiosDefinition = (
-  {props, definitionName, response}: GeneratorVerbOptions,
-  {summary}: GeneratorOptions
-) => {
-  return `${summary ? '// ' + summary : ''}
-  ${definitionName}(${props.definition}): AxiosPromise<${response.definition}>`;
+const generateAxiosDefinition = ({
+  props,
+  definitionName,
+  response,
+  summary
+}: GeneratorVerbOptions) => {
+  let value = '';
+
+  if (summary) {
+    value += `\n// ${summary}`;
+  }
+
+  value += `\n${definitionName}(${props.definition}): AxiosPromise<${response.definition}>;`;
+
+  return value;
 };
 
 const generateFormData = (body: GetterBody) => {
@@ -134,7 +143,7 @@ export const generateAxios = (
   options: GeneratorOptions
 ) => {
   const imports = generateImports(verbOptions);
-  const definition = generateAxiosDefinition(verbOptions, options);
+  const definition = generateAxiosDefinition(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);
 
   return {definition, implementation, imports};

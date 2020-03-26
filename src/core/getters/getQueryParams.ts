@@ -51,7 +51,7 @@ export const getQueryParams = (
     name,
     model: `export type ${name} = { ${types
       .map(({definition}) => definition)
-      .join(', ')} }`,
+      .join('; ')} }`,
     imports
   };
 
