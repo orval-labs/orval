@@ -2,6 +2,7 @@ import {pascal} from 'case';
 import isEmpty from 'lodash/isEmpty';
 import {ComponentsObject} from 'openapi3-ts';
 import {GeneratorSchema} from '../../types/generator';
+import {generalTypesFilter} from '../../utils/filters';
 import {getResReqTypes} from '../getters/getResReqTypes';
 
 /**
@@ -17,13 +18,11 @@ export const generateResponsesDefinition = (
   }
 
   const models = Object.entries(responses).map(([name, response]) => {
-    let imports: string[] = [];
     const allResponseTypes = getResReqTypes([['', response]]);
-    const allResponseTypesImports = allResponseTypes.reduce<string[]>(
+    const imports = allResponseTypes.reduce<string[]>(
       (acc, {imports = []}) => [...acc, ...imports],
       []
     );
-    imports = [...imports, ...allResponseTypesImports];
     const type = allResponseTypes.map(({value}) => value).join(' | ');
     const isEmptyInterface = type === '{}';
     let model = '';
@@ -44,7 +43,7 @@ export const generateResponsesDefinition = (
     return {
       name: `${pascal(name)}Response`,
       model,
-      imports
+      imports: generalTypesFilter(imports)
     };
   });
 
