@@ -2,6 +2,7 @@ import {pascal, upper} from 'case';
 import isEmpty from 'lodash/isEmpty';
 import {SchemaObject} from 'openapi3-ts';
 import {GeneratorSchema} from '../../types/generator';
+import {generalTypesFilter} from '../../utils/filters';
 import {isReference} from '../../utils/is';
 import {resolveValue} from '../resolvers/resolveValue';
 import {generateInterface} from './generateInterface';
@@ -58,7 +59,7 @@ export const generateSchemasDefinition = (
           {
             name: pascal(name),
             model: output,
-            imports
+            imports: generalTypesFilter(imports)
           }
         ];
       }

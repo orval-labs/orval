@@ -172,8 +172,8 @@ const generateMockImplementation = (
 
 export const generateMocks = (
   verbsOptions: GeneratorVerbsOptions,
+  mockOptions: MockOptions,
   specs: OpenAPIObject,
-  mockOptions?: MockOptions
 ) => {
   return verbsOptions.reduce(
     (acc, verbOption) => {

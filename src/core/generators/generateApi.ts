@@ -44,12 +44,15 @@ export const generateApi = (
         summary: verbs.summary
       });
 
-      const mocks = generateMocks(verbsOptions, specs, mockOptions);
+      if (mockOptions) {
+        const mocks = generateMocks(verbsOptions, mockOptions, specs);
+        acc.imports = [...acc.imports, ...mocks.imports];
+        acc.implementationMocks += mocks.implementation;
+      }
 
-      acc.imports = [...acc.imports, ...client.imports, ...mocks.imports];
+      acc.imports = [...acc.imports, ...client.imports];
       acc.definition += client.definition;
       acc.implementation += client.implementation;
-      acc.implementationMocks += mocks.implementation;
       acc.schemas = [...acc.schemas, ...schemas];
 
       if (index === arr.length - 1) {
