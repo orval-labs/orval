@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.4.7](https://github.com/anymaniax/orval/compare/v1.4.6...v1.4.7) (2020-03-26)
+
+
+### Features
+
+* **logs:** centralizes all system logs ([#26](https://github.com/anymaniax/orval/issues/26)) ([6f7d574](https://github.com/anymaniax/orval/commit/6f7d574ad45b37bf009ee51a1154fa3cb23fc469)), closes [#8](https://github.com/anymaniax/orval/issues/8)
+
+
+### Bug Fixes
+
+* **generator:** better handling body ([e3ef8c1](https://github.com/anymaniax/orval/commit/e3ef8c135b0fc23ae116727cb4a617f04be95594))
+
 ### [1.4.6](https://github.com/anymaniax/orval/compare/v1.4.5...v1.4.6) (2020-03-23)
 
 
