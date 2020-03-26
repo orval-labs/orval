@@ -40,8 +40,7 @@ export const generateApi = (
       );
 
       const client = generateClient(verbsOptions, {
-        route,
-        summary: verbs.summary
+        route
       });
 
       if (mockOptions) {

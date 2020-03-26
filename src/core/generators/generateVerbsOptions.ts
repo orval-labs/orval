@@ -71,6 +71,7 @@ const generateVerbOptions = ({
 
   return {
     verb: verb as Verbs,
+    summary: operation.summary,
     operationId: operationId!,
     definitionName,
     overrideOperation,
