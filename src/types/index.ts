@@ -8,6 +8,7 @@ export interface Options {
 export type OutputOptions = {
   target?: string;
   schemas?: string;
+  mode?: OutputMode;
   mock?: boolean;
   override?: OverrideOutput;
 };
@@ -16,6 +17,12 @@ export type InputOptions = {
   target?: string;
   validation?: boolean;
   override?: OverrideInput;
+};
+
+export type OutputMode = 'single' | 'split';
+export const OutputMode = {
+  SINGLE: 'single' as OutputMode,
+  SPLIT: 'split' as OutputMode
 };
 
 export type MockOptions = {
