@@ -7,7 +7,7 @@ import {
 } from '../../types/generator';
 import {GetterResponse} from '../../types/getters';
 import {stringify} from '../../utils/stringify';
-import {getMockScalar} from '../getters/getMockScalar';
+import {getMockScalar} from '../getters/mockScalar';
 
 const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
   Object.entries(

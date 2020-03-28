@@ -11,13 +11,13 @@ import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions
 } from '../../types/generator';
-import {getBody} from '../getters/getBody';
-import {getParameters} from '../getters/getParameters';
-import {getParams} from '../getters/getParams';
-import {getProps} from '../getters/getProps';
-import {getQueryParams} from '../getters/getQueryParams';
-import {getResponse} from '../getters/getResponse';
-import {generateTransformer} from './generateTransformer';
+import {getBody} from '../getters/body';
+import {getParameters} from '../getters/parameters';
+import {getParams} from '../getters/params';
+import {getProps} from '../getters/props';
+import {getQueryParams} from '../getters/queryParams';
+import {getResponse} from '../getters/response';
+import {generateTransformer} from './transformer';
 
 const generateVerbOptions = ({
   verb,

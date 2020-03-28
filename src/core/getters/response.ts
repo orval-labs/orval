@@ -1,7 +1,7 @@
 import {pascal} from 'case';
 import {ReferenceObject, ResponseObject, ResponsesObject} from 'openapi3-ts';
 import {GetterResponse} from '../../types/getters';
-import {getResReqTypes} from './getResReqTypes';
+import {getResReqTypes} from './resReqTypes';
 
 const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
   statusCode.toString().startsWith('2');

@@ -7,8 +7,8 @@ import {
 } from 'openapi3-ts';
 import {ResolverValue} from '../../types/resolvers';
 import {isReference} from '../../utils/is';
-import {resolveValue} from '../resolvers/resolveValue';
-import {getRef} from './getRef';
+import {resolveValue} from '../resolvers/value';
+import {getRef} from './ref';
 
 const CONTENT_TYPES = [
   'application/json',

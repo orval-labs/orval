@@ -1,6 +1,6 @@
 import {OperationObject, ParameterObject, SchemaObject} from 'openapi3-ts';
 import {GetterParams} from '../../types/getters';
-import {resolveValue} from '../resolvers/resolveValue';
+import {resolveValue} from '../resolvers/value';
 
 /**
  * Return every params in a path

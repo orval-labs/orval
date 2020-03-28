@@ -4,7 +4,7 @@ import {InfoObject} from 'openapi3-ts';
 import {join} from 'path';
 import {GeneratorSchema} from '../../types/generator';
 import {getFilesHeader} from '../../utils/messages/inline';
-import {generateImports} from '../generators/generateImports';
+import {generateImports} from '../generators/imports';
 
 const getModel = (
   info: InfoObject,

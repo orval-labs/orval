@@ -4,10 +4,10 @@ import YAML from 'yamljs';
 import {ImportOpenApi} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
 import {dynamicImport} from '../../utils/imports';
-import {generateApi} from '../generators/generateApi';
-import {generateResponsesDefinition} from '../generators/generateResponsesDefinition';
-import {generateSchemasDefinition} from '../generators/generateSchemaDefinition';
-import {resolveDiscriminator} from '../resolvers/resolveDiscriminator';
+import {generateApi} from '../generators/api';
+import {generateResponsesDefinition} from '../generators/responsesDefinition';
+import {generateSchemasDefinition} from '../generators/schemaDefinition';
+import {resolveDiscriminator} from '../resolvers/dscriminator';
 import {ibmOpenapiValidator} from '../validators/ibm-openapi-validator';
 
 /**
@@ -67,7 +67,7 @@ export const importOpenApi = async ({
   resolveDiscriminator(specs);
 
   const schemaDefinition = generateSchemasDefinition(specs.components?.schemas);
-  
+
   const responseDefinition = generateResponsesDefinition(
     specs.components?.responses
   );

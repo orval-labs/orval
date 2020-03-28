@@ -1,6 +1,6 @@
 import {ParameterObject, ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {GeneratorSchema} from '../../types/generator';
-import {resolveValue} from '../resolvers/resolveValue';
+import {resolveValue} from '../resolvers/value';
 
 const getQueryParamsTypes = (
   queryParams: (ParameterObject | ReferenceObject)[]

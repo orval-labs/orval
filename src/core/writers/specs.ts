@@ -4,10 +4,10 @@ import {Options} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
 import {getFilesHeader} from '../../utils/messages/inline';
 import {createSuccessMessage} from '../../utils/messages/logs';
-import {generateImports} from '../generators/generateImports';
-import {generateModelsInline} from '../generators/generateModelsInline';
-import {resolvePath} from '../resolvers/resolvePath';
-import {writeModels} from './writeModels';
+import {generateImports} from '../generators/imports';
+import {generateModelsInline} from '../generators/modelsInline';
+import {resolvePath} from '../resolvers/path';
+import {writeModels} from './models';
 
 export const writeSpecs = (options: Options, backend?: string) => ({
   definition,

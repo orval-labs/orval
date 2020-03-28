@@ -2,7 +2,7 @@ import {camel} from 'case';
 import {ReferenceObject, RequestBodyObject} from 'openapi3-ts';
 import {generalJSTypesWithArray} from '../../constants';
 import {GetterBody} from '../../types/getters';
-import {getResReqTypes} from './getResReqTypes';
+import {getResReqTypes} from './resReqTypes';
 
 export const getBody = (
   requestBody: ReferenceObject | RequestBodyObject

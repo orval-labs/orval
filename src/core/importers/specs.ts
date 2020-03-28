@@ -4,7 +4,7 @@ import {WriteSpecsProps} from '../../types/writers';
 import {getExtension} from '../../utils/extension';
 import {getGithubOpenApi} from '../../utils/github';
 import {dynamicReader} from '../../utils/reader';
-import {importOpenApi} from './importOpenApi';
+import {importOpenApi} from './openApi';
 
 export const importSpecs = async (
   options: Options

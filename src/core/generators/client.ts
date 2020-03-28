@@ -1,5 +1,5 @@
 import {GeneratorOptions, GeneratorVerbsOptions} from '../../types/generator';
-import {generateAxios, generateAxiosHeader} from './generateAxios';
+import {generateAxios, generateAxiosHeader} from './axios';
 
 export const generateClientHeader = (title: string) => {
   return {

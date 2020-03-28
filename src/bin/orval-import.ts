@@ -1,8 +1,8 @@
 import program from 'commander';
 import difference from 'lodash/difference';
 import {join} from 'path';
-import {importSpecs} from '../core/importers/importSpecs';
-import {writeSpecs} from '../core/writers/writeSpecs';
+import {importSpecs} from '../core/importers/specs';
+import {writeSpecs} from '../core/writers/specs';
 import {ExternalConfigFile, Options} from '../types';
 import {errorMessage, mismatchArgsMessage} from '../utils/messages/logs';
 

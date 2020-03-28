@@ -1,6 +1,6 @@
 import {SchemaObject} from 'openapi3-ts';
 import {ResolverValue} from '../../types/resolvers';
-import {resolveObject} from '../resolvers/resolveObject';
+import {resolveObject} from '../resolvers/object';
 
 /**
  * Return the output type from an array

@@ -1,7 +1,7 @@
 import {SchemaObject} from 'openapi3-ts';
 import {ResolverValue} from '../../types/resolvers';
-import {getArray} from './getArray';
-import {getObject} from './getObject';
+import {getArray} from './array';
+import {getObject} from './object';
 
 /**
  * Return the typescript equivalent of open-api data type

@@ -3,7 +3,7 @@ import isEmpty from 'lodash/isEmpty';
 import {ComponentsObject} from 'openapi3-ts';
 import {GeneratorSchema} from '../../types/generator';
 import {generalTypesFilter} from '../../utils/filters';
-import {getResReqTypes} from '../getters/getResReqTypes';
+import {getResReqTypes} from '../getters/resReqTypes';
 
 /**
  * Extract all types from #/components/responses

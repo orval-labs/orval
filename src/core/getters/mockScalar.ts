@@ -4,7 +4,7 @@ import get from 'lodash/get';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {MockOptions} from '../../types';
 import {isReference} from '../../utils/is';
-import {getRef} from './getRef';
+import {getRef} from './ref';
 
 const resolveMockProperties = (
   properties: any = {},

@@ -7,9 +7,9 @@ import {
   generateClient,
   generateClientFooter,
   generateClientHeader
-} from './generateClient';
-import {generateMocks} from './generateMocks';
-import {generateVerbsOptions} from './generateVerbsOptions';
+} from './client';
+import {generateMocks} from './mocks';
+import {generateVerbsOptions} from './verbsOptions';
 
 export const generateApi = (
   specs: OpenAPIObject,

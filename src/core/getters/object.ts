@@ -2,9 +2,9 @@ import {pascal} from 'case';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {ResolverValue} from '../../types/resolvers';
 import {isReference} from '../../utils/is';
-import {resolveObject} from '../resolvers/resolveObject';
-import {resolveValue} from '../resolvers/resolveValue';
-import {getRef} from './getRef';
+import {resolveObject} from '../resolvers/object';
+import {resolveValue} from '../resolvers/value';
+import {getRef} from './ref';
 
 /**
  * Return the output type from an object

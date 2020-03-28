@@ -4,8 +4,8 @@ import {SchemaObject} from 'openapi3-ts';
 import {GeneratorSchema} from '../../types/generator';
 import {generalTypesFilter} from '../../utils/filters';
 import {isReference} from '../../utils/is';
-import {resolveValue} from '../resolvers/resolveValue';
-import {generateInterface} from './generateInterface';
+import {resolveValue} from '../resolvers/value';
+import {generateInterface} from './interface';
 
 /**
  * Extract all types from #/components/schemas
