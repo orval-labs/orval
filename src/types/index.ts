@@ -1,44 +1,53 @@
 import {OpenAPIObject} from 'openapi3-ts';
 
 export interface Options {
-  output?: string;
-  outputFile?: string;
-  types?: string;
-  workDir?: string;
-  file?: string;
-  github?: string;
-  transformer?: string;
-  validation?: boolean;
-  mock?: boolean | MockOptions;
-  override?: OverrideOptions;
+  output?: string | OutputOptions;
+  input?: string | InputOptions;
 }
+
+export type OutputOptions = {
+  target?: string;
+  schemas?: string;
+  mock?: boolean;
+  override?: OverrideOutput;
+};
+
+export type InputOptions = {
+  target?: string;
+  validation?: boolean;
+  override?: OverrideInput;
+};
+
+export type MockOptions = {
+  properties?: {[key: string]: unknown};
+  operations?: {[key: string]: {[key: string]: any}};
+};
 
 export type MockProperties =
   | {[key: string]: unknown}
   | ((specs: OpenAPIObject) => {[key: string]: unknown});
 
-export interface MockOptions<T = MockProperties> {
-  properties?: T;
-  responses?: {
-    [operationId: string]: {
-      properties?: T;
-      data?: T;
-    };
-  };
-}
-
-export type AdvancedOptions = Options;
-
 export interface ExternalConfigFile {
-  [backend: string]: AdvancedOptions;
+  [backend: string]: Options;
 }
 
-export type OverrideOptions = {
+export type OverrideOutput = {
   operations?: {[key: string]: OperationOptions};
+  mock?: {
+    properties?: MockProperties;
+  };
+};
+
+export type OverrideInput = {
+  transformer?: string;
 };
 
 export type OperationOptions = {
   transformer?: string;
+  mock?: {
+    data?: MockProperties;
+    properties?: MockProperties;
+  };
 };
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';
@@ -49,4 +58,11 @@ export const Verbs = {
   GET: 'get' as Verbs,
   PATCH: 'patch' as Verbs,
   DELETE: 'delete' as Verbs
+};
+
+export type ImportOpenApi = {
+  data: string;
+  format: 'yaml' | 'json';
+  input?: InputOptions;
+  output?: OutputOptions;
 };
