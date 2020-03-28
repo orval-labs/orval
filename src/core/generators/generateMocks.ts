@@ -1,6 +1,6 @@
 import {OpenAPIObject, SchemaObject} from 'openapi3-ts';
 import {generalJSTypesWithArray} from '../../constants';
-import {MockOptions} from '../../types';
+import {MockOptions, OverrideOutput} from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions
@@ -25,30 +25,29 @@ const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
 
 const getMockWithoutFunc = (
   specs: OpenAPIObject,
-  mockOptions?: MockOptions
-) => ({
-  ...mockOptions,
-  ...(mockOptions?.properties
+  override?: OverrideOutput
+): MockOptions => ({
+  ...(override?.mock?.properties
     ? {
-        properties: getMockPropertiesWithoutFunc(mockOptions.properties, specs)
+        properties: getMockPropertiesWithoutFunc(
+          override.mock.properties,
+          specs
+        )
       }
     : {}),
-  ...(mockOptions?.responses
+  ...(override?.operations
     ? {
-        responses: Object.entries(mockOptions.responses).reduce(
+        operations: Object.entries(override.operations).reduce(
           (acc, [key, value]) => ({
             ...acc,
-            [key]: {
-              ...value,
-              ...(value.properties
-                ? {
-                    properties: getMockPropertiesWithoutFunc(
-                      value.properties,
-                      specs
-                    )
-                  }
-                : {})
-            }
+            [key]: value.mock?.properties
+              ? {
+                  properties: getMockPropertiesWithoutFunc(
+                    value.mock.properties,
+                    specs
+                  )
+                }
+              : {}
           }),
           {}
         )
@@ -65,7 +64,7 @@ const getResponsesMockDefinition = (
   schemas: {
     [key: string]: SchemaObject;
   },
-  mockOptionsWithoutFunc: MockOptions
+  mockOptionsWithoutFunc: {[key: string]: unknown}
 ) => {
   return response.types.reduce(
     (acc, {value: type}) => {
@@ -108,14 +107,14 @@ const getMockDefinition = (
   operationId: string,
   response: GetterResponse,
   specs: OpenAPIObject,
-  mockOptions?: MockOptions
+  override?: OverrideOutput
 ) => {
   const schemas = Object.entries(specs.components?.schemas || []).reduce(
     (acc, [name, type]) => ({...acc, [name]: type}),
     {}
   ) as {[key: string]: SchemaObject};
 
-  const mockOptionsWithoutFunc = getMockWithoutFunc(specs, mockOptions);
+  const mockOptionsWithoutFunc = getMockWithoutFunc(specs, override);
 
   const {definitions, imports} = getResponsesMockDefinition(
     operationId,
@@ -133,26 +132,27 @@ const getMockDefinition = (
 
 const getMockOptionsDataOverride = (
   operationId: string,
-  mockOptions?: MockOptions
+  override?: OverrideOutput
 ) => {
-  return typeof mockOptions?.responses?.[operationId]?.data === 'function'
-    ? `(${mockOptions?.responses?.[operationId]?.data})()`
-    : stringify(mockOptions?.responses?.[operationId]?.data);
+  const responseOverride = override?.operations?.[operationId]?.mock?.data;
+  return typeof responseOverride === 'function'
+    ? `(${responseOverride})()`
+    : stringify(responseOverride);
 };
 
 const generateMockImplementation = (
   {operationId, response, definitionName, props}: GeneratorVerbOptions,
   specs: OpenAPIObject,
-  mockOptions?: MockOptions
+  override?: OverrideOutput
 ) => {
   const {definition, definitions, imports} = getMockDefinition(
     operationId,
     response,
     specs,
-    mockOptions
+    override
   );
 
-  const mockData = getMockOptionsDataOverride(operationId, mockOptions);
+  const mockData = getMockOptionsDataOverride(operationId, override);
 
   const implementation = `  ${definitionName}(${
     props.definition
@@ -172,15 +172,15 @@ const generateMockImplementation = (
 
 export const generateMocks = (
   verbsOptions: GeneratorVerbsOptions,
-  mockOptions: MockOptions,
   specs: OpenAPIObject,
+  override?: OverrideOutput
 ) => {
   return verbsOptions.reduce(
     (acc, verbOption) => {
       const {implementation, imports} = generateMockImplementation(
         verbOption,
         specs,
-        mockOptions
+        override
       );
       acc.implementation += implementation;
       acc.imports = [...acc.imports, ...imports];

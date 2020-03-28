@@ -6,7 +6,7 @@ import {
   PathItemObject,
   ReferenceObject
 } from 'openapi3-ts';
-import {OverrideOptions, Verbs} from '../../types';
+import {OverrideOutput, Verbs} from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions
@@ -28,7 +28,7 @@ const generateVerbOptions = ({
   components
 }: {
   verb: string;
-  override?: OverrideOptions;
+  override?: OverrideOutput;
   operation: OperationObject;
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
@@ -92,7 +92,7 @@ export const generateVerbsOptions = ({
   components
 }: {
   verbs: PathItemObject;
-  override?: OverrideOptions;
+  override?: OverrideOutput;
   route: string;
   components?: ComponentsObject;
 }): GeneratorVerbsOptions =>

@@ -3,8 +3,8 @@ import cuid from 'cuid';
 import get from 'lodash/get';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {MockOptions} from '../../types';
+import {isReference} from '../../utils/is';
 import {getRef} from './getRef';
-import { isReference } from '../../utils/is';
 
 const resolveMockProperties = (
   properties: any = {},
@@ -40,7 +40,7 @@ const resolveValue = ({
   schemas: {[key: string]: SchemaObject};
   operationId: string;
   allOf?: boolean;
-  mockOptions?: MockOptions<{[key: string]: unknown}>;
+  mockOptions?: MockOptions;
 }): MockDefinition => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
@@ -88,7 +88,7 @@ const getObject = ({
   schemas: {[key: string]: SchemaObject};
   operationId: string;
   allOf?: boolean;
-  mockOptions?: MockOptions<{[key: string]: any}>;
+  mockOptions?: MockOptions;
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveValue({
@@ -160,20 +160,20 @@ const getObject = ({
 
         if (
           item.parent &&
-          mockOptions?.responses?.[operationId]?.properties?.[
+          mockOptions?.operations?.[operationId]?.properties?.[
             `${item.parent}.${key}`
           ]
         ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${
-              mockOptions?.responses?.[operationId]?.properties?.[
+              mockOptions?.operations?.[operationId]?.properties?.[
                 `${item.parent}.${key}`
               ]
             }, undefined])`;
           }
 
           return `${key}: ${
-            mockOptions?.responses?.[operationId]?.properties?.[
+            mockOptions?.operations?.[operationId]?.properties?.[
               `${item.parent}.${key}`
             ]
           }`;
@@ -182,19 +182,19 @@ const getObject = ({
         if (
           item.parent &&
           get(
-            mockOptions?.responses?.[operationId]?.properties,
+            mockOptions?.operations?.[operationId]?.properties,
             `${item.parent}.${key}`
           )
         ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${get(
-              mockOptions?.responses?.[operationId]?.properties,
+              mockOptions?.operations?.[operationId]?.properties,
               `${item.parent}.${key}`
             )}, undefined])`;
           }
 
           return `${key}: ${get(
-            mockOptions?.responses?.[operationId]?.properties,
+            mockOptions?.operations?.[operationId]?.properties,
             `${item.parent}.${key}`
           )}`;
         }
@@ -262,11 +262,11 @@ export const getMockScalar = ({
   item: SchemaObject & {name: string; parent?: string};
   schemas: {[key: string]: SchemaObject};
   allOf?: boolean;
-  mockOptions?: MockOptions<{[key: string]: any}>;
+  mockOptions?: MockOptions;
   operationId: string;
 }): MockDefinition => {
   const rProperty = resolveMockProperties(
-    mockOptions?.responses?.[operationId]?.properties,
+    mockOptions?.operations?.[operationId]?.properties,
     item
   );
 

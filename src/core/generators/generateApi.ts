@@ -1,6 +1,6 @@
 import {pascal} from 'case';
 import {OpenAPIObject, PathItemObject} from 'openapi3-ts';
-import {MockOptions, OverrideOptions} from '../../types';
+import {OverrideOutput} from '../../types';
 import {GeneratorApiResponse, GeneratorSchema} from '../../types/generator';
 import {generalTypesFilter} from '../../utils/filters';
 import {
@@ -13,8 +13,8 @@ import {generateVerbsOptions} from './generateVerbsOptions';
 
 export const generateApi = (
   specs: OpenAPIObject,
-  override?: OverrideOptions,
-  mockOptions?: MockOptions
+  override?: OverrideOutput,
+  mock?: boolean
 ) => {
   return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
     (acc, [pathRoute, verbs]: [string, PathItemObject], index, arr) => {
@@ -43,8 +43,8 @@ export const generateApi = (
         route
       });
 
-      if (mockOptions) {
-        const mocks = generateMocks(verbsOptions, mockOptions, specs);
+      if (mock) {
+        const mocks = generateMocks(verbsOptions, specs, override);
         acc.imports = [...acc.imports, ...mocks.imports];
         acc.implementationMocks += mocks.implementation;
       }

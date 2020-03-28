@@ -1,8 +1,9 @@
 import {OpenAPIObject} from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
-import {MockOptions, OverrideOptions} from '../../types';
+import {ImportOpenApi} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
+import {dynamicImport} from '../../utils/imports';
 import {generateApi} from '../generators/generateApi';
 import {generateResponsesDefinition} from '../generators/generateResponsesDefinition';
 import {generateSchemasDefinition} from '../generators/generateSchemaDefinition';
@@ -47,38 +48,33 @@ const importSpecs = (
 export const importOpenApi = async ({
   data,
   format,
-  transformer,
-  validation,
-  override,
-  mockOptions
-}: {
-  data: string;
-  format: 'yaml' | 'json';
-  transformer?: (specs: OpenAPIObject) => OpenAPIObject;
-  validation?: boolean;
-  override?: OverrideOptions;
-  mockOptions?: MockOptions;
-}): Promise<WriteSpecsProps> => {
+  input,
+  output
+}: ImportOpenApi): Promise<WriteSpecsProps> => {
   let specs = await importSpecs(data, format);
-  if (transformer) {
-    specs = transformer(specs);
+
+  if (input?.override?.transformer) {
+    const transformerFunc = input?.override?.transformer
+      ? dynamicImport(input.override.transformer)
+      : undefined;
+    specs = transformerFunc(specs);
   }
 
-  if (validation) {
+  if (input?.validation) {
     await ibmOpenapiValidator(specs);
   }
 
   resolveDiscriminator(specs);
 
   const schemaDefinition = generateSchemasDefinition(specs.components?.schemas);
+  
   const responseDefinition = generateResponsesDefinition(
     specs.components?.responses
   );
 
-  const api = generateApi(specs, override, mockOptions);
-  const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
+  const api = generateApi(specs, output?.override, output?.mock);
 
-  //const mocks = generateMocks(specs, mockOptions);
+  const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
 
   return {...api, schemas, info: specs.info};
 };

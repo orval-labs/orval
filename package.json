@@ -30,9 +30,8 @@
     "build": "tsc && yarn rollup",
     "lint": "tslint src/**/*{ts,tsx} --project .",
     "examples": "run-p example:*",
-    "example:github": "node lib/bin/orval.js import --github OAI:OpenAPI-Specification:master:examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
-    "example:file": "node lib/bin/orval.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
-    "example:directory": "node lib/bin/orval.js import --file examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx --types ./model",
+    "example:github": "node lib/bin/orval.js import --input https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
+    "example:file": "node lib/bin/orval.js import --input examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
     "example:advanced": "node lib/bin/orval.js import --config examples/orval.config.js"
   },
   "devDependencies": {

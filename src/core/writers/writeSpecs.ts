@@ -17,49 +17,50 @@ export const writeSpecs = (options: Options, backend?: string) => ({
   schemas,
   info
 }: WriteSpecsProps) => {
-  const {types, output, workDir = ''} = options;
-  const dir = join(process.cwd(), workDir);
+  const {output} = options;
 
-  if (types) {
-    const path = join(dir, types);
+  const path = (typeof output === 'string' ? output : output?.target) || '';
 
-    if (!existsSync(path)) {
-      mkdirSync(path);
-    }
-
-    writeFileSync(join(path, '/index.ts'), '');
-
-    writeModels(schemas, path, info);
+  if (!output || (typeof output === 'object' && !path && output?.schemas)) {
+    throw new Error('You need to provide an output');
   }
 
-  if (output) {
-    const path = join(dir, output);
-    let data = getFilesHeader(info);
-    data +=
-      "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n";
-    data += options.mock ? "import faker from 'faker'\n\n" : '\n';
-
-    if (types) {
-      data += generateImports(
-        imports,
-        resolvePath(path, join(dir, types)),
-        true
-      );
-    } else {
-      data += generateModelsInline(schemas);
+  if (typeof output === 'object' && output.schemas) {
+    if (!existsSync(output.schemas)) {
+      mkdirSync(output.schemas);
     }
 
-    data += '\n';
-    data += definition;
-    data += '\n\n';
-    data += implementation;
+    writeFileSync(join(output.schemas, '/index.ts'), '');
 
+    writeModels(schemas, output.schemas, info);
+  }
+
+  let data = getFilesHeader(info);
+  data +=
+    "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n";
+  data +=
+    typeof output === 'object' && output.mock
+      ? "import faker from 'faker'\n\n"
+      : '\n';
+
+  if (typeof output === 'object' && output.schemas) {
+    data += generateImports(imports, resolvePath(path, output.schemas), true);
+  } else {
+    data += generateModelsInline(schemas);
+  }
+
+  data += '\n';
+  data += definition;
+  data += '\n\n';
+  data += implementation;
+
+  if (path) {
     writeFileSync(path, data);
 
-    if (options.mock) {
+    if (typeof output === 'object' && output.mock) {
       appendFileSync(path, implementationMocks);
     }
-
-    createSuccessMessage(backend);
   }
+
+  createSuccessMessage(backend);
 };

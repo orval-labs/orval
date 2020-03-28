@@ -137,18 +137,32 @@ To activate this "advanced mode", replace all flags from your `orval` call with 
 ```ts
 interface RestfulClientConfig {
   [backend: string]: {
-    output?: string;
-    outputFile?: string;
-    types?: string;
-    workDir?: string;
-    file?: string;
-    github?: string;
-    transformer?: string;
-    validation?: boolean;
-    mock?: boolean | MockOptions;
-    override?: OverrideOptions;
+    // path or output options object
+    output?: string | OutputOptions;
+    // path, url, or input options object
+    input?: string | InputOptions;
   };
 }
+
+interface InputOptions = {
+    // path or url to the openapi spec
+    target?: string;
+    // validation of your openapi spec
+    validation?: boolean;
+    // override the input that's give you the possibility to add whatever you want to your openapi spec
+    override?: OverrideInput;
+};
+
+interface OutputOptions = {
+  // path to the file which will contains the implementation
+  target?: string;
+  // path to the directory or file that will contains your models (if not define the target will contains the models)
+  schemas?: string;
+  // add mock to your implementation
+  mock?: boolean;
+  // override the output like your mock implementation or transform the api implementation like you want
+  override?: OverrideOutput;
+};
 ```
 
 ##### Config File Example
@@ -157,37 +171,49 @@ interface RestfulClientConfig {
 // orval.config.js
 module.exports = {
   'petstore-file': {
-    file: 'examples/petstore.yaml',
+    input: 'examples/petstore.yaml',
     output: 'examples/petstoreFromFileSpecWithConfig.ts'
   },
   'petstore-file-transfomer': {
-    file: 'examples/petstore.yaml',
-    output: 'examples/petstoreFromFileSpecWithTransformer.ts',
-    types: 'examples/model',
-    transformer: 'examples/transformer-add-version.js',
+    output: {
+      target: 'examples/petstoreFromFileSpecWithTransformer.ts',
+      schemas: 'examples/model',
+      mock: true
+    },
+    input: {
+      target: 'examples/petstore.yaml',
+      transformer: 'examples/transformer-add-version.js'
+    },
     override: {
+      // contains operationId of your spec with override options
       operations: {
         listPets: {
-          transformer: 'examples/transformer-response-type.js'
-        }
-      }
-    },
-    mock: {
-      responses: {
-        listPets: {
-          properties: () => {
-            return {
-              id: () => faker.random.number({min: 1, max: 9}),
-              '/tag|name/': 'jon'
-            };
+          // transform the output of your api call
+          transformer: 'examples/transformer-response-type.js',
+          mock: {
+            // override mock properties
+            properties: () => {
+              return {
+                id: faker.random.number({min: 1, max: 9})
+              };
+            }
           }
         },
         showPetById: {
-          data: () => ({
-            id: faker.random.number({min: 1, max: 99}),
-            name: faker.name.firstName(),
-            tag: faker.helpers.randomize([faker.random.word(), undefined])
-          })
+          mock: {
+            // override mock for this api call
+            data: () => ({
+              id: faker.random.number({min: 1, max: 99}),
+              name: faker.name.firstName(),
+              tag: faker.helpers.randomize([faker.random.word(), undefined])
+            })
+          }
+        }
+      },
+      mock: {
+        // override mock properties for all api calls
+        properties: {
+          '/tag|name/': 'jon'
         }
       }
     }
