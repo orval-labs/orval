@@ -38,7 +38,8 @@ const generateVerbOptions = ({
     operationId,
     responses,
     requestBody,
-    parameters: operationParameters
+    parameters: operationParameters,
+    tags = []
   } = operation;
 
   const overrideOperation = override?.operations?.[operation.operationId!];
@@ -71,6 +72,7 @@ const generateVerbOptions = ({
 
   return {
     verb: verb as Verbs,
+    tags,
     summary: operation.summary,
     operationId: operationId!,
     definitionName,

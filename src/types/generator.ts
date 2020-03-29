@@ -19,17 +19,22 @@ export type GeneratorOperations = {
   [operationId: string]: GeneratorOperation;
 };
 
-export type GeneratorOperation = {
+export type GeneratorTarget = {
   imports: string[];
   definition: string;
   implementation: string;
   implementationMocks: string;
-  importsMocks: string;
+};
+
+export type GeneratorOperation = GeneratorTarget & {
+  importsMocks: string[];
+  tags: string[];
 };
 
 export type GeneratorVerbOptions = {
   verb: Verbs;
   summary?: string;
+  tags: string[];
   operationId: string;
   definitionName: string;
   overrideOperation: OperationOptions | undefined;

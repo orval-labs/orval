@@ -28,7 +28,8 @@ export const generateClient = (
         implementation: axios.implementation,
         imports: axios.imports,
         implementationMocks: mock.implementation,
-        importsMocks: mock.imports
+        importsMocks: mock.imports,
+        tags: verbOption.tags
       }
     };
   }, {});

@@ -19,10 +19,11 @@ export type InputOptions = {
   override?: OverrideInput;
 };
 
-export type OutputMode = 'single' | 'split';
+export type OutputMode = 'single' | 'split' | 'tags';
 export const OutputMode = {
   SINGLE: 'single' as OutputMode,
-  SPLIT: 'split' as OutputMode
+  SPLIT: 'split' as OutputMode,
+  TAGS: 'tags' as OutputMode
 };
 
 export type MockOptions = {

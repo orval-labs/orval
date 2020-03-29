@@ -4,6 +4,7 @@ import {createSuccessMessage} from '../../utils/messages/logs';
 import {writeSchemas} from './schemas';
 import {writeSingleMode} from './singleMode';
 import {writeSplitMode} from './splitMode';
+import {writeTagsMode} from './tagsMode';
 
 export const writeSpecs = (options: Options, backend?: string) => ({
   operations,
@@ -34,8 +35,10 @@ export const writeSpecs = (options: Options, backend?: string) => ({
     output.mode === OutputMode.SINGLE
   ) {
     writeSingleMode({operations, output, info, schemas});
-  } else {
+  } else if (output.mode === OutputMode.SPLIT) {
     writeSplitMode({operations, output, info, schemas});
+  } else if (output.mode === OutputMode.TAGS) {
+    writeTagsMode({operations, output, info, schemas});
   }
 
   createSuccessMessage(backend);
