@@ -10,6 +10,7 @@ module.exports = {
   },
   'petstore-file-transfomer': {
     output: {
+      mode: 'split',
       target: 'examples/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'examples/model',
       mock: true,

@@ -156,8 +156,10 @@ interface InputOptions = {
 interface OutputOptions = {
   // path to the file which will contains the implementation
   target?: string;
-  // path to the directory or file that will contains your models (if not define the target will contains the models)
+  // path to the directory that will contains your models (if not define the target will contains the schemas)
   schemas?: string;
+  // single to have everything in the same file or split to have definition, implementation, schemas, mock in differents files
+  mode?: OutputMode;
   // add mock to your implementation
   mock?: boolean;
   // override the output like your mock implementation or transform the api implementation like you want
@@ -178,6 +180,7 @@ module.exports = {
     output: {
       target: 'examples/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'examples/model',
+      mode: 'split',
       mock: true
     },
     input: {

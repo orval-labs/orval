@@ -4,7 +4,7 @@ import {generateAxios, generateAxiosHeader} from './axios';
 export const generateClientHeader = (title: string) => {
   return {
     ...generateAxiosHeader(title),
-    implementationMock: `\n\nexport const get${title}Mock = (): ${title} => ({\n`
+    implementationMock: `export const get${title}Mock = (): ${title} => ({\n`
   };
 };
 
