@@ -30,8 +30,6 @@ export const generateApi = (
         override
       });
 
-      acc.schemas = [...acc.schemas, ...schemas];
-
       return {
         schemas: [...acc.schemas, ...schemas],
         operations: {...acc.operations, ...client}
