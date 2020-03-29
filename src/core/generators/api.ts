@@ -1,31 +1,16 @@
-import {pascal} from 'case';
 import {OpenAPIObject, PathItemObject} from 'openapi3-ts';
 import {OverrideOutput} from '../../types';
 import {GeneratorApiResponse, GeneratorSchema} from '../../types/generator';
-import {generalTypesFilter} from '../../utils/filters';
-import {
-  generateClient,
-  generateClientFooter,
-  generateClientHeader
-} from './client';
-import {generateMocks} from './mocks';
+import {generateClient} from './client';
 import {generateVerbsOptions} from './verbsOptions';
 
 export const generateApi = (
   specs: OpenAPIObject,
-  override?: OverrideOutput,
-  mock?: boolean
+  override?: OverrideOutput
 ) => {
   return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
-    (acc, [pathRoute, verbs]: [string, PathItemObject], index, arr) => {
+    (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
       const route = pathRoute.replace(/\{/g, '${');
-
-      if (!index) {
-        const header = generateClientHeader(pascal(specs.info.title));
-        acc.definition += header.definition;
-        acc.implementation += header.implementation;
-        acc.implementationMocks += header.implementationMock;
-      }
 
       const verbsOptions = generateVerbsOptions({
         verbs,
@@ -40,35 +25,20 @@ export const generateApi = (
       );
 
       const client = generateClient(verbsOptions, {
-        route
+        route,
+        specs,
+        override
       });
 
-      if (mock) {
-        const mocks = generateMocks(verbsOptions, specs, override);
-        acc.imports = [...acc.imports, ...mocks.imports];
-        acc.implementationMocks += mocks.implementation;
-      }
-
-      acc.imports = [...acc.imports, ...client.imports];
-      acc.definition += client.definition;
-      acc.implementation += client.implementation;
       acc.schemas = [...acc.schemas, ...schemas];
 
-      if (index === arr.length - 1) {
-        const footer = generateClientFooter();
-        acc.definition += footer.definition;
-        acc.implementation += footer.implementation;
-        acc.implementationMocks += footer.implementationMock;
-        acc.imports = generalTypesFilter(acc.imports);
-      }
-
-      return acc;
+      return {
+        schemas: [...acc.schemas, ...schemas],
+        operations: {...acc.operations, ...client}
+      };
     },
     {
-      imports: [],
-      definition: '',
-      implementation: '',
-      implementationMocks: '',
+      operations: {},
       schemas: []
     }
   );

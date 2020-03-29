@@ -28,10 +28,10 @@
     "rollup": "rollup -c rollup.config.js",
     "prebuild": "rimraf ./lib && mkdir lib",
     "build": "tsc && yarn rollup",
-    "lint": "tslint src/**/*{ts,tsx} --project .",
+    "lint": "tslint src/**/*.ts --project .",
     "examples": "run-p example:*",
-    "example:github": "node lib/bin/orval.js import --input https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.tsx",
-    "example:file": "node lib/bin/orval.js import --input examples/petstore.yaml --output examples/petstoreFromFileSpec.tsx",
+    "example:github": "node lib/bin/orval.js import --input https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.ts",
+    "example:file": "node lib/bin/orval.js import --input examples/petstore.yaml --output examples/petstoreFromFileSpec.ts",
     "example:advanced": "node lib/bin/orval.js import --config examples/orval.config.js"
   },
   "devDependencies": {

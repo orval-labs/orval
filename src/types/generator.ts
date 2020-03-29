@@ -1,3 +1,4 @@
+import {OpenAPIObject} from 'openapi3-ts';
 import {
   GetterBody,
   GetterParameters,
@@ -5,16 +6,25 @@ import {
   GetterProps,
   GetterResponse
 } from './getters';
-import {OperationOptions, Verbs} from './index';
+import {OperationOptions, OverrideOutput, Verbs} from './index';
 
 export type GeneratorSchema = {name: string; model: string; imports: string[]};
 
 export type GeneratorApiResponse = {
+  operations: GeneratorOperations;
+  schemas: GeneratorSchema[];
+};
+
+export type GeneratorOperations = {
+  [operationId: string]: GeneratorOperation;
+};
+
+export type GeneratorOperation = {
   imports: string[];
   definition: string;
   implementation: string;
   implementationMocks: string;
-  schemas: GeneratorSchema[];
+  importsMocks: string;
 };
 
 export type GeneratorVerbOptions = {
@@ -34,4 +44,8 @@ export type GeneratorVerbOptions = {
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
 
-export type GeneratorOptions = {route: string};
+export type GeneratorOptions = {
+  route: string;
+  specs: OpenAPIObject;
+  override?: OverrideOutput;
+};

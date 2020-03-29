@@ -1,5 +1,6 @@
 import {GeneratorOptions, GeneratorVerbsOptions} from '../../types/generator';
 import {generateAxios, generateAxiosHeader} from './axios';
+import {generateMock} from './mocks';
 
 export const generateClientHeader = (title: string) => {
   return {
@@ -16,21 +17,19 @@ export const generateClient = (
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions
 ) => {
-  return verbsOptions.reduce(
-    (acc, verbOption) => {
-      const {definition, implementation, imports} = generateAxios(
-        verbOption,
-        options
-      );
-      acc.definition += definition;
-      acc.implementation += implementation;
-      acc.imports = [...acc.imports, ...imports];
-      return acc;
-    },
-    {
-      definition: '',
-      implementation: '',
-      imports: [] as string[]
-    }
-  );
+  return verbsOptions.reduce((acc, verbOption) => {
+    const axios = generateAxios(verbOption, options);
+    const mock = generateMock(verbOption, options.specs, options.override);
+
+    return {
+      ...acc,
+      [verbOption.operationId]: {
+        definition: axios.definition,
+        implementation: axios.implementation,
+        imports: axios.imports,
+        implementationMocks: mock.implementation,
+        importsMocks: mock.imports
+      }
+    };
+  }, {});
 };

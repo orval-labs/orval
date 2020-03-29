@@ -1,10 +1,7 @@
 import {OpenAPIObject, SchemaObject} from 'openapi3-ts';
 import {generalJSTypesWithArray} from '../../constants';
 import {MockOptions, OverrideOutput} from '../../types';
-import {
-  GeneratorVerbOptions,
-  GeneratorVerbsOptions
-} from '../../types/generator';
+import {GeneratorVerbOptions} from '../../types/generator';
 import {GetterResponse} from '../../types/getters';
 import {stringify} from '../../utils/stringify';
 import {getMockScalar} from '../getters/mockScalar';
@@ -140,7 +137,7 @@ const getMockOptionsDataOverride = (
     : stringify(responseOverride);
 };
 
-const generateMockImplementation = (
+export const generateMock = (
   {operationId, response, definitionName, props}: GeneratorVerbOptions,
   specs: OpenAPIObject,
   override?: OverrideOutput
@@ -168,27 +165,4 @@ const generateMockImplementation = (
 `;
 
   return {implementation, imports};
-};
-
-export const generateMocks = (
-  verbsOptions: GeneratorVerbsOptions,
-  specs: OpenAPIObject,
-  override?: OverrideOutput
-) => {
-  return verbsOptions.reduce(
-    (acc, verbOption) => {
-      const {implementation, imports} = generateMockImplementation(
-        verbOption,
-        specs,
-        override
-      );
-      acc.implementation += implementation;
-      acc.imports = [...acc.imports, ...imports];
-      return acc;
-    },
-    {
-      implementation: '',
-      imports: [] as string[]
-    }
-  );
 };
