@@ -1,27 +1,30 @@
-import {camel, kebab, pascal} from 'case';
-import {existsSync, mkdirSync, writeFileSync} from 'fs';
-import {InfoObject} from 'openapi3-ts';
-import {join} from 'path';
-import {OutputOptions} from '../../types';
+import { camel, kebab, pascal } from 'case';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { InfoObject } from 'openapi3-ts';
+import { join } from 'path';
+import { OutputOptions } from '../../types';
 import {
   GeneratorOperation,
   GeneratorOperations,
-  GeneratorTarget
+  GeneratorTarget,
 } from '../../types/generator';
-import {WriteSpecsProps} from '../../types/writers';
-import {getFileInfo} from '../../utils/file';
-import {generalTypesFilter} from '../../utils/filters';
-import {isObject} from '../../utils/is';
-import {getFilesHeader} from '../../utils/messages/inline';
-import {generateClientFooter, generateClientHeader} from '../generators/client';
-import {generateImports} from '../generators/imports';
-import {generateModelsInline} from '../generators/modelsInline';
-import {resolvePath} from '../resolvers/path';
+import { WriteSpecsProps } from '../../types/writers';
+import { getFileInfo } from '../../utils/file';
+import { generalTypesFilter } from '../../utils/filters';
+import { isObject } from '../../utils/is';
+import { getFilesHeader } from '../../utils/messages/inline';
+import {
+  generateClientFooter,
+  generateClientHeader,
+} from '../generators/client';
+import { generateImports } from '../generators/imports';
+import { generateModelsInline } from '../generators/modelsInline';
+import { resolvePath } from '../resolvers/path';
 
 const generateTargetTags = (
-  currentAcc: {[key: string]: GeneratorTarget},
+  currentAcc: { [key: string]: GeneratorTarget },
   operation: GeneratorOperation,
-  info: InfoObject
+  info: InfoObject,
 ) =>
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
@@ -35,8 +38,8 @@ const generateTargetTags = (
           definition: header.definition + operation.definition,
           implementation: header.implementation + operation.implementation,
           implementationMocks:
-            header.implementationMock + operation.implementationMocks
-        }
+            header.implementationMock + operation.implementationMocks,
+        },
       };
     }
 
@@ -49,17 +52,17 @@ const generateTargetTags = (
         imports: [
           ...currentOperation.imports,
           ...operation.imports,
-          ...operation.importsMocks
+          ...operation.importsMocks,
         ],
         implementationMocks:
-          currentOperation.implementationMocks + operation.implementationMocks
-      }
+          currentOperation.implementationMocks + operation.implementationMocks,
+      },
     };
   }, currentAcc);
 
 export const generateTarget = (
   operations: GeneratorOperations,
-  info: InfoObject
+  info: InfoObject,
 ) =>
   Object.values(operations).reduce((acc, operation, index, arr) => {
     const targetTags = generateTargetTags(acc, operation, info);
@@ -75,24 +78,24 @@ export const generateTarget = (
             implementation: target.implementation + footer.implementation,
             implementationMocks:
               target.implementationMocks + footer.implementationMock,
-            imports: generalTypesFilter(target.imports)
-          }
+            imports: generalTypesFilter(target.imports),
+          },
         };
       }, {});
     }
 
     return targetTags;
-  }, {} as {[key: string]: GeneratorTarget});
+  }, {} as { [key: string]: GeneratorTarget });
 
 export const writeTagsMode = ({
   operations,
   schemas,
   info,
-  output
-}: WriteSpecsProps & {output: OutputOptions}) => {
-  const {path, filename, dirname, extension} = getFileInfo(
+  output,
+}: WriteSpecsProps & { output: OutputOptions }) => {
+  const { path, filename, dirname, extension } = getFileInfo(
     output.target,
-    camel(info.title)
+    camel(info.title),
   );
 
   if (!existsSync(dirname)) {
@@ -102,7 +105,7 @@ export const writeTagsMode = ({
   const target = generateTarget(operations, info);
 
   Object.entries(target).forEach(([tag, target]) => {
-    const {definition, imports, implementation, implementationMocks} = target;
+    const { definition, imports, implementation, implementationMocks } = target;
     const header = getFilesHeader(info);
     let data = header;
     data +=

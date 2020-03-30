@@ -1,13 +1,13 @@
-import {pascal} from 'case';
-import {SchemaObject} from 'openapi3-ts';
-import {MockOptions} from '../../types';
-import {MockDefinition} from '../../types/mocks';
-import {resolveMockValue} from '../resolvers/value.mock';
-import {getMockObject} from './object.mock';
+import { pascal } from 'case';
+import { SchemaObject } from 'openapi3-ts';
+import { MockOptions } from '../../types';
+import { MockDefinition } from '../../types/mocks';
+import { resolveMockValue } from '../resolvers/value.mock';
+import { getMockObject } from './object.mock';
 
 const resolveMockProperties = (
   properties: any = {},
-  item: SchemaObject & {name: string; parent?: string}
+  item: SchemaObject & { name: string; parent?: string },
 ) =>
   Object.entries(properties).reduce((acc, [key, value]) => {
     const regex =
@@ -21,7 +21,7 @@ const resolveMockProperties = (
     return {
       value: getNullable(value as string, item.nullable),
       imports: [],
-      name: item.name
+      name: item.name,
     };
   }, undefined as any);
 
@@ -33,17 +33,17 @@ export const getMockScalar = ({
   schemas,
   allOf,
   mockOptions,
-  operationId
+  operationId,
 }: {
-  item: SchemaObject & {name: string; parent?: string};
-  schemas: {[key: string]: SchemaObject};
+  item: SchemaObject & { name: string; parent?: string };
+  schemas: { [key: string]: SchemaObject };
   allOf?: boolean;
   mockOptions?: MockOptions;
   operationId: string;
 }): MockDefinition => {
   const rProperty = resolveMockProperties(
     mockOptions?.operations?.[operationId]?.properties,
-    item
+    item,
   );
 
   if (rProperty) {
@@ -67,25 +67,25 @@ export const getMockScalar = ({
       return {
         value: getNullable('faker.random.number()', item.nullable),
         imports: [],
-        name: item.name
+        name: item.name,
       };
     }
 
     case 'boolean': {
-      return {value: 'faker.random.boolean()', imports: [], name: item.name};
+      return { value: 'faker.random.boolean()', imports: [], name: item.name };
     }
 
     case 'array': {
       if (!item.items) {
-        return {value: [], imports: [], name: item.name};
+        return { value: [], imports: [], name: item.name };
       }
 
-      const {value, enums, imports, name} = resolveMockValue({
-        schema: {...item.items, name: item.name},
+      const { value, enums, imports, name } = resolveMockValue({
+        schema: { ...item.items, name: item.name },
         schemas,
         allOf,
         mockOptions,
-        operationId
+        operationId,
       });
 
       if (enums) {
@@ -98,14 +98,14 @@ export const getMockScalar = ({
             }
           },{ values: [], enums: Object.values(${name})})`,
           imports,
-          name: item.name
+          name: item.name,
         };
       }
 
       return {
         value: `[...Array(faker.random.number({min: 1, max: 10}))].map(() => (${value}))`,
         imports,
-        name: item.name
+        name: item.name,
       };
     }
 
@@ -126,13 +126,13 @@ export const getMockScalar = ({
         value: getNullable(value, item.nullable),
         enums: item.enum,
         name: item.name,
-        imports: item.enum ? [pascal(item.name)] : []
+        imports: item.enum ? [pascal(item.name)] : [],
       };
     }
 
     case 'object':
     default: {
-      return getMockObject({item, schemas, allOf, mockOptions, operationId});
+      return getMockObject({ item, schemas, allOf, mockOptions, operationId });
     }
   }
 };

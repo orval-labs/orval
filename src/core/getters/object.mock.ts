@@ -1,30 +1,30 @@
 import cuid from 'cuid';
 import get from 'lodash/get';
-import {ReferenceObject, SchemaObject} from 'openapi3-ts';
-import {MockOptions} from '../../types';
-import {MockDefinition} from '../../types/mocks';
-import {isBoolean, isReference} from '../../utils/is';
-import {resolveMockValue} from '../resolvers/value.mock';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { MockOptions } from '../../types';
+import { MockDefinition } from '../../types/mocks';
+import { isBoolean, isReference } from '../../utils/is';
+import { resolveMockValue } from '../resolvers/value.mock';
 
 export const getMockObject = ({
   item,
   schemas,
   allOf,
   mockOptions,
-  operationId
+  operationId,
 }: {
-  item: SchemaObject & {name: string; parent?: string};
-  schemas: {[key: string]: SchemaObject};
+  item: SchemaObject & { name: string; parent?: string };
+  schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
   mockOptions?: MockOptions;
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
-      schema: {...item, schemas, name: item.name},
+      schema: { ...item, schemas, name: item.name },
       schemas,
       mockOptions,
-      operationId
+      operationId,
     });
   }
 
@@ -32,11 +32,11 @@ export const getMockObject = ({
     let imports: string[] = [];
     const value = item.allOf.reduce((acc, val, index, arr) => {
       const resolvedValue = resolveMockValue({
-        schema: {...val, name: item.name},
+        schema: { ...val, name: item.name },
         schemas,
         allOf: true,
         mockOptions,
-        operationId
+        operationId,
       });
 
       imports = [...imports, ...resolvedValue.imports];
@@ -58,7 +58,7 @@ export const getMockObject = ({
     return {
       value,
       imports,
-      name: item.name
+      name: item.name,
     };
   }
 
@@ -66,11 +66,11 @@ export const getMockObject = ({
     let imports: string[] = [];
     const value = item.oneOf.reduce((acc, val, index, arr) => {
       const resolvedValue = resolveMockValue({
-        schema: {...val, name: item.name},
+        schema: { ...val, name: item.name },
         schemas,
         allOf: true,
         mockOptions,
-        operationId
+        operationId,
       });
 
       imports = [...imports, ...resolvedValue.imports];
@@ -92,7 +92,7 @@ export const getMockObject = ({
     return {
       value,
       imports,
-      name: item.name
+      name: item.name,
     };
   }
 
@@ -128,27 +128,27 @@ export const getMockObject = ({
           item.parent &&
           get(
             mockOptions?.operations?.[operationId]?.properties,
-            `${item.parent}.${key}`
+            `${item.parent}.${key}`,
           )
         ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${get(
               mockOptions?.operations?.[operationId]?.properties,
-              `${item.parent}.${key}`
+              `${item.parent}.${key}`,
             )}, undefined])`;
           }
 
           return `${key}: ${get(
             mockOptions?.operations?.[operationId]?.properties,
-            `${item.parent}.${key}`
+            `${item.parent}.${key}`,
           )}`;
         }
 
         const resolvedValue = resolveMockValue({
-          schema: {...prop, name: key},
+          schema: { ...prop, name: key },
           schemas,
           mockOptions,
-          operationId
+          operationId,
         });
         imports = [...imports, ...resolvedValue.imports];
         if (!isRequired) {
@@ -159,27 +159,27 @@ export const getMockObject = ({
       })
       .join(', ');
     value += !allOf ? '}' : '';
-    return {value, imports, name: item.name};
+    return { value, imports, name: item.name };
   }
 
   if (item.additionalProperties) {
     if (isBoolean(item.additionalProperties)) {
-      return {value: `{}`, imports: [], name: item.name};
+      return { value: `{}`, imports: [], name: item.name };
     }
     const resolvedValue = resolveMockValue({
-      schema: {...item.additionalProperties, name: item.name},
+      schema: { ...item.additionalProperties, name: item.name },
       schemas,
       mockOptions,
-      operationId
+      operationId,
     });
 
     return {
       ...resolvedValue,
       value: `{
         '${cuid()}': ${resolvedValue.value}
-      }`
+      }`,
     };
   }
 
-  return {value: '{}', imports: [], name: item.name};
+  return { value: '{}', imports: [], name: item.name };
 };

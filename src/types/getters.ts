@@ -1,5 +1,5 @@
-import {ParameterObject} from 'openapi3-ts';
-import {ResolverValue} from './resolvers';
+import { ParameterObject } from 'openapi3-ts';
+import { ResolverValue } from './resolvers';
 
 export type GetterResponse = {
   imports: string[];
@@ -30,4 +30,4 @@ export type GetterParam = {
 
 export type GetterParams = GetterParam[];
 
-export type GetterProps = {definition: string; implementation: string};
+export type GetterProps = { definition: string; implementation: string };

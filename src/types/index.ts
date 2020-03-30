@@ -1,4 +1,4 @@
-import {OpenAPIObject} from 'openapi3-ts';
+import { OpenAPIObject } from 'openapi3-ts';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -23,24 +23,24 @@ export type OutputMode = 'single' | 'split' | 'tags';
 export const OutputMode = {
   SINGLE: 'single' as OutputMode,
   SPLIT: 'split' as OutputMode,
-  TAGS: 'tags' as OutputMode
+  TAGS: 'tags' as OutputMode,
 };
 
 export type MockOptions = {
-  properties?: {[key: string]: unknown};
-  operations?: {[key: string]: {[key: string]: any}};
+  properties?: { [key: string]: unknown };
+  operations?: { [key: string]: { [key: string]: any } };
 };
 
 export type MockProperties =
-  | {[key: string]: unknown}
-  | ((specs: OpenAPIObject) => {[key: string]: unknown});
+  | { [key: string]: unknown }
+  | ((specs: OpenAPIObject) => { [key: string]: unknown });
 
 export interface ExternalConfigFile {
   [backend: string]: Options;
 }
 
 export type OverrideOutput = {
-  operations?: {[key: string]: OperationOptions};
+  operations?: { [key: string]: OperationOptions };
   mock?: {
     properties?: MockProperties;
   };
@@ -65,7 +65,7 @@ export const Verbs = {
   PUT: 'put' as Verbs,
   GET: 'get' as Verbs,
   PATCH: 'patch' as Verbs,
-  DELETE: 'delete' as Verbs
+  DELETE: 'delete' as Verbs,
 };
 
 export type ImportOpenApi = {

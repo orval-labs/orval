@@ -1,6 +1,6 @@
-import {OperationObject, ParameterObject, SchemaObject} from 'openapi3-ts';
-import {GetterParams} from '../../types/getters';
-import {resolveValue} from '../resolvers/value';
+import { OperationObject, ParameterObject, SchemaObject } from 'openapi3-ts';
+import { GetterParams } from '../../types/getters';
+import { resolveValue } from '../resolvers/value';
 
 /**
  * Return every params in a path
@@ -27,16 +27,18 @@ export const getParamsInPath = (path: string) => {
 export const getParams = ({
   route,
   pathParams = [],
-  operation
+  operation,
 }: {
   route: string;
   pathParams?: ParameterObject[];
   operation: OperationObject;
 }): GetterParams => {
   const params = getParamsInPath(route);
-  return params.map(p => {
+  return params.map((p) => {
     try {
-      const {name, required, schema} = pathParams.find(i => i.name === p) as {
+      const { name, required, schema } = pathParams.find(
+        (i) => i.name === p,
+      ) as {
         name: string;
         required: boolean;
         schema: SchemaObject;
@@ -57,11 +59,11 @@ export const getParams = ({
         definition,
         implementation,
         default: schema.default,
-        required
+        required,
       };
     } catch (err) {
       throw new Error(
-        `The path params ${p} can't be found in parameters (${operation.operationId})`
+        `The path params ${p} can't be found in parameters (${operation.operationId})`,
       );
     }
   });

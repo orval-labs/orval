@@ -1,18 +1,18 @@
-import {ParameterObject, ReferenceObject, SchemaObject} from 'openapi3-ts';
-import {GeneratorSchema} from '../../types/generator';
-import {resolveValue} from '../resolvers/value';
+import { ParameterObject, ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { GeneratorSchema } from '../../types/generator';
+import { resolveValue } from '../resolvers/value';
 
 const getQueryParamsTypes = (
-  queryParams: (ParameterObject | ReferenceObject)[]
+  queryParams: (ParameterObject | ReferenceObject)[],
 ) => {
-  return queryParams.map(p => {
-    const {name, required, schema} = p as {
+  return queryParams.map((p) => {
+    const { name, required, schema } = p as {
       name: string;
       required: boolean;
       schema: SchemaObject;
     };
 
-    const {value, imports} = resolveValue(schema!);
+    const { value, imports } = resolveValue(schema!);
 
     const definition = `${name}${
       !required || schema.default ? '?' : ''
@@ -28,31 +28,31 @@ const getQueryParamsTypes = (
       implementation,
       default: schema.default,
       required,
-      imports
+      imports,
     };
   });
 };
 
 export const getQueryParams = (
   queryParams: (ParameterObject | ReferenceObject)[] = [],
-  definitionName: string
+  definitionName: string,
 ): GeneratorSchema | undefined => {
   if (!queryParams.length) {
     return;
   }
   const types = getQueryParamsTypes(queryParams);
   const imports = types.reduce<string[]>(
-    (acc, {imports = []}) => [...acc, ...imports],
-    []
+    (acc, { imports = [] }) => [...acc, ...imports],
+    [],
   );
   const name = `${definitionName}Params`;
 
   const schema = {
     name,
     model: `export type ${name} = { ${types
-      .map(({definition}) => definition)
+      .map(({ definition }) => definition)
       .join('; ')} }`,
-    imports
+    imports,
   };
 
   return schema;

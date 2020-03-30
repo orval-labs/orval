@@ -1,12 +1,12 @@
-import {camel} from 'case';
-import {VERBS_WITH_BODY} from '../../constants';
-import {Verbs} from '../../types';
+import { camel } from 'case';
+import { VERBS_WITH_BODY } from '../../constants';
+import { Verbs } from '../../types';
 import {
   GeneratorOptions,
   GeneratorSchema,
-  GeneratorVerbOptions
+  GeneratorVerbOptions,
 } from '../../types/generator';
-import {GetterBody, GetterResponse} from '../../types/getters';
+import { GetterBody, GetterResponse } from '../../types/getters';
 
 const generateBodyProps = (body: GetterBody, verb: Verbs) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
@@ -22,7 +22,7 @@ const generateBodyProps = (body: GetterBody, verb: Verbs) => {
 
 const generateQueryParamsProps = (
   response: GetterResponse,
-  queryParams?: GeneratorSchema
+  queryParams?: GeneratorSchema,
 ) => {
   if (!queryParams && !response.isBlob) {
     return '';
@@ -52,7 +52,7 @@ const generateAxiosProps = ({
   body,
   queryParams,
   response,
-  verb
+  verb,
 }: {
   route: string;
   body: GetterBody;
@@ -62,7 +62,7 @@ const generateAxiosProps = ({
 }) => {
   return `\`${route}\` ${generateBodyProps(
     body,
-    verb
+    verb,
   )} ${generateQueryParamsProps(response, queryParams)}`;
 };
 
@@ -70,7 +70,7 @@ const generateAxiosDefinition = ({
   props,
   definitionName,
   response,
-  summary
+  summary,
 }: GeneratorVerbOptions) => {
   let value = '';
 
@@ -89,7 +89,7 @@ const generateFormData = (body: GetterBody) => {
   }
 
   return `const formData = new FormData(); formData.append('file', ${camel(
-    body.implementation
+    body.implementation,
   )});`;
 };
 
@@ -101,16 +101,16 @@ const generateAxiosImplementation = (
     transformer,
     body,
     props,
-    verb
+    verb,
   }: GeneratorVerbOptions,
-  {route}: GeneratorOptions
+  { route }: GeneratorOptions,
 ) => {
   const axiosProps = generateAxiosProps({
     route,
     body,
     queryParams,
     response,
-    verb
+    verb,
   });
 
   return `  ${definitionName}(${props.implementation}): AxiosPromise<${
@@ -126,25 +126,25 @@ const generateAxiosImplementation = (
 const generateImports = ({
   response,
   body,
-  queryParams
+  queryParams,
 }: GeneratorVerbOptions) => [
   ...response.imports,
   ...body.imports,
-  ...(queryParams ? [queryParams.name] : [])
+  ...(queryParams ? [queryParams.name] : []),
 ];
 
 export const generateAxiosHeader = (title: string) => ({
   definition: `export interface ${title} {`,
-  implementation: `export const get${title} = (axios: AxiosInstance): ${title} => ({\n`
+  implementation: `export const get${title} = (axios: AxiosInstance): ${title} => ({\n`,
 });
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions
+  options: GeneratorOptions,
 ) => {
   const imports = generateImports(verbOptions);
   const definition = generateAxiosDefinition(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);
 
-  return {definition, implementation, imports};
+  return { definition, implementation, imports };
 };

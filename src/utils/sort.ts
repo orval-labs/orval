@@ -1,5 +1,5 @@
 export const sortByPriority = <T>(
-  arr: (T & {default?: boolean; required?: boolean})[]
+  arr: (T & { default?: boolean; required?: boolean })[],
 ) =>
   arr.sort((a, b) => {
     if (a.default) {

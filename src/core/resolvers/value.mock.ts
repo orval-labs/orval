@@ -1,19 +1,19 @@
-import {SchemaObject} from 'openapi3-ts';
-import {MockOptions} from '../../types';
-import {MockDefinition} from '../../types/mocks';
-import {isReference} from '../../utils/is';
-import {getRef} from '../getters/ref';
-import {getMockScalar} from '../getters/scalar.mock';
+import { SchemaObject } from 'openapi3-ts';
+import { MockOptions } from '../../types';
+import { MockDefinition } from '../../types/mocks';
+import { isReference } from '../../utils/is';
+import { getRef } from '../getters/ref';
+import { getMockScalar } from '../getters/scalar.mock';
 
 export const resolveMockValue = ({
   schema,
   schemas,
   allOf,
   mockOptions,
-  operationId
+  operationId,
 }: {
-  schema: SchemaObject & {name: string; parent?: string};
-  schemas: {[key: string]: SchemaObject};
+  schema: SchemaObject & { name: string; parent?: string };
+  schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
   mockOptions?: MockOptions;
@@ -23,11 +23,11 @@ export const resolveMockValue = ({
     const newSchema = {
       ...schemas[value],
       name: value,
-      parent: schema.parent ? `${schema.parent}.${schema.name}` : schema.name
+      parent: schema.parent ? `${schema.parent}.${schema.name}` : schema.name,
     };
 
     if (!newSchema) {
-      return {value: 'undefined', imports: [], name: value};
+      return { value: 'undefined', imports: [], name: value };
     }
 
     return getMockScalar({
@@ -35,7 +35,7 @@ export const resolveMockValue = ({
       schemas,
       allOf,
       mockOptions,
-      operationId
+      operationId,
     });
   }
 
@@ -44,6 +44,6 @@ export const resolveMockValue = ({
     schemas,
     allOf,
     mockOptions,
-    operationId
+    operationId,
   });
 };

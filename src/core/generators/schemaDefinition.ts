@@ -1,11 +1,11 @@
-import {pascal, upper} from 'case';
+import { pascal, upper } from 'case';
 import isEmpty from 'lodash/isEmpty';
-import {SchemaObject} from 'openapi3-ts';
-import {GeneratorSchema} from '../../types/generator';
-import {generalTypesFilter} from '../../utils/filters';
-import {isReference} from '../../utils/is';
-import {resolveValue} from '../resolvers/value';
-import {generateInterface} from './interface';
+import { SchemaObject } from 'openapi3-ts';
+import { GeneratorSchema } from '../../types/generator';
+import { generalTypesFilter } from '../../utils/filters';
+import { isReference } from '../../utils/is';
+import { resolveValue } from '../resolvers/value';
+import { generateInterface } from './interface';
 
 /**
  * Extract all types from #/components/schemas
@@ -13,7 +13,7 @@ import {generateInterface} from './interface';
  * @param schemas
  */
 export const generateSchemasDefinition = (
-  schemas: SchemaObject = {}
+  schemas: SchemaObject = {},
 ): Array<GeneratorSchema> => {
   if (isEmpty(schemas)) {
     return [];
@@ -30,9 +30,9 @@ export const generateSchemasDefinition = (
       ) {
         return [...acc, ...generateInterface(name, schema)];
       } else {
-        const {value, imports, isEnum, type, schemas = []} = resolveValue(
+        const { value, imports, isEnum, type, schemas = [] } = resolveValue(
           schema,
-          name
+          name,
         );
 
         let output = '';
@@ -59,12 +59,12 @@ export const generateSchemasDefinition = (
           {
             name: pascal(name),
             model: output,
-            imports: generalTypesFilter(imports)
-          }
+            imports: generalTypesFilter(imports),
+          },
         ];
       }
     },
-    []
+    [],
   );
 
   return models;

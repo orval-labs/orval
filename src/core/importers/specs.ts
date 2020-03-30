@@ -1,16 +1,16 @@
-import {URL_REGEX} from '../../constants';
-import {Options} from '../../types';
-import {WriteSpecsProps} from '../../types/writers';
-import {getExtension} from '../../utils/extension';
-import {getGithubOpenApi} from '../../utils/github';
-import {isObject, isString} from '../../utils/is';
-import {dynamicReader} from '../../utils/reader';
-import {importOpenApi} from './openApi';
+import { URL_REGEX } from '../../constants';
+import { Options } from '../../types';
+import { WriteSpecsProps } from '../../types/writers';
+import { getExtension } from '../../utils/extension';
+import { getGithubOpenApi } from '../../utils/github';
+import { isObject, isString } from '../../utils/is';
+import { dynamicReader } from '../../utils/reader';
+import { importOpenApi } from './openApi';
 
 export const importSpecs = async (
-  options: Options
+  options: Options,
 ): Promise<WriteSpecsProps> => {
-  const {input, output} = options;
+  const { input, output } = options;
 
   const path = isString(input) ? input : input?.target;
 
@@ -32,10 +32,10 @@ export const importSpecs = async (
     data,
     format,
     ...(isObject(input) && {
-      input
+      input,
     }),
     ...(isObject(output) && {
-      output
-    })
+      output,
+    }),
   });
 };

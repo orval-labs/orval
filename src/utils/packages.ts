@@ -1,5 +1,5 @@
-import {readFileSync} from 'fs';
-import {join} from 'path';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 export type PackageJson = {
   name: string;
@@ -18,5 +18,5 @@ export type PackageJson = {
 
 export const getPackage = () =>
   JSON.parse(
-    readFileSync(join(__dirname, '../../package.json'), 'utf-8')
+    readFileSync(join(__dirname, '../../package.json'), 'utf-8'),
   ) as PackageJson;

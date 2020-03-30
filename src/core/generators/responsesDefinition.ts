@@ -1,9 +1,9 @@
-import {pascal} from 'case';
+import { pascal } from 'case';
 import isEmpty from 'lodash/isEmpty';
-import {ComponentsObject} from 'openapi3-ts';
-import {GeneratorSchema} from '../../types/generator';
-import {generalTypesFilter} from '../../utils/filters';
-import {getResReqTypes} from '../getters/resReqTypes';
+import { ComponentsObject } from 'openapi3-ts';
+import { GeneratorSchema } from '../../types/generator';
+import { generalTypesFilter } from '../../utils/filters';
+import { getResReqTypes } from '../getters/resReqTypes';
 
 /**
  * Extract all types from #/components/responses
@@ -11,7 +11,7 @@ import {getResReqTypes} from '../getters/resReqTypes';
  * @param responses
  */
 export const generateResponsesDefinition = (
-  responses: ComponentsObject['responses'] = {}
+  responses: ComponentsObject['responses'] = {},
 ): Array<GeneratorSchema> => {
   if (isEmpty(responses)) {
     return [];
@@ -20,15 +20,15 @@ export const generateResponsesDefinition = (
   const models = Object.entries(responses).map(([name, response]) => {
     const allResponseTypes = getResReqTypes([['', response]]);
     const imports = allResponseTypes.reduce<string[]>(
-      (acc, {imports = []}) => [...acc, ...imports],
-      []
+      (acc, { imports = [] }) => [...acc, ...imports],
+      [],
     );
-    const type = allResponseTypes.map(({value}) => value).join(' | ');
+    const type = allResponseTypes.map(({ value }) => value).join(' | ');
     const isEmptyInterface = type === '{}';
     let model = '';
     if (isEmptyInterface) {
       model = `// tslint:disable-next-line:no-empty-interface \nexport interface ${pascal(
-        name
+        name,
       )}Response ${type}`;
     } else if (
       type.includes('{') &&
@@ -43,7 +43,7 @@ export const generateResponsesDefinition = (
     return {
       name: `${pascal(name)}Response`,
       model,
-      imports: generalTypesFilter(imports)
+      imports: generalTypesFilter(imports),
     };
   });
 

@@ -1,6 +1,6 @@
-import {SchemaObject} from 'openapi3-ts';
-import {generalTypesFilter} from '../../utils/filters';
-import {resolveValue} from './value';
+import { SchemaObject } from 'openapi3-ts';
+import { generalTypesFilter } from '../../utils/filters';
+import { resolveValue } from './value';
 
 export const resolveObject = (schema: SchemaObject, propName?: string) => {
   const resolvedValue = resolveValue(schema, propName);
@@ -18,15 +18,15 @@ export const resolveObject = (schema: SchemaObject, propName?: string) => {
         {
           name: propName,
           model: `export type ${propName} = ${resolvedValue.value}`,
-          imports: generalTypesFilter(resolvedValue.imports)
-        }
-      ]
+          imports: generalTypesFilter(resolvedValue.imports),
+        },
+      ],
     };
   }
 
   return {
     value: resolvedValue.value,
     imports: resolvedValue.imports,
-    schemas: resolvedValue.schemas
+    schemas: resolvedValue.schemas,
   };
 };

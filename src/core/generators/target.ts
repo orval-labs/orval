@@ -1,12 +1,12 @@
-import {pascal} from 'case';
-import {InfoObject} from 'openapi3-ts';
-import {GeneratorOperations} from '../../types/generator';
-import {generalTypesFilter} from '../../utils/filters';
-import {generateClientFooter, generateClientHeader} from './client';
+import { pascal } from 'case';
+import { InfoObject } from 'openapi3-ts';
+import { GeneratorOperations } from '../../types/generator';
+import { generalTypesFilter } from '../../utils/filters';
+import { generateClientFooter, generateClientHeader } from './client';
 
 export const generateTarget = (
   operations: GeneratorOperations,
-  info: InfoObject
+  info: InfoObject,
 ) =>
   Object.values(operations).reduce(
     (acc, operation, index, arr) => {
@@ -20,7 +20,7 @@ export const generateTarget = (
       acc.imports = [
         ...acc.imports,
         ...operation.imports,
-        ...operation.importsMocks
+        ...operation.importsMocks,
       ];
       acc.definition += operation.definition;
       acc.implementation += operation.implementation;
@@ -39,6 +39,6 @@ export const generateTarget = (
       imports: [] as string[],
       definition: '',
       implementation: '',
-      implementationMocks: ''
-    }
+      implementationMocks: '',
+    },
   );

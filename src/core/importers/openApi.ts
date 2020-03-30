@@ -1,14 +1,14 @@
-import {OpenAPIObject} from 'openapi3-ts';
+import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
-import {ImportOpenApi} from '../../types';
-import {WriteSpecsProps} from '../../types/writers';
-import {dynamicImport} from '../../utils/imports';
-import {generateApi} from '../generators/api';
-import {generateResponsesDefinition} from '../generators/responsesDefinition';
-import {generateSchemasDefinition} from '../generators/schemaDefinition';
-import {resolveDiscriminator} from '../resolvers/dscriminator';
-import {ibmOpenapiValidator} from '../validators/ibm-openapi-validator';
+import { ImportOpenApi } from '../../types';
+import { WriteSpecsProps } from '../../types/writers';
+import { dynamicImport } from '../../utils/imports';
+import { generateApi } from '../generators/api';
+import { generateResponsesDefinition } from '../generators/responsesDefinition';
+import { generateSchemasDefinition } from '../generators/schemaDefinition';
+import { resolveDiscriminator } from '../resolvers/dscriminator';
+import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
 
 /**
  * Import and parse the openapi spec from a yaml/json
@@ -18,13 +18,13 @@ import {ibmOpenapiValidator} from '../validators/ibm-openapi-validator';
  */
 const importSpecs = (
   data: string,
-  extension: 'yaml' | 'json'
+  extension: 'yaml' | 'json',
 ): Promise<OpenAPIObject> => {
   const schema = extension === 'yaml' ? YAML.parse(data) : JSON.parse(data);
 
   return new Promise((resolve, reject) => {
     if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-      swagger2openapi.convertObj(schema, {}, (err, {openapi}) => {
+      swagger2openapi.convertObj(schema, {}, (err, { openapi }) => {
         if (err) {
           reject(err);
         } else {
@@ -49,7 +49,7 @@ export const importOpenApi = async ({
   data,
   format,
   input,
-  output
+  output,
 }: ImportOpenApi): Promise<WriteSpecsProps> => {
   let specs = await importSpecs(data, format);
 
@@ -69,12 +69,12 @@ export const importOpenApi = async ({
   const schemaDefinition = generateSchemasDefinition(specs.components?.schemas);
 
   const responseDefinition = generateResponsesDefinition(
-    specs.components?.responses
+    specs.components?.responses,
   );
 
   const api = generateApi(specs, output?.override);
 
   const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
 
-  return {...api, schemas, info: specs.info};
+  return { ...api, schemas, info: specs.info };
 };

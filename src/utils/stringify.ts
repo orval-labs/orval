@@ -4,11 +4,11 @@ import {
   isNull,
   isNumber,
   isString,
-  isUndefined
+  isUndefined,
 } from './is';
 
 export const stringify = (
-  data?: string | any[] | {[key: string]: any}
+  data?: string | any[] | { [key: string]: any },
 ): string | undefined => {
   if (isUndefined(data) || isNull(data)) {
     return;

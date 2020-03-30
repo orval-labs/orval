@@ -1,10 +1,10 @@
-import {pascal} from 'case';
-import {ReferenceObject, SchemaObject} from 'openapi3-ts';
-import {ResolverValue} from '../../types/resolvers';
-import {isBoolean, isReference} from '../../utils/is';
-import {resolveObject} from '../resolvers/object';
-import {resolveValue} from '../resolvers/value';
-import {getRef} from './ref';
+import { pascal } from 'case';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { ResolverValue } from '../../types/resolvers';
+import { isBoolean, isReference } from '../../utils/is';
+import { resolveObject } from '../resolvers/object';
+import { resolveValue } from '../resolvers/value';
+import { getRef } from './ref';
 
 /**
  * Return the output type from an object
@@ -19,7 +19,7 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
       imports: [value],
       schemas: [],
       isEnum: false,
-      type: 'object'
+      type: 'object',
     };
   }
 
@@ -35,10 +35,10 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
             ? `${acc.value} & ${resolvedValue.value}`
             : resolvedValue.value,
           imports: [...acc.imports, ...resolvedValue.imports],
-          schemas: [...acc.schemas, ...resolvedValue.schemas]
+          schemas: [...acc.schemas, ...resolvedValue.schemas],
         };
       },
-      {value: '', imports: [], schemas: [], isEnum: false, type: 'object'}
+      { value: '', imports: [], schemas: [], isEnum: false, type: 'object' },
     );
   }
 
@@ -53,10 +53,10 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
             ? `${acc.value} | ${resolvedValue.value}`
             : resolvedValue.value,
           imports: [...acc.imports, ...resolvedValue.imports],
-          schemas: [...acc.schemas, ...resolvedValue.schemas]
+          schemas: [...acc.schemas, ...resolvedValue.schemas],
         };
       },
-      {value: '', imports: [], schemas: [], isEnum: false, type: 'object'}
+      { value: '', imports: [], schemas: [], isEnum: false, type: 'object' },
     );
   }
 
@@ -66,7 +66,7 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         acc,
         [key, prop]: [string, ReferenceObject | SchemaObject],
         index,
-        arr
+        arr,
       ) => {
         const isRequired = (item.required || []).includes(key);
         const propName = name ? name + pascal(key) : undefined;
@@ -90,8 +90,8 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         schemas: [],
         value: '',
         isEnum: false,
-        type: 'object'
-      }
+        type: 'object',
+      },
     );
   }
 
@@ -102,19 +102,19 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         imports: [],
         schemas: [],
         isEnum: false,
-        type: 'object'
+        type: 'object',
       };
     }
-    const {value, imports = [], schemas = []} = resolveValue(
+    const { value, imports = [], schemas = [] } = resolveValue(
       item.additionalProperties,
-      name
+      name,
     );
     return {
       value: `{[key: string]: ${value}}`,
       imports,
       schemas,
       isEnum: false,
-      type: 'object'
+      type: 'object',
     };
   }
 
@@ -123,6 +123,6 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
     imports: [],
     schemas: [],
     isEnum: false,
-    type: 'object'
+    type: 'object',
   };
 };

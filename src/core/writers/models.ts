@@ -1,14 +1,14 @@
-import {camel} from 'case';
-import {appendFileSync, writeFileSync} from 'fs';
-import {InfoObject} from 'openapi3-ts';
-import {join} from 'path';
-import {GeneratorSchema} from '../../types/generator';
-import {getFilesHeader} from '../../utils/messages/inline';
-import {generateImports} from '../generators/imports';
+import { camel } from 'case';
+import { appendFileSync, writeFileSync } from 'fs';
+import { InfoObject } from 'openapi3-ts';
+import { join } from 'path';
+import { GeneratorSchema } from '../../types/generator';
+import { getFilesHeader } from '../../utils/messages/inline';
+import { generateImports } from '../generators/imports';
 
 const getModel = (
   info: InfoObject,
-  {imports, model}: GeneratorSchema
+  { imports, model }: GeneratorSchema,
 ): string => {
   let file = getFilesHeader(info);
   file += generateImports(imports);
@@ -23,12 +23,12 @@ export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n\n`;
 
 export const writeModelsInline = (array: GeneratorSchema[]): string =>
-  array.reduce((acc, {model}) => writeModelInline(acc, model), '');
+  array.reduce((acc, { model }) => writeModelInline(acc, model), '');
 
 export const writeModel = (
   path: string,
   info: InfoObject,
-  spec: GeneratorSchema
+  spec: GeneratorSchema,
 ) => {
   const name = camel(spec.name);
   writeFileSync(getPath(path, name), getModel(info, spec));
@@ -38,5 +38,5 @@ export const writeModel = (
 export const writeModels = (
   models: GeneratorSchema[],
   path: string,
-  info: InfoObject
-) => models.forEach(model => writeModel(path, info, model));
+  info: InfoObject,
+) => models.forEach((model) => writeModel(path, info, model));

@@ -1,8 +1,8 @@
-import {SchemaObject} from 'openapi3-ts';
-import {ResolverValue} from '../../types/resolvers';
-import {isReference} from '../../utils/is';
-import {getRef} from '../getters/ref';
-import {getScalar} from '../getters/scalar';
+import { SchemaObject } from 'openapi3-ts';
+import { ResolverValue } from '../../types/resolvers';
+import { isReference } from '../../utils/is';
+import { getRef } from '../getters/ref';
+import { getScalar } from '../getters/scalar';
 
 /**
  * Resolve the value of a schema object to a proper type definition.
@@ -10,7 +10,7 @@ import {getScalar} from '../getters/scalar';
  */
 export const resolveValue = (
   schema: SchemaObject,
-  name?: string
+  name?: string,
 ): ResolverValue => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
@@ -19,7 +19,7 @@ export const resolveValue = (
       imports: [value],
       type: 'object',
       schemas: [],
-      isEnum: false
+      isEnum: false,
     };
   }
 

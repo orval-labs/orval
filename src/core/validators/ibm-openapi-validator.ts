@@ -1,8 +1,8 @@
 import openApiValidator from 'ibm-openapi-validator';
-import {OpenAPIObject} from 'openapi3-ts';
+import { OpenAPIObject } from 'openapi3-ts';
 import {
   ibmOpenapiValidatorErrors,
-  ibmOpenapiValidatorWarnings
+  ibmOpenapiValidatorWarnings,
 } from '../../utils/messages/logs';
 
 /**
@@ -11,7 +11,7 @@ import {
  * @param specs openAPI spec
  */
 export const ibmOpenapiValidator = async (specs: OpenAPIObject) => {
-  const {errors, warnings} = await openApiValidator(specs);
+  const { errors, warnings } = await openApiValidator(specs);
 
   if (warnings.length) {
     ibmOpenapiValidatorWarnings(warnings);

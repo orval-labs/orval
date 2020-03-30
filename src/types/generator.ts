@@ -1,14 +1,18 @@
-import {OpenAPIObject} from 'openapi3-ts';
+import { OpenAPIObject } from 'openapi3-ts';
 import {
   GetterBody,
   GetterParameters,
   GetterParams,
   GetterProps,
-  GetterResponse
+  GetterResponse,
 } from './getters';
-import {OperationOptions, OverrideOutput, Verbs} from './index';
+import { OperationOptions, OverrideOutput, Verbs } from './index';
 
-export type GeneratorSchema = {name: string; model: string; imports: string[]};
+export type GeneratorSchema = {
+  name: string;
+  model: string;
+  imports: string[];
+};
 
 export type GeneratorApiResponse = {
   operations: GeneratorOperations;

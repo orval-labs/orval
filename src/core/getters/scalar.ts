@@ -1,7 +1,7 @@
-import {SchemaObject} from 'openapi3-ts';
-import {ResolverValue} from '../../types/resolvers';
-import {getArray} from './array';
-import {getObject} from './object';
+import { SchemaObject } from 'openapi3-ts';
+import { ResolverValue } from '../../types/resolvers';
+import { getArray } from './array';
+import { getObject } from './object';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -33,7 +33,7 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
         isEnum,
         type: 'number',
         schemas: [],
-        imports: []
+        imports: [],
       };
     }
 
@@ -43,14 +43,14 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
         type: 'boolean',
         isEnum: false,
         schemas: [],
-        imports: []
+        imports: [],
       };
 
     case 'array': {
-      const {value, ...rest} = getArray(item, name);
+      const { value, ...rest } = getArray(item, name);
       return {
         value: value + nullable,
-        ...rest
+        ...rest,
       };
     }
 
@@ -78,14 +78,14 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
         isEnum,
         type: 'string',
         imports: [],
-        schemas: []
+        schemas: [],
       };
     }
 
     case 'object':
     default: {
-      const {value, ...rest} = getObject(item, name);
-      return {value: value + nullable, ...rest};
+      const { value, ...rest } = getObject(item, name);
+      return { value: value + nullable, ...rest };
     }
   }
 };

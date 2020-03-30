@@ -1,5 +1,5 @@
-import {basename, dirname, join} from 'path';
-import {isDirectory} from './is';
+import { basename, dirname, join } from 'path';
+import { isDirectory } from './is';
 
 export const getFileInfo = (target: string = '', backupFilename: string) => {
   const isDir = isDirectory(target);
@@ -13,6 +13,6 @@ export const getFileInfo = (target: string = '', backupFilename: string) => {
     extension,
     isDirectory: isDir,
     dirname: dir,
-    filename
+    filename,
   };
 };

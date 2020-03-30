@@ -1,23 +1,23 @@
-import {camel} from 'case';
+import { camel } from 'case';
 import {
   ComponentsObject,
   OperationObject,
   ParameterObject,
   PathItemObject,
-  ReferenceObject
+  ReferenceObject,
 } from 'openapi3-ts';
-import {OverrideOutput, Verbs} from '../../types';
+import { OverrideOutput, Verbs } from '../../types';
 import {
   GeneratorVerbOptions,
-  GeneratorVerbsOptions
+  GeneratorVerbsOptions,
 } from '../../types/generator';
-import {getBody} from '../getters/body';
-import {getParameters} from '../getters/parameters';
-import {getParams} from '../getters/params';
-import {getProps} from '../getters/props';
-import {getQueryParams} from '../getters/queryParams';
-import {getResponse} from '../getters/response';
-import {generateTransformer} from './transformer';
+import { getBody } from '../getters/body';
+import { getParameters } from '../getters/parameters';
+import { getParams } from '../getters/params';
+import { getProps } from '../getters/props';
+import { getQueryParams } from '../getters/queryParams';
+import { getResponse } from '../getters/response';
+import { generateTransformer } from './transformer';
 
 const generateVerbOptions = ({
   verb,
@@ -25,7 +25,7 @@ const generateVerbOptions = ({
   operation,
   route,
   verbParameters = [],
-  components
+  components,
 }: {
   verb: string;
   override?: OverrideOutput;
@@ -39,7 +39,7 @@ const generateVerbOptions = ({
     responses,
     requestBody,
     parameters: operationParameters,
-    tags = []
+    tags = [],
   } = operation;
 
   const overrideOperation = override?.operations?.[operation.operationId!];
@@ -52,7 +52,7 @@ const generateVerbOptions = ({
 
   const parameters = getParameters(
     [...verbParameters, ...(operationParameters || [])],
-    components
+    components,
   );
 
   const queryParams = getQueryParams(parameters.query, definitionName);
@@ -60,14 +60,14 @@ const generateVerbOptions = ({
   const params = getParams({
     route,
     pathParams: parameters.path,
-    operation
+    operation,
   });
 
-  const props = getProps({body, queryParams, params});
+  const props = getProps({ body, queryParams, params });
 
   const transformer = generateTransformer({
     body,
-    overrideOperation
+    overrideOperation,
   });
 
   return {
@@ -83,7 +83,7 @@ const generateVerbOptions = ({
     queryParams,
     params,
     props,
-    transformer
+    transformer,
   };
 };
 
@@ -91,7 +91,7 @@ export const generateVerbsOptions = ({
   verbs,
   override,
   route,
-  components
+  components,
 }: {
   verbs: PathItemObject;
   override?: OverrideOutput;
@@ -106,7 +106,7 @@ export const generateVerbsOptions = ({
 
       if (!operation.operationId) {
         throw new Error(
-          `Every path must have a operationId - No operationId set for ${verb} ${route}`
+          `Every path must have a operationId - No operationId set for ${verb} ${route}`,
         );
       }
 
@@ -118,9 +118,9 @@ export const generateVerbsOptions = ({
           verbParameters: verbs.parameters,
           route,
           components,
-          operation
-        })
+          operation,
+        }),
       ];
     },
-    []
+    [],
   );

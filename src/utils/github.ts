@@ -1,14 +1,14 @@
-import {existsSync, readFileSync, unlinkSync, writeFileSync} from 'fs';
+import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import https from 'https';
 import inquirer from 'inquirer';
-import {join} from 'path';
-import {request} from './request';
+import { join } from 'path';
+import { request } from './request';
 export const getGithubSpecReq = ({
   accessToken,
   repo,
   owner,
   branch,
-  path
+  path,
 }: {
   accessToken: string;
   repo: string;
@@ -25,7 +25,7 @@ export const getGithubSpecReq = ({
           }
         }
       }
-    }`
+    }`,
   });
 
   return [
@@ -37,10 +37,10 @@ export const getGithubSpecReq = ({
         'content-type': 'application/json',
         'user-agent': 'orval-importer',
         authorization: `bearer ${accessToken}`,
-        'Content-Length': payload.length
-      }
+        'Content-Length': payload.length,
+      },
     },
-    payload
+    payload,
   ];
 };
 
@@ -56,14 +56,14 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
         type: 'input',
         name: 'githubToken',
         message:
-          'Please provide a GitHub token with `repo` rules checked (https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/)'
+          'Please provide a GitHub token with `repo` rules checked (https://help.github.com/articles/creating-a-personal-access-token-for-the-command-line/)',
       },
       {
         type: 'confirm',
         name: 'saveToken',
         message:
-          'Would you like to store your token for the next time? (stored in your node_modules)'
-      }
+          'Would you like to store your token for the next time? (stored in your node_modules)',
+      },
     ]);
     if (answers.saveToken) {
       writeFileSync(githubTokenPath, answers.githubToken);
@@ -86,8 +86,8 @@ export const getGithubOpenApi = async (url: string) => {
   console.log(info.split('/'));
 
   try {
-    const {body} = await request<{data?: {repository: any}}>(
-      ...getGithubSpecReq({accessToken, repo, owner, branch, path})
+    const { body } = await request<{ data?: { repository: any } }>(
+      ...getGithubSpecReq({ accessToken, repo, owner, branch, path }),
     );
 
     return body.data?.repository.object.text;
@@ -97,13 +97,13 @@ export const getGithubOpenApi = async (url: string) => {
     }
 
     if (e.body.message === 'Bad credentials') {
-      const answers = await inquirer.prompt<{removeToken: boolean}>([
+      const answers = await inquirer.prompt<{ removeToken: boolean }>([
         {
           type: 'confirm',
           name: 'removeToken',
           message:
-            "Your token doesn't have the correct permissions, should we remove it?"
-        }
+            "Your token doesn't have the correct permissions, should we remove it?",
+        },
       ]);
       if (answers.removeToken) {
         unlinkSync(githubTokenPath);

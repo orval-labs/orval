@@ -1,9 +1,9 @@
-import {camel} from 'case';
+import { camel } from 'case';
 
 export const generateImports = (
   imports: string[] = [],
   path: string = '.',
-  pathOnly: boolean = false
+  pathOnly: boolean = false,
 ) => {
   if (pathOnly) {
     return `import {\n  ${imports
@@ -12,6 +12,6 @@ export const generateImports = (
   }
   return imports
     .sort()
-    .map(imp => `import { ${imp} } from \'${path}/${camel(imp)}\';`)
+    .map((imp) => `import { ${imp} } from \'${path}/${camel(imp)}\';`)
     .join('\n');
 };

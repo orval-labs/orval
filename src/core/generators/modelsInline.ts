@@ -1,7 +1,7 @@
-import {GeneratorSchema} from '../../types/generator';
+import { GeneratorSchema } from '../../types/generator';
 
 export const generateModelInline = (acc: string, model: string): string =>
   acc + `${model}\n\n`;
 
 export const generateModelsInline = (array: GeneratorSchema[]): string =>
-  array.reduce((acc, {model}) => generateModelInline(acc, model), '');
+  array.reduce((acc, { model }) => generateModelInline(acc, model), '');

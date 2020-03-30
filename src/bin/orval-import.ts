@@ -1,15 +1,15 @@
 import program from 'commander';
 import difference from 'lodash/difference';
-import {join} from 'path';
-import {importSpecs} from '../core/importers/specs';
-import {writeSpecs} from '../core/writers/specs';
-import {ExternalConfigFile, Options} from '../types';
-import {errorMessage, mismatchArgsMessage} from '../utils/messages/logs';
+import { join } from 'path';
+import { importSpecs } from '../core/importers/specs';
+import { writeSpecs } from '../core/writers/specs';
+import { ExternalConfigFile, Options } from '../types';
+import { errorMessage, mismatchArgsMessage } from '../utils/messages/logs';
 
 program.option('-o, --output [value]', 'output file destination');
 program.option(
   '-f, --input [value]',
-  'input file (yaml or json openapi specs)'
+  'input file (yaml or json openapi specs)',
 );
 program.option('--config [value]', 'override flags by a config file');
 program.parse(process.argv);
@@ -25,7 +25,7 @@ if (program.config) {
   // tslint:disable-next-line: no-var-requires
   const config: ExternalConfigFile = require(join(
     process.cwd(),
-    program.config
+    program.config,
   ));
 
   const mismatchArgs = difference(program.args, Object.keys(config));
@@ -35,12 +35,10 @@ if (program.config) {
 
   Object.entries(config)
     .filter(([backend]) =>
-      program.args.length === 0 ? true : program.args.includes(backend)
+      program.args.length === 0 ? true : program.args.includes(backend),
     )
     .forEach(([backend, options]) => {
-      importSpecs(options)
-        .then(writeSpecs(options, backend))
-        .catch(catchError);
+      importSpecs(options).then(writeSpecs(options, backend)).catch(catchError);
     });
 } else {
   // Use flags as configuration

@@ -1,14 +1,14 @@
-import {existsSync, mkdirSync, writeFileSync} from 'fs';
-import {InfoObject} from 'openapi3-ts';
-import {join} from 'path';
-import {OutputOptions} from '../../types';
-import {GeneratorSchema} from '../../types/generator';
-import {writeModels} from './models';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { InfoObject } from 'openapi3-ts';
+import { join } from 'path';
+import { OutputOptions } from '../../types';
+import { GeneratorSchema } from '../../types/generator';
+import { writeModels } from './models';
 
 export const writeSchemas = ({
   output,
   schemas,
-  info
+  info,
 }: {
   output: OutputOptions;
   schemas: GeneratorSchema[];

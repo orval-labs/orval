@@ -1,33 +1,33 @@
-import {OpenAPIObject, SchemaObject} from 'openapi3-ts';
-import {generalJSTypesWithArray} from '../../constants';
-import {MockOptions, OverrideOutput} from '../../types';
-import {GeneratorVerbOptions} from '../../types/generator';
-import {GetterResponse} from '../../types/getters';
-import {isFunction} from '../../utils/is';
-import {stringify} from '../../utils/stringify';
-import {getMockScalar} from '../getters/scalar.mock';
+import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
+import { generalJSTypesWithArray } from '../../constants';
+import { MockOptions, OverrideOutput } from '../../types';
+import { GeneratorVerbOptions } from '../../types/generator';
+import { GetterResponse } from '../../types/getters';
+import { isFunction } from '../../utils/is';
+import { stringify } from '../../utils/stringify';
+import { getMockScalar } from '../getters/scalar.mock';
 
 const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
   Object.entries(
-    isFunction(properties) ? properties(specs) : properties
+    isFunction(properties) ? properties(specs) : properties,
   ).reduce(
     (acc, [key, value]) => ({
       ...acc,
-      [key]: isFunction(value) ? `(${value})()` : stringify(value as string)
+      [key]: isFunction(value) ? `(${value})()` : stringify(value as string),
     }),
-    {}
+    {},
   );
 
 const getMockWithoutFunc = (
   specs: OpenAPIObject,
-  override?: OverrideOutput
+  override?: OverrideOutput,
 ): MockOptions => ({
   ...(override?.mock?.properties
     ? {
         properties: getMockPropertiesWithoutFunc(
           override.mock.properties,
-          specs
-        )
+          specs,
+        ),
       }
     : {}),
   ...(override?.operations
@@ -39,15 +39,15 @@ const getMockWithoutFunc = (
               ? {
                   properties: getMockPropertiesWithoutFunc(
                     value.mock.properties,
-                    specs
-                  )
+                    specs,
+                  ),
                 }
-              : {}
+              : {},
           }),
-          {}
-        )
+          {},
+        ),
       }
-    : {})
+    : {}),
 });
 
 const toAxiosPromiseMock = (value: unknown, definition: string) =>
@@ -59,42 +59,42 @@ const getResponsesMockDefinition = (
   schemas: {
     [key: string]: SchemaObject;
   },
-  mockOptionsWithoutFunc: {[key: string]: unknown}
+  mockOptionsWithoutFunc: { [key: string]: unknown },
 ) => {
   return response.types.reduce(
-    (acc, {value: type}) => {
+    (acc, { value: type }) => {
       if (!type || generalJSTypesWithArray.includes(type)) {
         acc.definitions = [
           ...acc.definitions,
-          toAxiosPromiseMock(undefined, response.definition)
+          toAxiosPromiseMock(undefined, response.definition),
         ];
         return acc;
       }
 
-      const schema = {name: type, ...schemas[type]};
+      const schema = { name: type, ...schemas[type] };
       if (!schema) {
         return acc;
       }
 
-      const {value, imports} = getMockScalar({
+      const { value, imports } = getMockScalar({
         item: schema,
         schemas,
         mockOptions: mockOptionsWithoutFunc,
-        operationId
+        operationId,
       });
 
       acc.imports = [...acc.imports, ...imports];
       acc.definitions = [
         ...acc.definitions,
-        toAxiosPromiseMock(value, response.definition)
+        toAxiosPromiseMock(value, response.definition),
       ];
 
       return acc;
     },
     {
       definitions: [] as string[],
-      imports: [] as string[]
-    }
+      imports: [] as string[],
+    },
   );
 };
 
@@ -102,32 +102,32 @@ const getMockDefinition = (
   operationId: string,
   response: GetterResponse,
   specs: OpenAPIObject,
-  override?: OverrideOutput
+  override?: OverrideOutput,
 ) => {
   const schemas = Object.entries(specs.components?.schemas || []).reduce(
-    (acc, [name, type]) => ({...acc, [name]: type}),
-    {}
-  ) as {[key: string]: SchemaObject};
+    (acc, [name, type]) => ({ ...acc, [name]: type }),
+    {},
+  ) as { [key: string]: SchemaObject };
 
   const mockOptionsWithoutFunc = getMockWithoutFunc(specs, override);
 
-  const {definitions, imports} = getResponsesMockDefinition(
+  const { definitions, imports } = getResponsesMockDefinition(
     operationId,
     response,
     schemas,
-    mockOptionsWithoutFunc
+    mockOptionsWithoutFunc,
   );
 
   return {
     definition: '[' + definitions.join(', ') + ']',
     definitions,
-    imports
+    imports,
   };
 };
 
 const getMockOptionsDataOverride = (
   operationId: string,
-  override?: OverrideOutput
+  override?: OverrideOutput,
 ) => {
   const responseOverride = override?.operations?.[operationId]?.mock?.data;
   return isFunction(responseOverride)
@@ -136,15 +136,15 @@ const getMockOptionsDataOverride = (
 };
 
 export const generateMock = (
-  {operationId, response, definitionName, props}: GeneratorVerbOptions,
+  { operationId, response, definitionName, props }: GeneratorVerbOptions,
   specs: OpenAPIObject,
-  override?: OverrideOutput
+  override?: OverrideOutput,
 ) => {
-  const {definition, definitions, imports} = getMockDefinition(
+  const { definition, definitions, imports } = getMockDefinition(
     operationId,
     response,
     specs,
-    override
+    override,
   );
 
   const mockData = getMockOptionsDataOverride(operationId, override);
@@ -162,5 +162,5 @@ export const generateMock = (
   },
 `;
 
-  return {implementation, imports};
+  return { implementation, imports };
 };

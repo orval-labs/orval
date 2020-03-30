@@ -1,4 +1,4 @@
-import {GeneratorSchema} from './generator';
+import { GeneratorSchema } from './generator';
 
 export type ResolverValue = {
   value: string;

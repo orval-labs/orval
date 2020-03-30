@@ -1,24 +1,24 @@
-import {camel, pascal} from 'case';
-import {existsSync, mkdirSync, writeFileSync} from 'fs';
-import {join} from 'path';
-import {OutputOptions} from '../../types';
-import {WriteSpecsProps} from '../../types/writers';
-import {getFileInfo} from '../../utils/file';
-import {getFilesHeader} from '../../utils/messages/inline';
-import {generateImports} from '../generators/imports';
-import {generateModelsInline} from '../generators/modelsInline';
-import {generateTarget} from '../generators/target';
-import {resolvePath} from '../resolvers/path';
+import { camel, pascal } from 'case';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { OutputOptions } from '../../types';
+import { WriteSpecsProps } from '../../types/writers';
+import { getFileInfo } from '../../utils/file';
+import { getFilesHeader } from '../../utils/messages/inline';
+import { generateImports } from '../generators/imports';
+import { generateModelsInline } from '../generators/modelsInline';
+import { generateTarget } from '../generators/target';
+import { resolvePath } from '../resolvers/path';
 
 export const writeSplitMode = ({
   operations,
   schemas,
   info,
-  output
-}: WriteSpecsProps & {output: OutputOptions}) => {
-  const {path, filename, dirname, extension} = getFileInfo(
+  output,
+}: WriteSpecsProps & { output: OutputOptions }) => {
+  const { path, filename, dirname, extension } = getFileInfo(
     output.target,
-    camel(info.title)
+    camel(info.title),
   );
 
   if (!existsSync(dirname)) {
@@ -29,7 +29,7 @@ export const writeSplitMode = ({
     definition,
     imports,
     implementation,
-    implementationMocks
+    implementationMocks,
   } = generateTarget(operations, info);
 
   const header = getFilesHeader(info);
@@ -44,7 +44,7 @@ export const writeSplitMode = ({
   const definitionImport = generateImports(
     [pascal(info.title)],
     definitionPath,
-    true
+    true,
   );
 
   implementationData += `import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n${definitionImport}`;

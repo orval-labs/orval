@@ -1,12 +1,12 @@
-import {OpenAPIObject, PathItemObject} from 'openapi3-ts';
-import {OverrideOutput} from '../../types';
-import {GeneratorApiResponse, GeneratorSchema} from '../../types/generator';
-import {generateClient} from './client';
-import {generateVerbsOptions} from './verbsOptions';
+import { OpenAPIObject, PathItemObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
+import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
+import { generateClient } from './client';
+import { generateVerbsOptions } from './verbsOptions';
 
 export const generateApi = (
   specs: OpenAPIObject,
-  override?: OverrideOutput
+  override?: OverrideOutput,
 ) => {
   return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
     (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
@@ -16,28 +16,28 @@ export const generateApi = (
         verbs,
         override,
         route,
-        components: specs.components
+        components: specs.components,
       });
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
-        (acc, {queryParams}) => (queryParams ? [...acc, queryParams] : acc),
-        []
+        (acc, { queryParams }) => (queryParams ? [...acc, queryParams] : acc),
+        [],
       );
 
       const client = generateClient(verbsOptions, {
         route,
         specs,
-        override
+        override,
       });
 
       return {
         schemas: [...acc.schemas, ...schemas],
-        operations: {...acc.operations, ...client}
+        operations: { ...acc.operations, ...client },
       };
     },
     {
       operations: {},
-      schemas: []
-    }
+      schemas: [],
+    },
   );
 };

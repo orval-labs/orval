@@ -1,4 +1,4 @@
-import {Verbs} from '../types';
+import { Verbs } from '../types';
 
 export const generalJSTypes = [
   'number',
@@ -7,12 +7,12 @@ export const generalJSTypes = [
   'unknown',
   'undefined',
   'object',
-  'blob'
+  'blob',
 ];
 
 export const generalJSTypesWithArray = generalJSTypes.reduce<string[]>(
   (acc, type) => [...acc, type, `Array<${type}>`, `${type}[]`],
-  []
+  [],
 );
 
 export const VERBS_WITH_BODY = [Verbs.POST, Verbs.PUT, Verbs.PATCH];

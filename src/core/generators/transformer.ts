@@ -1,10 +1,10 @@
-import {OperationOptions} from '../../types';
-import {GetterBody} from '../../types/getters';
-import {dynamicImport} from '../../utils/imports';
+import { OperationOptions } from '../../types';
+import { GetterBody } from '../../types/getters';
+import { dynamicImport } from '../../utils/imports';
 
 export const generateTransformer = ({
   body,
-  overrideOperation
+  overrideOperation,
 }: {
   body: GetterBody;
   overrideOperation?: OperationOptions;

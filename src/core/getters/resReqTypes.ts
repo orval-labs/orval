@@ -3,18 +3,18 @@ import {
   MediaTypeObject,
   ReferenceObject,
   RequestBodyObject,
-  ResponseObject
+  ResponseObject,
 } from 'openapi3-ts';
-import {ResolverValue} from '../../types/resolvers';
-import {isReference} from '../../utils/is';
-import {resolveValue} from '../resolvers/value';
-import {getRef} from './ref';
+import { ResolverValue } from '../../types/resolvers';
+import { isReference } from '../../utils/is';
+import { resolveValue } from '../resolvers/value';
+import { getRef } from './ref';
 
 const CONTENT_TYPES = [
   'application/json',
   'application/octet-stream',
   'application/pdf',
-  'multipart/form-data'
+  'multipart/form-data',
 ];
 
 const getResReqContentTypes = (type: string, mediaType: MediaTypeObject) => {
@@ -24,7 +24,7 @@ const getResReqContentTypes = (type: string, mediaType: MediaTypeObject) => {
       imports: [],
       schemas: [],
       type: 'unknow',
-      isEnum: false
+      isEnum: false,
     };
   }
 
@@ -39,7 +39,7 @@ const getResReqContentTypes = (type: string, mediaType: MediaTypeObject) => {
 export const getResReqTypes = (
   responsesOrRequests: Array<
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
-  >
+  >,
 ): Array<ResolverValue> =>
   uniq(
     responsesOrRequests
@@ -52,19 +52,19 @@ export const getResReqTypes = (
             imports: [value],
             schemas: [],
             type: 'ref',
-            isEnum: false
+            isEnum: false,
           };
         } else {
           return res.content
             ? Object.entries(res.content).map(([type, mediaType]) =>
-                getResReqContentTypes(type, mediaType)
+                getResReqContentTypes(type, mediaType),
               )
             : {
                 value: 'unknown',
                 imports: [],
                 schemas: [],
                 type: 'unknow',
-                isEnum: false
+                isEnum: false,
               };
         }
       })
@@ -73,5 +73,5 @@ export const getResReqTypes = (
           return [...acc, ...it];
         }
         return [...acc, it];
-      }, [])
+      }, []),
   );
