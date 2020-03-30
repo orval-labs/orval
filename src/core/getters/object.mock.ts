@@ -3,7 +3,7 @@ import get from 'lodash/get';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {MockOptions} from '../../types';
 import {MockDefinition} from '../../types/mocks';
-import {isReference} from '../../utils/is';
+import {isBoolean, isReference} from '../../utils/is';
 import {resolveMockValue} from '../resolvers/value.mock';
 
 export const getMockObject = ({
@@ -163,7 +163,7 @@ export const getMockObject = ({
   }
 
   if (item.additionalProperties) {
-    if (typeof item.additionalProperties === 'boolean') {
+    if (isBoolean(item.additionalProperties)) {
       return {value: `{}`, imports: [], name: item.name};
     }
     const resolvedValue = resolveMockValue({

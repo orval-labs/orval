@@ -1,10 +1,11 @@
 import {writeFileSync} from 'fs';
 import {OutputOptions} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
+import {isObject, isString} from '../../utils/is';
 import {getFilesHeader} from '../../utils/messages/inline';
-import {generateTarget} from '../generators/target';
 import {generateImports} from '../generators/imports';
 import {generateModelsInline} from '../generators/modelsInline';
+import {generateTarget} from '../generators/target';
 import {resolvePath} from '../resolvers/path';
 
 export const writeSingleMode = ({
@@ -13,7 +14,7 @@ export const writeSingleMode = ({
   info,
   output
 }: WriteSpecsProps & {output: string | OutputOptions}) => {
-  const path = (typeof output === 'string' ? output : output?.target) || '';
+  const path = (isString(output) ? output : output?.target) || '';
   const {
     definition,
     imports,
@@ -25,11 +26,9 @@ export const writeSingleMode = ({
   data +=
     "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n";
   data +=
-    typeof output === 'object' && output.mock
-      ? "import faker from 'faker'\n\n"
-      : '\n';
+    isObject(output) && output.mock ? "import faker from 'faker'\n\n" : '\n';
 
-  if (typeof output === 'object' && output.schemas) {
+  if (isObject(output) && output.schemas) {
     data += generateImports(imports, resolvePath(path, output.schemas), true);
   } else {
     data += generateModelsInline(schemas);
@@ -40,7 +39,7 @@ export const writeSingleMode = ({
   data += '\n\n';
   data += implementation;
 
-  if (typeof output === 'object' && output.mock) {
+  if (isObject(output) && output.mock) {
     data += '\n\n';
     data += implementationMocks;
   }

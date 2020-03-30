@@ -1,7 +1,7 @@
 import {pascal} from 'case';
 import {ReferenceObject, SchemaObject} from 'openapi3-ts';
 import {ResolverValue} from '../../types/resolvers';
-import {isReference} from '../../utils/is';
+import {isBoolean, isReference} from '../../utils/is';
 import {resolveObject} from '../resolvers/object';
 import {resolveValue} from '../resolvers/value';
 import {getRef} from './ref';
@@ -96,7 +96,7 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
   }
 
   if (item.additionalProperties) {
-    if (typeof item.additionalProperties === 'boolean') {
+    if (isBoolean(item.additionalProperties)) {
       return {
         value: `{[key: string]: object}`,
         imports: [],

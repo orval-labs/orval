@@ -1,5 +1,6 @@
 import {Options, OutputMode} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
+import {isObject, isString} from '../../utils/is';
 import {createSuccessMessage} from '../../utils/messages/logs';
 import {writeSchemas} from './schemas';
 import {writeSingleMode} from './singleMode';
@@ -13,27 +14,20 @@ export const writeSpecs = (options: Options, backend?: string) => ({
 }: WriteSpecsProps) => {
   const {output} = options;
 
-  if (
-    !output ||
-    (typeof output === 'object' && !output.target && output?.schemas)
-  ) {
+  if (!output || (isObject(output) && !output.target && !output.schemas)) {
     throw new Error('You need to provide an output');
   }
 
-  if (typeof output === 'object') {
+  if (isObject(output)) {
     writeSchemas({output, schemas, info});
   }
 
-  if (typeof output === 'object' && !output.target) {
+  if (isObject(output) && !output.target) {
     createSuccessMessage(backend);
     return;
   }
 
-  if (
-    typeof output === 'string' ||
-    !output.mode ||
-    output.mode === OutputMode.SINGLE
-  ) {
+  if (isString(output) || !output.mode || output.mode === OutputMode.SINGLE) {
     writeSingleMode({operations, output, info, schemas});
   } else if (output.mode === OutputMode.SPLIT) {
     writeSplitMode({operations, output, info, schemas});

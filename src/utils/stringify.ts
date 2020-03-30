@@ -1,19 +1,24 @@
+import {
+  isBoolean,
+  isFunction,
+  isNull,
+  isNumber,
+  isString,
+  isUndefined
+} from './is';
+
 export const stringify = (
   data?: string | any[] | {[key: string]: any}
 ): string | undefined => {
-  if (typeof data === 'undefined' || data === null) {
+  if (isUndefined(data) || isNull(data)) {
     return;
   }
 
-  if (typeof data === 'string') {
+  if (isString(data)) {
     return `'${data}'`;
   }
 
-  if (
-    typeof data === 'number' ||
-    typeof data === 'boolean' ||
-    typeof data === 'function'
-  ) {
+  if (isNumber(data) || isBoolean(data) || isFunction(data)) {
     return `${data}`;
   }
 

@@ -3,19 +3,17 @@ import {generalJSTypesWithArray} from '../../constants';
 import {MockOptions, OverrideOutput} from '../../types';
 import {GeneratorVerbOptions} from '../../types/generator';
 import {GetterResponse} from '../../types/getters';
+import {isFunction} from '../../utils/is';
 import {stringify} from '../../utils/stringify';
 import {getMockScalar} from '../getters/scalar.mock';
 
 const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
   Object.entries(
-    typeof properties === 'function' ? properties(specs) : properties
+    isFunction(properties) ? properties(specs) : properties
   ).reduce(
     (acc, [key, value]) => ({
       ...acc,
-      [key]:
-        typeof value === 'function'
-          ? `(${value})()`
-          : stringify(value as string)
+      [key]: isFunction(value) ? `(${value})()` : stringify(value as string)
     }),
     {}
   );
@@ -132,7 +130,7 @@ const getMockOptionsDataOverride = (
   override?: OverrideOutput
 ) => {
   const responseOverride = override?.operations?.[operationId]?.mock?.data;
-  return typeof responseOverride === 'function'
+  return isFunction(responseOverride)
     ? `(${responseOverride})()`
     : stringify(responseOverride);
 };

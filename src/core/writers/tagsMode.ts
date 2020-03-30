@@ -10,6 +10,7 @@ import {
 } from '../../types/generator';
 import {WriteSpecsProps} from '../../types/writers';
 import {generalTypesFilter} from '../../utils/filters';
+import {isObject} from '../../utils/is';
 import {getFilesHeader} from '../../utils/messages/inline';
 import {generateClientFooter, generateClientHeader} from '../generators/client';
 import {generateImports} from '../generators/imports';
@@ -101,11 +102,9 @@ export const writeTagsMode = ({
     data +=
       "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n";
     data +=
-      typeof output === 'object' && output.mock
-        ? "import faker from 'faker'\n\n"
-        : '\n';
+      isObject(output) && output.mock ? "import faker from 'faker'\n\n" : '\n';
 
-    if (typeof output === 'object' && output.schemas) {
+    if (isObject(output) && output.schemas) {
       data += generateImports(imports, resolvePath(path, output.schemas), true);
     } else {
       const schemasPath = './' + filename + '.schemas';
@@ -121,7 +120,7 @@ export const writeTagsMode = ({
     data += '\n\n';
     data += implementation;
 
-    if (typeof output === 'object' && output.mock) {
+    if (isObject(output) && output.mock) {
       data += '\n\n';
       data += implementationMocks;
     }

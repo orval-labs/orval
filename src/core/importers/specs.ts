@@ -3,6 +3,7 @@ import {Options} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
 import {getExtension} from '../../utils/extension';
 import {getGithubOpenApi} from '../../utils/github';
+import {isObject, isString} from '../../utils/is';
 import {dynamicReader} from '../../utils/reader';
 import {importOpenApi} from './openApi';
 
@@ -11,7 +12,7 @@ export const importSpecs = async (
 ): Promise<WriteSpecsProps> => {
   const {input, output} = options;
 
-  const path = typeof input === 'string' ? input : input?.target;
+  const path = isString(input) ? input : input?.target;
 
   if (!path) {
     throw new Error('You need to provide an input');
@@ -30,10 +31,10 @@ export const importSpecs = async (
   return importOpenApi({
     data,
     format,
-    ...(typeof input === 'object' && {
+    ...(isObject(input) && {
       input
     }),
-    ...(typeof output === 'object' && {
+    ...(isObject(output) && {
       output
     })
   });
