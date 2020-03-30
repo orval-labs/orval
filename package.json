@@ -71,7 +71,7 @@
   "dependencies": {
     "case": "^1.6.2",
     "chalk": "^3.0.0",
-    "commander": "^4.1.1",
+    "commander": "^5.0.0",
     "cuid": "^2.1.8",
     "ibm-openapi-validator": "^0.24.1",
     "inquirer": "^7.0.6",
