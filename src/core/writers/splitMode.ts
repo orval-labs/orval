@@ -1,8 +1,9 @@
-import {pascal} from 'case';
-import {writeFileSync} from 'fs';
-import {basename, dirname, join} from 'path';
+import {camel, pascal} from 'case';
+import {existsSync, mkdirSync, writeFileSync} from 'fs';
+import {join} from 'path';
 import {OutputOptions} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
+import {getFileInfo} from '../../utils/file';
 import {getFilesHeader} from '../../utils/messages/inline';
 import {generateImports} from '../generators/imports';
 import {generateModelsInline} from '../generators/modelsInline';
@@ -15,7 +16,15 @@ export const writeSplitMode = ({
   info,
   output
 }: WriteSpecsProps & {output: OutputOptions}) => {
-  const path = output.target!;
+  const {path, filename, dirname, extension} = getFileInfo(
+    output.target,
+    camel(info.title)
+  );
+
+  if (!existsSync(dirname)) {
+    mkdirSync(dirname);
+  }
+
   const {
     definition,
     imports,
@@ -28,9 +37,6 @@ export const writeSplitMode = ({
   let definitionData = header;
   let implementationData = header;
   let mockData = header;
-
-  const filename = basename(path, '.ts');
-  const dir = dirname(path);
 
   definitionData += "import { AxiosPromise } from 'axios'\n";
 
@@ -54,7 +60,7 @@ export const writeSplitMode = ({
     const schemasPath = './' + filename + '.schemas';
     const schemasData = header + generateModelsInline(schemas);
 
-    writeFileSync(join(dir, schemasPath + '.ts'), schemasData);
+    writeFileSync(join(dirname, schemasPath + extension), schemasData);
 
     definitionData += generateImports(imports, schemasPath, true);
     implementationData += generateImports(imports, schemasPath, true);
@@ -66,11 +72,11 @@ export const writeSplitMode = ({
   mockData += implementationMocks;
 
   if (path) {
-    writeFileSync(join(dir, definitionPath + '.ts'), definitionData);
-    writeFileSync(join(dir, filename + '.ts'), implementationData);
+    writeFileSync(join(dirname, definitionPath + extension), definitionData);
+    writeFileSync(join(dirname, filename + extension), implementationData);
 
     if (output.mock) {
-      writeFileSync(join(dir, filename + '.mock.ts'), mockData);
+      writeFileSync(join(dirname, filename + '.mock' + extension), mockData);
     }
   }
 };

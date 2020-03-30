@@ -1,4 +1,4 @@
-import {Options, OutputMode} from '../../types';
+import {Options, OutputMode, OutputOptions} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
 import {isObject, isString} from '../../utils/is';
 import {createSuccessMessage} from '../../utils/messages/logs';
@@ -6,6 +6,9 @@ import {writeSchemas} from './schemas';
 import {writeSingleMode} from './singleMode';
 import {writeSplitMode} from './splitMode';
 import {writeTagsMode} from './tagsMode';
+
+const isSingleMode = (output: string | OutputOptions): output is string =>
+  isString(output) || !output.mode || output.mode === OutputMode.SINGLE;
 
 export const writeSpecs = (options: Options, backend?: string) => ({
   operations,
@@ -27,7 +30,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
     return;
   }
 
-  if (isString(output) || !output.mode || output.mode === OutputMode.SINGLE) {
+  if (isSingleMode(output)) {
     writeSingleMode({operations, output, info, schemas});
   } else if (output.mode === OutputMode.SPLIT) {
     writeSplitMode({operations, output, info, schemas});

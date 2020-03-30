@@ -1,7 +1,7 @@
-import {kebab, pascal} from 'case';
-import {writeFileSync} from 'fs';
+import {camel, kebab, pascal} from 'case';
+import {existsSync, mkdirSync, writeFileSync} from 'fs';
 import {InfoObject} from 'openapi3-ts';
-import {basename, dirname, join} from 'path';
+import {join} from 'path';
 import {OutputOptions} from '../../types';
 import {
   GeneratorOperation,
@@ -9,6 +9,7 @@ import {
   GeneratorTarget
 } from '../../types/generator';
 import {WriteSpecsProps} from '../../types/writers';
+import {getFileInfo} from '../../utils/file';
 import {generalTypesFilter} from '../../utils/filters';
 import {isObject} from '../../utils/is';
 import {getFilesHeader} from '../../utils/messages/inline';
@@ -89,11 +90,16 @@ export const writeTagsMode = ({
   info,
   output
 }: WriteSpecsProps & {output: OutputOptions}) => {
-  const path = output.target!;
-  const target = generateTarget(operations, info);
+  const {path, filename, dirname, extension} = getFileInfo(
+    output.target,
+    camel(info.title)
+  );
 
-  const filename = basename(path, '.ts');
-  const dir = dirname(path);
+  if (!existsSync(dirname)) {
+    mkdirSync(dirname);
+  }
+
+  const target = generateTarget(operations, info);
 
   Object.entries(target).forEach(([tag, target]) => {
     const {definition, imports, implementation, implementationMocks} = target;
@@ -110,7 +116,7 @@ export const writeTagsMode = ({
       const schemasPath = './' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
 
-      writeFileSync(join(dir, schemasPath + '.ts'), schemasData);
+      writeFileSync(join(dirname, schemasPath + extension), schemasData);
 
       data += generateImports(imports, schemasPath, true);
     }
@@ -125,6 +131,6 @@ export const writeTagsMode = ({
       data += implementationMocks;
     }
 
-    writeFileSync(join(dir, `${filename}.${kebab(tag)}.ts`), data);
+    writeFileSync(join(dirname, `${filename}.${kebab(tag)}${extension}`), data);
   });
 };

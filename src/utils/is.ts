@@ -1,4 +1,3 @@
-import {existsSync, lstatSync} from 'fs';
 import {ReferenceObject} from 'openapi3-ts';
 import {extname} from 'path';
 
@@ -11,15 +10,7 @@ export const isReference = (property: any): property is ReferenceObject => {
   return Boolean(property.$ref);
 };
 
-export const isDirectory = async (path: string) => {
-  if (path.endsWith('/')) {
-    return true;
-  }
-
-  if (existsSync(path)) {
-    return lstatSync(path).isDirectory();
-  }
-
+export const isDirectory = (path: string) => {
   return !extname(path);
 };
 

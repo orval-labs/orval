@@ -1,6 +1,8 @@
-import {writeFileSync} from 'fs';
+import {camel} from 'case';
+import {existsSync, mkdirSync, writeFileSync} from 'fs';
 import {OutputOptions} from '../../types';
 import {WriteSpecsProps} from '../../types/writers';
+import {getFileInfo} from '../../utils/file';
 import {isObject, isString} from '../../utils/is';
 import {getFilesHeader} from '../../utils/messages/inline';
 import {generateImports} from '../generators/imports';
@@ -14,7 +16,15 @@ export const writeSingleMode = ({
   info,
   output
 }: WriteSpecsProps & {output: string | OutputOptions}) => {
-  const path = (isString(output) ? output : output?.target) || '';
+  const {path, dirname} = getFileInfo(
+    isString(output) ? output : output.target,
+    camel(info.title)
+  );
+
+  if (!existsSync(dirname)) {
+    mkdirSync(dirname);
+  }
+
   const {
     definition,
     imports,
