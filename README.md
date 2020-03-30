@@ -158,7 +158,9 @@ interface OutputOptions = {
   target?: string;
   // path to the directory that will contains your models (if not define the target will contains the schemas)
   schemas?: string;
-  // single to have everything in the same file, split to have definition, implementation, schemas, mock in differents files or tags to have a file by tag
+  // single to have everything in the same file
+  // split to have definition, implementation, schemas, mock in differents files
+  // tags to have a file by tag
   mode?: OutputMode;
   // add mock to your implementation
   mock?: boolean;
