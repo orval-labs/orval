@@ -103,7 +103,7 @@ The function specified in `--transformer` is pure: it imports your `--file`, tra
  * @param {OpenAPIObject} schema
  * @return {OpenAPIObject}
  */
-module.exports = inputSchema => ({
+module.exports = (inputSchema) => ({
   ...inputSchema,
   // Place your augmentations here
   paths: Object.entries(schema.paths).reduce(
@@ -113,14 +113,14 @@ module.exports = inputSchema => ({
         (pathItemMem, [verb, operation]) => ({
           ...pathItemMem,
           [verb]: {
-            ...fixOperationId(path, verb, operation)
-          }
+            ...fixOperationId(path, verb, operation),
+          },
         }),
-        {}
-      )
+        {},
+      ),
     }),
-    {}
-  )
+    {},
+  ),
 });
 ```
 
@@ -176,18 +176,18 @@ interface OutputOptions = {
 module.exports = {
   'petstore-file': {
     input: 'examples/petstore.yaml',
-    output: 'examples/petstoreFromFileSpecWithConfig.ts'
+    output: 'examples/petstoreFromFileSpecWithConfig.ts',
   },
   'petstore-file-transfomer': {
     output: {
       target: 'examples/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'examples/model',
       mode: 'split',
-      mock: true
+      mock: true,
     },
     input: {
       target: 'examples/petstore.yaml',
-      transformer: 'examples/transformer-add-version.js'
+      transformer: 'examples/transformer-add-version.js',
     },
     override: {
       // contains operationId of your spec with override options
@@ -199,30 +199,30 @@ module.exports = {
             // override mock properties
             properties: () => {
               return {
-                id: faker.random.number({min: 1, max: 9})
+                id: faker.random.number({ min: 1, max: 9 }),
               };
-            }
-          }
+            },
+          },
         },
         showPetById: {
           mock: {
             // override mock for this api call
             data: () => ({
-              id: faker.random.number({min: 1, max: 99}),
+              id: faker.random.number({ min: 1, max: 99 }),
               name: faker.name.firstName(),
-              tag: faker.helpers.randomize([faker.random.word(), undefined])
-            })
-          }
-        }
+              tag: faker.helpers.randomize([faker.random.word(), undefined]),
+            }),
+          },
+        },
       },
       mock: {
         // override mock properties for all api calls
         properties: {
-          '/tag|name/': 'jon'
-        }
-      }
-    }
-  }
+          '/tag|name/': 'jon',
+        },
+      },
+    },
+  },
 };
 ```
 

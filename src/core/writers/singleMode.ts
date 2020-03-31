@@ -34,9 +34,9 @@ export const writeSingleMode = ({
 
   let data = getFilesHeader(info);
   data +=
-    "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n";
+    "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';\n";
   data +=
-    isObject(output) && output.mock ? "import faker from 'faker'\n\n" : '\n';
+    isObject(output) && output.mock ? "import faker from 'faker';\n" : '\n';
 
   if (isObject(output) && output.schemas) {
     data += generateImports(imports, resolvePath(path, output.schemas), true);
@@ -44,10 +44,8 @@ export const writeSingleMode = ({
     data += generateModelsInline(schemas);
   }
 
-  data += '\n';
-  data += definition;
-  data += '\n\n';
-  data += implementation;
+  data += `\n${definition}`;
+  data += `\n\n${implementation}`;
 
   if (isObject(output) && output.mock) {
     data += '\n\n';

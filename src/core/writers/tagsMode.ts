@@ -109,9 +109,9 @@ export const writeTagsMode = ({
     const header = getFilesHeader(info);
     let data = header;
     data +=
-      "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n";
+      "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';\n";
     data +=
-      isObject(output) && output.mock ? "import faker from 'faker'\n\n" : '\n';
+      isObject(output) && output.mock ? "import faker from 'faker';\n" : '\n';
 
     if (isObject(output) && output.schemas) {
       data += generateImports(imports, resolvePath(path, output.schemas), true);

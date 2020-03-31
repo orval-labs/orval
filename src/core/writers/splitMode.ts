@@ -38,7 +38,7 @@ export const writeSplitMode = ({
   let implementationData = header;
   let mockData = header;
 
-  definitionData += "import { AxiosPromise } from 'axios'\n";
+  definitionData += "import { AxiosPromise } from 'axios';\n";
 
   const definitionPath = './' + filename + '.definition';
   const definitionImport = generateImports(
@@ -47,8 +47,8 @@ export const writeSplitMode = ({
     true,
   );
 
-  implementationData += `import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios'\n${definitionImport}`;
-  mockData += `import { AxiosPromise } from 'axios'\nimport faker from 'faker'\n${definitionImport}`;
+  implementationData += `import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';\n${definitionImport}`;
+  mockData += `import { AxiosPromise } from 'axios';\nimport faker from 'faker';\n${definitionImport}`;
 
   if (output.schemas) {
     const schemasPath = resolvePath(path, output.schemas);
@@ -67,9 +67,9 @@ export const writeSplitMode = ({
     mockData += generateImports(imports, schemasPath, true);
   }
 
-  definitionData += definition;
-  implementationData += implementation;
-  mockData += implementationMocks;
+  definitionData += `\n${definition}`;
+  implementationData += `\n${implementation}`;
+  mockData += `\n${implementationMocks}`;
 
   if (path) {
     writeFileSync(join(dirname, definitionPath + extension), definitionData);

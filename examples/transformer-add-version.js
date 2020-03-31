@@ -4,7 +4,7 @@
  * @param {OpenAPIObject} schema
  * @return {OpenAPIObject}
  */
-module.exports = inputSchema => ({
+module.exports = (inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths).reduce(
     (acc, [path, pathItem]) => ({
