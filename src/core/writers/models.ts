@@ -12,6 +12,7 @@ const getModel = (
 ): string => {
   let file = getFilesHeader(info);
   file += generateImports(imports);
+  file += imports.length ? '\n\n' : '\n';
   file += model;
   return file;
 };
@@ -20,7 +21,7 @@ const getPath = (path: string, name: string): string =>
   join(path, `/${name}.ts`);
 
 export const writeModelInline = (acc: string, model: string): string =>
-  acc + `${model}\n\n`;
+  acc + `${model}\n`;
 
 export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, { model }) => writeModelInline(acc, model), '');
@@ -32,7 +33,7 @@ export const writeModel = (
 ) => {
   const name = camel(spec.name);
   writeFileSync(getPath(path, name), getModel(info, spec));
-  appendFileSync(getPath(path, 'index'), `export * from './${name}'\n`);
+  appendFileSync(getPath(path, 'index'), `export * from './${name}';\n`);
 };
 
 export const writeModels = (

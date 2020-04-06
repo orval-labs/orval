@@ -14,14 +14,17 @@ export const generateInterface = (name: string, schema: SchemaObject) => {
   const { value, imports, schemas } = getScalar(schema, name);
   const isEmptyObject = value === '{}';
 
+  let model = isEmptyObject
+    ? '// tslint:disable-next-line:no-empty-interface\n'
+    : '';
+
+  model += `export interface ${pascal(name)} ${value}\n`;
+
   return [
     ...schemas,
     {
       name: pascal(name),
-      model: isEmptyObject
-        ? `// tslint:disable-next-line:no-empty-interface
-export interface ${pascal(name)} ${value}`
-        : `export interface ${pascal(name)} ${value}`,
+      model,
       imports: generalTypesFilter(imports),
     },
   ];

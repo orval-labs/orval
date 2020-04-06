@@ -6,7 +6,9 @@ export const generateImports = (
   pathOnly: boolean = false,
 ) => {
   if (pathOnly) {
-    return `import {\n  ${imports.sort().join(',\n  ')}\n} from \'${path}\';\n`;
+    return `import {\n  ${imports
+      .sort()
+      .join(',\n  ')},\n} from \'${path}\';\n`;
   }
   return imports
     .sort()

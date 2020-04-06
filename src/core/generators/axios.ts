@@ -14,10 +14,10 @@ const generateBodyProps = (body: GetterBody, verb: Verbs) => {
   }
 
   if (body.isBlob) {
-    return ', formData';
+    return '\n      formData,';
   }
 
-  return `, ${body.implementation || 'undefined'}`;
+  return `\n      ${body.implementation || 'undefined'},`;
 };
 
 const generateQueryParamsProps = (
@@ -28,21 +28,17 @@ const generateQueryParamsProps = (
     return '';
   }
 
-  let value = ',{';
+  let value = '\n      {';
 
   if (queryParams) {
-    value += 'params';
-  }
-
-  if (queryParams && response.isBlob) {
-    value += ',';
+    value += '\n        params,';
   }
 
   if (response.isBlob) {
-    value += `responseType: 'blob',`;
+    value += `\n        responseType: 'blob',`;
   }
 
-  value += '}';
+  value += '\n      },';
 
   return value;
 };
@@ -60,10 +56,10 @@ const generateAxiosProps = ({
   response: GetterResponse;
   verb: Verbs;
 }) => {
-  return `\`${route}\` ${generateBodyProps(
+  return `\n      \`${route}\`,${generateBodyProps(
     body,
     verb,
-  )} ${generateQueryParamsProps(response, queryParams)}`;
+  )}${generateQueryParamsProps(response, queryParams)}\n    `;
 };
 
 const generateAxiosDefinition = ({
@@ -75,10 +71,10 @@ const generateAxiosDefinition = ({
   let value = '';
 
   if (summary) {
-    value += `\n// ${summary}`;
+    value += `\n  // ${summary}`;
   }
 
-  value += `\n${definitionName}(${props.definition}): AxiosPromise<${response.definition}>;`;
+  value += `\n  ${definitionName}(\n    ${props.definition}\n  ): AxiosPromise<${response.definition}>;`;
 
   return value;
 };
@@ -113,7 +109,9 @@ const generateAxiosImplementation = (
     verb,
   });
 
-  return `  ${definitionName}(${props.implementation}): AxiosPromise<${
+  return `  ${definitionName}(\n    ${
+    props.implementation
+  }\n  ): AxiosPromise<${
     response.definition
   }> {${transformer}${generateFormData(body)}
     return axios.${verb}(${

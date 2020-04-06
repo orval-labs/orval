@@ -17,7 +17,7 @@ export const resolveObject = (schema: SchemaObject, propName?: string) => {
         ...resolvedValue.schemas,
         {
           name: propName,
-          model: `export type ${propName} = ${resolvedValue.value}`,
+          model: `export type ${propName} = ${resolvedValue.value};\n`,
           imports: generalTypesFilter(resolvedValue.imports),
         },
       ],

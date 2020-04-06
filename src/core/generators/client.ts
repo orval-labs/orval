@@ -11,9 +11,9 @@ export const generateClientHeader = (title: string) => {
 
 export const generateClientFooter = () => {
   return {
-    definition: '\n};',
-    implementation: '});',
-    implementationMock: '})',
+    definition: '\n}\n',
+    implementation: '});\n',
+    implementationMock: '})\n',
   };
 };
 
