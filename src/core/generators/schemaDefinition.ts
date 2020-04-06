@@ -36,21 +36,23 @@ export const generateSchemasDefinition = (
         );
 
         let output = '';
-        output += `export type ${pascal(name)} = ${value};`;
+        output += `export type ${pascal(name)} = ${value};\n`;
 
         if (isEnum) {
-          output += `\n\nexport const ${pascal(name)} = {\n${value
-            .split(' | ')
-            .reduce((acc, val) => {
-              return (
-                acc +
-                `  ${
-                  type === 'number'
-                    ? `${upper(type)}_${val}`
-                    : val.replace(/\W|_/g, '')
-                }: ${val} as ${pascal(name)},\n`
-              );
-            }, '')}};`;
+          const implementation = value.split(' | ').reduce((acc, val) => {
+            return (
+              acc +
+              `  ${
+                type === 'number'
+                  ? `${upper(type)}_${val}`
+                  : val.replace(/[^\w\s]/g, '')
+              }: ${val} as ${pascal(name)},\n`
+            );
+          }, '');
+
+          output += `\n\nexport const ${pascal(
+            name,
+          )} = {\n${implementation}};\n`;
         }
 
         return [

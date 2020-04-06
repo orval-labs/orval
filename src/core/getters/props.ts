@@ -33,11 +33,12 @@ export const getProps = ({
 
   const sortedProps = sortByPriority(props);
 
-  const definition = sortedProps.map(({ definition }) => definition).join(', ');
+  const definition =
+    sortedProps.map(({ definition }) => definition).join(',\n    ') + ',';
 
-  const implementation = sortedProps
-    .map(({ implementation }) => implementation)
-    .join(', ');
+  const implementation =
+    sortedProps.map(({ implementation }) => implementation).join(',\n    ') +
+    ',';
 
   return { definition, implementation };
 };

@@ -76,11 +76,13 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         }
 
         acc.imports = [...acc.imports, ...resolvedValue.imports];
-        acc.value += `${key}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
+        acc.value += `\n  ${key}${isRequired ? '' : '?'}: ${
+          resolvedValue.value
+        };`;
         acc.schemas = [...acc.schemas, ...resolvedValue.schemas];
 
         if (arr.length - 1 === index) {
-          acc.value += '}';
+          acc.value += '\n}';
         }
 
         return acc;

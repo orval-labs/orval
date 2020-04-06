@@ -47,11 +47,11 @@ export const getQueryParams = (
   );
   const name = `${definitionName}Params`;
 
+  const type = types.map(({ definition }) => definition).join('; ');
+
   const schema = {
     name,
-    model: `export type ${name} = { ${types
-      .map(({ definition }) => definition)
-      .join('; ')} }`,
+    model: `export type ${name} = { ${type} };\n`,
     imports,
   };
 

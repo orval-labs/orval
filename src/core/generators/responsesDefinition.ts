@@ -29,15 +29,15 @@ export const generateResponsesDefinition = (
     if (isEmptyInterface) {
       model = `// tslint:disable-next-line:no-empty-interface \nexport interface ${pascal(
         name,
-      )}Response ${type}`;
+      )}Response ${type}\n`;
     } else if (
       type.includes('{') &&
       !type.includes('|') &&
       !type.includes('&')
     ) {
-      model = `export interface ${pascal(name)}Response ${type}`;
+      model = `export interface ${pascal(name)}Response ${type}\n`;
     } else {
-      model = `export type ${pascal(name)}Response = ${type || 'unknown'};`;
+      model = `export type ${pascal(name)}Response = ${type || 'unknown'};\n`;
     }
 
     return {
