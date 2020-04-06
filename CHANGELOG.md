@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.1](https://github.com/anymaniax/orval/compare/v2.0.0...v2.0.1) (2020-04-06)
+
+
+### Bug Fixes
+
+* **files:** format ([b94e4a7](https://github.com/anymaniax/orval/commit/b94e4a7d7206c66e680f3bd74750ff01b9776ff1))
+
 ## 2.0.0 (2020-04-06)
 
 
