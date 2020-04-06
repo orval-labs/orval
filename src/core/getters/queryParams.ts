@@ -6,11 +6,13 @@ const getQueryParamsTypes = (
   queryParams: (ParameterObject | ReferenceObject)[],
 ) => {
   return queryParams.map((p) => {
-    const { name, required, schema } = p as {
-      name: string;
-      required: boolean;
-      schema: SchemaObject;
-    };
+    const { name, required, schema } =
+      p as
+      {
+        name: string;
+        required: boolean;
+        schema: SchemaObject;
+      };
 
     const { value, imports } = resolveValue(schema!);
 

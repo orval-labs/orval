@@ -17,6 +17,5 @@ export type PackageJson = {
 };
 
 export const getPackage = () =>
-  JSON.parse(
-    readFileSync(join(__dirname, '../../package.json'), 'utf-8'),
-  ) as PackageJson;
+  JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf-8')) as
+  PackageJson;

@@ -22,9 +22,12 @@ export const resolveDiscriminator = (specs: OpenAPIObject) => {
           );
         }
 
-        const schemaObjectProperties = (specs?.components?.schemas?.[
-          ref.slice('#/components/schemas/'.length)
-        ] as SchemaObject).properties as SchemaObject;
+        const schemaObjectProperties =
+          (
+            specs?.components?.schemas?.[
+              ref.slice('#/components/schemas/'.length)
+            ] as SchemaObject
+          ).properties as SchemaObject;
 
         if (!schemaObjectProperties![propertyName]?.$ref) {
           schemaObjectProperties![propertyName].enum = [name];

@@ -36,13 +36,13 @@ export const getParams = ({
   const params = getParamsInPath(route);
   return params.map((p) => {
     try {
-      const { name, required, schema } = pathParams.find(
-        (i) => i.name === p,
-      ) as {
-        name: string;
-        required: boolean;
-        schema: SchemaObject;
-      };
+      const { name, required, schema } =
+        pathParams.find((i) => i.name === p) as
+        {
+          name: string;
+          required: boolean;
+          schema: SchemaObject;
+        };
 
       const resolvedValue = resolveValue(schema);
 
