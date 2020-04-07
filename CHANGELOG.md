@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.3](https://github.com/anymaniax/orval/compare/v2.0.2...v2.0.3) (2020-04-07)
+
+
+### Bug Fixes
+
+* **generator:** props remove type if default value ([89d3d88](https://github.com/anymaniax/orval/commit/89d3d88edfa37719eee84881ad786d55352596ef))
+
 ### [2.0.2](https://github.com/anymaniax/orval/compare/v2.0.1...v2.0.2) (2020-04-07)
 
 
