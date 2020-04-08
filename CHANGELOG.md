@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.4](https://github.com/anymaniax/orval/compare/v2.0.3...v2.0.4) (2020-04-08)
+
+
+### Bug Fixes
+
+* **generator:** remove useless comma ([f8bad9c](https://github.com/anymaniax/orval/commit/f8bad9cf073dd7ef6a7f31afe19157e7fc463d39))
+
 ### [2.0.3](https://github.com/anymaniax/orval/compare/v2.0.2...v2.0.3) (2020-04-07)
 
 
