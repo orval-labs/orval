@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.5](https://github.com/anymaniax/orval/compare/v2.0.4...v2.0.5) (2020-04-14)
+
+
+### Bug Fixes
+
+* **generator:** handle special char params, query, body ([ad3e561](https://github.com/anymaniax/orval/commit/ad3e56154f69a7b3b1d8702f5ad78da6268b2e35))
+* **yarn:** lock ([5718b97](https://github.com/anymaniax/orval/commit/5718b97adafe05328e73e9096c27cda173b8b8f4))
+
 ### [2.0.4](https://github.com/anymaniax/orval/compare/v2.0.3...v2.0.4) (2020-04-08)
 
 
