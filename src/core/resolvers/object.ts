@@ -1,8 +1,12 @@
 import { SchemaObject } from 'openapi3-ts';
+import { ResolverValue } from '../../types/resolvers';
 import { generalTypesFilter } from '../../utils/filters';
 import { resolveValue } from './value';
 
-export const resolveObject = (schema: SchemaObject, propName?: string) => {
+export const resolveObject = (
+  schema: SchemaObject,
+  propName?: string,
+): ResolverValue => {
   const resolvedValue = resolveValue(schema, propName);
   if (
     propName &&
@@ -21,12 +25,10 @@ export const resolveObject = (schema: SchemaObject, propName?: string) => {
           imports: generalTypesFilter(resolvedValue.imports),
         },
       ],
+      isEnum: false,
+      type: 'object',
     };
   }
 
-  return {
-    value: resolvedValue.value,
-    imports: resolvedValue.imports,
-    schemas: resolvedValue.schemas,
-  };
+  return resolvedValue;
 };

@@ -18,9 +18,13 @@ export const generateResponsesDefinition = (
   }
 
   const models = Object.entries(responses).map(([name, response]) => {
-    const allResponseTypes = getResReqTypes([['', response]]);
+    const allResponseTypes = getResReqTypes([['response', response]], name);
     const imports = allResponseTypes.reduce<string[]>(
       (acc, { imports = [] }) => [...acc, ...imports],
+      [],
+    );
+    const schemas = allResponseTypes.reduce<GeneratorSchema[]>(
+      (acc, { schemas = [] }) => [...acc, ...schemas],
       [],
     );
     const type = allResponseTypes.map(({ value }) => value).join(' | ');
@@ -44,6 +48,7 @@ export const generateResponsesDefinition = (
       name: `${pascal(name)}Response`,
       model,
       imports: generalTypesFilter(imports),
+      schemas,
     };
   });
 

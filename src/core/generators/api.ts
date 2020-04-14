@@ -1,6 +1,7 @@
 import { OpenAPIObject, PathItemObject } from 'openapi3-ts';
 import { OverrideOutput } from '../../types';
 import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
+import { getRoute } from '../getters/route';
 import { generateClient } from './client';
 import { generateVerbsOptions } from './verbsOptions';
 
@@ -10,7 +11,7 @@ export const generateApi = (
 ) => {
   return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
     (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
-      const route = pathRoute.replace(/\{/g, '${');
+      const route = getRoute(pathRoute);
 
       const verbsOptions = generateVerbsOptions({
         verbs,
@@ -20,7 +21,12 @@ export const generateApi = (
       });
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
-        (acc, { queryParams }) => (queryParams ? [...acc, queryParams] : acc),
+        (acc, { queryParams, body, response }) => [
+          ...acc,
+          ...(queryParams ? [queryParams] : []),
+          ...body.schemas,
+          ...response.schemas,
+        ],
         [],
       );
 

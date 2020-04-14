@@ -1,3 +1,4 @@
+import { SPECIAL_CHAR_REGEX } from '../constants';
 import {
   isBoolean,
   isFunction,
@@ -43,3 +44,6 @@ export const stringify = (
     return acc + `${key}: ${strValue}, `;
   }, '');
 };
+
+export const sanitize = (value: string) =>
+  value.replace(SPECIAL_CHAR_REGEX, '');

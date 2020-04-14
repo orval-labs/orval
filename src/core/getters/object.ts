@@ -4,6 +4,7 @@ import { ResolverValue } from '../../types/resolvers';
 import { isBoolean, isReference } from '../../utils/is';
 import { resolveObject } from '../resolvers/object';
 import { resolveValue } from '../resolvers/value';
+import { getKey } from './keys';
 import { getRef } from './ref';
 
 /**
@@ -76,7 +77,7 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         }
 
         acc.imports = [...acc.imports, ...resolvedValue.imports];
-        acc.value += `\n  ${key}${isRequired ? '' : '?'}: ${
+        acc.value += `\n  ${getKey(key)}${isRequired ? '' : '?'}: ${
           resolvedValue.value
         };`;
         acc.schemas = [...acc.schemas, ...resolvedValue.schemas];

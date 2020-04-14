@@ -48,7 +48,7 @@ const generateVerbOptions = ({
 
   const response = getResponse(responses, operationId!);
 
-  const body = getBody(requestBody!);
+  const body = getBody(requestBody!, operationId!);
 
   const parameters = getParameters(
     [...verbParameters, ...(operationParameters || [])],

@@ -4,6 +4,7 @@ import { SchemaObject } from 'openapi3-ts';
 import { GeneratorSchema } from '../../types/generator';
 import { generalTypesFilter } from '../../utils/filters';
 import { isReference } from '../../utils/is';
+import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
 import { generateInterface } from './interface';
 
@@ -43,9 +44,7 @@ export const generateSchemasDefinition = (
             return (
               acc +
               `  ${
-                type === 'number'
-                  ? `${upper(type)}_${val}`
-                  : val.replace(/[^\w\s]/g, '')
+                type === 'number' ? `${upper(type)}_${val}` : sanitize(val)
               }: ${val} as ${pascal(name)},\n`
             );
           }, '');

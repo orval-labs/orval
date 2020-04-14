@@ -4,7 +4,7 @@ import { MockOptions, OverrideOutput } from '../../types';
 import { GeneratorVerbOptions } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { isFunction } from '../../utils/is';
-import { stringify } from '../../utils/stringify';
+import { stringify } from '../../utils/string';
 import { getMockScalar } from '../getters/scalar.mock';
 
 const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>

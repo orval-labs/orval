@@ -1,5 +1,6 @@
 import { OperationObject, ParameterObject, SchemaObject } from 'openapi3-ts';
 import { GetterParams } from '../../types/getters';
+import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
 
 /**
@@ -15,7 +16,7 @@ import { resolveValue } from '../resolvers/value';
 export const getParamsInPath = (path: string) => {
   let n;
   const output = [];
-  const templatePathRegex = /\{(\w+)}/g;
+  const templatePathRegex = /\{(.*?)\}/g;
   // tslint:disable-next-line:no-conditional-assignment
   while ((n = templatePathRegex.exec(path)) !== null) {
     output.push(n[1]);
@@ -36,13 +37,15 @@ export const getParams = ({
   const params = getParamsInPath(route);
   return params.map((p) => {
     try {
-      const { name, required, schema } =
-        pathParams.find((i) => i.name === p) as
+      const { name: nameWithoutSanitize, required, schema } =
+        pathParams.find((i) => sanitize(i.name) === p) as
         {
           name: string;
           required: boolean;
           schema: SchemaObject;
         };
+
+      const name = sanitize(nameWithoutSanitize);
 
       const resolvedValue = resolveValue(schema);
 

@@ -1,6 +1,7 @@
 import { ParameterObject, ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { GeneratorSchema } from '../../types/generator';
 import { resolveValue } from '../resolvers/value';
+import { getKey } from './keys';
 
 const getQueryParamsTypes = (
   queryParams: (ParameterObject | ReferenceObject)[],
@@ -16,20 +17,14 @@ const getQueryParamsTypes = (
 
     const { value, imports } = resolveValue(schema!);
 
-    const definition = `${name}${
+    const key = getKey(name);
+
+    const definition = `${key}${
       !required || schema.default ? '?' : ''
     }: ${value}`;
 
-    const implementation = `${name}${
-      !required && !schema.default ? '?' : ''
-    }: ${value}${schema.default ? ` = ${schema.default}` : ''}`;
-
     return {
-      name,
       definition,
-      implementation,
-      default: schema.default,
-      required,
       imports,
     };
   });

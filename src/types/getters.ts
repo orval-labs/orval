@@ -1,4 +1,5 @@
 import { ParameterObject } from 'openapi3-ts';
+import { GeneratorSchema } from './generator';
 import { ResolverValue } from './resolvers';
 
 export type GetterResponse = {
@@ -6,6 +7,7 @@ export type GetterResponse = {
   definition: string;
   isBlob: boolean;
   types: ResolverValue[];
+  schemas: GeneratorSchema[];
 };
 
 export type GetterBody = {
@@ -13,6 +15,7 @@ export type GetterBody = {
   definition: string;
   implementation: string;
   isBlob: boolean;
+  schemas: GeneratorSchema[];
 };
 
 export type GetterParameters = {

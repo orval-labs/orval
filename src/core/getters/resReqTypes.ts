@@ -1,3 +1,4 @@
+import { pascal } from 'case';
 import uniq from 'lodash/uniq';
 import {
   MediaTypeObject,
@@ -7,7 +8,7 @@ import {
 } from 'openapi3-ts';
 import { ResolverValue } from '../../types/resolvers';
 import { isReference } from '../../utils/is';
-import { resolveValue } from '../resolvers/value';
+import { resolveObject } from '../resolvers/object';
 import { getRef } from './ref';
 
 const CONTENT_TYPES = [
@@ -17,7 +18,11 @@ const CONTENT_TYPES = [
   'multipart/form-data',
 ];
 
-const getResReqContentTypes = (type: string, mediaType: MediaTypeObject) => {
+const getResReqContentTypes = (
+  type: string,
+  mediaType: MediaTypeObject,
+  name?: string,
+) => {
   if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
     return {
       value: 'unknown',
@@ -28,7 +33,7 @@ const getResReqContentTypes = (type: string, mediaType: MediaTypeObject) => {
     };
   }
 
-  return resolveValue(mediaType.schema);
+  return resolveObject(mediaType.schema, name);
 };
 
 /**
@@ -40,11 +45,12 @@ export const getResReqTypes = (
   responsesOrRequests: Array<
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >,
+  name: string,
 ): Array<ResolverValue> =>
   uniq(
     responsesOrRequests
       .filter(([_, res]) => Boolean(res))
-      .map(([_, res]) => {
+      .map(([key, res]) => {
         if (isReference(res)) {
           const value = getRef(res.$ref);
           return {
@@ -57,7 +63,11 @@ export const getResReqTypes = (
         } else {
           return res.content
             ? Object.entries(res.content).map(([type, mediaType]) =>
-                getResReqContentTypes(type, mediaType),
+                getResReqContentTypes(
+                  type,
+                  mediaType,
+                  key ? pascal(name) + pascal(key) : undefined,
+                ),
               )
             : {
                 value: 'unknown',
