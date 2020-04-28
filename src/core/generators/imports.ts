@@ -5,6 +5,9 @@ export const generateImports = (
   path: string = '.',
   pathOnly: boolean = false,
 ) => {
+  if (!imports.length) {
+    return '';
+  }
   if (pathOnly) {
     return `import {\n  ${imports
       .sort()
