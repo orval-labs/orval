@@ -17,40 +17,37 @@ export const generateResponsesDefinition = (
     return [];
   }
 
-  const models = Object.entries(responses).map(([name, response]) => {
-    const allResponseTypes = getResReqTypes([['response', response]], name);
-    const imports = allResponseTypes.reduce<string[]>(
-      (acc, { imports = [] }) => [...acc, ...imports],
-      [],
-    );
-    const schemas = allResponseTypes.reduce<GeneratorSchema[]>(
-      (acc, { schemas = [] }) => [...acc, ...schemas],
-      [],
-    );
-    const type = allResponseTypes.map(({ value }) => value).join(' | ');
-    const isEmptyInterface = type === '{}';
-    let model = '';
-    if (isEmptyInterface) {
-      model = `// tslint:disable-next-line:no-empty-interface \nexport interface ${pascal(
+  return Object.entries(responses).reduce<GeneratorSchema[]>(
+    (acc, [name, response]) => {
+      const allResponseTypes = getResReqTypes(
+        [['responseData', response]],
         name,
-      )}Response ${type}\n`;
-    } else if (
-      type.includes('{') &&
-      !type.includes('|') &&
-      !type.includes('&')
-    ) {
-      model = `export interface ${pascal(name)}Response ${type}\n`;
-    } else {
-      model = `export type ${pascal(name)}Response = ${type || 'unknown'};\n`;
-    }
+      );
 
-    return {
-      name: `${pascal(name)}Response`,
-      model,
-      imports: generalTypesFilter(imports),
-      schemas,
-    };
-  });
+      const imports = allResponseTypes.reduce<string[]>(
+        (acc, { imports = [] }) => [...acc, ...imports],
+        [],
+      );
+      const schemas = allResponseTypes.reduce<GeneratorSchema[]>(
+        (acc, { schemas = [] }) => [...acc, ...schemas],
+        [],
+      );
+      const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-  return models;
+      const model = `export type ${pascal(name)}Response = ${
+        type || 'unknown'
+      };\n`;
+
+      return [
+        ...acc,
+        ...schemas,
+        {
+          name: `${pascal(name)}Response`,
+          model,
+          imports: generalTypesFilter(imports),
+        },
+      ];
+    },
+    [],
+  );
 };
