@@ -94,7 +94,7 @@ const generateAxiosImplementation = (
     queryParams,
     definitionName,
     response,
-    transformer,
+    mutator,
     body,
     props,
     verb,
@@ -111,12 +111,10 @@ const generateAxiosImplementation = (
 
   return `  ${definitionName}(\n    ${
     props.implementation
-  }\n  ): AxiosPromise<${
-    response.definition
-  }> {${transformer}${generateFormData(body)}
-    return axios.${verb}(${
-    transformer ? `...transformer(${axiosProps})` : axiosProps
-  });
+  }\n  ): AxiosPromise<${response.definition}> {${mutator}${generateFormData(
+    body,
+  )}
+    return axios.${verb}(${mutator ? `...mutator(${axiosProps})` : axiosProps});
   },
 `;
 };

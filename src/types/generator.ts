@@ -48,7 +48,7 @@ export type GeneratorVerbOptions = {
   queryParams?: GeneratorSchema;
   params: GetterParams;
   props: GetterProps;
-  transformer: string;
+  mutator: string;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];

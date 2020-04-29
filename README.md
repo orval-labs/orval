@@ -138,6 +138,10 @@ interface RestfulClientConfig {
   };
 }
 
+type OverrideInput = {
+  transformer?: string;
+};
+
 interface InputOptions = {
     // path or url to the openapi spec
     target?: string;
@@ -145,6 +149,31 @@ interface InputOptions = {
     validation?: boolean;
     // override the input that's give you the possibility to add whatever you want to your openapi spec
     override?: OverrideInput;
+};
+
+type OutputMode = 'single' | 'split' | 'tags';
+
+type MockProperties =
+  | { [key: string]: unknown }
+  | ((specs: OpenAPIObject) => { [key: string]: unknown });
+
+type OperationOptions = {
+  transformer?: string;
+  mutator?: string;
+  mock?: {
+    data?: MockProperties;
+    properties?: MockProperties;
+  };
+};
+
+
+type OverrideOutput = {
+  transformer?: string;
+  mutator?: string;
+  operations?: { [key: string]: OperationOptions };
+  mock?: {
+    properties?: MockProperties;
+  };
 };
 
 interface OutputOptions = {
@@ -187,8 +216,8 @@ module.exports = {
       // contains operationId of your spec with override options
       operations: {
         listPets: {
-          // transform the output of your api call
-          transformer: 'examples/transformer-response-type.js',
+          // mutator the output of your api call
+          mutator: 'examples/transformer-response-type.js',
           mock: {
             // override mock properties
             properties: () => {

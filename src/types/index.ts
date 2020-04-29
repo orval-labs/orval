@@ -40,6 +40,8 @@ export interface ExternalConfigFile {
 }
 
 export type OverrideOutput = {
+  transformer?: string;
+  mutator?: string;
   operations?: { [key: string]: OperationOptions };
   mock?: {
     properties?: MockProperties;
@@ -52,6 +54,7 @@ export type OverrideInput = {
 
 export type OperationOptions = {
   transformer?: string;
+  mutator?: string;
   mock?: {
     data?: MockProperties;
     properties?: MockProperties;
