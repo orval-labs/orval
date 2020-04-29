@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.0.7](https://github.com/anymaniax/orval/compare/v2.0.6...v2.0.7) (2020-04-29)
+
+
+### Bug Fixes
+
+* **generator:** correctly handling responses schemas ([5472b9a](https://github.com/anymaniax/orval/commit/5472b9aa8dd10957a5255f83ed607fc55dd7576f))
+
 ### [2.0.6](https://github.com/anymaniax/orval/compare/v2.0.5...v2.0.6) (2020-04-28)
 
 
