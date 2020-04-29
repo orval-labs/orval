@@ -9,13 +9,10 @@ All notable changes to this project will be documented in this file. See [standa
 
 * **generator-override:** The transformer function in the override of the orval config have a totally new
 functionnality. The old transformer is now named mutator and have the same behavior.
-* **generator-override:** The transformer function in the override of the orval config have a totally new
-functionnality. The old transformer is now named mutator and have the same behavior.
 
 ### Features
 
 * **generator-override:** transformer => mutator and add new transformer ([cf601f7](https://github.com/anymaniax/orval/commit/cf601f71ff4147dbd58289a9c506dd37c46c1592))
-* **generator-override:** transformer => mutator and add new transformer ([#84](https://github.com/anymaniax/orval/issues/84)) ([4239f26](https://github.com/anymaniax/orval/commit/4239f26ded17ad1d371df6bf2394e5574ba7fc8e))
 
 ### [2.0.7](https://github.com/anymaniax/orval/compare/v2.0.6...v2.0.7) (2020-04-29)
 
