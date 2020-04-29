@@ -1,19 +1,14 @@
-import { OperationOptions } from '../../types';
 import { GetterBody } from '../../types/getters';
 import { dynamicImport } from '../../utils/imports';
 
-export const generateTransformer = ({
+export const generateMutator = ({
   body,
-  overrideOperation,
+  mutator,
 }: {
   body: GetterBody;
-  overrideOperation?: OperationOptions;
+  mutator?: string;
 }) => {
-  const transformer = overrideOperation?.transformer
-    ? dynamicImport(overrideOperation.transformer)
-    : undefined;
-
-  if (!transformer) {
+  if (!mutator) {
     return '';
   }
 
@@ -24,7 +19,7 @@ export const generateTransformer = ({
   } AxiosRequestConfig | undefined]`;
 
   return `
-    type Transformer = ${type}
+    type Mutator = ${type}
 
-    const transformer: Transformer = ${transformer}\n`;
+    const mutator: Mutator = ${dynamicImport(mutator)}\n`;
 };

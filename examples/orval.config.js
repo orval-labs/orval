@@ -17,7 +17,7 @@ module.exports = {
       override: {
         operations: {
           listPets: {
-            transformer: 'examples/transformer-response-type.js',
+            mutator: 'examples/transformer-response-type.js',
             mock: {
               properties: () => {
                 return {

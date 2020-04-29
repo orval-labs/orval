@@ -17,7 +17,8 @@ import { getParams } from '../getters/params';
 import { getProps } from '../getters/props';
 import { getQueryParams } from '../getters/queryParams';
 import { getResponse } from '../getters/response';
-import { generateTransformer } from './transformer';
+import { getTransformer } from '../getters/transformer';
+import { generateMutator } from './mutator';
 
 const generateVerbOptions = ({
   verb,
@@ -65,12 +66,12 @@ const generateVerbOptions = ({
 
   const props = getProps({ body, queryParams, params });
 
-  const transformer = generateTransformer({
+  const mutator = generateMutator({
     body,
-    overrideOperation,
+    mutator: overrideOperation?.mutator || override?.mutator,
   });
 
-  return {
+  const verbOption = {
     verb: verb as Verbs,
     tags,
     summary: operation.summary,
@@ -83,8 +84,14 @@ const generateVerbOptions = ({
     queryParams,
     params,
     props,
-    transformer,
+    mutator,
   };
+
+  const transformer = getTransformer(
+    overrideOperation?.transformer || override?.transformer,
+  );
+
+  return transformer ? transformer(verbOption) : verbOption;
 };
 
 export const generateVerbsOptions = ({
