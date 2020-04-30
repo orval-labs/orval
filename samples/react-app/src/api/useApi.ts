@@ -32,8 +32,8 @@ export const useApi = () => {
       getApi({
         headers,
         interceptor: unauthorizedAndErrorInterceptor,
-        baseUrl: process.env.REACT_APP_API_URL,
-        mode: (process.env.REACT_APP_API_MODE as ApiMode) || ApiMode.API,
+        baseUrl: '', // use an env or your api url
+        mode: ApiMode.MOCK, // use an env to change easily
       }),
     [headers, unauthorizedAndErrorInterceptor],
   );
