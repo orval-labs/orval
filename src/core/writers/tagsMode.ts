@@ -29,7 +29,7 @@ const generateTargetTags = (
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
     if (!currentOperation) {
-      const header = generateClientHeader(pascal(info.title + tag));
+      const header = generateClientHeader(pascal(`${info.title} ${tag}`));
 
       return {
         ...acc,
