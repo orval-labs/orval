@@ -21,6 +21,11 @@ import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { resolvePath } from '../resolvers/path';
 
+const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
+  ...operation,
+  tags: operation.tags.length ? operation.tags : ['default'],
+});
+
 const generateTargetTags = (
   currentAcc: { [key: string]: GeneratorTarget },
   operation: GeneratorOperation,
@@ -64,28 +69,30 @@ export const generateTarget = (
   operations: GeneratorOperations,
   info: InfoObject,
 ) =>
-  Object.values(operations).reduce((acc, operation, index, arr) => {
-    const targetTags = generateTargetTags(acc, operation, info);
+  Object.values(operations)
+    .map(addDefaultTagIfEmpty)
+    .reduce((acc, operation, index, arr) => {
+      const targetTags = generateTargetTags(acc, operation, info);
 
-    if (index === arr.length - 1) {
-      const footer = generateClientFooter();
+      if (index === arr.length - 1) {
+        const footer = generateClientFooter();
 
-      return Object.entries(targetTags).reduce((acc, [tag, target]) => {
-        return {
-          ...acc,
-          [tag]: {
-            definition: target.definition + footer.definition,
-            implementation: target.implementation + footer.implementation,
-            implementationMocks:
-              target.implementationMocks + footer.implementationMock,
-            imports: generalTypesFilter(target.imports),
-          },
-        };
-      }, {});
-    }
+        return Object.entries(targetTags).reduce((acc, [tag, target]) => {
+          return {
+            ...acc,
+            [tag]: {
+              definition: target.definition + footer.definition,
+              implementation: target.implementation + footer.implementation,
+              implementationMocks:
+                target.implementationMocks + footer.implementationMock,
+              imports: generalTypesFilter(target.imports),
+            },
+          };
+        }, {});
+      }
 
-    return targetTags;
-  }, {} as { [key: string]: GeneratorTarget });
+      return targetTags;
+    }, {} as { [key: string]: GeneratorTarget });
 
 export const writeTagsMode = ({
   operations,
