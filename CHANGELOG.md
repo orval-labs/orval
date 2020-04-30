@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [2.1.1](https://github.com/anymaniax/orval/compare/v2.1.0...v2.1.1) (2020-04-30)
+
+
+### Bug Fixes
+
+* **getters-route:** add missing character in path ([94488ab](https://github.com/anymaniax/orval/commit/94488ab77eb94a3843033d1bd6f278a558843302))
+
 ## [2.1.0](https://github.com/anymaniax/orval/compare/v2.0.7...v2.1.0) (2020-04-29)
 
 
