@@ -1,0 +1,14 @@
+{
+  "name": "basic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "example": "run-p example:*",
+    "example:github": "node ../../lib/bin/orval.js import --input https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v3.0/petstore.yaml --output ./petstoreFromGithubSpec.ts",
+    "example:file": "node ../../lib/bin/orval.js import --input ./petstore.yaml --output ./petstoreFromFileSpec.ts",
+    "example:advanced": "node ../../lib/bin/orval.js import --config ./orval.config.js"
+  },
+  "author": "Victor Bury",
+  "license": "ISC"
+}
