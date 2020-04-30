@@ -29,11 +29,7 @@
     "prebuild": "rimraf ./lib && mkdir lib",
     "build": "tsc && yarn rollup",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write 'src/**/*.{js,ts}'",
-    "examples": "run-p example:*",
-    "example:github": "node lib/bin/orval.js import --input https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v3.0/petstore.yaml --output examples/petstoreFromGithubSpec.ts",
-    "example:file": "node lib/bin/orval.js import --input examples/petstore.yaml --output examples/petstoreFromFileSpec.ts",
-    "example:advanced": "node lib/bin/orval.js import --config examples/orval.config.js"
+    "format": "prettier --write 'src/**/*.{js,ts}'"
   },
   "husky": {
     "hooks": {
