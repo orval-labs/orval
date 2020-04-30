@@ -1,23 +1,20 @@
 const faker = require('faker');
-/**
- * Example config for `yarn example:advanced`
- */
 
 module.exports = {
   'petstore-file': {
-    input: 'examples/petstore.yaml',
-    output: 'examples/petstoreFromFileSpecWithConfig.ts',
+    input: './petstore.yaml',
+    output: './petstoreFromFileSpecWithConfig.ts',
   },
   'petstore-file-transfomer': {
     output: {
       mode: 'split',
-      target: 'examples/petstoreFromFileSpecWithTransformer.ts',
-      schemas: 'examples/model',
+      target: './petstoreFromFileSpecWithTransformer.ts',
+      schemas: './model',
       mock: true,
       override: {
         operations: {
           listPets: {
-            mutator: 'examples/transformer-response-type.js',
+            mutator: './mutator-response-type.js',
             mock: {
               properties: () => {
                 return {
@@ -44,9 +41,9 @@ module.exports = {
       },
     },
     input: {
-      target: 'examples/petstore.yaml',
+      target: './petstore.yaml',
       override: {
-        transformer: 'examples/transformer-add-version.js',
+        transformer: './transformer-add-version.js',
       },
     },
   },
