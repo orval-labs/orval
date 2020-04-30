@@ -1,19 +1,31 @@
 import { sanitize } from '../../utils/string';
 
-export const getRoute = (path: string) => {
-  const splittedPath = path.split('/');
+const getRoutePath = (path: string) => {
+  return path.split('').reduce((acc, letter) => {
+    if (letter === '{') {
+      return acc + '${';
+    }
 
-  return splittedPath.reduce((acc, it) => {
-    if (!it) {
+    if (letter === '}') {
+      return acc + '}';
+    }
+
+    return acc + sanitize(letter);
+  }, '');
+};
+
+export const getRoute = (route: string) => {
+  const splittedRoute = route.split('/');
+
+  return splittedRoute.reduce((acc, path) => {
+    if (!path) {
       return acc;
     }
 
-    if (!it.includes('{')) {
-      return `${acc}/${it}`;
+    if (!path.includes('{')) {
+      return `${acc}/${path}`;
     }
 
-    const value = sanitize(it.slice(1, it.length - 1));
-
-    return `${acc}/\$\{${value}\}`;
+    return `${acc}/${getRoutePath(path)}`;
   }, '');
 };
