@@ -1,8 +1,8 @@
-import { camel } from 'case';
 import { appendFileSync, writeFileSync } from 'fs';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
 import { GeneratorSchema } from '../../types/generator';
+import { camel } from '../../utils/case';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { generateImports } from '../generators/imports';
 

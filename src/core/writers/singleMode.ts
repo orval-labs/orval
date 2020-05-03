@@ -1,7 +1,7 @@
-import { camel } from 'case';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';

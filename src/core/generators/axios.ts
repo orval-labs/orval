@@ -1,4 +1,3 @@
-import { camel } from 'case';
 import { VERBS_WITH_BODY } from '../../constants';
 import { Verbs } from '../../types';
 import {
@@ -7,6 +6,7 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { GetterBody, GetterResponse } from '../../types/getters';
+import { camel } from '../../utils/case';
 
 const generateBodyProps = (body: GetterBody, verb: Verbs) => {
   if (!VERBS_WITH_BODY.includes(verb)) {

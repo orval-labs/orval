@@ -1,7 +1,7 @@
-import { pascal } from 'case';
 import { SchemaObject } from 'openapi3-ts';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
+import { pascal } from '../../utils/case';
 import { resolveMockValue } from '../resolvers/value.mock';
 import { getMockObject } from './object.mock';
 

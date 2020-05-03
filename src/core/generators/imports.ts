@@ -1,4 +1,4 @@
-import { camel } from 'case';
+import { camel } from '../../utils/case';
 
 export const generateImports = (
   imports: string[] = [],

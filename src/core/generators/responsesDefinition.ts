@@ -1,7 +1,7 @@
-import { pascal } from 'case';
 import isEmpty from 'lodash/isEmpty';
 import { ComponentsObject } from 'openapi3-ts';
 import { GeneratorSchema } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import { getResReqTypes } from '../getters/resReqTypes';
 

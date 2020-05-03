@@ -1,4 +1,3 @@
-import { pascal } from 'case';
 import uniq from 'lodash/uniq';
 import {
   MediaTypeObject,
@@ -7,6 +6,7 @@ import {
   ResponseObject,
 } from 'openapi3-ts';
 import { ResolverValue } from '../../types/resolvers';
+import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { resolveObject } from '../resolvers/object';
 import { getRef } from './ref';

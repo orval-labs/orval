@@ -1,8 +1,8 @@
-import { camel } from 'case';
 import { ReferenceObject, RequestBodyObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
 import { GeneratorSchema } from '../../types/generator';
 import { GetterBody } from '../../types/getters';
+import { camel } from '../../utils/case';
 import { getResReqTypes } from './resReqTypes';
 
 export const getBody = (

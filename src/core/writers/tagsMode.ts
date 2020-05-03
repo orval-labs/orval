@@ -1,4 +1,3 @@
-import { camel, kebab, pascal } from 'case';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
@@ -9,6 +8,7 @@ import {
   GeneratorTarget,
 } from '../../types/generator';
 import { WriteSpecsProps } from '../../types/writers';
+import { camel, kebab, pascal } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { generalTypesFilter } from '../../utils/filters';
 import { isObject } from '../../utils/is';

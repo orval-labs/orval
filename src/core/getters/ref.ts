@@ -1,5 +1,5 @@
-import { pascal } from 'case';
 import { ReferenceObject } from 'openapi3-ts';
+import { pascal } from '../../utils/case';
 
 /**
  * Return the output type from the $ref

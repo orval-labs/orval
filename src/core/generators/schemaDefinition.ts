@@ -1,7 +1,7 @@
-import { pascal, upper } from 'case';
 import isEmpty from 'lodash/isEmpty';
 import { SchemaObject } from 'openapi3-ts';
 import { GeneratorSchema } from '../../types/generator';
+import { pascal, upper } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import { isReference } from '../../utils/is';
 import { sanitize } from '../../utils/string';

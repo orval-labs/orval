@@ -1,6 +1,6 @@
-import { pascal } from 'case';
 import { InfoObject } from 'openapi3-ts';
 import { GeneratorOperations } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import { generateClientFooter, generateClientHeader } from './client';
 

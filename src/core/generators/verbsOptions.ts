@@ -1,4 +1,3 @@
-import { camel } from 'case';
 import {
   ComponentsObject,
   OperationObject,
@@ -11,6 +10,7 @@ import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
+import { camel } from '../../utils/case';
 import { getBody } from '../getters/body';
 import { getParameters } from '../getters/parameters';
 import { getParams } from '../getters/params';

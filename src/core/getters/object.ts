@@ -1,6 +1,6 @@
-import { pascal } from 'case';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ResolverValue } from '../../types/resolvers';
+import { pascal } from '../../utils/case';
 import { isBoolean, isReference } from '../../utils/is';
 import { resolveObject } from '../resolvers/object';
 import { resolveValue } from '../resolvers/value';

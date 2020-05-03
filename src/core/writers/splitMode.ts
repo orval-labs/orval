@@ -1,8 +1,8 @@
-import { camel, pascal } from 'case';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { camel, pascal } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { generateImports } from '../generators/imports';

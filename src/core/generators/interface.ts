@@ -1,5 +1,5 @@
-import { pascal } from 'case';
 import { SchemaObject } from 'openapi3-ts';
+import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import { getScalar } from '../getters/scalar';
 
