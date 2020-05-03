@@ -1,3 +1,10 @@
+## [2.2.2](https://github.com/anymaniax/orval/compare/v2.2.1...v2.2.2) (2020-05-03)
+
+
+### Features
+
+* **generator:** add workspace gesture ([9175184](https://github.com/anymaniax/orval/commit/9175184a22095cdebcf5cd241a255558ac6ea1ed))
+
 ## [2.2.1](https://github.com/anymaniax/orval/compare/v2.2.0...v2.2.1) (2020-05-03)
 
 
