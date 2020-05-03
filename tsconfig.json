@@ -1,19 +1,11 @@
 {
-  "exclude": [
-    "node_modules",
-    "dist",
-    "lib",
-    "__tests__",
-    "**/*.test*",
-    "**/*.spec*"
-  ],
-  "include": ["src"],
+  "exclude": ["node_modules", "lib", "__tests__", "**/*.test*", "**/*.spec*"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "es5",
-    "module": "CommonJS",
+    "module": "commonjs",
     "lib": ["es2015", "dom", "es2016.array.include", "es2017.object"],
-    "jsx": "react",
     "declaration": true,
     "declarationMap": true,
     "rootDir": "./src",
@@ -21,7 +13,7 @@
     "downlevelIteration": true,
     "strict": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
