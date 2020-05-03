@@ -1,3 +1,10 @@
+## [2.2.1](https://github.com/anymaniax/orval/compare/v2.2.0...v2.2.1) (2020-05-03)
+
+
+### Features
+
+* **generate:** possibility to pass a path ([6f861bd](https://github.com/anymaniax/orval/commit/6f861bd951a2ad9c36118a43f00ab4c7a99ad458))
+
 # [2.2.0](https://github.com/anymaniax/orval/compare/v2.1.2...v2.2.0) (2020-05-03)
 
 
