@@ -1,20 +1,4 @@
-# Changelog
-
-All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
-
 ### [2.1.2](https://github.com/anymaniax/orval/compare/v2.1.1...v2.1.2) (2020-04-30)
-
-
-### Features
-
-* **samples:** add a react app examples ([9fc2999](https://github.com/anymaniax/orval/commit/9fc2999c546bc17871f4f9aebbc19cce30befa87))
-
-
-### Bug Fixes
-
-* **samples-react:** add dependencies faker and axios ([2d9ba80](https://github.com/anymaniax/orval/commit/2d9ba8099c0a40c952c49290bc7bbd53930c2fc7))
-* **tags mode:** add default tag if operation has none ([ad188f5](https://github.com/anymaniax/orval/commit/ad188f5f0c0b05066412f3b6961ffc367e9179bb))
-* **tags mode:** interface name was not properly pascal-cased ([f0e87bf](https://github.com/anymaniax/orval/commit/f0e87bf0123815db409ecafe5bd4975d15d31a4c))
 
 ### [2.1.1](https://github.com/anymaniax/orval/compare/v2.1.0...v2.1.1) (2020-04-30)
 

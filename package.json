@@ -31,7 +31,8 @@
     "prebuild": "rimraf ./lib && mkdir lib",
     "build": "tsc && yarn rollup",
     "lint": "eslint src/**/*.ts",
-    "format": "prettier --write 'src/**/*.{js,ts}'"
+    "format": "prettier --write 'src/**/*.{js,ts}'",
+    "release": "dotenv release-it"
   },
   "husky": {
     "hooks": {
@@ -42,6 +43,7 @@
   "devDependencies": {
     "@commitlint/cli": "^8.3.5",
     "@commitlint/config-conventional": "^8.3.4",
+    "@release-it/conventional-changelog": "^1.1.4",
     "@types/chalk": "^2.2.0",
     "@types/commander": "^2.12.2",
     "@types/faker": "^4.1.8",
@@ -53,6 +55,7 @@
     "@typescript-eslint/eslint-plugin": "^2.25.0",
     "@typescript-eslint/parser": "^2.25.0",
     "axios": "^0.19.2",
+    "dotenv-cli": "^3.1.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.1",
     "eslint-plugin-prettier": "^3.1.2",
@@ -61,6 +64,7 @@
     "lint-staged": "^10.0.8",
     "npm-run-all": "^4.1.5",
     "prettier": "^2.0.2",
+    "release-it": "^13.5.7",
     "rimraf": "^3.0.2",
     "rollup": "^2.7.6",
     "rollup-plugin-typescript2": "^0.27.0",
