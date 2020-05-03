@@ -3,18 +3,17 @@ const faker = require('faker');
 module.exports = {
   'petstore-file': {
     input: './petstore.yaml',
-    output: './petstoreFromFileSpecWithConfig.ts',
+    output: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
   },
   'petstore-file-transfomer': {
     output: {
-      mode: 'split',
-      target: './petstoreFromFileSpecWithTransformer.ts',
-      schemas: './model',
+      target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
+      schemas: './api/model',
       mock: true,
       override: {
         operations: {
           listPets: {
-            mutator: './mutator-response-type.js',
+            mutator: './api/mutator/response-type.js',
             mock: {
               properties: () => {
                 return {
@@ -43,7 +42,7 @@ module.exports = {
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: './transformer-add-version.js',
+        transformer: './api/transformer/add-version.js',
       },
     },
   },

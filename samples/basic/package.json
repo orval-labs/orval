@@ -5,10 +5,17 @@
   "main": "index.html",
   "scripts": {
     "example": "run-p example:*",
-    "example:github": "node ../../lib/bin/orval.js import --input https://github.com/OAI/OpenAPI-Specification/blob/master/examples/v3.0/petstore.yaml --output ./petstoreFromGithubSpec.ts",
-    "example:file": "node ../../lib/bin/orval.js import --input ./petstore.yaml --output ./petstoreFromFileSpec.ts",
-    "example:advanced": "node ../../lib/bin/orval.js import --config ./orval.config.js"
+    "example:basic": "node ../../lib/bin/orval.js --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
+    "example:config": "node ../../lib/bin/orval.js"
   },
   "author": "Victor Bury",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^7.1.3",
+    "@rollup/plugin-typescript": "^4.1.1",
+    "npm-run-all": "^4.1.5"
+  },
+  "dependencies": {
+    "axios": "^0.19.2"
+  }
 }
