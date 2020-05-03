@@ -99,9 +99,10 @@ export const writeTagsMode = ({
   schemas,
   info,
   output,
-}: WriteSpecsProps & { output: OutputOptions }) => {
+  workspace,
+}: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
   const { path, filename, dirname, extension } = getFileInfo(
-    output.target,
+    join(workspace, output.target || ''),
     camel(info.title),
   );
 

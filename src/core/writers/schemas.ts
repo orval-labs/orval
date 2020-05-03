@@ -6,10 +6,12 @@ import { GeneratorSchema } from '../../types/generator';
 import { writeModels } from './models';
 
 export const writeSchemas = ({
+  workspace,
   output,
   schemas,
   info,
 }: {
+  workspace: string;
   output: OutputOptions;
   schemas: GeneratorSchema[];
   info: InfoObject;
@@ -18,11 +20,13 @@ export const writeSchemas = ({
     return;
   }
 
-  if (!existsSync(output.schemas)) {
-    mkdirSync(output.schemas);
+  const schemaPath = join(workspace, output.schemas);
+
+  if (!existsSync(schemaPath)) {
+    mkdirSync(schemaPath);
   }
 
-  writeFileSync(join(output.schemas, '/index.ts'), '');
+  writeFileSync(join(schemaPath, '/index.ts'), '');
 
-  writeModels(schemas, output.schemas, info);
+  writeModels(schemas, schemaPath, info);
 };

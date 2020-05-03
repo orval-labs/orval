@@ -10,11 +10,11 @@ import { writeTagsMode } from './tagsMode';
 const isSingleMode = (output: string | OutputOptions): output is string =>
   isString(output) || !output.mode || output.mode === OutputMode.SINGLE;
 
-export const writeSpecs = (options: Options, backend?: string) => ({
-  operations,
-  schemas,
-  info,
-}: WriteSpecsProps) => {
+export const writeSpecs = (
+  workspace: string,
+  options: Options,
+  backend?: string,
+) => ({ operations, schemas, info }: WriteSpecsProps) => {
   const { output } = options;
 
   if (!output || (isObject(output) && !output.target && !output.schemas)) {
@@ -22,7 +22,7 @@ export const writeSpecs = (options: Options, backend?: string) => ({
   }
 
   if (isObject(output)) {
-    writeSchemas({ output, schemas, info });
+    writeSchemas({ workspace, output, schemas, info });
   }
 
   if (isObject(output) && !output.target) {
@@ -31,11 +31,11 @@ export const writeSpecs = (options: Options, backend?: string) => ({
   }
 
   if (isSingleMode(output)) {
-    writeSingleMode({ operations, output, info, schemas });
+    writeSingleMode({ workspace, operations, output, info, schemas });
   } else if (output.mode === OutputMode.SPLIT) {
-    writeSplitMode({ operations, output, info, schemas });
+    writeSplitMode({ workspace, operations, output, info, schemas });
   } else if (output.mode === OutputMode.TAGS) {
-    writeTagsMode({ operations, output, info, schemas });
+    writeTagsMode({ workspace, operations, output, info, schemas });
   }
 
   createSuccessMessage(backend);

@@ -6,6 +6,7 @@ import { generateClient } from './client';
 import { generateVerbsOptions } from './verbsOptions';
 
 export const generateApi = (
+  workspace: string,
   specs: OpenAPIObject,
   override?: OverrideOutput,
 ) => {
@@ -14,6 +15,7 @@ export const generateApi = (
       const route = getRoute(pathRoute);
 
       const verbsOptions = generateVerbsOptions({
+        workspace,
         verbs,
         override,
         route,

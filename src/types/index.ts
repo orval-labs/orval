@@ -76,4 +76,5 @@ export type ImportOpenApi = {
   format: 'yaml' | 'json';
   input?: InputOptions;
   output?: OutputOptions;
+  workspace: string;
 };

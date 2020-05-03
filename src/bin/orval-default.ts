@@ -12,7 +12,7 @@ program.option('--config [value]', 'override flags by a config file');
 program.parse(process.argv);
 
 if (isString(program.input) && isString(program.output)) {
-  generateSpec((program as any) as Options);
+  generateSpec(process.cwd(), (program as any) as Options);
 } else {
   generateConfig(program.config);
 }

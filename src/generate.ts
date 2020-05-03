@@ -1,12 +1,18 @@
 import { existsSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
 import { ExternalConfigFile, Options } from './types';
 import { catchError } from './utils/errors';
 
-export const generateSpec = (options: Options, backend?: string) => {
-  importSpecs(options).then(writeSpecs(options, backend)).catch(catchError);
+export const generateSpec = (
+  workspace: string,
+  options: Options,
+  backend?: string,
+) => {
+  importSpecs(workspace, options)
+    .then(writeSpecs(workspace, options, backend))
+    .catch(catchError);
 };
 
 export const generateConfig = (path: string = './orval.config.js') => {
@@ -19,7 +25,9 @@ export const generateConfig = (path: string = './orval.config.js') => {
   // tslint:disable-next-line: no-var-requires
   const config: ExternalConfigFile = require(fullPath);
 
+  const workspace = dirname(fullPath);
+
   Object.entries(config).forEach(([backend, options]) => {
-    generateSpec(options, backend);
+    generateSpec(workspace, options, backend);
   });
 };

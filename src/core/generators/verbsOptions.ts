@@ -21,6 +21,7 @@ import { getTransformer } from '../getters/transformer';
 import { generateMutator } from './mutator';
 
 const generateVerbOptions = ({
+  workspace,
   verb,
   override,
   operation,
@@ -28,6 +29,7 @@ const generateVerbOptions = ({
   verbParameters = [],
   components,
 }: {
+  workspace: string;
   verb: string;
   override?: OverrideOutput;
   operation: OperationObject;
@@ -67,6 +69,7 @@ const generateVerbOptions = ({
   const props = getProps({ body, queryParams, params });
 
   const mutator = generateMutator({
+    workspace,
     body,
     mutator: overrideOperation?.mutator || override?.mutator,
   });
@@ -88,6 +91,7 @@ const generateVerbOptions = ({
   };
 
   const transformer = getTransformer(
+    workspace,
     overrideOperation?.transformer || override?.transformer,
   );
 
@@ -95,11 +99,13 @@ const generateVerbOptions = ({
 };
 
 export const generateVerbsOptions = ({
+  workspace,
   verbs,
   override,
   route,
   components,
 }: {
+  workspace: string;
   verbs: PathItemObject;
   override?: OverrideOutput;
   route: string;
@@ -120,6 +126,7 @@ export const generateVerbsOptions = ({
       return [
         ...acc,
         generateVerbOptions({
+          workspace,
           verb,
           override,
           verbParameters: verbs.parameters,

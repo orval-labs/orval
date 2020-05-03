@@ -1,4 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { camel } from '../../utils/case';
@@ -11,13 +12,15 @@ import { generateTarget } from '../generators/target';
 import { resolvePath } from '../resolvers/path';
 
 export const writeSingleMode = ({
+  workspace,
   operations,
   schemas,
   info,
   output,
-}: WriteSpecsProps & { output: string | OutputOptions }) => {
+}: WriteSpecsProps & { workspace: string; output: string | OutputOptions }) => {
+  const targetedPath = isString(output) ? output : output.target || '';
   const { path, dirname } = getFileInfo(
-    isString(output) ? output : output.target,
+    join(workspace, targetedPath),
     camel(info.title),
   );
 

@@ -8,6 +8,7 @@ import { dynamicReader } from '../../utils/reader';
 import { importOpenApi } from './openApi';
 
 export const importSpecs = async (
+  workspace: string,
   options: Options,
 ): Promise<WriteSpecsProps> => {
   const { input, output } = options;
@@ -26,9 +27,10 @@ export const importSpecs = async (
 
   const data = URL_REGEX.test(path)
     ? await getGithubOpenApi(path)
-    : dynamicReader(path);
+    : dynamicReader(path, workspace);
 
   return importOpenApi({
+    workspace,
     data,
     format,
     ...(isObject(input) && {

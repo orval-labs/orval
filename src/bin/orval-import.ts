@@ -15,7 +15,7 @@ program.parse(process.argv);
 errorMessage('This command is deprecated just use orval without import');
 
 if (isString(program.input) && isString(program.output)) {
-  generateSpec((program as any) as Options);
+  generateSpec(process.cwd(), (program as any) as Options);
 } else {
   generateConfig(program.config);
 }
