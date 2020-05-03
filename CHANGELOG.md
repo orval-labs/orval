@@ -1,3 +1,21 @@
+# [2.2.0](https://github.com/anymaniax/orval/compare/v2.1.2...v2.2.0) (2020-05-03)
+
+
+### Bug Fixes
+
+* **samples-react:** add dependencies faker and axios ([2d9ba80](https://github.com/anymaniax/orval/commit/2d9ba8099c0a40c952c49290bc7bbd53930c2fc7))
+* **tags mode:** add default tag if operation has none ([ad188f5](https://github.com/anymaniax/orval/commit/ad188f5f0c0b05066412f3b6961ffc367e9179bb))
+* **tags mode:** interface name was not properly pascal-cased ([f0e87bf](https://github.com/anymaniax/orval/commit/f0e87bf0123815db409ecafe5bd4975d15d31a4c))
+
+
+### Features
+
+* **case:** implementation ([c57342b](https://github.com/anymaniax/orval/commit/c57342bfad41e51877c4c389ae98ed509ca87e21))
+* **orval-command:** deprecated import command and export a generate ([a139fab](https://github.com/anymaniax/orval/commit/a139fab80fcaf9258d1cd9886126dfe5677e3eab))
+* **release-it:** setup ([efbb316](https://github.com/anymaniax/orval/commit/efbb316d65259831cc82bb0a333dc972ed5d175f))
+* **samples:** add a react app examples ([9fc2999](https://github.com/anymaniax/orval/commit/9fc2999c546bc17871f4f9aebbc19cce30befa87))
+* **samples:** update basic ([96b9c0e](https://github.com/anymaniax/orval/commit/96b9c0eb97def76a605f00ec4306f3adec2dc9d0))
+
 ### [2.1.2](https://github.com/anymaniax/orval/compare/v2.1.1...v2.1.2) (2020-04-30)
 
 ### [2.1.1](https://github.com/anymaniax/orval/compare/v2.1.0...v2.1.1) (2020-04-30)
