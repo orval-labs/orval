@@ -1,8 +1,6 @@
 import { generateConfig } from './generate';
 
-const generate = () => {
-  generateConfig();
-};
+const generate = (path?: string) => generateConfig(path);
 
 export { generate };
 export default generate;
