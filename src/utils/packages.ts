@@ -1,4 +1,3 @@
-import { readFileSync } from 'fs';
 import { join } from 'path';
 
 export type PackageJson = {
@@ -17,6 +16,4 @@ export type PackageJson = {
 };
 
 export const getPackage = () =>
-  JSON.parse(
-    readFileSync(join(__dirname, '../../package.json'), 'utf-8'),
-  ) as PackageJson;
+  require(join(__dirname, '../../package.json')) as PackageJson;
