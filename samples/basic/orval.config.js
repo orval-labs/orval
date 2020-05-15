@@ -1,4 +1,5 @@
 const faker = require('faker');
+const transformer = require('./api/transformer/add-version.js');
 
 module.exports = {
   'petstore-file': {
@@ -42,7 +43,7 @@ module.exports = {
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: './api/transformer/add-version.js',
+        transformer,
       },
     },
   },

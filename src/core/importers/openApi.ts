@@ -4,6 +4,7 @@ import YAML from 'yamljs';
 import { ImportOpenApi } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { dynamicImport } from '../../utils/imports';
+import { isString } from '../../utils/is';
 import { generateApi } from '../generators/api';
 import { generateResponsesDefinition } from '../generators/responsesDefinition';
 import { generateSchemasDefinition } from '../generators/schemaDefinition';
@@ -55,10 +56,10 @@ export const importOpenApi = async ({
   let specs = await importSpecs(data, format);
 
   if (input?.override?.transformer) {
-    const transformerFunc = input?.override?.transformer
+    const transformerFn = isString(input?.override?.transformer)
       ? dynamicImport(input.override.transformer, workspace)
-      : undefined;
-    specs = transformerFunc(specs);
+      : input?.override?.transformer;
+    specs = transformerFn(specs);
   }
 
   if (input?.validation) {

@@ -1,5 +1,7 @@
+import { Mutator } from '../../types';
 import { GetterBody } from '../../types/getters';
 import { dynamicImport } from '../../utils/imports';
+import { isString } from '../../utils/is';
 
 export const generateMutator = ({
   workspace,
@@ -8,7 +10,7 @@ export const generateMutator = ({
 }: {
   workspace: string;
   body: GetterBody;
-  mutator?: string;
+  mutator?: Mutator;
 }) => {
   if (!mutator) {
     return '';
@@ -20,8 +22,12 @@ export const generateMutator = ({
     body.definition ? `${body.definition} | undefined, ` : ''
   } AxiosRequestConfig | undefined]`;
 
+  const mutatorFn = isString(mutator)
+    ? dynamicImport(mutator, workspace)
+    : mutator;
+
   return `
     type Mutator = ${type}
 
-    const mutator: Mutator = ${dynamicImport(mutator, workspace)}\n`;
+    const mutator: Mutator = ${mutatorFn}\n`;
 };

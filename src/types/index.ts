@@ -1,3 +1,4 @@
+import { AxiosRequestConfig } from 'axios';
 import { OpenAPIObject } from 'openapi3-ts';
 
 export interface Options {
@@ -48,13 +49,30 @@ export type OverrideOutput = {
   };
 };
 
+type TransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+
+type Transformer = string | TransformerFn;
+
 export type OverrideInput = {
-  transformer?: string;
+  transformer?: Transformer;
 };
+
+type MutatorGet = (
+  url: string,
+  config: AxiosRequestConfig,
+) => [string, AxiosRequestConfig];
+
+type MutatorPost = (
+  url: string,
+  data: any,
+  config: AxiosRequestConfig,
+) => [string, AxiosRequestConfig];
+
+export type Mutator = string | MutatorGet | MutatorPost;
 
 export type OperationOptions = {
   transformer?: string;
-  mutator?: string;
+  mutator?: Mutator;
   mock?: {
     data?: MockProperties;
     properties?: MockProperties;
