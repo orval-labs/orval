@@ -15,7 +15,10 @@ export const generateSpec = (
     .catch(catchError);
 };
 
-export const generateConfig = (path: string = './orval.config.js') => {
+export const generateConfig = (
+  path: string = './orval.config.js',
+  projectName?: string,
+) => {
   const fullPath = join(process.cwd(), path);
 
   if (!existsSync(fullPath)) {
@@ -24,8 +27,18 @@ export const generateConfig = (path: string = './orval.config.js') => {
 
   // tslint:disable-next-line: no-var-requires
   const config: ExternalConfigFile = require(fullPath);
-
   const workspace = dirname(fullPath);
+
+  if (projectName) {
+    const project = config[projectName];
+
+    if (project) {
+      generateSpec(workspace, project, projectName);
+    } else {
+      catchError('Project not found');
+    }
+    return;
+  }
 
   Object.entries(config).forEach(([backend, options]) => {
     generateSpec(workspace, options, backend);

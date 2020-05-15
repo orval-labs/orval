@@ -16,11 +16,12 @@ program
   .option('-o, --output <path>', 'output file destination')
   .option('-i, --input <path>', 'input file (yaml or json openapi specs)')
   .option('-c, --config <path>', 'override flags by a config file')
+  .option('-p, --project <name>', 'focus a project of the config')
   .action((paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       generateSpec(process.cwd(), { input: cmd.input, output: cmd.output });
     } else {
-      generateConfig(program.config);
+      generateConfig(cmd.config, cmd.project);
     }
   });
 
@@ -35,7 +36,7 @@ program
     if (isString(cmd.input) && isString(cmd.output)) {
       generateSpec(process.cwd(), { input: cmd.input, output: cmd.output });
     } else {
-      generateConfig(program.config);
+      generateConfig(cmd.config);
     }
   });
 
