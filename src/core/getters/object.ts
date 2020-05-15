@@ -72,14 +72,14 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
         const isRequired = (item.required || []).includes(key);
         const propName = name ? name + pascal(key) : undefined;
         const resolvedValue = resolveObject(prop, propName);
+        const isReadOnly = item.readOnly || (prop as SchemaObject).readOnly;
         if (!index) {
           acc.value += '{';
         }
-
         acc.imports = [...acc.imports, ...resolvedValue.imports];
-        acc.value += `\n  ${getKey(key)}${isRequired ? '' : '?'}: ${
-          resolvedValue.value
-        };`;
+        acc.value += `\n  ${isReadOnly ? 'readonly ' : ''}${getKey(key)}${
+          isRequired ? '' : '?'
+        }: ${resolvedValue.value};`;
         acc.schemas = [...acc.schemas, ...resolvedValue.schemas];
 
         if (arr.length - 1 === index) {
