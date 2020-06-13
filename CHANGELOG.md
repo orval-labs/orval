@@ -1,3 +1,10 @@
+## [2.3.1](https://github.com/anymaniax/orval/compare/v2.3.0...v2.3.1) (2020-06-13)
+
+
+### Bug Fixes
+
+* **generator:** types ([30e8d21](https://github.com/anymaniax/orval/commit/30e8d21666303b15d9c1070c859eb00ebef63ab8))
+
 # [2.3.0](https://github.com/anymaniax/orval/compare/v2.2.2...v2.3.0) (2020-06-13)
 
 
