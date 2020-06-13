@@ -12,11 +12,9 @@ export const getRef = ($ref: ReferenceObject['$ref']) => {
   } else if ($ref.startsWith('#/components/responses')) {
     return pascal($ref.replace('#/components/responses/', '')) + 'Response';
   } else if ($ref.startsWith('#/components/parameters')) {
-    return pascal($ref.replace('#/components/parameters/', '')) + 'Parameter';
+    return pascal($ref.replace('#/components/parameters/', ''));
   } else if ($ref.startsWith('#/components/requestBodies')) {
-    return (
-      pascal($ref.replace('#/components/requestBodies/', '')) + 'RequestBody'
-    );
+    return pascal($ref.replace('#/components/requestBodies/', ''));
   } else {
     throw new Error(
       'This library only resolve $ref that are include into `#/components/*` for now',
