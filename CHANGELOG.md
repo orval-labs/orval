@@ -1,3 +1,22 @@
+# [2.3.0](https://github.com/anymaniax/orval/compare/v2.2.2...v2.3.0) (2020-06-13)
+
+
+### Bug Fixes
+
+* **bin:** correctly  handle options ([4b364c1](https://github.com/anymaniax/orval/commit/4b364c1b89e94d71f267b0171d51cdba59dbae30))
+* **client-angular:** writer definition name ([177f5c5](https://github.com/anymaniax/orval/commit/177f5c5ed3da45e9070103642f7725c1bc879df2))
+* **doc:** update ([31611cd](https://github.com/anymaniax/orval/commit/31611cd4a2113a78b0432bfa9cba230b7221c43a))
+
+
+### Features
+
+* **bin:** add project command ([f2f4902](https://github.com/anymaniax/orval/commit/f2f490223e1c23737923ed35ef11abc1f5ee4e91))
+* **client:** add angular ([918d19d](https://github.com/anymaniax/orval/commit/918d19d0a49ba7a8461a7392d74c64e4e2926c4e))
+* **commandline:** use action instead of multiple files ([ef0d17a](https://github.com/anymaniax/orval/commit/ef0d17a883ab47a571ed5e5b7612046b06edb130))
+* **config:** handle transformer and mutator function ([dcf2705](https://github.com/anymaniax/orval/commit/dcf270525a35f76d23e9be9e8fda4b17eb12c707))
+* **dependencies:** update ([554c842](https://github.com/anymaniax/orval/commit/554c8422ae3ebf09a3b6c1afdc12271051e497e3))
+* **generator:** add readonly ([b9b10c8](https://github.com/anymaniax/orval/commit/b9b10c848bc65c10a7c82426b03bd19c75ad712e))
+
 ## [2.2.2](https://github.com/anymaniax/orval/compare/v2.2.1...v2.2.2) (2020-05-03)
 
 
