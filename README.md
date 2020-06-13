@@ -158,6 +158,8 @@ interface InputOptions = {
     override?: OverrideInput;
 };
 
+type OutputClient = 'axios' | 'angular';
+
 type OutputMode = 'single' | 'split' | 'tags';
 
 type MockProperties =
@@ -184,6 +186,8 @@ type OverrideOutput = {
 };
 
 interface OutputOptions = {
+  // default axios
+  client?: OutputClient
   // path to the file which will contains the implementation
   target?: string;
   // path to the directory that will contains your models (if not define the target will contains the schemas)
