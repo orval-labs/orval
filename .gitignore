@@ -89,7 +89,6 @@ typings/
 # dotenv environment variables file
 .env
 
-public
 lib
 .cache
 
