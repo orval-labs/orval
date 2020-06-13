@@ -1,4 +1,5 @@
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
 
@@ -14,19 +15,31 @@ export const generateAngularImports = () => ({
   import faker from 'faker';\n`,
 });
 
-export const generateAngularHeader = (title: string) => ({
-  definition: `
-  export abstract class I${title}ApiService {`,
-  implementation: `
+export const generateAngularTitle = (title: string) => {
+  return {
+    definition: `I${pascal(title)}ApiService`,
+    implementation: `${pascal(title)}ApiService`,
+    implementationMock: `${pascal(title)}ApiMockService`,
+  };
+};
+
+export const generateAngularHeader = (title: string) => {
+  const angularTitle = generateAngularTitle(title);
+
+  return {
+    definition: `
+  export abstract class ${angularTitle.definition} {`,
+    implementation: `
   @Injectable()
-  export class ${title}ApiService implements I${title}ApiService {
+  export class ${angularTitle.implementation} implements ${angularTitle.definition} {
     constructor(
       private http: HttpClient,
     ) {}`,
-  implementationMock: `
+    implementationMock: `
   @Injectable()
-  export class ${title}ApiMockService extends I${title}ApiService {`,
-});
+  export class ${angularTitle.implementationMock} extends ${angularTitle.definition} {`,
+  };
+};
 
 export const generateAngularFooter = () => {
   return {

@@ -5,6 +5,7 @@ import {
   generateAngularFooter,
   generateAngularHeader,
   generateAngularImports,
+  generateAngularTitle,
 } from './angular';
 import { generateAngularMock } from './angular.mock';
 import {
@@ -12,6 +13,7 @@ import {
   generateAxiosFooter,
   generateAxiosHeader,
   generateAxiosImports,
+  generateAxiosTitle,
 } from './axios';
 import { generateAxiosMock } from './axios.mock';
 
@@ -24,6 +26,7 @@ const GENERATOR_CLIENT = {
     header: generateAxiosHeader,
     imports: generateAxiosImports,
     footer: generateAxiosFooter,
+    title: generateAxiosTitle,
   },
   [OutputClient.ANGULAR]: {
     client: generateAngular,
@@ -31,6 +34,7 @@ const GENERATOR_CLIENT = {
     header: generateAngularHeader,
     imports: generateAngularImports,
     footer: generateAngularFooter,
+    title: generateAngularTitle,
   },
 };
 export const generateClientImports = (
@@ -50,6 +54,13 @@ export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
 ) => {
   return GENERATOR_CLIENT[outputClient].footer();
+};
+
+export const generateClientTitle = (
+  outputClient: OutputClient = DEFAULT_CLIENT,
+  title: string,
+) => {
+  return GENERATOR_CLIENT[outputClient].title(title);
 };
 
 export const generateClient = (

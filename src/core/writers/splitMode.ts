@@ -2,10 +2,13 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { camel, pascal } from '../../utils/case';
+import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
-import { generateClientImports } from '../generators/client';
+import {
+  generateClientImports,
+  generateClientTitle,
+} from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateTarget } from '../generators/target';
@@ -40,13 +43,16 @@ export const writeSplitMode = ({
   let implementationData = header;
   let mockData = header;
 
-  const defaultImports = generateClientImports();
+  const defaultImports = generateClientImports(output.client);
+  const title = generateClientTitle(output.client, info.title);
+
+  console.log(title);
 
   definitionData += defaultImports.definition;
 
   const definitionPath = './' + filename + '.definition';
   const definitionImport = generateImports(
-    [pascal(info.title)],
+    [title.definition],
     definitionPath,
     true,
   );

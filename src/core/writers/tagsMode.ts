@@ -121,9 +121,7 @@ export const writeTagsMode = ({
   Object.entries(target).forEach(([tag, target]) => {
     const { definition, imports, implementation, implementationMocks } = target;
     const header = getFilesHeader(info);
-    const defaultImports = generateClientImports(
-      isObject(output) ? output.client : undefined,
-    );
+    const defaultImports = generateClientImports(output.client);
     let data = header;
     data +=
       isObject(output) && output.mock

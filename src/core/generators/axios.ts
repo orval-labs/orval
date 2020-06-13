@@ -1,4 +1,5 @@
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
 
@@ -65,11 +66,22 @@ const generateImports = ({
   ...(queryParams ? [queryParams.name] : []),
 ];
 
-export const generateAxiosHeader = (title: string) => ({
-  definition: `export interface ${title} {`,
-  implementation: `export const get${title} = (axios: AxiosInstance): ${title} => ({\n`,
-  implementationMock: `export const get${title}Mock = (): ${title} => ({\n`,
-});
+export const generateAxiosTitle = (title: string) => {
+  return {
+    definition: pascal(title),
+    implementation: `get${pascal(title)}`,
+    implementationMock: `get${pascal(title)}Mock`,
+  };
+};
+
+export const generateAxiosHeader = (title: string) => {
+  const axiosTitle = generateAxiosTitle(title);
+  return {
+    definition: `export interface ${axiosTitle.definition} {`,
+    implementation: `export const ${axiosTitle.implementation} = (axios: AxiosInstance): ${axiosTitle.definition} => ({\n`,
+    implementationMock: `export const ${axiosTitle.implementationMock} = (): ${axiosTitle.definition} => ({\n`,
+  };
+};
 
 export const generateAxiosFooter = () => {
   return {
