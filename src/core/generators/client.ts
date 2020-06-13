@@ -1,36 +1,73 @@
+import { OutputClient } from '../../types';
 import { GeneratorOptions, GeneratorVerbsOptions } from '../../types/generator';
-import { generateAxios, generateAxiosHeader } from './axios';
-import { generateMock } from './mocks';
+import {
+  generateAngular,
+  generateAngularFooter,
+  generateAngularHeader,
+  generateAngularImports,
+} from './angular';
+import { generateAngularMock } from './angular.mock';
+import {
+  generateAxios,
+  generateAxiosFooter,
+  generateAxiosHeader,
+  generateAxiosImports,
+} from './axios';
+import { generateAxiosMock } from './axios.mock';
 
-export const generateClientHeader = (title: string) => {
-  return {
-    ...generateAxiosHeader(title),
-    implementationMock: `export const get${title}Mock = (): ${title} => ({\n`,
-  };
+const DEFAULT_CLIENT = OutputClient.AXIOS;
+
+const GENERATOR_CLIENT = {
+  [OutputClient.AXIOS]: {
+    client: generateAxios,
+    mock: generateAxiosMock,
+    header: generateAxiosHeader,
+    imports: generateAxiosImports,
+    footer: generateAxiosFooter,
+  },
+  [OutputClient.ANGULAR]: {
+    client: generateAngular,
+    mock: generateAngularMock,
+    header: generateAngularHeader,
+    imports: generateAngularImports,
+    footer: generateAngularFooter,
+  },
+};
+export const generateClientImports = (
+  outputClient: OutputClient = DEFAULT_CLIENT,
+) => {
+  return GENERATOR_CLIENT[outputClient].imports();
 };
 
-export const generateClientFooter = () => {
-  return {
-    definition: '\n}\n',
-    implementation: '});\n',
-    implementationMock: '})\n',
-  };
+export const generateClientHeader = (
+  outputClient: OutputClient = DEFAULT_CLIENT,
+  title: string,
+) => {
+  return GENERATOR_CLIENT[outputClient].header(title);
+};
+
+export const generateClientFooter = (
+  outputClient: OutputClient = DEFAULT_CLIENT,
+) => {
+  return GENERATOR_CLIENT[outputClient].footer();
 };
 
 export const generateClient = (
+  outputClient: OutputClient = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
 ) => {
   return verbsOptions.reduce((acc, verbOption) => {
-    const axios = generateAxios(verbOption, options);
-    const mock = generateMock(verbOption, options.specs, options.override);
+    const generator = GENERATOR_CLIENT[outputClient];
+    const client = generator.client(verbOption, options);
+    const mock = generator.mock(verbOption, options.specs);
 
     return {
       ...acc,
       [verbOption.operationId]: {
-        definition: axios.definition,
-        implementation: axios.implementation,
-        imports: axios.imports,
+        definition: client.definition,
+        implementation: client.implementation,
+        imports: client.imports,
         implementationMocks: mock.implementation,
         importsMocks: mock.imports,
         tags: verbOption.tags,

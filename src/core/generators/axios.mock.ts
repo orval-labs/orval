@@ -104,11 +104,10 @@ const getMockDefinition = (
   specs: OpenAPIObject,
   override?: OverrideOutput,
 ) => {
-  const schemas =
-    Object.entries(specs.components?.schemas || []).reduce(
-      (acc, [name, type]) => ({ ...acc, [name]: type }),
-      {},
-    ) as { [key: string]: SchemaObject };
+  const schemas = Object.entries(specs.components?.schemas || []).reduce(
+    (acc, [name, type]) => ({ ...acc, [name]: type }),
+    {},
+  ) as { [key: string]: SchemaObject };
 
   const mockOptionsWithoutFunc = getMockWithoutFunc(specs, override);
 
@@ -136,7 +135,7 @@ const getMockOptionsDataOverride = (
     : stringify(responseOverride);
 };
 
-export const generateMock = (
+export const generateAxiosMock = (
   { operationId, response, definitionName, props }: GeneratorVerbOptions,
   specs: OpenAPIObject,
   override?: OverrideOutput,

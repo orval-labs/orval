@@ -5,6 +5,7 @@ import { WriteSpecsProps } from '../../types/writers';
 import { camel, pascal } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
+import { generateClientImports } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateTarget } from '../generators/target';
@@ -31,7 +32,7 @@ export const writeSplitMode = ({
     imports,
     implementation,
     implementationMocks,
-  } = generateTarget(operations, info);
+  } = generateTarget(operations, info, output.client);
 
   const header = getFilesHeader(info);
 
@@ -39,7 +40,9 @@ export const writeSplitMode = ({
   let implementationData = header;
   let mockData = header;
 
-  definitionData += "import { AxiosPromise } from 'axios';\n";
+  const defaultImports = generateClientImports();
+
+  definitionData += defaultImports.definition;
 
   const definitionPath = './' + filename + '.definition';
   const definitionImport = generateImports(
@@ -48,8 +51,8 @@ export const writeSplitMode = ({
     true,
   );
 
-  implementationData += `import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';\n${definitionImport}`;
-  mockData += `import { AxiosPromise } from 'axios';\nimport faker from 'faker';\n${definitionImport}`;
+  implementationData += `${defaultImports.implementation}${definitionImport}`;
+  mockData += `${defaultImports.implementationMock}${definitionImport}`;
 
   if (output.schemas) {
     const schemasPath = resolvePath(path, output.schemas);

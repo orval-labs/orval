@@ -16,11 +16,11 @@ export const generateMutator = ({
     return '';
   }
 
-  const type = `(url: string,${
+  const type = `<T>(url: string,${
     body.definition ? ` data: ${body.definition}, ` : ''
-  } config?: AxiosRequestConfig) => [string, ${
+  } config?: T) => [string, ${
     body.definition ? `${body.definition} | undefined, ` : ''
-  } AxiosRequestConfig | undefined]`;
+  } T | undefined]`;
 
   const mutatorFn = isString(mutator)
     ? dynamicImport(mutator, workspace)

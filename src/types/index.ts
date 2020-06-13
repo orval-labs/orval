@@ -12,12 +12,20 @@ export type OutputOptions = {
   mode?: OutputMode;
   mock?: boolean;
   override?: OverrideOutput;
+  client?: OutputClient;
 };
 
 export type InputOptions = {
   target?: string;
   validation?: boolean;
   override?: OverrideInput;
+};
+
+export type OutputClient = 'axios' | 'angular';
+
+export const OutputClient = {
+  ANGULAR: 'angular' as OutputClient,
+  AXIOS: 'axios' as OutputClient,
 };
 
 export type OutputMode = 'single' | 'split' | 'tags';

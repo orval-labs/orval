@@ -1,4 +1,5 @@
 import { InfoObject } from 'openapi3-ts';
+import { OutputClient } from '../../types';
 import { GeneratorOperations } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
@@ -7,11 +8,12 @@ import { generateClientFooter, generateClientHeader } from './client';
 export const generateTarget = (
   operations: GeneratorOperations,
   info: InfoObject,
+  outputClient?: OutputClient,
 ) =>
   Object.values(operations).reduce(
     (acc, operation, index, arr) => {
       if (!index) {
-        const header = generateClientHeader(pascal(info.title));
+        const header = generateClientHeader(outputClient, pascal(info.title));
         acc.definition += header.definition;
         acc.implementation += header.implementation;
         acc.implementationMocks += header.implementationMock;
@@ -27,7 +29,7 @@ export const generateTarget = (
       acc.implementationMocks += operation.implementationMocks;
 
       if (index === arr.length - 1) {
-        const footer = generateClientFooter();
+        const footer = generateClientFooter(outputClient);
         acc.definition += footer.definition;
         acc.implementation += footer.implementation;
         acc.implementationMocks += footer.implementationMock;

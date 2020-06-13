@@ -1,5 +1,5 @@
 import { OpenAPIObject, PathItemObject } from 'openapi3-ts';
-import { OverrideOutput } from '../../types';
+import { OutputClient, OverrideOutput } from '../../types';
 import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
 import { getRoute } from '../getters/route';
 import { generateClient } from './client';
@@ -9,6 +9,7 @@ export const generateApi = (
   workspace: string,
   specs: OpenAPIObject,
   override?: OverrideOutput,
+  httpClient?: OutputClient,
 ) => {
   return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
     (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
@@ -32,7 +33,7 @@ export const generateApi = (
         [],
       );
 
-      const client = generateClient(verbsOptions, {
+      const client = generateClient(httpClient, verbsOptions, {
         route,
         specs,
         override,

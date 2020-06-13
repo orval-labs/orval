@@ -1,66 +1,12 @@
-import { VERBS_WITH_BODY } from '../../constants';
-import { Verbs } from '../../types';
-import {
-  GeneratorOptions,
-  GeneratorSchema,
-  GeneratorVerbOptions,
-} from '../../types/generator';
-import { GetterBody, GetterResponse } from '../../types/getters';
-import { camel } from '../../utils/case';
+import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import { generateFormData } from './formData';
+import { generateOptions } from './options';
 
-const generateBodyProps = (body: GetterBody, verb: Verbs) => {
-  if (!VERBS_WITH_BODY.includes(verb)) {
-    return '';
-  }
-
-  if (body.isBlob) {
-    return '\n      formData,';
-  }
-
-  return `\n      ${body.implementation || 'undefined'},`;
-};
-
-const generateQueryParamsProps = (
-  response: GetterResponse,
-  queryParams?: GeneratorSchema,
-) => {
-  if (!queryParams && !response.isBlob) {
-    return '';
-  }
-
-  let value = '\n      {';
-
-  if (queryParams) {
-    value += '\n        params,';
-  }
-
-  if (response.isBlob) {
-    value += `\n        responseType: 'blob',`;
-  }
-
-  value += '\n      },';
-
-  return value;
-};
-
-const generateAxiosProps = ({
-  route,
-  body,
-  queryParams,
-  response,
-  verb,
-}: {
-  route: string;
-  body: GetterBody;
-  queryParams?: GeneratorSchema;
-  response: GetterResponse;
-  verb: Verbs;
-}) => {
-  return `\n      \`${route}\`,${generateBodyProps(
-    body,
-    verb,
-  )}${generateQueryParamsProps(response, queryParams)}\n    `;
-};
+export const generateAxiosImports = () => ({
+  definition: `import { AxiosPromise } from 'axios';\n`,
+  implementation: `import { AxiosPromise, AxiosInstance } from 'axios';\n`,
+  implementationMock: `import { AxiosPromise, AxiosInstance } from 'axios';\nimport faker from 'faker';\n`,
+});
 
 const generateAxiosDefinition = ({
   props,
@@ -79,16 +25,6 @@ const generateAxiosDefinition = ({
   return value;
 };
 
-const generateFormData = (body: GetterBody) => {
-  if (!body.isBlob) {
-    return '';
-  }
-
-  return `const formData = new FormData(); formData.append('file', ${camel(
-    body.implementation,
-  )});`;
-};
-
 const generateAxiosImplementation = (
   {
     queryParams,
@@ -101,7 +37,7 @@ const generateAxiosImplementation = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
-  const axiosProps = generateAxiosProps({
+  const options = generateOptions({
     route,
     body,
     queryParams,
@@ -114,7 +50,7 @@ const generateAxiosImplementation = (
   }\n  ): AxiosPromise<${response.definition}> {${mutator}${generateFormData(
     body,
   )}
-    return axios.${verb}(${mutator ? `...mutator(${axiosProps})` : axiosProps});
+    return axios.${verb}(${mutator ? `...mutator(${options})` : options});
   },
 `;
 };
@@ -132,7 +68,16 @@ const generateImports = ({
 export const generateAxiosHeader = (title: string) => ({
   definition: `export interface ${title} {`,
   implementation: `export const get${title} = (axios: AxiosInstance): ${title} => ({\n`,
+  implementationMock: `export const get${title}Mock = (): ${title} => ({\n`,
 });
+
+export const generateAxiosFooter = () => {
+  return {
+    definition: '\n}\n',
+    implementation: '});\n',
+    implementationMock: '})\n',
+  };
+};
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,

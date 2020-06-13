@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
-import { OutputOptions } from '../../types';
+import { OutputClient, OutputOptions } from '../../types';
 import {
   GeneratorOperation,
   GeneratorOperations,
@@ -16,6 +16,7 @@ import { getFilesHeader } from '../../utils/messages/inline';
 import {
   generateClientFooter,
   generateClientHeader,
+  generateClientImports,
 } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -30,11 +31,15 @@ const generateTargetTags = (
   currentAcc: { [key: string]: GeneratorTarget },
   operation: GeneratorOperation,
   info: InfoObject,
+  outputClient?: OutputClient,
 ) =>
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
     if (!currentOperation) {
-      const header = generateClientHeader(pascal(`${info.title} ${tag}`));
+      const header = generateClientHeader(
+        outputClient,
+        pascal(`${info.title} ${tag}`),
+      );
 
       return {
         ...acc,
@@ -68,14 +73,15 @@ const generateTargetTags = (
 export const generateTarget = (
   operations: GeneratorOperations,
   info: InfoObject,
+  outputClient?: OutputClient,
 ) =>
   Object.values(operations)
     .map(addDefaultTagIfEmpty)
     .reduce((acc, operation, index, arr) => {
-      const targetTags = generateTargetTags(acc, operation, info);
+      const targetTags = generateTargetTags(acc, operation, info, outputClient);
 
       if (index === arr.length - 1) {
-        const footer = generateClientFooter();
+        const footer = generateClientFooter(outputClient);
 
         return Object.entries(targetTags).reduce((acc, [tag, target]) => {
           return {
@@ -110,16 +116,19 @@ export const writeTagsMode = ({
     mkdirSync(dirname);
   }
 
-  const target = generateTarget(operations, info);
+  const target = generateTarget(operations, info, output.client);
 
   Object.entries(target).forEach(([tag, target]) => {
     const { definition, imports, implementation, implementationMocks } = target;
     const header = getFilesHeader(info);
+    const defaultImports = generateClientImports(
+      isObject(output) ? output.client : undefined,
+    );
     let data = header;
     data +=
-      "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';\n";
-    data +=
-      isObject(output) && output.mock ? "import faker from 'faker';\n" : '\n';
+      isObject(output) && output.mock
+        ? defaultImports.implementationMock
+        : defaultImports.implementation;
 
     if (isObject(output) && output.schemas) {
       data += generateImports(imports, resolvePath(path, output.schemas), true);

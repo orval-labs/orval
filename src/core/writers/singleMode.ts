@@ -6,6 +6,7 @@ import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
+import { generateClientImports } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateTarget } from '../generators/target';
@@ -33,13 +34,21 @@ export const writeSingleMode = ({
     imports,
     implementation,
     implementationMocks,
-  } = generateTarget(operations, info);
+  } = generateTarget(
+    operations,
+    info,
+    isObject(output) ? output.client : undefined,
+  );
 
   let data = getFilesHeader(info);
+
+  const defaultImports = generateClientImports(
+    isObject(output) ? output.client : undefined,
+  );
   data +=
-    "import { AxiosPromise, AxiosInstance, AxiosRequestConfig } from 'axios';\n";
-  data +=
-    isObject(output) && output.mock ? "import faker from 'faker';\n" : '\n';
+    isObject(output) && output.mock
+      ? defaultImports.implementationMock
+      : defaultImports.implementation;
 
   if (isObject(output) && output.schemas) {
     data += generateImports(imports, resolvePath(path, output.schemas), true);

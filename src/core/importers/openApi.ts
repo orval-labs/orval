@@ -74,7 +74,7 @@ export const importOpenApi = async ({
     specs.components?.responses,
   );
 
-  const api = generateApi(workspace, specs, output?.override);
+  const api = generateApi(workspace, specs, output?.override, output?.client);
 
   const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
 
