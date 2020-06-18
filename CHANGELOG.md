@@ -1,3 +1,11 @@
+## [2.4.1](https://github.com/anymaniax/orval/compare/v2.4.0...v2.4.1) (2020-06-18)
+
+
+### Bug Fixes
+
+* **msw:** response type ([a98468d](https://github.com/anymaniax/orval/commit/a98468d13ddaba9389704addf0b180a175e5baa7))
+* **readme:** update ([488ce21](https://github.com/anymaniax/orval/commit/488ce21797b2d37ad5e998459510a31ebdbbb926))
+
 # [2.4.0](https://github.com/anymaniax/orval/compare/v2.3.1...v2.4.0) (2020-06-18)
 
 
