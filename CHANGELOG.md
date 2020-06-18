@@ -1,3 +1,11 @@
+# [2.4.0](https://github.com/anymaniax/orval/compare/v2.3.1...v2.4.0) (2020-06-18)
+
+
+### Features
+
+* **msw:** implementation ([124d376](https://github.com/anymaniax/orval/commit/124d3769a6549175f79a05eeb2cbcf1ed4141fd4))
+* **msw:** samples & readme ([a07c919](https://github.com/anymaniax/orval/commit/a07c91916624bad29cbb54a407fb159471ec3e38))
+
 ## [2.3.1](https://github.com/anymaniax/orval/compare/v2.3.0...v2.3.1) (2020-06-13)
 
 
