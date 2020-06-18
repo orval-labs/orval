@@ -19,7 +19,7 @@
 
 ### Code Generation
 
-`orval` is able to generate axios client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
+`orval` is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
 
 #### Usage
 
