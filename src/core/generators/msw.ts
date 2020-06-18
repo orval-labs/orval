@@ -48,17 +48,20 @@ export const generateMSW = (
   const route = getRoute(pathRoute);
   const mockData = getMockOptionsDataOverride(operationId, override);
 
+  const value = mockData
+    ? mockData
+    : definitions.length > 1
+    ? `faker.helpers.randomize(${definition})`
+    : definitions[0];
+
+  const responseType = value[0] === '{' || value[0] === '[' ? 'json' : 'text';
+
   return `rest.${verb}('${route}', (req, res, ctx) => {
     return res(
       ctx.delay(1000),
-      ctx.status(200, 'Mocked status'),
-      ctx.json(${
-        mockData
-          ? mockData
-          : definitions.length > 1
-          ? `faker.helpers.randomize(${definition})`
-          : definitions[0]
-      }),
+      ctx.status(200, 'Mocked status'),${
+        value !== 'undefined' ? `\nctx.${responseType}(${value}),` : ''
+      }
     )
   }),`;
 };
