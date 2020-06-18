@@ -10,7 +10,7 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean;
+  mock?: boolean | 'msw';
   override?: OverrideOutput;
   client?: OutputClient;
 };

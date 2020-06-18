@@ -35,6 +35,7 @@ export const writeSplitMode = ({
     imports,
     implementation,
     implementationMocks,
+    implementationMSW,
   } = generateTarget(operations, info, output.client);
 
   const header = getFilesHeader(info);
@@ -42,11 +43,10 @@ export const writeSplitMode = ({
   let definitionData = header;
   let implementationData = header;
   let mockData = header;
+  let mswData = header;
 
   const defaultImports = generateClientImports(output.client);
   const title = generateClientTitle(output.client, info.title);
-
-  console.log(title);
 
   definitionData += defaultImports.definition;
 
@@ -59,6 +59,7 @@ export const writeSplitMode = ({
 
   implementationData += `${defaultImports.implementation}${definitionImport}`;
   mockData += `${defaultImports.implementationMock}${definitionImport}`;
+  mswData += `${defaultImports.implementationMSW}`;
 
   if (output.schemas) {
     const schemasPath = resolvePath(path, output.schemas);
@@ -80,13 +81,18 @@ export const writeSplitMode = ({
   definitionData += `\n${definition}`;
   implementationData += `\n${implementation}`;
   mockData += `\n${implementationMocks}`;
+  mswData += `\n${implementationMSW}`;
 
   if (path) {
     writeFileSync(join(dirname, definitionPath + extension), definitionData);
     writeFileSync(join(dirname, filename + extension), implementationData);
 
     if (output.mock) {
-      writeFileSync(join(dirname, filename + '.mock' + extension), mockData);
+      if (output.mock === 'msw') {
+        writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
+      } else {
+        writeFileSync(join(dirname, filename + '.mock' + extension), mockData);
+      }
     }
   }
 };

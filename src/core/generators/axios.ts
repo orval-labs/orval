@@ -80,6 +80,8 @@ export const generateAxiosHeader = (title: string) => {
     definition: `export interface ${axiosTitle.definition} {`,
     implementation: `export const ${axiosTitle.implementation} = (axios: AxiosInstance): ${axiosTitle.definition} => ({\n`,
     implementationMock: `export const ${axiosTitle.implementationMock} = (): ${axiosTitle.definition} => ({\n`,
+    implementationMSW: `const {worker, rest} = window.msw;
+    worker.use(\n`,
   };
 };
 
@@ -88,6 +90,7 @@ export const generateAxiosFooter = () => {
     definition: '\n}\n',
     implementation: '});\n',
     implementationMock: '})\n',
+    implementationMSW: ')\n',
   };
 };
 

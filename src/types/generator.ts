@@ -28,6 +28,7 @@ export type GeneratorTarget = {
   definition: string;
   implementation: string;
   implementationMocks: string;
+  implementationMSW: string;
 };
 
 export type GeneratorOperation = GeneratorTarget & {
@@ -55,6 +56,7 @@ export type GeneratorVerbsOptions = GeneratorVerbOptions[];
 
 export type GeneratorOptions = {
   route: string;
+  pathRoute: string;
   specs: OpenAPIObject;
   override?: OverrideOutput;
 };

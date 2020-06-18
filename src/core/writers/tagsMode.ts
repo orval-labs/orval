@@ -49,6 +49,8 @@ const generateTargetTags = (
           implementation: header.implementation + operation.implementation,
           implementationMocks:
             header.implementationMock + operation.implementationMocks,
+          implementationMSW:
+            header.implementationMSW + operation.implementationMSW,
         },
       };
     }
@@ -66,6 +68,8 @@ const generateTargetTags = (
         ],
         implementationMocks:
           currentOperation.implementationMocks + operation.implementationMocks,
+        implementationMSW:
+          currentOperation.implementationMSW + operation.implementationMSW,
       },
     };
   }, currentAcc);
@@ -91,6 +95,8 @@ export const generateTarget = (
               implementation: target.implementation + footer.implementation,
               implementationMocks:
                 target.implementationMocks + footer.implementationMock,
+              implementationMSW:
+                target.implementationMSW + footer.implementationMSW,
               imports: generalTypesFilter(target.imports),
             },
           };
@@ -119,14 +125,27 @@ export const writeTagsMode = ({
   const target = generateTarget(operations, info, output.client);
 
   Object.entries(target).forEach(([tag, target]) => {
-    const { definition, imports, implementation, implementationMocks } = target;
+    const {
+      definition,
+      imports,
+      implementation,
+      implementationMocks,
+      implementationMSW,
+    } = target;
     const header = getFilesHeader(info);
     const defaultImports = generateClientImports(output.client);
     let data = header;
-    data +=
-      isObject(output) && output.mock
-        ? defaultImports.implementationMock
-        : defaultImports.implementation;
+
+    if (isObject(output) && output.mock) {
+      if (output.mock === 'msw') {
+        data += defaultImports.implementation;
+        data += defaultImports.implementationMSW;
+      } else {
+        data += defaultImports.implementationMock;
+      }
+    } else {
+      data += defaultImports.implementation;
+    }
 
     if (isObject(output) && output.schemas) {
       data += generateImports(imports, resolvePath(path, output.schemas), true);
@@ -146,7 +165,7 @@ export const writeTagsMode = ({
 
     if (isObject(output) && output.mock) {
       data += '\n\n';
-      data += implementationMocks;
+      data += output.mock === 'msw' ? implementationMSW : implementationMocks;
     }
 
     writeFileSync(join(dirname, `${filename}.${kebab(tag)}${extension}`), data);

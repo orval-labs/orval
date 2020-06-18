@@ -1,5 +1,6 @@
 import { OutputClient } from '../../types';
 import { GeneratorOptions, GeneratorVerbsOptions } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import {
   generateAngular,
   generateAngularFooter,
@@ -16,6 +17,7 @@ import {
   generateAxiosTitle,
 } from './axios';
 import { generateAxiosMock } from './axios.mock';
+import { generateMSW } from './msw';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -23,6 +25,7 @@ const GENERATOR_CLIENT = {
   [OutputClient.AXIOS]: {
     client: generateAxios,
     mock: generateAxiosMock,
+    msw: generateMSW,
     header: generateAxiosHeader,
     imports: generateAxiosImports,
     footer: generateAxiosFooter,
@@ -31,6 +34,7 @@ const GENERATOR_CLIENT = {
   [OutputClient.ANGULAR]: {
     client: generateAngular,
     mock: generateAngularMock,
+    msw: generateMSW,
     header: generateAngularHeader,
     imports: generateAngularImports,
     footer: generateAngularFooter,
@@ -40,20 +44,30 @@ const GENERATOR_CLIENT = {
 export const generateClientImports = (
   outputClient: OutputClient = DEFAULT_CLIENT,
 ) => {
-  return GENERATOR_CLIENT[outputClient].imports();
+  return {
+    ...GENERATOR_CLIENT[outputClient].imports(),
+    implementationMSW: `import { rest } from 'msw'
+    import faker from 'faker'\n`,
+  };
 };
 
 export const generateClientHeader = (
   outputClient: OutputClient = DEFAULT_CLIENT,
   title: string,
 ) => {
-  return GENERATOR_CLIENT[outputClient].header(title);
+  return {
+    ...GENERATOR_CLIENT[outputClient].header(title),
+    implementationMSW: `export const get${pascal(title)}MSW = () => [\n`,
+  };
 };
 
 export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
 ) => {
-  return GENERATOR_CLIENT[outputClient].footer();
+  return {
+    ...GENERATOR_CLIENT[outputClient].footer(),
+    implementationMSW: `]\n`,
+  };
 };
 
 export const generateClientTitle = (
@@ -72,6 +86,7 @@ export const generateClient = (
     const generator = GENERATOR_CLIENT[outputClient];
     const client = generator.client(verbOption, options);
     const mock = generator.mock(verbOption, options.specs);
+    const msw = generator.msw(verbOption, options);
 
     return {
       ...acc,
@@ -80,6 +95,7 @@ export const generateClient = (
         implementation: client.implementation,
         imports: client.imports,
         implementationMocks: mock.implementation,
+        implementationMSW: msw,
         importsMocks: mock.imports,
         tags: verbOption.tags,
       },

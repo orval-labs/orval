@@ -17,6 +17,7 @@ export const generateTarget = (
         acc.definition += header.definition;
         acc.implementation += header.implementation;
         acc.implementationMocks += header.implementationMock;
+        acc.implementationMSW += header.implementationMSW;
       }
 
       acc.imports = [
@@ -27,12 +28,14 @@ export const generateTarget = (
       acc.definition += operation.definition;
       acc.implementation += operation.implementation;
       acc.implementationMocks += operation.implementationMocks;
+      acc.implementationMSW += operation.implementationMSW;
 
       if (index === arr.length - 1) {
         const footer = generateClientFooter(outputClient);
         acc.definition += footer.definition;
         acc.implementation += footer.implementation;
         acc.implementationMocks += footer.implementationMock;
+        acc.implementationMSW += footer.implementationMSW;
         acc.imports = generalTypesFilter(acc.imports);
       }
       return acc;
@@ -42,5 +45,6 @@ export const generateTarget = (
       definition: '',
       implementation: '',
       implementationMocks: '',
+      implementationMSW: '',
     },
   );

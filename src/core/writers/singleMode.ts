@@ -34,6 +34,7 @@ export const writeSingleMode = ({
     imports,
     implementation,
     implementationMocks,
+    implementationMSW,
   } = generateTarget(
     operations,
     info,
@@ -45,10 +46,17 @@ export const writeSingleMode = ({
   const defaultImports = generateClientImports(
     isObject(output) ? output.client : undefined,
   );
-  data +=
-    isObject(output) && output.mock
-      ? defaultImports.implementationMock
-      : defaultImports.implementation;
+
+  if (isObject(output) && output.mock) {
+    if (output.mock === 'msw') {
+      data += defaultImports.implementation;
+      data += defaultImports.implementationMSW;
+    } else {
+      data += defaultImports.implementationMock;
+    }
+  } else {
+    data += defaultImports.implementation;
+  }
 
   if (isObject(output) && output.schemas) {
     data += generateImports(imports, resolvePath(path, output.schemas), true);
@@ -61,7 +69,7 @@ export const writeSingleMode = ({
 
   if (isObject(output) && output.mock) {
     data += '\n\n';
-    data += implementationMocks;
+    data += output.mock === 'msw' ? implementationMSW : implementationMocks;
   }
 
   writeFileSync(path, data);

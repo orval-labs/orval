@@ -35,6 +35,7 @@ export const generateApi = (
 
       const client = generateClient(httpClient, verbsOptions, {
         route,
+        pathRoute,
         specs,
         override,
       });
