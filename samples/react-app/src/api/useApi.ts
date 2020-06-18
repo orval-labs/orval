@@ -33,7 +33,7 @@ export const useApi = () => {
         headers,
         interceptor: unauthorizedAndErrorInterceptor,
         baseUrl: '', // use an env or your api url
-        mode: ApiMode.MOCK, // use an env to change easily
+        mode: ApiMode.API, // use an env to change easily
       }),
     [headers, unauthorizedAndErrorInterceptor],
   );

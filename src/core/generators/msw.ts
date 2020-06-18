@@ -30,7 +30,7 @@ export const getRoute = (route: string) => {
     }
 
     return `${acc}/${getRoutePath(path)}`;
-  }, '*/');
+  }, '*');
 };
 
 export const generateMSW = (

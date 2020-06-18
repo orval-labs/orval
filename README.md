@@ -197,7 +197,7 @@ interface OutputOptions = {
   // tags to have a file by tag
   mode?: OutputMode;
   // add mock to your implementation
-  mock?: boolean;
+  mock?: boolean | 'msw';
   // override the output like your mock implementation or transform the api implementation like you want
   override?: OverrideOutput;
 };

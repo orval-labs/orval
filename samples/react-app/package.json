@@ -23,7 +23,7 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "generate-api": "node ../../lib/bin/orval.js import --config ./orval.config.js"
+    "generate-api": "node ../../lib/bin/orval.js --config ./orval.config.js"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -39,5 +39,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "msw": "^0.19.4"
   }
 }

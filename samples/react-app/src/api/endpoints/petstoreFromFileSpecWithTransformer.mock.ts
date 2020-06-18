@@ -6,30 +6,38 @@
  */
 import { AxiosPromise } from 'axios';
 import faker from 'faker';
-import {
-  SwaggerPetstore,
-} from './petstoreFromFileSpecWithTransformer.definition';
-import {
-  Pet,
-  Pets,
-  listPetsParams,
-} from '../model';
+import { listPetsParams, Pet, Pets } from '../model';
+import { SwaggerPetstore } from './petstoreFromFileSpecWithTransformer.definition';
 
 export const getSwaggerPetstoreMock = (): SwaggerPetstore => ({
-  listPets(params?: listPetsParams,
-    version?: number,): AxiosPromise<Pets> {
-    return Promise.resolve([...Array(faker.random.number({min: 1, max: 10}))].map(() => ({id: (() => faker.random.number({ min: 1, max: 99999 }))(), name: (() => faker.name.lastName())(), tag: faker.helpers.randomize([(() => faker.name.lastName())(), undefined])}))).then(data => ({data})) as AxiosPromise<Pets>
+  listPets(params?: listPetsParams, version?: number): AxiosPromise<Pets> {
+    return Promise.resolve(
+      [...Array(faker.random.number({ min: 1, max: 10 }))].map(() => ({
+        id: (() => faker.random.number({ min: 1, max: 99999 }))(),
+        name: (() => faker.name.lastName())(),
+        tag: faker.helpers.randomize([
+          (() => faker.name.lastName())(),
+          undefined,
+        ]),
+      })),
+    ).then((data) => ({ data })) as AxiosPromise<Pets>;
   },
-  createPets(version?: number,): AxiosPromise<unknown> {
-    return Promise.resolve(undefined).then(data => ({data})) as AxiosPromise<unknown>
+  createPets(version?: number): AxiosPromise<unknown> {
+    return Promise.resolve(undefined).then((data) => ({
+      data,
+    })) as AxiosPromise<unknown>;
   },
-  showPetById(petId: string,
+  showPetById(
+    petId: string,
     testId: string,
-    version?: number,): AxiosPromise<Pet> {
-    return Promise.resolve((() => ({
-                id: faker.random.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
-                tag: faker.helpers.randomize([faker.random.word(), undefined]),
-              }))()).then(data => ({data})) as AxiosPromise<Pet>
+    version?: number,
+  ): AxiosPromise<Pet> {
+    return Promise.resolve(
+      (() => ({
+        id: faker.random.number({ min: 1, max: 99 }),
+        name: faker.name.firstName(),
+        tag: faker.helpers.randomize([faker.random.word(), undefined]),
+      }))(),
+    ).then((data) => ({ data })) as AxiosPromise<Pet>;
   },
-})
+});
