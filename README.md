@@ -160,7 +160,7 @@ interface InputOptions = {
 
 type OutputClient = 'axios' | 'angular';
 
-type OutputMode = 'single' | 'split' | 'tags' | 'splitTags';
+export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';
 
 type MockProperties =
   | { [key: string]: unknown }
@@ -195,7 +195,7 @@ interface OutputOptions = {
   // single to have everything in the same file
   // split to have definition, implementation, schemas, mock in differents files
   // tags to have a file by tag
-  // splitTags a mix of split and tags
+  // tags-split a mix of tags and split
   mode?: OutputMode;
   // add mock to your implementation
   mock?: boolean | 'msw';

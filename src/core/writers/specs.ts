@@ -37,7 +37,7 @@ export const writeSpecs = (
     writeSplitMode({ workspace, operations, output, info, schemas });
   } else if (output.mode === OutputMode.TAGS) {
     writeTagsMode({ workspace, operations, output, info, schemas });
-  } else if (output.mode === OutputMode.SPLIT_TAGS) {
+  } else if (output.mode === OutputMode.TAGS_SPLIT) {
     writeSplitTagsMode({ workspace, operations, output, info, schemas });
   }
 
