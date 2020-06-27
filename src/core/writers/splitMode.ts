@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { OutputOptions } from '../../types';
+import { OutputClient, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
@@ -11,7 +11,7 @@ import {
 } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
-import { generateTarget } from '../generators/target';
+import { generateTarget } from './target';
 import { resolvePath } from '../resolvers/path';
 
 export const writeSplitMode = ({
@@ -85,7 +85,13 @@ export const writeSplitMode = ({
 
   if (path) {
     writeFileSync(join(dirname, definitionPath + extension), definitionData);
-    writeFileSync(join(dirname, filename + extension), implementationData);
+
+    const implementationFilename =
+      filename +
+      (OutputClient.ANGULAR === output.client ? '.service' : '') +
+      extension;
+
+    writeFileSync(join(dirname, implementationFilename), implementationData);
 
     if (output.mock) {
       if (output.mock === 'msw') {

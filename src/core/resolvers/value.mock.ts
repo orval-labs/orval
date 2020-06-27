@@ -12,7 +12,7 @@ export const resolveMockValue = ({
   mockOptions,
   operationId,
 }: {
-  schema: SchemaObject & { name: string; parent?: string };
+  schema: SchemaObject & { name: string; parents?: string[] };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
@@ -23,7 +23,10 @@ export const resolveMockValue = ({
     const newSchema = {
       ...schemas[value],
       name: value,
-      parent: schema.parent ? `${schema.parent}.${schema.name}` : schema.name,
+      parents: schema.parents
+        ? [...schema.parents, schema.name]
+        : [schema.name],
+      isRef: true,
     };
 
     if (!newSchema) {

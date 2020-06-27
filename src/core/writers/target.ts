@@ -3,7 +3,10 @@ import { OutputClient } from '../../types';
 import { GeneratorOperations } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
-import { generateClientFooter, generateClientHeader } from './client';
+import {
+  generateClientFooter,
+  generateClientHeader,
+} from '../generators/client';
 
 export const generateTarget = (
   operations: GeneratorOperations,

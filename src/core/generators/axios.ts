@@ -63,14 +63,14 @@ const generateImports = ({
 }: GeneratorVerbOptions) => [
   ...response.imports,
   ...body.imports,
-  ...(queryParams ? [queryParams.name] : []),
+  ...(queryParams ? [queryParams.schema.name] : []),
 ];
 
 export const generateAxiosTitle = (title: string) => {
   return {
-    definition: pascal(title),
-    implementation: `get${pascal(title)}`,
-    implementationMock: `get${pascal(title)}Mock`,
+    definition: `${pascal(title)}Api`,
+    implementation: `get${pascal(title)}Api`,
+    implementationMock: `get${pascal(title)}ApiMock`,
   };
 };
 

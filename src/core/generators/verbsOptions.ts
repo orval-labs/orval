@@ -66,7 +66,7 @@ const generateVerbOptions = ({
     operation,
   });
 
-  const props = getProps({ body, queryParams, params });
+  const props = getProps({ body, queryParams: queryParams?.schema, params });
 
   const mutator = generateMutator({
     workspace,

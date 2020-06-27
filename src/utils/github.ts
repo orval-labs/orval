@@ -83,8 +83,6 @@ export const getGithubOpenApi = async (url: string) => {
   const [owner, repo, , branch, ...paths] = info.split('/');
   const path = paths.join('/');
 
-  console.log(info.split('/'));
-
   try {
     const { body } = await request<{ data?: { repository: any } }>(
       ...getGithubSpecReq({ accessToken, repo, owner, branch, path }),

@@ -9,7 +9,7 @@ import { getFilesHeader } from '../../utils/messages/inline';
 import { generateClientImports } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
-import { generateTarget } from '../generators/target';
+import { generateTarget } from './target';
 import { resolvePath } from '../resolvers/path';
 
 export const writeSingleMode = ({

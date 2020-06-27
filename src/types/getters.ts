@@ -32,5 +32,9 @@ export type GetterParam = {
 };
 
 export type GetterParams = GetterParam[];
+export type GetterQueryParam = {
+  schema: GeneratorSchema;
+  deps: GeneratorSchema[];
+};
 
 export type GetterProps = { definition: string; implementation: string };

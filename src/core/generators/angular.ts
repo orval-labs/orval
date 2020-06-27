@@ -56,7 +56,7 @@ const generateImports = ({
 }: GeneratorVerbOptions) => [
   ...response.imports,
   ...body.imports,
-  ...(queryParams ? [queryParams.name] : []),
+  ...(queryParams ? [queryParams.schema.name] : []),
 ];
 
 const generateDefinition = ({
@@ -99,7 +99,9 @@ const generateImplementation = (
   return `  ${definitionName}(\n    ${props.implementation}\n  ): Observable<${
     response.definition
   }> {${mutator}${generateFormData(body)}
-    return this.http.${verb}(${mutator ? `...mutator(${options})` : options});
+    return this.http.${verb}<${response.definition}>(${
+    mutator ? `...mutator(${options})` : options
+  });
   }
 `;
 };

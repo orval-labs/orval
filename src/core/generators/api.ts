@@ -26,7 +26,7 @@ export const generateApi = (
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, body, response }) => [
           ...acc,
-          ...(queryParams ? [queryParams] : []),
+          ...(queryParams ? [queryParams.schema, ...queryParams.deps] : []),
           ...body.schemas,
           ...response.schemas,
         ],

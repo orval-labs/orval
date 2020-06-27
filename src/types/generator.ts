@@ -4,6 +4,7 @@ import {
   GetterParameters,
   GetterParams,
   GetterProps,
+  GetterQueryParam,
   GetterResponse,
 } from './getters';
 import { OperationOptions, OverrideOutput, Verbs } from './index';
@@ -25,6 +26,7 @@ export type GeneratorOperations = {
 
 export type GeneratorTarget = {
   imports: string[];
+  importsMocks: string[];
   definition: string;
   implementation: string;
   implementationMocks: string;
@@ -46,7 +48,7 @@ export type GeneratorVerbOptions = {
   response: GetterResponse;
   body: GetterBody;
   parameters: GetterParameters;
-  queryParams?: GeneratorSchema;
+  queryParams?: GetterQueryParam;
   params: GetterParams;
   props: GetterProps;
   mutator: string;

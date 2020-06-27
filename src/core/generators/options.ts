@@ -1,7 +1,11 @@
 import { VERBS_WITH_BODY } from '../../constants';
 import { Verbs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
-import { GetterBody, GetterResponse } from '../../types/getters';
+import {
+  GetterBody,
+  GetterQueryParam,
+  GetterResponse,
+} from '../../types/getters';
 
 const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
@@ -47,12 +51,12 @@ export const generateOptions = ({
 }: {
   route: string;
   body: GetterBody;
-  queryParams?: GeneratorSchema;
+  queryParams?: GetterQueryParam;
   response: GetterResponse;
   verb: Verbs;
 }) => {
   return `\n      \`${route}\`,${generateBodyOptions(
     body,
     verb,
-  )}${generateQueryParamsOptions(response, queryParams)}\n    `;
+  )}${generateQueryParamsOptions(response, queryParams?.schema)}\n    `;
 };

@@ -1,110 +1,16 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
-import { OutputClient, OutputOptions } from '../../types';
-import {
-  GeneratorOperation,
-  GeneratorOperations,
-  GeneratorTarget,
-} from '../../types/generator';
+import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { camel, kebab, pascal } from '../../utils/case';
+import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { generalTypesFilter } from '../../utils/filters';
 import { isObject } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
-import {
-  generateClientFooter,
-  generateClientHeader,
-  generateClientImports,
-} from '../generators/client';
+import { generateClientImports } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { resolvePath } from '../resolvers/path';
-
-const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
-  ...operation,
-  tags: operation.tags.length ? operation.tags : ['default'],
-});
-
-const generateTargetTags = (
-  currentAcc: { [key: string]: GeneratorTarget },
-  operation: GeneratorOperation,
-  info: InfoObject,
-  outputClient?: OutputClient,
-) =>
-  operation.tags.reduce((acc, tag) => {
-    const currentOperation = acc[tag];
-    if (!currentOperation) {
-      const header = generateClientHeader(
-        outputClient,
-        pascal(`${info.title} ${tag}`),
-      );
-
-      return {
-        ...acc,
-        [tag]: {
-          imports: [...operation.imports, ...operation.importsMocks],
-          definition: header.definition + operation.definition,
-          implementation: header.implementation + operation.implementation,
-          implementationMocks:
-            header.implementationMock + operation.implementationMocks,
-          implementationMSW:
-            header.implementationMSW + operation.implementationMSW,
-        },
-      };
-    }
-
-    return {
-      ...acc,
-      [tag]: {
-        definition: currentOperation.definition + operation.definition,
-        implementation:
-          currentOperation.implementation + operation.implementation,
-        imports: [
-          ...currentOperation.imports,
-          ...operation.imports,
-          ...operation.importsMocks,
-        ],
-        implementationMocks:
-          currentOperation.implementationMocks + operation.implementationMocks,
-        implementationMSW:
-          currentOperation.implementationMSW + operation.implementationMSW,
-      },
-    };
-  }, currentAcc);
-
-export const generateTarget = (
-  operations: GeneratorOperations,
-  info: InfoObject,
-  outputClient?: OutputClient,
-) =>
-  Object.values(operations)
-    .map(addDefaultTagIfEmpty)
-    .reduce((acc, operation, index, arr) => {
-      const targetTags = generateTargetTags(acc, operation, info, outputClient);
-
-      if (index === arr.length - 1) {
-        const footer = generateClientFooter(outputClient);
-
-        return Object.entries(targetTags).reduce((acc, [tag, target]) => {
-          return {
-            ...acc,
-            [tag]: {
-              definition: target.definition + footer.definition,
-              implementation: target.implementation + footer.implementation,
-              implementationMocks:
-                target.implementationMocks + footer.implementationMock,
-              implementationMSW:
-                target.implementationMSW + footer.implementationMSW,
-              imports: generalTypesFilter(target.imports),
-            },
-          };
-        }, {});
-      }
-
-      return targetTags;
-    }, {} as { [key: string]: GeneratorTarget });
+import { generateTargetForTags } from './targetTags';
 
 export const writeTagsMode = ({
   operations,
@@ -122,12 +28,13 @@ export const writeTagsMode = ({
     mkdirSync(dirname);
   }
 
-  const target = generateTarget(operations, info, output.client);
+  const target = generateTargetForTags(operations, info, output.client);
 
   Object.entries(target).forEach(([tag, target]) => {
     const {
       definition,
       imports,
+      importsMocks,
       implementation,
       implementationMocks,
       implementationMSW,
@@ -148,14 +55,18 @@ export const writeTagsMode = ({
     }
 
     if (isObject(output) && output.schemas) {
-      data += generateImports(imports, resolvePath(path, output.schemas), true);
+      data += generateImports(
+        [...imports, ...importsMocks],
+        resolvePath(path, output.schemas),
+        true,
+      );
     } else {
       const schemasPath = './' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
 
       writeFileSync(join(dirname, schemasPath + extension), schemasData);
 
-      data += generateImports(imports, schemasPath, true);
+      data += generateImports([...imports, ...importsMocks], schemasPath, true);
     }
 
     data += '\n';
@@ -168,6 +79,6 @@ export const writeTagsMode = ({
       data += output.mock === 'msw' ? implementationMSW : implementationMocks;
     }
 
-    writeFileSync(join(dirname, `${filename}.${kebab(tag)}${extension}`), data);
+    writeFileSync(join(dirname, `${kebab(tag)}${extension}`), data);
   });
 };

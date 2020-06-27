@@ -37,13 +37,13 @@ export const getParams = ({
   const params = getParamsInPath(route);
   return params.map((p) => {
     try {
-      const { name: nameWithoutSanitize, required, schema } =
-        pathParams.find((i) => sanitize(i.name) === p) as
-        {
-          name: string;
-          required: boolean;
-          schema: SchemaObject;
-        };
+      const { name: nameWithoutSanitize, required, schema } = pathParams.find(
+        (i) => sanitize(i.name) === p,
+      ) as {
+        name: string;
+        required: boolean;
+        schema: SchemaObject;
+      };
 
       const name = sanitize(nameWithoutSanitize);
 

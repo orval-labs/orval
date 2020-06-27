@@ -13,7 +13,7 @@ export const getMockObject = ({
   mockOptions,
   operationId,
 }: {
-  item: SchemaObject & { name: string; parent?: string };
+  item: SchemaObject & { name: string; parents?: string[] };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
@@ -104,48 +104,52 @@ export const getMockObject = ({
         const isRequired = (item.required || []).includes(key);
 
         if (
-          item.parent &&
+          item.parents &&
           mockOptions?.operations?.[operationId]?.properties?.[
-            `${item.parent}.${key}`
+            `${item.parents.join('.')}.${key}`
           ]
         ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${
               mockOptions?.operations?.[operationId]?.properties?.[
-                `${item.parent}.${key}`
+                `${item.parents.join('.')}.${key}`
               ]
             }, undefined])`;
           }
 
           return `${key}: ${
             mockOptions?.operations?.[operationId]?.properties?.[
-              `${item.parent}.${key}`
+              `${item.parents.join('.')}.${key}`
             ]
           }`;
         }
 
         if (
-          item.parent &&
+          item.parents &&
           get(
             mockOptions?.operations?.[operationId]?.properties,
-            `${item.parent}.${key}`,
+            `${item.parents.join('.')}.${key}`,
           )
         ) {
           if (!isRequired) {
             return `${key}: faker.helpers.randomize([${get(
               mockOptions?.operations?.[operationId]?.properties,
-              `${item.parent}.${key}`,
+              `${item.parents.join('.')}.${key}`,
             )}, undefined])`;
           }
 
           return `${key}: ${get(
             mockOptions?.operations?.[operationId]?.properties,
-            `${item.parent}.${key}`,
+            `${item.parents.join('.')}.${key}`,
           )}`;
         }
 
         const resolvedValue = resolveMockValue({
-          schema: { ...prop, name: key },
+          schema: {
+            ...prop,
+            name: key,
+            parents: item.parents,
+          },
           schemas,
           mockOptions,
           operationId,

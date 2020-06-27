@@ -28,11 +28,12 @@ export const OutputClient = {
   AXIOS: 'axios' as OutputClient,
 };
 
-export type OutputMode = 'single' | 'split' | 'tags';
+export type OutputMode = 'single' | 'split' | 'tags' | 'splitTags';
 export const OutputMode = {
   SINGLE: 'single' as OutputMode,
   SPLIT: 'split' as OutputMode,
   TAGS: 'tags' as OutputMode,
+  SPLIT_TAGS: 'splitTags' as OutputMode,
 };
 
 export type MockOptions = {

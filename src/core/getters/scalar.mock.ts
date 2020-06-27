@@ -35,11 +35,12 @@ export const getMockScalar = ({
   mockOptions,
   operationId,
 }: {
-  item: SchemaObject & { name: string; parent?: string };
+  item: SchemaObject & { name: string; parents?: string[]; isRef?: boolean };
   schemas: { [key: string]: SchemaObject };
   allOf?: boolean;
   mockOptions?: MockOptions;
   operationId: string;
+  isRef?: boolean;
 }): MockDefinition => {
   const rProperty = resolveMockProperties(
     mockOptions?.operations?.[operationId]?.properties,
@@ -81,7 +82,7 @@ export const getMockScalar = ({
       }
 
       const { value, enums, imports, name } = resolveMockValue({
-        schema: { ...item.items, name: item.name },
+        schema: { ...item.items, name: item.name, parents: item.parents },
         schemas,
         allOf,
         mockOptions,
@@ -117,16 +118,30 @@ export const getMockScalar = ({
     case 'date-time':
     case 'password': {
       let value = 'faker.random.word()';
+      let imports: string[] = [];
 
       if (item.enum) {
-        value = `faker.helpers.randomize(Object.values(${item.name}))`;
+        let enumValue = "['" + item.enum.join("','") + "']";
+
+        if (item.isRef) {
+          enumValue = `Object.values(${item.name})`;
+          imports = [item.name];
+        }
+
+        if (!item.isRef && item.parents) {
+          const enumName = pascal([...item.parents, item.name].join(' '));
+          enumValue = `Object.values(${enumName})`;
+          imports = [enumName];
+        }
+
+        value = `faker.helpers.randomize(${enumValue})`;
       }
 
       return {
         value: getNullable(value, item.nullable),
         enums: item.enum,
         name: item.name,
-        imports: item.enum ? [pascal(item.name)] : [],
+        imports,
       };
     }
 
