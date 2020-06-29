@@ -82,18 +82,10 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
       };
     }
 
-    case 'object': {
+    case 'object':
+    default: {
       const { value, ...rest } = getObject(item, name);
       return { value: value + nullable, ...rest };
-    }
-    default: {
-      return {
-        value: 'unknown' + nullable,
-        isEnum: false,
-        type: 'unknown',
-        imports: [],
-        schemas: [],
-      };
     }
   }
 };

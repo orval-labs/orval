@@ -122,7 +122,7 @@ export const getObject = (item: SchemaObject, name?: string): ResolverValue => {
   }
 
   return {
-    value: item.type === 'object' ? '{}' : 'any',
+    value: item.type === 'object' ? '{}' : 'unknown',
     imports: [],
     schemas: [],
     isEnum: false,
