@@ -1,3 +1,10 @@
+# [2.5.0](https://github.com/anymaniax/orval/compare/v2.4.1...v2.5.0) (2020-06-29)
+
+
+### Features
+
+* **mode:** add new split tags mode ([3681abd](https://github.com/anymaniax/orval/commit/3681abd9e6ef92500f42bf5ebf61df25a7734971))
+
 ## [2.4.1](https://github.com/anymaniax/orval/compare/v2.4.0...v2.4.1) (2020-06-18)
 
 
