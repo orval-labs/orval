@@ -1,3 +1,10 @@
+## [2.5.2](https://github.com/anymaniax/orval/compare/v2.5.1...v2.5.2) (2020-06-30)
+
+
+### Bug Fixes
+
+* **queryparams:** definition name ([65193c2](https://github.com/anymaniax/orval/commit/65193c2ebd54f69ea1f1d487b814e5ccb6313b01))
+
 ## [2.5.1](https://github.com/anymaniax/orval/compare/v2.5.0...v2.5.1) (2020-06-29)
 
 
