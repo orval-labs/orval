@@ -1,3 +1,10 @@
+## [2.5.3](https://github.com/anymaniax/orval/compare/v2.5.2...v2.5.3) (2020-06-30)
+
+
+### Bug Fixes
+
+* **mock:** correctly pass override ([2d717f0](https://github.com/anymaniax/orval/commit/2d717f0f0aee456b6c946ff478d225de4e67c0a4))
+
 ## [2.5.2](https://github.com/anymaniax/orval/compare/v2.5.1...v2.5.2) (2020-06-30)
 
 
