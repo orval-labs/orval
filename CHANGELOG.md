@@ -1,3 +1,10 @@
+## [2.5.4](https://github.com/anymaniax/orval/compare/v2.5.3...v2.5.4) (2020-06-30)
+
+
+### Bug Fixes
+
+* **log:** removed useless log value ([3cc1c1b](https://github.com/anymaniax/orval/commit/3cc1c1b32de002f171e0f81687f7e895785cb2ed))
+
 ## [2.5.3](https://github.com/anymaniax/orval/compare/v2.5.2...v2.5.3) (2020-06-30)
 
 
