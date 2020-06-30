@@ -1,7 +1,6 @@
 import { SchemaObject } from 'openapi3-ts';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
-import { pascal } from '../../utils/case';
 import { resolveMockValue } from '../resolvers/value.mock';
 import { getMockObject } from './object.mock';
 
@@ -126,12 +125,6 @@ export const getMockScalar = ({
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
           imports = [item.name];
-        }
-
-        if (!item.isRef && item.parents) {
-          const enumName = pascal([...item.parents, item.name].join(' '));
-          enumValue = `Object.values(${enumName})`;
-          imports = [enumName];
         }
 
         value = `faker.helpers.randomize(${enumValue})`;

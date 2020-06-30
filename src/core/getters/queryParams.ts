@@ -72,7 +72,7 @@ export const getQueryParams = (
     (acc, { schemas = [] }) => [...acc, ...schemas],
     [],
   );
-  const name = `${definitionName}Params`;
+  const name = `${pascal(definitionName)}Params`;
 
   const type = types.map(({ definition }) => definition).join('; ');
 
