@@ -85,7 +85,7 @@ export const generateClient = (
   return verbsOptions.reduce((acc, verbOption) => {
     const generator = GENERATOR_CLIENT[outputClient];
     const client = generator.client(verbOption, options);
-    const mock = generator.mock(verbOption, options.specs);
+    const mock = generator.mock(verbOption, options);
     const msw = generator.msw(verbOption, options);
 
     return {

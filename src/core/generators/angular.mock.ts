@@ -1,6 +1,4 @@
-import { OpenAPIObject } from 'openapi3-ts';
-import { OverrideOutput } from '../../types';
-import { GeneratorVerbOptions } from '../../types/generator';
+import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 const toDelayMock = (value: unknown, definition: string) =>
@@ -8,8 +6,7 @@ const toDelayMock = (value: unknown, definition: string) =>
 
 export const generateAngularMock = (
   { operationId, response, definitionName, props }: GeneratorVerbOptions,
-  specs: OpenAPIObject,
-  override?: OverrideOutput,
+  { specs, override }: GeneratorOptions,
 ) => {
   const { definition, definitions, imports } = getMockDefinition(
     operationId,

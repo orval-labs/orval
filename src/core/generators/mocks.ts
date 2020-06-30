@@ -111,6 +111,7 @@ export const getMockDefinition = (
     {},
   ) as { [key: string]: SchemaObject };
 
+  console.log(override);
   const mockOptionsWithoutFunc = getMockWithoutFunc(specs, override);
 
   const { definitions, imports } = getResponsesMockDefinition(
