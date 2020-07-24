@@ -19,7 +19,7 @@ export const writeTagsMode = ({
   output,
   workspace,
 }: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
-  const { path, filename, dirname, extension } = getFileInfo(
+  const { filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
     camel(info.title),
   );
@@ -57,14 +57,17 @@ export const writeTagsMode = ({
     if (isObject(output) && output.schemas) {
       data += generateImports(
         [...imports, ...importsMocks],
-        resolvePath(path, output.schemas),
+        resolvePath(output.target || '', output.schemas),
         true,
       );
     } else {
       const schemasPath = './' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
 
-      writeFileSync(join(dirname, schemasPath + extension), schemasData);
+      writeFileSync(
+        join(dirname, filename + '.schemas' + extension),
+        schemasData,
+      );
 
       data += generateImports([...imports, ...importsMocks], schemasPath, true);
     }

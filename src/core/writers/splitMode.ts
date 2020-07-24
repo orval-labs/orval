@@ -11,8 +11,8 @@ import {
 } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
-import { generateTarget } from './target';
 import { resolvePath } from '../resolvers/path';
+import { generateTarget } from './target';
 
 export const writeSplitMode = ({
   operations,
@@ -62,7 +62,7 @@ export const writeSplitMode = ({
   mswData += `${defaultImports.implementationMSW}`;
 
   if (output.schemas) {
-    const schemasPath = resolvePath(path, output.schemas);
+    const schemasPath = resolvePath(output.target || '', output.schemas);
 
     definitionData += generateImports(imports, schemasPath, true);
     implementationData += generateImports(imports, schemasPath, true);
@@ -71,7 +71,10 @@ export const writeSplitMode = ({
     const schemasPath = './' + filename + '.schemas';
     const schemasData = header + generateModelsInline(schemas);
 
-    writeFileSync(join(dirname, schemasPath + extension), schemasData);
+    writeFileSync(
+      join(dirname, filename + '.schemas' + extension),
+      schemasData,
+    );
 
     definitionData += generateImports(imports, schemasPath, true);
     implementationData += generateImports(imports, schemasPath, true);

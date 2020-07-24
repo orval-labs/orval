@@ -65,7 +65,8 @@ export const writeSplitTagsMode = ({
     mswData += `${defaultImports.implementationMSW}`;
 
     if (output.schemas) {
-      const schemasPath = '../' + resolvePath(path, output.schemas);
+      const schemasPath =
+        '../' + resolvePath(output.target || '', output.schemas);
 
       const generatedImports = generateImports(imports, schemasPath, true);
       const generatedImportsMocks = generateImports(
@@ -78,10 +79,13 @@ export const writeSplitTagsMode = ({
       mockData += generatedImportsMocks;
       mswData += generatedImportsMocks;
     } else {
-      const schemasPath = './' + filename + '.schemas';
+      const schemasPath = '../' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
 
-      writeFileSync(join(dirname, schemasPath + extension), schemasData);
+      writeFileSync(
+        join(dirname, filename + '.schemas' + extension),
+        schemasData,
+      );
 
       const generatedImports = generateImports(imports, schemasPath, true);
       const generatedImportsMocks = generateImports(

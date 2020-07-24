@@ -9,8 +9,8 @@ import { getFilesHeader } from '../../utils/messages/inline';
 import { generateClientImports } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
-import { generateTarget } from './target';
 import { resolvePath } from '../resolvers/path';
+import { generateTarget } from './target';
 
 export const writeSingleMode = ({
   workspace,
@@ -59,7 +59,11 @@ export const writeSingleMode = ({
   }
 
   if (isObject(output) && output.schemas) {
-    data += generateImports(imports, resolvePath(path, output.schemas), true);
+    data += generateImports(
+      imports,
+      resolvePath(output.target || '', output.schemas),
+      true,
+    );
   } else {
     data += generateModelsInline(schemas);
   }
