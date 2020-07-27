@@ -1,3 +1,10 @@
+## [2.5.5](https://github.com/anymaniax/orval/compare/v2.5.4...v2.5.5) (2020-07-27)
+
+
+### Bug Fixes
+
+* **generator-path:** schemas ([a5eaf93](https://github.com/anymaniax/orval/commit/a5eaf931b92a547d3503dceccb3f9a700d44c64a))
+
 ## [2.5.4](https://github.com/anymaniax/orval/compare/v2.5.3...v2.5.4) (2020-06-30)
 
 
