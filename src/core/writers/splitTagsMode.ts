@@ -66,7 +66,8 @@ export const writeSplitTagsMode = ({
 
     if (output.schemas) {
       const schemasPath =
-        '../' + resolvePath(output.target || '', output.schemas);
+        '../' +
+        resolvePath(path, getFileInfo(join(workspace, output.schemas)).dirname);
 
       const generatedImports = generateImports(imports, schemasPath, true);
       const generatedImportsMocks = generateImports(

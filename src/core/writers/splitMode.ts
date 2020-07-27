@@ -62,7 +62,10 @@ export const writeSplitMode = ({
   mswData += `${defaultImports.implementationMSW}`;
 
   if (output.schemas) {
-    const schemasPath = resolvePath(output.target || '', output.schemas);
+    const schemasPath = resolvePath(
+      path,
+      getFileInfo(join(workspace, output.schemas)).dirname,
+    );
 
     definitionData += generateImports(imports, schemasPath, true);
     implementationData += generateImports(imports, schemasPath, true);
