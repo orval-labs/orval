@@ -1,3 +1,10 @@
+## [2.5.6](https://github.com/anymaniax/orval/compare/v2.5.5...v2.5.6) (2020-07-27)
+
+
+### Bug Fixes
+
+* **generator-path:** with target only director ([229504a](https://github.com/anymaniax/orval/commit/229504ae1d1cec02d9ef62a70ac3abee695c6d4c))
+
 ## [2.5.5](https://github.com/anymaniax/orval/compare/v2.5.4...v2.5.5) (2020-07-27)
 
 
