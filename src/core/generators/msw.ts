@@ -1,4 +1,3 @@
-import { OverrideOutput } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { sanitize } from '../../utils/string';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -35,8 +34,7 @@ export const getRoute = (route: string) => {
 
 export const generateMSW = (
   { operationId, response, verb }: GeneratorVerbOptions,
-  { specs, pathRoute }: GeneratorOptions,
-  override?: OverrideOutput,
+  { specs, pathRoute, override }: GeneratorOptions,
 ) => {
   const { definitions, definition } = getMockDefinition(
     operationId,
@@ -54,7 +52,10 @@ export const generateMSW = (
     ? `faker.helpers.randomize(${definition})`
     : definitions[0];
 
-  const responseType = value[0] === '{' || value[0] === '[' ? 'json' : 'text';
+  const responseType =
+    value[0] === '{' || value[0] === '[' || value.startsWith('(() => ({')
+      ? 'json'
+      : 'text';
 
   return `rest.${verb}('${route}', (req, res, ctx) => {
     return res(
