@@ -1,3 +1,10 @@
+## [2.5.7](https://github.com/anymaniax/orval/compare/v2.5.6...v2.5.7) (2020-07-30)
+
+
+### Bug Fixes
+
+* **msw:** override ([ce404f0](https://github.com/anymaniax/orval/commit/ce404f0aef417ef9fc13dff8e866f7a0c5ed0002))
+
 ## [2.5.6](https://github.com/anymaniax/orval/compare/v2.5.5...v2.5.6) (2020-07-27)
 
 
