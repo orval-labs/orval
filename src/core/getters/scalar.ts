@@ -12,6 +12,10 @@ import { getObject } from './object';
 export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
   const nullable = item.nullable ? ' | null' : '';
 
+  if (!item.type && item.items) {
+    item.type = 'array';
+  }
+
   switch (item.type) {
     case 'int32':
     case 'int64':
