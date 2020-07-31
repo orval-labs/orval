@@ -1,3 +1,10 @@
+## [2.5.8](https://github.com/anymaniax/orval/compare/v2.5.7...v2.5.8) (2020-07-31)
+
+
+### Bug Fixes
+
+* **scalar:** default 'type' to array when 'items' is defined on a schema ([113cf10](https://github.com/anymaniax/orval/commit/113cf10543d275ac524ed5f8ba73a704ab44183d))
+
 ## [2.5.7](https://github.com/anymaniax/orval/compare/v2.5.6...v2.5.7) (2020-07-30)
 
 
