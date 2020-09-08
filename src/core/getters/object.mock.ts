@@ -109,14 +109,6 @@ export const getMockObject = ({
             `${item.parents.join('.')}.${key}`
           ]
         ) {
-          if (!isRequired) {
-            return `${key}: faker.helpers.randomize([${
-              mockOptions?.operations?.[operationId]?.properties?.[
-                `${item.parents.join('.')}.${key}`
-              ]
-            }, undefined])`;
-          }
-
           return `${key}: ${
             mockOptions?.operations?.[operationId]?.properties?.[
               `${item.parents.join('.')}.${key}`
@@ -131,13 +123,6 @@ export const getMockObject = ({
             `${item.parents.join('.')}.${key}`,
           )
         ) {
-          if (!isRequired) {
-            return `${key}: faker.helpers.randomize([${get(
-              mockOptions?.operations?.[operationId]?.properties,
-              `${item.parents.join('.')}.${key}`,
-            )}, undefined])`;
-          }
-
           return `${key}: ${get(
             mockOptions?.operations?.[operationId]?.properties,
             `${item.parents.join('.')}.${key}`,
@@ -154,8 +139,10 @@ export const getMockObject = ({
           mockOptions,
           operationId,
         });
+
         imports = [...imports, ...resolvedValue.imports];
-        if (!isRequired) {
+
+        if (!isRequired && !resolvedValue.overrided) {
           return `${key}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
         }
 
@@ -170,6 +157,7 @@ export const getMockObject = ({
     if (isBoolean(item.additionalProperties)) {
       return { value: `{}`, imports: [], name: item.name };
     }
+
     const resolvedValue = resolveMockValue({
       schema: { ...item.additionalProperties, name: item.name },
       schemas,

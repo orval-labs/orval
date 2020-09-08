@@ -3,4 +3,5 @@ export interface MockDefinition {
   enums?: string[];
   imports: string[];
   name: string;
+  overrided?: boolean;
 }

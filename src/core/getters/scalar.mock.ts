@@ -21,6 +21,7 @@ const resolveMockProperties = (
       value: getNullable(value as string, item.nullable),
       imports: [],
       name: item.name,
+      overrided: true,
     };
   }, undefined as any);
 
