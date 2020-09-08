@@ -67,9 +67,11 @@ export const writeSplitMode = ({
       getFileInfo(join(workspace, output.schemas)).dirname,
     );
 
-    definitionData += generateImports(imports, schemasPath, true);
-    implementationData += generateImports(imports, schemasPath, true);
-    mockData += generateImports(imports, schemasPath, true);
+    const generatedImports = generateImports(imports, schemasPath, true);
+    definitionData += generatedImports;
+    implementationData += generatedImports;
+    mockData += generatedImports;
+    mswData += generatedImports;
   } else {
     const schemasPath = './' + filename + '.schemas';
     const schemasData = header + generateModelsInline(schemas);
@@ -79,9 +81,11 @@ export const writeSplitMode = ({
       schemasData,
     );
 
-    definitionData += generateImports(imports, schemasPath, true);
-    implementationData += generateImports(imports, schemasPath, true);
-    mockData += generateImports(imports, schemasPath, true);
+    const generatedImports = generateImports(imports, schemasPath, true);
+    definitionData += generatedImports;
+    implementationData += generatedImports;
+    mockData += generatedImports;
+    mswData += generatedImports;
   }
 
   definitionData += `\n${definition}`;
