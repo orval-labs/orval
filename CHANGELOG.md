@@ -1,3 +1,17 @@
+## [2.5.9](https://github.com/anymaniax/orval/compare/v2.5.8...v2.5.9) (2020-09-08)
+
+
+### Bug Fixes
+
+* **assets:** logo ([e6847ac](https://github.com/anymaniax/orval/commit/e6847ac1d20c70b66d693ae9bf99382c877547c7))
+* **mock:** remove required check on override ([3705679](https://github.com/anymaniax/orval/commit/37056792c2c0548ecf037ae1482186838ec4f89a))
+* **mock:** split correctly write imports for msw mode ([afbd068](https://github.com/anymaniax/orval/commit/afbd068e62108874bc57b1e5e0043173d9ae327e))
+
+
+### Features
+
+* **samples:** angular-app ([b33eae9](https://github.com/anymaniax/orval/commit/b33eae970439b9d4aba90a34e66b0cb739bb60db))
+
 ## [2.5.8](https://github.com/anymaniax/orval/compare/v2.5.7...v2.5.8) (2020-07-31)
 
 
