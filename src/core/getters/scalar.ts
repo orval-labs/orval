@@ -17,13 +17,8 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
   }
 
   switch (item.type) {
-    case 'int32':
-    case 'int64':
     case 'number':
-    case 'integer':
-    case 'long':
-    case 'float':
-    case 'double': {
+    case 'integer': {
       let value = 'number';
       let isEnum = false;
 
@@ -58,13 +53,7 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
       };
     }
 
-    case 'string':
-    case 'byte':
-    case 'binary':
-    case 'date':
-    case 'dateTime':
-    case 'date-time':
-    case 'password': {
+    case 'string': {
       let value = 'string';
       let isEnum = false;
 

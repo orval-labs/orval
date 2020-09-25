@@ -58,13 +58,8 @@ export const getMockScalar = ({
   }
 
   switch (item.type) {
-    case 'int32':
-    case 'int64':
     case 'number':
-    case 'integer':
-    case 'long':
-    case 'float':
-    case 'double': {
+    case 'integer': {
       return {
         value: getNullable('faker.random.number()', item.nullable),
         imports: [],
@@ -110,13 +105,7 @@ export const getMockScalar = ({
       };
     }
 
-    case 'string':
-    case 'byte':
-    case 'binary':
-    case 'date':
-    case 'dateTime':
-    case 'date-time':
-    case 'password': {
+    case 'string': {
       let value = 'faker.random.word()';
       let imports: string[] = [];
 
