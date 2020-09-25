@@ -1,3 +1,15 @@
+# [2.6.0](https://github.com/anymaniax/orval/compare/v2.5.9...v2.6.0) (2020-09-25)
+
+
+### Bug Fixes
+
+* **resolvers:** path improve segmentize with using node sep ([61aa572](https://github.com/anymaniax/orval/commit/61aa5726a10a9cb046a7a476aadcba0a2bb942f6))
+
+
+### Features
+
+* **dependencies:** upgrade ([6a3df05](https://github.com/anymaniax/orval/commit/6a3df055ab44508a2048e6e59e209859ca99cb67))
+
 ## [2.5.9](https://github.com/anymaniax/orval/compare/v2.5.8...v2.5.9) (2020-09-08)
 
 
