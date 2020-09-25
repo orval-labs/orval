@@ -1,5 +1,5 @@
-import { resolve } from 'path';
-const segmentize = (uri: string) => uri.replace(/(^\/+|\/+$)/g, '').split('/');
+import { resolve, sep } from 'path';
+const segmentize = (uri: string) => uri.split(sep);
 
 export const resolvePath = (base: string, to: string) => {
   const toSegmentize = segmentize(resolve(to));
