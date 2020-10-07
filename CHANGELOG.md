@@ -1,3 +1,16 @@
+# [3.0.0](https://github.com/anymaniax/orval/compare/v2.6.0...v3.0.0) (2020-10-07)
+
+
+### Bug Fixes
+
+* **cleanup:** remove useless console log ([6417ee0](https://github.com/anymaniax/orval/commit/6417ee0d9ba0222f84ca6813d283d445be7f9686))
+
+
+### Features
+
+* **react-query:** implementation new client ([f88fed8](https://github.com/anymaniax/orval/commit/f88fed80f7472cd17b7cc809ceca8ae5249e8f8d))
+* **readme:** add example react-query ([42f78d0](https://github.com/anymaniax/orval/commit/42f78d0a195ddf7baf4f360fa1d6cb6aad58e5ed))
+
 # [2.6.0](https://github.com/anymaniax/orval/compare/v2.5.9...v2.6.0) (2020-09-25)
 
 
