@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/anymaniax/orval/compare/v3.0.0...v3.0.1) (2020-10-07)
+
+
+### Bug Fixes
+
+* **react-query:** correctly handling mutation ([ce8acd9](https://github.com/anymaniax/orval/commit/ce8acd9c3487369099be241b8edfdf06159bfd93))
+
 # [3.0.0](https://github.com/anymaniax/orval/compare/v2.6.0...v3.0.0) (2020-10-07)
 
 
