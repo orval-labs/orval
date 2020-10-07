@@ -56,8 +56,6 @@ export const writeSplitMode = ({
     ? generateImports([title.definition], definitionPath, true)
     : '';
 
-  console.log(definitionImport);
-
   implementationData += `${defaultImports.implementation}${definitionImport}`;
   mockData += `${defaultImports.implementationMock}${definitionImport}`;
   mswData += `${defaultImports.implementationMSW}`;
