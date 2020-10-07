@@ -1,33 +1,12 @@
-import axios, { AxiosRequestConfig, Method } from 'axios';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { QueryCache, ReactQueryCacheProvider } from 'react-query';
 import App from './App';
+import { AuthProvider } from './auth.context';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 
-const defaultQueryFn = async (
-  method: Method,
-  url: string,
-  options: Partial<AxiosRequestConfig>,
-) => {
-  const { data } = await axios({
-    url,
-    method,
-    ...options,
-  });
-
-  return data;
-};
-
-// provide the default query function to your app with defaultConfig
-const queryCache = new QueryCache({
-  defaultConfig: {
-    queries: {
-      queryFn: defaultQueryFn,
-    },
-  },
-});
+const queryCache = new QueryCache();
 
 if (process.env.NODE_ENV === 'development') {
   require('./mock');
@@ -35,9 +14,11 @@ if (process.env.NODE_ENV === 'development') {
 
 ReactDOM.render(
   <React.StrictMode>
-    <ReactQueryCacheProvider queryCache={queryCache}>
-      <App />
-    </ReactQueryCacheProvider>
+    <AuthProvider>
+      <ReactQueryCacheProvider queryCache={queryCache}>
+        <App />
+      </ReactQueryCacheProvider>
+    </AuthProvider>
   </React.StrictMode>,
   document.getElementById('root'),
 );

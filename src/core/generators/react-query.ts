@@ -1,3 +1,4 @@
+import { Verbs } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { camel } from '../../utils/case';
 import { generateFormData } from './formData';
@@ -5,7 +6,8 @@ import { generateOptions } from './options';
 
 export const generateReactQueryImports = () => ({
   definition: ``,
-  implementation: `import { useQuery, QueryConfig } from 'react-query';\n`,
+  implementation: `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`,
   implementationMock: '',
 });
 
@@ -30,23 +32,39 @@ const generateReactQueryImplementation = (
     verb,
   });
 
-  return `export const ${camel(`use-${definitionName}`)} = <TResult = ${
-    response.definition
-  }, TError = unknown>(\n    ${
-    props.implementation
-  }\n queryConfig?: QueryConfig<TResult, TError>\n  ) => {${mutator}${generateFormData(
-    body,
-  )}
-    return useQuery<TResult, TError>(['${verb}', ${
-    mutator ? `...mutator(${options})` : options
-  }], ${
-    params.length
-      ? `{enabled: ${params
-          .map(({ name }) => name)
-          .join(' && ')}, ...queryConfig}`
-      : 'queryConfig'
-  } )
+  if (verb === Verbs.GET) {
+    return `export const ${camel(`use-${definitionName}`)} = (\n    ${
+      props.implementation
+    }\n queryConfig?: QueryConfig<AxiosResponse<${
+      response.definition
+    }>, AxiosError>\n  ) => {${mutator}${generateFormData(body)}
+    return useQuery<AxiosResponse<${response.definition}>, AxiosError>(${
+      mutator ? `mutator(${options})` : `[${options}]`
+    }, ( path: string,
+      options: Partial<AxiosRequestConfig>) => axios.get<${
+        response.definition
+      }>(path, options), ${
+      params.length
+        ? `{enabled: ${params
+            .map(({ name }) => name)
+            .join(' && ')}, ...queryConfig}`
+        : 'queryConfig'
+    } )
   }
+`;
+  }
+
+  return `export const ${camel(`use-${definitionName}`)} = (\n    ${
+    props.implementation
+  }\n mutationConfig?: MutationConfig<AxiosResponse<${
+    response.definition
+  }>, AxiosError>\n  ) => {${mutator}${generateFormData(body)}
+  return useMutation<AxiosResponse<${
+    response.definition
+  }>, AxiosError>(() => axios.${verb}<${response.definition}>(${
+    mutator ? `...mutator(${options})` : options
+  }), mutationConfig)
+}
 `;
 };
 
