@@ -6,6 +6,7 @@ import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
+import { errorMessage } from '../../utils/messages/logs';
 import { generateClientImports } from '../generators/client';
 import { generateImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -48,10 +49,10 @@ export const writeSingleMode = ({
   );
 
   if (isObject(output) && output.mock) {
-    if (output.mock === 'msw') {
+    if (output.mock) {
       data += defaultImports.implementation;
       data += defaultImports.implementationMSW;
-    } else {
+    } else if (output.mock === 'old-version') {
       data += defaultImports.implementationMock;
     }
   } else {
@@ -73,7 +74,14 @@ export const writeSingleMode = ({
 
   if (isObject(output) && output.mock) {
     data += '\n\n';
-    data += output.mock === 'msw' ? implementationMSW : implementationMocks;
+    if (output.mock) {
+      data += implementationMSW;
+    } else if (output.mock === 'old-version') {
+      errorMessage(
+        'This way of using mocks is deprecated. Will be removed in the next major release',
+      );
+      data += implementationMocks;
+    }
   }
 
   writeFileSync(path, data);

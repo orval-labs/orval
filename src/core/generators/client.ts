@@ -1,5 +1,10 @@
 import { OutputClient } from '../../types';
-import { GeneratorOptions, GeneratorVerbsOptions } from '../../types/generator';
+import {
+  GeneratorClientExtra,
+  GeneratorOperations,
+  GeneratorOptions,
+  GeneratorVerbsOptions,
+} from '../../types/generator';
 import { pascal } from '../../utils/case';
 import {
   generateAngular,
@@ -18,6 +23,13 @@ import {
 } from './axios';
 import { generateAxiosMock } from './axios.mock';
 import { generateMSW } from './msw';
+import {
+  generateReactQuery,
+  generateReactQueryFooter,
+  generateReactQueryHeader,
+  generateReactQueryImports,
+  generateReactQueryTitle,
+} from './react-query';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -40,10 +52,19 @@ const GENERATOR_CLIENT = {
     footer: generateAngularFooter,
     title: generateAngularTitle,
   },
+  [OutputClient.REACT_QUERY]: {
+    client: generateReactQuery,
+    mock: () => ({ implementation: '', imports: [] }),
+    msw: generateMSW,
+    header: generateReactQueryHeader,
+    imports: generateReactQueryImports,
+    footer: generateReactQueryFooter,
+    title: generateReactQueryTitle,
+  },
 };
 export const generateClientImports = (
   outputClient: OutputClient = DEFAULT_CLIENT,
-) => {
+): GeneratorClientExtra => {
   return {
     ...GENERATOR_CLIENT[outputClient].imports(),
     implementationMSW: `import { rest } from 'msw'
@@ -54,7 +75,7 @@ export const generateClientImports = (
 export const generateClientHeader = (
   outputClient: OutputClient = DEFAULT_CLIENT,
   title: string,
-) => {
+): GeneratorClientExtra => {
   return {
     ...GENERATOR_CLIENT[outputClient].header(title),
     implementationMSW: `export const get${pascal(title)}MSW = () => [\n`,
@@ -63,7 +84,7 @@ export const generateClientHeader = (
 
 export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
-) => {
+): GeneratorClientExtra => {
   return {
     ...GENERATOR_CLIENT[outputClient].footer(),
     implementationMSW: `]\n`,
@@ -81,7 +102,7 @@ export const generateClient = (
   outputClient: OutputClient = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
-) => {
+): GeneratorOperations => {
   return verbsOptions.reduce((acc, verbOption) => {
     const generator = GENERATOR_CLIENT[outputClient];
     const client = generator.client(verbOption, options);

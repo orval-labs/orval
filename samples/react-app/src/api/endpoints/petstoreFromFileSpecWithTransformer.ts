@@ -4,15 +4,18 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { AxiosPromise, AxiosInstance } from 'axios';
-import { SwaggerPetstoreApi } from './petstoreFromFileSpecWithTransformer.definition';
+import { AxiosInstance, AxiosPromise } from 'axios';
 import { ListPetsParams, Pet, Pets } from '../model';
+import { SwaggerPetstoreApi } from './petstoreFromFileSpecWithTransformer.definition';
 
 export const getSwaggerPetstoreApi = (
   axios: AxiosInstance,
 ): SwaggerPetstoreApi => ({
   listPets(params?: ListPetsParams, version = 1): AxiosPromise<Pets> {
-    type Mutator = <T>(url: string, config?: T) => [string, T | undefined];
+    type Mutator = (
+      url: string,
+      config?: object,
+    ) => [string, object | undefined];
 
     const mutator: Mutator = (url, config) => [
       url,

@@ -1,4 +1,8 @@
-import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import {
+  GeneratorClient,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+} from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
@@ -80,8 +84,6 @@ export const generateAxiosHeader = (title: string) => {
     definition: `export interface ${axiosTitle.definition} {`,
     implementation: `export const ${axiosTitle.implementation} = (axios: AxiosInstance): ${axiosTitle.definition} => ({\n`,
     implementationMock: `export const ${axiosTitle.implementationMock} = (): ${axiosTitle.definition} => ({\n`,
-    implementationMSW: `const {worker, rest} = window.msw;
-    worker.use(\n`,
   };
 };
 
@@ -90,14 +92,13 @@ export const generateAxiosFooter = () => {
     definition: '\n}\n',
     implementation: '});\n',
     implementationMock: '})\n',
-    implementationMSW: ')\n',
   };
 };
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
-) => {
+): GeneratorClient => {
   const imports = generateImports(verbOptions);
   const definition = generateAxiosDefinition(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);

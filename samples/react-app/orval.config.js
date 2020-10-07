@@ -9,7 +9,7 @@ module.exports = {
       mode: 'split',
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
-      mock: 'msw',
+      mock: true,
       override: {
         operations: {
           listPets: {

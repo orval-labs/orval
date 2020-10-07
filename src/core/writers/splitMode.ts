@@ -5,6 +5,7 @@ import { WriteSpecsProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
+import { errorMessage } from '../../utils/messages/logs';
 import {
   generateClientImports,
   generateClientTitle,
@@ -51,11 +52,11 @@ export const writeSplitMode = ({
   definitionData += defaultImports.definition;
 
   const definitionPath = './' + filename + '.definition';
-  const definitionImport = generateImports(
-    [title.definition],
-    definitionPath,
-    true,
-  );
+  const definitionImport = title.definition
+    ? generateImports([title.definition], definitionPath, true)
+    : '';
+
+  console.log(definitionImport);
 
   implementationData += `${defaultImports.implementation}${definitionImport}`;
   mockData += `${defaultImports.implementationMock}${definitionImport}`;
@@ -94,7 +95,9 @@ export const writeSplitMode = ({
   mswData += `\n${implementationMSW}`;
 
   if (path) {
-    writeFileSync(join(dirname, definitionPath + extension), definitionData);
+    if (definition) {
+      writeFileSync(join(dirname, definitionPath + extension), definitionData);
+    }
 
     const implementationFilename =
       filename +
@@ -104,10 +107,18 @@ export const writeSplitMode = ({
     writeFileSync(join(dirname, implementationFilename), implementationData);
 
     if (output.mock) {
-      if (output.mock === 'msw') {
+      if (output.mock) {
         writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
-      } else {
-        writeFileSync(join(dirname, filename + '.mock' + extension), mockData);
+      } else if (output.mock === 'old-version') {
+        errorMessage(
+          'This way of using mocks is deprecated. Will be removed in the next major release',
+        );
+        if (implementationMocks) {
+          writeFileSync(
+            join(dirname, filename + '.mock' + extension),
+            mockData,
+          );
+        }
       }
     }
   }

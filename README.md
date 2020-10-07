@@ -159,7 +159,7 @@ interface InputOptions = {
     override?: OverrideInput;
 };
 
-type OutputClient = 'axios' | 'angular';
+type OutputClient = 'axios' | 'angular' | 'react-query';
 
 export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';
 
@@ -199,7 +199,8 @@ interface OutputOptions = {
   // tags-split a mix of tags and split
   mode?: OutputMode;
   // add mock to your implementation
-  mock?: boolean | 'msw';
+  // old version will be removed in the next major version
+  mock?: boolean | 'old-version';
   // override the output like your mock implementation or transform the api implementation like you want
   override?: OverrideOutput;
 };

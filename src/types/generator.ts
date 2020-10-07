@@ -34,7 +34,6 @@ export type GeneratorTarget = {
 };
 
 export type GeneratorOperation = GeneratorTarget & {
-  importsMocks: string[];
   tags: string[];
 };
 
@@ -61,4 +60,17 @@ export type GeneratorOptions = {
   pathRoute: string;
   specs: OpenAPIObject;
   override?: OverrideOutput;
+};
+
+export type GeneratorClient = {
+  definition: string;
+  implementation: string;
+  imports: string[];
+};
+
+export type GeneratorClientExtra = {
+  definition: string;
+  implementation: string;
+  implementationMock: string;
+  implementationMSW: string;
 };

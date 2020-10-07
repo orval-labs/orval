@@ -1,4 +1,8 @@
-import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import {
+  GeneratorClient,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+} from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
@@ -109,7 +113,7 @@ const generateImplementation = (
 export const generateAngular = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
-) => {
+): GeneratorClient => {
   const imports = generateImports(verbOptions);
   const definition = generateDefinition(verbOptions);
   const implementation = generateImplementation(verbOptions, options);

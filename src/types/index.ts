@@ -10,7 +10,7 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean | 'msw';
+  mock?: boolean | 'old-version';
   override?: OverrideOutput;
   client?: OutputClient;
 };
@@ -21,11 +21,12 @@ export type InputOptions = {
   override?: OverrideInput;
 };
 
-export type OutputClient = 'axios' | 'angular';
+export type OutputClient = 'axios' | 'angular' | 'react-query';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,
   AXIOS: 'axios' as OutputClient,
+  REACT_QUERY: 'react-query' as OutputClient,
 };
 
 export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';

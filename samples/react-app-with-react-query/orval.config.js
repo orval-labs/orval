@@ -6,10 +6,10 @@ const faker = require('faker');
 module.exports = {
   petstore: {
     output: {
-      mode: 'tags-split',
+      mode: 'split',
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
-      client: 'angular',
+      client: 'react-query',
       mock: true,
       override: {
         operations: {

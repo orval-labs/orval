@@ -10,7 +10,7 @@ module.exports = {
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: './api/model',
-      mock: true,
+      mock: 'old-version',
       override: {
         operations: {
           listPets: {

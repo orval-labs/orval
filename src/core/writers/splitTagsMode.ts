@@ -5,6 +5,7 @@ import { WriteSpecsProps } from '../../types/writers';
 import { camel, kebab, pascal } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
+import { errorMessage } from '../../utils/messages/logs';
 import {
   generateClientImports,
   generateClientTitle,
@@ -54,11 +55,9 @@ export const writeSplitTagsMode = ({
     definitionData += defaultImports.definition;
 
     const definitionPath = './' + kebab(tag) + '.definition';
-    const definitionImport = generateImports(
-      [title.definition],
-      definitionPath,
-      true,
-    );
+    const definitionImport = title.definition
+      ? generateImports([title.definition], definitionPath, true)
+      : '';
 
     implementationData += `${defaultImports.implementation}${definitionImport}`;
     mockData += `${defaultImports.implementationMock}${definitionImport}`;
@@ -110,10 +109,12 @@ export const writeSplitTagsMode = ({
         mkdirSync(join(dirname, kebab(tag)));
       }
 
-      writeFileSync(
-        join(dirname, kebab(tag), definitionPath + extension),
-        definitionData,
-      );
+      if (definition) {
+        writeFileSync(
+          join(dirname, kebab(tag), definitionPath + extension),
+          definitionData,
+        );
+      }
 
       const implementationFilename =
         kebab(tag) +
@@ -126,16 +127,21 @@ export const writeSplitTagsMode = ({
       );
 
       if (output.mock) {
-        if (output.mock === 'msw') {
+        if (output.mock) {
           writeFileSync(
             join(dirname, kebab(tag), kebab(tag) + '.msw' + extension),
             mswData,
           );
-        } else {
-          writeFileSync(
-            join(dirname, kebab(tag), kebab(tag) + '.mock' + extension),
-            mockData,
+        } else if (output.mock === 'old-version') {
+          errorMessage(
+            'This way of using mocks is deprecated. Will be removed in the next major release',
           );
+          if (implementationMocks) {
+            writeFileSync(
+              join(dirname, kebab(tag), kebab(tag) + '.mock' + extension),
+              mockData,
+            );
+          }
         }
       }
     }
