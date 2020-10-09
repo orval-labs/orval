@@ -1,3 +1,10 @@
+## [3.0.2](https://github.com/anymaniax/orval/compare/v3.0.1...v3.0.2) (2020-10-09)
+
+
+### Bug Fixes
+
+* **regex-special-char:** add underscore ([4bdbebb](https://github.com/anymaniax/orval/commit/4bdbebba8e6601e8bfe180f03caa9bd2dfecb894))
+
 ## [3.0.1](https://github.com/anymaniax/orval/compare/v3.0.0...v3.0.1) (2020-10-07)
 
 
