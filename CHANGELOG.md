@@ -1,3 +1,10 @@
+## [3.0.3](https://github.com/anymaniax/orval/compare/v3.0.2...v3.0.3) (2020-10-13)
+
+
+### Bug Fixes
+
+* **react-query:** correctly pass variables to mutation ([8db38c4](https://github.com/anymaniax/orval/commit/8db38c4ed0e4e0aedc74f2c710f7d98adf18c961))
+
 ## [3.0.2](https://github.com/anymaniax/orval/compare/v3.0.1...v3.0.2) (2020-10-09)
 
 
