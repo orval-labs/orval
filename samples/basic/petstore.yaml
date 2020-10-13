@@ -19,8 +19,7 @@ paths:
           description: How many items to return at one time (max 100)
           required: false
           schema:
-            type: integer
-            format: int32
+            type: string
       responses:
         '200':
           description: A paged array of pets
@@ -44,6 +43,20 @@ paths:
       operationId: createPets
       tags:
         - pets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - 'name'
+                - 'tag'
+              properties:
+                name:
+                  type: string
+                tag:
+                  type: string
       responses:
         '201':
           description: Null response
@@ -53,7 +66,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /pets/{petId}/test/{testId}:
+  /pets/{petId}:
     get:
       summary: Info for a specific pet
       operationId: showPetById

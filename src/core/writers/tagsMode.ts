@@ -45,11 +45,11 @@ export const writeTagsMode = ({
     let data = header;
 
     if (isObject(output) && output.mock) {
-      if (output.mock) {
+      if (output.mock === 'old-version') {
+        data += defaultImports.implementationMock;
+      } else {
         data += defaultImports.implementation;
         data += defaultImports.implementationMSW;
-      } else if (output.mock === 'old-version') {
-        data += defaultImports.implementationMock;
       }
     } else {
       data += defaultImports.implementation;
@@ -80,13 +80,13 @@ export const writeTagsMode = ({
 
     if (isObject(output) && output.mock) {
       data += '\n\n';
-      if (output.mock) {
-        data += implementationMSW;
-      } else if (output.mock === 'old-version') {
+      if (output.mock === 'old-version') {
         errorMessage(
           'This way of using mocks is deprecated. Will be removed in the next major release',
         );
         data += implementationMocks;
+      } else {
+        data += implementationMSW;
       }
     }
 

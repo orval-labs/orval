@@ -127,12 +127,7 @@ export const writeSplitTagsMode = ({
       );
 
       if (output.mock) {
-        if (output.mock) {
-          writeFileSync(
-            join(dirname, kebab(tag), kebab(tag) + '.msw' + extension),
-            mswData,
-          );
-        } else if (output.mock === 'old-version') {
+        if (output.mock === 'old-version') {
           errorMessage(
             'This way of using mocks is deprecated. Will be removed in the next major release',
           );
@@ -142,6 +137,11 @@ export const writeSplitTagsMode = ({
               mockData,
             );
           }
+        } else {
+          writeFileSync(
+            join(dirname, kebab(tag), kebab(tag) + '.msw' + extension),
+            mswData,
+          );
         }
       }
     }

@@ -54,14 +54,14 @@ const generateReactQueryImplementation = (
 `;
   }
 
-  return `export const ${camel(`use-${definitionName}`)} = (\n    ${
-    props.implementation
-  }\n mutationConfig?: MutationConfig<AxiosResponse<${
+  return `export const ${camel(
+    `use-${definitionName}`,
+  )} = (\n    mutationConfig?: MutationConfig<AxiosResponse<${
     response.definition
   }>, AxiosError>\n  ) => {${mutator}${generateFormData(body)}
-  return useMutation<AxiosResponse<${
-    response.definition
-  }>, AxiosError>(() => axios.${verb}<${response.definition}>(${
+  return useMutation<AxiosResponse<${response.definition}>, AxiosError, ${
+    body.definition
+  }>((${props.implementation}) => axios.${verb}(${
     mutator ? `...mutator(${options})` : options
   }), mutationConfig)
 }

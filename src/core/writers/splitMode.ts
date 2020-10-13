@@ -105,9 +105,7 @@ export const writeSplitMode = ({
     writeFileSync(join(dirname, implementationFilename), implementationData);
 
     if (output.mock) {
-      if (output.mock) {
-        writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
-      } else if (output.mock === 'old-version') {
+      if (output.mock === 'old-version') {
         errorMessage(
           'This way of using mocks is deprecated. Will be removed in the next major release',
         );
@@ -117,6 +115,8 @@ export const writeSplitMode = ({
             mockData,
           );
         }
+      } else {
+        writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
       }
     }
   }

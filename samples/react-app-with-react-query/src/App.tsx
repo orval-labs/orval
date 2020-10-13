@@ -13,7 +13,7 @@ function App() {
     setTimeout(() => {
       refetch();
     }, 2000);
-  }, []);
+  }, [refetch, dispatch]);
 
   return (
     <div className="App">

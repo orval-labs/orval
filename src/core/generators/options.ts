@@ -8,7 +8,7 @@ import {
 } from '../../types/getters';
 
 const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
-  if (!VERBS_WITH_BODY.includes(verb) || !body.implementation) {
+  if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
   }
 
@@ -16,7 +16,7 @@ const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
     return '\n      formData,';
   }
 
-  return `\n      ${body.implementation},`;
+  return `\n      ${body.implementation || 'undefined'},`;
 };
 
 const generateQueryParamsOptions = (

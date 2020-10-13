@@ -55,7 +55,7 @@ export const getParams = ({
 
       const implementation = `${name}${
         !required && !schema.default ? '?' : ''
-      }${schema.default ? ` = ${schema.default}` : `: ${resolvedValue.value}`}`;
+      }: ${resolvedValue.value}${schema.default ? ` = ${schema.default}` : ''}`;
 
       return {
         name,
