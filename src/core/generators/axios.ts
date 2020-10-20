@@ -4,12 +4,13 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
+import { sanitize } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
 
 export const generateAxiosImports = () => ({
   definition: `import { AxiosPromise } from 'axios';\n`,
-  implementation: `import { AxiosPromise, AxiosInstance } from 'axios';\n`,
+  implementation: `import axios,{ AxiosPromise, AxiosInstance } from 'axios';\n`,
   implementationMock: `import { AxiosPromise, AxiosInstance } from 'axios';\nimport faker from 'faker';\n`,
 });
 
@@ -71,10 +72,11 @@ const generateImports = ({
 ];
 
 export const generateAxiosTitle = (title: string) => {
+  const sanTitle = sanitize(title);
   return {
-    definition: `${pascal(title)}Api`,
-    implementation: `get${pascal(title)}Api`,
-    implementationMock: `get${pascal(title)}ApiMock`,
+    definition: `${pascal(sanTitle)}Api`,
+    implementation: `get${pascal(sanTitle)}Api`,
+    implementationMock: `get${pascal(sanTitle)}ApiMock`,
   };
 };
 
