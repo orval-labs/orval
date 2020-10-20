@@ -10,10 +10,17 @@ export const getResponse = (
   responses: ResponsesObject,
   operationId: string,
 ): GetterResponse => {
-  const types = getResReqTypes(
-    Object.entries(responses).filter(isOk),
-    operationId,
-  );
+  const types = responses
+    ? getResReqTypes(Object.entries(responses).filter(isOk), operationId)
+    : [
+        {
+          value: 'unknown',
+          imports: [],
+          schemas: [],
+          type: 'unknow',
+          isEnum: false,
+        },
+      ];
 
   const imports = types.reduce<string[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
