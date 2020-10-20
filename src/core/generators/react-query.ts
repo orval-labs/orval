@@ -26,7 +26,7 @@ const generateReactQueryImplementation = (
 ) => {
   const options = generateOptions({
     route,
-    body,
+    body: { ...body, implementation: body.implementation && 'data' },
     queryParams,
     response,
     verb,
@@ -54,16 +54,36 @@ const generateReactQueryImplementation = (
 `;
   }
 
+  const properties = [
+    ...params.map((param) =>
+      param.default ? `${param.name} = ${param.default}` : param.name,
+    ),
+    ...(body.implementation ? ['data'] : []),
+    ...(queryParams ? ['params'] : []),
+  ];
+
+  const definitions = [
+    ...params.map(({ definition }) => definition),
+    ...(body.definition ? [`data: ${body.definition}`] : []),
+    ...(queryParams ? [`params?: ${queryParams.schema.name}`] : []),
+  ];
+
   return `export const ${camel(
     `use-${definitionName}`,
   )} = (\n    mutationConfig?: MutationConfig<AxiosResponse<${
     response.definition
-  }>, AxiosError>\n  ) => {${mutator}${generateFormData(body)}
-  return useMutation<AxiosResponse<${response.definition}>, AxiosError, ${
-    body.definition
-  }>((${props.implementation}) => axios.${verb}(${
+  }>, AxiosError, {${definitions.join(';')}}>\n  ) => {
+  return useMutation<AxiosResponse<${
+    response.definition
+  }>, AxiosError, {${definitions.join(';')}}>((props) => {
+    const {${properties.join(',')}} = props || {};
+    ${mutator}${generateFormData({
+    ...body,
+    implementation: 'data',
+  })}
+    return axios.${verb}(${
     mutator ? `...mutator(${options})` : options
-  }), mutationConfig)
+  })}, mutationConfig)
 }
 `;
 };
