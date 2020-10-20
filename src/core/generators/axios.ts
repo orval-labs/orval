@@ -74,7 +74,7 @@ const generateImports = ({
 export const generateAxiosTitle = (title: string) => {
   const sanTitle = sanitize(title);
   return {
-    definition: `${pascal(sanTitle)}Api`,
+    definition: `I${pascal(sanTitle)}Api`,
     implementation: `get${pascal(sanTitle)}Api`,
     implementationMock: `get${pascal(sanTitle)}ApiMock`,
   };
