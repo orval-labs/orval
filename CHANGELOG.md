@@ -1,3 +1,10 @@
+## [3.1.1](https://github.com/anymaniax/orval/compare/v3.1.0...v3.1.1) (2020-10-20)
+
+
+### Bug Fixes
+
+* **axios:** prefix definition name ([3b7df65](https://github.com/anymaniax/orval/commit/3b7df65ac2c5a8200d1b9beb45e4dd55d9accdeb))
+
 # [3.1.0](https://github.com/anymaniax/orval/compare/v3.0.3...v3.1.0) (2020-10-20)
 
 
