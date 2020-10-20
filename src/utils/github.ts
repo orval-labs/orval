@@ -73,9 +73,6 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
 };
 
 export const getGithubOpenApi = async (url: string) => {
-  if (!url.includes('github.com')) {
-    throw new Error('need github url');
-  }
   const githubTokenPath = join(__dirname, '.githubToken');
   const accessToken = await getGithubAcessToken(githubTokenPath);
   const [info] = url.split('github.com/').slice(-1);

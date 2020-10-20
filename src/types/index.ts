@@ -100,7 +100,7 @@ export const Verbs = {
 };
 
 export type ImportOpenApi = {
-  data: string;
+  data: string | object;
   format: 'yaml' | 'json';
   input?: InputOptions;
   output?: OutputOptions;

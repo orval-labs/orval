@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { URL_REGEX } from '../../constants';
 import { Options } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
@@ -25,9 +26,25 @@ export const importSpecs = async (
 
   const format = getExtension(path);
 
-  const data = URL_REGEX.test(path)
-    ? await getGithubOpenApi(path)
-    : dynamicReader(path, workspace);
+  let data: string | object;
+
+  if (URL_REGEX.test(path)) {
+    if (path.includes('github.com')) {
+      data = await getGithubOpenApi(path);
+    } else {
+      try {
+        const call = await axios.get(path);
+        if (call.headers['content-type'] !== 'application/json') {
+          throw 'Oups... 🍻';
+        }
+        data = call.data;
+      } catch (e) {
+        throw 'Oups... 🍻';
+      }
+    }
+  } else {
+    data = dynamicReader(path, workspace);
+  }
 
   return importOpenApi({
     workspace,

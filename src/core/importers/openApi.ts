@@ -18,10 +18,15 @@ import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
  * @param format format of the spec
  */
 const importSpecs = (
-  data: string,
+  data: string | object,
   extension: 'yaml' | 'json',
 ): Promise<OpenAPIObject> => {
-  const schema = extension === 'yaml' ? YAML.parse(data) : JSON.parse(data);
+  const schema =
+    typeof data === 'string'
+      ? extension === 'yaml'
+        ? YAML.parse(data)
+        : JSON.parse(data)
+      : data;
 
   return new Promise((resolve, reject) => {
     if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
