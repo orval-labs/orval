@@ -44,7 +44,6 @@ const generateVerbOptions = ({
     parameters: operationParameters,
     tags = [],
   } = operation;
-
   const overrideOperation = override?.operations?.[operation.operationId!];
 
   const definitionName = camel(operation.operationId!);
@@ -122,19 +121,17 @@ export const generateVerbsOptions = ({
           `Every path must have a operationId - No operationId set for ${verb} ${route}`,
         );
       }
+      const options = generateVerbOptions({
+        workspace,
+        verb,
+        override,
+        verbParameters: verbs.parameters,
+        route,
+        components,
+        operation,
+      });
 
-      return [
-        ...acc,
-        generateVerbOptions({
-          workspace,
-          verb,
-          override,
-          verbParameters: verbs.parameters,
-          route,
-          components,
-          operation,
-        }),
-      ];
+      return [...acc, options];
     },
     [],
   );

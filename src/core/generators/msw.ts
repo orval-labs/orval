@@ -46,11 +46,15 @@ export const generateMSW = (
   const route = getRoute(pathRoute);
   const mockData = getMockOptionsDataOverride(operationId, override);
 
-  const value = mockData
-    ? mockData
-    : definitions.length > 1
-    ? `faker.helpers.randomize(${definition})`
-    : definitions[0];
+  let value = '';
+
+  if (mockData) {
+    value = mockData;
+  } else if (definitions.length > 1) {
+    value = `faker.helpers.randomize(${definition})`;
+  } else if (definitions[0]) {
+    value = definitions[0];
+  }
 
   const responseType =
     value[0] === '{' || value[0] === '[' || value.startsWith('(() => ({')

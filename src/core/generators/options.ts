@@ -7,7 +7,7 @@ import {
   GetterResponse,
 } from '../../types/getters';
 
-const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
+export const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
   }
@@ -19,7 +19,7 @@ const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
   return `\n      ${body.implementation || 'undefined'},`;
 };
 
-const generateQueryParamsOptions = (
+export const generateQueryParamsOptions = (
   response: GetterResponse,
   queryParams?: GeneratorSchema,
 ) => {
