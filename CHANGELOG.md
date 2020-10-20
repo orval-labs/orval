@@ -1,3 +1,20 @@
+# [3.1.0](https://github.com/anymaniax/orval/compare/v3.0.3...v3.1.0) (2020-10-20)
+
+
+### Bug Fixes
+
+* **axios-client:** default import ([e2f96c6](https://github.com/anymaniax/orval/commit/e2f96c6ae9f988a58fe67f440f2aa09cae4c5db0))
+* **mock:** correctly handle only one allOf & oneOf ([e5c8200](https://github.com/anymaniax/orval/commit/e5c8200a80dbcd55df20db2a417c957a451a80a7))
+* **msw:** crash when no definitions ([9e751fe](https://github.com/anymaniax/orval/commit/9e751fef07bba7d7595d0a8ed7d21fb470fee56c))
+* **mutator:** correctly handle blob body ([020dd2a](https://github.com/anymaniax/orval/commit/020dd2a7644cc15d13826c4e38c34715ac9ed5d1))
+* **react-query:** correctly handle variables mutate function ([4bb711b](https://github.com/anymaniax/orval/commit/4bb711bf538d1887c3e04c96c1eeea70cc9178e8))
+* **response:** default unknown definition ([19a8403](https://github.com/anymaniax/orval/commit/19a8403b36b099ad22367708550cd33d06c6d8a8))
+
+
+### Features
+
+* **input:** handle other link then github ([9f0e717](https://github.com/anymaniax/orval/commit/9f0e717bcf455c864c5e6928e1bffd7bf5a5b4bd))
+
 ## [3.0.3](https://github.com/anymaniax/orval/compare/v3.0.2...v3.0.3) (2020-10-13)
 
 
