@@ -60,23 +60,23 @@ const generateReactQueryImplementation = (
     ),
     ...(body.implementation ? ['data'] : []),
     ...(queryParams ? ['params'] : []),
-  ];
+  ].join(',');
 
   const definitions = [
     ...params.map(({ definition }) => definition),
     ...(body.definition ? [`data: ${body.definition}`] : []),
     ...(queryParams ? [`params?: ${queryParams.schema.name}`] : []),
-  ];
+  ].join(';');
 
   return `export const ${camel(
     `use-${definitionName}`,
   )} = (\n    mutationConfig?: MutationConfig<AxiosResponse<${
     response.definition
-  }>, AxiosError, {${definitions.join(';')}}>\n  ) => {
-  return useMutation<AxiosResponse<${
-    response.definition
-  }>, AxiosError, {${definitions.join(';')}}>((props) => {
-    const {${properties.join(',')}} = props || {};
+  }>, AxiosError${definitions ? `, {${definitions}}` : ''}>\n  ) => {
+  return useMutation<AxiosResponse<${response.definition}>, AxiosError${
+    definitions ? `, {${definitions}}` : ''
+  }>((${properties ? 'props' : ''}) => {
+    ${properties ? `const {${properties}} = props || {}` : ''};
     ${mutator}${generateFormData({
     ...body,
     implementation: 'data',
