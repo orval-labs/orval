@@ -42,9 +42,15 @@ export const getMockObject = ({
       imports = [...imports, ...resolvedValue.imports];
       if (!index && !allOf) {
         if (resolvedValue.enums) {
-          return 'faker.helpers.randomize([' + resolvedValue.value + ',';
+          if (arr.length === 1) {
+            return `faker.helpers.randomize([${resolvedValue.value}])`;
+          }
+          return `faker.helpers.randomize([${resolvedValue.value},`;
         }
-        return '{' + resolvedValue.value + ',';
+        if (arr.length === 1) {
+          return `{${resolvedValue.value}}`;
+        }
+        return `{${resolvedValue.value},`;
       }
       if (arr.length - 1 === index) {
         if (resolvedValue.enums) {
@@ -76,9 +82,15 @@ export const getMockObject = ({
       imports = [...imports, ...resolvedValue.imports];
       if (!index && !allOf) {
         if (resolvedValue.enums) {
-          return 'faker.helpers.randomize([' + resolvedValue.value + ',';
+          if (arr.length === 1) {
+            return `faker.helpers.randomize([${resolvedValue.value}])`;
+          }
+          return `faker.helpers.randomize([${resolvedValue.value},`;
         }
-        return '{' + resolvedValue.value + ',';
+        if (arr.length === 1) {
+          return `{${resolvedValue.value}}`;
+        }
+        return `{${resolvedValue.value},`;
       }
       if (arr.length - 1 === index) {
         if (resolvedValue.enums) {
