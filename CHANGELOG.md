@@ -1,3 +1,10 @@
+## [3.1.2](https://github.com/anymaniax/orval/compare/v3.1.1...v3.1.2) (2020-10-20)
+
+
+### Bug Fixes
+
+* **react-query:** handle correctly empty definitions or properties ([458c1ec](https://github.com/anymaniax/orval/commit/458c1eca3e05fb3f157e7f586a970da79840ba0c))
+
 ## [3.1.1](https://github.com/anymaniax/orval/compare/v3.1.0...v3.1.1) (2020-10-20)
 
 
