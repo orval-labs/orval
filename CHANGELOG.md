@@ -1,3 +1,10 @@
+## [3.1.3](https://github.com/anymaniax/orval/compare/v3.1.2...v3.1.3) (2020-10-26)
+
+
+### Bug Fixes
+
+* **dependencies:** add axios ([48210f5](https://github.com/anymaniax/orval/commit/48210f51f2330fcf969868c53896468fd3f7815d))
+
 ## [3.1.2](https://github.com/anymaniax/orval/compare/v3.1.1...v3.1.2) (2020-10-20)
 
 
