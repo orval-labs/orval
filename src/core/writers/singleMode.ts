@@ -36,11 +36,7 @@ export const writeSingleMode = ({
     implementation,
     implementationMocks,
     implementationMSW,
-  } = generateTarget(
-    operations,
-    info,
-    isObject(output) ? output.client : undefined,
-  );
+  } = generateTarget(operations, info, isObject(output) ? output : undefined);
 
   let data = getFilesHeader(info);
 

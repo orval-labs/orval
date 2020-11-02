@@ -188,6 +188,8 @@ type OverrideOutput = {
 };
 
 interface OutputOptions = {
+  // override title
+  title?: (title: string) => string
   // default axios
   client?: OutputClient
   // path to the file which will contains the implementation

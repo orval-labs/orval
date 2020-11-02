@@ -37,7 +37,7 @@ export const writeSplitMode = ({
     implementation,
     implementationMocks,
     implementationMSW,
-  } = generateTarget(operations, info, output.client);
+  } = generateTarget(operations, info, output);
 
   const header = getFilesHeader(info);
 
@@ -47,7 +47,11 @@ export const writeSplitMode = ({
   let mswData = header;
 
   const defaultImports = generateClientImports(output.client);
-  const title = generateClientTitle(output.client, info.title);
+  const title = generateClientTitle(
+    output.client,
+    info.title,
+    output.override?.title,
+  );
 
   definitionData += defaultImports.definition;
 

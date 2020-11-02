@@ -1,5 +1,5 @@
 import { InfoObject } from 'openapi3-ts';
-import { OutputClient } from '../../types';
+import { OutputOptions } from '../../types';
 import {
   GeneratorOperation,
   GeneratorOperations,
@@ -20,13 +20,16 @@ const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
 const generateTargetTags = (
   currentAcc: { [key: string]: GeneratorTarget },
   operation: GeneratorOperation,
-  info: InfoObject,
-  outputClient?: OutputClient,
+  options?: OutputOptions,
 ) =>
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
     if (!currentOperation) {
-      const header = generateClientHeader(outputClient, pascal(tag));
+      const header = generateClientHeader(
+        options?.client,
+        pascal(tag),
+        options?.override?.title,
+      );
 
       return {
         ...acc,
@@ -65,15 +68,15 @@ const generateTargetTags = (
 export const generateTargetForTags = (
   operations: GeneratorOperations,
   info: InfoObject,
-  outputClient?: OutputClient,
+  options?: OutputOptions,
 ) =>
   Object.values(operations)
     .map(addDefaultTagIfEmpty)
     .reduce((acc, operation, index, arr) => {
-      const targetTags = generateTargetTags(acc, operation, info, outputClient);
+      const targetTags = generateTargetTags(acc, operation, options);
 
       if (index === arr.length - 1) {
-        const footer = generateClientFooter(outputClient);
+        const footer = generateClientFooter(options?.client);
 
         return Object.entries(targetTags).reduce((acc, [tag, target]) => {
           return {

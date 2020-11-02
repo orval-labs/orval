@@ -80,12 +80,15 @@ export const generateAxiosTitle = (title: string) => {
   };
 };
 
-export const generateAxiosHeader = (title: string) => {
-  const axiosTitle = generateAxiosTitle(title);
+export const generateAxiosHeader = (titles: {
+  definition: string;
+  implementation: string;
+  implementationMock: string;
+}) => {
   return {
-    definition: `export interface ${axiosTitle.definition} {`,
-    implementation: `export const ${axiosTitle.implementation} = (axios: AxiosInstance): ${axiosTitle.definition} => ({\n`,
-    implementationMock: `export const ${axiosTitle.implementationMock} = (): ${axiosTitle.definition} => ({\n`,
+    definition: `export interface ${titles.definition} {`,
+    implementation: `export const ${titles.implementation} = (axios: AxiosInstance): ${titles.definition} => ({\n`,
+    implementationMock: `export const ${titles.implementationMock} = (): ${titles.definition} => ({\n`,
   };
 };
 

@@ -27,21 +27,23 @@ export const generateAngularTitle = (title: string) => {
   };
 };
 
-export const generateAngularHeader = (title: string) => {
-  const angularTitle = generateAngularTitle(title);
-
+export const generateAngularHeader = (titles: {
+  definition: string;
+  implementation: string;
+  implementationMock: string;
+}) => {
   return {
     definition: `
-  export abstract class ${angularTitle.definition} {`,
+  export abstract class ${titles.definition} {`,
     implementation: `
   @Injectable()
-  export class ${angularTitle.implementation} implements ${angularTitle.definition} {
+  export class ${titles.implementation} implements ${titles.definition} {
     constructor(
       private http: HttpClient,
     ) {}`,
     implementationMock: `
   @Injectable()
-  export class ${angularTitle.implementationMock} extends ${angularTitle.definition} {`,
+  export class ${titles.implementationMock} extends ${titles.definition} {`,
   };
 };
 

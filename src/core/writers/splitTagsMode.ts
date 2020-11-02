@@ -31,7 +31,7 @@ export const writeSplitTagsMode = ({
     mkdirSync(dirname);
   }
 
-  const target = generateTargetForTags(operations, info, output.client);
+  const target = generateTargetForTags(operations, info, output);
 
   Object.entries(target).forEach(([tag, target]) => {
     const {
@@ -50,7 +50,11 @@ export const writeSplitTagsMode = ({
     let mswData = header;
 
     const defaultImports = generateClientImports(output.client);
-    const title = generateClientTitle(output.client, pascal(tag));
+    const title = generateClientTitle(
+      output.client,
+      pascal(tag),
+      output.override?.title,
+    );
 
     definitionData += defaultImports.definition;
 

@@ -106,7 +106,11 @@ export const generateReactQueryTitle = (title: string) => {
   };
 };
 
-export const generateReactQueryHeader = (title: string) => {
+export const generateReactQueryHeader = (title: {
+  definition: string;
+  implementation: string;
+  implementationMock: string;
+}) => {
   return {
     definition: ``,
     implementation: ``,
