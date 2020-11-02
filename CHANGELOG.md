@@ -1,3 +1,10 @@
+## [3.1.4](https://github.com/anymaniax/orval/compare/v3.1.3...v3.1.4) (2020-11-02)
+
+
+### Bug Fixes
+
+* **generators:** enum property sanatize correctly ([a8d2433](https://github.com/anymaniax/orval/commit/a8d243315b799ebb69f83dcbe82ecb4e8a2f1486))
+
 ## [3.1.3](https://github.com/anymaniax/orval/compare/v3.1.2...v3.1.3) (2020-10-26)
 
 
