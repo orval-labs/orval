@@ -21,9 +21,9 @@ export const generateAngularImports = () => ({
 
 export const generateAngularTitle = (title: string) => {
   return {
-    definition: `I${pascal(title)}ApiService`,
-    implementation: `${pascal(title)}ApiService`,
-    implementationMock: `${pascal(title)}ApiMockService`,
+    definition: `I${pascal(title)}Service`,
+    implementation: `${pascal(title)}Service`,
+    implementationMock: `${pascal(title)}MockService`,
   };
 };
 
