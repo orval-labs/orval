@@ -1,3 +1,10 @@
+## [3.1.5](https://github.com/anymaniax/orval/compare/v3.1.4...v3.1.5) (2020-11-02)
+
+
+### Bug Fixes
+
+* **generator:** remove api at the end of the title ([1cc1992](https://github.com/anymaniax/orval/commit/1cc19922d563712e76eadd793cb3954a45216155))
+
 ## [3.1.4](https://github.com/anymaniax/orval/compare/v3.1.3...v3.1.4) (2020-11-02)
 
 
