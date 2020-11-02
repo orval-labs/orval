@@ -44,7 +44,9 @@ export const generateSchemasDefinition = (
             return (
               acc +
               `  ${
-                type === 'number' ? `${upper(type)}_${val}` : sanitize(val)
+                type === 'number'
+                  ? `${upper(type)}_${val}`
+                  : sanitize(val, false)
               }: ${val} as ${pascal(name)},\n`
             );
           }, '');
