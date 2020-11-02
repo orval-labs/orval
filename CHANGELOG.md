@@ -1,3 +1,10 @@
+## [3.1.6](https://github.com/anymaniax/orval/compare/v3.1.5...v3.1.6) (2020-11-02)
+
+
+### Features
+
+* **generator:** add the possibility to override the title ([7551f07](https://github.com/anymaniax/orval/commit/7551f074b61347796940f965dbff443f4f22b426))
+
 ## [3.1.5](https://github.com/anymaniax/orval/compare/v3.1.4...v3.1.5) (2020-11-02)
 
 
