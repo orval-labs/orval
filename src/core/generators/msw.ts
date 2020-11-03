@@ -36,7 +36,7 @@ export const generateMSW = (
   { operationId, response, verb }: GeneratorVerbOptions,
   { specs, pathRoute, override }: GeneratorOptions,
 ) => {
-  const { definitions, definition } = getMockDefinition(
+  const { definitions, definition, imports } = getMockDefinition(
     operationId,
     response,
     specs,
@@ -61,12 +61,15 @@ export const generateMSW = (
       ? 'json'
       : 'text';
 
-  return `rest.${verb}('${route}', (req, res, ctx) => {
-    return res(
-      ctx.delay(1000),
-      ctx.status(200, 'Mocked status'),${
-        value !== 'undefined' ? `\nctx.${responseType}(${value}),` : ''
-      }
-    )
-  }),`;
+  return {
+    implementation: `rest.${verb}('${route}', (req, res, ctx) => {
+      return res(
+        ctx.delay(1000),
+        ctx.status(200, 'Mocked status'),${
+          value !== 'undefined' ? `\nctx.${responseType}(${value}),` : ''
+        }
+      )
+    }),`,
+    imports,
+  };
 };

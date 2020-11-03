@@ -54,7 +54,7 @@ const GENERATOR_CLIENT = {
   },
   [OutputClient.REACT_QUERY]: {
     client: generateReactQuery,
-    mock: () => ({ implementation: '', imports: [] }),
+    mock: () => '',
     msw: generateMSW,
     header: generateReactQueryHeader,
     imports: generateReactQueryImports,
@@ -128,9 +128,9 @@ export const generateClient = (
         definition: client.definition,
         implementation: client.implementation,
         imports: client.imports,
-        implementationMocks: mock.implementation,
-        implementationMSW: msw,
-        importsMocks: mock.imports,
+        implementationMocks: mock,
+        implementationMSW: msw.implementation,
+        importsMocks: msw.imports,
         tags: verbOption.tags,
       },
     };
