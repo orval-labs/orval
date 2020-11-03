@@ -1,3 +1,10 @@
+## [3.1.8](https://github.com/anymaniax/orval/compare/v3.1.7...v3.1.8) (2020-11-03)
+
+
+### Bug Fixes
+
+* **writers:** msw imports mocks ([fa8b838](https://github.com/anymaniax/orval/commit/fa8b838118fc3754227d6da4031c1f0cb2e5da93))
+
 ## [3.1.7](https://github.com/anymaniax/orval/compare/v3.1.6...v3.1.7) (2020-11-03)
 
 
