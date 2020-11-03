@@ -1,3 +1,10 @@
+## [3.1.7](https://github.com/anymaniax/orval/compare/v3.1.6...v3.1.7) (2020-11-03)
+
+
+### Bug Fixes
+
+* **generator:** axios definition remove prefix I ([b5c06ad](https://github.com/anymaniax/orval/commit/b5c06add21bb8785edfb75b80a811fc543263ff3))
+
 ## [3.1.6](https://github.com/anymaniax/orval/compare/v3.1.5...v3.1.6) (2020-11-02)
 
 
