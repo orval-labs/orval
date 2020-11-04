@@ -8,7 +8,7 @@ export const generateAxiosMock = (
   { operationId, response, definitionName, props }: GeneratorVerbOptions,
   { specs, override }: GeneratorOptions,
 ) => {
-  const { definition, definitions, imports } = getMockDefinition(
+  const { definition, definitions } = getMockDefinition(
     operationId,
     response,
     specs,
@@ -18,9 +18,9 @@ export const generateAxiosMock = (
 
   const mockData = getMockOptionsDataOverride(operationId, override);
 
-  const implementation = `  ${definitionName}(${
-    props.definition
-  }): AxiosPromise<${response.definition}> {
+  return `  ${definitionName}(${props.definition}): AxiosPromise<${
+    response.definition
+  }> {
     return ${
       mockData
         ? toAxiosPromiseMock(mockData, response.definition)
@@ -30,6 +30,4 @@ export const generateAxiosMock = (
     }
   },
 `;
-
-  return { implementation, imports };
 };

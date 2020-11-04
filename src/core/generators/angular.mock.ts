@@ -8,7 +8,7 @@ export const generateAngularMock = (
   { operationId, response, definitionName, props }: GeneratorVerbOptions,
   { specs, override }: GeneratorOptions,
 ) => {
-  const { definition, definitions, imports } = getMockDefinition(
+  const { definition, definitions } = getMockDefinition(
     operationId,
     response,
     specs,
@@ -18,9 +18,9 @@ export const generateAngularMock = (
 
   const mockData = getMockOptionsDataOverride(operationId, override);
 
-  const implementation = `  ${definitionName}(${
-    props.definition
-  }): Observable<${response.definition}> {
+  return `  ${definitionName}(${props.definition}): Observable<${
+    response.definition
+  }> {
     return ${
       mockData
         ? toDelayMock(mockData, response.definition)
@@ -30,6 +30,4 @@ export const generateAngularMock = (
     }
   }
 `;
-
-  return { implementation, imports };
 };

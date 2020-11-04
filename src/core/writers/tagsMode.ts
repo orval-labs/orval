@@ -29,7 +29,7 @@ export const writeTagsMode = ({
     mkdirSync(dirname);
   }
 
-  const target = generateTargetForTags(operations, info, output.client);
+  const target = generateTargetForTags(operations, info, output);
 
   Object.entries(target).forEach(([tag, target]) => {
     const {

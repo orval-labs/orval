@@ -1,4 +1,4 @@
-import { SPECIAL_CHAR_REGEX } from '../constants';
+import { SPECIAL_CHAR_REGEX, SPECIAL_CHAR_REGEX_DEEP } from '../constants';
 import {
   isBoolean,
   isFunction,
@@ -45,5 +45,5 @@ export const stringify = (
   }, '');
 };
 
-export const sanitize = (value: string) =>
-  value.replace(SPECIAL_CHAR_REGEX, '');
+export const sanitize = (value: string, deep = true) =>
+  value.replace(deep ? SPECIAL_CHAR_REGEX_DEEP : SPECIAL_CHAR_REGEX, '');

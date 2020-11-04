@@ -51,6 +51,7 @@ export interface ExternalConfigFile {
 }
 
 export type OverrideOutput = {
+  title?: (title: string) => string;
   transformer?: string;
   mutator?: string;
   operations?: { [key: string]: OperationOptions };

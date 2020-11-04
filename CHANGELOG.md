@@ -1,3 +1,38 @@
+## [3.1.8](https://github.com/anymaniax/orval/compare/v3.1.7...v3.1.8) (2020-11-03)
+
+
+### Bug Fixes
+
+* **writers:** msw imports mocks ([fa8b838](https://github.com/anymaniax/orval/commit/fa8b838118fc3754227d6da4031c1f0cb2e5da93))
+
+## [3.1.7](https://github.com/anymaniax/orval/compare/v3.1.6...v3.1.7) (2020-11-03)
+
+
+### Bug Fixes
+
+* **generator:** axios definition remove prefix I ([b5c06ad](https://github.com/anymaniax/orval/commit/b5c06add21bb8785edfb75b80a811fc543263ff3))
+
+## [3.1.6](https://github.com/anymaniax/orval/compare/v3.1.5...v3.1.6) (2020-11-02)
+
+
+### Features
+
+* **generator:** add the possibility to override the title ([7551f07](https://github.com/anymaniax/orval/commit/7551f074b61347796940f965dbff443f4f22b426))
+
+## [3.1.5](https://github.com/anymaniax/orval/compare/v3.1.4...v3.1.5) (2020-11-02)
+
+
+### Bug Fixes
+
+* **generator:** remove api at the end of the title ([1cc1992](https://github.com/anymaniax/orval/commit/1cc19922d563712e76eadd793cb3954a45216155))
+
+## [3.1.4](https://github.com/anymaniax/orval/compare/v3.1.3...v3.1.4) (2020-11-02)
+
+
+### Bug Fixes
+
+* **generators:** enum property sanatize correctly ([a8d2433](https://github.com/anymaniax/orval/commit/a8d243315b799ebb69f83dcbe82ecb4e8a2f1486))
+
 ## [3.1.3](https://github.com/anymaniax/orval/compare/v3.1.2...v3.1.3) (2020-10-26)
 
 
