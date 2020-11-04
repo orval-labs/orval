@@ -12,6 +12,7 @@ import { resolveObject } from '../resolvers/object';
 import { getRef } from './ref';
 
 const CONTENT_TYPES = [
+  '*/*',
   'application/json',
   'application/octet-stream',
   'application/pdf',

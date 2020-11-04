@@ -30,13 +30,17 @@ const importSpecs = (
 
   return new Promise((resolve, reject) => {
     if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-      swagger2openapi.convertObj(schema, {}, (err, { openapi }) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(openapi);
-        }
-      });
+      swagger2openapi.convertObj(
+        schema,
+        { patch: true },
+        (err, { openapi }) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(openapi);
+          }
+        },
+      );
     } else {
       resolve(schema);
     }
