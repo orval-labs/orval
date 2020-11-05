@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
 import { OutputOptions } from '../../types';
@@ -26,7 +26,7 @@ export const writeSchemas = ({
     mkdirSync(schemaPath);
   }
 
-  writeFileSync(join(schemaPath, '/index.ts'), '');
+  /*  writeFileSync(join(schemaPath, '/index.ts'), ''); */
 
   writeModels(schemas, schemaPath, info);
 };

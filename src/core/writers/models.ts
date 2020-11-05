@@ -1,4 +1,4 @@
-import { appendFileSync, writeFileSync } from 'fs';
+import { appendFileSync, readFile, writeFileSync } from 'fs';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
 import { GeneratorSchema } from '../../types/generator';
@@ -33,7 +33,14 @@ export const writeModel = (
 ) => {
   const name = camel(spec.name);
   writeFileSync(getPath(path, name), getModel(info, spec));
-  appendFileSync(getPath(path, 'index'), `export * from './${name}';\n`);
+  const indexPath = getPath(path, 'index');
+  const exportFile = `export * from './${name}';\n`;
+  readFile(indexPath, function (err, data) {
+    if (err) throw err;
+    if (!data.includes(exportFile)) {
+      appendFileSync(getPath(path, 'index'), `export * from './${name}';\n`);
+    }
+  });
 };
 
 export const writeModels = (
