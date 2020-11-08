@@ -57,7 +57,10 @@ export const generateMSW = (
   }
 
   const responseType =
-    value[0] === '{' || value[0] === '[' || value.startsWith('(() => ({')
+    value[0] === '{' ||
+    value[0] === '[' ||
+    value.startsWith('(() => ({') ||
+    value.startsWith('faker.')
       ? 'json'
       : 'text';
 

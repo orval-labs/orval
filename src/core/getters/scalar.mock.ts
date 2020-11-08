@@ -1,32 +1,12 @@
 import { SchemaObject } from 'openapi3-ts';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
-import { resolveMockValue } from '../resolvers/value.mock';
+import {
+  getNullable,
+  resolveMockOverride,
+  resolveMockValue,
+} from '../resolvers/value.mock';
 import { getMockObject } from './object.mock';
-
-const resolveMockProperties = (
-  properties: any = {},
-  item: SchemaObject & { name: string; parent?: string },
-) =>
-  Object.entries(properties).reduce((acc, [key, value]) => {
-    const regex =
-      key[0] === '/' && key[key.length - 1] === '/'
-        ? new RegExp(key.slice(1, key.length - 1))
-        : new RegExp(key);
-
-    if (acc || !regex.test(item.name)) {
-      return acc;
-    }
-    return {
-      value: getNullable(value as string, item.nullable),
-      imports: [],
-      name: item.name,
-      overrided: true,
-    };
-  }, undefined as any);
-
-const getNullable = (value: string, nullable?: boolean) =>
-  nullable ? `faker.helpers.randomize([${value}, null])` : value;
 
 export const getMockScalar = ({
   item,
@@ -35,14 +15,14 @@ export const getMockScalar = ({
   mockOptions,
   operationId,
 }: {
-  item: SchemaObject & { name: string; parents?: string[]; isRef?: boolean };
+  item: SchemaObject & { name: string; path?: string; isRef?: boolean };
   schemas: { [key: string]: SchemaObject };
   allOf?: boolean;
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
 }): MockDefinition => {
-  const rProperty = resolveMockProperties(
+  const rProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
   );
@@ -51,7 +31,7 @@ export const getMockScalar = ({
     return rProperty;
   }
 
-  const property = resolveMockProperties(mockOptions?.properties, item);
+  const property = resolveMockOverride(mockOptions?.properties, item);
 
   if (property) {
     return property;
@@ -77,7 +57,11 @@ export const getMockScalar = ({
       }
 
       const { value, enums, imports, name } = resolveMockValue({
-        schema: { ...item.items, name: item.name, parents: item.parents },
+        schema: {
+          ...item.items,
+          name: item.name,
+          path: item.path ? `${item.path}.[]` : '#.[]',
+        },
         schemas,
         allOf,
         mockOptions,
@@ -90,7 +74,7 @@ export const getMockScalar = ({
             const newValue = enums[faker.random.number({min:1, max: enums.length})];
             return {
               values: [...values, newValue],
-              enums: enums.filter(v => newValue !== v)
+              enums: enums.filter((v: ${name}) => newValue !== v)
             }
           },{ values: [], enums: Object.values(${name})})`,
           imports,

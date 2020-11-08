@@ -1,5 +1,4 @@
 import cuid from 'cuid';
-import get from 'lodash/get';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
@@ -13,7 +12,7 @@ export const getMockObject = ({
   mockOptions,
   operationId,
 }: {
-  item: SchemaObject & { name: string; parents?: string[] };
+  item: SchemaObject & { name: string; path?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
@@ -21,7 +20,12 @@ export const getMockObject = ({
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
-      schema: { ...item, schemas, name: item.name },
+      schema: {
+        ...item,
+        schemas,
+        name: item.name,
+        path: item.path ? `${item.path}.${item.name}` : item.name,
+      },
       schemas,
       mockOptions,
       operationId,
@@ -32,7 +36,11 @@ export const getMockObject = ({
     let imports: string[] = [];
     const value = item.allOf.reduce((acc, val, index, arr) => {
       const resolvedValue = resolveMockValue({
-        schema: { ...val, name: item.name },
+        schema: {
+          ...val,
+          name: item.name,
+          path: item.path ? item.path : '#',
+        },
         schemas,
         allOf: true,
         mockOptions,
@@ -72,7 +80,11 @@ export const getMockObject = ({
     let imports: string[] = [];
     const value = item.oneOf.reduce((acc, val, index, arr) => {
       const resolvedValue = resolveMockValue({
-        schema: { ...val, name: item.name },
+        schema: {
+          ...val,
+          name: item.name,
+          path: item.path ? item.path : '#',
+        },
         schemas,
         allOf: true,
         mockOptions,
@@ -115,37 +127,15 @@ export const getMockObject = ({
       .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
         const isRequired = (item.required || []).includes(key);
 
-        if (
-          item.parents &&
-          mockOptions?.operations?.[operationId]?.properties?.[
-            `${item.parents.join('.')}.${key}`
-          ]
-        ) {
-          return `${key}: ${
-            mockOptions?.operations?.[operationId]?.properties?.[
-              `${item.parents.join('.')}.${key}`
-            ]
-          }`;
-        }
-
-        if (
-          item.parents &&
-          get(
-            mockOptions?.operations?.[operationId]?.properties,
-            `${item.parents.join('.')}.${key}`,
-          )
-        ) {
-          return `${key}: ${get(
-            mockOptions?.operations?.[operationId]?.properties,
-            `${item.parents.join('.')}.${key}`,
-          )}`;
+        if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
+          return undefined;
         }
 
         const resolvedValue = resolveMockValue({
           schema: {
             ...prop,
             name: key,
-            parents: item.parents,
+            path: item.path ? `${item.path}.${key}` : `#.${key}`,
           },
           schemas,
           mockOptions,
@@ -171,7 +161,11 @@ export const getMockObject = ({
     }
 
     const resolvedValue = resolveMockValue({
-      schema: { ...item.additionalProperties, name: item.name },
+      schema: {
+        ...item.additionalProperties,
+        name: item.name,
+        path: item.path ? `${item.path}.#` : '#',
+      },
       schemas,
       mockOptions,
       operationId,
