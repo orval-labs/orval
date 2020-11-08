@@ -12,7 +12,8 @@
     "react-dom": "^16.13.1",
     "react-query": "^2.23.0",
     "react-scripts": "^3.4.3",
-    "typescript": "~3.7.2"
+    "typescript": "~3.7.2",
+    "msw": "^0.21.2"
   },
   "scripts": {
     "start": "SKIP_PREFLIGHT_CHECK=true react-scripts start",
@@ -34,8 +35,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "devDependencies": {
-    "msw": "^0.21.2"
   }
 }
