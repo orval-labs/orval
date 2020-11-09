@@ -1,0 +1,4 @@
+---
+id: generate
+title: Generate
+---

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="/logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="Orval - Restfull Client Generator" />
+  <img src="/logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
 </p>
 <h3 align="center">
   Inspired by <a href="https://github.com/contiamo/restful-react">restful-react</a>

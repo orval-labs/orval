@@ -22,7 +22,7 @@ export const generateConfig = (
   const fullPath = join(process.cwd(), path);
 
   if (!existsSync(fullPath)) {
-    catchError('Orval config not found');
+    catchError('orval config not found');
   }
 
   // tslint:disable-next-line: no-var-requires

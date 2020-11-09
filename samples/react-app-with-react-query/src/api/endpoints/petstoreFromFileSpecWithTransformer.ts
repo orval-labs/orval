@@ -4,50 +4,58 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
-import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';
+import axios, { AxiosError, AxiosRequestConfig, AxiosResponse } from 'axios';
 import {
-  CreatePetsBody,
-  ListPetsParams,
-  Pet,
-  Pets,
-} from '../model';
+  MutationConfig,
+  QueryConfig,
+  useMutation,
+  useQuery,
+} from 'react-query';
+import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
 
 export const useListPets = (
-    params?: ListPetsParams,
-    version: number = 1,
- queryConfig?: QueryConfig<AxiosResponse<Pets>, AxiosError>
-  ) => {
-    type Mutator = (url: string, config?: object) => [string,  object | undefined]
-
-    const mutator: Mutator = (url, config) => [url, { ...config, responseType: 'json' }]
-
-    return useQuery<AxiosResponse<Pets>, AxiosError>(mutator(
+  params?: ListPetsParams,
+  version: number = 1,
+  queryConfig?: QueryConfig<AxiosResponse<Pets>, AxiosError>,
+) => {
+  return useQuery<AxiosResponse<Pets>, AxiosError>(
+    [
       `/v${version}/pets`,
       {
         params,
       },
-    ), ( path: string,
-      options: Partial<AxiosRequestConfig>) => axios.get<Pets>(path, options), {enabled: version, ...queryConfig} )
-  }
+    ],
+    (path: string, options: Partial<AxiosRequestConfig>) =>
+      axios.get<Pets>(path, options),
+    { enabled: version, ...queryConfig },
+  );
+};
 export const useCreatePets = (
-    mutationConfig?: MutationConfig<AxiosResponse<unknown>, AxiosError, {version?: number;data: CreatePetsBody}>
-  ) => {
-  return useMutation<AxiosResponse<unknown>, AxiosError, {version?: number;data: CreatePetsBody}>((props) => {
-    const {version = 1,data} = props || {};
-    
-    return axios.post(
-      `/v${version}/pets`,
-      data,
-    )}, mutationConfig)
-}
+  mutationConfig?: MutationConfig<
+    AxiosResponse<unknown>,
+    AxiosError,
+    { version?: number; data: CreatePetsBody }
+  >,
+) => {
+  return useMutation<
+    AxiosResponse<unknown>,
+    AxiosError,
+    { version?: number; data: CreatePetsBody }
+  >((props) => {
+    const { version = 1, data } = props || {};
+
+    return axios.post(`/v${version}/pets`, data);
+  }, mutationConfig);
+};
 export const useShowPetById = (
-    petId: string,
-    version: number = 1,
- queryConfig?: QueryConfig<AxiosResponse<Pet>, AxiosError>
-  ) => {
-    return useQuery<AxiosResponse<Pet>, AxiosError>([
-      `/v${version}/pets/${petId}`,
-    ], ( path: string,
-      options: Partial<AxiosRequestConfig>) => axios.get<Pet>(path, options), {enabled: version && petId, ...queryConfig} )
-  }
+  petId: string,
+  version: number = 1,
+  queryConfig?: QueryConfig<AxiosResponse<Pet>, AxiosError>,
+) => {
+  return useQuery<AxiosResponse<Pet>, AxiosError>(
+    [`/v${version}/pets/${petId}`],
+    (path: string, options: Partial<AxiosRequestConfig>) =>
+      axios.get<Pet>(path, options),
+    { enabled: version && petId, ...queryConfig },
+  );
+};
