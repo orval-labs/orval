@@ -14,23 +14,29 @@ import { getScalar } from '../getters/scalar';
 export const generateInterface = (name: string, schema: SchemaObject) => {
   const { value, imports, schemas } = getScalar(schema, name);
   const isEmptyObject = value === '{}';
+  const definitionName = pascal(name);
 
   let model = isEmptyObject
     ? '// tslint:disable-next-line:no-empty-interface\n'
     : '';
 
   if (!generalJSTypesWithArray.includes(value)) {
-    model += `export interface ${pascal(name)} ${value}\n`;
+    model += `export interface ${definitionName} ${value}\n`;
   } else {
-    model += `export type ${pascal(name)} = ${value};\n`;
+    model += `export type ${definitionName} = ${value};\n`;
   }
+
+  // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
+  const externalModulesImportsOnly = imports.filter(
+    (importName) => importName !== definitionName,
+  );
 
   return [
     ...schemas,
     {
-      name: pascal(name),
+      name: definitionName,
       model,
-      imports: generalTypesFilter(imports),
+      imports: generalTypesFilter(externalModulesImportsOnly),
     },
   ];
 };
