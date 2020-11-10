@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { withRouter } from 'next/router';
 import React from 'react';
 
-const ogImage = require('images/react-query-og.png?url');
+const ogImage = require('images/orval-logo-horizontal.png?url');
 const favicon = require('images/favicon.png?url');
 
 export const Seo = withRouter(
@@ -22,7 +22,7 @@ export const Seo = withRouter(
       <meta
         property="og:url"
         key="og:url"
-        content={`https://react-query.tanstack.com${router.pathname}`}
+        content={`https://orval.dev${router.pathname}`}
       />
       {title != undefined && (
         <meta property="og:title" content={title} key="og:title" />
@@ -38,7 +38,7 @@ export const Seo = withRouter(
         <meta
           property="og:image"
           key="og:image"
-          content={`https://react-query.tanstack.com${image}`}
+          content={`https://orval.dev${image}`}
         />
       )}
 
@@ -68,7 +68,7 @@ export const Seo = withRouter(
         <meta
           name="twitter:image"
           key="twitter:image"
-          content={`https://react-query.tanstack.com${image}`}
+          content={`https://orval.dev${image}`}
         />
       )}
 

@@ -4,8 +4,8 @@ export const siteConfig = {
   copyright: `Copyright © ${new Date().getFullYear()} Victor Bury. All Rights Reserved.`,
   repoUrl: 'https://github.com/anymaniax/orval',
   algolia: {
-    appId: 'V6XVY499RD',
-    apiKey: 'f8d1366837e00c8e28055fcf03d319d2',
-    indexName: 'orval-dev',
+    appId: process.env.NEXT_PUBLIC_ALGOLIA_APP_ID,
+    apiKey: process.env.NEXT_PUBLIC_ALGOLIA_API_KEY,
+    indexName: process.env.NEXT_PUBLIC_ALGOLIA_INDEX_NAME,
   },
 };

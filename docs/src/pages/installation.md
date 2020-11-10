@@ -3,8 +3,8 @@ id: installation
 title: Installation
 ---
 
-You can install orval with [NPM](https://npmjs.com),
-[Yarn](https://yarnpkg.com).
+You can install orval with <a href="https://npmjs.com" target="_blank">NPM</a>,
+<a href="https://yarnpkg.com" target="_blank">Yarn</a>.
 
 ### NPM
 

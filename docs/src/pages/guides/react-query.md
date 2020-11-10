@@ -28,7 +28,7 @@ Checkout the [orval config](../reference/orval-config) reference to see all avai
 
 The react query model wil generate an implementation file with one custom hook per path in your OpenApi Specification.
 
-Like the following example from this [swagger](https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml):
+Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
 const useListPets = (
@@ -102,4 +102,4 @@ const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
 };
 ```
 
-Checkout [here](https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/src/auth.context.tsx) the full example
+Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/src/auth.context.tsx" target="_blank">here</a> the full example

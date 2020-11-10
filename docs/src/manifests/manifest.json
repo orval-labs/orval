@@ -47,9 +47,9 @@
       "heading": true,
       "routes": [
         {
-          "title": "orval config",
-          "path": "/reference/orval-config",
-          "editUrl": "/reference/orval-config.md"
+          "title": "Configuration",
+          "path": "/reference/configuration",
+          "editUrl": "/reference/configuration.md"
         },
         {
           "title": "CLI",
@@ -57,9 +57,9 @@
           "editUrl": "/reference/cli.md"
         },
         {
-          "title": "Generate",
-          "path": "/reference/generate",
-          "editUrl": "/reference/generate.md"
+          "title": "Integration",
+          "path": "/reference/integration",
+          "editUrl": "/reference/integration.md"
         }
       ]
     }

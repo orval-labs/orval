@@ -1,4 +1,0 @@
----
-id: generate
-title: Generate
----

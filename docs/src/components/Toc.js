@@ -1,16 +1,19 @@
-import * as React from 'react'
-import cx from 'classnames'
-import { useTocHighlight } from './useTocHighlight'
-import styles from './Toc.module.css'
-const TOP_OFFSET = 100
+import cx from 'classnames';
+import * as React from 'react';
+import styles from './Toc.module.css';
+import { useTocHighlight } from './useTocHighlight';
+const TOP_OFFSET = 100;
 
 function getHeaderAnchors() {
   return [
     ...document.getElementsByTagName('H1'),
     ...[...document.getElementsByClassName('anchor')].filter(
-      el => el.parentNode.nodeName === 'H2' || el.parentNode.nodeName === 'H3'
+      (el) =>
+        el.parentNode.nodeName === 'H2' ||
+        el.parentNode.nodeName === 'H3' ||
+        el.parentNode.nodeName === 'H4',
     ),
-  ].filter(Boolean)
+  ].filter(Boolean);
 }
 
 function getHeaderDataFromAnchors(el) {
@@ -18,7 +21,7 @@ function getHeaderDataFromAnchors(el) {
     url: el.getAttribute('href'),
     text: el.parentElement?.innerText,
     depth: Number(el.parentElement?.nodeName.replace('H', '')),
-  }
+  };
 }
 
 export const Toc = ({ title }) => {
@@ -28,9 +31,10 @@ export const Toc = ({ title }) => {
     TOP_OFFSET,
     getHeaderAnchors,
     getHeaderDataFromAnchors,
-    el => el?.parentElement?.id
-  )
+    (el) => el?.parentElement?.id,
+  );
 
+  console.log(headings);
   return (
     <ul className="space-y-3">
       <li className="text-sm">
@@ -46,15 +50,16 @@ export const Toc = ({ title }) => {
               key={`heading-${h.url}-${i}`}
               className={cx('text-sm ', {
                 'pl-2': h?.depth === 3,
-                hidden: h.depth && h.depth > 3,
+                'pl-4': h?.depth === 4,
+                hidden: h.depth && h.depth > 4,
               })}
             >
               <a className={styles.contents__link} href={h.url}>
                 {h.text}
               </a>
             </li>
-          ) : null
+          ) : null,
         )}
     </ul>
-  )
-}
+  );
+};

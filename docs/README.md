@@ -1,4 +1,6 @@
-# orval Docs
+<p align="center">
+  <img src="../logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
+</p>
 
 This is source code to orval.dev. It is forked from the [Formik](https://formik.org) docs and is built with:
 
@@ -6,7 +8,6 @@ This is source code to orval.dev. It is forked from the [Formik](https://formik.
 - MDX
 - Tailwind
 - Algolia
-- Notion
 
 ## Running locally
 
@@ -14,17 +15,12 @@ This is source code to orval.dev. It is forked from the [Formik](https://formik.
 yarn install
 ```
 
-At the moment, you need to signup for Notion, and [follow these instructions](https://github.com/ijjk/notion-blog#getting-blog-index-and-token) to get a token and create a blog in order to develop locally. Not ideal, but hopefully will fix soon.
+If you want to setup algolia. Just add a `.env` file with the following content:
 
-With tokens and page index in hand, rename `.sample.env` and `.sample.env.build` to just `.env` and `.env.build`. In each one, add respective parameters:
-
-```diff
--NOTION_TOKEN=XXXX
-+NOTION_TOKEN=<YOUR_TOKEN>
--BLOG_INDEX_ID=XXXXX
-+BLOG_INDEX_ID=<YOUR_BLOG_INDEX_ID>
+```
+NEXT_PUBLIC_ALGOLIA_APP_ID=<YOUR APP ID>
+NEXT_PUBLIC_ALGOLIA_API_KEY=<YOUR API KEY>
+NEXT_PUBLIC_ALGOLIA_INDEX_NAME=<YOUR INDEX NAME>
 ```
 
 Now it will work. Run `yarn dev` to get going.
-
-If you get stuck or need help, [send a DM to Jared](https://twitter.com/jaredpalmer) on Twitter.

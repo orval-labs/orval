@@ -1,7 +1,7 @@
-const path = require('path')
-const dotenvLoad = require('dotenv-load')
-const optimizedImages = require('next-optimized-images')
-dotenvLoad()
+const path = require('path');
+const dotenvLoad = require('dotenv-load');
+const optimizedImages = require('next-optimized-images');
+dotenvLoad();
 
 const remarkPlugins = [
   require('remark-slug'),
@@ -22,7 +22,7 @@ const remarkPlugins = [
   require('remark-images'),
   [
     require('remark-github'),
-    { repository: 'https://github.com/tannerlinsley/react-query' },
+    { repository: 'https://github.com/anymaniax/orval' },
   ],
   require('remark-unwrap-images'),
   [
@@ -32,7 +32,7 @@ const remarkPlugins = [
       maxDepth: 6,
     },
   ],
-]
+];
 
 module.exports = optimizedImages({
   pageExtensions: ['jsx', 'js', 'mdx', 'md'],
@@ -47,7 +47,7 @@ module.exports = optimizedImages({
         destination: '/:any*', // Matched parameters can be used in the destination
         permanent: true,
       },
-    ]
+    ];
   },
   experimental: {
     plugins: true,
@@ -66,26 +66,26 @@ module.exports = optimizedImages({
         },
         path.join(__dirname, './src/lib/docs/md-loader'),
       ],
-    })
+    });
 
     // only compile build-rss in production server build
     if (dev || !isServer) {
-      return config
+      return config;
     }
 
     // we're in build mode so enable shared caching for Notion data
-    process.env.USE_CACHE = 'true'
+    process.env.USE_CACHE = 'true';
 
-    const originalEntry = config.entry
+    const originalEntry = config.entry;
     config.entry = async () => {
       const entries = {
         ...(await originalEntry()),
-      }
+      };
       // entries['./scripts/build-rss.js'] = './src/lib/build-rss.js'
-      return entries
-    }
+      return entries;
+    };
 
-    return config
+    return config;
   },
   optimizeImages: {
     /* config for next-optimized-images */
@@ -97,4 +97,4 @@ module.exports = optimizedImages({
     },
     optimizeImagesInDev: true,
   },
-})
+});
