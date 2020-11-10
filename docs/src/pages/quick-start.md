@@ -6,7 +6,7 @@ title: Quick Start
 ## Example without config:
 
 ```bash
-$ orval --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts
+$ orval --input ./petstore.yaml --output ./src/petstore.ts
 ```
 
 The --input can take a yaml or a json

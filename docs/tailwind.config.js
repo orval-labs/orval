@@ -15,6 +15,10 @@ module.exports = {
     },
   },
   theme: {
+    backgroundColor: (theme) => ({
+      ...theme('colors'),
+      highlight: '#5e5a6f',
+    }),
     extend: {
       colors: {
         coral: {

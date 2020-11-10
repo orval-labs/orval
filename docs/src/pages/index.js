@@ -28,7 +28,7 @@ const Home = () => {
           <div className="py-24 mx-auto container px-4 sm:mt-12  relative">
             <img
               src={require('images/emblem.png')}
-              className="absolute transform right-0 top-1/2 h-0 lg:h-full scale-100 translate-x-1/2 xl:translate-x-1/5 -translate-y-1/2"
+              className="absolute transform right-0 top-5/12 h-0 lg:h-full scale-100 translate-x-1/12 -translate-y-1/2"
               alt="orval Emblem"
             />
             <div className="grid grid-cols-12 lg:gap-8">
@@ -117,7 +117,7 @@ const Home = () => {
           />
         </div>
 
-        <section className="bg-gray-900 body-font">
+        <section className="bg-highlight body-font">
           <div className="container max-w-7xl px-4  mx-auto -mt-72 relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <Highlight>
