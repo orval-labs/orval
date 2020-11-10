@@ -26,7 +26,7 @@ $ orval
 module.exports = {
   'petstore-file': {
     input: './petstore.yaml',
-    output: './api/endpoints/petstoreFromFileSpec.ts',
+    output: './src/petstore.ts',
   },
 };
 ```

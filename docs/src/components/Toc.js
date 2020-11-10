@@ -34,7 +34,6 @@ export const Toc = ({ title }) => {
     (el) => el?.parentElement?.id,
   );
 
-  console.log(headings);
   return (
     <ul className="space-y-3">
       <li className="text-sm">

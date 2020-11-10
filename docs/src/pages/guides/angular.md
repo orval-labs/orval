@@ -12,8 +12,8 @@ module.exports = {
   petstore: {
     output: {
       mode: 'tags-split',
-      target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
-      schemas: 'src/api/model',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
       client: 'angular',
       mock: true,
     },

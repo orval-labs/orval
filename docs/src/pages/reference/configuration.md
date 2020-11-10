@@ -37,7 +37,7 @@ Configuration options for the following are described on this page:
 module.exports = {
   petstore: {
     input: './petstore.yaml',
-    output: './api/endpoints/petstoreFromFileSpec.ts',
+    output: './petstore.ts',
   },
 };
 ```
@@ -116,7 +116,7 @@ Valid values: path to the file which will contains the implementation.
 module.exports = {
   petstore: {
     output: {
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
+      target: 'src/petstore.ts',
     },
   },
 };
@@ -184,7 +184,7 @@ Use to have one file with everything
 module.exports = {
   petstore: {
     output: {
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
+      target: 'src/petstore.ts',
     },
   },
 };
@@ -192,29 +192,13 @@ module.exports = {
 
 ```
 my-app
-├── README.md
-├── node_modules
-├── package.json
-├── .gitignore
-├── public
-│   ├── favicon.ico
-│   ├── index.html
-│   └── manifest.json
 └── src
-    ├── api
-    │   └── endpoints
-    │       └── petstoreFromFileSpec.ts
-    ├── App.css
-    ├── App.js
-    ├── App.test.js
-    ├── index.css
-    ├── index.js
-    ├── logo.svg
-    └── serviceWorker.js
-    └── setupTests.js
+    └── api
+        └── endpoints
+            └── petstore.ts
 ```
 
-Here a single file petstoreFromFileSpec will be created in src/api/endpoints with your specification implementation.
+Here a single file petstore will be created in src with your specification implementation.
 
 #### Value: split
 
@@ -224,7 +208,7 @@ Use to have definition, implementation, schemas, mock in differents files
 module.exports = {
   petstore: {
     output: {
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
+      target: 'src/petstore.ts',
       mode: 'split',
     },
   },
@@ -233,41 +217,23 @@ module.exports = {
 
 ```
 my-app
-├── README.md
-├── node_modules
-├── package.json
-├── .gitignore
-├── public
-│   ├── favicon.ico
-│   ├── index.html
-│   └── manifest.json
 └── src
-    ├── api
-    │   └── endpoints
-    │       ├── petstoreFromFileSpec.definition.ts
-    │       ├── petstoreFromFileSpec.schemas.ts
-    │       ├── petstoreFromFileSpec.msw.ts
-    │       └── petstoreFromFileSpec.ts
-    ├── App.css
-    ├── App.js
-    ├── App.test.js
-    ├── index.css
-    ├── index.js
-    ├── logo.svg
-    └── serviceWorker.js
-    └── setupTests.js
+    ├── petstore.definition.ts
+    ├── petstore.schemas.ts
+    ├── petstore.msw.ts
+    └── petstore.ts
 ```
 
-Here depending of the configuration you will have multiple files petstoreFromFileSpec with a prefix created in src/api/endpoints.
+Here depending of the configuration you will have multiple files petstore with a prefix created in src.
 
-- petstoreFromFileSpec.definition.ts
-- petstoreFromFileSpec.schemas.ts
-- petstoreFromFileSpec.ts
-- petstoreFromFileSpec.msw.ts
+- petstore.definition.ts
+- petstore.schemas.ts
+- petstore.ts
+- petstore.msw.ts
 
 For angular:
 
-=> petstoreFromFileSpec.ts is petstoreFromFileSpec.service.ts
+=> petstore.ts is petstore.service.ts
 
 #### Value: tags
 
@@ -277,7 +243,7 @@ Use this mode if you want one file by tag. Tag is a reference of the OpenApi spe
 module.exports = {
   petstore: {
     output: {
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
+      target: 'src/petstore.ts',
       mode: 'tags',
     },
   },
@@ -286,32 +252,14 @@ module.exports = {
 
 ```
 my-app
-├── README.md
-├── node_modules
-├── package.json
-├── .gitignore
-├── public
-│   ├── favicon.ico
-│   ├── index.html
-│   └── manifest.json
 └── src
-    ├── api
-    │   └── endpoints
-    │       ├── pets.ts
-    │       └── petstoreFromFileSpec.schemas.ts
-    ├── App.css
-    ├── App.js
-    ├── App.test.js
-    ├── index.css
-    ├── index.js
-    ├── logo.svg
-    └── serviceWorker.js
-    └── setupTests.js
+    ├── pets.ts
+    └── petstore.schemas.ts
 ```
 
 For angular:
 
-=> petstoreFromFileSpec.ts is petstoreFromFileSpec.service.ts
+=> petstore.ts is petstore.service.ts
 
 If you don't use the `schemas` property only one file will be created with all the models for every tags
 
@@ -323,7 +271,7 @@ This mode is a combination of the tags and split mode. orval will generate a fol
 module.exports = {
   petstore: {
     output: {
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
+      target: 'src/petstore.ts',
       mode: 'tags-split',
     },
   },
@@ -332,31 +280,13 @@ module.exports = {
 
 ```
 my-app
-├── README.md
-├── node_modules
-├── package.json
-├── .gitignore
-├── public
-│   ├── favicon.ico
-│   ├── index.html
-│   └── manifest.json
 └── src
-    ├── api
-    │   └── endpoints
-    │       ├── petstoreFromFileSpec.schemas.ts
-    │       └── pets
-    │           ├── petstoreFromFileSpec.ts
-    │           ├── petstoreFromFileSpec.definition.ts
-    │           ├── petstoreFromFileSpec.msw.ts
-    │           └── petstoreFromFileSpec.ts
-    ├── App.css
-    ├── App.js
-    ├── App.test.js
-    ├── index.css
-    ├── index.js
-    ├── logo.svg
-    └── serviceWorker.js
-    └── setupTests.js
+    ├── petstore.schemas.ts
+    └── pets
+        ├── petstore.ts
+        ├── petstore.definition.ts
+        ├── petstore.msw.ts
+        └── petstore.ts
 ```
 
 Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tags
@@ -413,7 +343,7 @@ This function is executed for each call when you generate and take in argument a
 module.exports = {
   input: {
     override: {
-      transformer: 'src/api/transformer/yourfunction.js',
+      transformer: 'src/yourfunction.js',
     },
   },
 };
@@ -490,8 +420,8 @@ module.exports = {
     override: {
       operations: {
         listPets: {
-          transformer: 'src/api/transformer/yourfunction.js',
-          mutator: 'src/api/mutator/response-type.js',
+          transformer: 'src/yourfunction.js',
+          mutator: 'src/response-type.js',
           mock: {
             properties: () => {
               return {
@@ -524,14 +454,14 @@ module.exports = {
   petstore: {
     output: {
       mode: 'split',
-      target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
-      schemas: 'src/api/model',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
       client: 'react-query',
       mock: true,
       override: {
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.js',
+            mutator: 'src/response-type.js',
             mock: {
               properties: () => {
                 return {
@@ -560,7 +490,7 @@ module.exports = {
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.js',
+        transformer: 'src/add-version.js',
       },
     },
   },

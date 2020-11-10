@@ -14,8 +14,8 @@ module.exports = {
   'petstore-file-transfomer': {
     output: {
       mode: 'single',
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
-      schemas: './api/model',
+      target: './src/petstore.ts',
+      schemas: './src/model',
       mock: true,
     },
     input: {

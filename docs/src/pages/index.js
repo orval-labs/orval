@@ -7,6 +7,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import * as React from 'react';
 import { siteConfig } from 'siteConfig';
+import Highlight from '../components/Highlight';
 
 const Home = () => {
   return (
@@ -118,20 +119,49 @@ const Home = () => {
 
         <section className="bg-gray-900 body-font">
           <div className="container max-w-7xl px-4  mx-auto -mt-72 relative">
-            GIF
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Highlight>
+                {`module.exports = {
+  petstore: {
+    output: {
+      mode: 'split',
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      client: 'react-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+};
+`}
+              </Highlight>
+              <Highlight>
+                {`
+my-app
+└── src
+    ├── petstore.definition.ts
+    ├── petstore.schemas.ts
+    ├── petstore.msw.ts
+    ├── petstore.ts
+    └── model
+        ├── index.ts
+        ├── pet.ts
+        ├── pets.ts
+        ├── createPetsBody.ts
+        └── error.ts
+
+
+`}
+              </Highlight>
+            </div>
           </div>
           <div className="py-24 px-4 sm:px-6 lg:px-8  mx-auto container">
             <div className=" sm:text-center pb-16">
               <h3 className="text-3xl mx-auto leading-tight font-extrabold tracking-tight text-white sm:text-4xl  lg:leading-none mt-2">
-                One Dep, All the Features.
+                One generator to rule them all.
               </h3>
-              <p className="mt-4 text-xl max-w-3xl mx-auto leading-7 text-gray-300">
-                Sure, React is the only dependency, but orval comes fully
-                featured with all the gizmos and gadgets you want or need. From
-                weekend hobby projects all the way up to enterprise e-commerce
-                systems (lookin' at you Walmart!), orval is jam packed with
-                features.
-              </p>
             </div>
             <div>
               <div className="grid grid-flow-row grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4 text-white max-w-screen-lg mx-auto text-lg">

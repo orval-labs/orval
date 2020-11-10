@@ -12,8 +12,8 @@ module.exports = {
   petstore: {
     output: {
       mode: 'tags-split',
-      target: 'src/api/endpoints/petstoreFromFileSpec.ts',
-      schemas: 'src/api/model',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
       client: 'react-query',
       mock: true,
     },
