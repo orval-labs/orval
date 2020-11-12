@@ -2,7 +2,7 @@
   <img src="./logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
 </p>
 <h3 align="center">
-  Visit <a href="orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!
+  Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!
 </h3>
 
 ## Summary
