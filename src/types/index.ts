@@ -1,5 +1,6 @@
 import { AxiosRequestConfig } from 'axios';
 import { OpenAPIObject } from 'openapi3-ts';
+import { GeneratorVerbOptions } from './generator';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -50,39 +51,43 @@ export interface ExternalConfigFile {
   [backend: string]: Options;
 }
 
-export type OverrideOutput = {
-  title?: (title: string) => string;
-  transformer?: string;
-  mutator?: string;
-  operations?: { [key: string]: OperationOptions };
-  mock?: {
-    properties?: MockProperties;
-  };
-};
+type OuputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
-type TransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
-
-type Transformer = string | TransformerFn;
-
-export type OverrideInput = {
-  transformer?: Transformer;
-};
+type OuputTransformer = string | OuputTransformerFn;
 
 type MutatorGet = (
   url: string,
   config: AxiosRequestConfig,
 ) => [string, AxiosRequestConfig];
 
-type MutatorPost = (
+type MutatorPost = <T>(
   url: string,
-  data: any,
+  data: T,
   config: AxiosRequestConfig,
 ) => [string, AxiosRequestConfig];
 
 export type Mutator = string | MutatorGet | MutatorPost;
 
+export type OverrideOutput = {
+  title?: (title: string) => string;
+  transformer?: OuputTransformer;
+  mutator?: Mutator;
+  operations?: { [key: string]: OperationOptions };
+  mock?: {
+    properties?: MockProperties;
+  };
+};
+
+type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+
+type InputTransformer = string | InputTransformerFn;
+
+export type OverrideInput = {
+  transformer?: InputTransformer;
+};
+
 export type OperationOptions = {
-  transformer?: string;
+  transformer?: OuputTransformer;
   mutator?: Mutator;
   mock?: {
     data?: MockProperties;

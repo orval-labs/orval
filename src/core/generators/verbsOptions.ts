@@ -11,13 +11,13 @@ import {
   GeneratorVerbsOptions,
 } from '../../types/generator';
 import { camel } from '../../utils/case';
+import { dynamicImport } from '../../utils/imports';
 import { getBody } from '../getters/body';
 import { getParameters } from '../getters/parameters';
 import { getParams } from '../getters/params';
 import { getProps } from '../getters/props';
 import { getQueryParams } from '../getters/queryParams';
 import { getResponse } from '../getters/response';
-import { getTransformer } from '../getters/transformer';
 import { generateMutator } from './mutator';
 
 const generateVerbOptions = ({
@@ -89,9 +89,9 @@ const generateVerbOptions = ({
     mutator,
   };
 
-  const transformer = getTransformer(
-    workspace,
+  const transformer = dynamicImport(
     overrideOperation?.transformer || override?.transformer,
+    workspace,
   );
 
   return transformer ? transformer(verbOption) : verbOption;

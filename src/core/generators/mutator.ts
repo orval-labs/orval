@@ -1,7 +1,6 @@
 import { Mutator } from '../../types';
 import { GetterBody } from '../../types/getters';
 import { dynamicImport } from '../../utils/imports';
-import { isString } from '../../utils/is';
 
 export const generateMutator = ({
   workspace,
@@ -26,9 +25,7 @@ export const generateMutator = ({
       : ''
   } object | undefined]`;
 
-  const mutatorFn = isString(mutator)
-    ? dynamicImport(mutator, workspace)
-    : mutator;
+  const mutatorFn = dynamicImport(mutator, workspace);
 
   return `
     type Mutator = ${type}
