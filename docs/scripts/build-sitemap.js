@@ -1,9 +1,4 @@
 const sitemap = require('nextjs-sitemap-generator');
-const fs = require('fs');
-
-// This is needed for the plugin to work
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const BUILD_ID = fs.readFileSync('.next/BUILD_ID').toString();
 
 sitemap({
   baseUrl: 'https://orval.dev',
