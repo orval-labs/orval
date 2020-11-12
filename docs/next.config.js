@@ -36,10 +36,6 @@ const remarkPlugins = [
 
 module.exports = optimizedImages({
   pageExtensions: ['jsx', 'js', 'mdx', 'md'],
-  env: {
-    NEXT_PUBLIC_GA_TRACKING_ID: process.env.GA_TRACKING_ID || '',
-    SENTRY_RELEASE: process.env.VERCEL_GITHUB_COMMIT_SHA || '',
-  },
   async redirects() {
     return [
       {
@@ -54,6 +50,10 @@ module.exports = optimizedImages({
     modern: true,
   },
   webpack: (config, { dev, isServer, ...options }) => {
+    if (!isServer) {
+      config.resolve.alias['@sentry/node'] = '@sentry/browser';
+    }
+
     config.module.rules.push({
       test: /.mdx?$/, // load both .md and .mdx files
       use: [

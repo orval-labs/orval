@@ -1,10 +1,18 @@
 import '@docsearch/react/dist/style.css';
+import * as Sentry from '@sentry/node';
 import { SearchProvider } from 'components/useSearch';
 import Head from 'next/head';
 import React from 'react';
 import '../styles/index.css';
 
-function MyApp({ Component, pageProps }) {
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  Sentry.init({
+    enabled: process.env.NODE_ENV === 'production',
+    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  });
+}
+
+function MyApp({ Component, pageProps, err }) {
   return (
     <>
       <Head>
@@ -30,7 +38,7 @@ function MyApp({ Component, pageProps }) {
         />
       </Head>
       <SearchProvider>
-        <Component {...pageProps} />
+        <Component {...pageProps} err={err} />
       </SearchProvider>
     </>
   );
