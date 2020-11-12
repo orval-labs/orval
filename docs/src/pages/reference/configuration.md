@@ -5,7 +5,7 @@ title: Configuration
 
 This page is a reference to the different ways of configuring your orval projects.
 
-Using a orval-config.js configuration file, placed at the root of a project, you can provide a list of options that changes the default behavior of the orval generated files.
+Using an orval-config.js configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the orval generated files.
 
 Configuration options for the following are described on this page:
 
@@ -20,12 +20,12 @@ Configuration options for the following are described on this page:
   <tbody>
     <tr>
       <td className="border px-4 py-2">Input</td>
-      <td className="border px-4 py-2">Directly the path to the specification or the configuration of the imported specification and also what you want to override on it
+      <td className="border px-4 py-2">Directly the path to the specification or the configuration of the imported specification and also what you want to override on it.
       </td>
     </tr>
     <tr className="bg-gray-100">
       <td className="border px-4 py-2">Output</td>
-      <td className="border px-4 py-2">Directly the path to where you want to generate your models and HTTP calls or the configuration of what and where you want to write the generated code</td>
+      <td className="border px-4 py-2">Directly the path to where you want to generate your models and HTTP calls or the configuration of what and where you want to write the generated code.</td>
     </tr>
   </tbody>
 </table>
@@ -88,7 +88,7 @@ Give you the possibility to override the specification
 
 Type: `String` or `Function`.
 
-Valid values: path or implementation of the transfomer function.
+Valid values: path or implementation of the transformer function.
 
 This function is executed when you generate and take in argument an <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/OpenApi.ts#L18" target="_blank">OpenAPIObject</a> and should return an <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/OpenApi.ts#L18" target="_blank">OpenAPIObject</a>.
 
@@ -224,7 +224,7 @@ my-app
     └── petstore.ts
 ```
 
-Here depending of the configuration you will have multiple files petstore with a prefix created in src.
+Here depending on the configuration, you will have multiple files named petstore with a prefix created in src.
 
 - petstore.definition.ts
 - petstore.schemas.ts
@@ -261,7 +261,7 @@ For angular:
 
 => petstore.ts is petstore.service.ts
 
-If you don't use the `schemas` property only one file will be created with all the models for every tags
+If you don't use the `schemas` property only one file will be created with all the models for every tag.
 
 #### Value: tags-split
 
@@ -289,13 +289,13 @@ my-app
         └── petstore.ts
 ```
 
-Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tags
+Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tag.
 
 ### title
 
 Type: `String` or `Function`.
 
-Valid values: path or implementation of the transfomer function.
+Valid values: path or implementation of the function.
 
 ```js
 module.exports = {
@@ -329,13 +329,13 @@ module.exports = {
 
 Type: `Object`.
 
-Give you the possibility to override the output like your mock implementation or transform the api implementation like you want
+Give you the possibility to override the output like your mock implementation or transform the API implementation like you want
 
 #### override.transformer
 
 Type: `String` or `Function`.
 
-Valid values: path or implementation of the transfomer function.
+Valid values: path or implementation of the transformer function.
 
 This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a> and shouled return a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a>
 
@@ -355,7 +355,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the mutator function.
 
-This function is executed for each call when this one is exectured and take in argument a all the option pass the verb function of the client and should return an array with those arguments in the same order.
+This function is executed for each call when this one is executed. It takes all the options pass to the verb as an argument and should return an array with those arguments in the same order.
 
 Possible arguments:
 

@@ -15,7 +15,7 @@ Main goals:
 - Generate HTTP Calls
 - Generate Mocks with <a href="https://mswjs.io/" target="_blank">MSW</a>
 
-The default generated client use axios and can be use by your favorite Javascript framework like angular, react or vue. It's just a function who take an instance of axios in argument and return an object where each key is function who setup a call http. [Learn more](./guides/basics)
+The default generated client use axios and can be used by your favourite Javascript framework like angular, react or vue. It's just a function who takes an instance of axios in argument and return an object where each key is a function who setup a call HTTP. [Learn more](./guides/basics)
 
 orval can also generate the following client:
 

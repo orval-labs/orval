@@ -26,7 +26,7 @@ module.exports = {
 
 Checkout the [orval config](../reference/orval-config) reference to see all available options.
 
-The react query model wil generate an implementation file with one custom hook per path in your OpenApi Specification.
+The react query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
 

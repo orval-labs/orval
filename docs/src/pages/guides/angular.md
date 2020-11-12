@@ -32,10 +32,10 @@ You can checkout an example <a href="https://github.com/anymaniax/orval/tree/mas
 
 ### How to set a backend url
 
-You can use an interceptor to automatically add the url of your api. Like you would do to add an authorization header.
+You can use an interceptor to automatically add the url of your API. Like you would do to add an authorization header.
 
 ### How use mock
 
 You should define your mock inside the environment file. If you don't do that you will add all the dependencies like to the mock to your bundle.
 
-You can for example add a property modules and add a MockModule inside which will setup your mocks. You can check an example <a href="https://github.com/anymaniax/orval/tree/master/samples/angular-app/src/api/mocks" target="_blank">here</a>
+You can for example add a property `modules` and add a MockModule inside which will setup your mocks. You can check an example <a href="https://github.com/anymaniax/orval/tree/master/samples/angular-app/src/api/mocks" target="_blank">here</a>

@@ -75,17 +75,26 @@ const Home = () => {
                 <div>
                   <div>
                     <h3 className="text-xl leading-6 xl:text-2xl font-bold text-gray-900">
-                      Code Generation
+                      Productivity
                     </h3>
-                    <p className="mt-2 lg:mt-4 text-base xl:text-lg lg:leading-normal leading-6 text-gray-600"></p>
+                    <p className="mt-2 lg:mt-4 text-base xl:text-lg lg:leading-normal leading-6 text-gray-600">
+                      Save time to drink a 🍺, get your api ready out of the box
+                      in a few seconds. Prevent human error, be sure on the
+                      return result by imposing standard formatting.
+                    </p>
                   </div>
                 </div>
                 <div className="mt-10 lg:mt-0">
                   <div>
                     <h3 className="text-xl leading-6 xl:text-2xl font-bold text-gray-900">
-                      Productivity
+                      Error boundary
                     </h3>
-                    <p className="mt-2  lg:mt-4 text-base xl:text-lg lg:leading-normal leading-6 text-gray-600"></p>
+                    <p className="mt-2  lg:mt-4 text-base xl:text-lg lg:leading-normal leading-6 text-gray-600">
+                      Get your contract ! With the combination of orval and
+                      openapi, you have a strong standard for your team which
+                      avoid any problem of missunderstanding and give you the
+                      possibility to focus on your ui
+                    </p>
                   </div>
                 </div>
                 <div className="mt-10 lg:mt-0">
@@ -93,7 +102,11 @@ const Home = () => {
                     <h3 className="text-xl leading-6 xl:text-2xl font-bold text-gray-900">
                       API mocking
                     </h3>
-                    <p className="mt-2  lg:mt-4 text-base xl:text-lg lg:leading-normal leading-6 text-gray-600"></p>
+                    <p className="mt-2  lg:mt-4 text-base xl:text-lg lg:leading-normal leading-6 text-gray-600">
+                      Don't wait for your backend to be ready to test your
+                      application. Generate your mocks with Orval, knowing that
+                      you are ready to be connected to your API.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -106,8 +119,8 @@ const Home = () => {
               Less Time. More productivity.
             </h3>
             <p className="my-4 text-xl leading-7  text-gray-600">
-              Instead of losing time writing your models, HTTP calls and mocks.
-              You can now focus on the UI
+              Instead of losing time writing your models, HTTP calls and mocks,
+              go ahead and be focused on the other requirements.
             </p>
           </div>
           <div

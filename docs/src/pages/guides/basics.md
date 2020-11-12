@@ -28,9 +28,9 @@ module.exports = {
 The output options configure what and where you want to write the generated code.
 
 - mode is where you define the way you want to generate your files (default: single - is only one file with everything)
-- target is where the generated will be write by default
-- schemas is where the models will be write.
-- mock is when you want to generate mocks with MSW. Rhe will be generated in the target file. You can check <a href="https://mswjs.io/" target="_blank">msw</a> to setup them correctly
+- target is where the generated will be written by default
+- schemas is where the models will be written.
+- mock is when you want to generate mocks with MSW. he will be generated in the target file. You can check <a href="https://mswjs.io/" target="_blank">msw</a> to setup them correctly
 
 The input options configure the imported specification and also what you want to override on it.
 

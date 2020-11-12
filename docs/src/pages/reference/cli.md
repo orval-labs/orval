@@ -5,7 +5,7 @@ title: CLI
 
 ## orval reference
 
-orval provides a set of options that allow you to generate your models or the api calls of your application. This page contains a complete list of all orval options available.
+orval provides a set of options that allow you to generate your models or the API calls of your application. This page contains a complete list of all orval options available.
 
 To download and install orval, [follow the instructions here](../installation).
 
@@ -35,7 +35,7 @@ $ orval --output ./api/endpoints/petstoreFromFileSpec.ts"
 
 ### Config
 
-The `--config` option, shorthand `-c`, can be used to set the path to a orval config.
+The `--config` option, shorthand `-c`, can be used to set the path to an orval config.
 
 ```bash
 $ orval --config ./api/orval.config.js

@@ -5,7 +5,7 @@ title: Integration
 
 Give you the possibility to use orval with a script.
 
-Orval expose a function which take a path to the orval config in argument.
+Orval expose a function which takes a path to the orval config as an argument.
 
 ```js
 import orval from 'orval';
