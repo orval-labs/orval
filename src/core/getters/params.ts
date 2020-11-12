@@ -47,7 +47,7 @@ export const getParams = ({
 
       const name = sanitize(nameWithoutSanitize);
 
-      const resolvedValue = resolveValue(schema);
+      const resolvedValue = resolveValue({ schema });
 
       const definition = `${name}${!required || schema.default ? '?' : ''}: ${
         resolvedValue.value

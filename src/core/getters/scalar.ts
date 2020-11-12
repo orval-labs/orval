@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts';
+import { SchemaObject, SchemasObject } from 'openapi3-ts';
 import { ResolverValue } from '../../types/resolvers';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -9,7 +9,11 @@ import { getObject } from './object';
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
  */
-export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
+export const getScalar = (
+  item: SchemaObject,
+  name?: string,
+  schemas: SchemasObject = {},
+): ResolverValue => {
   const nullable = item.nullable ? ' | null' : '';
 
   if (!item.type && item.items) {
@@ -46,7 +50,7 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
       };
 
     case 'array': {
-      const { value, ...rest } = getArray(item, name);
+      const { value, ...rest } = getArray({ schema: item, name, schemas });
       return {
         value: value + nullable,
         ...rest,
@@ -77,7 +81,7 @@ export const getScalar = (item: SchemaObject, name?: string): ResolverValue => {
 
     case 'object':
     default: {
-      const { value, ...rest } = getObject(item, name);
+      const { value, ...rest } = getObject(item, name, schemas);
       return { value: value + nullable, ...rest };
     }
   }
