@@ -48,12 +48,8 @@ export const Seo = withRouter(
         key="twitter:card"
         content="summary_large_image"
       />
-      <meta name="twitter:site" key="twitter:site" content="@tannerlinsley" />
-      <meta
-        name="twitter:creator"
-        key="twitter:creator"
-        content="@tannerlinsley"
-      />
+      <meta name="twitter:site" key="twitter:site" content="@anymaniax" />
+      <meta name="twitter:creator" key="twitter:creator" content="@anymaniax" />
       {title != undefined && (
         <meta name="twitter:title" key="twitter:title" content={title} />
       )}

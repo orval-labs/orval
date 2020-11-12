@@ -132,7 +132,7 @@ const Home = () => {
 
         <section className="bg-highlight body-font">
           <div className="container max-w-7xl px-4  mx-auto -mt-72 relative">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-x-hidden">
               <Highlight>
                 {`module.exports = {
   petstore: {
