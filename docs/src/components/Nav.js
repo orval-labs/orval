@@ -29,7 +29,10 @@ export const Nav = () => (
               </Link>
             </div>
             <div>
-              <Link href="/examples/simple">
+              <Link
+                href={`${siteConfig.repoUrl}/tree/master/samples`}
+                target="_blank"
+              >
                 <a className="leading-6 font-medium">Examples</a>
               </Link>
             </div>
