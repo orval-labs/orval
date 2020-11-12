@@ -1,3 +1,27 @@
+## [3.1.9](https://github.com/anymaniax/orval/compare/v3.1.8...v3.1.9) (2020-11-12)
+
+
+### Bug Fixes
+
+* **docs:** remove useless script ([2c07b88](https://github.com/anymaniax/orval/commit/2c07b8812c4932dc3fe3e980b7c11f3b9787fb6e))
+* **docs:** seo ([8159459](https://github.com/anymaniax/orval/commit/8159459526b3818d4530e3ad4f76a8c98c68b92e))
+* **docs:** simplify example ([cc79bcf](https://github.com/anymaniax/orval/commit/cc79bcf477e8605dcfac182a590d6672a363d3c7))
+* **docs:** typo ([640e5a4](https://github.com/anymaniax/orval/commit/640e5a4b913958b42810b2ee07b0837f2d87e753))
+* **generator:** filter out imports that refer to the type defined in current file ([36407e2](https://github.com/anymaniax/orval/commit/36407e2071e68afe94b79b74a446b44612504446))
+* **mocks:** handling recursive models ([bd4f8a9](https://github.com/anymaniax/orval/commit/bd4f8a92be2368a38e78450e48681a1fb1f58bf4))
+* **readme:** update sample link ([105e396](https://github.com/anymaniax/orval/commit/105e3969752f9da8e6bad770dca1875516022d3d))
+* **samples:** add msw in dependencies ([8623bdc](https://github.com/anymaniax/orval/commit/8623bdca72369b65d0d9891e5bace93d29b19099))
+* **writers:** models - don't wipe anymore the index just check if it's already exported ([22dcf0f](https://github.com/anymaniax/orval/commit/22dcf0f6b49854e869b6054c2755d889f67069c9))
+* **writers:** schemas check if index.ts exist ([905f9df](https://github.com/anymaniax/orval/commit/905f9df8feb302c34ec59f65bdfc3dc3aeacced4))
+
+
+### Features
+
+* **docs:** first draft ([b3a02cf](https://github.com/anymaniax/orval/commit/b3a02cf367fed6608f0216421eec52e69ed8277d))
+* **docs:** highlight theme ([fd7fd22](https://github.com/anymaniax/orval/commit/fd7fd225049e50d9ded0edd1e5a39af1b19ed465))
+* **docs:** intro ([82df86d](https://github.com/anymaniax/orval/commit/82df86dd2ffa34fb21c9824d85d60f5dbca3397b))
+* **docs:** update ([5d9a1e6](https://github.com/anymaniax/orval/commit/5d9a1e658b2dadedf3fafd9910d8b2e259767539))
+
 ## [3.1.8](https://github.com/anymaniax/orval/compare/v3.1.7...v3.1.8) (2020-11-03)
 
 
