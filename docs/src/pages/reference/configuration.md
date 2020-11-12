@@ -355,7 +355,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the mutator function.
 
-This function is executed for each call when this one is executed. It takes all the options pass to the verb as an argument and should return an array with those arguments in the same order.
+This function is executed for each call when this one is executed. It takes all the options passed to the verb as an argument and should return an array with those arguments in the same order.
 
 Possible arguments:
 
