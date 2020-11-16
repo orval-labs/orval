@@ -4,6 +4,7 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
+import { toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
 
@@ -77,7 +78,10 @@ const generateDefinition = ({
     value += `\n  // ${summary}`;
   }
 
-  value += `\n  abstract ${definitionName}(\n    ${props.definition}\n  ): Observable<${response.definition}>;`;
+  value += `\n  abstract ${definitionName}(\n    ${toObjectString(
+    props,
+    'definition',
+  )}\n  ): Observable<${response.definition}>;`;
 
   return value;
 };
@@ -102,9 +106,12 @@ const generateImplementation = (
     verb,
   });
 
-  return `  ${definitionName}(\n    ${props.implementation}\n  ): Observable<${
-    response.definition
-  }> {${mutator}${generateFormData(body)}
+  return `  ${definitionName}(\n    ${toObjectString(
+    props,
+    'implementation',
+  )}\n  ): Observable<${response.definition}> {${mutator}${generateFormData(
+    body,
+  )}
     return this.http.${verb}<${response.definition}>(${
     mutator ? `...mutator(${options})` : options
   });

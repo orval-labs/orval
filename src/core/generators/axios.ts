@@ -4,7 +4,7 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { sanitize } from '../../utils/string';
+import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
 
@@ -26,7 +26,10 @@ const generateAxiosDefinition = ({
     value += `\n  // ${summary}`;
   }
 
-  value += `\n  ${definitionName}(\n    ${props.definition}\n  ): AxiosPromise<${response.definition}>;`;
+  value += `\n  ${definitionName}(\n    ${toObjectString(
+    props,
+    'definition',
+  )}\n  ): AxiosPromise<${response.definition}>;`;
 
   return value;
 };
@@ -51,9 +54,10 @@ const generateAxiosImplementation = (
     verb,
   });
 
-  return `  ${definitionName}(\n    ${
-    props.implementation
-  }\n  ): AxiosPromise<${response.definition}> {${mutator}${generateFormData(
+  return `  ${definitionName}(\n    ${toObjectString(
+    props,
+    'implementation',
+  )}\n  ): AxiosPromise<${response.definition}> {${mutator}${generateFormData(
     body,
   )}
     return axios.${verb}(${mutator ? `...mutator(${options})` : options});
