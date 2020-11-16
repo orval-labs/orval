@@ -16,7 +16,7 @@ const getQueryParamsTypes = (
       schema: SchemaObject;
     };
 
-    const { value, imports, isEnum, type } = resolveValue(schema!);
+    const { value, imports, isEnum, type } = resolveValue({ schema: schema! });
 
     const key = getKey(name);
 

@@ -21,7 +21,7 @@ const CONTENT_TYPES = [
 const getResReqContentTypes = (
   type: string,
   mediaType: MediaTypeObject,
-  name?: string,
+  propName?: string,
 ) => {
   if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
     return {
@@ -33,7 +33,7 @@ const getResReqContentTypes = (
     };
   }
 
-  return resolveObject(mediaType.schema, name);
+  return resolveObject({ schema: mediaType.schema, propName });
 };
 
 /**
