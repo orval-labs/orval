@@ -1,15 +1,48 @@
 import { Verbs } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import { GetterPropType } from '../../types/getters';
 import { camel } from '../../utils/case';
+import { toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateOptions } from './options';
 
 export const generateReactQueryImports = () => ({
   definition: ``,
-  implementation: `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+  implementation: `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';
 import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`,
   implementationMock: '',
 });
+
+const generateAxiosFunction = (
+  {
+    queryParams,
+    definitionName,
+    response,
+    mutator,
+    body,
+    props,
+    verb,
+  }: GeneratorVerbOptions,
+  { route }: GeneratorOptions,
+) => {
+  const options = generateOptions({
+    route,
+    body,
+    queryParams,
+    response,
+    verb,
+  });
+
+  return `export const ${definitionName} = (\n    ${toObjectString(
+    props,
+    'implementation',
+  )}\n  ): AxiosPromise<${
+    response.definition
+  }> => {${mutator}${generateFormData(body)}
+    return axios.${verb}(${mutator ? `...mutator(${options})` : options});
+  }
+`;
+};
 
 const generateReactQueryImplementation = (
   {
@@ -24,26 +57,24 @@ const generateReactQueryImplementation = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
-  const options = generateOptions({
-    route,
-    body: { ...body, implementation: body.implementation && 'data' },
-    queryParams,
-    response,
-    verb,
-  });
+  const properties = props
+    .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
+    .join(',');
 
   if (verb === Verbs.GET) {
-    return `export const ${camel(`use-${definitionName}`)} = (\n    ${
-      props.implementation
-    }\n queryConfig?: QueryConfig<AxiosResponse<${
+    return `export const ${camel(
+      `use-${definitionName}`,
+    )} = (\n    ${toObjectString(
+      props,
+      'implementation',
+    )}\n queryConfig?: QueryConfig<AxiosResponse<${
       response.definition
-    }>, AxiosError>\n  ) => {${mutator}${generateFormData(body)}
-    return useQuery<AxiosResponse<${response.definition}>, AxiosError>(${
-      mutator ? `mutator(${options})` : `[${options}]`
-    }, ( path: string,
-      options: Partial<AxiosRequestConfig>) => axios.get<${
-        response.definition
-      }>(path, options), ${
+    }>, AxiosError>\n  ) => {
+    return useQuery<AxiosResponse<${
+      response.definition
+    }>, AxiosError>([\`${route}\`${
+      queryParams ? ', params' : ''
+    }], () => ${definitionName}(${properties}), ${
       params.length
         ? `{enabled: ${params
             .map(({ name }) => name)
@@ -54,19 +85,11 @@ const generateReactQueryImplementation = (
 `;
   }
 
-  const properties = [
-    ...params.map((param) =>
-      param.default ? `${param.name} = ${param.default}` : param.name,
-    ),
-    ...(body.implementation ? ['data'] : []),
-    ...(queryParams ? ['params'] : []),
-  ].join(',');
-
-  const definitions = [
-    ...params.map(({ definition }) => definition),
-    ...(body.definition ? [`data: ${body.definition}`] : []),
-    ...(queryParams ? [`params?: ${queryParams.schema.name}`] : []),
-  ].join(';');
+  const definitions = props
+    .map(({ definition, type }) =>
+      type === GetterPropType.BODY ? `data: ${body.definition}` : definition,
+    )
+    .join(';');
 
   return `export const ${camel(
     `use-${definitionName}`,
@@ -77,13 +100,9 @@ const generateReactQueryImplementation = (
     definitions ? `, {${definitions}}` : ''
   }>((${properties ? 'props' : ''}) => {
     ${properties ? `const {${properties}} = props || {}` : ''};
-    ${mutator}${generateFormData({
-    ...body,
-    implementation: 'data',
-  })}
-    return axios.${verb}(${
-    mutator ? `...mutator(${options})` : options
-  })}, mutationConfig)
+
+    return  ${definitionName}(${properties})
+  }, mutationConfig)
 }
 `;
 };
@@ -131,7 +150,15 @@ export const generateReactQuery = (
   options: GeneratorOptions,
 ) => {
   const imports = generateImports(verbOptions);
-  const implementation = generateReactQueryImplementation(verbOptions, options);
+  const functionImplementation = generateAxiosFunction(verbOptions, options);
+  const hookImplementation = generateReactQueryImplementation(
+    verbOptions,
+    options,
+  );
 
-  return { definition: '', implementation, imports };
+  return {
+    definition: '',
+    implementation: `${functionImplementation}\n\n${hookImplementation}`,
+    imports,
+  };
 };

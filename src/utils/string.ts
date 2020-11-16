@@ -1,3 +1,4 @@
+import { get } from 'lodash';
 import { SPECIAL_CHAR_REGEX, SPECIAL_CHAR_REGEX_DEEP } from '../constants';
 import {
   isBoolean,
@@ -47,3 +48,8 @@ export const stringify = (
 
 export const sanitize = (value: string, deep = true) =>
   value.replace(deep ? SPECIAL_CHAR_REGEX_DEEP : SPECIAL_CHAR_REGEX, '');
+
+export const toObjectString = <T>(props: T[], path?: keyof T) => {
+  const arrayOfString = path ? props.map((prop) => get(prop, path)) : props;
+  return arrayOfString.join(',\n    ') + ',';
+};
