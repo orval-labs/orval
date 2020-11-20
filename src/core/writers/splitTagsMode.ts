@@ -2,15 +2,11 @@ import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { OutputClient, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { camel, kebab, pascal } from '../../utils/case';
+import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
-import { errorMessage } from '../../utils/messages/logs';
-import {
-  generateClientImports,
-  generateClientTitle,
-} from '../generators/client';
-import { generateImports } from '../generators/imports';
+import { generateClientImports } from '../generators/client';
+import { generateImports, generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { resolvePath } from '../resolvers/path';
 import { generateTargetForTags } from './targetTags';
@@ -35,36 +31,20 @@ export const writeSplitTagsMode = ({
 
   Object.entries(target).forEach(([tag, target]) => {
     const {
-      definition,
       imports,
-      importsMocks,
+      importsMSW,
       implementation,
-      implementationMocks,
       implementationMSW,
+      mutators,
     } = target;
     const header = getFilesHeader(info);
 
-    let definitionData = header;
     let implementationData = header;
-    let mockData = header;
     let mswData = header;
 
     const defaultImports = generateClientImports(output.client);
-    const title = generateClientTitle(
-      output.client,
-      pascal(tag),
-      output.override?.title,
-    );
 
-    definitionData += defaultImports.definition;
-
-    const definitionPath = './' + kebab(tag) + '.definition';
-    const definitionImport = title.definition
-      ? generateImports([title.definition], definitionPath, true)
-      : '';
-
-    implementationData += `${defaultImports.implementation}${definitionImport}`;
-    mockData += `${defaultImports.implementationMock}${definitionImport}`;
+    implementationData += `${defaultImports.implementation}`;
     mswData += `${defaultImports.implementationMSW}`;
 
     if (output.schemas) {
@@ -73,15 +53,13 @@ export const writeSplitTagsMode = ({
         resolvePath(path, getFileInfo(join(workspace, output.schemas)).dirname);
 
       const generatedImports = generateImports(imports, schemasPath, true);
-      const generatedImportsMocks = generateImports(
-        [...imports, ...importsMocks],
+      const generatedImportsMSW = generateImports(
+        [...imports, ...importsMSW],
         schemasPath,
         true,
       );
-      definitionData += generatedImports;
       implementationData += generatedImports;
-      mockData += generatedImportsMocks;
-      mswData += generatedImportsMocks;
+      mswData += generatedImportsMSW;
     } else {
       const schemasPath = '../' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
@@ -92,32 +70,25 @@ export const writeSplitTagsMode = ({
       );
 
       const generatedImports = generateImports(imports, schemasPath, true);
-      const generatedImportsMocks = generateImports(
-        [...imports, ...importsMocks],
+      const generatedImportsMSW = generateImports(
+        [...imports, ...importsMSW],
         schemasPath,
         true,
       );
-      definitionData += generatedImports;
       implementationData += generatedImports;
-      mockData += generatedImportsMocks;
-      mswData += generatedImportsMocks;
+      mswData += generatedImportsMSW;
     }
 
-    definitionData += `\n${definition}`;
+    if (mutators) {
+      implementationData += generateMutatorImports(mutators, true);
+    }
+
     implementationData += `\n${implementation}`;
-    mockData += `\n${implementationMocks}`;
     mswData += `\n${implementationMSW}`;
 
     if (path) {
       if (!existsSync(join(dirname, kebab(tag)))) {
         mkdirSync(join(dirname, kebab(tag)));
-      }
-
-      if (definition) {
-        writeFileSync(
-          join(dirname, kebab(tag), definitionPath + extension),
-          definitionData,
-        );
       }
 
       const implementationFilename =
@@ -131,22 +102,10 @@ export const writeSplitTagsMode = ({
       );
 
       if (output.mock) {
-        if (output.mock === 'old-version') {
-          errorMessage(
-            'This way of using mocks is deprecated. Will be removed in the next major release',
-          );
-          if (implementationMocks) {
-            writeFileSync(
-              join(dirname, kebab(tag), kebab(tag) + '.mock' + extension),
-              mockData,
-            );
-          }
-        } else {
-          writeFileSync(
-            join(dirname, kebab(tag), kebab(tag) + '.msw' + extension),
-            mswData,
-          );
-        }
+        writeFileSync(
+          join(dirname, kebab(tag), kebab(tag) + '.msw' + extension),
+          mswData,
+        );
       }
     }
   });

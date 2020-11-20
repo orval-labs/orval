@@ -4,13 +4,11 @@ import { GetterPropType } from '../../types/getters';
 import { camel } from '../../utils/case';
 import { toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
-import { generateOptions } from './options';
+import { generateAxiosConfig, generateOptions } from './options';
 
 export const generateReactQueryImports = () => ({
-  definition: ``,
   implementation: `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';
-import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`,
-  implementationMock: '',
+import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n\n`,
 });
 
 const generateAxiosFunction = (
@@ -25,6 +23,14 @@ const generateAxiosFunction = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const axiosConfig = generateAxiosConfig({
+    route,
+    body,
+    queryParams,
+    response,
+    verb,
+  });
+
   const options = generateOptions({
     route,
     body,
@@ -36,10 +42,12 @@ const generateAxiosFunction = (
   return `export const ${definitionName} = (\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ): AxiosPromise<${
-    response.definition
-  }> => {${mutator}${generateFormData(body)}
-    return axios.${verb}(${mutator ? `...mutator(${options})` : options});
+  )}\n  ) => {${generateFormData(body)}
+    return ${
+      mutator
+        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
+        : `axios.${verb}<${response.definition}>(${options})`
+    };
   }
 `;
 };
@@ -48,8 +56,6 @@ const generateReactQueryImplementation = (
   {
     queryParams,
     definitionName,
-    response,
-    mutator,
     body,
     props,
     verb,
@@ -64,15 +70,11 @@ const generateReactQueryImplementation = (
   if (verb === Verbs.GET) {
     return `export const ${camel(
       `use-${definitionName}`,
-    )} = (\n    ${toObjectString(
+    )} = <Error = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n queryConfig?: QueryConfig<AxiosResponse<${
-      response.definition
-    }>, AxiosError>\n  ) => {
-    return useQuery<AxiosResponse<${
-      response.definition
-    }>, AxiosError>([\`${route}\`${
+    )}\n queryConfig?: QueryConfig<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
+    return useQuery<AsyncReturnType<typeof ${definitionName}>, Error>([\`${route}\`${
       queryParams ? ', params' : ''
     }], () => ${definitionName}(${properties}), ${
       params.length
@@ -93,10 +95,10 @@ const generateReactQueryImplementation = (
 
   return `export const ${camel(
     `use-${definitionName}`,
-  )} = (\n    mutationConfig?: MutationConfig<AxiosResponse<${
-    response.definition
-  }>, AxiosError${definitions ? `, {${definitions}}` : ''}>\n  ) => {
-  return useMutation<AxiosResponse<${response.definition}>, AxiosError${
+  )} = <Error = unknown>(\n    mutationConfig?: MutationConfig<AsyncReturnType<typeof ${definitionName}>, Error${
+    definitions ? `, {${definitions}}` : ''
+  }>\n  ) => {
+  return useMutation<AsyncReturnType<typeof ${definitionName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>((${properties ? 'props' : ''}) => {
     ${properties ? `const {${properties}} = props || {}` : ''};
@@ -117,31 +119,23 @@ const generateImports = ({
   ...(queryParams ? [queryParams.schema.name] : []),
 ];
 
-export const generateReactQueryTitle = (title: string) => {
+export const generateReactQueryTitle = () => {
   return {
-    definition: ``,
     implementation: ``,
-    implementationMock: ``,
   };
 };
 
-export const generateReactQueryHeader = (title: {
-  definition: string;
-  implementation: string;
-  implementationMock: string;
-}) => {
+export const generateReactQueryHeader = () => {
   return {
-    definition: ``,
-    implementation: ``,
-    implementationMock: ``,
+    implementation: `type AsyncReturnType<
+    T extends (...args: any) => Promise<any>
+  > = T extends (...args: any) => Promise<infer R> ? R : any;\n\n`,
   };
 };
 
 export const generateReactQueryFooter = () => {
   return {
-    definition: '',
     implementation: '',
-    implementationMock: '',
   };
 };
 
@@ -157,7 +151,6 @@ export const generateReactQuery = (
   );
 
   return {
-    definition: '',
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports,
   };

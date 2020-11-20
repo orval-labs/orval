@@ -11,10 +11,17 @@ export const resolvePath = (base: string, to: string) => {
     }
 
     if (!acc) {
-      if (baseSegmentize.length - index > 1) {
+      if (
+        toSegmentize.length - index > 1 ||
+        baseSegmentize.length - index > 1
+      ) {
         return `../${path}`;
       }
       return `./${path}`;
+    }
+
+    if (toSegmentize.length - index === 1) {
+      return `./${acc}/${path}`;
     }
 
     return `../${acc}/${path}`;

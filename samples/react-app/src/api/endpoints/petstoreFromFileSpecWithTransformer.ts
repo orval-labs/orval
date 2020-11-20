@@ -6,11 +6,10 @@
  */
 import { AxiosInstance, AxiosPromise } from 'axios';
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
-import { SwaggerPetstoreApi } from './petstoreFromFileSpecWithTransformer.definition';
 
-export const getSwaggerPetstoreApi = (
-  axios: AxiosInstance,
-): SwaggerPetstoreApi => ({
+type t = typeof getSwaggerPetstoreApi;
+
+export const getSwaggerPetstoreApi = (axios: AxiosInstance) => ({
   listPets(params?: ListPetsParams, version: number = 1): AxiosPromise<Pets> {
     type Mutator = (
       url: string,

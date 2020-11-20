@@ -7,14 +7,3 @@
 import { AxiosPromise } from 'axios';
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
 
-export interface SwaggerPetstoreApi {
-  // List all pets
-  listPets(params?: ListPetsParams, version?: number): AxiosPromise<Pets>;
-  // Create a pet
-  createPets(
-    createPetsBody: CreatePetsBody,
-    version?: number,
-  ): AxiosPromise<unknown>;
-  // Info for a specific pet
-  showPetById(petId: string, version?: number): AxiosPromise<Pet>;
-}

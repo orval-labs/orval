@@ -60,3 +60,55 @@ export const generateOptions = ({
     verb,
   )}${generateQueryParamsOptions(response, queryParams?.schema)}\n    `;
 };
+
+export const generateBodyAxiosConfig = (body: GetterBody, verb: Verbs) => {
+  if (!VERBS_WITH_BODY.includes(verb)) {
+    return '';
+  }
+
+  if (body.isBlob) {
+    return ',\n      data: formData,';
+  }
+
+  return `,\n      data: ${body.implementation || 'undefined'},`;
+};
+
+export const generateQueryParamsAxiosConfig = (
+  response: GetterResponse,
+  queryParams?: GeneratorSchema,
+) => {
+  if (!queryParams && !response.isBlob) {
+    return '';
+  }
+
+  let value = ',';
+
+  if (queryParams) {
+    value += '\n        params,';
+  }
+
+  if (response.isBlob) {
+    value += `\n        responseType: 'blob',`;
+  }
+
+  return value;
+};
+
+export const generateAxiosConfig = ({
+  route,
+  body,
+  queryParams,
+  response,
+  verb,
+}: {
+  route: string;
+  body: GetterBody;
+  queryParams?: GetterQueryParam;
+  response: GetterResponse;
+  verb: Verbs;
+}) => {
+  return `{url: \`${route}\`, method: '${verb}'${generateBodyAxiosConfig(
+    body,
+    verb,
+  )}${generateQueryParamsAxiosConfig(response, queryParams?.schema)}\n    }`;
+};

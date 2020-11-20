@@ -4,73 +4,85 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';
-import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';
 import {
-  CreatePetsBody,
-  ListPetsParams,
-  Pet,
-  Pets,
-} from '../model';
+  MutationConfig,
+  QueryConfig,
+  useMutation,
+  useQuery,
+} from 'react-query';
+import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
+import listPetsMutator, {
+  responseType,
+} from './../../../src/api/mutator/response-type';
 
-export const listPets = (
-    params?: ListPetsParams,
-    version: number = 1,
-  ): AxiosPromise<Pets> => {
-    type Mutator = (url: string, config?: object) => [string,  object | undefined]
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
+  ...args: any
+) => Promise<infer R>
+  ? R
+  : any;
 
-    const mutator: Mutator = (url, config) => [url, { ...config, responseType: 'json' }]
+export const listPets = (params?: ListPetsParams, version: number = 1) => {
+  return listPetsMutator<Pets>({
+    url: `/v${version}/pets`,
+    method: 'get',
+    params,
+  });
+};
 
-    return axios.get(...mutator(
-      `/v${version}/pets`,
-      {
-        params,
-      },
-    ));
-  }
-
-
-export const useListPets = (
-    params?: ListPetsParams,
-    version: number = 1,
- queryConfig?: QueryConfig<AxiosResponse<Pets>, AxiosError>
-  ) => {
-    return useQuery<AxiosResponse<Pets>, AxiosError>([`/v${version}/pets`, params], () => listPets(params,version), {enabled: version, ...queryConfig} )
-  }
+export const useListPets = <Error = unknown>(
+  params?: ListPetsParams,
+  version: number = 1,
+  queryConfig?: QueryConfig<AsyncReturnType<typeof listPets>, Error>,
+) => {
+  return useQuery<AsyncReturnType<typeof listPets>, Error>(
+    [`/v${version}/pets`, params],
+    () => listPets(params, version),
+    { enabled: version, ...queryConfig },
+  );
+};
 export const createPets = (
-    createPetsBody: CreatePetsBody,
-    version: number = 1,
-  ): AxiosPromise<unknown> => {
-    return axios.post(
-      `/v${version}/pets`,
-      createPetsBody,
-    );
-  }
+  createPetsBody: CreatePetsBody,
+  version: number = 1,
+) => {
+  return responseType<unknown>({
+    url: `/v${version}/pets`,
+    method: 'post',
+    data: createPetsBody,
+  });
+};
 
+export const useCreatePets = <Error = unknown>(
+  mutationConfig?: MutationConfig<
+    AsyncReturnType<typeof createPets>,
+    Error,
+    { data: CreatePetsBody; version?: number }
+  >,
+) => {
+  return useMutation<
+    AsyncReturnType<typeof createPets>,
+    Error,
+    { data: CreatePetsBody; version?: number }
+  >((props) => {
+    const { data, version } = props || {};
 
-export const useCreatePets = (
-    mutationConfig?: MutationConfig<AxiosResponse<unknown>, AxiosError, {data: CreatePetsBody;version?: number}>
-  ) => {
-  return useMutation<AxiosResponse<unknown>, AxiosError, {data: CreatePetsBody;version?: number}>((props) => {
-    const {data,version} = props || {};
+    return createPets(data, version);
+  }, mutationConfig);
+};
+export const showPetById = (petId: string, version: number = 1) => {
+  return responseType<Pet>({
+    url: `/v${version}/pets/${petId}`,
+    method: 'get',
+  });
+};
 
-    return  createPets(data,version)
-  }, mutationConfig)
-}
-export const showPetById = (
-    petId: string,
-    version: number = 1,
-  ): AxiosPromise<Pet> => {
-    return axios.get(
-      `/v${version}/pets/${petId}`,
-    );
-  }
-
-
-export const useShowPetById = (
-    petId: string,
-    version: number = 1,
- queryConfig?: QueryConfig<AxiosResponse<Pet>, AxiosError>
-  ) => {
-    return useQuery<AxiosResponse<Pet>, AxiosError>([`/v${version}/pets/${petId}`], () => showPetById(petId,version), {enabled: version && petId, ...queryConfig} )
-  }
+export const useShowPetById = <Error = unknown>(
+  petId: string,
+  version: number = 1,
+  queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>,
+) => {
+  return useQuery<AsyncReturnType<typeof showPetById>, Error>(
+    [`/v${version}/pets/${petId}`],
+    () => showPetById(petId, version),
+    { enabled: version && petId, ...queryConfig },
+  );
+};

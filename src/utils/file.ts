@@ -8,11 +8,13 @@ export const getFileInfo = (
   const isDir = isDirectory(target);
   const extension = '.ts';
   const path = isDir ? join(target, backupFilename + extension) : target;
+  const pathWithoutExtension = path.replace(/\.[^/.]+$/, '');
   const dir = dirname(path);
   const filename = basename(path, '.ts');
 
   return {
     path,
+    pathWithoutExtension,
     extension,
     isDirectory: isDir,
     dirname: dir,
