@@ -34,10 +34,14 @@ export const writeModel = (
   const name = camel(spec.name);
   writeFileSync(getPath(path, name), getModel(info, spec));
   const indexPath = getPath(path, 'index');
-  const exportFile = `export * from './${name}';\n`;
+
   readFile(indexPath, function (err, data) {
     if (err) throw err;
-    if (!data.includes(exportFile)) {
+    const stringData = data.toString();
+    if (
+      !stringData.includes(`export * from './${name}'`) &&
+      !stringData.includes(`export * from "./${name}"`)
+    ) {
       appendFileSync(getPath(path, 'index'), `export * from './${name}';\n`);
     }
   });
