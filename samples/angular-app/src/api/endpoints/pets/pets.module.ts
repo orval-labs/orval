@@ -1,10 +1,10 @@
 import { NgModule } from '@angular/core';
-import { PetsApiService } from './pets.service';
+import { PetsService } from './pets.service';
 
 @NgModule({
   imports: [],
   exports: [],
   declarations: [],
-  providers: [PetsApiService],
+  providers: [PetsService],
 })
 export class PetsModule {}

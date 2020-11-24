@@ -1,12 +1,12 @@
 import { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { ApiMode } from './constants';
-import { getSwaggerPetstoreApi } from './endpoints/petstoreFromFileSpecWithTransformer';
-import { SwaggerPetstoreApi } from './endpoints/petstoreFromFileSpecWithTransformer.definition';
-import { getSwaggerPetstoreApiMock } from './endpoints/petstoreFromFileSpecWithTransformer.mock';
+import { getSwaggerPetstore } from './endpoints/petstoreFromFileSpecWithTransformer';
+import { SwaggerPetstore } from './endpoints/petstoreFromFileSpecWithTransformer.definition';
+import { getSwaggerPetstoreMock } from './endpoints/petstoreFromFileSpecWithTransformer.mock';
 import { getHTTPInstance } from './utilities';
 
 export interface Api {
-  petstore: SwaggerPetstoreApi;
+  petstore: SwaggerPetstore;
 }
 
 interface ApiByMode {
@@ -16,10 +16,10 @@ interface ApiByMode {
 
 const apiByMode: ApiByMode = {
   mock: () => ({
-    petstore: getSwaggerPetstoreApiMock(),
+    petstore: getSwaggerPetstoreMock(),
   }),
   api: (instance: AxiosInstance) => ({
-    petstore: getSwaggerPetstoreApi(instance),
+    petstore: getSwaggerPetstore(instance),
   }),
 };
 
