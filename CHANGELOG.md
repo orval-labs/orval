@@ -1,3 +1,16 @@
+# [3.2.0](https://github.com/anymaniax/orval/compare/v3.1.9...v3.2.0) (2020-11-24)
+
+
+### Bug Fixes
+
+* **orval-config:** output transformer accept directly a function ([e5d06f9](https://github.com/anymaniax/orval/commit/e5d06f904aef383f65e180a73b4c45cd7cf63fea))
+* **write:** index models check correctly if path already exist ([4457bb3](https://github.com/anymaniax/orval/commit/4457bb30b8f58ef1e8a9079c8708cd0e16f3ad03))
+
+
+### Features
+
+* **generator-schema:** handle combined enums ([ad11d0f](https://github.com/anymaniax/orval/commit/ad11d0f37bd3ecdd88ae44bca5eb76780b8b34e7))
+
 ## [3.1.9](https://github.com/anymaniax/orval/compare/v3.1.8...v3.1.9) (2020-11-12)
 
 
