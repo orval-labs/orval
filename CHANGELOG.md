@@ -1,3 +1,10 @@
+## [3.2.1](https://github.com/anymaniax/orval/compare/v3.2.0...v3.2.1) (2020-11-24)
+
+
+### Bug Fixes
+
+* **utils:** toObjectString remove useless comma when empty array ([6611b17](https://github.com/anymaniax/orval/commit/6611b17c27bae2498f5438fe8654b98551344932))
+
 # [3.2.0](https://github.com/anymaniax/orval/compare/v3.1.9...v3.2.0) (2020-11-24)
 
 
