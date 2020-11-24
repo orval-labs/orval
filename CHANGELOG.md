@@ -1,3 +1,11 @@
+## [3.2.2](https://github.com/anymaniax/orval/compare/v3.2.1...v3.2.2) (2020-11-24)
+
+
+### Bug Fixes
+
+* **dependencies:** upgrade ([4cf2a14](https://github.com/anymaniax/orval/commit/4cf2a148d678bc86e436c050931a0c8ad6f26363))
+* **package:** keyword ([c29346b](https://github.com/anymaniax/orval/commit/c29346b199e5eec645be9838fcfe89e59fdd19d6))
+
 ## [3.2.1](https://github.com/anymaniax/orval/compare/v3.2.0...v3.2.1) (2020-11-24)
 
 
