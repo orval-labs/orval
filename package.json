@@ -16,7 +16,13 @@
     "client",
     "swagger",
     "fetch",
-    "data fetching"
+    "data fetching",
+    "angular",
+    "react",
+    "react-query",
+    "msw",
+    "mock",
+    "axios"
   ],
   "author": {
     "name": "Victor Bury",
