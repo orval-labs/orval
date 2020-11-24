@@ -71,6 +71,7 @@ const generateVerbOptions = ({
     workspace,
     body,
     mutator: overrideOperation?.mutator || override?.mutator,
+    name: camel(operationId!),
   });
 
   const verbOption = {

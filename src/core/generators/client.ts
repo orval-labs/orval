@@ -13,7 +13,6 @@ import {
   generateAngularImports,
   generateAngularTitle,
 } from './angular';
-import { generateAngularMock } from './angular.mock';
 import {
   generateAxios,
   generateAxiosFooter,
@@ -21,7 +20,6 @@ import {
   generateAxiosImports,
   generateAxiosTitle,
 } from './axios';
-import { generateAxiosMock } from './axios.mock';
 import { generateMSW } from './msw';
 import {
   generateReactQuery,
@@ -36,7 +34,6 @@ const DEFAULT_CLIENT = OutputClient.AXIOS;
 const GENERATOR_CLIENT = {
   [OutputClient.AXIOS]: {
     client: generateAxios,
-    mock: generateAxiosMock,
     msw: generateMSW,
     header: generateAxiosHeader,
     imports: generateAxiosImports,
@@ -45,7 +42,6 @@ const GENERATOR_CLIENT = {
   },
   [OutputClient.ANGULAR]: {
     client: generateAngular,
-    mock: generateAngularMock,
     msw: generateMSW,
     header: generateAngularHeader,
     imports: generateAngularImports,
@@ -54,7 +50,6 @@ const GENERATOR_CLIENT = {
   },
   [OutputClient.REACT_QUERY]: {
     client: generateReactQuery,
-    mock: () => '',
     msw: generateMSW,
     header: generateReactQueryHeader,
     imports: generateReactQueryImports,
@@ -119,19 +114,17 @@ export const generateClient = (
   return verbsOptions.reduce((acc, verbOption) => {
     const generator = GENERATOR_CLIENT[outputClient];
     const client = generator.client(verbOption, options);
-    const mock = generator.mock(verbOption, options);
     const msw = generator.msw(verbOption, options);
 
     return {
       ...acc,
       [verbOption.operationId]: {
-        definition: client.definition,
         implementation: client.implementation,
         imports: client.imports,
-        implementationMocks: mock,
         implementationMSW: msw.implementation,
-        importsMocks: msw.imports,
+        importsMSW: msw.imports,
         tags: verbOption.tags,
+        mutator: verbOption.mutator,
       },
     };
   }, {});

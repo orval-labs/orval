@@ -5,12 +5,8 @@ import { WriteSpecsProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
-import { errorMessage } from '../../utils/messages/logs';
-import {
-  generateClientImports,
-  generateClientTitle,
-} from '../generators/client';
-import { generateImports } from '../generators/imports';
+import { generateClientImports } from '../generators/client';
+import { generateImports, generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { resolvePath } from '../resolvers/path';
 import { generateTarget } from './target';
@@ -32,36 +28,20 @@ export const writeSplitMode = ({
   }
 
   const {
-    definition,
     imports,
     implementation,
-    implementationMocks,
     implementationMSW,
+    mutators,
   } = generateTarget(operations, info, output);
 
   const header = getFilesHeader(info);
 
-  let definitionData = header;
   let implementationData = header;
-  let mockData = header;
   let mswData = header;
 
   const defaultImports = generateClientImports(output.client);
-  const title = generateClientTitle(
-    output.client,
-    info.title,
-    output.override?.title,
-  );
 
-  definitionData += defaultImports.definition;
-
-  const definitionPath = './' + filename + '.definition';
-  const definitionImport = title.definition
-    ? generateImports([title.definition], definitionPath, true)
-    : '';
-
-  implementationData += `${defaultImports.implementation}${definitionImport}`;
-  mockData += `${defaultImports.implementationMock}${definitionImport}`;
+  implementationData += `${defaultImports.implementation}`;
   mswData += `${defaultImports.implementationMSW}`;
 
   if (output.schemas) {
@@ -71,9 +51,7 @@ export const writeSplitMode = ({
     );
 
     const generatedImports = generateImports(imports, schemasPath, true);
-    definitionData += generatedImports;
     implementationData += generatedImports;
-    mockData += generatedImports;
     mswData += generatedImports;
   } else {
     const schemasPath = './' + filename + '.schemas';
@@ -85,22 +63,18 @@ export const writeSplitMode = ({
     );
 
     const generatedImports = generateImports(imports, schemasPath, true);
-    definitionData += generatedImports;
     implementationData += generatedImports;
-    mockData += generatedImports;
     mswData += generatedImports;
   }
 
-  definitionData += `\n${definition}`;
+  if (mutators) {
+    implementationData += generateMutatorImports(mutators);
+  }
+
   implementationData += `\n${implementation}`;
-  mockData += `\n${implementationMocks}`;
   mswData += `\n${implementationMSW}`;
 
   if (path) {
-    if (definition) {
-      writeFileSync(join(dirname, definitionPath + extension), definitionData);
-    }
-
     const implementationFilename =
       filename +
       (OutputClient.ANGULAR === output.client ? '.service' : '') +
@@ -109,19 +83,7 @@ export const writeSplitMode = ({
     writeFileSync(join(dirname, implementationFilename), implementationData);
 
     if (output.mock) {
-      if (output.mock === 'old-version') {
-        errorMessage(
-          'This way of using mocks is deprecated. Will be removed in the next major release',
-        );
-        if (implementationMocks) {
-          writeFileSync(
-            join(dirname, filename + '.mock' + extension),
-            mockData,
-          );
-        }
-      } else {
-        writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
-      }
+      writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
     }
   }
 };

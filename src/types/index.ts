@@ -1,4 +1,3 @@
-import { AxiosRequestConfig } from 'axios';
 import { OpenAPIObject } from 'openapi3-ts';
 import { GeneratorVerbOptions } from './generator';
 
@@ -55,18 +54,13 @@ type OuputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
 type OuputTransformer = string | OuputTransformerFn;
 
-type MutatorGet = (
-  url: string,
-  config: AxiosRequestConfig,
-) => [string, AxiosRequestConfig];
+export type MutatorObject = {
+  path: string;
+  name: string;
+  default?: boolean;
+};
 
-type MutatorPost = <T>(
-  url: string,
-  data: T,
-  config: AxiosRequestConfig,
-) => [string, AxiosRequestConfig];
-
-export type Mutator = string | MutatorGet | MutatorPost;
+export type Mutator = string | MutatorObject;
 
 export type OverrideOutput = {
   title?: (title: string) => string;

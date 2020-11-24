@@ -1,6 +1,6 @@
 import { InfoObject } from 'openapi3-ts';
 import { OutputOptions } from '../../types';
-import { GeneratorOperations } from '../../types/generator';
+import { GeneratorMutator, GeneratorOperations } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import {
@@ -21,27 +21,24 @@ export const generateTarget = (
           pascal(info.title),
           options?.override?.title,
         );
-        acc.definition += header.definition;
         acc.implementation += header.implementation;
-        acc.implementationMocks += header.implementationMock;
         acc.implementationMSW += header.implementationMSW;
       }
 
       acc.imports = [
         ...acc.imports,
         ...operation.imports,
-        ...operation.importsMocks,
+        ...operation.importsMSW,
       ];
-      acc.definition += operation.definition;
       acc.implementation += operation.implementation;
-      acc.implementationMocks += operation.implementationMocks;
       acc.implementationMSW += operation.implementationMSW;
+      if (operation.mutator) {
+        acc.mutators = [...acc.mutators, operation.mutator];
+      }
 
       if (index === arr.length - 1) {
         const footer = generateClientFooter(options?.client);
-        acc.definition += footer.definition;
         acc.implementation += footer.implementation;
-        acc.implementationMocks += footer.implementationMock;
         acc.implementationMSW += footer.implementationMSW;
         acc.imports = generalTypesFilter(acc.imports);
       }
@@ -49,9 +46,8 @@ export const generateTarget = (
     },
     {
       imports: [] as string[],
-      definition: '',
       implementation: '',
-      implementationMocks: '',
       implementationMSW: '',
+      mutators: [] as GeneratorMutator[],
     },
   );
