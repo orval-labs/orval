@@ -8,8 +8,10 @@ import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateAxiosImports = () => ({
-  implementation: `import axios,{ AxiosPromise, AxiosInstance } from 'axios';\n`,
+export const generateAxiosImports = (isMutator: boolean) => ({
+  implementation: !isMutator
+    ? `import axios,{ AxiosPromise, AxiosInstance } from 'axios';\n`
+    : '',
 });
 
 const generateAxiosImplementation = (

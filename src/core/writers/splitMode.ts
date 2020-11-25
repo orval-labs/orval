@@ -39,7 +39,7 @@ export const writeSplitMode = ({
   let implementationData = header;
   let mswData = header;
 
-  const defaultImports = generateClientImports(output.client);
+  const defaultImports = generateClientImports(output);
 
   implementationData += `${defaultImports.implementation}`;
   mswData += `${defaultImports.implementationMSW}`;

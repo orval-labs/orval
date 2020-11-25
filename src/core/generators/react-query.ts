@@ -6,9 +6,12 @@ import { toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateReactQueryImports = () => ({
-  implementation: `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';
-import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n\n`,
+export const generateReactQueryImports = (isMutator: boolean) => ({
+  implementation: `${
+    !isMutator
+      ? `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';\n`
+      : ''
+  }import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`,
 });
 
 const generateAxiosFunction = (

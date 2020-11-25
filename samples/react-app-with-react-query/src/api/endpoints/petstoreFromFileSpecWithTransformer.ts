@@ -4,77 +4,67 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios from 'axios';
+import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';
 import {
-  MutationConfig,
-  QueryConfig,
-  useMutation,
-  useQuery,
-} from 'react-query';
-import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
-import listPetsMutator from './../../../src/api/mutator/custom-instance';
+  CreatePetsBody,
+  ListPetsParams,
+  Pet,
+  Pets,
+} from '../model';
+import { customInstance } from './../../../src/api/mutator/custom-instance'
+type AsyncReturnType<
+    T extends (...args: any) => Promise<any>
+  > = T extends (...args: any) => Promise<infer R> ? R : any;
 
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
-  ...args: any
-) => Promise<infer R>
-  ? R
-  : any;
+export const listPets = (
+    params?: ListPetsParams,
+    version: number = 1,
+  ) => {
+    return customInstance<Pets>({url: `/v${version}/pets`, method: 'get',
+        params,
+    });
+  }
 
-export const listPets = (params?: ListPetsParams, version: number = 1) => {
-  return listPetsMutator<Pets>({
-    url: `/v${version}/pets`,
-    method: 'get',
-    params,
-  });
-};
 
 export const useListPets = <Error = unknown>(
-  params?: ListPetsParams,
-  version: number = 1,
-  queryConfig?: QueryConfig<AsyncReturnType<typeof listPets>, Error>,
-) => {
-  return useQuery<AsyncReturnType<typeof listPets>, Error>(
-    [`/v${version}/pets`, params],
-    () => listPets(params, version),
-    { enabled: version, ...queryConfig },
-  );
-};
+    params?: ListPetsParams,
+    version: number = 1,
+ queryConfig?: QueryConfig<AsyncReturnType<typeof listPets>, Error>
+  ) => {
+    return useQuery<AsyncReturnType<typeof listPets>, Error>([`/v${version}/pets`, params], () => listPets(params,version), {enabled: version, ...queryConfig} )
+  }
 export const createPets = (
-  createPetsBody: CreatePetsBody,
-  version: number = 1,
-) => {
-  return axios.post<unknown>(`/v${version}/pets`, createPetsBody);
-};
+    createPetsBody: CreatePetsBody,
+    version: number = 1,
+  ) => {
+    return customInstance<unknown>({url: `/v${version}/pets`, method: 'post',
+      data: createPetsBody,
+    });
+  }
+
 
 export const useCreatePets = <Error = unknown>(
-  mutationConfig?: MutationConfig<
-    AsyncReturnType<typeof createPets>,
-    Error,
-    { data: CreatePetsBody; version?: number }
-  >,
-) => {
-  return useMutation<
-    AsyncReturnType<typeof createPets>,
-    Error,
-    { data: CreatePetsBody; version?: number }
-  >((props) => {
-    const { data, version } = props || {};
+    mutationConfig?: MutationConfig<AsyncReturnType<typeof createPets>, Error, {data: CreatePetsBody;version?: number}>
+  ) => {
+  return useMutation<AsyncReturnType<typeof createPets>, Error, {data: CreatePetsBody;version?: number}>((props) => {
+    const {data,version} = props || {};
 
-    return createPets(data, version);
-  }, mutationConfig);
-};
-export const showPetById = (petId: string, version: number = 1) => {
-  return axios.get<Pet>(`/v${version}/pets/${petId}`);
-};
+    return  createPets(data,version)
+  }, mutationConfig)
+}
+export const showPetById = (
+    petId: string,
+    version: number = 1,
+  ) => {
+    return customInstance<Pet>({url: `/v${version}/pets/${petId}`, method: 'get'
+    });
+  }
+
 
 export const useShowPetById = <Error = unknown>(
-  petId: string,
-  version: number = 1,
-  queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>,
-) => {
-  return useQuery<AsyncReturnType<typeof showPetById>, Error>(
-    [`/v${version}/pets/${petId}`],
-    () => showPetById(petId, version),
-    { enabled: version && petId, ...queryConfig },
-  );
-};
+    petId: string,
+    version: number = 1,
+ queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>
+  ) => {
+    return useQuery<AsyncReturnType<typeof showPetById>, Error>([`/v${version}/pets/${petId}`], () => showPetById(petId,version), {enabled: version && petId, ...queryConfig} )
+  }

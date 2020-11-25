@@ -39,7 +39,7 @@ export const writeTagsMode = ({
       mutators,
     } = target;
     const header = getFilesHeader(info);
-    const defaultImports = generateClientImports(output.client);
+    const defaultImports = generateClientImports(output);
     let data = header;
 
     if (isObject(output) && output.mock) {

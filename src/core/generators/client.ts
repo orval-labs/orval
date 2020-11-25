@@ -1,4 +1,4 @@
-import { OutputClient } from '../../types';
+import { OutputClient, OutputOptions } from '../../types';
 import {
   GeneratorClientExtra,
   GeneratorOperations,
@@ -57,11 +57,12 @@ const GENERATOR_CLIENT = {
     title: generateReactQueryTitle,
   },
 };
-export const generateClientImports = (
-  outputClient: OutputClient = DEFAULT_CLIENT,
-): GeneratorClientExtra => {
+export const generateClientImports = ({
+  client = DEFAULT_CLIENT,
+  override,
+}: OutputOptions = {}): GeneratorClientExtra => {
   return {
-    ...GENERATOR_CLIENT[outputClient].imports(),
+    ...GENERATOR_CLIENT[client].imports(!!override?.mutator),
     implementationMSW: `import { rest } from 'msw'
     import faker from 'faker'\n`,
   };

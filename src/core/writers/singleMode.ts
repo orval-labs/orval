@@ -37,9 +37,8 @@ export const writeSingleMode = ({
   } = generateTarget(operations, info, isObject(output) ? output : undefined);
 
   let data = getFilesHeader(info);
-
   const defaultImports = generateClientImports(
-    isObject(output) ? output.client : undefined,
+    isObject(output) ? output : undefined,
   );
 
   if (isObject(output) && output.mock) {
