@@ -43,7 +43,7 @@ export const resolveObject = ({
     };
   }
 
-  if (propName && resolvedValue.isEnum && !combined) {
+  if (propName && resolvedValue.isEnum && !combined && !schema.$ref) {
     let enumValue = `export type ${propName} = ${resolvedValue.value};\n`;
 
     const implementation = resolvedValue.value
