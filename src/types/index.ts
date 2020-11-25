@@ -10,7 +10,7 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean | 'old-version';
+  mock?: boolean;
   override?: OverrideOutput;
   client?: OutputClient;
 };

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export const responseType = <Result>(
+const responseType = <Result>(
   {
     url,
     method,
@@ -15,4 +15,10 @@ export const responseType = <Result>(
   },
   http: HttpClient,
 ): Observable<Result> =>
-  http.request<Result>(method, url, { params, body: data });
+  http.request<Result>(method, url, {
+    params,
+    body: data,
+    responseType: 'json',
+  });
+
+export default responseType;

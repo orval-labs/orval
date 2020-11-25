@@ -14,7 +14,7 @@ module.exports = {
       override: {
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.ts',
+            mutator: 'src/api/mutator/custom-instance.ts',
             mock: {
               properties: () => {
                 return {

@@ -1,3 +1,25 @@
+## [3.2.3](https://github.com/anymaniax/orval/compare/v3.2.2...v3.2.3) (2020-11-25)
+
+
+### Bug Fixes
+
+* **resolvers-object:** don't add wrong enums when the schema is a ref ([8b1e071](https://github.com/anymaniax/orval/commit/8b1e0711c9f45fbc99df9260067090d84f01821c))
+
+## [3.2.2](https://github.com/anymaniax/orval/compare/v3.2.1...v3.2.2) (2020-11-24)
+
+
+### Bug Fixes
+
+* **dependencies:** upgrade ([4cf2a14](https://github.com/anymaniax/orval/commit/4cf2a148d678bc86e436c050931a0c8ad6f26363))
+* **package:** keyword ([c29346b](https://github.com/anymaniax/orval/commit/c29346b199e5eec645be9838fcfe89e59fdd19d6))
+
+## [3.2.1](https://github.com/anymaniax/orval/compare/v3.2.0...v3.2.1) (2020-11-24)
+
+
+### Bug Fixes
+
+* **utils:** toObjectString remove useless comma when empty array ([6611b17](https://github.com/anymaniax/orval/commit/6611b17c27bae2498f5438fe8654b98551344932))
+
 # [3.2.0](https://github.com/anymaniax/orval/compare/v3.1.9...v3.2.0) (2020-11-24)
 
 

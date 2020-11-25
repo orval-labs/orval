@@ -54,7 +54,7 @@ const generateTargetTags = (
         implementationMSW:
           currentOperation.implementationMSW + operation.implementationMSW,
         mutators: operation.mutator
-          ? [...currentOperation.mutators, operation.mutator]
+          ? [...(currentOperation.mutators || []), operation.mutator]
           : currentOperation.mutators,
       },
     };
