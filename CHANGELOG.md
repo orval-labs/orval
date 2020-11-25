@@ -1,3 +1,10 @@
+## [3.2.3](https://github.com/anymaniax/orval/compare/v3.2.2...v3.2.3) (2020-11-25)
+
+
+### Bug Fixes
+
+* **resolvers-object:** don't add wrong enums when the schema is a ref ([8b1e071](https://github.com/anymaniax/orval/commit/8b1e0711c9f45fbc99df9260067090d84f01821c))
+
 ## [3.2.2](https://github.com/anymaniax/orval/compare/v3.2.1...v3.2.2) (2020-11-24)
 
 
