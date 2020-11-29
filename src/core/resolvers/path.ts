@@ -21,7 +21,7 @@ export const resolvePath = (base: string, to: string) => {
     }
 
     if (toSegmentize.length - index === 1) {
-      return `./${acc}/${path}`;
+      return `${acc}/${path}`;
     }
 
     return `../${acc}/${path}`;

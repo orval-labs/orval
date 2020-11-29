@@ -34,7 +34,7 @@ export const generateMutatorImports = (
         ? mutator.name
         : `{ ${mutator.name} }`;
 
-      return `import ${importDefault} from '${oneMore ? './.' : ''}${
+      return `import ${importDefault} from '${oneMore ? '../' : ''}${
         mutator.path
       }'`;
     })

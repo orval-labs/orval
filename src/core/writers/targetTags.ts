@@ -1,4 +1,3 @@
-import { InfoObject } from 'openapi3-ts';
 import { OutputOptions } from '../../types';
 import {
   GeneratorOperation,
@@ -62,7 +61,6 @@ const generateTargetTags = (
 
 export const generateTargetForTags = (
   operations: GeneratorOperations,
-  info: InfoObject,
   options?: OutputOptions,
 ) =>
   Object.values(operations)

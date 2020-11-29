@@ -6,13 +6,10 @@ import { toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateReactQueryImports = (isMutator: boolean) => ({
-  implementation: `${
-    !isMutator
-      ? `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';\n`
-      : ''
-  }import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`,
-});
+export const generateReactQueryImports = (isMutator: boolean) =>
+  `${
+    !isMutator ? `import axios from 'axios';\n` : ''
+  }import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`;
 
 const generateAxiosFunction = (
   {
@@ -122,25 +119,13 @@ const generateImports = ({
   ...(queryParams ? [queryParams.schema.name] : []),
 ];
 
-export const generateReactQueryTitle = () => {
-  return {
-    implementation: ``,
-  };
-};
+export const generateReactQueryTitle = () => '';
 
-export const generateReactQueryHeader = () => {
-  return {
-    implementation: `type AsyncReturnType<
-    T extends (...args: any) => Promise<any>
-  > = T extends (...args: any) => Promise<infer R> ? R : any;\n\n`,
-  };
-};
+export const generateReactQueryHeader = () => `type AsyncReturnType<
+T extends (...args: any) => Promise<any>
+> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n`;
 
-export const generateReactQueryFooter = () => {
-  return {
-    implementation: '',
-  };
-};
+export const generateReactQueryFooter = () => '';
 
 export const generateReactQuery = (
   verbOptions: GeneratorVerbOptions,

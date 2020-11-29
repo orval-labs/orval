@@ -62,7 +62,7 @@ export const generateClientImports = ({
   override,
 }: OutputOptions = {}): GeneratorClientExtra => {
   return {
-    ...GENERATOR_CLIENT[client].imports(!!override?.mutator),
+    implementation: GENERATOR_CLIENT[client].imports(!!override?.mutator),
     implementationMSW: `import { rest } from 'msw'
     import faker from 'faker'\n`,
   };
@@ -75,7 +75,9 @@ export const generateClientHeader = (
 ): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   return {
-    ...GENERATOR_CLIENT[outputClient].header(titles),
+    implementation: GENERATOR_CLIENT[outputClient].header(
+      titles.implementation,
+    ),
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };
 };
@@ -84,7 +86,7 @@ export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
 ): GeneratorClientExtra => {
   return {
-    ...GENERATOR_CLIENT[outputClient].footer(),
+    implementation: GENERATOR_CLIENT[outputClient].footer(),
     implementationMSW: `]\n`,
   };
 };
@@ -97,12 +99,12 @@ export const generateClientTitle = (
   if (customTitleFunc) {
     const customTitle = customTitleFunc(title);
     return {
-      ...GENERATOR_CLIENT[outputClient].title(customTitleFunc(title)),
+      implementation: GENERATOR_CLIENT[outputClient].title(customTitle),
       implementationMSW: `get${pascal(customTitle)}MSW`,
     };
   }
   return {
-    ...GENERATOR_CLIENT[outputClient].title(title),
+    implementation: GENERATOR_CLIENT[outputClient].title(title),
     implementationMSW: `get${pascal(title)}MSW`,
   };
 };

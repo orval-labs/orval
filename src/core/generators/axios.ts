@@ -8,11 +8,8 @@ import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateAxiosImports = (isMutator: boolean) => ({
-  implementation: !isMutator
-    ? `import axios,{ AxiosPromise, AxiosInstance } from 'axios';\n`
-    : '',
-});
+export const generateAxiosImports = (isMutator: boolean) =>
+  !isMutator ? `import axios from 'axios';\n` : '';
 
 const generateAxiosImplementation = (
   {
@@ -48,7 +45,7 @@ const generateAxiosImplementation = (
   )}\n  ) {${generateFormData(body)}
     return ${
       mutator
-        ? `${mutator.name}<${response.definition}>(${axiosConfig}, axios)`
+        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
         : `axios.${verb}<${response.definition}>(${options})`
     };
   },
@@ -67,22 +64,13 @@ const generateImports = ({
 
 export const generateAxiosTitle = (title: string) => {
   const sanTitle = sanitize(title);
-  return {
-    implementation: `get${pascal(sanTitle)}`,
-  };
+  return `get${pascal(sanTitle)}`;
 };
 
-export const generateAxiosHeader = (titles: { implementation: string }) => {
-  return {
-    implementation: `export const ${titles.implementation} = (axios: AxiosInstance) => ({\n`,
-  };
-};
+export const generateAxiosHeader = (title: string) =>
+  `export const ${title} = () => ({\n`;
 
-export const generateAxiosFooter = () => {
-  return {
-    implementation: '});\n',
-  };
-};
+export const generateAxiosFooter = () => '});\n';
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,

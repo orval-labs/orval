@@ -4,38 +4,27 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { toObjectString } from '../../utils/string';
+import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateAngularImports = () => ({
-  implementation: `import { HttpClient } from '@angular/common/http';
-  import { Injectable } from '@angular/core';
-  import { Observable } from 'rxjs';\n`,
-});
+export const generateAngularImports = () => `import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';\n`;
 
 export const generateAngularTitle = (title: string) => {
-  return {
-    implementation: `${pascal(title)}Service`,
-  };
+  const sanTitle = sanitize(title);
+  return `${pascal(sanTitle)}Service`;
 };
 
-export const generateAngularHeader = (titles: { implementation: string }) => {
-  return {
-    implementation: `
-  @Injectable()
-  export class ${titles.implementation} {
-    constructor(
-      private http: HttpClient,
-    ) {}`,
-  };
-};
+export const generateAngularHeader = (title: string) => `
+@Injectable()
+export class ${title} {
+  constructor(
+    private http: HttpClient,
+  ) {}`;
 
-export const generateAngularFooter = () => {
-  return {
-    implementation: '};\n',
-  };
-};
+export const generateAngularFooter = () => '};\n';
 
 const generateImports = ({
   response,

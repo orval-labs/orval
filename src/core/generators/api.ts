@@ -1,5 +1,5 @@
 import { OpenAPIObject, PathItemObject } from 'openapi3-ts';
-import { OutputClient, OverrideOutput } from '../../types';
+import { OutputOptions } from '../../types';
 import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
 import { getRoute } from '../getters/route';
 import { generateClient } from './client';
@@ -8,8 +8,7 @@ import { generateVerbsOptions } from './verbsOptions';
 export const generateApi = (
   workspace: string,
   specs: OpenAPIObject,
-  override?: OverrideOutput,
-  httpClient?: OutputClient,
+  options?: OutputOptions,
 ) => {
   return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
     (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
@@ -18,7 +17,7 @@ export const generateApi = (
       const verbsOptions = generateVerbsOptions({
         workspace,
         verbs,
-        override,
+        options,
         route,
         components: specs.components,
       });
@@ -33,11 +32,11 @@ export const generateApi = (
         [],
       );
 
-      const client = generateClient(httpClient, verbsOptions, {
+      const client = generateClient(options?.client, verbsOptions, {
         route,
         pathRoute,
         specs,
-        override,
+        override: options?.override,
       });
 
       return {

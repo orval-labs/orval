@@ -11,9 +11,12 @@ module.exports = {
       schemas: 'src/api/model',
       mock: true,
       override: {
+        mutator: {
+          path: 'src/api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.ts',
             mock: {
               properties: () => {
                 return {

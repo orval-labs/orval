@@ -27,7 +27,7 @@ export const writeSplitTagsMode = ({
     mkdirSync(dirname);
   }
 
-  const target = generateTargetForTags(operations, info, output);
+  const target = generateTargetForTags(operations, output);
 
   Object.entries(target).forEach(([tag, target]) => {
     const {

@@ -5,7 +5,7 @@ import {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts';
-import { OverrideOutput, Verbs } from '../../types';
+import { OutputOptions, Verbs } from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
@@ -23,7 +23,7 @@ import { generateMutator } from './mutator';
 const generateVerbOptions = ({
   workspace,
   verb,
-  override,
+  options = {},
   operation,
   route,
   verbParameters = [],
@@ -31,7 +31,7 @@ const generateVerbOptions = ({
 }: {
   workspace: string;
   verb: string;
-  override?: OverrideOutput;
+  options?: OutputOptions;
   operation: OperationObject;
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
@@ -44,6 +44,7 @@ const generateVerbOptions = ({
     parameters: operationParameters,
     tags = [],
   } = operation;
+  const { override, target } = options;
   const overrideOperation = override?.operations?.[operation.operationId!];
 
   const definitionName = camel(operation.operationId!);
@@ -68,7 +69,7 @@ const generateVerbOptions = ({
   const props = getProps({ body, queryParams: queryParams?.schema, params });
 
   const mutator = generateMutator({
-    workspace,
+    output: target,
     body,
     mutator: overrideOperation?.mutator || override?.mutator,
     name: camel(operationId!),
@@ -101,13 +102,13 @@ const generateVerbOptions = ({
 export const generateVerbsOptions = ({
   workspace,
   verbs,
-  override,
+  options,
   route,
   components,
 }: {
   workspace: string;
   verbs: PathItemObject;
-  override?: OverrideOutput;
+  options?: OutputOptions;
   route: string;
   components?: ComponentsObject;
 }): GeneratorVerbsOptions =>
@@ -122,17 +123,17 @@ export const generateVerbsOptions = ({
           `Every path must have a operationId - No operationId set for ${verb} ${route}`,
         );
       }
-      const options = generateVerbOptions({
+      const verbOptions = generateVerbOptions({
         workspace,
         verb,
-        override,
+        options,
         verbParameters: verbs.parameters,
         route,
         components,
         operation,
       });
 
-      return [...acc, options];
+      return [...acc, verbOptions];
     },
     [],
   );
