@@ -68,21 +68,30 @@ const generateReactQueryImplementation = (
     .join(',');
 
   if (verb === Verbs.GET) {
-    return `export const ${camel(
+    const queryKeyFnName = camel(`get-${definitionName}-queryKey`);
+    const queryProps = toObjectString(props, 'implementation');
+
+    return `export const ${queryKeyFnName} = (${queryProps}) => [\`${route}\`${
+      queryParams ? ', ...(params ? [params]: [])' : ''
+    }]
+
+    export const ${camel(
       `use-${definitionName}`,
-    )} = <Error = unknown>(\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n queryConfig?: QueryConfig<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
-    return useQuery<AsyncReturnType<typeof ${definitionName}>, Error>([\`${route}\`${
-      queryParams ? ', params' : ''
-    }], () => ${definitionName}(${properties}), ${
+    )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: QueryConfig<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
+    const queryKey = ${queryKeyFnName}(${properties});
+
+    const query = useQuery<AsyncReturnType<typeof ${definitionName}>, Error>(queryKey, () => ${definitionName}(${properties}), ${
       params.length
         ? `{enabled: ${params
             .map(({ name }) => name)
             .join(' && ')}, ...queryConfig}`
         : 'queryConfig'
     } )
+
+    return {
+      queryKey,
+      ...query
+    }
   }
 `;
   }
