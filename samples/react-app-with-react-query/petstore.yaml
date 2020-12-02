@@ -113,6 +113,9 @@ components:
           type: string
         tag:
           type: string
+        email:
+          type: string
+          format: email
     Pets:
       type: array
       items:

@@ -8,7 +8,7 @@ import { getMockScalar } from '../getters/scalar.mock';
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
 export const resolveMockOverride = (
-  properties: any = {},
+  properties: Record<string, string> | undefined = {},
   item: SchemaObject & { name: string; path?: string },
 ) => {
   const property = Object.entries(properties).find(([key]) => {

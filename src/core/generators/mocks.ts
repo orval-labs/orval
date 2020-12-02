@@ -29,6 +29,11 @@ const getMockWithoutFunc = (
         ),
       }
     : {}),
+  ...(override?.mock?.format
+    ? {
+        format: getMockPropertiesWithoutFunc(override.mock.format, specs),
+      }
+    : {}),
   ...(override?.operations
     ? {
         operations: Object.entries(override.operations).reduce(

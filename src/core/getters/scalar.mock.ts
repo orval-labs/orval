@@ -1,4 +1,5 @@
 import { SchemaObject } from 'openapi3-ts';
+import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
 import {
@@ -35,6 +36,20 @@ export const getMockScalar = ({
 
   if (property) {
     return property;
+  }
+
+  const ALL_FORMAT: Record<string, string> = {
+    ...DEFAULT_FORMAT_MOCK,
+    ...(mockOptions?.format || {}),
+  };
+
+  if (item.format && ALL_FORMAT[item.format]) {
+    return {
+      value: getNullable(ALL_FORMAT[item.format], item.nullable),
+      imports: [],
+      name: item.name,
+      overrided: false,
+    };
   }
 
   switch (item.type) {
