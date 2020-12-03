@@ -19,11 +19,9 @@ module.exports = {
         operations: {
           listPets: {
             mock: {
-              properties: () => {
-                return {
-                  id: () => faker.random.number({ min: 1, max: 99999 }),
-                };
-              },
+              properties: () => ({
+                '[].id': () => faker.random.number({ min: 1, max: 99999 }),
+              }),
             },
           },
           showPetById: {

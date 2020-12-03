@@ -47,12 +47,14 @@ export const resolveMockValue = ({
   allOf,
   mockOptions,
   operationId,
+  tags,
 }: {
   schema: SchemaObject & { name: string; path?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
   mockOptions?: MockOptions;
+  tags: string[];
 }): MockDefinition => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
@@ -69,6 +71,7 @@ export const resolveMockValue = ({
       allOf,
       mockOptions,
       operationId,
+      tags,
     });
   }
 
@@ -78,5 +81,6 @@ export const resolveMockValue = ({
     allOf,
     mockOptions,
     operationId,
+    tags,
   });
 };

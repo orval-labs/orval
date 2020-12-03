@@ -11,12 +11,14 @@ export const getMockObject = ({
   allOf,
   mockOptions,
   operationId,
+  tags,
 }: {
   item: SchemaObject & { name: string; path?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   allOf?: boolean;
   mockOptions?: MockOptions;
+  tags: string[];
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
@@ -29,6 +31,7 @@ export const getMockObject = ({
       schemas,
       mockOptions,
       operationId,
+      tags,
     });
   }
 
@@ -45,6 +48,7 @@ export const getMockObject = ({
         allOf: true,
         mockOptions,
         operationId,
+        tags,
       });
 
       imports = [...imports, ...resolvedValue.imports];
@@ -89,6 +93,7 @@ export const getMockObject = ({
         allOf: true,
         mockOptions,
         operationId,
+        tags,
       });
 
       imports = [...imports, ...resolvedValue.imports];
@@ -140,6 +145,7 @@ export const getMockObject = ({
           schemas,
           mockOptions,
           operationId,
+          tags,
         });
 
         imports = [...imports, ...resolvedValue.imports];
@@ -169,6 +175,7 @@ export const getMockObject = ({
       schemas,
       mockOptions,
       operationId,
+      tags,
     });
 
     return {

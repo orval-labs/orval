@@ -41,6 +41,7 @@ export type MockOptions = {
   properties?: Record<string, string>;
   operations?: Record<string, { properties: Record<string, string> }>;
   format?: Record<string, string>;
+  tags?: Record<string, { properties: Record<string, string> }>;
 };
 
 export type MockProperties =
@@ -51,9 +52,9 @@ export interface ExternalConfigFile {
   [backend: string]: Options;
 }
 
-type OuputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
+type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
-type OuputTransformer = string | OuputTransformerFn;
+type OutputTransformer = string | OutputTransformerFn;
 
 export type MutatorObject = {
   path: string;
@@ -65,9 +66,10 @@ export type Mutator = string | MutatorObject;
 
 export type OverrideOutput = {
   title?: (title: string) => string;
-  transformer?: OuputTransformer;
+  transformer?: OutputTransformer;
   mutator?: Mutator;
   operations?: { [key: string]: OperationOptions };
+  tags?: { [key: string]: OperationOptions };
   mock?: {
     properties?: MockProperties;
     format?: { [key: string]: unknown };
@@ -83,7 +85,7 @@ export type OverrideInput = {
 };
 
 export type OperationOptions = {
-  transformer?: OuputTransformer;
+  transformer?: OutputTransformer;
   mutator?: Mutator;
   mock?: {
     data?: MockProperties;

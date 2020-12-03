@@ -52,10 +52,29 @@ const getMockWithoutFunc = (
         ),
       }
     : {}),
+  ...(override?.tags
+    ? {
+        tags: Object.entries(override.tags).reduce(
+          (acc, [key, value]) => ({
+            ...acc,
+            [key]: value.mock?.properties
+              ? {
+                  properties: getMockPropertiesWithoutFunc(
+                    value.mock.properties,
+                    specs,
+                  ),
+                }
+              : {},
+          }),
+          {},
+        ),
+      }
+    : {}),
 });
 
 export const getResponsesMockDefinition = (
   operationId: string,
+  tags: string[],
   response: GetterResponse,
   schemas: {
     [key: string]: SchemaObject;
@@ -85,6 +104,7 @@ export const getResponsesMockDefinition = (
         schemas,
         mockOptions: mockOptionsWithoutFunc,
         operationId,
+        tags,
       });
 
       acc.imports = [...acc.imports, ...imports];
@@ -106,6 +126,7 @@ export const getResponsesMockDefinition = (
 
 export const getMockDefinition = (
   operationId: string,
+  tags: string[],
   response: GetterResponse,
   specs: OpenAPIObject,
   override?: OverrideOutput,
@@ -120,6 +141,7 @@ export const getMockDefinition = (
 
   const { definitions, imports } = getResponsesMockDefinition(
     operationId,
+    tags,
     response,
     schemas,
     mockOptionsWithoutFunc,

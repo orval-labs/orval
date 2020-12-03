@@ -2,6 +2,7 @@ import { SchemaObject } from 'openapi3-ts';
 import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
+import { mergeDeep } from '../../utils/mergeDeep';
 import {
   getNullable,
   resolveMockOverride,
@@ -15,6 +16,7 @@ export const getMockScalar = ({
   allOf,
   mockOptions,
   operationId,
+  tags,
 }: {
   item: SchemaObject & { name: string; path?: string; isRef?: boolean };
   schemas: { [key: string]: SchemaObject };
@@ -22,14 +24,29 @@ export const getMockScalar = ({
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
+  tags: string[];
 }): MockDefinition => {
-  const rProperty = resolveMockOverride(
+  const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
   );
 
-  if (rProperty) {
-    return rProperty;
+  if (operationProperty) {
+    return operationProperty;
+  }
+
+  const overrideTag = Object.entries(mockOptions?.tags || {}).reduce<
+    MockOptions | undefined
+  >(
+    (acc, [tag, options]) =>
+      tags.includes(tag) ? mergeDeep(acc, options) : acc,
+    undefined,
+  );
+
+  const tagProperty = resolveMockOverride(overrideTag?.properties, item);
+
+  if (tagProperty) {
+    return tagProperty;
   }
 
   const property = resolveMockOverride(mockOptions?.properties, item);
@@ -81,6 +98,7 @@ export const getMockScalar = ({
         allOf,
         mockOptions,
         operationId,
+        tags,
       });
 
       if (enums) {
@@ -129,7 +147,14 @@ export const getMockScalar = ({
 
     case 'object':
     default: {
-      return getMockObject({ item, schemas, allOf, mockOptions, operationId });
+      return getMockObject({
+        item,
+        schemas,
+        allOf,
+        mockOptions,
+        operationId,
+        tags,
+      });
     }
   }
 };

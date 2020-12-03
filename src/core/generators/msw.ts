@@ -33,11 +33,12 @@ export const getRoute = (route: string) => {
 };
 
 export const generateMSW = (
-  { operationId, response, verb }: GeneratorVerbOptions,
+  { operationId, response, verb, tags }: GeneratorVerbOptions,
   { specs, pathRoute, override }: GeneratorOptions,
 ) => {
   const { definitions, definition, imports } = getMockDefinition(
     operationId,
+    tags,
     response,
     specs,
     override,

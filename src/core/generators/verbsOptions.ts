@@ -5,13 +5,14 @@ import {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts';
-import { OutputOptions, Verbs } from '../../types';
+import { OperationOptions, OutputOptions, Verbs } from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
 import { camel } from '../../utils/case';
 import { dynamicImport } from '../../utils/imports';
+import { mergeDeep } from '../../utils/mergeDeep';
 import { getBody } from '../getters/body';
 import { getParameters } from '../getters/parameters';
 import { getParams } from '../getters/params';
@@ -46,6 +47,13 @@ const generateVerbOptions = ({
   } = operation;
   const { override, target } = options;
   const overrideOperation = override?.operations?.[operation.operationId!];
+  const overrideTag = Object.entries(override?.tags || {}).reduce<
+    OperationOptions | undefined
+  >(
+    (acc, [tag, options]) =>
+      tags.includes(tag) ? mergeDeep(acc, options) : acc,
+    undefined,
+  );
 
   const definitionName = camel(operation.operationId!);
 
@@ -71,8 +79,9 @@ const generateVerbOptions = ({
   const mutator = generateMutator({
     output: target,
     body,
-    mutator: overrideOperation?.mutator || override?.mutator,
     name: camel(operationId!),
+    mutator:
+      overrideOperation?.mutator || overrideTag?.mutator || override?.mutator,
   });
 
   const verbOption = {
@@ -92,7 +101,9 @@ const generateVerbOptions = ({
   };
 
   const transformer = dynamicImport(
-    overrideOperation?.transformer || override?.transformer,
+    overrideOperation?.transformer ||
+      overrideTag?.transformer ||
+      override?.transformer,
     workspace,
   );
 
