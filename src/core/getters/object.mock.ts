@@ -4,21 +4,22 @@ import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
 import { isBoolean, isReference } from '../../utils/is';
 import { resolveMockValue } from '../resolvers/value.mock';
+import { combineSchemasMock } from './combine.mock';
 
 export const getMockObject = ({
   item,
   schemas,
-  allOf,
   mockOptions,
   operationId,
   tags,
+  combine,
 }: {
   item: SchemaObject & { name: string; path?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
-  allOf?: boolean;
   mockOptions?: MockOptions;
   tags: string[];
+  combine?: { properties: string[] };
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
@@ -35,101 +36,31 @@ export const getMockObject = ({
     });
   }
 
-  if (item.allOf) {
-    let imports: string[] = [];
-    const value = item.allOf.reduce((acc, val, index, arr) => {
-      const resolvedValue = resolveMockValue({
-        schema: {
-          ...val,
-          name: item.name,
-          path: item.path ? item.path : '#',
-        },
-        schemas,
-        allOf: true,
-        mockOptions,
-        operationId,
-        tags,
-      });
-
-      imports = [...imports, ...resolvedValue.imports];
-      if (!index && !allOf) {
-        if (resolvedValue.enums) {
-          if (arr.length === 1) {
-            return `faker.helpers.randomize([${resolvedValue.value}])`;
-          }
-          return `faker.helpers.randomize([${resolvedValue.value},`;
-        }
-        if (arr.length === 1) {
-          return `{${resolvedValue.value}}`;
-        }
-        return `{${resolvedValue.value},`;
-      }
-      if (arr.length - 1 === index) {
-        if (resolvedValue.enums) {
-          return acc + resolvedValue.value + (!allOf ? '])' : '');
-        }
-        return acc + resolvedValue.value + (!allOf ? '}' : '');
-      }
-      return acc + resolvedValue.value + ',';
-    }, '');
-
-    return {
-      value,
-      imports,
-      name: item.name,
-    };
-  }
-
-  if (item.oneOf) {
-    let imports: string[] = [];
-    const value = item.oneOf.reduce((acc, val, index, arr) => {
-      const resolvedValue = resolveMockValue({
-        schema: {
-          ...val,
-          name: item.name,
-          path: item.path ? item.path : '#',
-        },
-        schemas,
-        allOf: true,
-        mockOptions,
-        operationId,
-        tags,
-      });
-
-      imports = [...imports, ...resolvedValue.imports];
-      if (!index && !allOf) {
-        if (resolvedValue.enums) {
-          if (arr.length === 1) {
-            return `faker.helpers.randomize([${resolvedValue.value}])`;
-          }
-          return `faker.helpers.randomize([${resolvedValue.value},`;
-        }
-        if (arr.length === 1) {
-          return `{${resolvedValue.value}}`;
-        }
-        return `{${resolvedValue.value},`;
-      }
-      if (arr.length - 1 === index) {
-        if (resolvedValue.enums) {
-          return acc + resolvedValue.value + (!allOf ? '])' : '');
-        }
-        return acc + resolvedValue.value + (!allOf ? '}' : '');
-      }
-      return acc + resolvedValue.value + ',';
-    }, '');
-
-    return {
-      value,
-      imports,
-      name: item.name,
-    };
+  if (item.allOf || item.oneOf || item.anyOf) {
+    combineSchemasMock({
+      item,
+      items: (item.allOf || item.oneOf || item.anyOf) as (
+        | SchemaObject
+        | ReferenceObject
+      )[],
+      schemas,
+      mockOptions,
+      operationId,
+      tags,
+      combine,
+    });
   }
 
   if (item.properties) {
-    let value = !allOf ? '{' : '';
+    let value = !combine ? '{' : '';
     let imports: string[] = [];
+    let properties: string[] = [];
     value += Object.entries(item.properties)
       .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
+        if (combine?.properties.includes(key)) {
+          return undefined;
+        }
+
         const isRequired = (item.required || []).includes(key);
 
         if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
@@ -149,6 +80,7 @@ export const getMockObject = ({
         });
 
         imports = [...imports, ...resolvedValue.imports];
+        properties = [...properties, key];
 
         if (!isRequired && !resolvedValue.overrided) {
           return `${key}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
@@ -156,9 +88,15 @@ export const getMockObject = ({
 
         return `${key}: ${resolvedValue.value}`;
       })
+      .filter(Boolean)
       .join(', ');
-    value += !allOf ? '}' : '';
-    return { value, imports, name: item.name };
+    value += !combine ? '}' : '';
+    return {
+      value,
+      imports,
+      name: item.name,
+      properties,
+    };
   }
 
   if (item.additionalProperties) {

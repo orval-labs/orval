@@ -44,17 +44,17 @@ export const getNullable = (value: string, nullable?: boolean) =>
 export const resolveMockValue = ({
   schema,
   schemas,
-  allOf,
   mockOptions,
   operationId,
   tags,
+  combine,
 }: {
   schema: SchemaObject & { name: string; path?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
-  allOf?: boolean;
   mockOptions?: MockOptions;
   tags: string[];
+  combine?: { properties: string[] };
 }): MockDefinition => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
@@ -68,19 +68,19 @@ export const resolveMockValue = ({
     return getMockScalar({
       item: newSchema,
       schemas,
-      allOf,
       mockOptions,
       operationId,
       tags,
+      combine,
     });
   }
 
   return getMockScalar({
     item: schema,
     schemas,
-    allOf,
     mockOptions,
     operationId,
     tags,
+    combine,
   });
 };

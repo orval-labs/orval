@@ -4,4 +4,5 @@ export interface MockDefinition {
   imports: string[];
   name: string;
   overrided?: boolean;
+  properties?: string[];
 }

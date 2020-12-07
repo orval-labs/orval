@@ -70,7 +70,7 @@ export const generateBodyAxiosConfig = (body: GetterBody, verb: Verbs) => {
     return ',\n      data: formData,';
   }
 
-  return `,\n      data: ${body.implementation || 'undefined'},`;
+  return `,\n      data: ${body.implementation || 'undefined'}`;
 };
 
 export const generateQueryParamsAxiosConfig = (

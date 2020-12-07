@@ -13,18 +13,18 @@ import { getMockObject } from './object.mock';
 export const getMockScalar = ({
   item,
   schemas,
-  allOf,
   mockOptions,
   operationId,
   tags,
+  combine,
 }: {
   item: SchemaObject & { name: string; path?: string; isRef?: boolean };
   schemas: { [key: string]: SchemaObject };
-  allOf?: boolean;
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
   tags: string[];
+  combine?: { properties: string[] };
 }): MockDefinition => {
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
@@ -95,7 +95,7 @@ export const getMockScalar = ({
           path: item.path ? `${item.path}.[]` : '#.[]',
         },
         schemas,
-        allOf,
+        combine,
         mockOptions,
         operationId,
         tags,
@@ -150,10 +150,10 @@ export const getMockScalar = ({
       return getMockObject({
         item,
         schemas,
-        allOf,
         mockOptions,
         operationId,
         tags,
+        combine,
       });
     }
   }
