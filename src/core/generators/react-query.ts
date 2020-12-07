@@ -1,15 +1,16 @@
-import { Verbs } from '../../types';
+import { OperationOptions, Verbs } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
-import { GetterPropType } from '../../types/getters';
-import { camel } from '../../utils/case';
-import { toObjectString } from '../../utils/string';
+import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
+import { camel, pascal } from '../../utils/case';
+import { mergeDeep } from '../../utils/mergeDeep';
+import { stringify, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
 export const generateReactQueryImports = (isMutator: boolean) =>
   `${
     !isMutator ? `import axios from 'axios';\n` : ''
-  }import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`;
+  }import { useQuery, usePaginatedQuery, useInfiniteQuery, useMutation, QueryConfig, PaginatedQueryConfig,InfiniteQueryConfig, MutationConfig } from 'react-query';\n`;
 
 const generateAxiosFunction = (
   {
@@ -52,6 +53,72 @@ const generateAxiosFunction = (
 `;
 };
 
+type QueryType = 'paginatedQuery' | 'infiniteQuery' | 'query';
+
+const QueryType = {
+  PAGINATED: 'paginatedQuery' as QueryType,
+  INFINITE: 'infiniteQuery' as QueryType,
+  QUERY: 'query' as QueryType,
+};
+
+const generateQueryImplementation = ({
+  queryOption: { name, queryParam, config, type },
+  definitionName,
+  queryProps,
+  queryKeyFnName,
+  properties,
+  params,
+  props,
+}: {
+  queryOption: {
+    name: string;
+    config?: object;
+    type: QueryType;
+    queryParam?: string;
+  };
+  definitionName: string;
+  queryProps: string;
+  queryKeyFnName: string;
+  properties: string;
+  params: GetterParams;
+  props: GetterProps;
+}) => {
+  return `export const ${camel(
+    `use-${name}`,
+  )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: ${pascal(
+    type,
+  )}Config<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
+  const queryKey = ${queryKeyFnName}(${properties});
+
+  const query = ${camel(
+    `use-${type}`,
+  )}<AsyncReturnType<typeof ${definitionName}>, Error>(queryKey, (${
+    queryParam && props.length ? `_, ${queryParam}` : ''
+  }) => ${definitionName}(${
+    queryParam
+      ? props
+          .map(({ name }) =>
+            name === 'params' ? `{${queryParam},...params}` : name,
+          )
+          .join(',')
+      : properties
+  }), ${
+    params.length
+      ? `{${
+          !config?.hasOwnProperty('enabled')
+            ? `enabled: ${params.map(({ name }) => name).join(' && ')},`
+            : ''
+        }${config ? ` ${stringify(config)?.slice(1, -1)}` : ''} ...queryConfig}`
+      : 'queryConfig'
+  } )
+
+  return {
+    queryKey,
+    ...query
+  }
+}\n`;
+};
+
 const generateReactQueryImplementation = (
   {
     queryParams,
@@ -60,14 +127,59 @@ const generateReactQueryImplementation = (
     props,
     verb,
     params,
+    operationId,
+    tags,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, override = {} }: GeneratorOptions,
 ) => {
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
   if (verb === Verbs.GET) {
+    const overrideOperation = override.operations?.[operationId!];
+    const overrideTag = Object.entries(override.tags || {}).reduce<
+      OperationOptions | undefined
+    >(
+      (acc, [tag, options]) =>
+        tags.includes(tag) ? mergeDeep(acc, options) : acc,
+      undefined,
+    );
+    const query =
+      overrideOperation?.query || overrideTag?.query || override.query;
+
+    const queries = [
+      ...(query?.usePaginated
+        ? [
+            {
+              name: camel(`${definitionName}-paginated`),
+              config: query?.config,
+              type: QueryType.PAGINATED,
+            },
+          ]
+        : []),
+      ...(query?.useInfinite
+        ? [
+            {
+              name: camel(`${definitionName}-infinite`),
+              config: query?.config,
+              type: QueryType.INFINITE,
+              queryParam: query?.useInfiniteQueryParam,
+            },
+          ]
+        : []),
+      ...((!query?.useQuery && !query?.usePaginated && !query?.useInfinite) ||
+      query?.useQuery
+        ? [
+            {
+              name: definitionName,
+              config: query?.config,
+              type: QueryType.QUERY,
+            },
+          ]
+        : []),
+    ];
+
     const queryKeyFnName = camel(`get-${definitionName}-queryKey`);
     const queryProps = toObjectString(props, 'implementation');
 
@@ -75,24 +187,20 @@ const generateReactQueryImplementation = (
       queryParams ? ', ...(params ? [params]: [])' : ''
     }]
 
-    export const ${camel(
-      `use-${definitionName}`,
-    )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: QueryConfig<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
-    const queryKey = ${queryKeyFnName}(${properties});
-
-    const query = useQuery<AsyncReturnType<typeof ${definitionName}>, Error>(queryKey, () => ${definitionName}(${properties}), ${
-      params.length
-        ? `{enabled: ${params
-            .map(({ name }) => name)
-            .join(' && ')}, ...queryConfig}`
-        : 'queryConfig'
-    } )
-
-    return {
-      queryKey,
-      ...query
-    }
-  }
+    ${queries.reduce(
+      (acc, queryOption) =>
+        acc +
+        generateQueryImplementation({
+          queryOption,
+          definitionName,
+          queryProps,
+          queryKeyFnName,
+          properties,
+          params,
+          props,
+        }),
+      '',
+    )}
 `;
   }
 

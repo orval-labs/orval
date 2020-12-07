@@ -4,87 +4,185 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';
 import {
-  CreatePetsBody,
-  ListPetsParams,
-  Pet,
-  Pets,
-} from '../model';
-import { customInstance } from '../mutator/custom-instance'
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;
+  InfiniteQueryConfig,
+  MutationConfig,
+  PaginatedQueryConfig,
+  QueryConfig,
+  useInfiniteQuery,
+  useMutation,
+  usePaginatedQuery,
+  useQuery,
+} from 'react-query';
+import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
+import { customInstance } from '../mutator/custom-instance';
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
+  ...args: any
+) => Promise<infer R>
+  ? R
+  : any;
 
-export const listPets = (
-    params?: ListPetsParams,
-    version: number = 1,
-  ) => {
-    return customInstance<Pets>({url: `/v${version}/pets`, method: 'get',
-        params,
-    });
-  }
+export const listPets = (params?: ListPetsParams, version: number = 1) => {
+  return customInstance<Pets>({
+    url: `/v${version}/pets`,
+    method: 'get',
+    params,
+  });
+};
 
+export const getListPetsQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
+) => [`/v${version}/pets`, ...(params ? [params] : [])];
 
-export const getListPetsQueryKey = (params?: ListPetsParams,
-    version: number = 1,) => [`/v${version}/pets`, ...(params ? [params]: [])]
+export const useListPetsPaginated = <Error = unknown>(
+  params?: ListPetsParams,
+  version: number = 1,
+  queryConfig?: PaginatedQueryConfig<AsyncReturnType<typeof listPets>, Error>,
+) => {
+  const queryKey = getListPetsQueryKey(params, version);
 
-    export const useListPets = <Error = unknown>(
-    params?: ListPetsParams,
-    version: number = 1,
- queryConfig?: QueryConfig<AsyncReturnType<typeof listPets>, Error>
-  ) => {
-    const queryKey = getListPetsQueryKey(params,version);
+  const query = usePaginatedQuery<AsyncReturnType<typeof listPets>, Error>(
+    queryKey,
+    () => listPets(params, version),
+    { enabled: version, ...queryConfig },
+  );
 
-    const query = useQuery<AsyncReturnType<typeof listPets>, Error>(queryKey, () => listPets(params,version), {enabled: version, ...queryConfig} )
+  return {
+    queryKey,
+    ...query,
+  };
+};
+export const useListPetsInfinite = <Error = unknown>(
+  params?: ListPetsParams,
+  version: number = 1,
+  queryConfig?: InfiniteQueryConfig<AsyncReturnType<typeof listPets>, Error>,
+) => {
+  const queryKey = getListPetsQueryKey(params, version);
 
-    return {
-      queryKey,
-      ...query
-    }
-  }
+  const query = useInfiniteQuery<AsyncReturnType<typeof listPets>, Error>(
+    queryKey,
+    (_, limit) => listPets({ limit, ...params }, version),
+    { enabled: version, ...queryConfig },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+export const useListPets = <Error = unknown>(
+  params?: ListPetsParams,
+  version: number = 1,
+  queryConfig?: QueryConfig<AsyncReturnType<typeof listPets>, Error>,
+) => {
+  const queryKey = getListPetsQueryKey(params, version);
+
+  const query = useQuery<AsyncReturnType<typeof listPets>, Error>(
+    queryKey,
+    () => listPets(params, version),
+    { enabled: version, ...queryConfig },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+
 export const createPets = (
-    createPetsBody: CreatePetsBody,
-    version: number = 1,
-  ) => {
-    return customInstance<unknown>({url: `/v${version}/pets`, method: 'post',
-      data: createPetsBody,
-    });
-  }
-
+  createPetsBody: CreatePetsBody,
+  version: number = 1,
+) => {
+  return customInstance<unknown>({
+    url: `/v${version}/pets`,
+    method: 'post',
+    data: createPetsBody,
+  });
+};
 
 export const useCreatePets = <Error = unknown>(
-    mutationConfig?: MutationConfig<AsyncReturnType<typeof createPets>, Error, {data: CreatePetsBody;version?: number}>
-  ) => {
-  return useMutation<AsyncReturnType<typeof createPets>, Error, {data: CreatePetsBody;version?: number}>((props) => {
-    const {data,version} = props || {};
+  mutationConfig?: MutationConfig<
+    AsyncReturnType<typeof createPets>,
+    Error,
+    { data: CreatePetsBody; version?: number }
+  >,
+) => {
+  return useMutation<
+    AsyncReturnType<typeof createPets>,
+    Error,
+    { data: CreatePetsBody; version?: number }
+  >((props) => {
+    const { data, version } = props || {};
 
-    return  createPets(data,version)
-  }, mutationConfig)
-}
-export const showPetById = (
-    petId: string,
-    version: number = 1,
-  ) => {
-    return customInstance<Pet>({url: `/v${version}/pets/${petId}`, method: 'get'
-    });
-  }
+    return createPets(data, version);
+  }, mutationConfig);
+};
+export const showPetById = (petId: string, version: number = 1) => {
+  return customInstance<Pet>({
+    url: `/v${version}/pets/${petId}`,
+    method: 'get',
+  });
+};
 
+export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => [
+  `/v${version}/pets/${petId}`,
+];
 
-export const getShowPetByIdQueryKey = (petId: string,
-    version: number = 1,) => [`/v${version}/pets/${petId}`]
+export const useShowPetByIdPaginated = <Error = unknown>(
+  petId: string,
+  version: number = 1,
+  queryConfig?: PaginatedQueryConfig<
+    AsyncReturnType<typeof showPetById>,
+    Error
+  >,
+) => {
+  const queryKey = getShowPetByIdQueryKey(petId, version);
 
-    export const useShowPetById = <Error = unknown>(
-    petId: string,
-    version: number = 1,
- queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>
-  ) => {
-    const queryKey = getShowPetByIdQueryKey(petId,version);
+  const query = usePaginatedQuery<AsyncReturnType<typeof showPetById>, Error>(
+    queryKey,
+    () => showPetById(petId, version),
+    { enabled: version && petId, ...queryConfig },
+  );
 
-    const query = useQuery<AsyncReturnType<typeof showPetById>, Error>(queryKey, () => showPetById(petId,version), {enabled: version && petId, ...queryConfig} )
+  return {
+    queryKey,
+    ...query,
+  };
+};
+export const useShowPetByIdInfinite = <Error = unknown>(
+  petId: string,
+  version: number = 1,
+  queryConfig?: InfiniteQueryConfig<AsyncReturnType<typeof showPetById>, Error>,
+) => {
+  const queryKey = getShowPetByIdQueryKey(petId, version);
 
-    return {
-      queryKey,
-      ...query
-    }
-  }
+  const query = useInfiniteQuery<AsyncReturnType<typeof showPetById>, Error>(
+    queryKey,
+    (_, limit) => showPetById(petId, version),
+    { enabled: version && petId, ...queryConfig },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+export const useShowPetById = <Error = unknown>(
+  petId: string,
+  version: number = 1,
+  queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>,
+) => {
+  const queryKey = getShowPetByIdQueryKey(petId, version);
+
+  const query = useQuery<AsyncReturnType<typeof showPetById>, Error>(
+    queryKey,
+    () => showPetById(petId, version),
+    { enabled: version && petId, ...queryConfig },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};

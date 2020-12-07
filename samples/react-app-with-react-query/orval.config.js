@@ -39,6 +39,12 @@ module.exports = {
             '/tag|name/': () => faker.name.lastName(),
           },
         },
+        query: {
+          useQuery: true,
+          usePaginated: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
       },
     },
     input: {

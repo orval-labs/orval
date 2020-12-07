@@ -74,6 +74,15 @@ export type OverrideOutput = {
     properties?: MockProperties;
     format?: { [key: string]: unknown };
   };
+  query?: QueryOptions;
+};
+
+type QueryOptions = {
+  useQuery?: boolean;
+  usePaginated?: boolean;
+  useInfinite?: boolean;
+  useInfiniteQueryParam?: string;
+  config?: object;
 };
 
 type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
@@ -91,6 +100,7 @@ export type OperationOptions = {
     data?: MockProperties;
     properties?: MockProperties;
   };
+  query?: QueryOptions;
 };
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';
