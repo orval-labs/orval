@@ -24,12 +24,8 @@ export const generateTarget = (
         acc.implementation += header.implementation;
         acc.implementationMSW += header.implementationMSW;
       }
-
-      acc.imports = [
-        ...acc.imports,
-        ...operation.imports,
-        ...operation.importsMSW,
-      ];
+      acc.imports = [...acc.imports, ...operation.imports];
+      acc.importsMSW = [...acc.importsMSW, ...operation.importsMSW];
       acc.implementation += operation.implementation;
       acc.implementationMSW += operation.implementationMSW;
       if (operation.mutator) {
@@ -48,6 +44,7 @@ export const generateTarget = (
       imports: [] as string[],
       implementation: '',
       implementationMSW: '',
+      importsMSW: [] as string[],
       mutators: [] as GeneratorMutator[],
     },
   );

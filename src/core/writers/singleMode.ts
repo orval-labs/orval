@@ -7,8 +7,9 @@ import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { generateClientImports } from '../generators/client';
-import { generateImports, generateMutatorImports } from '../generators/imports';
+import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
+import { generateMSWImports } from '../generators/msw';
 import { resolvePath } from '../resolvers/path';
 import { generateTarget } from './target';
 
@@ -33,28 +34,34 @@ export const writeSingleMode = ({
     imports,
     implementation,
     implementationMSW,
+    importsMSW,
     mutators,
   } = generateTarget(operations, info, isObject(output) ? output : undefined);
 
   let data = getFilesHeader(info);
-  const defaultImports = generateClientImports(
-    isObject(output) ? output : undefined,
-  );
-
-  if (isObject(output) && output.mock) {
-    data += defaultImports.implementation;
-    data += defaultImports.implementationMSW;
-  } else {
-    data += defaultImports.implementation;
-  }
 
   if (isObject(output) && output.schemas) {
-    data += generateImports(
-      imports,
-      resolvePath(output.target || '', output.schemas),
-      true,
-    );
+    const schemasPath = resolvePath(output.target || '', output.schemas);
+
+    data += generateClientImports(output.client, implementation, [
+      { exports: imports, dependency: schemasPath },
+    ]);
+    if (output.mock) {
+      data += generateMSWImports(implementationMSW, [
+        { exports: importsMSW, dependency: schemasPath },
+      ]);
+    }
   } else {
+    data += generateClientImports(
+      isObject(output) ? output.client : undefined,
+      implementation,
+      [],
+    );
+
+    if (isObject(output) && output.mock) {
+      data += generateMSWImports(implementationMSW, []);
+    }
+
     data += generateModelsInline(schemas);
   }
 

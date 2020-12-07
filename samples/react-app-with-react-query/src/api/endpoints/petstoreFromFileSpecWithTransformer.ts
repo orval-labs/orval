@@ -16,6 +16,7 @@ import {
 } from 'react-query';
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
 import { customInstance } from '../mutator/custom-instance';
+
 type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
   ...args: any
 ) => Promise<infer R>

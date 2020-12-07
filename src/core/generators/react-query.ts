@@ -7,10 +7,27 @@ import { stringify, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateReactQueryImports = (isMutator: boolean) =>
-  `${
-    !isMutator ? `import axios from 'axios';\n` : ''
-  }import { useQuery, usePaginatedQuery, useInfiniteQuery, useMutation, QueryConfig, PaginatedQueryConfig,InfiniteQueryConfig, MutationConfig } from 'react-query';\n`;
+const REACT_QUERY_DEPENDENCIES = [
+  {
+    exports: ['axios'],
+    dependency: 'axios',
+  },
+  {
+    exports: [
+      'useQuery',
+      'usePaginatedQuery',
+      'useInfiniteQuery',
+      'useMutation',
+      'QueryConfig',
+      'PaginatedQueryConfig',
+      'InfiniteQueryConfig',
+      'MutationConfig',
+    ],
+    dependency: 'react-query',
+  },
+];
+
+export const getReactQueryDependencies = () => REACT_QUERY_DEPENDENCIES;
 
 const generateAxiosFunction = (
   {

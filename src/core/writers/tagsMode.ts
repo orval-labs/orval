@@ -7,8 +7,9 @@ import { getFileInfo } from '../../utils/file';
 import { isObject } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { generateClientImports } from '../generators/client';
-import { generateImports, generateMutatorImports } from '../generators/imports';
+import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
+import { generateMSWImports } from '../generators/msw';
 import { resolvePath } from '../resolvers/path';
 import { generateTargetForTags } from './targetTags';
 
@@ -39,22 +40,22 @@ export const writeTagsMode = ({
       mutators,
     } = target;
     const header = getFilesHeader(info);
-    const defaultImports = generateClientImports(output);
     let data = header;
-
-    if (isObject(output) && output.mock) {
-      data += defaultImports.implementation;
-      data += defaultImports.implementationMSW;
-    } else {
-      data += defaultImports.implementation;
-    }
 
     if (isObject(output) && output.schemas) {
       const schemasPath = resolvePath(
         path,
         getFileInfo(join(workspace, output.schemas)).dirname,
       );
-      data += generateImports([...imports, ...importsMSW], schemasPath, true);
+
+      data += generateClientImports(output.client, implementation, [
+        { exports: imports, dependency: schemasPath },
+      ]);
+      if (output.mock) {
+        data += generateMSWImports(implementationMSW, [
+          { exports: importsMSW, dependency: schemasPath },
+        ]);
+      }
     } else {
       const schemasPath = './' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
@@ -64,7 +65,14 @@ export const writeTagsMode = ({
         schemasData,
       );
 
-      data += generateImports([...imports, ...importsMSW], schemasPath, true);
+      data += generateClientImports(output.client, implementation, [
+        { exports: imports, dependency: schemasPath },
+      ]);
+      if (output.mock) {
+        data += generateMSWImports(implementationMSW, [
+          { exports: importsMSW, dependency: schemasPath },
+        ]);
+      }
     }
 
     if (mutators) {

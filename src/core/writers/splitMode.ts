@@ -6,8 +6,9 @@ import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { generateClientImports } from '../generators/client';
-import { generateImports, generateMutatorImports } from '../generators/imports';
+import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
+import { generateMSWImports } from '../generators/msw';
 import { resolvePath } from '../resolvers/path';
 import { generateTarget } from './target';
 
@@ -31,6 +32,7 @@ export const writeSplitMode = ({
     imports,
     implementation,
     implementationMSW,
+    importsMSW,
     mutators,
   } = generateTarget(operations, info, output);
 
@@ -39,20 +41,18 @@ export const writeSplitMode = ({
   let implementationData = header;
   let mswData = header;
 
-  const defaultImports = generateClientImports(output);
-
-  implementationData += `${defaultImports.implementation}`;
-  mswData += `${defaultImports.implementationMSW}`;
-
   if (output.schemas) {
     const schemasPath = resolvePath(
       path,
       getFileInfo(join(workspace, output.schemas)).dirname,
     );
 
-    const generatedImports = generateImports(imports, schemasPath, true);
-    implementationData += generatedImports;
-    mswData += generatedImports;
+    implementationData += generateClientImports(output.client, implementation, [
+      { exports: imports, dependency: schemasPath },
+    ]);
+    mswData += generateMSWImports(implementationMSW, [
+      { exports: importsMSW, dependency: schemasPath },
+    ]);
   } else {
     const schemasPath = './' + filename + '.schemas';
     const schemasData = header + generateModelsInline(schemas);
@@ -62,9 +62,12 @@ export const writeSplitMode = ({
       schemasData,
     );
 
-    const generatedImports = generateImports(imports, schemasPath, true);
-    implementationData += generatedImports;
-    mswData += generatedImports;
+    implementationData += generateClientImports(output.client, implementation, [
+      { exports: imports, dependency: schemasPath },
+    ]);
+    mswData += generateMSWImports(implementationMSW, [
+      { exports: importsMSW, dependency: schemasPath },
+    ]);
   }
 
   if (mutators) {

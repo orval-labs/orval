@@ -8,9 +8,22 @@ import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
 import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateAngularImports = () => `import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Observable } from 'rxjs';\n`;
+const ANGULAR_DEPENDENCIES = [
+  {
+    exports: ['HttpClient'],
+    dependency: '@angular/common/http',
+  },
+  {
+    exports: ['Injectable'],
+    dependency: '@angular/core',
+  },
+  {
+    exports: ['Observable'],
+    dependency: 'rxjs',
+  },
+];
+
+export const getAngularDependencies = () => ANGULAR_DEPENDENCIES;
 
 export const generateAngularTitle = (title: string) => {
   const sanTitle = sanitize(title);

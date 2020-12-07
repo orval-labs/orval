@@ -1,4 +1,4 @@
-import { OutputClient, OutputOptions } from '../../types';
+import { OutputClient } from '../../types';
 import {
   GeneratorClientExtra,
   GeneratorOperations,
@@ -10,23 +10,24 @@ import {
   generateAngular,
   generateAngularFooter,
   generateAngularHeader,
-  generateAngularImports,
   generateAngularTitle,
+  getAngularDependencies,
 } from './angular';
 import {
   generateAxios,
   generateAxiosFooter,
   generateAxiosHeader,
-  generateAxiosImports,
   generateAxiosTitle,
+  getAxiosDependencies,
 } from './axios';
+import { generateDependencyImports } from './imports';
 import { generateMSW } from './msw';
 import {
   generateReactQuery,
   generateReactQueryFooter,
   generateReactQueryHeader,
-  generateReactQueryImports,
   generateReactQueryTitle,
+  getReactQueryDependencies,
 } from './react-query';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
@@ -36,7 +37,7 @@ const GENERATOR_CLIENT = {
     client: generateAxios,
     msw: generateMSW,
     header: generateAxiosHeader,
-    imports: generateAxiosImports,
+    dependencies: getAxiosDependencies,
     footer: generateAxiosFooter,
     title: generateAxiosTitle,
   },
@@ -44,7 +45,7 @@ const GENERATOR_CLIENT = {
     client: generateAngular,
     msw: generateMSW,
     header: generateAngularHeader,
-    imports: generateAngularImports,
+    dependencies: getAngularDependencies,
     footer: generateAngularFooter,
     title: generateAngularTitle,
   },
@@ -52,21 +53,23 @@ const GENERATOR_CLIENT = {
     client: generateReactQuery,
     msw: generateMSW,
     header: generateReactQueryHeader,
-    imports: generateReactQueryImports,
+    dependencies: getReactQueryDependencies,
     footer: generateReactQueryFooter,
     title: generateReactQueryTitle,
   },
 };
-export const generateClientImports = ({
+export const generateClientImports = (
   client = DEFAULT_CLIENT,
-  override,
-}: OutputOptions = {}): GeneratorClientExtra => {
-  return {
-    implementation: GENERATOR_CLIENT[client].imports(!!override?.mutator),
-    implementationMSW: `import { rest } from 'msw'
-    import faker from 'faker'\n`,
-  };
-};
+  implementation: string,
+  imports: {
+    exports: string[];
+    dependency: string;
+  }[],
+): string =>
+  generateDependencyImports(implementation, [
+    ...GENERATOR_CLIENT[client].dependencies(),
+    ...imports,
+  ]);
 
 export const generateClientHeader = (
   outputClient: OutputClient = DEFAULT_CLIENT,
