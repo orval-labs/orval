@@ -1,3 +1,4 @@
+import { omitBy } from 'lodash';
 import { OperationOptions, Verbs } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
@@ -125,7 +126,18 @@ const generateQueryImplementation = ({
           !config?.hasOwnProperty('enabled')
             ? `enabled: ${params.map(({ name }) => name).join(' && ')},`
             : ''
-        }${config ? ` ${stringify(config)?.slice(1, -1)}` : ''} ...queryConfig}`
+        }${
+          config
+            ? ` ${stringify(
+                omitBy(config, (_, key) => {
+                  if (type !== QueryType.INFINITE && key === 'getFetchMore') {
+                    return true;
+                  }
+                  return false;
+                }),
+              )?.slice(1, -1)}`
+            : ''
+        } ...queryConfig}`
       : 'queryConfig'
   } )
 
