@@ -4,18 +4,19 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { AxiosInstance } from 'axios';
+import axios from 'axios';
 import faker from 'faker';
 import { rest } from 'msw';
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
-import listPetsMutator from './../../api/mutator/response-type';
+import listPetsMutator from '../mutator/response-type';
 
-export const getSwaggerPetstore = (axios: AxiosInstance) => ({
+export const getSwaggerPetstore = () => ({
   listPets(params?: ListPetsParams, version: number = 1) {
-    return listPetsMutator<Pets>(
-      { url: `/v${version}/pets`, method: 'get', params },
-      axios,
-    );
+    return listPetsMutator<Pets>({
+      url: `/v${version}/pets`,
+      method: 'get',
+      params,
+    });
   },
   createPets(createPetsBody: CreatePetsBody, version: number = 1) {
     return axios.post<unknown>(`/v${version}/pets`, createPetsBody);

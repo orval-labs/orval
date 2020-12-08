@@ -4,7 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { AxiosInstance } from 'axios';
+import axios from 'axios';
 export interface Pet {
   id: number;
   name: string;
@@ -25,7 +25,7 @@ export type CreatePetsBody = {
   tag: string;
 };
 
-export const getSwaggerPetstore = (axios: AxiosInstance) => ({
+export const getSwaggerPetstore = () => ({
   listPets(params?: ListPetsParams) {
     return axios.get<Pets>(`/pets`, {
       params,

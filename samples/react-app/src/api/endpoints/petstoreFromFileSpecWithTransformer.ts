@@ -6,6 +6,7 @@
  */
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
 import { customInstance } from '../mutator/custom-instance';
+
 export const getSwaggerPetstore = () => ({
   listPets(params?: ListPetsParams, version: number = 1) {
     return customInstance<Pets>({

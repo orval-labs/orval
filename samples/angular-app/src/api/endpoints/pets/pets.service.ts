@@ -7,7 +7,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../../model';
-import listPetsMutator from './../../../../src/api/mutator/response-type';
+import listPetsMutator from '../../mutator/response-type';
 
 @Injectable()
 export class PetsService {
