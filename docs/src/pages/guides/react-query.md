@@ -31,28 +31,130 @@ The react query model will generate an implementation file with one custom hook 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
-const useListPets = (
-  params?: ListPetsParams,
+export const showPetById = (petId: string, version: number = 1) => {
+  return axios.get<Pet>(`/v${version}/pets/${petId}`);
+};
+
+export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => [
+  `/v${version}/pets/${petId}`,
+];
+
+export const useShowPetById = <Error = unknown>(
+  petId: string,
   version: number = 1,
-  queryConfig?: QueryConfig<AxiosResponse<Pets>, AxiosError>,
+  queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>,
 ) => {
-  return useQuery<AxiosResponse<Pets>, AxiosError>(
-    [
-      `/v${version}/pets`,
-      {
-        params,
-      },
-    ],
-    (path: string, options: Partial<AxiosRequestConfig>) =>
-      axios.get<Pets>(path, options),
-    { enabled: version, ...queryConfig },
+  const queryKey = getShowPetByIdQueryKey(petId, version);
+
+  const query = useQuery<AsyncReturnType<typeof showPetById>, Error>(
+    queryKey,
+    () => showPetById(petId, version),
+    { enabled: version && petId, ...queryConfig },
   );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
+
+### How use other query
+
+With the following example orval will generate a useQuery, usePaginatedQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the config props.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        query: {
+          useQuery: true,
+          usePaginated: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          config: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+If needed you can also override directly to an operation or a tag
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              ...
+            },
+          }
+        },
+      },
+    }
+    ...
+  },
 };
 ```
 
 ### How to set a backend url
 
-You should add an interceptor to axios to set automatically your url like this
+#### Mutator
+
+You can add a mutator function to your config and setup a custom instance of your prefered HTTP client.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    }
+    ...
+  },
+};
+```
+
+```ts
+// custom-instance.ts
+
+import Axios, { AxiosRequestConfig } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  const source = Axios.CancelToken.source();
+  const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
+    ({ data }) => data,
+  );
+
+  // @ts-ignore
+  promise.cancel = () => {
+    source.cancel('Query was cancelled by React Query');
+  };
+
+  return promise;
+};
+```
+
+#### Alternative
+
+You can add an interceptor to set automatically your url
 
 ```js
 axios.interceptors.request.use((config) => {

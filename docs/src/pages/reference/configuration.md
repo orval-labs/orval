@@ -351,29 +351,126 @@ module.exports = {
 
 #### override.mutator
 
-Type: `String` or `Function`.
+Type: `String` or `Object`.
 
-Valid values: path or implementation of the mutator function.
+Valid values: path of the mutator function or object with a path and name.
 
-This function is executed for each call when this one is executed. It takes all the options passed to the verb as an argument and should return an array with those arguments in the same order.
+If you provide an object you can also add a default property to use an export default function.
+
+This function is executed for each call when this one is executed. It takes all the options passed to the verb as an argument and should return a promise with your custom implementation or prefered HTTP client.
 
 Possible arguments:
 
-- The first argument will be the route.
-- The second will be the body if there is one.
-- And the last a client option (example: <a href="https://github.com/axios/axios/blob/master/index.d.ts#L44" target="_blank">AxiosRequestConfig</a>).
+- The first argument will be an object with the following type.
+
+```ts
+// based on AxiosRequestConfig
+interface RequestConfig {
+  method: 'get' | 'put' | 'patch' | 'post' | 'delete';
+  url: string;
+  params?: any;
+  data?: any;
+  responseType?: string;
+}
+```
+
+- The second is only provided for the angular client and give an instance of HttpClient
+
+Example:
 
 ```js
 module.exports = {
   input: {
     override: {
-      mutator: './api/mutator/response-type.js',
+      mutator: {
+        path: './api/mutator/custom-instance.ts',
+        name: 'customInstance',
+        // default: true
+      },
     },
   },
 };
 ```
 
-Example <a href="https://github.com/anymaniax/orval/blob/master/samples/basic/api/mutator/response-type.js" target="_blank">here</a>
+```ts
+// custom-instance.ts
+
+import Axios, { AxiosRequestConfig } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  const source = Axios.CancelToken.source();
+  const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
+    ({ data }) => data,
+  );
+
+  // @ts-ignore
+  promise.cancel = () => {
+    source.cancel('Query was cancelled by React Query');
+  };
+
+  return promise;
+};
+```
+
+#### override.query
+
+Type: `Object`.
+
+Give you the possibility to override the generated <a href="https://react-query.tanstack.com/" target="_blank">query</a>
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        query: {
+          useQuery: true,
+          usePaginated: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          config: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+#### override.query.useQuery
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://react-query.tanstack.com/docs/api#usequery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
+
+#### override.query.usePaginated
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://react-query.tanstack.com/docs/api#usepaginatedquery" target="_blank">usePaginatedQuery</a> custom hook.
+
+#### override.query.useInfinite
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://react-query.tanstack.com/docs/api#useinfinitequery" target="_blank">useInfiniteQuery</a> custom hook.
+
+#### override.query.useInfiniteQueryParam
+
+Type: `String`.
+
+Use to automatically add to the request the query param provided by the useInfiniteQuery when you use `getFetchMore` function.
+
+#### override.query.config
+
+Type: `Object`.
+
+Use to override the query config. Check available options <a href="https://react-query.tanstack.com/docs/api#usequery" target="_blank">here</a>
 
 #### override.mock
 
@@ -381,7 +478,7 @@ Type: `Object`.
 
 Give you the possibility to override the generated mock
 
-##### override.mock.properties
+#### override.mock.properties
 
 Type: `Object` or `Function`.
 
@@ -410,7 +507,7 @@ Give you the possibility to override the generated mock by <a href="https://swag
 
 Each key of the object should be an operationId and take as value an object.
 
-The value object can take the same properties as the override property (mutator,transformer,mock).
+The value object can take the same properties as the override property (mutator,query,transformer,mock).
 
 The mock options have one more possibility the data property. Which can take a function or the value directly. The function will be executed at runtime.
 
@@ -444,6 +541,12 @@ module.exports = {
   },
 };
 ```
+
+#### override.tags
+
+Type: `Object`.
+
+Exactly the same as the `override.operations` but this time you can do it by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
 
 ## Full example
 

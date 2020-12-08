@@ -40,7 +40,7 @@ const Home = () => {
                     <span>with appropriate type-signatures</span>
                   </h1>
                   <p className="mt-3 text-base text-gray-700 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                    Generate, valid and mock in your React and Angular
+                    Generate, valid, cache and mock in your React and Angular
                     applications all with your OpenAPI specification.
                   </p>
 
