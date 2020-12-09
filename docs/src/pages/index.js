@@ -93,7 +93,7 @@ const Home = () => {
                       Get your contract ! With the combination of orval and
                       openapi, you have a strong standard for your team which
                       avoid any problem of missunderstanding and give you the
-                      possibility to focus on your ui
+                      possibility to focus on your ui.
                     </p>
                   </div>
                 </div>
