@@ -6,12 +6,12 @@
     "commitMessage": "chore(release): ${version}"
   },
   "github": {
-    "release": true
+    "release": true,
+    "draft": true
   },
   "plugins": {
     "@release-it/conventional-changelog": {
-      "preset": "angular",
-      "infile": "CHANGELOG.md"
+      "preset": "angular"
     }
   }
 }
