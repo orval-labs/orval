@@ -12,6 +12,10 @@ module.exports = {
       client: 'react-query',
       mock: true,
       override: {
+        mutator: {
+          path: './src/api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
         operations: {
           listPets: {
             mock: {

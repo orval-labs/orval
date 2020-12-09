@@ -4,7 +4,6 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios from 'axios';
 import {
   InfiniteQueryConfig,
   MutationConfig,
@@ -16,6 +15,7 @@ import {
   useQuery,
 } from 'react-query';
 import { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
+import { customInstance } from '../mutator/custom-instance';
 
 type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
   ...args: any
@@ -24,7 +24,9 @@ type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
   : any;
 
 export const listPets = (params?: ListPetsParams, version: number = 1) => {
-  return axios.get<Pets>(`/v${version}/pets`, {
+  return customInstance<Pets>({
+    url: `/v${version}/pets`,
+    method: 'get',
     params,
   });
 };
@@ -93,7 +95,11 @@ export const createPets = (
   createPetsBody: CreatePetsBody,
   version: number = 1,
 ) => {
-  return axios.post<unknown>(`/v${version}/pets`, createPetsBody);
+  return customInstance<unknown>({
+    url: `/v${version}/pets`,
+    method: 'post',
+    data: createPetsBody,
+  });
 };
 
 export const useCreatePets = <Error = unknown>(
@@ -114,7 +120,10 @@ export const useCreatePets = <Error = unknown>(
   }, mutationConfig);
 };
 export const showPetById = (petId: string, version: number = 1) => {
-  return axios.get<Pet>(`/v${version}/pets/${petId}`);
+  return customInstance<Pet>({
+    url: `/v${version}/pets/${petId}`,
+    method: 'get',
+  });
 };
 
 export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => [
