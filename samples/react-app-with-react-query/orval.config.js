@@ -12,10 +12,6 @@ module.exports = {
       client: 'react-query',
       mock: true,
       override: {
-        mutator: {
-          path: 'src/api/mutator/custom-instance.ts',
-          name: 'customInstance',
-        },
         operations: {
           listPets: {
             mock: {
@@ -50,7 +46,7 @@ module.exports = {
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.js',
+        transformer: './src/api/transformer/add-version.js',
       },
     },
   },
