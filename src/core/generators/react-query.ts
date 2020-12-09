@@ -10,7 +10,7 @@ import { generateAxiosConfig, generateOptions } from './options';
 
 const REACT_QUERY_DEPENDENCIES = [
   {
-    exports: ['axios'],
+    exports: 'axios',
     dependency: 'axios',
   },
   {
