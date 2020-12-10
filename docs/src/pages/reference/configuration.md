@@ -84,7 +84,7 @@ Type: `Object`.
 
 Give you the possibility to override the specification
 
-#### override.transformer
+#### transformer
 
 Type: `String` or `Function`.
 
@@ -331,7 +331,7 @@ Type: `Object`.
 
 Give you the possibility to override the output like your mock implementation or transform the API implementation like you want
 
-#### override.transformer
+#### transformer
 
 Type: `String` or `Function`.
 
@@ -349,7 +349,7 @@ module.exports = {
 };
 ```
 
-#### override.mutator
+#### mutator
 
 Type: `String` or `Object`.
 
@@ -414,7 +414,7 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 };
 ```
 
-#### override.query
+#### query
 
 Type: `Object`.
 
@@ -442,43 +442,43 @@ module.exports = {
 };
 ```
 
-#### override.query.useQuery
+#### useQuery
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://react-query.tanstack.com/docs/api#usequery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
 
-#### override.query.usePaginated
+#### usePaginated
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://react-query.tanstack.com/docs/api#usepaginatedquery" target="_blank">usePaginatedQuery</a> custom hook.
 
-#### override.query.useInfinite
+#### useInfinite
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://react-query.tanstack.com/docs/api#useinfinitequery" target="_blank">useInfiniteQuery</a> custom hook.
 
-#### override.query.useInfiniteQueryParam
+#### useInfiniteQueryParam
 
 Type: `String`.
 
 Use to automatically add to the request the query param provided by the useInfiniteQuery when you use `getFetchMore` function.
 
-#### override.query.config
+#### config
 
 Type: `Object`.
 
 Use to override the query config. Check available options <a href="https://react-query.tanstack.com/docs/api#usequery" target="_blank">here</a>
 
-#### override.mock
+#### mock
 
 Type: `Object`.
 
 Give you the possibility to override the generated mock
 
-#### override.mock.properties
+#### properties
 
 Type: `Object` or `Function`.
 
@@ -499,7 +499,34 @@ module.exports = {
 };
 ```
 
-#### override.operations
+#### format
+
+Type: `Object`.
+
+Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property orval will automatically generate a random email for you. See <a href="https://github.com/anymaniax/orval/blob/next/src/constants/format.mock.ts" target="_blank">here</a> the default available format.
+
+```js
+module.exports = {
+  input: {
+    override: {
+      mock: {
+        format: {
+          email: () => faker.internet.email(),
+          iban: () => faker.finance.iban(),
+        },
+      },
+    },
+  },
+};
+```
+
+#### required
+
+Type: `Boolean`.
+
+Give you the possibility to set every property required.
+
+#### operations
 
 Type: `Object`.
 
@@ -542,7 +569,7 @@ module.exports = {
 };
 ```
 
-#### override.tags
+#### tags
 
 Type: `Object`.
 

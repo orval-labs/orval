@@ -25,7 +25,7 @@ function getHeaderDataFromAnchors(el) {
 }
 
 export const Toc = ({ title }) => {
-  const headings = useTocHighlight(
+  const { headings, active } = useTocHighlight(
     styles.contents__link,
     styles['contents__link--active'],
     TOP_OFFSET,
@@ -50,7 +50,7 @@ export const Toc = ({ title }) => {
               className={cx('text-sm ', {
                 'pl-2': h?.depth === 3,
                 'pl-4': h?.depth === 4,
-                hidden: h.depth && h.depth > 4,
+                hidden: h.depth && h.depth > (active?.url === h.url ? 4 : 3),
               })}
             >
               <a className={styles.contents__link} href={h.url}>
