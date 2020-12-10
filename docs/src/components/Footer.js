@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import * as React from 'react';
+import { siteConfig } from '../siteConfig';
 export const Footer = (props) => {
   return (
     <div className="bg-gray-50 border-t border-gray-200">
@@ -20,14 +21,14 @@ export const Footer = (props) => {
                     </Link>
                   </li>
                   <li className="mt-4">
-                    <Link href="/examples/simple">
+                    <Link href={`${siteConfig.repoUrl}/tree/master/samples`}>
                       <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
                         Examples
                       </a>
                     </Link>
                   </li>
                   <li className="mt-4">
-                    <Link href="/api/useQuery">
+                    <Link href="/reference/configuration">
                       <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
                         API Reference
                       </a>
