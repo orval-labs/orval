@@ -61,7 +61,8 @@ export const getMockObject = ({
           return undefined;
         }
 
-        const isRequired = (item.required || []).includes(key);
+        const isRequired =
+          mockOptions?.required || (item.required || []).includes(key);
 
         if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
           return undefined;

@@ -21,6 +21,7 @@ const getMockWithoutFunc = (
   specs: OpenAPIObject,
   override?: OverrideOutput,
 ): MockOptions => ({
+  required: override?.mock?.required,
   ...(override?.mock?.properties
     ? {
         properties: getMockPropertiesWithoutFunc(

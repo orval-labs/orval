@@ -38,6 +38,7 @@ export const OutputMode = {
 };
 
 export type MockOptions = {
+  required?: boolean;
   properties?: Record<string, string>;
   operations?: Record<string, { properties: Record<string, string> }>;
   format?: Record<string, string>;
@@ -73,6 +74,7 @@ export type OverrideOutput = {
   mock?: {
     properties?: MockProperties;
     format?: { [key: string]: unknown };
+    required?: boolean;
   };
   query?: QueryOptions;
 };
