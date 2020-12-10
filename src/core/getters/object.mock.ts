@@ -37,7 +37,7 @@ export const getMockObject = ({
   }
 
   if (item.allOf || item.oneOf || item.anyOf) {
-    combineSchemasMock({
+    return combineSchemasMock({
       item,
       items: (item.allOf || item.oneOf || item.anyOf) as (
         | SchemaObject
