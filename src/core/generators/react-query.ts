@@ -16,13 +16,11 @@ const REACT_QUERY_DEPENDENCIES = [
   {
     exports: [
       'useQuery',
-      'usePaginatedQuery',
       'useInfiniteQuery',
       'useMutation',
-      'QueryConfig',
-      'PaginatedQueryConfig',
-      'InfiniteQueryConfig',
-      'MutationConfig',
+      'UseQueryOptions',
+      'UseInfiniteQueryOptions',
+      'UseMutationOptions',
     ],
     dependency: 'react-query',
   },
@@ -71,13 +69,14 @@ const generateAxiosFunction = (
 `;
 };
 
-type QueryType = 'paginatedQuery' | 'infiniteQuery' | 'query';
+type QueryType = 'infiniteQuery' | 'query';
 
 const QueryType = {
-  PAGINATED: 'paginatedQuery' as QueryType,
   INFINITE: 'infiniteQuery' as QueryType,
   QUERY: 'query' as QueryType,
 };
+
+const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
 
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, config, type },
@@ -103,20 +102,24 @@ const generateQueryImplementation = ({
 }) => {
   return `export const ${camel(
     `use-${name}`,
-  )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: ${pascal(
+  )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: Use${pascal(
     type,
-  )}Config<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
+  )}Options<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
   const queryKey = ${queryKeyFnName}(${properties});
 
   const query = ${camel(
     `use-${type}`,
   )}<AsyncReturnType<typeof ${definitionName}>, Error>(queryKey, (${
-    queryParam && props.length ? `_, ${queryParam}` : ''
+    queryParam && props.some(({ type }) => type === 'queryParam')
+      ? `{ pageParam }`
+      : ''
   }) => ${definitionName}(${
     queryParam
       ? props
           .map(({ name }) =>
-            name === 'params' ? `{${queryParam},...params}` : name,
+            name === 'params'
+              ? `{ ${queryParam}: pageParam, ...params }`
+              : name,
           )
           .join(',')
       : properties
@@ -124,13 +127,16 @@ const generateQueryImplementation = ({
     params.length
       ? `{${
           !config?.hasOwnProperty('enabled')
-            ? `enabled: ${params.map(({ name }) => name).join(' && ')},`
+            ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
             : ''
         }${
           config
             ? ` ${stringify(
                 omitBy(config, (_, key) => {
-                  if (type !== QueryType.INFINITE && key === 'getFetchMore') {
+                  if (
+                    type !== QueryType.INFINITE &&
+                    INFINITE_QUERY_PROPERTIES.includes(key)
+                  ) {
                     return true;
                   }
                   return false;
@@ -178,15 +184,6 @@ const generateReactQueryImplementation = (
       overrideOperation?.query || overrideTag?.query || override.query;
 
     const queries = [
-      ...(query?.usePaginated
-        ? [
-            {
-              name: camel(`${definitionName}-paginated`),
-              config: query?.config,
-              type: QueryType.PAGINATED,
-            },
-          ]
-        : []),
       ...(query?.useInfinite
         ? [
             {
@@ -197,8 +194,7 @@ const generateReactQueryImplementation = (
             },
           ]
         : []),
-      ...((!query?.useQuery && !query?.usePaginated && !query?.useInfinite) ||
-      query?.useQuery
+      ...((!query?.useQuery && !query?.useInfinite) || query?.useQuery
         ? [
             {
               name: definitionName,
@@ -241,7 +237,7 @@ const generateReactQueryImplementation = (
 
   return `export const ${camel(
     `use-${definitionName}`,
-  )} = <Error = unknown>(\n    mutationConfig?: MutationConfig<AsyncReturnType<typeof ${definitionName}>, Error${
+  )} = <Error = unknown>(\n    mutationConfig?: UseMutationOptions<AsyncReturnType<typeof ${definitionName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>\n  ) => {
   return useMutation<AsyncReturnType<typeof ${definitionName}>, Error${
