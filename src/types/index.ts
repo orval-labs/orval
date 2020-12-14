@@ -81,7 +81,6 @@ export type OverrideOutput = {
 
 type QueryOptions = {
   useQuery?: boolean;
-  usePaginated?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   config?: object;

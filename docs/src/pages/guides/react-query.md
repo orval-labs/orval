@@ -42,14 +42,14 @@ export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => [
 export const useShowPetById = <Error = unknown>(
   petId: string,
   version: number = 1,
-  queryConfig?: QueryConfig<AsyncReturnType<typeof showPetById>, Error>,
+  queryConfig?: UseQueryOptions<AsyncReturnType<typeof showPetById>, Error>,
 ) => {
   const queryKey = getShowPetByIdQueryKey(petId, version);
 
   const query = useQuery<AsyncReturnType<typeof showPetById>, Error>(
     queryKey,
     () => showPetById(petId, version),
-    { enabled: version && petId, ...queryConfig },
+    { enabled: !!(version && petId), ...queryConfig },
   );
 
   return {
@@ -61,7 +61,7 @@ export const useShowPetById = <Error = unknown>(
 
 ### How use other query
 
-With the following example orval will generate a useQuery, usePaginatedQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the config props.
+With the following example orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the config props.
 
 ```js
 module.exports = {
@@ -71,7 +71,6 @@ module.exports = {
       override: {
         query: {
           useQuery: true,
-          usePaginated: true,
           useInfinite: true,
           useInfiniteQueryParam: 'nextId',
           config: {

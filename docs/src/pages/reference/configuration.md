@@ -428,7 +428,6 @@ module.exports = {
       override: {
         query: {
           useQuery: true,
-          usePaginated: true,
           useInfinite: true,
           useInfiniteQueryParam: 'nextId',
           config: {
@@ -446,19 +445,13 @@ module.exports = {
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://react-query.tanstack.com/docs/api#usequery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
-
-#### usePaginated
-
-Type: `Boolean`.
-
-Use to generate a <a href="https://react-query.tanstack.com/docs/api#usepaginatedquery" target="_blank">usePaginatedQuery</a> custom hook.
+Use to generate a <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
 
 #### useInfinite
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://react-query.tanstack.com/docs/api#useinfinitequery" target="_blank">useInfiniteQuery</a> custom hook.
+Use to generate a <a href="https://react-query.tanstack.com/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
 
 #### useInfiniteQueryParam
 
@@ -470,7 +463,7 @@ Use to automatically add to the request the query param provided by the useInfin
 
 Type: `Object`.
 
-Use to override the query config. Check available options <a href="https://react-query.tanstack.com/docs/api#usequery" target="_blank">here</a>
+Use to override the query config. Check available options <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">here</a>
 
 #### mock
 
