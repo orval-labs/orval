@@ -41,7 +41,6 @@ module.exports = {
         },
         query: {
           useQuery: true,
-          usePaginated: true,
           useInfinite: true,
           useInfiniteQueryParam: 'limit',
         },

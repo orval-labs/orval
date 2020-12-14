@@ -20,7 +20,7 @@ module.exports = {
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.random.number({ min: 1, max: 99999 }),
+                  '[].id': () => faker.random.number({ min: 1, max: 99999 }),
                 };
               },
             },
