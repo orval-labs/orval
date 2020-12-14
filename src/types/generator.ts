@@ -26,15 +26,19 @@ export type GeneratorOperations = {
 
 export type GeneratorTarget = {
   imports: string[];
-  importsMocks: string[];
-  definition: string;
   implementation: string;
-  implementationMocks: string;
   implementationMSW: string;
+  importsMSW: string[];
+  mutators?: GeneratorMutator[];
 };
 
-export type GeneratorOperation = GeneratorTarget & {
+export type GeneratorOperation = {
+  imports: string[];
+  implementation: string;
+  implementationMSW: string;
+  importsMSW: string[];
   tags: string[];
+  mutator?: GeneratorMutator;
 };
 
 export type GeneratorVerbOptions = {
@@ -50,7 +54,7 @@ export type GeneratorVerbOptions = {
   queryParams?: GetterQueryParam;
   params: GetterParams;
   props: GetterProps;
-  mutator: string;
+  mutator?: GeneratorMutator;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -63,14 +67,17 @@ export type GeneratorOptions = {
 };
 
 export type GeneratorClient = {
-  definition: string;
   implementation: string;
   imports: string[];
 };
 
 export type GeneratorClientExtra = {
-  definition: string;
   implementation: string;
-  implementationMock: string;
   implementationMSW: string;
+};
+
+export type GeneratorMutator = {
+  name: string;
+  path: string;
+  default: boolean;
 };

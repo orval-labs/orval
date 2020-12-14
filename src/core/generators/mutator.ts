@@ -1,34 +1,33 @@
 import { Mutator } from '../../types';
 import { GetterBody } from '../../types/getters';
-import { dynamicImport } from '../../utils/imports';
+import { getFileInfo } from '../../utils/file';
+import { isString } from '../../utils/is';
+import { resolvePath } from '../resolvers/path';
+
+const getImport = (output: string, mutator: Mutator) => {
+  const { pathWithoutExtension } = getFileInfo(
+    resolvePath(output, isString(mutator) ? mutator : mutator.path),
+  );
+  return pathWithoutExtension;
+};
 
 export const generateMutator = ({
-  workspace,
+  output,
   body,
   mutator,
+  name,
 }: {
-  workspace: string;
+  output?: string;
   body: GetterBody;
   mutator?: Mutator;
+  name: string;
 }) => {
-  if (!mutator) {
-    return '';
+  if (!mutator || !output) {
+    return;
   }
+  const isDefault = isString(mutator) ? true : mutator.default || false;
+  const importName = isString(mutator) ? `${name}Mutator` : mutator.name;
+  const path = getImport(output, mutator);
 
-  const type = `(url: string,${
-    body.definition
-      ? ` data: ${body.isBlob ? `FormData` : body.definition}, `
-      : ''
-  } config?: object) => [string, ${
-    body.definition
-      ? `${body.isBlob ? `FormData` : body.definition} | undefined, `
-      : ''
-  } object | undefined]`;
-
-  const mutatorFn = dynamicImport(mutator, workspace);
-
-  return `
-    type Mutator = ${type}
-
-    const mutator: Mutator = ${mutatorFn}\n`;
+  return { name: importName, path, default: isDefault };
 };

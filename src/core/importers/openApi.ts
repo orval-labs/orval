@@ -60,7 +60,7 @@ export const importOpenApi = async ({
   let specs = await importSpecs(data, format);
 
   if (input?.override?.transformer) {
-    const transformerFn = dynamicImport(input.override.transformer);
+    const transformerFn = dynamicImport(input.override.transformer, workspace);
     specs = transformerFn(specs);
   }
 
@@ -76,7 +76,7 @@ export const importOpenApi = async ({
     specs.components?.responses,
   );
 
-  const api = generateApi(workspace, specs, output?.override, output?.client);
+  const api = generateApi(workspace, specs, output);
 
   const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
 

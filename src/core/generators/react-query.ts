@@ -1,17 +1,32 @@
-import { Verbs } from '../../types';
+import { omitBy } from 'lodash';
+import { OperationOptions, Verbs } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
-import { GetterPropType } from '../../types/getters';
-import { camel } from '../../utils/case';
-import { toObjectString } from '../../utils/string';
+import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
+import { camel, pascal } from '../../utils/case';
+import { mergeDeep } from '../../utils/mergeDeep';
+import { stringify, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
-import { generateOptions } from './options';
+import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateReactQueryImports = () => ({
-  definition: ``,
-  implementation: `import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosPromise } from 'axios';
-import { useQuery, useMutation, QueryConfig, MutationConfig } from 'react-query';\n`,
-  implementationMock: '',
-});
+const REACT_QUERY_DEPENDENCIES = [
+  {
+    exports: 'axios',
+    dependency: 'axios',
+  },
+  {
+    exports: [
+      'useQuery',
+      'useInfiniteQuery',
+      'useMutation',
+      'UseQueryOptions',
+      'UseInfiniteQueryOptions',
+      'UseMutationOptions',
+    ],
+    dependency: 'react-query',
+  },
+];
+
+export const getReactQueryDependencies = () => REACT_QUERY_DEPENDENCIES;
 
 const generateAxiosFunction = (
   {
@@ -25,6 +40,14 @@ const generateAxiosFunction = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const axiosConfig = generateAxiosConfig({
+    route,
+    body,
+    queryParams,
+    response,
+    verb,
+  });
+
   const options = generateOptions({
     route,
     body,
@@ -36,52 +59,173 @@ const generateAxiosFunction = (
   return `export const ${definitionName} = (\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ): AxiosPromise<${
-    response.definition
-  }> => {${mutator}${generateFormData(body)}
-    return axios.${verb}(${mutator ? `...mutator(${options})` : options});
+  )}\n  ) => {${generateFormData(body)}
+    return ${
+      mutator
+        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
+        : `axios.${verb}<${response.definition}>(${options})`
+    };
   }
 `;
+};
+
+type QueryType = 'infiniteQuery' | 'query';
+
+const QueryType = {
+  INFINITE: 'infiniteQuery' as QueryType,
+  QUERY: 'query' as QueryType,
+};
+
+const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
+
+const generateQueryImplementation = ({
+  queryOption: { name, queryParam, config, type },
+  definitionName,
+  queryProps,
+  queryKeyFnName,
+  properties,
+  params,
+  props,
+}: {
+  queryOption: {
+    name: string;
+    config?: object;
+    type: QueryType;
+    queryParam?: string;
+  };
+  definitionName: string;
+  queryProps: string;
+  queryKeyFnName: string;
+  properties: string;
+  params: GetterParams;
+  props: GetterProps;
+}) => {
+  return `export const ${camel(
+    `use-${name}`,
+  )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: Use${pascal(
+    type,
+  )}Options<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
+  const queryKey = ${queryKeyFnName}(${properties});
+
+  const query = ${camel(
+    `use-${type}`,
+  )}<AsyncReturnType<typeof ${definitionName}>, Error>(queryKey, (${
+    queryParam && props.some(({ type }) => type === 'queryParam')
+      ? `{ pageParam }`
+      : ''
+  }) => ${definitionName}(${
+    queryParam
+      ? props
+          .map(({ name }) =>
+            name === 'params'
+              ? `{ ${queryParam}: pageParam, ...params }`
+              : name,
+          )
+          .join(',')
+      : properties
+  }), ${
+    params.length
+      ? `{${
+          !config?.hasOwnProperty('enabled')
+            ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
+            : ''
+        }${
+          config
+            ? ` ${stringify(
+                omitBy(config, (_, key) => {
+                  if (
+                    type !== QueryType.INFINITE &&
+                    INFINITE_QUERY_PROPERTIES.includes(key)
+                  ) {
+                    return true;
+                  }
+                  return false;
+                }),
+              )?.slice(1, -1)}`
+            : ''
+        } ...queryConfig}`
+      : 'queryConfig'
+  } )
+
+  return {
+    queryKey,
+    ...query
+  }
+}\n`;
 };
 
 const generateReactQueryImplementation = (
   {
     queryParams,
     definitionName,
-    response,
-    mutator,
     body,
     props,
     verb,
     params,
+    operationId,
+    tags,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, override = {} }: GeneratorOptions,
 ) => {
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
   if (verb === Verbs.GET) {
-    return `export const ${camel(
-      `use-${definitionName}`,
-    )} = (\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n queryConfig?: QueryConfig<AxiosResponse<${
-      response.definition
-    }>, AxiosError>\n  ) => {
-    return useQuery<AxiosResponse<${
-      response.definition
-    }>, AxiosError>([\`${route}\`${
-      queryParams ? ', params' : ''
-    }], () => ${definitionName}(${properties}), ${
-      params.length
-        ? `{enabled: ${params
-            .map(({ name }) => name)
-            .join(' && ')}, ...queryConfig}`
-        : 'queryConfig'
-    } )
-  }
+    const overrideOperation = override.operations?.[operationId!];
+    const overrideTag = Object.entries(override.tags || {}).reduce<
+      OperationOptions | undefined
+    >(
+      (acc, [tag, options]) =>
+        tags.includes(tag) ? mergeDeep(acc, options) : acc,
+      undefined,
+    );
+    const query =
+      overrideOperation?.query || overrideTag?.query || override.query;
+
+    const queries = [
+      ...(query?.useInfinite
+        ? [
+            {
+              name: camel(`${definitionName}-infinite`),
+              config: query?.config,
+              type: QueryType.INFINITE,
+              queryParam: query?.useInfiniteQueryParam,
+            },
+          ]
+        : []),
+      ...((!query?.useQuery && !query?.useInfinite) || query?.useQuery
+        ? [
+            {
+              name: definitionName,
+              config: query?.config,
+              type: QueryType.QUERY,
+            },
+          ]
+        : []),
+    ];
+
+    const queryKeyFnName = camel(`get-${definitionName}-queryKey`);
+    const queryProps = toObjectString(props, 'implementation');
+
+    return `export const ${queryKeyFnName} = (${queryProps}) => [\`${route}\`${
+      queryParams ? ', ...(params ? [params]: [])' : ''
+    }]
+
+    ${queries.reduce(
+      (acc, queryOption) =>
+        acc +
+        generateQueryImplementation({
+          queryOption,
+          definitionName,
+          queryProps,
+          queryKeyFnName,
+          properties,
+          params,
+          props,
+        }),
+      '',
+    )}
 `;
   }
 
@@ -93,10 +237,10 @@ const generateReactQueryImplementation = (
 
   return `export const ${camel(
     `use-${definitionName}`,
-  )} = (\n    mutationConfig?: MutationConfig<AxiosResponse<${
-    response.definition
-  }>, AxiosError${definitions ? `, {${definitions}}` : ''}>\n  ) => {
-  return useMutation<AxiosResponse<${response.definition}>, AxiosError${
+  )} = <Error = unknown>(\n    mutationConfig?: UseMutationOptions<AsyncReturnType<typeof ${definitionName}>, Error${
+    definitions ? `, {${definitions}}` : ''
+  }>\n  ) => {
+  return useMutation<AsyncReturnType<typeof ${definitionName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>((${properties ? 'props' : ''}) => {
     ${properties ? `const {${properties}} = props || {}` : ''};
@@ -117,33 +261,13 @@ const generateImports = ({
   ...(queryParams ? [queryParams.schema.name] : []),
 ];
 
-export const generateReactQueryTitle = (title: string) => {
-  return {
-    definition: ``,
-    implementation: ``,
-    implementationMock: ``,
-  };
-};
+export const generateReactQueryTitle = () => '';
 
-export const generateReactQueryHeader = (title: {
-  definition: string;
-  implementation: string;
-  implementationMock: string;
-}) => {
-  return {
-    definition: ``,
-    implementation: ``,
-    implementationMock: ``,
-  };
-};
+export const generateReactQueryHeader = () => `type AsyncReturnType<
+T extends (...args: any) => Promise<any>
+> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n`;
 
-export const generateReactQueryFooter = () => {
-  return {
-    definition: '',
-    implementation: '',
-    implementationMock: '',
-  };
-};
+export const generateReactQueryFooter = () => '';
 
 export const generateReactQuery = (
   verbOptions: GeneratorVerbOptions,
@@ -157,7 +281,6 @@ export const generateReactQuery = (
   );
 
   return {
-    definition: '',
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports,
   };

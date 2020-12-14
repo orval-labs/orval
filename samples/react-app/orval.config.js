@@ -9,15 +9,18 @@ module.exports = {
       mode: 'split',
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
-      mock: 'old-version',
+      mock: true,
       override: {
+        mutator: {
+          path: 'src/api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.js',
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.random.number({ min: 1, max: 99999 }),
+                  '[].id': () => faker.random.number({ min: 1, max: 99999 }),
                 };
               },
             },

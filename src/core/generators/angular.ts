@@ -4,57 +4,40 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { toObjectString } from '../../utils/string';
+import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
-import { generateOptions } from './options';
+import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateAngularImports = () => ({
-  definition: `import { Observable } from 'rxjs';\n`,
-  implementation: `import { HttpClient } from '@angular/common/http';
-  import { Injectable } from '@angular/core';
-  import { Observable } from 'rxjs';\n`,
-  implementationMock: `import { HttpClient } from '@angular/common/http';
-  import { Injectable } from '@angular/core';
-  import { of, Observable } from 'rxjs';
-  import { delay } from 'rxjs/operators';
-  import faker from 'faker';\n`,
-});
+const ANGULAR_DEPENDENCIES = [
+  {
+    exports: ['HttpClient'],
+    dependency: '@angular/common/http',
+  },
+  {
+    exports: ['Injectable'],
+    dependency: '@angular/core',
+  },
+  {
+    exports: ['Observable'],
+    dependency: 'rxjs',
+  },
+];
+
+export const getAngularDependencies = () => ANGULAR_DEPENDENCIES;
 
 export const generateAngularTitle = (title: string) => {
-  return {
-    definition: `I${pascal(title)}Service`,
-    implementation: `${pascal(title)}Service`,
-    implementationMock: `${pascal(title)}MockService`,
-  };
+  const sanTitle = sanitize(title);
+  return `${pascal(sanTitle)}Service`;
 };
 
-export const generateAngularHeader = (titles: {
-  definition: string;
-  implementation: string;
-  implementationMock: string;
-}) => {
-  return {
-    definition: `
-  export abstract class ${titles.definition} {`,
-    implementation: `
-  @Injectable()
-  export class ${titles.implementation} implements ${titles.definition} {
-    constructor(
-      private http: HttpClient,
-    ) {}`,
-    implementationMock: `
-  @Injectable()
-  export class ${titles.implementationMock} extends ${titles.definition} {`,
-  };
-};
+export const generateAngularHeader = (title: string) => `
+@Injectable()
+export class ${title} {
+  constructor(
+    private http: HttpClient,
+  ) {}`;
 
-export const generateAngularFooter = () => {
-  return {
-    definition: '\n}\n',
-    implementation: '};\n',
-    implementationMock: '}\n',
-  };
-};
+export const generateAngularFooter = () => '};\n';
 
 const generateImports = ({
   response,
@@ -65,26 +48,6 @@ const generateImports = ({
   ...body.imports,
   ...(queryParams ? [queryParams.schema.name] : []),
 ];
-
-const generateDefinition = ({
-  props,
-  definitionName,
-  response,
-  summary,
-}: GeneratorVerbOptions) => {
-  let value = '';
-
-  if (summary) {
-    value += `\n  // ${summary}`;
-  }
-
-  value += `\n  abstract ${definitionName}(\n    ${toObjectString(
-    props,
-    'definition',
-  )}\n  ): Observable<${response.definition}>;`;
-
-  return value;
-};
 
 const generateImplementation = (
   {
@@ -98,6 +61,14 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const axiosConfig = generateAxiosConfig({
+    route,
+    body,
+    queryParams,
+    response,
+    verb,
+  });
+
   const options = generateOptions({
     route,
     body,
@@ -109,12 +80,12 @@ const generateImplementation = (
   return `  ${definitionName}(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ): Observable<${response.definition}> {${mutator}${generateFormData(
-    body,
-  )}
-    return this.http.${verb}<${response.definition}>(${
-    mutator ? `...mutator(${options})` : options
-  });
+  )}\n  ) {${generateFormData(body)}
+  return ${
+    mutator
+      ? `${mutator.name}<${response.definition}>(${axiosConfig}, this.http)`
+      : `this.http.${verb}<${response.definition}>(${options})`
+  };
   }
 `;
 };
@@ -124,8 +95,7 @@ export const generateAngular = (
   options: GeneratorOptions,
 ): GeneratorClient => {
   const imports = generateImports(verbOptions);
-  const definition = generateDefinition(verbOptions);
   const implementation = generateImplementation(verbOptions, options);
 
-  return { definition, implementation, imports };
+  return { implementation, imports };
 };

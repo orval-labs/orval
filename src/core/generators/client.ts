@@ -10,25 +10,24 @@ import {
   generateAngular,
   generateAngularFooter,
   generateAngularHeader,
-  generateAngularImports,
   generateAngularTitle,
+  getAngularDependencies,
 } from './angular';
-import { generateAngularMock } from './angular.mock';
 import {
   generateAxios,
   generateAxiosFooter,
   generateAxiosHeader,
-  generateAxiosImports,
   generateAxiosTitle,
+  getAxiosDependencies,
 } from './axios';
-import { generateAxiosMock } from './axios.mock';
+import { generateDependencyImports } from './imports';
 import { generateMSW } from './msw';
 import {
   generateReactQuery,
   generateReactQueryFooter,
   generateReactQueryHeader,
-  generateReactQueryImports,
   generateReactQueryTitle,
+  getReactQueryDependencies,
 } from './react-query';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
@@ -36,41 +35,41 @@ const DEFAULT_CLIENT = OutputClient.AXIOS;
 const GENERATOR_CLIENT = {
   [OutputClient.AXIOS]: {
     client: generateAxios,
-    mock: generateAxiosMock,
     msw: generateMSW,
     header: generateAxiosHeader,
-    imports: generateAxiosImports,
+    dependencies: getAxiosDependencies,
     footer: generateAxiosFooter,
     title: generateAxiosTitle,
   },
   [OutputClient.ANGULAR]: {
     client: generateAngular,
-    mock: generateAngularMock,
     msw: generateMSW,
     header: generateAngularHeader,
-    imports: generateAngularImports,
+    dependencies: getAngularDependencies,
     footer: generateAngularFooter,
     title: generateAngularTitle,
   },
   [OutputClient.REACT_QUERY]: {
     client: generateReactQuery,
-    mock: () => '',
     msw: generateMSW,
     header: generateReactQueryHeader,
-    imports: generateReactQueryImports,
+    dependencies: getReactQueryDependencies,
     footer: generateReactQueryFooter,
     title: generateReactQueryTitle,
   },
 };
 export const generateClientImports = (
-  outputClient: OutputClient = DEFAULT_CLIENT,
-): GeneratorClientExtra => {
-  return {
-    ...GENERATOR_CLIENT[outputClient].imports(),
-    implementationMSW: `import { rest } from 'msw'
-    import faker from 'faker'\n`,
-  };
-};
+  client = DEFAULT_CLIENT,
+  implementation: string,
+  imports: {
+    exports: string[];
+    dependency: string;
+  }[],
+): string =>
+  generateDependencyImports(implementation, [
+    ...GENERATOR_CLIENT[client].dependencies(),
+    ...imports,
+  ]);
 
 export const generateClientHeader = (
   outputClient: OutputClient = DEFAULT_CLIENT,
@@ -79,7 +78,9 @@ export const generateClientHeader = (
 ): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   return {
-    ...GENERATOR_CLIENT[outputClient].header(titles),
+    implementation: GENERATOR_CLIENT[outputClient].header(
+      titles.implementation,
+    ),
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };
 };
@@ -88,7 +89,7 @@ export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
 ): GeneratorClientExtra => {
   return {
-    ...GENERATOR_CLIENT[outputClient].footer(),
+    implementation: GENERATOR_CLIENT[outputClient].footer(),
     implementationMSW: `]\n`,
   };
 };
@@ -101,12 +102,12 @@ export const generateClientTitle = (
   if (customTitleFunc) {
     const customTitle = customTitleFunc(title);
     return {
-      ...GENERATOR_CLIENT[outputClient].title(customTitleFunc(title)),
+      implementation: GENERATOR_CLIENT[outputClient].title(customTitle),
       implementationMSW: `get${pascal(customTitle)}MSW`,
     };
   }
   return {
-    ...GENERATOR_CLIENT[outputClient].title(title),
+    implementation: GENERATOR_CLIENT[outputClient].title(title),
     implementationMSW: `get${pascal(title)}MSW`,
   };
 };
@@ -119,19 +120,17 @@ export const generateClient = (
   return verbsOptions.reduce((acc, verbOption) => {
     const generator = GENERATOR_CLIENT[outputClient];
     const client = generator.client(verbOption, options);
-    const mock = generator.mock(verbOption, options);
     const msw = generator.msw(verbOption, options);
 
     return {
       ...acc,
       [verbOption.operationId]: {
-        definition: client.definition,
         implementation: client.implementation,
         imports: client.imports,
-        implementationMocks: mock,
         implementationMSW: msw.implementation,
-        importsMocks: msw.imports,
+        importsMSW: msw.imports,
         tags: verbOption.tags,
+        mutator: verbOption.mutator,
       },
     };
   }, {});

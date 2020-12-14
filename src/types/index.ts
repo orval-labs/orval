@@ -1,4 +1,3 @@
-import { AxiosRequestConfig } from 'axios';
 import { OpenAPIObject } from 'openapi3-ts';
 import { GeneratorVerbOptions } from './generator';
 
@@ -11,7 +10,7 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean | 'old-version';
+  mock?: boolean;
   override?: OverrideOutput;
   client?: OutputClient;
 };
@@ -39,8 +38,11 @@ export const OutputMode = {
 };
 
 export type MockOptions = {
-  properties?: { [key: string]: unknown };
-  operations?: { [key: string]: { [key: string]: any } };
+  required?: boolean;
+  properties?: Record<string, string>;
+  operations?: Record<string, { properties: Record<string, string> }>;
+  format?: Record<string, string>;
+  tags?: Record<string, { properties: Record<string, string> }>;
 };
 
 export type MockProperties =
@@ -51,31 +53,38 @@ export interface ExternalConfigFile {
   [backend: string]: Options;
 }
 
-type OuputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
+type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
-type OuputTransformer = string | OuputTransformerFn;
+type OutputTransformer = string | OutputTransformerFn;
 
-type MutatorGet = (
-  url: string,
-  config: AxiosRequestConfig,
-) => [string, AxiosRequestConfig];
+export type MutatorObject = {
+  path: string;
+  name: string;
+  default?: boolean;
+};
 
-type MutatorPost = <T>(
-  url: string,
-  data: T,
-  config: AxiosRequestConfig,
-) => [string, AxiosRequestConfig];
-
-export type Mutator = string | MutatorGet | MutatorPost;
+export type Mutator = string | MutatorObject;
 
 export type OverrideOutput = {
   title?: (title: string) => string;
-  transformer?: OuputTransformer;
+  transformer?: OutputTransformer;
   mutator?: Mutator;
   operations?: { [key: string]: OperationOptions };
+  tags?: { [key: string]: OperationOptions };
   mock?: {
     properties?: MockProperties;
+    format?: { [key: string]: unknown };
+    required?: boolean;
   };
+  query?: QueryOptions;
+};
+
+type QueryOptions = {
+  useQuery?: boolean;
+  usePaginated?: boolean;
+  useInfinite?: boolean;
+  useInfiniteQueryParam?: string;
+  config?: object;
 };
 
 type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
@@ -87,12 +96,13 @@ export type OverrideInput = {
 };
 
 export type OperationOptions = {
-  transformer?: OuputTransformer;
+  transformer?: OutputTransformer;
   mutator?: Mutator;
   mock?: {
     data?: MockProperties;
     properties?: MockProperties;
   };
+  query?: QueryOptions;
 };
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';

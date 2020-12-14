@@ -1,0 +1,16 @@
+export const DEFAULT_FORMAT_MOCK = {
+  email: 'faker.internet.email()',
+  zipCode: 'faker.address.zipCode()',
+  city: 'faker.address.city()',
+  streetName: 'faker.address.streetName()',
+  country: 'faker.address.country()',
+  date: 'faker.date.recent()',
+  iban: 'faker.finance.iban()',
+  userName: 'faker.internet.userName()',
+  firstName: 'faker.name.firstName()',
+  lastName: 'faker.name.lastName()',
+  jobTitle: 'faker.name.jobTitle()',
+  gender: 'faker.name.gender()',
+  phoneNumber: 'faker.phone.phoneNumber()',
+  url: 'faker.internet.url()',
+};

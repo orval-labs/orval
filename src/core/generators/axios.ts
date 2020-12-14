@@ -6,33 +6,16 @@ import {
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateFormData } from './formData';
-import { generateOptions } from './options';
+import { generateAxiosConfig, generateOptions } from './options';
 
-export const generateAxiosImports = () => ({
-  definition: `import { AxiosPromise } from 'axios';\n`,
-  implementation: `import axios,{ AxiosPromise, AxiosInstance } from 'axios';\n`,
-  implementationMock: `import { AxiosPromise, AxiosInstance } from 'axios';\nimport faker from 'faker';\n`,
-});
+const AXIOS_DEPENDENCIES = [
+  {
+    exports: 'axios',
+    dependency: 'axios',
+  },
+];
 
-const generateAxiosDefinition = ({
-  props,
-  definitionName,
-  response,
-  summary,
-}: GeneratorVerbOptions) => {
-  let value = '';
-
-  if (summary) {
-    value += `\n  // ${summary}`;
-  }
-
-  value += `\n  ${definitionName}(\n    ${toObjectString(
-    props,
-    'definition',
-  )}\n  ): AxiosPromise<${response.definition}>;`;
-
-  return value;
-};
+export const getAxiosDependencies = () => AXIOS_DEPENDENCIES;
 
 const generateAxiosImplementation = (
   {
@@ -46,6 +29,14 @@ const generateAxiosImplementation = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const axiosConfig = generateAxiosConfig({
+    route,
+    body,
+    queryParams,
+    response,
+    verb,
+  });
+
   const options = generateOptions({
     route,
     body,
@@ -57,10 +48,12 @@ const generateAxiosImplementation = (
   return `  ${definitionName}(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ): AxiosPromise<${response.definition}> {${mutator}${generateFormData(
-    body,
-  )}
-    return axios.${verb}(${mutator ? `...mutator(${options})` : options});
+  )}\n  ) {${generateFormData(body)}
+    return ${
+      mutator
+        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
+        : `axios.${verb}<${response.definition}>(${options})`
+    };
   },
 `;
 };
@@ -77,40 +70,20 @@ const generateImports = ({
 
 export const generateAxiosTitle = (title: string) => {
   const sanTitle = sanitize(title);
-  return {
-    definition: `${pascal(sanTitle)}`,
-    implementation: `get${pascal(sanTitle)}`,
-    implementationMock: `get${pascal(sanTitle)}Mock`,
-  };
+  return `get${pascal(sanTitle)}`;
 };
 
-export const generateAxiosHeader = (titles: {
-  definition: string;
-  implementation: string;
-  implementationMock: string;
-}) => {
-  return {
-    definition: `export interface ${titles.definition} {`,
-    implementation: `export const ${titles.implementation} = (axios: AxiosInstance): ${titles.definition} => ({\n`,
-    implementationMock: `export const ${titles.implementationMock} = (): ${titles.definition} => ({\n`,
-  };
-};
+export const generateAxiosHeader = (title: string) =>
+  `export const ${title} = () => ({\n`;
 
-export const generateAxiosFooter = () => {
-  return {
-    definition: '\n}\n',
-    implementation: '});\n',
-    implementationMock: '})\n',
-  };
-};
+export const generateAxiosFooter = () => '});\n';
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ): GeneratorClient => {
   const imports = generateImports(verbOptions);
-  const definition = generateAxiosDefinition(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);
 
-  return { definition, implementation, imports };
+  return { implementation, imports };
 };

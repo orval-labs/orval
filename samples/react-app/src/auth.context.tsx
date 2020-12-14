@@ -1,3 +1,4 @@
+import axios from 'axios';
 import React, {
   createContext,
   ReactNode,
@@ -5,7 +6,10 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import { getAuthHeader } from './api/headers';
 import { AXIOS_INSTANCE } from './api/mutator/custom-instance';
+import { createApiError } from './api/utilities';
+
 type Dispatch = (Auth: string) => void;
 
 type AuthProviderProps = { children: ReactNode; initialState?: string | null };
@@ -18,18 +22,26 @@ const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
   const [token, setToken] = useState(initialState);
 
   useEffect(() => {
-    const interceptorId = AXIOS_INSTANCE.interceptors.request.use((config) => ({
-      ...config,
-      headers: token
-        ? {
-            ...config.headers,
-            Authorization: `Bearer ${token}`,
-          }
-        : config.headers,
-    }));
+    const requestInterceptorId = AXIOS_INSTANCE.interceptors.request.use(
+      (config) => ({
+        ...config,
+        headers: {
+          ...config.headers,
+          ...getAuthHeader(token),
+        },
+      }),
+    );
+
+    const responseInterceptorId = axios.interceptors.response.use(
+      undefined,
+      () => {
+        return Promise.reject(createApiError());
+      },
+    );
 
     return () => {
-      AXIOS_INSTANCE.interceptors.request.eject(interceptorId);
+      AXIOS_INSTANCE.interceptors.request.eject(requestInterceptorId);
+      AXIOS_INSTANCE.interceptors.request.eject(responseInterceptorId);
     };
   }, [token]);
 

@@ -5,13 +5,14 @@ import {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts';
-import { OverrideOutput, Verbs } from '../../types';
+import { OperationOptions, OutputOptions, Verbs } from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
 import { camel } from '../../utils/case';
 import { dynamicImport } from '../../utils/imports';
+import { mergeDeep } from '../../utils/mergeDeep';
 import { getBody } from '../getters/body';
 import { getParameters } from '../getters/parameters';
 import { getParams } from '../getters/params';
@@ -23,7 +24,7 @@ import { generateMutator } from './mutator';
 const generateVerbOptions = ({
   workspace,
   verb,
-  override,
+  options = {},
   operation,
   route,
   verbParameters = [],
@@ -31,7 +32,7 @@ const generateVerbOptions = ({
 }: {
   workspace: string;
   verb: string;
-  override?: OverrideOutput;
+  options?: OutputOptions;
   operation: OperationObject;
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
@@ -44,7 +45,15 @@ const generateVerbOptions = ({
     parameters: operationParameters,
     tags = [],
   } = operation;
+  const { override, target } = options;
   const overrideOperation = override?.operations?.[operation.operationId!];
+  const overrideTag = Object.entries(override?.tags || {}).reduce<
+    OperationOptions | undefined
+  >(
+    (acc, [tag, options]) =>
+      tags.includes(tag) ? mergeDeep(acc, options) : acc,
+    undefined,
+  );
 
   const definitionName = camel(operation.operationId!);
 
@@ -68,9 +77,11 @@ const generateVerbOptions = ({
   const props = getProps({ body, queryParams: queryParams?.schema, params });
 
   const mutator = generateMutator({
-    workspace,
+    output: target,
     body,
-    mutator: overrideOperation?.mutator || override?.mutator,
+    name: camel(operationId!),
+    mutator:
+      overrideOperation?.mutator || overrideTag?.mutator || override?.mutator,
   });
 
   const verbOption = {
@@ -90,7 +101,9 @@ const generateVerbOptions = ({
   };
 
   const transformer = dynamicImport(
-    overrideOperation?.transformer || override?.transformer,
+    overrideOperation?.transformer ||
+      overrideTag?.transformer ||
+      override?.transformer,
     workspace,
   );
 
@@ -100,13 +113,13 @@ const generateVerbOptions = ({
 export const generateVerbsOptions = ({
   workspace,
   verbs,
-  override,
+  options,
   route,
   components,
 }: {
   workspace: string;
   verbs: PathItemObject;
-  override?: OverrideOutput;
+  options?: OutputOptions;
   route: string;
   components?: ComponentsObject;
 }): GeneratorVerbsOptions =>
@@ -121,17 +134,17 @@ export const generateVerbsOptions = ({
           `Every path must have a operationId - No operationId set for ${verb} ${route}`,
         );
       }
-      const options = generateVerbOptions({
+      const verbOptions = generateVerbOptions({
         workspace,
         verb,
-        override,
+        options,
         verbParameters: verbs.parameters,
         route,
         components,
         operation,
       });
 
-      return [...acc, options];
+      return [...acc, verbOptions];
     },
     [],
   );
