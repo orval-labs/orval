@@ -26,7 +26,9 @@ export const writeSchemas = ({
     mkdirSync(schemaPath);
   }
 
-  writeFileSync(join(schemaPath, '/index.ts'), '');
+  if (!existsSync(schemaPath + '/index.ts')) {
+    writeFileSync(join(schemaPath, '/index.ts'), '');
+  }
 
   writeModels(schemas, schemaPath, info);
 };

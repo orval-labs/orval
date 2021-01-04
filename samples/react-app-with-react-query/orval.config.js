@@ -12,15 +12,16 @@ module.exports = {
       client: 'react-query',
       mock: true,
       override: {
+        mutator: {
+          path: './src/api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.js',
             mock: {
-              properties: () => {
-                return {
-                  id: () => faker.random.number({ min: 1, max: 99999 }),
-                };
-              },
+              properties: () => ({
+                '[].id': () => faker.random.number({ min: 1, max: 99999 }),
+              }),
             },
           },
           showPetById: {
@@ -38,12 +39,17 @@ module.exports = {
             '/tag|name/': () => faker.name.lastName(),
           },
         },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
       },
     },
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.js',
+        transformer: './src/api/transformer/add-version.js',
       },
     },
   },

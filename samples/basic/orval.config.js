@@ -10,11 +10,11 @@ module.exports = {
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: './api/model',
-      mock: 'old-version',
+      mock: true,
       override: {
         operations: {
           listPets: {
-            mutator: './api/mutator/response-type.js',
+            mutator: './api/mutator/response-type.ts',
             mock: {
               properties: () => {
                 return {

@@ -1,5 +1,5 @@
 import isEmpty from 'lodash/isEmpty';
-import { SchemaObject } from 'openapi3-ts';
+import { SchemasObject } from 'openapi3-ts';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal, upper } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
@@ -14,7 +14,7 @@ import { generateInterface } from './interface';
  * @param schemas
  */
 export const generateSchemasDefinition = (
-  schemas: SchemaObject = {},
+  schemas: SchemasObject = {},
 ): Array<GeneratorSchema> => {
   if (isEmpty(schemas)) {
     return [];
@@ -29,27 +29,26 @@ export const generateSchemasDefinition = (
         !isReference(schema) &&
         !schema.nullable
       ) {
-        return [...acc, ...generateInterface(name, schema)];
+        return [...acc, ...generateInterface({ name, schema, schemas })];
       } else {
-        const { value, imports, isEnum, type, schemas = [] } = resolveValue(
-          schema,
-          name,
-        );
+        const resolvedValue = resolveValue({ schema, name, schemas });
 
         let output = '';
-        output += `export type ${pascal(name)} = ${value};\n`;
+        output += `export type ${pascal(name)} = ${resolvedValue.value};\n`;
 
-        if (isEnum) {
-          const implementation = value.split(' | ').reduce((acc, val) => {
-            return (
-              acc +
-              `  ${
-                type === 'number'
-                  ? `${upper(type)}_${val}`
-                  : sanitize(val, false)
-              }: ${val} as ${pascal(name)},\n`
-            );
-          }, '');
+        if (resolvedValue.isEnum) {
+          const implementation = resolvedValue.value
+            .split(' | ')
+            .reduce((acc, val) => {
+              return (
+                acc +
+                `  ${
+                  resolvedValue.type === 'number'
+                    ? `${upper(resolvedValue.type)}_${val}`
+                    : sanitize(val, false)
+                }: ${val} as ${pascal(name)},\n`
+              );
+            }, '');
 
           output += `\n\nexport const ${pascal(
             name,
@@ -58,11 +57,11 @@ export const generateSchemasDefinition = (
 
         return [
           ...acc,
-          ...schemas,
+          ...resolvedValue.schemas,
           {
             name: pascal(name),
             model: output,
-            imports: generalTypesFilter(imports),
+            imports: generalTypesFilter(resolvedValue.imports),
           },
         ];
       }

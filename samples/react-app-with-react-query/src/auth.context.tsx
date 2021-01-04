@@ -1,4 +1,3 @@
-import axios from 'axios';
 import React, {
   createContext,
   ReactNode,
@@ -6,6 +5,7 @@ import React, {
   useEffect,
   useState,
 } from 'react';
+import { AXIOS_INSTANCE } from './api/mutator/custom-instance';
 type Dispatch = (Auth: string) => void;
 
 type AuthProviderProps = { children: ReactNode; initialState?: string | null };
@@ -18,26 +18,18 @@ const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
   const [token, setToken] = useState(initialState);
 
   useEffect(() => {
-    const interceptorId = axios.interceptors.request.use(
-      (config) => {
-        return {
-          ...config,
-          baseURL: '', // use an env or your api url
-          headers: token
-            ? {
-                ...config.headers,
-                Authorization: `Bearer ${token}`,
-              }
-            : config.headers,
-        };
-      },
-      (error) => {
-        Promise.reject(error);
-      },
-    );
+    const interceptorId = AXIOS_INSTANCE.interceptors.request.use((config) => ({
+      ...config,
+      headers: token
+        ? {
+            ...config.headers,
+            Authorization: `Bearer ${token}`,
+          }
+        : config.headers,
+    }));
 
     return () => {
-      axios.interceptors.request.eject(interceptorId);
+      AXIOS_INSTANCE.interceptors.request.eject(interceptorId);
     };
   }, [token]);
 

@@ -1,60 +1,72 @@
 import { SchemaObject } from 'openapi3-ts';
+import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
-import { resolveMockValue } from '../resolvers/value.mock';
+import { mergeDeep } from '../../utils/mergeDeep';
+import {
+  getNullable,
+  resolveMockOverride,
+  resolveMockValue,
+} from '../resolvers/value.mock';
 import { getMockObject } from './object.mock';
-
-const resolveMockProperties = (
-  properties: any = {},
-  item: SchemaObject & { name: string; parent?: string },
-) =>
-  Object.entries(properties).reduce((acc, [key, value]) => {
-    const regex =
-      key[0] === '/' && key[key.length - 1] === '/'
-        ? new RegExp(key.slice(1, key.length - 1))
-        : new RegExp(key);
-
-    if (acc || !regex.test(item.name)) {
-      return acc;
-    }
-    return {
-      value: getNullable(value as string, item.nullable),
-      imports: [],
-      name: item.name,
-      overrided: true,
-    };
-  }, undefined as any);
-
-const getNullable = (value: string, nullable?: boolean) =>
-  nullable ? `faker.helpers.randomize([${value}, null])` : value;
 
 export const getMockScalar = ({
   item,
   schemas,
-  allOf,
   mockOptions,
   operationId,
+  tags,
+  combine,
 }: {
-  item: SchemaObject & { name: string; parents?: string[]; isRef?: boolean };
+  item: SchemaObject & { name: string; path?: string; isRef?: boolean };
   schemas: { [key: string]: SchemaObject };
-  allOf?: boolean;
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
+  tags: string[];
+  combine?: { properties: string[] };
 }): MockDefinition => {
-  const rProperty = resolveMockProperties(
+  const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
   );
 
-  if (rProperty) {
-    return rProperty;
+  if (operationProperty) {
+    return operationProperty;
   }
 
-  const property = resolveMockProperties(mockOptions?.properties, item);
+  const overrideTag = Object.entries(mockOptions?.tags || {}).reduce<
+    MockOptions | undefined
+  >(
+    (acc, [tag, options]) =>
+      tags.includes(tag) ? mergeDeep(acc, options) : acc,
+    undefined,
+  );
+
+  const tagProperty = resolveMockOverride(overrideTag?.properties, item);
+
+  if (tagProperty) {
+    return tagProperty;
+  }
+
+  const property = resolveMockOverride(mockOptions?.properties, item);
 
   if (property) {
     return property;
+  }
+
+  const ALL_FORMAT: Record<string, string> = {
+    ...DEFAULT_FORMAT_MOCK,
+    ...(mockOptions?.format || {}),
+  };
+
+  if (item.format && ALL_FORMAT[item.format]) {
+    return {
+      value: getNullable(ALL_FORMAT[item.format], item.nullable),
+      imports: [],
+      name: item.name,
+      overrided: false,
+    };
   }
 
   switch (item.type) {
@@ -77,11 +89,16 @@ export const getMockScalar = ({
       }
 
       const { value, enums, imports, name } = resolveMockValue({
-        schema: { ...item.items, name: item.name, parents: item.parents },
+        schema: {
+          ...item.items,
+          name: item.name,
+          path: item.path ? `${item.path}.[]` : '#.[]',
+        },
         schemas,
-        allOf,
+        combine,
         mockOptions,
         operationId,
+        tags,
       });
 
       if (enums) {
@@ -90,7 +107,7 @@ export const getMockScalar = ({
             const newValue = enums[faker.random.number({min:1, max: enums.length})];
             return {
               values: [...values, newValue],
-              enums: enums.filter(v => newValue !== v)
+              enums: enums.filter((v: ${name}) => newValue !== v)
             }
           },{ values: [], enums: Object.values(${name})})`,
           imports,
@@ -130,7 +147,14 @@ export const getMockScalar = ({
 
     case 'object':
     default: {
-      return getMockObject({ item, schemas, allOf, mockOptions, operationId });
+      return getMockObject({
+        item,
+        schemas,
+        mockOptions,
+        operationId,
+        tags,
+        combine,
+      });
     }
   }
 };

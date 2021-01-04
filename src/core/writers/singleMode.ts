@@ -6,10 +6,10 @@ import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
-import { errorMessage } from '../../utils/messages/logs';
 import { generateClientImports } from '../generators/client';
-import { generateImports } from '../generators/imports';
+import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
+import { generateMSWImports } from '../generators/msw';
 import { resolvePath } from '../resolvers/path';
 import { generateTarget } from './target';
 
@@ -31,53 +31,49 @@ export const writeSingleMode = ({
   }
 
   const {
-    definition,
     imports,
     implementation,
-    implementationMocks,
     implementationMSW,
+    importsMSW,
+    mutators,
   } = generateTarget(operations, info, isObject(output) ? output : undefined);
 
   let data = getFilesHeader(info);
 
-  const defaultImports = generateClientImports(
-    isObject(output) ? output.client : undefined,
-  );
+  if (isObject(output) && output.schemas) {
+    const schemasPath = resolvePath(output.target || '', output.schemas);
 
-  if (isObject(output) && output.mock) {
-    if (output.mock === 'old-version') {
-      data += defaultImports.implementationMock;
-    } else {
-      data += defaultImports.implementation;
-      data += defaultImports.implementationMSW;
+    data += generateClientImports(output.client, implementation, [
+      { exports: imports, dependency: schemasPath },
+    ]);
+    if (output.mock) {
+      data += generateMSWImports(implementationMSW, [
+        { exports: importsMSW, dependency: schemasPath },
+      ]);
     }
   } else {
-    data += defaultImports.implementation;
-  }
-
-  if (isObject(output) && output.schemas) {
-    data += generateImports(
-      imports,
-      resolvePath(output.target || '', output.schemas),
-      true,
+    data += generateClientImports(
+      isObject(output) ? output.client : undefined,
+      implementation,
+      [],
     );
-  } else {
+
+    if (isObject(output) && output.mock) {
+      data += generateMSWImports(implementationMSW, []);
+    }
+
     data += generateModelsInline(schemas);
   }
 
-  data += `\n${definition}`;
+  if (mutators) {
+    data += generateMutatorImports(mutators);
+  }
+
   data += `\n\n${implementation}`;
 
   if (isObject(output) && output.mock) {
     data += '\n\n';
-    if (output.mock === 'old-version') {
-      errorMessage(
-        'This way of using mocks is deprecated. Will be removed in the next major release',
-      );
-      data += implementationMocks;
-    } else {
-      data += implementationMSW;
-    }
+    data += implementationMSW;
   }
 
   writeFileSync(path, data);

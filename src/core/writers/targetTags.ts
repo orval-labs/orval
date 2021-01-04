@@ -1,4 +1,3 @@
-import { InfoObject } from 'openapi3-ts';
 import { OutputOptions } from '../../types';
 import {
   GeneratorOperation,
@@ -21,7 +20,7 @@ const generateTargetTags = (
   currentAcc: { [key: string]: GeneratorTarget },
   operation: GeneratorOperation,
   options?: OutputOptions,
-) =>
+): { [key: string]: GeneratorTarget } =>
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
     if (!currentOperation) {
@@ -35,11 +34,9 @@ const generateTargetTags = (
         ...acc,
         [tag]: {
           imports: operation.imports,
-          importsMocks: operation.importsMocks,
-          definition: header.definition + operation.definition,
+          importsMSW: operation.importsMSW,
+          mutators: operation.mutator ? [operation.mutator] : [],
           implementation: header.implementation + operation.implementation,
-          implementationMocks:
-            header.implementationMock + operation.implementationMocks,
           implementationMSW:
             header.implementationMSW + operation.implementationMSW,
         },
@@ -49,25 +46,21 @@ const generateTargetTags = (
     return {
       ...acc,
       [tag]: {
-        definition: currentOperation.definition + operation.definition,
         implementation:
           currentOperation.implementation + operation.implementation,
         imports: [...currentOperation.imports, ...operation.imports],
-        importsMocks: [
-          ...currentOperation.importsMocks,
-          ...operation.importsMocks,
-        ],
-        implementationMocks:
-          currentOperation.implementationMocks + operation.implementationMocks,
+        importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
         implementationMSW:
           currentOperation.implementationMSW + operation.implementationMSW,
+        mutators: operation.mutator
+          ? [...(currentOperation.mutators || []), operation.mutator]
+          : currentOperation.mutators,
       },
     };
   }, currentAcc);
 
 export const generateTargetForTags = (
   operations: GeneratorOperations,
-  info: InfoObject,
   options?: OutputOptions,
 ) =>
   Object.values(operations)
@@ -82,14 +75,12 @@ export const generateTargetForTags = (
           return {
             ...acc,
             [tag]: {
-              definition: target.definition + footer.definition,
               implementation: target.implementation + footer.implementation,
-              implementationMocks:
-                target.implementationMocks + footer.implementationMock,
               implementationMSW:
                 target.implementationMSW + footer.implementationMSW,
               imports: generalTypesFilter(target.imports),
-              importsMocks: generalTypesFilter(target.importsMocks),
+              importsMSW: generalTypesFilter(target.importsMSW),
+              mutators: target.mutators,
             },
           };
         }, {});

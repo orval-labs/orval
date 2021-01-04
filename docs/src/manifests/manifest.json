@@ -1,0 +1,67 @@
+{
+  "routes": [
+    {
+      "title": "Getting Started",
+      "heading": true,
+      "routes": [
+        {
+          "title": "Overview",
+          "path": "/overview",
+          "editUrl": "/overview.md"
+        },
+        {
+          "title": "Installation",
+          "path": "/installation",
+          "editUrl": "/installation.md"
+        },
+        {
+          "title": "Quick Start",
+          "path": "/quick-start",
+          "editUrl": "/quick-start.md"
+        }
+      ]
+    },
+    {
+      "title": "Guides",
+      "heading": true,
+      "routes": [
+        {
+          "title": "Basics",
+          "path": "/guides/basics",
+          "editUrl": "/guides/basics.md"
+        },
+        {
+          "title": "React query",
+          "path": "/guides/react-query",
+          "editUrl": "/guides/react-query.md"
+        },
+        {
+          "title": "Angular",
+          "path": "/guides/angular",
+          "editUrl": "/guides/angular.md"
+        }
+      ]
+    },
+    {
+      "title": "API Reference",
+      "heading": true,
+      "routes": [
+        {
+          "title": "Configuration",
+          "path": "/reference/configuration",
+          "editUrl": "/reference/configuration.md"
+        },
+        {
+          "title": "CLI",
+          "path": "/reference/cli",
+          "editUrl": "/reference/cli.md"
+        },
+        {
+          "title": "Integration",
+          "path": "/reference/integration",
+          "editUrl": "/reference/integration.md"
+        }
+      ]
+    }
+  ]
+}

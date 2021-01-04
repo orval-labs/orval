@@ -1,5 +1,5 @@
-import { AxiosRequestConfig } from 'axios';
 import { OpenAPIObject } from 'openapi3-ts';
+import { GeneratorVerbOptions } from './generator';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -10,7 +10,7 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean | 'old-version';
+  mock?: boolean;
   override?: OverrideOutput;
   client?: OutputClient;
 };
@@ -38,8 +38,11 @@ export const OutputMode = {
 };
 
 export type MockOptions = {
-  properties?: { [key: string]: unknown };
-  operations?: { [key: string]: { [key: string]: any } };
+  required?: boolean;
+  properties?: Record<string, string>;
+  operations?: Record<string, { properties: Record<string, string> }>;
+  format?: Record<string, string>;
+  tags?: Record<string, { properties: Record<string, string> }>;
 };
 
 export type MockProperties =
@@ -50,44 +53,55 @@ export interface ExternalConfigFile {
   [backend: string]: Options;
 }
 
+type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
+
+type OutputTransformer = string | OutputTransformerFn;
+
+export type MutatorObject = {
+  path: string;
+  name: string;
+  default?: boolean;
+};
+
+export type Mutator = string | MutatorObject;
+
 export type OverrideOutput = {
   title?: (title: string) => string;
-  transformer?: string;
-  mutator?: string;
+  transformer?: OutputTransformer;
+  mutator?: Mutator;
   operations?: { [key: string]: OperationOptions };
+  tags?: { [key: string]: OperationOptions };
   mock?: {
     properties?: MockProperties;
+    format?: { [key: string]: unknown };
+    required?: boolean;
   };
+  query?: QueryOptions;
 };
 
-type TransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+type QueryOptions = {
+  useQuery?: boolean;
+  useInfinite?: boolean;
+  useInfiniteQueryParam?: string;
+  config?: object;
+};
 
-type Transformer = string | TransformerFn;
+type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+
+type InputTransformer = string | InputTransformerFn;
 
 export type OverrideInput = {
-  transformer?: Transformer;
+  transformer?: InputTransformer;
 };
 
-type MutatorGet = (
-  url: string,
-  config: AxiosRequestConfig,
-) => [string, AxiosRequestConfig];
-
-type MutatorPost = (
-  url: string,
-  data: any,
-  config: AxiosRequestConfig,
-) => [string, AxiosRequestConfig];
-
-export type Mutator = string | MutatorGet | MutatorPost;
-
 export type OperationOptions = {
-  transformer?: string;
+  transformer?: OutputTransformer;
   mutator?: Mutator;
   mock?: {
     data?: MockProperties;
     properties?: MockProperties;
   };
+  query?: QueryOptions;
 };
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';

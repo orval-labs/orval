@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
-import { PetsApiService } from '../api/endpoints/pets/pets.service';
+import { PetsService } from '../api/endpoints/pets/pets.service';
 import { Pet } from '../api/model';
 
 @Component({
@@ -16,9 +16,9 @@ import { Pet } from '../api/model';
 })
 export class AppComponent implements OnInit {
   pets$: Observable<Pet[]>;
-  constructor(private readonly petsApiService: PetsApiService) {}
+  constructor(private readonly petsService: PetsService) {}
 
   ngOnInit() {
-    this.pets$ = this.petsApiService.listPets();
+    this.pets$ = this.petsService.listPets();
   }
 }

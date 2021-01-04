@@ -37,4 +37,21 @@ export type GetterQueryParam = {
   deps: GeneratorSchema[];
 };
 
-export type GetterProps = { definition: string; implementation: string };
+export type GetterPropType = 'param' | 'body' | 'queryParam';
+
+export const GetterPropType = {
+  PARAM: 'param' as GetterPropType,
+  BODY: 'body' as GetterPropType,
+  QUERY_PARAM: 'queryParam' as GetterPropType,
+};
+
+export type GetterProp = {
+  name: string;
+  definition: string;
+  implementation: string;
+  default: boolean;
+  required: boolean;
+  type: 'param' | 'body' | 'queryParam';
+};
+
+export type GetterProps = GetterProp[];

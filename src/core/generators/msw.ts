@@ -1,5 +1,6 @@
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { sanitize } from '../../utils/string';
+import { generateDependencyImports } from './imports';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 const getRoutePath = (path: string) => {
@@ -32,12 +33,37 @@ export const getRoute = (route: string) => {
   }, '*');
 };
 
+const MSW_DEPENDENCIES = [
+  {
+    exports: ['rest'],
+    dependency: 'msw',
+  },
+  {
+    exports: 'faker',
+    dependency: 'faker',
+  },
+];
+
+export const generateMSWImports = (
+  implementation: string,
+  imports: {
+    exports: string[];
+    dependency: string;
+  }[],
+): string => {
+  return generateDependencyImports(implementation, [
+    ...MSW_DEPENDENCIES,
+    ...imports,
+  ]);
+};
+
 export const generateMSW = (
-  { operationId, response, verb }: GeneratorVerbOptions,
+  { operationId, response, verb, tags }: GeneratorVerbOptions,
   { specs, pathRoute, override }: GeneratorOptions,
 ) => {
   const { definitions, definition, imports } = getMockDefinition(
     operationId,
+    tags,
     response,
     specs,
     override,
@@ -57,7 +83,10 @@ export const generateMSW = (
   }
 
   const responseType =
-    value[0] === '{' || value[0] === '[' || value.startsWith('(() => ({')
+    value[0] === '{' ||
+    value[0] === '[' ||
+    value.startsWith('(() => ({') ||
+    value.startsWith('faker.')
       ? 'json'
       : 'text';
 

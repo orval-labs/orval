@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-import { QueryCache, ReactQueryCacheProvider } from 'react-query';
+import { QueryClient, QueryClientProvider } from 'react-query';
 import App from './App';
 import { AuthProvider } from './auth.context';
 import './index.css';
 import * as serviceWorker from './serviceWorker';
 
-const queryCache = new QueryCache();
+const queryClient = new QueryClient();
 
 if (process.env.NODE_ENV === 'development') {
   require('./mock');
@@ -15,9 +15,9 @@ if (process.env.NODE_ENV === 'development') {
 ReactDOM.render(
   <React.StrictMode>
     <AuthProvider>
-      <ReactQueryCacheProvider queryCache={queryCache}>
+      <QueryClientProvider client={queryClient}>
         <App />
-      </ReactQueryCacheProvider>
+      </QueryClientProvider>
     </AuthProvider>
   </React.StrictMode>,
   document.getElementById('root'),

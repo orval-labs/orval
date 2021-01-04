@@ -1,5 +1,10 @@
 import { GeneratorSchema } from '../../types/generator';
-import { GetterBody, GetterParams, GetterProps } from '../../types/getters';
+import {
+  GetterBody,
+  GetterParams,
+  GetterProps,
+  GetterPropType,
+} from '../../types/getters';
 import { sortByPriority } from '../../utils/sort';
 
 export const getProps = ({
@@ -12,37 +17,30 @@ export const getProps = ({
   params: GetterParams;
 }): GetterProps => {
   const bodyProp = {
+    name: body.implementation,
     definition: `${body.implementation}: ${body.definition}`,
     implementation: `${body.implementation}: ${body.definition}`,
     default: false,
     required: true,
+    type: GetterPropType.BODY,
   };
 
   const queryParamsProp = {
+    name: 'params',
     definition: `params?: ${queryParams?.name}`,
     implementation: `params?: ${queryParams?.name}`,
     default: false,
     required: false,
+    type: GetterPropType.QUERY_PARAM,
   };
 
   const props = [
-    ...params,
+    ...params.map((param) => ({ ...param, type: GetterPropType.PARAM })),
     ...(body.definition ? [bodyProp] : []),
     ...(queryParams ? [queryParamsProp] : []),
   ];
 
   const sortedProps = sortByPriority(props);
 
-  const definition = sortedProps
-    .map(({ definition }) => definition)
-    .join(',\n    ');
-
-  const implementation = sortedProps
-    .map(({ implementation }) => implementation)
-    .join(',\n    ');
-
-  return {
-    definition: definition ? definition + ',' : '',
-    implementation: implementation ? implementation + ',' : '',
-  };
+  return sortedProps;
 };

@@ -1,15 +1,26 @@
-import { SchemaObject } from 'openapi3-ts';
+import { SchemaObject, SchemasObject } from 'openapi3-ts';
 import { ResolverValue } from '../../types/resolvers';
 import { upper } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import { sanitize } from '../../utils/string';
 import { resolveValue } from './value';
 
-export const resolveObject = (
-  schema: SchemaObject,
-  propName?: string,
-): ResolverValue => {
-  const resolvedValue = resolveValue(schema, propName);
+export const resolveObject = ({
+  schema,
+  propName,
+  schemas = {},
+  combined = false,
+}: {
+  schema: SchemaObject;
+  propName?: string;
+  schemas?: SchemasObject;
+  combined?: boolean;
+}): ResolverValue => {
+  const resolvedValue = resolveValue({
+    schema,
+    name: propName,
+    schemas,
+  });
   if (
     propName &&
     !resolvedValue.isEnum &&
@@ -32,7 +43,7 @@ export const resolveObject = (
     };
   }
 
-  if (propName && resolvedValue.isEnum) {
+  if (propName && resolvedValue.isEnum && !combined && !schema.$ref) {
     let enumValue = `export type ${propName} = ${resolvedValue.value};\n`;
 
     const implementation = resolvedValue.value

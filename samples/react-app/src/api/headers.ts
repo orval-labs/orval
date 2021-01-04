@@ -1,7 +1,7 @@
-export const getAuthHeader = (token?: string) => {
+export const getAuthHeader = (token?: string | null) => {
   return token
     ? {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
       }
     : {};
 };

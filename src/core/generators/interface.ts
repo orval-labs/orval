@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts';
+import { SchemaObject, SchemasObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
 import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
@@ -11,26 +11,40 @@ import { getScalar } from '../getters/scalar';
  * @param name interface name
  * @param schema
  */
-export const generateInterface = (name: string, schema: SchemaObject) => {
-  const { value, imports, schemas } = getScalar(schema, name);
-  const isEmptyObject = value === '{}';
+export const generateInterface = ({
+  name,
+  schema,
+  schemas,
+}: {
+  name: string;
+  schema: SchemaObject;
+  schemas: SchemasObject;
+}) => {
+  const scalar = getScalar(schema, name, schemas);
+  const isEmptyObject = scalar.value === '{}';
+  const definitionName = pascal(name);
 
   let model = isEmptyObject
     ? '// tslint:disable-next-line:no-empty-interface\n'
     : '';
 
-  if (!generalJSTypesWithArray.includes(value)) {
-    model += `export interface ${pascal(name)} ${value}\n`;
+  if (!generalJSTypesWithArray.includes(scalar.value)) {
+    model += `export interface ${definitionName} ${scalar.value}\n`;
   } else {
-    model += `export type ${pascal(name)} = ${value};\n`;
+    model += `export type ${definitionName} = ${scalar.value};\n`;
   }
 
+  // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
+  const externalModulesImportsOnly = scalar.imports.filter(
+    (importName) => importName !== definitionName,
+  );
+
   return [
-    ...schemas,
+    ...scalar.schemas,
     {
-      name: pascal(name),
+      name: definitionName,
       model,
-      imports: generalTypesFilter(imports),
+      imports: generalTypesFilter(externalModulesImportsOnly),
     },
   ];
 };
