@@ -19,7 +19,11 @@ program
   .option('-p, --project <name>', 'focus a project of the config')
   .action((paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
-      generateSpec(process.cwd(), { input: cmd.input, output: cmd.output });
+      generateSpec(process.cwd(), {
+        input: cmd.input,
+        output: cmd.output,
+        converterOptions: undefined,
+      });
     } else {
       generateConfig(cmd.config, cmd.project);
     }

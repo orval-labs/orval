@@ -12,7 +12,7 @@ export const importSpecs = async (
   workspace: string,
   options: Options,
 ): Promise<WriteSpecsProps> => {
-  const { input, output } = options;
+  const { input, output, converterOptions } = options;
 
   const path = isString(input) ? input : input?.target;
 
@@ -56,5 +56,6 @@ export const importSpecs = async (
     ...(isObject(output) && {
       output,
     }),
+    converterOptions,
   });
 };

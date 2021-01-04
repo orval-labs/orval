@@ -19,6 +19,7 @@ import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
 const importSpecs = (
   data: string | object,
   extension: 'yaml' | 'json',
+  converterOptions: any = {},
 ): Promise<OpenAPIObject> => {
   const schema =
     typeof data === 'string'
@@ -31,7 +32,7 @@ const importSpecs = (
     if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
       swagger2openapi.convertObj(
         schema,
-        { patch: true },
+        converterOptions,
         (err, { openapi }) => {
           if (err) {
             reject(err);
@@ -60,8 +61,9 @@ export const importOpenApi = async ({
   input,
   output,
   workspace,
+  converterOptions,
 }: ImportOpenApi): Promise<WriteSpecsProps> => {
-  let specs = await importSpecs(data, format);
+  let specs = await importSpecs(data, format, converterOptions);
 
   if (input?.override?.transformer) {
     const transformerFn = dynamicImport(input.override.transformer, workspace);

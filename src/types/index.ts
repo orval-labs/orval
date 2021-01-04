@@ -4,6 +4,7 @@ import { GeneratorVerbOptions } from './generator';
 export interface Options {
   output?: string | OutputOptions;
   input?: string | InputOptions;
+  converterOptions: any;
 }
 
 export type OutputOptions = {
@@ -120,4 +121,5 @@ export type ImportOpenApi = {
   input?: InputOptions;
   output?: OutputOptions;
   workspace: string;
+  converterOptions: any;
 };
