@@ -1,4 +1,5 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { upper } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
@@ -10,16 +11,19 @@ export const resolveObject = ({
   propName,
   schemas = {},
   combined = false,
+  override,
 }: {
   schema: SchemaObject;
   propName?: string;
   schemas?: SchemasObject;
   combined?: boolean;
+  override: OverrideOutput;
 }): ResolverValue => {
   const resolvedValue = resolveValue({
     schema,
     name: propName,
     schemas,
+    override,
   });
   if (
     propName &&

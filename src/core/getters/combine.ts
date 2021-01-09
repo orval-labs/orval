@@ -1,4 +1,5 @@
 import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { resolveObject } from '../resolvers/object';
@@ -8,11 +9,13 @@ export const combineSchemas = ({
   items,
   schemas,
   separator,
+  override,
 }: {
   name?: string;
   items: (SchemaObject | ReferenceObject)[];
   schemas: SchemasObject;
   separator: string;
+  override: OverrideOutput;
 }) => {
   const resolvedData = items.reduce<ResolverValue>(
     (acc, schema) => {
@@ -22,6 +25,7 @@ export const combineSchemas = ({
         propName,
         schemas,
         combined: true,
+        override,
       });
       return {
         ...acc,

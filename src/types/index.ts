@@ -69,6 +69,7 @@ export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: Mutator;
+  date?: boolean;
   operations?: { [key: string]: OperationOptions };
   tags?: { [key: string]: OperationOptions };
   mock?: {

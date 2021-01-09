@@ -5,6 +5,7 @@ import {
   RequestBodyObject,
   ResponseObject,
 } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
@@ -18,11 +19,17 @@ const CONTENT_TYPES = [
   'multipart/form-data',
 ];
 
-const getResReqContentTypes = (
-  type: string,
-  mediaType: MediaTypeObject,
-  propName?: string,
-) => {
+const getResReqContentTypes = ({
+  type,
+  mediaType,
+  propName,
+  override,
+}: {
+  type: string;
+  mediaType: MediaTypeObject;
+  propName?: string;
+  override: OverrideOutput;
+}) => {
   if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
     return {
       value: 'unknown',
@@ -33,7 +40,7 @@ const getResReqContentTypes = (
     };
   }
 
-  return resolveObject({ schema: mediaType.schema, propName });
+  return resolveObject({ schema: mediaType.schema, propName, override });
 };
 
 /**
@@ -46,6 +53,7 @@ export const getResReqTypes = (
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >,
   name: string,
+  override: OverrideOutput,
 ): Array<ResolverValue> =>
   uniq(
     responsesOrRequests
@@ -63,11 +71,12 @@ export const getResReqTypes = (
         } else {
           return res.content
             ? Object.entries(res.content).map(([type, mediaType]) =>
-                getResReqContentTypes(
+                getResReqContentTypes({
                   type,
                   mediaType,
-                  key ? pascal(name) + pascal(key) : undefined,
-                ),
+                  propName: key ? pascal(name) + pascal(key) : undefined,
+                  override,
+                }),
               )
             : {
                 value: 'unknown',

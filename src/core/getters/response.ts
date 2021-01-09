@@ -1,4 +1,5 @@
 import { ReferenceObject, ResponseObject, ResponsesObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { getResReqTypes } from './resReqTypes';
@@ -9,9 +10,14 @@ const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
 export const getResponse = (
   responses: ResponsesObject,
   operationId: string,
+  override: OverrideOutput = {},
 ): GetterResponse => {
   const types = responses
-    ? getResReqTypes(Object.entries(responses).filter(isOk), operationId)
+    ? getResReqTypes(
+        Object.entries(responses).filter(isOk),
+        operationId,
+        override,
+      )
     : [
         {
           value: 'unknown',

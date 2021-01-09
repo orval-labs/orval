@@ -1,5 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 import { ComponentsObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
@@ -12,6 +13,7 @@ import { getResReqTypes } from '../getters/resReqTypes';
  */
 export const generateResponsesDefinition = (
   responses: ComponentsObject['responses'] = {},
+  override: OverrideOutput = {},
 ): Array<GeneratorSchema> => {
   if (isEmpty(responses)) {
     return [];
@@ -22,6 +24,7 @@ export const generateResponsesDefinition = (
       const allResponseTypes = getResReqTypes(
         [['responseData', response]],
         name,
+        override,
       );
 
       const imports = allResponseTypes.reduce<string[]>(

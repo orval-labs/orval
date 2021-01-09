@@ -1,4 +1,5 @@
 import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isBoolean, isReference } from '../../utils/is';
@@ -13,11 +14,17 @@ import { getRef } from './ref';
  *
  * @param item item with type === "object"
  */
-export const getObject = (
-  item: SchemaObject,
-  name?: string,
-  schemas: SchemasObject = {},
-): ResolverValue => {
+export const getObject = ({
+  item,
+  name,
+  schemas = {},
+  override,
+}: {
+  item: SchemaObject;
+  name?: string;
+  schemas: SchemasObject;
+  override: OverrideOutput;
+}): ResolverValue => {
   if (isReference(item)) {
     const value = getRef(item.$ref);
     return {
@@ -30,15 +37,33 @@ export const getObject = (
   }
 
   if (item.allOf) {
-    return combineSchemas({ items: item.allOf, name, schemas, separator: '&' });
+    return combineSchemas({
+      items: item.allOf,
+      name,
+      schemas,
+      separator: '&',
+      override,
+    });
   }
 
   if (item.oneOf) {
-    return combineSchemas({ items: item.oneOf, name, schemas, separator: '|' });
+    return combineSchemas({
+      items: item.oneOf,
+      name,
+      schemas,
+      separator: '|',
+      override,
+    });
   }
 
   if (item.anyOf) {
-    return combineSchemas({ items: item.anyOf, name, schemas, separator: '|' });
+    return combineSchemas({
+      items: item.anyOf,
+      name,
+      schemas,
+      separator: '|',
+      override,
+    });
   }
 
   if (item.properties) {
@@ -51,7 +76,12 @@ export const getObject = (
       ) => {
         const isRequired = (item.required || []).includes(key);
         const propName = name ? name + pascal(key) : undefined;
-        const resolvedValue = resolveObject({ schema, propName, schemas });
+        const resolvedValue = resolveObject({
+          schema,
+          propName,
+          schemas,
+          override,
+        });
         const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
         if (!index) {
           acc.value += '{';
@@ -92,6 +122,7 @@ export const getObject = (
       schema: item.additionalProperties,
       name,
       schemas,
+      override,
     });
     return {
       value: `{[key: string]: ${resolvedValue.value}}`,

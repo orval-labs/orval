@@ -1,4 +1,5 @@
 import { OperationObject, ParameterObject, SchemaObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { GetterParams } from '../../types/getters';
 import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
@@ -29,10 +30,12 @@ export const getParams = ({
   route,
   pathParams = [],
   operation,
+  override = {},
 }: {
   route: string;
   pathParams?: ParameterObject[];
   operation: OperationObject;
+  override?: OverrideOutput;
 }): GetterParams => {
   const params = getParamsInPath(route);
   return params.map((p) => {
@@ -47,7 +50,7 @@ export const getParams = ({
 
       const name = sanitize(nameWithoutSanitize);
 
-      const resolvedValue = resolveValue({ schema });
+      const resolvedValue = resolveValue({ schema, override });
 
       const definition = `${name}${!required || schema.default ? '?' : ''}: ${
         resolvedValue.value

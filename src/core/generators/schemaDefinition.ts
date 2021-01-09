@@ -1,5 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 import { SchemasObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal, upper } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
@@ -15,6 +16,7 @@ import { generateInterface } from './interface';
  */
 export const generateSchemasDefinition = (
   schemas: SchemasObject = {},
+  override: OverrideOutput = {},
 ): Array<GeneratorSchema> => {
   if (isEmpty(schemas)) {
     return [];
@@ -29,9 +31,12 @@ export const generateSchemasDefinition = (
         !isReference(schema) &&
         !schema.nullable
       ) {
-        return [...acc, ...generateInterface({ name, schema, schemas })];
+        return [
+          ...acc,
+          ...generateInterface({ name, schema, schemas, override }),
+        ];
       } else {
-        const resolvedValue = resolveValue({ schema, name, schemas });
+        const resolvedValue = resolveValue({ schema, name, schemas, override });
 
         let output = '';
         output += `export type ${pascal(name)} = ${resolvedValue.value};\n`;

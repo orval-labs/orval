@@ -1,5 +1,6 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
+import { OverrideOutput } from '../../types';
 import { pascal } from '../../utils/case';
 import { generalTypesFilter } from '../../utils/filters';
 import { getScalar } from '../getters/scalar';
@@ -15,12 +16,14 @@ export const generateInterface = ({
   name,
   schema,
   schemas,
+  override,
 }: {
   name: string;
   schema: SchemaObject;
   schemas: SchemasObject;
+  override: OverrideOutput;
 }) => {
-  const scalar = getScalar(schema, name, schemas);
+  const scalar = getScalar({ item: schema, name, schemas, override });
   const isEmptyObject = scalar.value === '{}';
   const definitionName = pascal(name);
 

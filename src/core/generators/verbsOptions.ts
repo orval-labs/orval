@@ -57,21 +57,26 @@ const generateVerbOptions = ({
 
   const definitionName = camel(operation.operationId!);
 
-  const response = getResponse(responses, operationId!);
+  const response = getResponse(responses, operationId!, override);
 
-  const body = getBody(requestBody!, operationId!);
+  const body = getBody(requestBody!, operationId!, override);
 
   const parameters = getParameters(
     [...verbParameters, ...(operationParameters || [])],
     components,
   );
 
-  const queryParams = getQueryParams(parameters.query, definitionName);
+  const queryParams = getQueryParams(
+    parameters.query,
+    definitionName,
+    override,
+  );
 
   const params = getParams({
     route,
     pathParams: parameters.path,
     operation,
+    override,
   });
 
   const props = getProps({ body, queryParams: queryParams?.schema, params });

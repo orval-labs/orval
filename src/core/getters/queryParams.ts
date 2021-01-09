@@ -1,4 +1,5 @@
 import { ParameterObject, ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal, upper } from '../../utils/case';
 import { sanitize } from '../../utils/string';
@@ -8,6 +9,7 @@ import { getKey } from './keys';
 const getQueryParamsTypes = (
   queryParams: (ParameterObject | ReferenceObject)[],
   definitionName: string,
+  override: OverrideOutput,
 ) => {
   return queryParams.map((p) => {
     const { name, required, schema } = p as {
@@ -16,7 +18,10 @@ const getQueryParamsTypes = (
       schema: SchemaObject;
     };
 
-    const { value, imports, isEnum, type } = resolveValue({ schema: schema! });
+    const { value, imports, isEnum, type } = resolveValue({
+      schema: schema!,
+      override,
+    });
 
     const key = getKey(name);
 
@@ -59,11 +64,12 @@ const getQueryParamsTypes = (
 export const getQueryParams = (
   queryParams: (ParameterObject | ReferenceObject)[] = [],
   definitionName: string,
+  override: OverrideOutput = {},
 ): { schema: GeneratorSchema; deps: GeneratorSchema[] } | undefined => {
   if (!queryParams.length) {
     return;
   }
-  const types = getQueryParamsTypes(queryParams, definitionName);
+  const types = getQueryParamsTypes(queryParams, definitionName, override);
   const imports = types.reduce<string[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
     [],

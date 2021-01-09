@@ -70,10 +70,14 @@ export const importOpenApi = async ({
 
   resolveDiscriminator(specs);
 
-  const schemaDefinition = generateSchemasDefinition(specs.components?.schemas);
+  const schemaDefinition = generateSchemasDefinition(
+    specs.components?.schemas,
+    output?.override,
+  );
 
   const responseDefinition = generateResponsesDefinition(
     specs.components?.responses,
+    output?.override,
   );
 
   const api = generateApi(workspace, specs, output);

@@ -1,4 +1,5 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { OverrideOutput } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { isReference } from '../../utils/is';
 import { getRef } from '../getters/ref';
@@ -12,10 +13,12 @@ export const resolveValue = ({
   schema,
   name,
   schemas = {},
+  override,
 }: {
   schema: SchemaObject;
   name?: string;
   schemas?: SchemasObject;
+  override: OverrideOutput;
 }): ResolverValue => {
   if (isReference(schema)) {
     const value = getRef(schema.$ref);
@@ -29,5 +32,5 @@ export const resolveValue = ({
     };
   }
 
-  return getScalar(schema, name, schemas);
+  return getScalar({ item: schema, name, schemas, override });
 };
