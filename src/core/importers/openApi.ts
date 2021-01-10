@@ -1,7 +1,7 @@
 import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
-import { ImportOpenApi } from '../../types';
+import { ConverterOptions, ImportOpenApi } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { dynamicImport } from '../../utils/imports';
 import { generateApi } from '../generators/api';
@@ -19,7 +19,7 @@ import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
 const importSpecs = (
   data: string | object,
   extension: 'yaml' | 'json',
-  converterOptions: any = {},
+  converterOptions: ConverterOptions = {},
 ): Promise<OpenAPIObject> => {
   const schema =
     typeof data === 'string'
