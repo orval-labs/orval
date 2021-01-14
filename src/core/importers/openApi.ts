@@ -20,26 +20,30 @@ const importSpecs = (
   data: string | object,
   extension: 'yaml' | 'json',
 ): Promise<OpenAPIObject> => {
-  const schema =
-    typeof data === 'string'
-      ? extension === 'yaml'
-        ? YAML.parse(data)
-        : JSON.parse(data)
-      : data;
+  try {
+    const schema =
+      typeof data === 'string'
+        ? extension === 'yaml'
+          ? YAML.parse(data)
+          : JSON.parse(data)
+        : data;
 
-  return new Promise((resolve, reject) => {
-    if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-      swagger2openapi.convertObj(schema, {}, (err, { openapi }) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(openapi);
-        }
-      });
-    } else {
-      resolve(schema);
-    }
-  });
+    return new Promise((resolve, reject) => {
+      if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
+        swagger2openapi.convertObj(schema, {}, (err, { openapi }) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(openapi);
+          }
+        });
+      } else {
+        resolve(schema);
+      }
+    });
+  } catch (e) {
+    throw 'Oups... 🍻. Parsing Error';
+  }
 };
 
 /**

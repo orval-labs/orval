@@ -33,13 +33,18 @@ export const importSpecs = async (
       data = await getGithubOpenApi(path);
     } else {
       try {
-        const call = await axios.get(path);
-        if (call.headers['content-type'] !== 'application/json') {
-          throw 'Oups... 🍻';
+        const { headers, data: specification } = await axios.get(path);
+
+        if (
+          headers['content-type'] === 'application/json' ||
+          headers['content-type'].includes('text/plain')
+        ) {
+          data = specification;
+        } else {
+          throw 'Oups... 🍻. Unsupported content type';
         }
-        data = call.data;
-      } catch (e) {
-        throw 'Oups... 🍻';
+      } catch (error) {
+        throw isString(error) ? error : 'Oups... 🍻';
       }
     }
   } else {
