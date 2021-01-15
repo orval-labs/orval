@@ -37,6 +37,7 @@ export const importSpecs = async (
 
         if (
           headers['content-type'] === 'application/json' ||
+          headers['content-type'] === 'text/yaml' ||
           headers['content-type'].includes('text/plain')
         ) {
           data = specification;
