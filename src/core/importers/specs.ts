@@ -7,6 +7,7 @@ import { getGithubOpenApi } from '../../utils/github';
 import { isObject, isString } from '../../utils/is';
 import { dynamicReader } from '../../utils/reader';
 import { importOpenApi } from './openApi';
+import { ImportOpenApi } from '../../types';
 
 export const importSpecs = async (
   workspace: string,
@@ -24,7 +25,7 @@ export const importSpecs = async (
     throw new Error('You need to provide an output');
   }
 
-  const format = getExtension(path);
+  let format: ImportOpenApi['format'] = getExtension(path);
 
   let data: string | object;
 
@@ -34,13 +35,19 @@ export const importSpecs = async (
     } else {
       try {
         const { headers, data: specification } = await axios.get(path);
+        const isContentTypeYaml = headers['content-type'].includes('text/yaml');
+        const isContentTypeTextPlain = headers['content-type'].includes(
+          'text/plain',
+        );
+        const isContentTypeJson = headers['content-type'].includes(
+          'application/json',
+        );
 
-        if (
-          headers['content-type'] === 'application/json' ||
-          headers['content-type'] === 'text/yaml' ||
-          headers['content-type'].includes('text/plain')
-        ) {
+        if (isContentTypeJson || isContentTypeYaml || isContentTypeTextPlain) {
           data = specification;
+          if (isContentTypeTextPlain && typeof data === 'string') {
+            format = data.startsWith('{') ? 'json' : 'yaml';
+          }
         } else {
           throw 'Oups... 🍻. Unsupported content type';
         }
