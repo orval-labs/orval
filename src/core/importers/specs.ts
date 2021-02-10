@@ -45,6 +45,12 @@ export const importSpecs = async (
 
         if (isContentTypeJson || isContentTypeYaml || isContentTypeTextPlain) {
           data = specification;
+          if (isContentTypeJson) {
+            format = 'json';
+          }
+          if (isContentTypeYaml) {
+            format = 'yaml';
+          }
           if (isContentTypeTextPlain && typeof data === 'string') {
             format = data.startsWith('{') ? 'json' : 'yaml';
           }
