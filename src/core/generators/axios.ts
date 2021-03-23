@@ -45,14 +45,14 @@ const generateAxiosImplementation = (
     verb,
   });
 
-  return `  ${definitionName} = <Data = unknown>(\n    ${toObjectString(
+  return `  ${definitionName}(\n    ${toObjectString(
     props,
     'implementation',
   )}\n  ) {${generateFormData(body)}
     return ${
       mutator
-        ? `${mutator.name}<Data extends unknown ? ${response.definition} : Data>(${axiosConfig})`
-        : `axios.${verb}<Data extends unknown ? ${response.definition} : Data>(${options})`
+        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
+        : `axios.${verb}<${response.definition}>(${options})`
     };
   },
 `;
