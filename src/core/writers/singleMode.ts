@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { camel } from '../../utils/case';
@@ -10,7 +10,6 @@ import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
-import { resolvePath } from '../resolvers/path';
 import { generateTarget } from './target';
 
 export const writeSingleMode = ({
@@ -41,7 +40,7 @@ export const writeSingleMode = ({
   let data = getFilesHeader(info);
 
   if (isObject(output) && output.schemas) {
-    const schemasPath = resolvePath(output.target || '', output.schemas);
+    const schemasPath = relative(dirname || '', output.schemas);
 
     data += generateClientImports(output.client, implementation, [
       { exports: imports, dependency: schemasPath },
