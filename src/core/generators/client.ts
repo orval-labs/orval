@@ -120,7 +120,13 @@ export const generateClient = (
   return verbsOptions.reduce((acc, verbOption) => {
     const generator = GENERATOR_CLIENT[outputClient];
     const client = generator.client(verbOption, options);
-    const msw = generator.msw(verbOption, options);
+
+    const msw = options.mock
+      ? generator.msw(verbOption, options)
+      : {
+          implementation: '',
+          imports: [],
+        };
 
     return {
       ...acc,

@@ -37,6 +37,7 @@ export const generateApi = (
         pathRoute,
         specs,
         override: options?.override,
+        mock: !!options?.mock,
       });
 
       return {
