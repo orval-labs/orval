@@ -1,4 +1,4 @@
-import uniq from 'lodash/uniq';
+import { uniqBy } from 'lodash';
 import {
   MediaTypeObject,
   ReferenceObject,
@@ -8,29 +8,19 @@ import {
 import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
+import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
 import { getRef } from './ref';
 
-const CONTENT_TYPES = [
-  'application/json',
-  'application/octet-stream',
-  'application/pdf',
-  'multipart/form-data',
-];
-
-const getResReqContentTypes = (
-  type: string,
-  mediaType: MediaTypeObject,
-  propName?: string,
-) => {
-  if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
-    return {
-      value: 'unknown',
-      imports: [],
-      schemas: [],
-      type: 'unknow',
-      isEnum: false,
-    };
+const getResReqContentTypes = ({
+  mediaType,
+  propName,
+}: {
+  mediaType: MediaTypeObject;
+  propName?: string;
+}) => {
+  if (!mediaType.schema) {
+    return undefined;
   }
 
   return resolveObject({ schema: mediaType.schema, propName });
@@ -46,42 +36,53 @@ export const getResReqTypes = (
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >,
   name: string,
-): Array<ResolverValue> =>
-  uniq(
-    responsesOrRequests
-      .filter(([_, res]) => Boolean(res))
-      .map(([key, res]) => {
-        if (isReference(res)) {
-          const value = getRef(res.$ref);
-          return {
+): ResolverValue[] => {
+  const typesArray = responsesOrRequests
+    .filter(([_, res]) => Boolean(res))
+    .map(([key, res]) => {
+      if (isReference(res)) {
+        const value = getRef(res.$ref);
+        return [
+          {
             value,
             imports: [value],
             schemas: [],
             type: 'ref',
             isEnum: false,
-          };
-        } else {
-          return res.content
-            ? Object.entries(res.content).map(([type, mediaType]) =>
-                getResReqContentTypes(
-                  type,
-                  mediaType,
-                  key ? pascal(name) + pascal(key) : undefined,
-                ),
-              )
-            : {
-                value: 'unknown',
-                imports: [],
-                schemas: [],
-                type: 'unknow',
-                isEnum: false,
-              };
-        }
-      })
-      .reduce<Array<ResolverValue>>((acc, it) => {
-        if (Array.isArray(it)) {
-          return [...acc, ...it];
-        }
-        return [...acc, it];
-      }, []),
+          },
+        ];
+      }
+
+      if (res.content) {
+        return Object.entries(res.content)
+          .map(([, mediaType], index, arr) => {
+            let propName = key ? pascal(name) + pascal(key) : undefined;
+
+            if (propName && arr.length > 1) {
+              propName = propName + pascal(getNumberWord(index + 1));
+            }
+
+            return getResReqContentTypes({
+              mediaType,
+              propName,
+            });
+          })
+          .filter((x) => x) as ResolverValue[];
+      }
+
+      return [
+        {
+          value: 'unknown',
+          imports: [],
+          schemas: [],
+          type: 'unknow',
+          isEnum: false,
+        },
+      ];
+    });
+
+  return uniqBy(
+    typesArray.reduce<ResolverValue[]>((acc, it) => [...acc, ...it], []),
+    'value',
   );
+};
