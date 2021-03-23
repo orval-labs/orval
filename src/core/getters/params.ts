@@ -63,6 +63,7 @@ export const getParams = ({
         implementation,
         default: schema.default,
         required,
+        imports: resolvedValue.imports,
       };
     } catch (err) {
       throw new Error(

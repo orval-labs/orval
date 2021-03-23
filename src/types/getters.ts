@@ -29,6 +29,7 @@ export type GetterParam = {
   implementation: string;
   default: boolean;
   required: boolean;
+  imports: string[];
 };
 
 export type GetterParams = GetterParam[];

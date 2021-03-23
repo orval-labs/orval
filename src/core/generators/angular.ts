@@ -43,9 +43,11 @@ const generateImports = ({
   response,
   body,
   queryParams,
+  params,
 }: GeneratorVerbOptions) => [
   ...response.imports,
   ...body.imports,
+  ...params.reduce<string[]>((acc, param) => [...acc, ...param.imports], []),
   ...(queryParams ? [queryParams.schema.name] : []),
 ];
 

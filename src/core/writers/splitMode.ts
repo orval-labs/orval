@@ -46,12 +46,6 @@ export const writeSplitMode = ({
       getFileInfo(join(workspace, output.schemas)).dirname,
     );
 
-    console.log(
-      dirname,
-      getFileInfo(join(workspace, output.schemas)).dirname,
-      schemasPath,
-    );
-
     implementationData += generateClientImports(output.client, implementation, [
       { exports: imports, dependency: schemasPath },
     ]);

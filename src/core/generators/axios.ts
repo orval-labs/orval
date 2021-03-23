@@ -45,14 +45,14 @@ const generateAxiosImplementation = (
     verb,
   });
 
-  return `  ${definitionName}(\n    ${toObjectString(
+  return `  ${definitionName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
   )}\n  ) {${generateFormData(body)}
     return ${
       mutator
-        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
-        : `axios.${verb}<${response.definition}>(${options})`
+        ? `${mutator.name}<Data extends unknown ? ${response.definition} : Data>(${axiosConfig})`
+        : `axios.${verb}<Data extends unknown ? ${response.definition} : Data>(${options})`
     };
   },
 `;
@@ -62,9 +62,11 @@ const generateImports = ({
   response,
   body,
   queryParams,
+  params,
 }: GeneratorVerbOptions) => [
   ...response.imports,
   ...body.imports,
+  ...params.reduce<string[]>((acc, param) => [...acc, ...param.imports], []),
   ...(queryParams ? [queryParams.schema.name] : []),
 ];
 

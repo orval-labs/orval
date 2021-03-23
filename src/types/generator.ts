@@ -64,6 +64,7 @@ export type GeneratorOptions = {
   pathRoute: string;
   specs: OpenAPIObject;
   override?: OverrideOutput;
+  mock: boolean;
 };
 
 export type GeneratorClient = {
