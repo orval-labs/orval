@@ -3,6 +3,7 @@ import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
 import { isBoolean, isReference } from '../../utils/is';
+import { count } from '../../utils/occurrence';
 import { resolveMockValue } from '../resolvers/value.mock';
 import { combineSchemasMock } from './combine.mock';
 
@@ -56,7 +57,7 @@ export const getMockObject = ({
     let imports: string[] = [];
     let properties: string[] = [];
     value += Object.entries(item.properties)
-      .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
+      .map(([key, prop]: [string, ReferenceObject | SchemaObject], i) => {
         if (combine?.properties.includes(key)) {
           return undefined;
         }
@@ -64,7 +65,7 @@ export const getMockObject = ({
         const isRequired =
           mockOptions?.required || (item.required || []).includes(key);
 
-        if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
+        if (count(item.path, `.${key}.`) >= 1) {
           return undefined;
         }
 
