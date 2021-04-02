@@ -40,7 +40,8 @@
     "build": "tsc && yarn rollup",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write 'src/**/*.{js,ts}'",
-    "release": "dotenv release-it"
+    "release": "dotenv release-it",
+    "local": "yarn build && yalc publish && yalc push"
   },
   "husky": {
     "hooks": {

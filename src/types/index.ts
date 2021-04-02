@@ -159,5 +159,5 @@ export type ImportOpenApi = {
   input?: InputOptions;
   output?: OutputOptions;
   workspace: string;
-  converterOptions: ConverterOptions;
+  converterOptions?: ConverterOptions;
 };
