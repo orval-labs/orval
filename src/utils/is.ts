@@ -14,7 +14,7 @@ export const isDirectory = (path: string) => {
   return !extname(path);
 };
 
-export function isObject(x: any): x is object {
+export function isObject(x: any): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Object]';
 }
 

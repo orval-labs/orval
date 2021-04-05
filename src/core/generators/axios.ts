@@ -1,5 +1,6 @@
 import {
   GeneratorClient,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
@@ -10,7 +11,7 @@ import { generateAxiosConfig, generateOptions } from './options';
 
 const AXIOS_DEPENDENCIES = [
   {
-    exports: 'axios',
+    exports: [{ name: 'axios', default: true }],
     dependency: 'axios',
   },
 ];
@@ -62,10 +63,15 @@ const generateImports = ({
   response,
   body,
   queryParams,
-}: GeneratorVerbOptions) => [
+  params,
+}: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
-  ...(queryParams ? [queryParams.schema.name] : []),
+  ...params.reduce<GeneratorImport[]>(
+    (acc, param) => [...acc, ...param.imports],
+    [],
+  ),
+  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
 ];
 
 export const generateAxiosTitle = (title: string) => {

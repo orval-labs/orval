@@ -1,70 +1,80 @@
-import { ParameterObject, ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { GeneratorSchema } from '../../types/generator';
-import { pascal, upper } from '../../utils/case';
-import { sanitize } from '../../utils/string';
+import { ParameterObject, SchemaObject } from 'openapi3-ts';
+import { InputTarget } from '../../types';
+import { GeneratorImport, GeneratorSchema } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import { resolveValue } from '../resolvers/value';
+import { getEnum } from './enum';
 import { getKey } from './keys';
 
-const getQueryParamsTypes = (
-  queryParams: (ParameterObject | ReferenceObject)[],
-  definitionName: string,
-) => {
-  return queryParams.map((p) => {
-    const { name, required, schema } = p as {
-      name: string;
-      required: boolean;
-      schema: SchemaObject;
-    };
-
-    const { value, imports, isEnum, type } = resolveValue({ schema: schema! });
-
-    const key = getKey(name);
-
-    if (isEnum) {
-      const enumName = pascal(definitionName) + pascal(name);
-      let enumValue = `export type ${enumName} = ${value};\n`;
-
-      const implementation = value.split(' | ').reduce((acc, val) => {
-        return (
-          acc +
-          `  ${
-            type === 'number' ? `${upper(type)}_${val}` : sanitize(val)
-          }: ${val} as ${enumName},\n`
-        );
-      }, '');
-
-      enumValue += `\n\nexport const ${enumName} = {\n${implementation}};\n`;
-
-      return {
-        definition: `${key}${
-          !required || schema.default ? '?' : ''
-        }: ${enumName}`,
-        imports: [enumName],
-        schemas: [{ name: enumName, model: enumValue, imports }],
-      };
-    }
-
-    const definition = `${key}${
-      !required || schema.default ? '?' : ''
-    }: ${value}`;
-
-    return {
-      definition,
-      imports,
-      schemas: [],
-    };
-  });
+type QueryParamsType = {
+  definition: string;
+  imports: GeneratorImport[];
+  schemas: GeneratorSchema[];
 };
 
-export const getQueryParams = (
-  queryParams: (ParameterObject | ReferenceObject)[] = [],
+const getQueryParamsTypes = (
+  queryParams: (ParameterObject | GeneratorImport)[],
   definitionName: string,
-): { schema: GeneratorSchema; deps: GeneratorSchema[] } | undefined => {
+  target: InputTarget,
+): Promise<QueryParamsType[]> => {
+  return Promise.all(
+    queryParams.map(async (p) => {
+      const { name, required, schema } = p as {
+        name: string;
+        required: boolean;
+        schema: SchemaObject;
+      };
+
+      const { value, imports, isEnum, type, schemas } = await resolveValue({
+        schema: schema!,
+        target,
+        name: pascal(definitionName) + pascal(name),
+      });
+
+      const key = getKey(name);
+
+      if (isEnum) {
+        const enumName = pascal(definitionName) + pascal(name);
+        const enumValue = getEnum(value, type, enumName);
+
+        return {
+          definition: `${key}${
+            !required || schema.default ? '?' : ''
+          }: ${enumName}`,
+          imports: [{ name: enumName }],
+          schemas: [...schemas, { name: enumName, model: enumValue, imports }],
+        };
+      }
+
+      const definition = `${key}${
+        !required || schema.default ? '?' : ''
+      }: ${value}`;
+
+      return {
+        definition,
+        imports,
+        schemas,
+      };
+    }),
+  );
+};
+
+export const getQueryParams = async ({
+  queryParams = [],
+  definitionName,
+  target,
+}: {
+  queryParams: ParameterObject[];
+  definitionName: string;
+  target: InputTarget;
+}): Promise<
+  { schema: GeneratorSchema; deps: GeneratorSchema[] } | undefined
+> => {
   if (!queryParams.length) {
     return;
   }
-  const types = getQueryParamsTypes(queryParams, definitionName);
-  const imports = types.reduce<string[]>(
+  const types = await getQueryParamsTypes(queryParams, definitionName, target);
+  const imports = types.reduce<GeneratorImport[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
     [],
   );

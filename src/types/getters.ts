@@ -1,9 +1,9 @@
 import { ParameterObject } from 'openapi3-ts';
-import { GeneratorSchema } from './generator';
+import { GeneratorImport, GeneratorSchema } from './generator';
 import { ResolverValue } from './resolvers';
 
 export type GetterResponse = {
-  imports: string[];
+  imports: GeneratorImport[];
   definition: string;
   isBlob: boolean;
   types: ResolverValue[];
@@ -11,7 +11,7 @@ export type GetterResponse = {
 };
 
 export type GetterBody = {
-  imports: string[];
+  imports: GeneratorImport[];
   definition: string;
   implementation: string;
   isBlob: boolean;
@@ -19,8 +19,8 @@ export type GetterBody = {
 };
 
 export type GetterParameters = {
-  query?: ParameterObject[];
-  path?: ParameterObject[];
+  query: ParameterObject[];
+  path: ParameterObject[];
 };
 
 export type GetterParam = {
@@ -29,6 +29,7 @@ export type GetterParam = {
   implementation: string;
   default: boolean;
   required: boolean;
+  imports: GeneratorImport[];
 };
 
 export type GetterParams = GetterParam[];

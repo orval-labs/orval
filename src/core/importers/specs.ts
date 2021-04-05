@@ -1,11 +1,10 @@
-import axios from 'axios';
-import { URL_REGEX } from '../../constants';
+import { resolve } from 'path';
 import { Options } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { getExtension } from '../../utils/extension';
-import { getGithubOpenApi } from '../../utils/github';
+import { ActionType, useContext } from '../../utils/context';
 import { isObject, isString } from '../../utils/is';
-import { dynamicReader } from '../../utils/reader';
+import { isUrl } from '../../utils/url';
+import { getSpecData } from './data';
 import { importOpenApi } from './openApi';
 
 export const importSpecs = async (
@@ -14,9 +13,9 @@ export const importSpecs = async (
 ): Promise<WriteSpecsProps> => {
   const { input, output } = options;
 
-  const path = isString(input) ? input : input?.target;
+  const targetPath = isString(input) ? input : input?.target;
 
-  if (!path) {
+  if (!targetPath) {
     throw new Error('You need to provide an input');
   }
 
@@ -24,35 +23,19 @@ export const importSpecs = async (
     throw new Error('You need to provide an output');
   }
 
-  const format = getExtension(path);
+  const [, dispatch] = useContext();
 
-  let data: string | object;
+  const isPathUrl = isUrl(targetPath);
+  const path = isPathUrl ? targetPath : resolve(workspace, targetPath);
 
-  if (URL_REGEX.test(path)) {
-    if (path.includes('github.com')) {
-      data = await getGithubOpenApi(path);
-    } else {
-      try {
-        const { headers, data: specification } = await axios.get(path);
+  const { data, format } = await getSpecData(path);
 
-        if (
-          headers['content-type'] === 'application/json' ||
-          headers['content-type'].includes('text/plain')
-        ) {
-          data = specification;
-        } else {
-          throw 'Oups... 🍻. Unsupported content type';
-        }
-      } catch (error) {
-        throw isString(error) ? error : 'Oups... 🍻';
-      }
-    }
-  } else {
-    data = dynamicReader(path, workspace);
-  }
+  dispatch({
+    type: ActionType.SET_ROOT_SPEC,
+    rootSpec: path,
+  });
 
   return importOpenApi({
-    workspace,
     data,
     format,
     ...(isObject(input) && {
@@ -61,5 +44,7 @@ export const importSpecs = async (
     ...(isObject(output) && {
       output,
     }),
+    path,
+    workspace,
   });
 };

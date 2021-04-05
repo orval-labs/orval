@@ -1,9 +1,9 @@
-import { GeneratorSchema } from './generator';
+import { GeneratorImport, GeneratorSchema } from './generator';
 
 export type ResolverValue = {
   value: string;
   isEnum: boolean;
   type: string;
-  imports: string[];
+  imports: GeneratorImport[];
   schemas: GeneratorSchema[];
 };

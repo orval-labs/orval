@@ -21,10 +21,9 @@ export const writeSingleMode = ({
   output,
 }: WriteSpecsProps & { workspace: string; output: string | OutputOptions }) => {
   const targetedPath = isString(output) ? output : output.target || '';
-  const { path, dirname } = getFileInfo(
-    join(workspace, targetedPath),
-    camel(info.title),
-  );
+  const { path, dirname } = getFileInfo(join(workspace, targetedPath), {
+    backupFilename: camel(info.title),
+  });
 
   if (!existsSync(dirname)) {
     mkdirSync(dirname);
@@ -32,9 +31,9 @@ export const writeSingleMode = ({
 
   const {
     imports,
+    importsMSW,
     implementation,
     implementationMSW,
-    importsMSW,
     mutators,
   } = generateTarget(operations, info, isObject(output) ? output : undefined);
 

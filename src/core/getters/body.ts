@@ -1,16 +1,22 @@
 import { ReferenceObject, RequestBodyObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
-import { GeneratorSchema } from '../../types/generator';
+import { InputTarget } from '../../types';
+import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterBody } from '../../types/getters';
 import { camel } from '../../utils/case';
 import { getResReqTypes } from './resReqTypes';
 
-export const getBody = (
+export const getBody = async (
   requestBody: ReferenceObject | RequestBodyObject,
   operationId: string,
-): GetterBody => {
-  const allBodyTypes = getResReqTypes([['body', requestBody]], operationId);
-  const imports = allBodyTypes.reduce<string[]>(
+  target: InputTarget,
+): Promise<GetterBody> => {
+  const allBodyTypes = await getResReqTypes(
+    [['body', requestBody]],
+    operationId,
+    target,
+  );
+  const imports = allBodyTypes.reduce<GeneratorImport[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
     [],
   );

@@ -9,9 +9,10 @@ import { generateImports } from '../generators/imports';
 const getModel = (
   info: InfoObject,
   { imports, model }: GeneratorSchema,
+  refSpec: boolean,
 ): string => {
   let file = getFilesHeader(info);
-  file += generateImports(imports);
+  file += generateImports(imports, refSpec);
   file += imports.length ? '\n\n' : '\n';
   file += model;
   return file;
@@ -30,9 +31,10 @@ export const writeModel = (
   path: string,
   info: InfoObject,
   spec: GeneratorSchema,
+  refSpec: boolean,
 ) => {
   const name = camel(spec.name);
-  writeFileSync(getPath(path, name), getModel(info, spec));
+  writeFileSync(getPath(path, name), getModel(info, spec, refSpec));
   const indexPath = getPath(path, 'index');
 
   readFile(indexPath, function (err, data) {
@@ -51,4 +53,5 @@ export const writeModels = (
   models: GeneratorSchema[],
   path: string,
   info: InfoObject,
-) => models.forEach((model) => writeModel(path, info, model));
+  refSpec: boolean,
+) => models.forEach((model) => writeModel(path, info, model, refSpec));

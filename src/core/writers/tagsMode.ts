@@ -22,7 +22,7 @@ export const writeTagsMode = ({
 }: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
   const { path, filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
-    camel(info.title),
+    { backupFilename: camel(info.title) },
   );
 
   if (!existsSync(dirname)) {
@@ -34,9 +34,9 @@ export const writeTagsMode = ({
   Object.entries(target).forEach(([tag, target]) => {
     const {
       imports,
-      importsMSW,
       implementation,
       implementationMSW,
+      importsMSW,
       mutators,
     } = target;
     const header = getFilesHeader(info);

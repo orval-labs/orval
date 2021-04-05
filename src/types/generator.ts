@@ -1,18 +1,23 @@
 import { OpenAPIObject } from 'openapi3-ts';
 import {
   GetterBody,
-  GetterParameters,
   GetterParams,
   GetterProps,
   GetterQueryParam,
   GetterResponse,
 } from './getters';
-import { OperationOptions, OverrideOutput, Verbs } from './index';
+import { InputTarget, OperationOptions, OverrideOutput, Verbs } from './index';
 
 export type GeneratorSchema = {
   name: string;
   model: string;
-  imports: string[];
+  imports: GeneratorImport[];
+};
+
+export type GeneratorImport = {
+  name: string;
+  specKey?: string;
+  default?: boolean;
 };
 
 export type GeneratorApiResponse = {
@@ -25,18 +30,18 @@ export type GeneratorOperations = {
 };
 
 export type GeneratorTarget = {
-  imports: string[];
+  imports: GeneratorImport[];
   implementation: string;
   implementationMSW: string;
-  importsMSW: string[];
+  importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
-  imports: string[];
+  imports: GeneratorImport[];
   implementation: string;
   implementationMSW: string;
-  importsMSW: string[];
+  importsMSW: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
 };
@@ -50,7 +55,6 @@ export type GeneratorVerbOptions = {
   overrideOperation: OperationOptions | undefined;
   response: GetterResponse;
   body: GetterBody;
-  parameters: GetterParameters;
   queryParams?: GetterQueryParam;
   params: GetterParams;
   props: GetterProps;
@@ -64,11 +68,13 @@ export type GeneratorOptions = {
   pathRoute: string;
   specs: OpenAPIObject;
   override?: OverrideOutput;
+  target: InputTarget;
+  mock: boolean;
 };
 
 export type GeneratorClient = {
   implementation: string;
-  imports: string[];
+  imports: GeneratorImport[];
 };
 
 export type GeneratorClientExtra = {

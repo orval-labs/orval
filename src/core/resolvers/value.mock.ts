@@ -1,9 +1,10 @@
 import { SchemaObject } from 'openapi3-ts';
-import { MockOptions } from '../../types';
+import { InputTarget, MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
 import { isReference } from '../../utils/is';
-import { getRef } from '../getters/ref';
+import { getRefInfo } from '../getters/ref';
 import { getMockScalar } from '../getters/scalar.mock';
+import { getSchema } from '../getters/schema';
 
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
@@ -41,28 +42,35 @@ export const resolveMockOverride = (
 export const getNullable = (value: string, nullable?: boolean) =>
   nullable ? `faker.helpers.randomize([${value}, null])` : value;
 
-export const resolveMockValue = ({
+export const resolveMockValue = async ({
   schema,
   schemas,
   mockOptions,
   operationId,
   tags,
   combine,
+  target,
 }: {
-  schema: SchemaObject & { name: string; path?: string };
+  schema: SchemaObject & { name: string; path?: string; specKey?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
   combine?: { properties: string[] };
-}): MockDefinition => {
+  target: InputTarget;
+}): Promise<MockDefinition> => {
   if (isReference(schema)) {
-    const value = getRef(schema.$ref);
+    const { name, specKey } = await getRefInfo(schema.$ref, {
+      ...target,
+      path: schema.specKey || target.path,
+    });
+
     const newSchema = {
-      ...schemas[value],
-      name: value,
+      ...getSchema(name, schemas, specKey || schema.specKey),
+      name,
       path: schema.path,
       isRef: true,
+      specKey: specKey || schema.specKey,
     };
 
     return getMockScalar({
@@ -72,6 +80,7 @@ export const resolveMockValue = ({
       operationId,
       tags,
       combine,
+      target,
     });
   }
 
@@ -82,5 +91,6 @@ export const resolveMockValue = ({
     operationId,
     tags,
     combine,
+    target,
   });
 };

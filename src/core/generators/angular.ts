@@ -1,5 +1,6 @@
 import {
   GeneratorClient,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
@@ -10,15 +11,15 @@ import { generateAxiosConfig, generateOptions } from './options';
 
 const ANGULAR_DEPENDENCIES = [
   {
-    exports: ['HttpClient'],
+    exports: [{ name: 'HttpClient' }],
     dependency: '@angular/common/http',
   },
   {
-    exports: ['Injectable'],
+    exports: [{ name: 'Injectable' }],
     dependency: '@angular/core',
   },
   {
-    exports: ['Observable'],
+    exports: [{ name: 'Observable' }],
     dependency: 'rxjs',
   },
 ];
@@ -43,10 +44,15 @@ const generateImports = ({
   response,
   body,
   queryParams,
-}: GeneratorVerbOptions) => [
+  params,
+}: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
-  ...(queryParams ? [queryParams.schema.name] : []),
+  ...params.reduce<GeneratorImport[]>(
+    (acc, param) => [...acc, ...param.imports],
+    [],
+  ),
+  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
 ];
 
 const generateImplementation = (

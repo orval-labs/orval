@@ -5,7 +5,6 @@ import {
   GeneratorTarget,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { generalTypesFilter } from '../../utils/filters';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -78,8 +77,8 @@ export const generateTargetForTags = (
               implementation: target.implementation + footer.implementation,
               implementationMSW:
                 target.implementationMSW + footer.implementationMSW,
-              imports: generalTypesFilter(target.imports),
-              importsMSW: generalTypesFilter(target.importsMSW),
+              imports: target.imports,
+              importsMSW: target.importsMSW,
               mutators: target.mutators,
             },
           };

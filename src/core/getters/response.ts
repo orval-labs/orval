@@ -1,28 +1,34 @@
 import { ReferenceObject, ResponseObject, ResponsesObject } from 'openapi3-ts';
-import { GeneratorSchema } from '../../types/generator';
+import { InputTarget } from '../../types';
+import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { getResReqTypes } from './resReqTypes';
 
 const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
   statusCode.toString().startsWith('2');
 
-export const getResponse = (
+export const getResponse = async (
   responses: ResponsesObject,
   operationId: string,
-): GetterResponse => {
-  const types = responses
-    ? getResReqTypes(Object.entries(responses).filter(isOk), operationId)
-    : [
-        {
-          value: 'unknown',
-          imports: [],
-          schemas: [],
-          type: 'unknow',
-          isEnum: false,
-        },
-      ];
+  target: InputTarget,
+): Promise<GetterResponse> => {
+  if (!responses) {
+    return {
+      imports: [],
+      definition: '',
+      isBlob: false,
+      types: [],
+      schemas: [],
+    };
+  }
 
-  const imports = types.reduce<string[]>(
+  const types = await getResReqTypes(
+    Object.entries(responses).filter(isOk),
+    operationId,
+    target,
+  );
+
+  const imports = types.reduce<GeneratorImport[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
     [],
   );

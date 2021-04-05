@@ -1,15 +1,16 @@
-import uniq from 'lodash/uniq';
 import {
   MediaTypeObject,
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
 } from 'openapi3-ts';
+import { InputTarget } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
+import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
-import { getRef } from './ref';
+import { getRefInfo } from './ref';
 
 const CONTENT_TYPES = [
   'application/json',
@@ -18,11 +19,17 @@ const CONTENT_TYPES = [
   'multipart/form-data',
 ];
 
-const getResReqContentTypes = (
-  type: string,
-  mediaType: MediaTypeObject,
-  propName?: string,
-) => {
+const getResReqContentTypes = ({
+  type,
+  mediaType,
+  propName,
+  target,
+}: {
+  type: string;
+  mediaType: MediaTypeObject;
+  propName?: string;
+  target: InputTarget;
+}) => {
   if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
     return {
       value: 'unknown',
@@ -33,7 +40,7 @@ const getResReqContentTypes = (
     };
   }
 
-  return resolveObject({ schema: mediaType.schema, propName });
+  return resolveObject({ schema: mediaType.schema, propName, target });
 };
 
 /**
@@ -41,47 +48,60 @@ const getResReqContentTypes = (
  *
  * @param responsesOrRequests reponses or requests object from open-api specs
  */
-export const getResReqTypes = (
+export const getResReqTypes = async (
   responsesOrRequests: Array<
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >,
   name: string,
-): Array<ResolverValue> =>
-  uniq(
+  target: InputTarget,
+): Promise<Array<ResolverValue>> => {
+  const typesArray = await Promise.all(
     responsesOrRequests
       .filter(([_, res]) => Boolean(res))
-      .map(([key, res]) => {
+      .map(async ([key, res]) => {
         if (isReference(res)) {
-          const value = getRef(res.$ref);
-          return {
-            value,
-            imports: [value],
+          const { name, specKey } = await getRefInfo(res.$ref, target);
+          return [
+            {
+              value: name,
+              imports: [{ name, specKey }],
+              schemas: [],
+              type: 'ref',
+              isEnum: false,
+            },
+          ] as ResolverValue[];
+        }
+
+        if (res.content) {
+          return Promise.all(
+            Object.entries(res.content).map(([type, mediaType], index, arr) => {
+              let propName = key ? pascal(name) + pascal(key) : undefined;
+
+              if (propName && arr.length > 1) {
+                propName = propName + pascal(getNumberWord(index + 1));
+              }
+
+              return getResReqContentTypes({
+                type,
+                mediaType,
+                propName,
+                target,
+              });
+            }),
+          );
+        }
+
+        return [
+          {
+            value: 'unknown',
+            imports: [],
             schemas: [],
-            type: 'ref',
+            type: 'unknow',
             isEnum: false,
-          };
-        } else {
-          return res.content
-            ? Object.entries(res.content).map(([type, mediaType]) =>
-                getResReqContentTypes(
-                  type,
-                  mediaType,
-                  key ? pascal(name) + pascal(key) : undefined,
-                ),
-              )
-            : {
-                value: 'unknown',
-                imports: [],
-                schemas: [],
-                type: 'unknow',
-                isEnum: false,
-              };
-        }
-      })
-      .reduce<Array<ResolverValue>>((acc, it) => {
-        if (Array.isArray(it)) {
-          return [...acc, ...it];
-        }
-        return [...acc, it];
-      }, []),
+          },
+        ] as ResolverValue[];
+      }),
   );
+
+  return typesArray.reduce<ResolverValue[]>((acc, it) => [...acc, ...it], []);
+};

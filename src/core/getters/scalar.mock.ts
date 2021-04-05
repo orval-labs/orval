@@ -1,6 +1,7 @@
 import { SchemaObject } from 'openapi3-ts';
 import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
-import { MockOptions } from '../../types';
+import { InputTarget, MockOptions } from '../../types';
+import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { mergeDeep } from '../../utils/mergeDeep';
 import {
@@ -10,22 +11,29 @@ import {
 } from '../resolvers/value.mock';
 import { getMockObject } from './object.mock';
 
-export const getMockScalar = ({
+export const getMockScalar = async ({
   item,
   schemas,
   mockOptions,
   operationId,
   tags,
   combine,
+  target,
 }: {
-  item: SchemaObject & { name: string; path?: string; isRef?: boolean };
+  item: SchemaObject & {
+    name: string;
+    path?: string;
+    isRef?: boolean;
+    specKey?: string;
+  };
   schemas: { [key: string]: SchemaObject };
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
   tags: string[];
   combine?: { properties: string[] };
-}): MockDefinition => {
+  target: InputTarget;
+}): Promise<MockDefinition> => {
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
@@ -88,17 +96,19 @@ export const getMockScalar = ({
         return { value: [], imports: [], name: item.name };
       }
 
-      const { value, enums, imports, name } = resolveMockValue({
+      const { value, enums, imports, name } = await resolveMockValue({
         schema: {
           ...item.items,
           name: item.name,
           path: item.path ? `${item.path}.[]` : '#.[]',
+          specKey: item.specKey,
         },
         schemas,
         combine,
         mockOptions,
         operationId,
         tags,
+        target,
       });
 
       if (enums) {
@@ -124,14 +134,14 @@ export const getMockScalar = ({
 
     case 'string': {
       let value = 'faker.random.word()';
-      let imports: string[] = [];
+      let imports: GeneratorImport[] = [];
 
       if (item.enum) {
         let enumValue = "['" + item.enum.join("','") + "']";
 
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
-          imports = [item.name];
+          imports = [{ name: item.name }];
         }
 
         value = `faker.helpers.randomize(${enumValue})`;
@@ -154,6 +164,7 @@ export const getMockScalar = ({
         operationId,
         tags,
         combine,
+        target,
       });
     }
   }

@@ -1,28 +1,36 @@
 import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
+import { InputTarget } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
+import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { isBoolean, isReference } from '../../utils/is';
 import { resolveObject } from '../resolvers/object';
 import { resolveValue } from '../resolvers/value';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
-import { getRef } from './ref';
+import { getRefInfo } from './ref';
 
 /**
  * Return the output type from an object
  *
  * @param item item with type === "object"
  */
-export const getObject = (
-  item: SchemaObject,
-  name?: string,
-  schemas: SchemasObject = {},
-): ResolverValue => {
+export const getObject = async ({
+  item,
+  name,
+  schemas = {},
+  target,
+}: {
+  item: SchemaObject;
+  name?: string;
+  schemas: SchemasObject;
+  target: InputTarget;
+}): Promise<ResolverValue> => {
   if (isReference(item)) {
-    const value = getRef(item.$ref);
+    const { name, specKey } = await getRefInfo(item.$ref, target);
     return {
-      value,
-      imports: [value],
+      value: name,
+      imports: [{ name, specKey }],
       schemas: [],
       isEnum: false,
       type: 'object',
@@ -30,20 +38,39 @@ export const getObject = (
   }
 
   if (item.allOf) {
-    return combineSchemas({ items: item.allOf, name, schemas, separator: '&' });
+    return combineSchemas({
+      items: item.allOf,
+      name,
+      schemas,
+      separator: 'allOf',
+      target,
+    });
   }
 
   if (item.oneOf) {
-    return combineSchemas({ items: item.oneOf, name, schemas, separator: '|' });
+    return combineSchemas({
+      items: item.oneOf,
+      name,
+      schemas,
+      separator: 'oneOf',
+      target,
+    });
   }
 
   if (item.anyOf) {
-    return combineSchemas({ items: item.anyOf, name, schemas, separator: '|' });
+    return combineSchemas({
+      items: item.anyOf,
+      name,
+      schemas,
+      separator: 'anyOf',
+      target,
+    });
   }
 
   if (item.properties) {
-    return Object.entries(item.properties).reduce<ResolverValue>(
-      (
+    return asyncReduce(
+      Object.entries(item.properties),
+      async (
         acc,
         [key, schema]: [string, ReferenceObject | SchemaObject],
         index,
@@ -51,7 +78,12 @@ export const getObject = (
       ) => {
         const isRequired = (item.required || []).includes(key);
         const propName = name ? name + pascal(key) : undefined;
-        const resolvedValue = resolveObject({ schema, propName, schemas });
+        const resolvedValue = await resolveObject({
+          schema,
+          propName,
+          schemas,
+          target,
+        });
         const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
         if (!index) {
           acc.value += '{';
@@ -74,7 +106,7 @@ export const getObject = (
         value: '',
         isEnum: false,
         type: 'object',
-      },
+      } as ResolverValue,
     );
   }
 
@@ -88,10 +120,11 @@ export const getObject = (
         type: 'object',
       };
     }
-    const resolvedValue = resolveValue({
+    const resolvedValue = await resolveValue({
       schema: item.additionalProperties,
       name,
       schemas,
+      target,
     });
     return {
       value: `{[key: string]: ${resolvedValue.value}}`,

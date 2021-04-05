@@ -1,24 +1,40 @@
 import { uniq, uniqWith } from 'lodash';
-import { GeneratorMutator } from '../../types/generator';
+import { join } from 'path';
+import { GeneratorImport, GeneratorMutator } from '../../types/generator';
 import { camel } from '../../utils/case';
-import { isString } from '../../utils/is';
+import { useContext } from '../../utils/context';
 
 export const generateImports = (
-  imports: string[] = [],
-  path: string = '.',
-  pathOnly: boolean = false,
+  imports: GeneratorImport[] = [],
+  refSpec: boolean,
 ) => {
   if (!imports.length) {
     return '';
   }
-  if (pathOnly) {
-    return `import {\n  ${imports
-      .sort()
-      .join(',\n  ')},\n} from \'${path}\';\n`;
-  }
-  return imports
+
+  const [context] = useContext();
+  return uniqWith(
+    imports,
+    (a, b) =>
+      a.name === b.name && a.default === b.default && a.specKey === b.specKey,
+  )
     .sort()
-    .map((imp) => `import { ${imp} } from \'${path}/${camel(imp)}\';`)
+    .map(({ specKey, name }) => {
+      if (specKey) {
+        const path =
+          specKey !== context.rootSpec
+            ? context.specs[specKey].basePath.slice(1).split('/').join('-')
+            : '';
+
+        if (refSpec && specKey) {
+          return `import { ${name} } from \'../${join(path, camel(name))}\';`;
+        }
+
+        return `import { ${name} } from \'./${join(path, camel(name))}\';`;
+      }
+
+      return `import { ${name} } from \'./${camel(name)}\';`;
+    })
     .join('\n');
 };
 
@@ -50,29 +66,46 @@ export const addDependency = ({
   dependency,
 }: {
   implementation: string;
-  exports: string[] | string;
+  exports: GeneratorImport[];
   dependency: string;
 }) => {
-  if (isString(exports)) {
-    if (!implementation.includes(exports)) {
-      return undefined;
-    }
-    return `import ${exports} from '${dependency}'`;
-  }
-
-  const toAdds = exports.filter((e) => implementation.includes(e));
+  const toAdds = exports.filter((e) => implementation.includes(e.name));
 
   if (!toAdds.length) {
     return undefined;
   }
 
-  return `import {\n  ${uniq(toAdds).join(',\n  ')}\n} from '${dependency}'`;
+  const groupedBySpecKey = toAdds.reduce<
+    Record<string, { name: string; default?: boolean }[]>
+  >(
+    (acc, { specKey, ...rest }) => ({
+      ...acc,
+      [specKey || 'default']: [...(acc[specKey || 'default'] || []), rest],
+    }),
+    {},
+  );
+
+  return Object.entries(groupedBySpecKey)
+    .map(([key, values]) => {
+      const defaultDep = values.find((e) => e.default);
+
+      const deps = uniq(
+        values.filter((e) => !e.default).map(({ name }) => name),
+      ).join(',\n  ');
+
+      return `import ${
+        defaultDep ? `${defaultDep.name}${deps ? ',' : ''}` : ''
+      }${deps ? `{\n  ${deps}\n}` : ''} from '${dependency}${
+        key !== 'default' ? `/${key}` : ''
+      }'`;
+    })
+    .join('\n');
 };
 
 export const generateDependencyImports = (
   implementation: string,
   imports: {
-    exports: string[] | string;
+    exports: GeneratorImport[];
     dependency: string;
   }[],
 ): string => {

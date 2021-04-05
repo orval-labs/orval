@@ -1,8 +1,11 @@
 import { InfoObject } from 'openapi3-ts';
 import { OutputOptions } from '../../types';
-import { GeneratorMutator, GeneratorOperations } from '../../types/generator';
+import {
+  GeneratorImport,
+  GeneratorMutator,
+  GeneratorOperations,
+} from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { generalTypesFilter } from '../../utils/filters';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -36,15 +39,15 @@ export const generateTarget = (
         const footer = generateClientFooter(options?.client);
         acc.implementation += footer.implementation;
         acc.implementationMSW += footer.implementationMSW;
-        acc.imports = generalTypesFilter(acc.imports);
+        acc.imports = acc.imports;
       }
       return acc;
     },
     {
-      imports: [] as string[],
+      imports: [] as GeneratorImport[],
       implementation: '',
       implementationMSW: '',
-      importsMSW: [] as string[],
+      importsMSW: [] as GeneratorImport[],
       mutators: [] as GeneratorMutator[],
     },
   );

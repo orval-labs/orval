@@ -1,27 +1,22 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
-import { OutputOptions } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { writeModels } from './models';
 
 export const writeSchemas = ({
   workspace,
-  output,
+  schemaPath,
   schemas,
   info,
+  refSpec = false,
 }: {
   workspace: string;
-  output: OutputOptions;
+  schemaPath: string;
   schemas: GeneratorSchema[];
   info: InfoObject;
+  refSpec?: boolean;
 }) => {
-  if (!output.schemas) {
-    return;
-  }
-
-  const schemaPath = join(workspace, output.schemas);
-
   if (!existsSync(schemaPath)) {
     mkdirSync(schemaPath);
   }
@@ -30,5 +25,5 @@ export const writeSchemas = ({
     writeFileSync(join(schemaPath, '/index.ts'), '');
   }
 
-  writeModels(schemas, schemaPath, info);
+  writeModels(schemas, schemaPath, info, refSpec);
 };

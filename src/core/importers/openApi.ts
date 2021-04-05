@@ -3,6 +3,7 @@ import swagger2openapi from 'swagger2openapi';
 import YAML from 'yamljs';
 import { ImportOpenApi } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { ActionType, useContext } from '../../utils/context';
 import { dynamicImport } from '../../utils/imports';
 import { generateApi } from '../generators/api';
 import { generateResponsesDefinition } from '../generators/responsesDefinition';
@@ -16,7 +17,7 @@ import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
  * @param data raw data of the spec
  * @param format format of the spec
  */
-const importSpecs = (
+export const validateSpecs = (
   data: string | object,
   extension: 'yaml' | 'json',
 ): Promise<OpenAPIObject> => {
@@ -42,7 +43,7 @@ const importSpecs = (
       }
     });
   } catch (e) {
-    throw 'Oups... 🍻. Parsing Error';
+    throw `Oups... 🍻. Parsing Error: ${e}`;
   }
 };
 
@@ -59,28 +60,40 @@ export const importOpenApi = async ({
   format,
   input,
   output,
+  path,
   workspace,
 }: ImportOpenApi): Promise<WriteSpecsProps> => {
-  let specs = await importSpecs(data, format);
+  let specs = await validateSpecs(data, format);
+  const [, disatch] = useContext();
 
   if (input?.override?.transformer) {
-    const transformerFn = dynamicImport(input.override.transformer, workspace);
+    const transformerFn = await dynamicImport(
+      input.override.transformer,
+      workspace,
+    );
+    disatch({ type: ActionType.SET_TRANSFORMER, transformer: transformerFn });
     specs = transformerFn(specs);
   }
 
   if (input?.validation) {
+    disatch({ type: ActionType.SET_VALIDATION });
     await ibmOpenapiValidator(specs);
   }
 
   resolveDiscriminator(specs);
 
-  const schemaDefinition = generateSchemasDefinition(specs.components?.schemas);
-
-  const responseDefinition = generateResponsesDefinition(
-    specs.components?.responses,
+  const target = { path, workspace };
+  const schemaDefinition = await generateSchemasDefinition(
+    specs.components?.schemas,
+    target,
   );
 
-  const api = generateApi(workspace, specs, output);
+  const responseDefinition = await generateResponsesDefinition(
+    specs.components?.responses,
+    target,
+  );
+
+  const api = await generateApi({ specs, output, target });
 
   const schemas = [...schemaDefinition, ...responseDefinition, ...api.schemas];
 

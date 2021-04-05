@@ -119,5 +119,11 @@ export type ImportOpenApi = {
   format: 'yaml' | 'json';
   input?: InputOptions;
   output?: OutputOptions;
+  path: string;
   workspace: string;
 };
+
+export interface InputTarget {
+  path: string;
+  workspace: string;
+}

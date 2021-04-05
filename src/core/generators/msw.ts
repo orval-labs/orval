@@ -1,4 +1,8 @@
-import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import {
+  GeneratorImport,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+} from '../../types/generator';
 import { sanitize } from '../../utils/string';
 import { generateDependencyImports } from './imports';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -35,11 +39,11 @@ export const getRoute = (route: string) => {
 
 const MSW_DEPENDENCIES = [
   {
-    exports: ['rest'],
+    exports: [{ name: 'rest' }],
     dependency: 'msw',
   },
   {
-    exports: 'faker',
+    exports: [{ name: 'faker', default: true }],
     dependency: 'faker',
   },
 ];
@@ -47,7 +51,7 @@ const MSW_DEPENDENCIES = [
 export const generateMSWImports = (
   implementation: string,
   imports: {
-    exports: string[];
+    exports: GeneratorImport[];
     dependency: string;
   }[],
 ): string => {
@@ -57,17 +61,18 @@ export const generateMSWImports = (
   ]);
 };
 
-export const generateMSW = (
+export const generateMSW = async (
   { operationId, response, verb, tags }: GeneratorVerbOptions,
-  { specs, pathRoute, override }: GeneratorOptions,
+  { specs, pathRoute, override, target }: GeneratorOptions,
 ) => {
-  const { definitions, definition, imports } = getMockDefinition(
+  const { definitions, definition, imports } = await getMockDefinition({
     operationId,
     tags,
     response,
     specs,
     override,
-  );
+    target,
+  });
 
   const route = getRoute(pathRoute);
   const mockData = getMockOptionsDataOverride(operationId, override);

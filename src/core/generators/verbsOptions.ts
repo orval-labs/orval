@@ -5,11 +5,17 @@ import {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts';
-import { OperationOptions, OutputOptions, Verbs } from '../../types';
+import {
+  InputTarget,
+  OperationOptions,
+  OutputOptions,
+  Verbs,
+} from '../../types';
 import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
+import { asyncReduce } from '../../utils/async-reduce';
 import { camel } from '../../utils/case';
 import { dynamicImport } from '../../utils/imports';
 import { mergeDeep } from '../../utils/mergeDeep';
@@ -21,23 +27,23 @@ import { getQueryParams } from '../getters/queryParams';
 import { getResponse } from '../getters/response';
 import { generateMutator } from './mutator';
 
-const generateVerbOptions = ({
-  workspace,
+const generateVerbOptions = async ({
   verb,
-  options = {},
+  output = {},
   operation,
   route,
   verbParameters = [],
   components,
+  target,
 }: {
-  workspace: string;
   verb: string;
-  options?: OutputOptions;
+  output?: OutputOptions;
   operation: OperationObject;
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
   components?: ComponentsObject;
-}): GeneratorVerbOptions => {
+  target: InputTarget;
+}): Promise<GeneratorVerbOptions> => {
   const {
     operationId,
     responses,
@@ -45,9 +51,10 @@ const generateVerbOptions = ({
     parameters: operationParameters,
     tags = [],
   } = operation;
-  const { override, target } = options;
-  const overrideOperation = override?.operations?.[operation.operationId!];
-  const overrideTag = Object.entries(override?.tags || {}).reduce<
+
+  const overrideOperation =
+    output.override?.operations?.[operation.operationId!];
+  const overrideTag = Object.entries(output.override?.tags || {}).reduce<
     OperationOptions | undefined
   >(
     (acc, [tag, options]) =>
@@ -57,31 +64,39 @@ const generateVerbOptions = ({
 
   const definitionName = camel(operation.operationId!);
 
-  const response = getResponse(responses, operationId!);
+  const response = await getResponse(responses, operationId!, target);
 
-  const body = getBody(requestBody!, operationId!);
+  const body = await getBody(requestBody!, operationId!, target);
 
-  const parameters = getParameters(
-    [...verbParameters, ...(operationParameters || [])],
+  const parameters = await getParameters({
+    parameters: [...verbParameters, ...(operationParameters || [])],
     components,
-  );
+    target,
+  });
 
-  const queryParams = getQueryParams(parameters.query, definitionName);
+  const queryParams = await getQueryParams({
+    queryParams: parameters.query,
+    definitionName,
+    target,
+  });
 
-  const params = getParams({
+  const params = await getParams({
     route,
     pathParams: parameters.path,
-    operation,
+    operationId: operationId!,
+    target,
   });
 
   const props = getProps({ body, queryParams: queryParams?.schema, params });
 
   const mutator = generateMutator({
-    output: target,
+    output: output.target,
     body,
     name: camel(operationId!),
     mutator:
-      overrideOperation?.mutator || overrideTag?.mutator || override?.mutator,
+      overrideOperation?.mutator ||
+      overrideTag?.mutator ||
+      output.override?.mutator,
   });
 
   const verbOption = {
@@ -93,38 +108,38 @@ const generateVerbOptions = ({
     overrideOperation,
     response,
     body,
-    parameters,
     queryParams,
     params,
     props,
     mutator,
   };
 
-  const transformer = dynamicImport(
+  const transformer = await dynamicImport(
     overrideOperation?.transformer ||
       overrideTag?.transformer ||
-      override?.transformer,
-    workspace,
+      output.override?.transformer,
+    target.workspace,
   );
 
   return transformer ? transformer(verbOption) : verbOption;
 };
 
 export const generateVerbsOptions = ({
-  workspace,
   verbs,
-  options,
+  output,
   route,
   components,
+  target,
 }: {
-  workspace: string;
   verbs: PathItemObject;
-  options?: OutputOptions;
+  output?: OutputOptions;
   route: string;
   components?: ComponentsObject;
-}): GeneratorVerbsOptions =>
-  Object.entries(verbs).reduce<GeneratorVerbsOptions>(
-    (acc, [verb, operation]: [string, OperationObject]) => {
+  target: InputTarget;
+}): Promise<GeneratorVerbsOptions> =>
+  asyncReduce(
+    Object.entries(verbs),
+    async (acc, [verb, operation]: [string, OperationObject]) => {
       if (!Object.values(Verbs).includes(verb as Verbs)) {
         return acc;
       }
@@ -134,17 +149,17 @@ export const generateVerbsOptions = ({
           `Every path must have a operationId - No operationId set for ${verb} ${route}`,
         );
       }
-      const verbOptions = generateVerbOptions({
-        workspace,
+      const verbOptions = await generateVerbOptions({
         verb,
-        options,
+        output,
         verbParameters: verbs.parameters,
         route,
         components,
         operation,
+        target,
       });
 
       return [...acc, verbOptions];
     },
-    [],
+    [] as GeneratorVerbsOptions,
   );

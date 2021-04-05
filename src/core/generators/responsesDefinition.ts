@@ -1,8 +1,9 @@
 import isEmpty from 'lodash/isEmpty';
 import { ComponentsObject } from 'openapi3-ts';
-import { GeneratorSchema } from '../../types/generator';
+import { InputTarget } from '../../types';
+import { GeneratorImport, GeneratorSchema } from '../../types/generator';
+import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
-import { generalTypesFilter } from '../../utils/filters';
 import { getResReqTypes } from '../getters/resReqTypes';
 
 /**
@@ -12,19 +13,22 @@ import { getResReqTypes } from '../getters/resReqTypes';
  */
 export const generateResponsesDefinition = (
   responses: ComponentsObject['responses'] = {},
-): Array<GeneratorSchema> => {
+  target: InputTarget,
+): Promise<GeneratorSchema[]> => {
   if (isEmpty(responses)) {
-    return [];
+    return Promise.resolve([]);
   }
 
-  return Object.entries(responses).reduce<GeneratorSchema[]>(
-    (acc, [name, response]) => {
-      const allResponseTypes = getResReqTypes(
-        [['responseData', response]],
+  return asyncReduce(
+    Object.entries(responses),
+    async (acc, [name, response]) => {
+      const allResponseTypes = await getResReqTypes(
+        [['Response', response]],
         name,
+        target,
       );
 
-      const imports = allResponseTypes.reduce<string[]>(
+      const imports = allResponseTypes.reduce<GeneratorImport[]>(
         (acc, { imports = [] }) => [...acc, ...imports],
         [],
       );
@@ -34,20 +38,23 @@ export const generateResponsesDefinition = (
       );
       const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-      const model = `export type ${pascal(name)}Response = ${
-        type || 'unknown'
-      };\n`;
+      const modelName = `${pascal(name)}Response`;
+      const model = `export type ${modelName} = ${type || 'unknown'};\n`;
 
       return [
         ...acc,
         ...schemas,
-        {
-          name: `${pascal(name)}Response`,
-          model,
-          imports: generalTypesFilter(imports),
-        },
+        ...(modelName !== type
+          ? [
+              {
+                name: modelName,
+                model,
+                imports,
+              },
+            ]
+          : []),
       ];
     },
-    [],
+    [] as GeneratorSchema[],
   );
 };

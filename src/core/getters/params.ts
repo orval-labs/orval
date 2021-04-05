@@ -1,4 +1,5 @@
-import { OperationObject, ParameterObject, SchemaObject } from 'openapi3-ts';
+import { ParameterObject, SchemaObject } from 'openapi3-ts';
+import { InputTarget } from '../../types';
 import { GetterParams } from '../../types/getters';
 import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
@@ -28,46 +29,53 @@ export const getParamsInPath = (path: string) => {
 export const getParams = ({
   route,
   pathParams = [],
-  operation,
+  operationId,
+  target,
 }: {
   route: string;
   pathParams?: ParameterObject[];
-  operation: OperationObject;
-}): GetterParams => {
+  operationId: string;
+  target: InputTarget;
+}): Promise<GetterParams> => {
   const params = getParamsInPath(route);
-  return params.map((p) => {
-    try {
-      const { name: nameWithoutSanitize, required, schema } = pathParams.find(
-        (i) => sanitize(i.name) === p,
-      ) as {
-        name: string;
-        required: boolean;
-        schema: SchemaObject;
-      };
+  return Promise.all(
+    params.map(async (p) => {
+      try {
+        const { name: nameWithoutSanitize, required, schema } = pathParams.find(
+          (i) => sanitize(i.name) === p,
+        ) as {
+          name: string;
+          required: boolean;
+          schema: SchemaObject;
+        };
 
-      const name = sanitize(nameWithoutSanitize);
+        const name = sanitize(nameWithoutSanitize);
 
-      const resolvedValue = resolveValue({ schema });
+        const resolvedValue = await resolveValue({ schema, target });
 
-      const definition = `${name}${!required || schema.default ? '?' : ''}: ${
-        resolvedValue.value
-      }`;
+        const definition = `${name}${!required || schema.default ? '?' : ''}: ${
+          resolvedValue.value
+        }`;
 
-      const implementation = `${name}${
-        !required && !schema.default ? '?' : ''
-      }: ${resolvedValue.value}${schema.default ? ` = ${schema.default}` : ''}`;
+        const implementation = `${name}${
+          !required && !schema.default ? '?' : ''
+        }: ${resolvedValue.value}${
+          schema.default ? ` = ${schema.default}` : ''
+        }`;
 
-      return {
-        name,
-        definition,
-        implementation,
-        default: schema.default,
-        required,
-      };
-    } catch (err) {
-      throw new Error(
-        `The path params ${p} can't be found in parameters (${operation.operationId})`,
-      );
-    }
-  });
+        return {
+          name,
+          definition,
+          implementation,
+          default: schema.default,
+          required,
+          imports: resolvedValue.imports,
+        };
+      } catch (err) {
+        throw new Error(
+          `The path params ${p} can't be found in parameters (${operationId})`,
+        );
+      }
+    }),
+  );
 };

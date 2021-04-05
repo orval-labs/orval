@@ -1,94 +1,105 @@
 import cuid from 'cuid';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { MockOptions } from '../../types';
+import { InputTarget, MockOptions } from '../../types';
+import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { isBoolean, isReference } from '../../utils/is';
 import { resolveMockValue } from '../resolvers/value.mock';
 import { combineSchemasMock } from './combine.mock';
 
-export const getMockObject = ({
+export const getMockObject = async ({
   item,
   schemas,
   mockOptions,
   operationId,
   tags,
   combine,
+  target,
 }: {
-  item: SchemaObject & { name: string; path?: string };
+  item: SchemaObject & { name: string; path?: string; specKey?: string };
   schemas: { [key: string]: SchemaObject };
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
   combine?: { properties: string[] };
-}): MockDefinition => {
+  target: InputTarget;
+}): Promise<MockDefinition> => {
   if (isReference(item)) {
-    return resolveMockValue({
+    return await resolveMockValue({
       schema: {
         ...item,
         schemas,
         name: item.name,
         path: item.path ? `${item.path}.${item.name}` : item.name,
+        specKey: item.specKey,
       },
       schemas,
       mockOptions,
       operationId,
       tags,
+      target,
     });
   }
 
   if (item.allOf || item.oneOf || item.anyOf) {
     return combineSchemasMock({
       item,
-      items: (item.allOf || item.oneOf || item.anyOf) as (
-        | SchemaObject
-        | ReferenceObject
-      )[],
+      items: (item.allOf || item.oneOf || item.anyOf)!,
+      isOneOf: !!(item.oneOf || item.anyOf),
       schemas,
       mockOptions,
       operationId,
       tags,
       combine,
+      target,
     });
   }
 
   if (item.properties) {
     let value = !combine ? '{' : '';
-    let imports: string[] = [];
+    let imports: GeneratorImport[] = [];
     let properties: string[] = [];
-    value += Object.entries(item.properties)
-      .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
-        if (combine?.properties.includes(key)) {
-          return undefined;
-        }
+    value += (
+      await Promise.all(
+        Object.entries(item.properties).map(
+          async ([key, prop]: [string, ReferenceObject | SchemaObject]) => {
+            if (combine?.properties.includes(key)) {
+              return undefined;
+            }
 
-        const isRequired =
-          mockOptions?.required || (item.required || []).includes(key);
+            const isRequired =
+              mockOptions?.required || (item.required || []).includes(key);
 
-        if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
-          return undefined;
-        }
+            if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
+              return undefined;
+            }
 
-        const resolvedValue = resolveMockValue({
-          schema: {
-            ...prop,
-            name: key,
-            path: item.path ? `${item.path}.${key}` : `#.${key}`,
+            const resolvedValue = await resolveMockValue({
+              schema: {
+                ...prop,
+                name: key,
+                path: item.path ? `${item.path}.${key}` : `#.${key}`,
+                specKey: item.specKey,
+              },
+              schemas,
+              mockOptions,
+              operationId,
+              tags,
+              target,
+            });
+
+            imports = [...imports, ...resolvedValue.imports];
+            properties = [...properties, key];
+
+            if (!isRequired && !resolvedValue.overrided) {
+              return `${key}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
+            }
+
+            return `${key}: ${resolvedValue.value}`;
           },
-          schemas,
-          mockOptions,
-          operationId,
-          tags,
-        });
-
-        imports = [...imports, ...resolvedValue.imports];
-        properties = [...properties, key];
-
-        if (!isRequired && !resolvedValue.overrided) {
-          return `${key}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
-        }
-
-        return `${key}: ${resolvedValue.value}`;
-      })
+        ),
+      )
+    )
       .filter(Boolean)
       .join(', ');
     value += !combine ? '}' : '';
@@ -105,16 +116,18 @@ export const getMockObject = ({
       return { value: `{}`, imports: [], name: item.name };
     }
 
-    const resolvedValue = resolveMockValue({
+    const resolvedValue = await resolveMockValue({
       schema: {
         ...item.additionalProperties,
         name: item.name,
         path: item.path ? `${item.path}.#` : '#',
+        specKey: item.specKey,
       },
       schemas,
       mockOptions,
       operationId,
       tags,
+      target,
     });
 
     return {

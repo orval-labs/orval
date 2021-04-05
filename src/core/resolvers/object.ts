@@ -1,25 +1,27 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { InputTarget } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
-import { upper } from '../../utils/case';
-import { generalTypesFilter } from '../../utils/filters';
-import { sanitize } from '../../utils/string';
+import { getEnum } from '../getters/enum';
 import { resolveValue } from './value';
 
-export const resolveObject = ({
+export const resolveObject = async ({
   schema,
   propName,
   schemas = {},
   combined = false,
+  target,
 }: {
   schema: SchemaObject;
   propName?: string;
   schemas?: SchemasObject;
   combined?: boolean;
-}): ResolverValue => {
-  const resolvedValue = resolveValue({
+  target: InputTarget;
+}): Promise<ResolverValue> => {
+  const resolvedValue = await resolveValue({
     schema,
     name: propName,
     schemas,
+    target,
   });
   if (
     propName &&
@@ -29,13 +31,13 @@ export const resolveObject = ({
   ) {
     return {
       value: propName,
-      imports: [propName],
+      imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
         {
           name: propName,
           model: `export type ${propName} = ${resolvedValue.value};\n`,
-          imports: generalTypesFilter(resolvedValue.imports),
+          imports: resolvedValue.imports,
         },
       ],
       isEnum: false,
@@ -44,32 +46,21 @@ export const resolveObject = ({
   }
 
   if (propName && resolvedValue.isEnum && !combined && !schema.$ref) {
-    let enumValue = `export type ${propName} = ${resolvedValue.value};\n`;
-
-    const implementation = resolvedValue.value
-      .split(' | ')
-      .reduce((acc, val) => {
-        return (
-          acc +
-          `  ${
-            resolvedValue.type === 'number'
-              ? `${upper(resolvedValue.type)}_${val}`
-              : sanitize(val)
-          }: ${val} as ${propName},\n`
-        );
-      }, '');
-
-    enumValue += `\n\nexport const ${propName} = {\n${implementation}};\n`;
+    const enumValue = getEnum(
+      resolvedValue.value,
+      resolvedValue.type,
+      propName,
+    );
 
     return {
       value: propName,
-      imports: [propName],
+      imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
         {
           name: propName,
           model: enumValue,
-          imports: generalTypesFilter(resolvedValue.imports),
+          imports: resolvedValue.imports,
         },
       ],
       isEnum: false,

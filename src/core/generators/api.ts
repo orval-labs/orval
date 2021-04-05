@@ -1,25 +1,31 @@
 import { OpenAPIObject, PathItemObject } from 'openapi3-ts';
-import { OutputOptions } from '../../types';
+import { InputTarget, OutputOptions } from '../../types';
 import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
+import { asyncReduce } from '../../utils/async-reduce';
 import { getRoute } from '../getters/route';
 import { generateClient } from './client';
 import { generateVerbsOptions } from './verbsOptions';
 
-export const generateApi = (
-  workspace: string,
-  specs: OpenAPIObject,
-  options?: OutputOptions,
-) => {
-  return Object.entries(specs.paths).reduce<GeneratorApiResponse>(
-    (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
+export const generateApi = async ({
+  specs,
+  output,
+  target,
+}: {
+  specs: OpenAPIObject;
+  output?: OutputOptions;
+  target: InputTarget;
+}) => {
+  return asyncReduce(
+    Object.entries(specs.paths),
+    async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
       const route = getRoute(pathRoute);
 
-      const verbsOptions = generateVerbsOptions({
-        workspace,
+      const verbsOptions = await generateVerbsOptions({
         verbs,
-        options,
+        output,
         route,
         components: specs.components,
+        target,
       });
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
@@ -32,11 +38,13 @@ export const generateApi = (
         [],
       );
 
-      const client = generateClient(options?.client, verbsOptions, {
+      const client = await generateClient(output?.client, verbsOptions, {
         route,
         pathRoute,
         specs,
-        override: options?.override,
+        override: output?.override,
+        target,
+        mock: !!output?.mock,
       });
 
       return {
@@ -47,6 +55,6 @@ export const generateApi = (
     {
       operations: {},
       schemas: [],
-    },
+    } as GeneratorApiResponse,
   );
 };

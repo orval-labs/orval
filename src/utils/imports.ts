@@ -1,7 +1,19 @@
 import { join } from 'path';
-import { isString } from './is';
+import { isObject, isString } from './is';
 
-export const dynamicImport = <T>(
-  toImport?: T | string,
+export const dynamicImport = async <T>(
+  toImport: T | string,
   from = process.cwd(),
-): T => (isString(toImport) ? require(join(from, toImport)) : toImport);
+): Promise<T> => {
+  if (isString(toImport)) {
+    const data = await import(join(from, toImport));
+
+    if (isObject(data)) {
+      return (data as any).default as T;
+    }
+
+    return data;
+  }
+
+  return Promise.resolve<T>(toImport);
+};

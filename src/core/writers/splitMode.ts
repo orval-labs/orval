@@ -21,7 +21,7 @@ export const writeSplitMode = ({
 }: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
   const { path, filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
-    camel(info.title),
+    { backupFilename: camel(info.title) },
   );
 
   if (!existsSync(dirname)) {
@@ -51,7 +51,7 @@ export const writeSplitMode = ({
       { exports: imports, dependency: schemasPath },
     ]);
     mswData += generateMSWImports(implementationMSW, [
-      { exports: importsMSW, dependency: schemasPath },
+      { exports: [...imports, ...importsMSW], dependency: schemasPath },
     ]);
   } else {
     const schemasPath = './' + filename + '.schemas';
@@ -66,7 +66,7 @@ export const writeSplitMode = ({
       { exports: imports, dependency: schemasPath },
     ]);
     mswData += generateMSWImports(implementationMSW, [
-      { exports: importsMSW, dependency: schemasPath },
+      { exports: [...imports, ...importsMSW], dependency: schemasPath },
     ]);
   }
 

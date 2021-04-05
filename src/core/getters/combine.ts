@@ -1,39 +1,64 @@
 import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
+import { InputTarget } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
+import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
+import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
 
-export const combineSchemas = ({
+const SEPARATOR = {
+  allOf: '&',
+  oneOf: '|',
+  anyOf: '|',
+};
+
+export const combineSchemas = async ({
   name,
   items,
   schemas,
   separator,
+  target,
 }: {
   name?: string;
   items: (SchemaObject | ReferenceObject)[];
   schemas: SchemasObject;
-  separator: string;
+  separator: keyof typeof SEPARATOR;
+  target: InputTarget;
 }) => {
-  const resolvedData = items.reduce<ResolverValue>(
-    (acc, schema) => {
-      const propName = name ? name + 'Data' : undefined;
-      const resolvedValue = resolveObject({
+  const resolvedData = await asyncReduce(
+    items,
+    async (acc, schema) => {
+      let propName = name ? name + pascal(separator) : undefined;
+
+      if (propName && acc.schemas.length) {
+        propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
+      }
+
+      const resolvedValue = await resolveObject({
         schema,
         propName,
         schemas,
         combined: true,
+        target,
       });
+
       return {
         ...acc,
         value: acc.value
-          ? `${acc.value} ${separator} ${resolvedValue.value}`
+          ? `${acc.value} ${SEPARATOR[separator]} ${resolvedValue.value}`
           : resolvedValue.value,
         imports: [...acc.imports, ...resolvedValue.imports],
         schemas: [...acc.schemas, ...resolvedValue.schemas],
         isEnum: !acc.isEnum ? acc.isEnum : resolvedValue.isEnum,
       };
     },
-    { value: '', imports: [], schemas: [], isEnum: true, type: 'object' },
+    {
+      value: '',
+      imports: [],
+      schemas: [],
+      isEnum: true,
+      type: 'object',
+    } as ResolverValue,
   );
 
   if (resolvedData.isEnum && name) {

@@ -1,4 +1,5 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { InputTarget } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -9,11 +10,17 @@ import { getObject } from './object';
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
  */
-export const getScalar = (
-  item: SchemaObject,
-  name?: string,
-  schemas: SchemasObject = {},
-): ResolverValue => {
+export const getScalar = async ({
+  item,
+  name,
+  schemas = {},
+  target,
+}: {
+  item: SchemaObject;
+  name?: string;
+  schemas: SchemasObject;
+  target: InputTarget;
+}): Promise<ResolverValue> => {
   const nullable = item.nullable ? ' | null' : '';
 
   if (!item.type && item.items) {
@@ -50,7 +57,12 @@ export const getScalar = (
       };
 
     case 'array': {
-      const { value, ...rest } = getArray({ schema: item, name, schemas });
+      const { value, ...rest } = await getArray({
+        schema: item,
+        name,
+        schemas,
+        target,
+      });
       return {
         value: value + nullable,
         ...rest,
@@ -71,7 +83,7 @@ export const getScalar = (
       }
 
       return {
-        value: value + nullable,
+        value: isEnum ? value : value + nullable,
         isEnum,
         type: 'string',
         imports: [],
@@ -81,7 +93,12 @@ export const getScalar = (
 
     case 'object':
     default: {
-      const { value, ...rest } = getObject(item, name, schemas);
+      const { value, ...rest } = await getObject({
+        item,
+        name,
+        schemas,
+        target,
+      });
       return { value: value + nullable, ...rest };
     }
   }

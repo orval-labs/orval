@@ -1,10 +1,12 @@
 import { OutputClient } from '../../types';
 import {
   GeneratorClientExtra,
+  GeneratorImport,
   GeneratorOperations,
   GeneratorOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
+import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import {
   generateAngular,
@@ -62,7 +64,7 @@ export const generateClientImports = (
   client = DEFAULT_CLIENT,
   implementation: string,
   imports: {
-    exports: string[];
+    exports: GeneratorImport[];
     dependency: string;
   }[],
 ): string =>
@@ -116,22 +118,26 @@ export const generateClient = (
   outputClient: OutputClient = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
-): GeneratorOperations => {
-  return verbsOptions.reduce((acc, verbOption) => {
-    const generator = GENERATOR_CLIENT[outputClient];
-    const client = generator.client(verbOption, options);
-    const msw = generator.msw(verbOption, options);
+): Promise<GeneratorOperations> => {
+  return asyncReduce(
+    verbsOptions,
+    async (acc, verbOption) => {
+      const generator = GENERATOR_CLIENT[outputClient];
+      const client = generator.client(verbOption, options);
+      const msw = await generator.msw(verbOption, options);
 
-    return {
-      ...acc,
-      [verbOption.operationId]: {
-        implementation: client.implementation,
-        imports: client.imports,
-        implementationMSW: msw.implementation,
-        importsMSW: msw.imports,
-        tags: verbOption.tags,
-        mutator: verbOption.mutator,
-      },
-    };
-  }, {});
+      return {
+        ...acc,
+        [verbOption.operationId]: {
+          implementation: client.implementation,
+          imports: client.imports,
+          implementationMSW: msw.implementation,
+          importsMSW: msw.imports,
+          tags: verbOption.tags,
+          mutator: verbOption.mutator,
+        },
+      };
+    },
+    {} as GeneratorOperations,
+  );
 };

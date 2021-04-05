@@ -72,7 +72,7 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
   }
 };
 
-export const getGithubOpenApi = async (url: string) => {
+export const getGithubOpenApi = async (url: string): Promise<string> => {
   const githubTokenPath = join(__dirname, '.githubToken');
   const accessToken = await getGithubAcessToken(githubTokenPath);
   const [info] = url.split('github.com/').slice(-1);
@@ -88,7 +88,7 @@ export const getGithubOpenApi = async (url: string) => {
     return body.data?.repository.object.text;
   } catch (e) {
     if (!e.body) {
-      throw 'Oups... 🍻';
+      throw `Oups... 🍻. ${e}`;
     }
 
     if (e.body.message === 'Bad credentials') {
@@ -104,6 +104,6 @@ export const getGithubOpenApi = async (url: string) => {
         unlinkSync(githubTokenPath);
       }
     }
-    throw e.body.message || 'Oups... 🍻';
+    throw e.body.message || `Oups... 🍻. ${e}`;
   }
 };

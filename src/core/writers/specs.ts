@@ -1,5 +1,7 @@
+import { join } from 'path';
 import { Options, OutputMode, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { useContext } from '../../utils/context';
 import { isObject, isString } from '../../utils/is';
 import { createSuccessMessage } from '../../utils/messages/logs';
 import { writeSchemas } from './schemas';
@@ -22,8 +24,24 @@ export const writeSpecs = (
     throw new Error('You need to provide an output');
   }
 
-  if (isObject(output)) {
-    writeSchemas({ workspace, output, schemas, info });
+  if (isObject(output) && output.schemas) {
+    const schemaPath = join(workspace, output.schemas);
+    writeSchemas({ workspace, schemaPath, schemas, info });
+
+    const [context] = useContext();
+
+    Object.entries(context.specs).forEach(
+      ([specKey, { basePath, schemas }]) => {
+        const path = basePath.slice(1).split('/').join('-');
+        writeSchemas({
+          workspace,
+          schemaPath: join(schemaPath, path),
+          schemas,
+          info,
+          refSpec: !!specKey,
+        });
+      },
+    );
   }
 
   if (isObject(output) && !output.target) {

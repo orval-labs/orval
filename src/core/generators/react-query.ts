@@ -1,6 +1,10 @@
 import { omitBy } from 'lodash';
 import { OperationOptions, Verbs } from '../../types';
-import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
+import {
+  GeneratorImport,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+} from '../../types/generator';
 import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
 import { camel, pascal } from '../../utils/case';
 import { mergeDeep } from '../../utils/mergeDeep';
@@ -10,17 +14,17 @@ import { generateAxiosConfig, generateOptions } from './options';
 
 const REACT_QUERY_DEPENDENCIES = [
   {
-    exports: 'axios',
+    exports: [{ name: 'axios', default: true }],
     dependency: 'axios',
   },
   {
     exports: [
-      'useQuery',
-      'useInfiniteQuery',
-      'useMutation',
-      'UseQueryOptions',
-      'UseInfiniteQueryOptions',
-      'UseMutationOptions',
+      { name: 'useQuery' },
+      { name: 'useInfiniteQuery' },
+      { name: 'useMutation' },
+      { name: 'UseQueryOptions' },
+      { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseMutationOptions' },
     ],
     dependency: 'react-query',
   },
@@ -255,10 +259,15 @@ const generateImports = ({
   response,
   body,
   queryParams,
-}: GeneratorVerbOptions) => [
+  params,
+}: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
-  ...(queryParams ? [queryParams.schema.name] : []),
+  ...params.reduce<GeneratorImport[]>(
+    (acc, param) => [...acc, ...param.imports],
+    [],
+  ),
+  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
 ];
 
 export const generateReactQueryTitle = () => '';

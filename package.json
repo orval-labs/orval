@@ -40,7 +40,8 @@
     "build": "tsc && yarn rollup",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write 'src/**/*.{js,ts}'",
-    "release": "dotenv release-it"
+    "release": "dotenv release-it",
+    "generate-api": "node ./lib/bin/orval.js --config ./samples/react-app-with-react-query/orval.config.js"
   },
   "husky": {
     "hooks": {
@@ -87,6 +88,7 @@
     "lodash": "^4.17.15",
     "openapi3-ts": "^2.0.0",
     "swagger2openapi": "^7.0.4",
+    "url": "^0.11.0",
     "yamljs": "^0.3.0"
   }
 }
