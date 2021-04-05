@@ -60,14 +60,14 @@ const generateAxiosFunction = (
     verb,
   });
 
-  return `export const ${definitionName} = (\n    ${toObjectString(
+  return `export const ${definitionName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
   )}\n  ) => {${generateFormData(body)}
     return ${
       mutator
-        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
-        : `axios.${verb}<${response.definition}>(${options})`
+        ? `${mutator.name}<Data extends unknown ? ${response.definition} : Data>(${axiosConfig})`
+        : `axios.${verb}<Data extends unknown ? ${response.definition} : Data>(${options})`
     };
   }
 `;
@@ -104,9 +104,11 @@ const generateQueryImplementation = ({
   params: GetterParams;
   props: GetterProps;
 }) => {
-  return `export const ${camel(
-    `use-${name}`,
-  )} = <Error = unknown>(\n    ${queryProps}\n queryConfig?: Use${pascal(
+  return `
+export const ${camel(`use-${name}`)} = <
+  Data extends unknown = unknown,
+  Error extends unknown = unknown
+>(\n ${queryProps}\n queryConfig?: Use${pascal(
     type,
   )}Options<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
   const queryKey = ${queryKeyFnName}(${properties});
@@ -117,7 +119,7 @@ const generateQueryImplementation = ({
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
-  }) => ${definitionName}(${
+  }) => ${definitionName}<Data>(${
     queryParam
       ? props
           .map(({ name }) =>
@@ -239,9 +241,11 @@ const generateReactQueryImplementation = (
     )
     .join(';');
 
-  return `export const ${camel(
-    `use-${definitionName}`,
-  )} = <Error = unknown>(\n    mutationConfig?: UseMutationOptions<AsyncReturnType<typeof ${definitionName}>, Error${
+  return `
+export const ${camel(`use-${definitionName}`)} = <
+  Data extends unknown = unknown,
+  Error extends unknown = unknown
+>(\n    mutationConfig?: UseMutationOptions<AsyncReturnType<typeof ${definitionName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>\n  ) => {
   return useMutation<AsyncReturnType<typeof ${definitionName}>, Error${
@@ -249,7 +253,7 @@ const generateReactQueryImplementation = (
   }>((${properties ? 'props' : ''}) => {
     ${properties ? `const {${properties}} = props || {}` : ''};
 
-    return  ${definitionName}(${properties})
+    return  ${definitionName}<Data>(${properties})
   }, mutationConfig)
 }
 `;

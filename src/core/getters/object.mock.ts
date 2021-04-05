@@ -4,6 +4,7 @@ import { InputTarget, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { isBoolean, isReference } from '../../utils/is';
+import { count } from '../../utils/occurrence';
 import { resolveMockValue } from '../resolvers/value.mock';
 import { combineSchemasMock } from './combine.mock';
 
@@ -70,7 +71,7 @@ export const getMockObject = async ({
             const isRequired =
               mockOptions?.required || (item.required || []).includes(key);
 
-            if (item.path?.includes(`.${key}.`) && Math.random() >= 0.5) {
+            if (count(item.path, `.${key}.`) >= 1) {
               return undefined;
             }
 

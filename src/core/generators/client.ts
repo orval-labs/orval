@@ -124,7 +124,12 @@ export const generateClient = (
     async (acc, verbOption) => {
       const generator = GENERATOR_CLIENT[outputClient];
       const client = generator.client(verbOption, options);
-      const msw = await generator.msw(verbOption, options);
+      const msw = options.mock
+        ? await generator.msw(verbOption, options)
+        : {
+            implementation: '',
+            imports: [],
+          };
 
       return {
         ...acc,

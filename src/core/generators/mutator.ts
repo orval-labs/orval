@@ -1,12 +1,16 @@
+import { relative } from 'path';
 import { Mutator } from '../../types';
 import { GetterBody } from '../../types/getters';
 import { getFileInfo } from '../../utils/file';
 import { isString } from '../../utils/is';
-import { resolvePath } from '../resolvers/path';
 
 const getImport = (output: string, mutator: Mutator) => {
+  const outputFileInfo = getFileInfo(output);
+  const mutatorFileInfo = getFileInfo(
+    isString(mutator) ? mutator : mutator.path,
+  );
   const { pathWithoutExtension } = getFileInfo(
-    resolvePath(output, isString(mutator) ? mutator : mutator.path),
+    relative(outputFileInfo.dirname, mutatorFileInfo.path),
   );
   return pathWithoutExtension;
 };

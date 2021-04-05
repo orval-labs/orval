@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { OutputClient, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { camel } from '../../utils/case';
@@ -9,7 +9,6 @@ import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
-import { resolvePath } from '../resolvers/path';
 import { generateTarget } from './target';
 
 export const writeSplitMode = ({
@@ -42,8 +41,8 @@ export const writeSplitMode = ({
   let mswData = header;
 
   if (output.schemas) {
-    const schemasPath = resolvePath(
-      path,
+    const schemasPath = relative(
+      dirname,
       getFileInfo(join(workspace, output.schemas)).dirname,
     );
 

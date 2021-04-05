@@ -1,3 +1,4 @@
+import { uniqBy } from 'lodash';
 import {
   MediaTypeObject,
   ReferenceObject,
@@ -103,5 +104,8 @@ export const getResReqTypes = async (
       }),
   );
 
-  return typesArray.reduce<ResolverValue[]>((acc, it) => [...acc, ...it], []);
+  return uniqBy(
+    typesArray.reduce<ResolverValue[]>((acc, it) => [...acc, ...it], []),
+    'value',
+  );
 };

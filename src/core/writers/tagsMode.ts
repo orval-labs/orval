@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
@@ -10,7 +10,6 @@ import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
-import { resolvePath } from '../resolvers/path';
 import { generateTargetForTags } from './targetTags';
 
 export const writeTagsMode = ({
@@ -20,7 +19,7 @@ export const writeTagsMode = ({
   output,
   workspace,
 }: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
-  const { path, filename, dirname, extension } = getFileInfo(
+  const { filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
     { backupFilename: camel(info.title) },
   );
@@ -43,8 +42,8 @@ export const writeTagsMode = ({
     let data = header;
 
     if (isObject(output) && output.schemas) {
-      const schemasPath = resolvePath(
-        path,
+      const schemasPath = relative(
+        dirname,
         getFileInfo(join(workspace, output.schemas)).dirname,
       );
 

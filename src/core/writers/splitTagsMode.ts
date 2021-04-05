@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, relative } from 'path';
 import { OutputClient, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
@@ -9,7 +9,6 @@ import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
-import { resolvePath } from '../resolvers/path';
 import { generateTargetForTags } from './targetTags';
 
 export const writeSplitTagsMode = ({
@@ -46,7 +45,7 @@ export const writeSplitTagsMode = ({
     if (output.schemas) {
       const schemasPath =
         '../' +
-        resolvePath(path, getFileInfo(join(workspace, output.schemas)).dirname);
+        relative(dirname, getFileInfo(join(workspace, output.schemas)).dirname);
 
       implementationData += generateClientImports(
         output.client,
