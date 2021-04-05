@@ -6,7 +6,6 @@ import { isObject, isString } from '../../utils/is';
 import { isUrl } from '../../utils/url';
 import { getSpecData } from './data';
 import { importOpenApi } from './openApi';
-import { ImportOpenApi } from '../../types';
 
 export const importSpecs = async (
   workspace: string,
