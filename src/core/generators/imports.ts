@@ -66,10 +66,12 @@ export const addDependency = ({
   implementation,
   exports,
   dependency,
+  specsName,
 }: {
   implementation: string;
   exports: GeneratorImport[];
   dependency: string;
+  specsName: Record<string, string>;
 }) => {
   const toAdds = exports.filter((e) => implementation.includes(e.name));
 
@@ -98,7 +100,7 @@ export const addDependency = ({
       return `import ${
         defaultDep ? `${defaultDep.name}${deps ? ',' : ''}` : ''
       }${deps ? `{\n  ${deps}\n}` : ''} from '${dependency}${
-        key !== 'default' ? `/${key}` : ''
+        key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
       }'`;
     })
     .join('\n');
@@ -110,9 +112,10 @@ export const generateDependencyImports = (
     exports: GeneratorImport[];
     dependency: string;
   }[],
+  specsName: Record<string, string>,
 ): string => {
   const dependencies = imports
-    .map((dep) => addDependency({ ...dep, implementation }))
+    .map((dep) => addDependency({ ...dep, implementation, specsName }))
     .filter(Boolean)
     .join('\n');
 

@@ -1,19 +1,22 @@
 const isObject = (obj: unknown) => obj && typeof obj === 'object';
 
-export function mergeDeep(target: any, source: any): any {
+export function mergeDeep<T extends Record<string, any>>(
+  source: T,
+  target: T,
+): T {
   if (!isObject(target) || !isObject(source)) {
     return source;
   }
 
-  return Object.entries(source).reduce((acc, [key, value]) => {
-    const targetValue = acc[key];
+  return Object.entries(target).reduce((acc, [key, value]) => {
+    const sourceValue = acc[key];
 
-    if (Array.isArray(targetValue) && Array.isArray(value)) {
-      return { ...acc, [key]: [...targetValue, ...value] };
+    if (Array.isArray(sourceValue) && Array.isArray(value)) {
+      return { ...acc, [key]: [...sourceValue, ...value] };
     }
-    if (isObject(targetValue) && isObject(value)) {
-      return { ...acc, [key]: mergeDeep(targetValue, value) };
+    if (isObject(sourceValue) && isObject(value)) {
+      return { ...acc, [key]: mergeDeep(sourceValue, value) };
     }
     return { ...acc, [key]: value };
-  }, target);
+  }, source);
 }

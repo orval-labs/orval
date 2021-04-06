@@ -1,4 +1,6 @@
+import SwaggerParser from '@apidevtools/swagger-parser';
 import { OpenAPIObject } from 'openapi3-ts';
+import swagger2openapi from 'swagger2openapi';
 import { GeneratorVerbOptions } from './generator';
 
 export interface Options {
@@ -19,6 +21,8 @@ export type InputOptions = {
   target?: string;
   validation?: boolean;
   override?: OverrideInput;
+  converterOptions?: swagger2openapi.Options;
+  parserOptions?: SwaggerParser.Options;
 };
 
 export type OutputClient = 'axios' | 'angular' | 'react-query';

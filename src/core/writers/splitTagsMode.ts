@@ -17,6 +17,7 @@ export const writeSplitTagsMode = ({
   info,
   output,
   workspace,
+  specsName,
 }: WriteModeProps) => {
   const { path, filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
@@ -51,10 +52,13 @@ export const writeSplitTagsMode = ({
         output.client,
         implementation,
         [{ exports: imports, dependency: schemasPath }],
+        specsName,
       );
-      mswData += generateMSWImports(implementationMSW, [
-        { exports: [...imports, ...importsMSW], dependency: schemasPath },
-      ]);
+      mswData += generateMSWImports(
+        implementationMSW,
+        [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
+        specsName,
+      );
     } else {
       const schemasPath = '../' + filename + '.schemas';
       const schemasData = header + generateModelsInline(schemas);
@@ -68,10 +72,13 @@ export const writeSplitTagsMode = ({
         output.client,
         implementation,
         [{ exports: imports, dependency: schemasPath }],
+        specsName,
       );
-      mswData += generateMSWImports(implementationMSW, [
-        { exports: [...imports, ...importsMSW], dependency: schemasPath },
-      ]);
+      mswData += generateMSWImports(
+        implementationMSW,
+        [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
+        specsName,
+      );
     }
 
     if (mutators) {

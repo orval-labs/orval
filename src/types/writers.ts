@@ -15,4 +15,5 @@ export type WriteModeProps = {
   info: InfoObject;
   output: OutputOptions;
   workspace: string;
+  specsName: Record<string, string>;
 };

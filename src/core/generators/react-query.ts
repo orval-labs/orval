@@ -179,12 +179,12 @@ const generateReactQueryImplementation = (
 
   if (verb === Verbs.GET) {
     const overrideOperation = override.operations?.[operationId!];
-    const overrideTag = Object.entries(override.tags || {}).reduce<
-      OperationOptions | undefined
-    >(
+    const overrideTag = Object.entries(
+      override.tags || {},
+    ).reduce<OperationOptions>(
       (acc, [tag, options]) =>
         tags.includes(tag) ? mergeDeep(acc, options) : acc,
-      undefined,
+      {},
     );
     const query =
       overrideOperation?.query || overrideTag?.query || override.query;

@@ -26,7 +26,7 @@ const generateInputSpecs = async ({
   return asyncReduce(
     Object.entries(specs),
     async (acc, [key, value]) => {
-      const schema = await swaggerConverter(value);
+      const schema = await swaggerConverter(value, input?.converterOptions);
       const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
 
       if (input?.validation) {

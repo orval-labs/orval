@@ -41,12 +41,10 @@ export const getMockScalar = async ({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags || {}).reduce<
-    MockOptions | undefined
-  >(
+  const overrideTag = Object.entries(mockOptions?.tags || {}).reduce(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    undefined,
+    {} as { properties: Record<string, string> },
   );
 
   const tagProperty = resolveMockOverride(overrideTag?.properties, item);

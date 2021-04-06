@@ -67,11 +67,13 @@ export const generateClientImports = (
     exports: GeneratorImport[];
     dependency: string;
   }[],
+  specsName: Record<string, string>,
 ): string =>
-  generateDependencyImports(implementation, [
-    ...GENERATOR_CLIENT[client].dependencies(),
-    ...imports,
-  ]);
+  generateDependencyImports(
+    implementation,
+    [...GENERATOR_CLIENT[client].dependencies(), ...imports],
+    specsName,
+  );
 
 export const generateClientHeader = (
   outputClient: OutputClient = DEFAULT_CLIENT,

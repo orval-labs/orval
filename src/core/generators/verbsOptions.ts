@@ -53,12 +53,12 @@ const generateVerbOptions = async ({
 
   const overrideOperation =
     output.override?.operations?.[operation.operationId!];
-  const overrideTag = Object.entries(output.override?.tags || {}).reduce<
-    OperationOptions | undefined
-  >(
+  const overrideTag = Object.entries(
+    output.override?.tags || {},
+  ).reduce<OperationOptions>(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    undefined,
+    {},
   );
 
   const definitionName = camel(operation.operationId!);

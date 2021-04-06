@@ -17,6 +17,7 @@ export const writeSingleMode = ({
   schemas,
   info,
   output,
+  specsName,
 }: WriteModeProps) => {
   const targetedPath = isString(output) ? output : output.target || '';
   const { path, dirname } = getFileInfo(join(workspace, targetedPath), {
@@ -40,23 +41,29 @@ export const writeSingleMode = ({
   if (isObject(output) && output.schemas) {
     const schemasPath = relative(dirname || '', output.schemas);
 
-    data += generateClientImports(output.client, implementation, [
-      { exports: imports, dependency: schemasPath },
-    ]);
+    data += generateClientImports(
+      output.client,
+      implementation,
+      [{ exports: imports, dependency: schemasPath }],
+      specsName,
+    );
     if (output.mock) {
-      data += generateMSWImports(implementationMSW, [
-        { exports: importsMSW, dependency: schemasPath },
-      ]);
+      data += generateMSWImports(
+        implementationMSW,
+        [{ exports: importsMSW, dependency: schemasPath }],
+        specsName,
+      );
     }
   } else {
     data += generateClientImports(
       isObject(output) ? output.client : undefined,
       implementation,
       [],
+      specsName,
     );
 
     if (isObject(output) && output.mock) {
-      data += generateMSWImports(implementationMSW, []);
+      data += generateMSWImports(implementationMSW, [], specsName);
     }
 
     data += generateModelsInline(schemas);

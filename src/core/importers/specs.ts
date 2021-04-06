@@ -4,8 +4,13 @@ import { Options } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { githubResolver } from '../../utils/github';
 import { isObject, isString } from '../../utils/is';
+import { mergeDeep } from '../../utils/mergeDeep';
 import { isUrl } from '../../utils/url';
 import { importOpenApi } from './openApi';
+
+const parserDefaultOptions = {
+  resolve: { github: githubResolver },
+} as SwaggerParser.Options;
 
 export const importSpecs = async (
   workspace: string,
@@ -26,11 +31,10 @@ export const importSpecs = async (
   const isPathUrl = isUrl(targetPath);
   const path = isPathUrl ? targetPath : resolve(workspace, targetPath);
 
-  const data = (
-    await SwaggerParser.resolve(path, {
-      resolve: { github: githubResolver },
-    } as SwaggerParser.Options)
-  ).values();
+  const parserOptions = isObject(options.input)
+    ? mergeDeep(parserDefaultOptions, options.input.parserOptions || {})
+    : parserDefaultOptions;
+  const data = (await SwaggerParser.resolve(path, parserOptions)).values();
 
   return importOpenApi({
     data,

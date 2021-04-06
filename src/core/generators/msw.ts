@@ -54,11 +54,13 @@ export const generateMSWImports = (
     exports: GeneratorImport[];
     dependency: string;
   }[],
+  specsName: Record<string, string>,
 ): string => {
-  return generateDependencyImports(implementation, [
-    ...MSW_DEPENDENCIES,
-    ...imports,
-  ]);
+  return generateDependencyImports(
+    implementation,
+    [...MSW_DEPENDENCIES, ...imports],
+    specsName,
+  );
 };
 
 export const generateMSW = async (

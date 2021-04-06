@@ -17,6 +17,7 @@ export const writeTagsMode = ({
   info,
   output,
   workspace,
+  specsName,
 }: WriteModeProps) => {
   const { filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
@@ -46,13 +47,18 @@ export const writeTagsMode = ({
         getFileInfo(join(workspace, output.schemas)).dirname,
       );
 
-      data += generateClientImports(output.client, implementation, [
-        { exports: imports, dependency: schemasPath },
-      ]);
+      data += generateClientImports(
+        output.client,
+        implementation,
+        [{ exports: imports, dependency: schemasPath }],
+        specsName,
+      );
       if (output.mock) {
-        data += generateMSWImports(implementationMSW, [
-          { exports: importsMSW, dependency: schemasPath },
-        ]);
+        data += generateMSWImports(
+          implementationMSW,
+          [{ exports: importsMSW, dependency: schemasPath }],
+          specsName,
+        );
       }
     } else {
       const schemasPath = './' + filename + '.schemas';
@@ -63,13 +69,18 @@ export const writeTagsMode = ({
         schemasData,
       );
 
-      data += generateClientImports(output.client, implementation, [
-        { exports: imports, dependency: schemasPath },
-      ]);
+      data += generateClientImports(
+        output.client,
+        implementation,
+        [{ exports: imports, dependency: schemasPath }],
+        specsName,
+      );
       if (output.mock) {
-        data += generateMSWImports(implementationMSW, [
-          { exports: importsMSW, dependency: schemasPath },
-        ]);
+        data += generateMSWImports(
+          implementationMSW,
+          [{ exports: importsMSW, dependency: schemasPath }],
+          specsName,
+        );
       }
     }
 

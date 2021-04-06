@@ -26,19 +26,19 @@ export const writeSpecs = (
     throw new Error('You need to provide an output');
   }
 
+  const specsName = Object.keys(schemas).reduce((acc, specKey) => {
+    const basePath = (isUrl(specKey)
+      ? specKey.replace(rootSpecKey, '')
+      : specKey.replace(getFileInfo(rootSpecKey).dirname, '')
+    ).replace(`.${getExtension(specKey)}`, '');
+
+    const name = basePath.slice(1).split('/').join('-');
+
+    return { ...acc, [specKey]: name };
+  }, {} as Record<keyof typeof schemas, string>);
+
   if (isObject(output) && output.schemas) {
     const rootSchemaPath = join(workspace, output.schemas);
-
-    const specsName = Object.keys(schemas).reduce((acc, specKey) => {
-      const basePath = (isUrl(specKey)
-        ? specKey.replace(rootSpecKey, '')
-        : specKey.replace(getFileInfo(rootSpecKey).dirname, '')
-      ).replace(`.${getExtension(specKey)}`, '');
-
-      const name = basePath.slice(1).split('/').join('-');
-
-      return { ...acc, [specKey]: name };
-    }, {} as Record<keyof typeof schemas, string>);
 
     Object.entries(schemas).forEach(([specKey, schemas]) => {
       const isRootKey = rootSpecKey === specKey;
@@ -53,7 +53,7 @@ export const writeSpecs = (
         info,
         rootSpecKey,
         specsName,
-        isRootKey
+        isRootKey,
       });
     });
   }
@@ -70,13 +70,21 @@ export const writeSpecs = (
       output: isString(output) ? { target: output } : output,
       info,
       schemas,
+      specsName,
     });
   } else if (output.mode === OutputMode.SPLIT) {
-    writeSplitMode({ workspace, operations, output, info, schemas });
+    writeSplitMode({ workspace, operations, output, info, schemas, specsName });
   } else if (output.mode === OutputMode.TAGS) {
-    writeTagsMode({ workspace, operations, output, info, schemas });
+    writeTagsMode({ workspace, operations, output, info, schemas, specsName });
   } else if (output.mode === OutputMode.TAGS_SPLIT) {
-    writeSplitTagsMode({ workspace, operations, output, info, schemas });
+    writeSplitTagsMode({
+      workspace,
+      operations,
+      output,
+      info,
+      schemas,
+      specsName,
+    });
   }
 
   createSuccessMessage(backend);
