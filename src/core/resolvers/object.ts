@@ -1,5 +1,5 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from './value';
@@ -9,19 +9,19 @@ export const resolveObject = async ({
   propName,
   schemas = {},
   combined = false,
-  target,
+  context,
 }: {
   schema: SchemaObject;
   propName?: string;
   schemas?: SchemasObject;
   combined?: boolean;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<ResolverValue> => {
   const resolvedValue = await resolveValue({
     schema,
     name: propName,
     schemas,
-    target,
+    context,
   });
   if (
     propName &&

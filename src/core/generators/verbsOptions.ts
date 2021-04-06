@@ -6,7 +6,7 @@ import {
   ReferenceObject,
 } from 'openapi3-ts';
 import {
-  InputTarget,
+  ContextSpecs,
   OperationOptions,
   OutputOptions,
   Verbs,
@@ -33,8 +33,7 @@ const generateVerbOptions = async ({
   operation,
   route,
   verbParameters = [],
-  components,
-  target,
+  context,
 }: {
   verb: string;
   output?: OutputOptions;
@@ -42,7 +41,7 @@ const generateVerbOptions = async ({
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
   components?: ComponentsObject;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<GeneratorVerbOptions> => {
   const {
     operationId,
@@ -64,27 +63,26 @@ const generateVerbOptions = async ({
 
   const definitionName = camel(operation.operationId!);
 
-  const response = await getResponse(responses, operationId!, target);
+  const response = await getResponse(responses, operationId!, context);
 
-  const body = await getBody(requestBody!, operationId!, target);
+  const body = await getBody(requestBody!, operationId!, context);
 
   const parameters = await getParameters({
     parameters: [...verbParameters, ...(operationParameters || [])],
-    components,
-    target,
+    context,
   });
 
   const queryParams = await getQueryParams({
     queryParams: parameters.query,
     definitionName,
-    target,
+    context,
   });
 
   const params = await getParams({
     route,
     pathParams: parameters.path,
     operationId: operationId!,
-    target,
+    context,
   });
 
   const props = getProps({ body, queryParams: queryParams?.schema, params });
@@ -118,7 +116,7 @@ const generateVerbOptions = async ({
     overrideOperation?.transformer ||
       overrideTag?.transformer ||
       output.override?.transformer,
-    target.workspace,
+    context.workspace,
   );
 
   return transformer ? transformer(verbOption) : verbOption;
@@ -128,14 +126,12 @@ export const generateVerbsOptions = ({
   verbs,
   output,
   route,
-  components,
-  target,
+  context,
 }: {
   verbs: PathItemObject;
   output?: OutputOptions;
   route: string;
-  components?: ComponentsObject;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>
   asyncReduce(
     Object.entries(verbs),
@@ -154,9 +150,8 @@ export const generateVerbsOptions = ({
         output,
         verbParameters: verbs.parameters,
         route,
-        components,
         operation,
-        target,
+        context,
       });
 
       return [...acc, verbOptions];

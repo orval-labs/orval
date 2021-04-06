@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
@@ -17,13 +17,13 @@ export const combineSchemas = async ({
   items,
   schemas,
   separator,
-  target,
+  context,
 }: {
   name?: string;
   items: (SchemaObject | ReferenceObject)[];
   schemas: SchemasObject;
   separator: keyof typeof SEPARATOR;
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
   const resolvedData = await asyncReduce(
     items,
@@ -39,7 +39,7 @@ export const combineSchemas = async ({
         propName,
         schemas,
         combined: true,
-        target,
+        context,
       });
 
       return {

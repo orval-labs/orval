@@ -2,17 +2,22 @@ import { uniq, uniqWith } from 'lodash';
 import { join } from 'path';
 import { GeneratorImport, GeneratorMutator } from '../../types/generator';
 import { camel } from '../../utils/case';
-import { useContext } from '../../utils/context';
 
-export const generateImports = (
-  imports: GeneratorImport[] = [],
-  refSpec: boolean,
-) => {
+export const generateImports = ({
+  imports = [],
+  rootSpecKey,
+  isRootKey,
+  specsName,
+}: {
+  imports: GeneratorImport[];
+  rootSpecKey: string;
+  isRootKey: boolean;
+  specsName: Record<string, string>;
+}) => {
   if (!imports.length) {
     return '';
   }
 
-  const [context] = useContext();
   return uniqWith(
     imports,
     (a, b) =>
@@ -21,12 +26,9 @@ export const generateImports = (
     .sort()
     .map(({ specKey, name }) => {
       if (specKey) {
-        const path =
-          specKey !== context.rootSpec
-            ? context.specs[specKey].basePath.slice(1).split('/').join('-')
-            : '';
+        const path = specKey !== rootSpecKey ? specsName[specKey] : '';
 
-        if (refSpec && specKey) {
+        if (!isRootKey && specKey) {
           return `import { ${name} } from \'../${join(path, camel(name))}\';`;
         }
 

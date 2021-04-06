@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, relative } from 'path';
-import { OutputOptions } from '../../types';
-import { WriteSpecsProps } from '../../types/writers';
+import { WriteModeProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isObject } from '../../utils/is';
@@ -18,7 +17,7 @@ export const writeTagsMode = ({
   info,
   output,
   workspace,
-}: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
+}: WriteModeProps) => {
   const { filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
     { backupFilename: camel(info.title) },

@@ -1,6 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 import { SchemasObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
@@ -16,7 +16,7 @@ import { generateInterface } from './interface';
  */
 export const generateSchemasDefinition = async (
   schemas: SchemasObject = {},
-  target: InputTarget,
+  context: ContextSpecs,
 ): Promise<GeneratorSchema[]> => {
   if (isEmpty(schemas)) {
     return [];
@@ -34,14 +34,14 @@ export const generateSchemasDefinition = async (
       ) {
         return [
           ...acc,
-          ...(await generateInterface({ name, schema, schemas, target })),
+          ...(await generateInterface({ name, schema, schemas, context })),
         ];
       } else {
         const resolvedValue = await resolveValue({
           schema,
           name,
           schemas,
-          target,
+          context,
         });
 
         let output = '';

@@ -1,5 +1,5 @@
 import { ReferenceObject, ResponseObject, ResponsesObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { getResReqTypes } from './resReqTypes';
@@ -10,7 +10,7 @@ const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
 export const getResponse = async (
   responses: ResponsesObject,
   operationId: string,
-  target: InputTarget,
+  context: ContextSpecs,
 ): Promise<GetterResponse> => {
   if (!responses) {
     return {
@@ -25,7 +25,7 @@ export const getResponse = async (
   const types = await getResReqTypes(
     Object.entries(responses).filter(isOk),
     operationId,
-    target,
+    context,
   );
 
   const imports = types.reduce<GeneratorImport[]>(

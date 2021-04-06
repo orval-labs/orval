@@ -63,15 +63,14 @@ export const generateMSWImports = (
 
 export const generateMSW = async (
   { operationId, response, verb, tags }: GeneratorVerbOptions,
-  { specs, pathRoute, override, target }: GeneratorOptions,
+  { pathRoute, override, context }: GeneratorOptions,
 ) => {
   const { definitions, definition, imports } = await getMockDefinition({
     operationId,
     tags,
     response,
-    specs,
     override,
-    target,
+    context,
   });
 
   const route = getRoute(pathRoute);

@@ -1,10 +1,9 @@
+import SwaggerParser from '@apidevtools/swagger-parser';
 import { resolve } from 'path';
 import { Options } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { ActionType, useContext } from '../../utils/context';
 import { isObject, isString } from '../../utils/is';
 import { isUrl } from '../../utils/url';
-import { getSpecData } from './data';
 import { importOpenApi } from './openApi';
 
 export const importSpecs = async (
@@ -23,21 +22,13 @@ export const importSpecs = async (
     throw new Error('You need to provide an output');
   }
 
-  const [, dispatch] = useContext();
-
   const isPathUrl = isUrl(targetPath);
   const path = isPathUrl ? targetPath : resolve(workspace, targetPath);
 
-  const { data, format } = await getSpecData(path);
-
-  dispatch({
-    type: ActionType.SET_ROOT_SPEC,
-    rootSpec: path,
-  });
+  const data = await (await SwaggerParser.resolve(path)).values();
 
   return importOpenApi({
     data,
-    format,
     ...(isObject(input) && {
       input,
     }),

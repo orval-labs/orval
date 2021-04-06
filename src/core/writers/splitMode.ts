@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, relative } from 'path';
-import { OutputClient, OutputOptions } from '../../types';
-import { WriteSpecsProps } from '../../types/writers';
+import { OutputClient } from '../../types';
+import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
@@ -17,7 +17,7 @@ export const writeSplitMode = ({
   info,
   output,
   workspace,
-}: WriteSpecsProps & { workspace: string; output: OutputOptions }) => {
+}: WriteModeProps) => {
   const { path, filename, dirname, extension } = getFileInfo(
     join(workspace, output.target || ''),
     { backupFilename: camel(info.title) },

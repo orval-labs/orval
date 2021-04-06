@@ -1,9 +1,11 @@
 import { join } from 'path';
 import { Options, OutputMode, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { useContext } from '../../utils/context';
+import { getExtension } from '../../utils/extension';
+import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { createSuccessMessage } from '../../utils/messages/logs';
+import { isUrl } from '../../utils/url';
 import { writeSchemas } from './schemas';
 import { writeSingleMode } from './singleMode';
 import { writeSplitMode } from './splitMode';
@@ -17,7 +19,7 @@ export const writeSpecs = (
   workspace: string,
   options: Options,
   backend?: string,
-) => ({ operations, schemas, info }: WriteSpecsProps) => {
+) => ({ operations, schemas, rootSpecKey, info }: WriteSpecsProps) => {
   const { output } = options;
 
   if (!output || (isObject(output) && !output.target && !output.schemas)) {
@@ -25,23 +27,35 @@ export const writeSpecs = (
   }
 
   if (isObject(output) && output.schemas) {
-    const schemaPath = join(workspace, output.schemas);
-    writeSchemas({ workspace, schemaPath, schemas, info });
+    const rootSchemaPath = join(workspace, output.schemas);
 
-    const [context] = useContext();
+    const specsName = Object.keys(schemas).reduce((acc, specKey) => {
+      const basePath = (isUrl(specKey)
+        ? specKey.replace(rootSpecKey, '')
+        : specKey.replace(getFileInfo(rootSpecKey).dirname, '')
+      ).replace(`.${getExtension(specKey)}`, '');
 
-    Object.entries(context.specs).forEach(
-      ([specKey, { basePath, schemas }]) => {
-        const path = basePath.slice(1).split('/').join('-');
-        writeSchemas({
-          workspace,
-          schemaPath: join(schemaPath, path),
-          schemas,
-          info,
-          refSpec: !!specKey,
-        });
-      },
-    );
+      const name = basePath.slice(1).split('/').join('-');
+
+      return { ...acc, [specKey]: name };
+    }, {} as Record<keyof typeof schemas, string>);
+
+    Object.entries(schemas).forEach(([specKey, schemas]) => {
+      const isRootKey = rootSpecKey === specKey;
+      const schemaPath = !isRootKey
+        ? join(rootSchemaPath, specsName[specKey])
+        : rootSchemaPath;
+
+      writeSchemas({
+        workspace,
+        schemaPath,
+        schemas,
+        info,
+        rootSpecKey,
+        specsName,
+        isRootKey
+      });
+    });
   }
 
   if (isObject(output) && !output.target) {
@@ -50,7 +64,13 @@ export const writeSpecs = (
   }
 
   if (isSingleMode(output)) {
-    writeSingleMode({ workspace, operations, output, info, schemas });
+    writeSingleMode({
+      workspace,
+      operations,
+      output: isString(output) ? { target: output } : output,
+      info,
+      schemas,
+    });
   } else if (output.mode === OutputMode.SPLIT) {
     writeSplitMode({ workspace, operations, output, info, schemas });
   } else if (output.mode === OutputMode.TAGS) {

@@ -1,5 +1,5 @@
 import { ParameterObject, SchemaObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { GetterParams } from '../../types/getters';
 import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
@@ -30,12 +30,12 @@ export const getParams = ({
   route,
   pathParams = [],
   operationId,
-  target,
+  context,
 }: {
   route: string;
   pathParams?: ParameterObject[];
   operationId: string;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<GetterParams> => {
   const params = getParamsInPath(route);
   return Promise.all(
@@ -51,7 +51,7 @@ export const getParams = ({
 
         const name = sanitize(nameWithoutSanitize);
 
-        const resolvedValue = await resolveValue({ schema, target });
+        const resolvedValue = await resolveValue({ schema, context });
 
         const definition = `${name}${!required || schema.default ? '?' : ''}: ${
           resolvedValue.value

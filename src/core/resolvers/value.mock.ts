@@ -1,5 +1,5 @@
 import { SchemaObject } from 'openapi3-ts';
-import { InputTarget, MockOptions } from '../../types';
+import { ContextSpecs, MockOptions } from '../../types';
 import { MockDefinition } from '../../types/mocks';
 import { isReference } from '../../utils/is';
 import { getRefInfo } from '../getters/ref';
@@ -44,29 +44,27 @@ export const getNullable = (value: string, nullable?: boolean) =>
 
 export const resolveMockValue = async ({
   schema,
-  schemas,
   mockOptions,
   operationId,
   tags,
   combine,
-  target,
+  context,
 }: {
   schema: SchemaObject & { name: string; path?: string; specKey?: string };
-  schemas: { [key: string]: SchemaObject };
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
   combine?: { properties: string[] };
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<MockDefinition> => {
   if (isReference(schema)) {
     const { name, specKey } = await getRefInfo(schema.$ref, {
-      ...target,
-      path: schema.specKey || target.path,
+      ...context,
+      specKey: schema.specKey || context.specKey,
     });
 
     const newSchema = {
-      ...getSchema(name, schemas, specKey || schema.specKey),
+      ...getSchema(name, context, specKey || schema.specKey),
       name,
       path: schema.path,
       isRef: true,
@@ -75,22 +73,20 @@ export const resolveMockValue = async ({
 
     return getMockScalar({
       item: newSchema,
-      schemas,
       mockOptions,
       operationId,
       tags,
       combine,
-      target,
+      context,
     });
   }
 
   return getMockScalar({
     item: schema,
-    schemas,
     mockOptions,
     operationId,
     tags,
     combine,
-    target,
+    context,
   });
 };

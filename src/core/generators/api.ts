@@ -1,5 +1,5 @@
-import { OpenAPIObject, PathItemObject } from 'openapi3-ts';
-import { InputTarget, OutputOptions } from '../../types';
+import { PathItemObject } from 'openapi3-ts';
+import { ContextSpecs, OutputOptions } from '../../types';
 import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { getRoute } from '../getters/route';
@@ -7,16 +7,14 @@ import { generateClient } from './client';
 import { generateVerbsOptions } from './verbsOptions';
 
 export const generateApi = async ({
-  specs,
   output,
-  target,
+  context,
 }: {
-  specs: OpenAPIObject;
   output?: OutputOptions;
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
   return asyncReduce(
-    Object.entries(specs.paths),
+    Object.entries(context.specs[context.specKey].paths),
     async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
       const route = getRoute(pathRoute);
 
@@ -24,8 +22,7 @@ export const generateApi = async ({
         verbs,
         output,
         route,
-        components: specs.components,
-        target,
+        context,
       });
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
@@ -41,9 +38,8 @@ export const generateApi = async ({
       const client = await generateClient(output?.client, verbsOptions, {
         route,
         pathRoute,
-        specs,
         override: output?.override,
-        target,
+        context,
         mock: !!output?.mock,
       });
 

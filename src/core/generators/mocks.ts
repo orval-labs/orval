@@ -1,18 +1,16 @@
-import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
+import { OpenAPIObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
-import { InputTarget, MockOptions, OverrideOutput } from '../../types';
+import { ContextSpecs, MockOptions, OverrideOutput } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { asyncReduce } from '../../utils/async-reduce';
-import { isFunction, isReference } from '../../utils/is';
+import { isFunction } from '../../utils/is';
 import { stringify } from '../../utils/string';
 import { getMockScalar } from '../getters/scalar.mock';
 import { getSchema } from '../getters/schema';
 
-const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
-  Object.entries(
-    isFunction(properties) ? properties(specs) : properties,
-  ).reduce(
+const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
+  Object.entries(isFunction(properties) ? properties(spec) : properties).reduce(
     (acc, [key, value]) => ({
       ...acc,
       [key]: isFunction(value) ? `(${value})()` : stringify(value as string),
@@ -21,7 +19,7 @@ const getMockPropertiesWithoutFunc = (properties: any, specs: OpenAPIObject) =>
   );
 
 const getMockWithoutFunc = (
-  specs: OpenAPIObject,
+  spec: OpenAPIObject,
   override?: OverrideOutput,
 ): MockOptions => ({
   required: override?.mock?.required,
@@ -29,13 +27,13 @@ const getMockWithoutFunc = (
     ? {
         properties: getMockPropertiesWithoutFunc(
           override.mock.properties,
-          specs,
+          spec,
         ),
       }
     : {}),
   ...(override?.mock?.format
     ? {
-        format: getMockPropertiesWithoutFunc(override.mock.format, specs),
+        format: getMockPropertiesWithoutFunc(override.mock.format, spec),
       }
     : {}),
   ...(override?.operations
@@ -47,7 +45,7 @@ const getMockWithoutFunc = (
               ? {
                   properties: getMockPropertiesWithoutFunc(
                     value.mock.properties,
-                    specs,
+                    spec,
                   ),
                 }
               : {},
@@ -65,7 +63,7 @@ const getMockWithoutFunc = (
               ? {
                   properties: getMockPropertiesWithoutFunc(
                     value.mock.properties,
-                    specs,
+                    spec,
                   ),
                 }
               : {},
@@ -80,20 +78,16 @@ export const getResponsesMockDefinition = ({
   operationId,
   tags,
   response,
-  schemas,
   mockOptionsWithoutFunc,
   transformer,
-  target,
+  context,
 }: {
   operationId: string;
   tags: string[];
   response: GetterResponse;
-  schemas: {
-    [key: string]: SchemaObject;
-  };
   mockOptionsWithoutFunc: { [key: string]: unknown };
   transformer?: (value: unknown, definition: string) => string;
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
   return asyncReduce(
     response.types,
@@ -119,7 +113,7 @@ export const getResponsesMockDefinition = ({
           type === 'ref'
             ? schemaImport.name.replace('Response', '')
             : schemaImport.name,
-          schemas,
+          context,
           schemaImport.specKey,
         ),
       };
@@ -130,11 +124,10 @@ export const getResponsesMockDefinition = ({
 
       const scalar = await getMockScalar({
         item: schema,
-        schemas,
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,
-        target,
+        context,
       });
 
       acc.imports = [...acc.imports, ...scalar.imports];
@@ -158,44 +151,29 @@ export const getMockDefinition = async ({
   operationId,
   tags,
   response,
-  specs,
   override,
   transformer,
-  target,
+  context,
 }: {
   operationId: string;
   tags: string[];
   response: GetterResponse;
-  specs: OpenAPIObject;
   override?: OverrideOutput;
   transformer?: (value: unknown, definition: string) => string;
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
-  const schemas = Object.entries(specs.components?.schemas || []).reduce(
-    (acc, [name, type]) => ({ ...acc, [name]: type }),
-    {},
-  ) as { [key: string]: SchemaObject };
-
-  const responses = Object.entries(specs.components?.responses || []).reduce(
-    (acc, [name, type]) => ({
-      ...acc,
-      [name]: isReference(type)
-        ? type
-        : type.content?.['application/json']?.schema,
-    }),
-    {},
-  ) as { [key: string]: SchemaObject };
-
-  const mockOptionsWithoutFunc = getMockWithoutFunc(specs, override);
+  const mockOptionsWithoutFunc = getMockWithoutFunc(
+    context.specs[context.specKey],
+    override,
+  );
 
   const { definitions, imports } = await getResponsesMockDefinition({
     operationId,
     tags,
     response,
-    schemas: { ...schemas, ...responses },
     mockOptionsWithoutFunc,
     transformer,
-    target,
+    context,
   });
 
   return {

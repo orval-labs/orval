@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
@@ -19,15 +19,15 @@ export const getObject = async ({
   item,
   name,
   schemas = {},
-  target,
+  context,
 }: {
   item: SchemaObject;
   name?: string;
   schemas: SchemasObject;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<ResolverValue> => {
   if (isReference(item)) {
-    const { name, specKey } = await getRefInfo(item.$ref, target);
+    const { name, specKey } = await getRefInfo(item.$ref, context);
     return {
       value: name,
       imports: [{ name, specKey }],
@@ -43,7 +43,7 @@ export const getObject = async ({
       name,
       schemas,
       separator: 'allOf',
-      target,
+      context,
     });
   }
 
@@ -53,7 +53,7 @@ export const getObject = async ({
       name,
       schemas,
       separator: 'oneOf',
-      target,
+      context,
     });
   }
 
@@ -63,7 +63,7 @@ export const getObject = async ({
       name,
       schemas,
       separator: 'anyOf',
-      target,
+      context,
     });
   }
 
@@ -82,7 +82,7 @@ export const getObject = async ({
           schema,
           propName,
           schemas,
-          target,
+          context,
         });
         const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
         if (!index) {
@@ -124,7 +124,7 @@ export const getObject = async ({
       schema: item.additionalProperties,
       name,
       schemas,
-      target,
+      context,
     });
     return {
       value: `{[key: string]: ${resolvedValue.value}}`,

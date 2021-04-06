@@ -115,15 +115,15 @@ export const Verbs = {
 };
 
 export type ImportOpenApi = {
-  data: string | object;
-  format: 'yaml' | 'json';
+  data: Record<string, OpenAPIObject>;
   input?: InputOptions;
   output?: OutputOptions;
   path: string;
   workspace: string;
 };
 
-export interface InputTarget {
-  path: string;
+export interface ContextSpecs {
+  specKey: string;
   workspace: string;
+  specs: Record<string, OpenAPIObject>;
 }

@@ -1,5 +1,5 @@
 import { ParameterObject, SchemaObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { resolveValue } from '../resolvers/value';
@@ -15,7 +15,7 @@ type QueryParamsType = {
 const getQueryParamsTypes = (
   queryParams: (ParameterObject | GeneratorImport)[],
   definitionName: string,
-  target: InputTarget,
+  context: ContextSpecs,
 ): Promise<QueryParamsType[]> => {
   return Promise.all(
     queryParams.map(async (p) => {
@@ -27,7 +27,7 @@ const getQueryParamsTypes = (
 
       const { value, imports, isEnum, type, schemas } = await resolveValue({
         schema: schema!,
-        target,
+        context,
         name: pascal(definitionName) + pascal(name),
       });
 
@@ -62,18 +62,18 @@ const getQueryParamsTypes = (
 export const getQueryParams = async ({
   queryParams = [],
   definitionName,
-  target,
+  context,
 }: {
   queryParams: ParameterObject[];
   definitionName: string;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<
   { schema: GeneratorSchema; deps: GeneratorSchema[] } | undefined
 > => {
   if (!queryParams.length) {
     return;
   }
-  const types = await getQueryParamsTypes(queryParams, definitionName, target);
+  const types = await getQueryParamsTypes(queryParams, definitionName, context);
   const imports = types.reduce<GeneratorImport[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
     [],

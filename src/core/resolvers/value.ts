@@ -1,5 +1,5 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { isReference } from '../../utils/is';
 import { getRefInfo } from '../getters/ref';
@@ -13,15 +13,15 @@ export const resolveValue = async ({
   schema,
   name,
   schemas = {},
-  target,
+  context,
 }: {
   schema: SchemaObject;
   name?: string;
   schemas?: SchemasObject;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<ResolverValue> => {
   if (isReference(schema)) {
-    const { name, specKey } = await getRefInfo(schema.$ref, target);
+    const { name, specKey } = await getRefInfo(schema.$ref, context);
     const schemaObject = schemas[name];
     return {
       value: name,
@@ -32,5 +32,5 @@ export const resolveValue = async ({
     };
   }
 
-  return getScalar({ item: schema, name, schemas, target });
+  return getScalar({ item: schema, name, schemas, context });
 };

@@ -1,21 +1,31 @@
 import { SchemaObject } from 'openapi3-ts';
-import { useContext } from '../../utils/context';
+import { ContextSpecs } from '../../types';
+import { isReference } from '../../utils/is';
 
 export const getSchema = (
   name: string,
-  schemas: { [key: string]: SchemaObject },
+  context: ContextSpecs,
   specKey?: string,
 ) => {
-  if (specKey) {
-    const [context] = useContext();
-    const specKeySchemas = Object.entries(
-      context.specs[specKey].spec.components?.schemas || [],
-    ).reduce((acc, [name, type]) => ({ ...acc, [name]: type }), {}) as {
-      [key: string]: SchemaObject;
-    };
+  const schemas = Object.entries(
+    context.specs[specKey || context.specKey].components?.schemas || [],
+  ).reduce((acc, [name, type]) => ({ ...acc, [name]: type }), {}) as {
+    [key: string]: SchemaObject;
+  };
 
-    return specKeySchemas[name];
-  }
+  const responses = Object.entries(
+    context.specs[specKey || context.specKey].components?.responses || [],
+  ).reduce(
+    (acc, [name, type]) => ({
+      ...acc,
+      [name]: isReference(type)
+        ? type
+        : type.content?.['application/json']?.schema,
+    }),
+    {},
+  ) as { [key: string]: SchemaObject };
 
-  return schemas[name];
+  const allSchemas = { ...schemas, ...responses };
+
+  return allSchemas[name];
 };

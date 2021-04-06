@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { InputTarget, MockOptions } from '../../types';
+import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { resolveMockValue } from '../resolvers/value.mock';
@@ -8,22 +8,20 @@ export const combineSchemasMock = async ({
   item,
   items,
   isOneOf,
-  schemas,
   mockOptions,
   operationId,
   tags,
   combine,
-  target,
+  context,
 }: {
   item: SchemaObject & { name: string; path?: string; specKey?: string };
   items: (SchemaObject | ReferenceObject)[];
   isOneOf: boolean;
-  schemas: { [key: string]: SchemaObject };
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
   combine?: { properties: string[] };
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
   let imports: GeneratorImport[] = [];
   let properties: string[] = [...(combine?.properties || [])];
@@ -37,7 +35,6 @@ export const combineSchemasMock = async ({
           path: item.path ? item.path : '#',
           specKey: item.specKey,
         },
-        schemas,
         combine: !isOneOf
           ? {
               properties,
@@ -46,7 +43,7 @@ export const combineSchemasMock = async ({
         mockOptions,
         operationId,
         tags,
-        target,
+        context,
       });
 
       imports = [...imports, ...resolvedValue.imports];

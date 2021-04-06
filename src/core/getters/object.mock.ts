@@ -1,6 +1,6 @@
 import cuid from 'cuid';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { InputTarget, MockOptions } from '../../types';
+import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { isBoolean, isReference } from '../../utils/is';
@@ -10,35 +10,31 @@ import { combineSchemasMock } from './combine.mock';
 
 export const getMockObject = async ({
   item,
-  schemas,
   mockOptions,
   operationId,
   tags,
   combine,
-  target,
+  context,
 }: {
   item: SchemaObject & { name: string; path?: string; specKey?: string };
-  schemas: { [key: string]: SchemaObject };
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
   combine?: { properties: string[] };
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<MockDefinition> => {
   if (isReference(item)) {
     return await resolveMockValue({
       schema: {
         ...item,
-        schemas,
         name: item.name,
         path: item.path ? `${item.path}.${item.name}` : item.name,
         specKey: item.specKey,
       },
-      schemas,
       mockOptions,
       operationId,
       tags,
-      target,
+      context,
     });
   }
 
@@ -47,12 +43,11 @@ export const getMockObject = async ({
       item,
       items: (item.allOf || item.oneOf || item.anyOf)!,
       isOneOf: !!(item.oneOf || item.anyOf),
-      schemas,
       mockOptions,
       operationId,
       tags,
       combine,
-      target,
+      context,
     });
   }
 
@@ -82,11 +77,10 @@ export const getMockObject = async ({
                 path: item.path ? `${item.path}.${key}` : `#.${key}`,
                 specKey: item.specKey,
               },
-              schemas,
               mockOptions,
               operationId,
               tags,
-              target,
+              context,
             });
 
             imports = [...imports, ...resolvedValue.imports];
@@ -124,11 +118,10 @@ export const getMockObject = async ({
         path: item.path ? `${item.path}.#` : '#',
         specKey: item.specKey,
       },
-      schemas,
       mockOptions,
       operationId,
       tags,
-      target,
+      context,
     });
 
     return {

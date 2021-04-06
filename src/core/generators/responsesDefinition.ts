@@ -1,6 +1,6 @@
 import isEmpty from 'lodash/isEmpty';
 import { ComponentsObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
@@ -13,7 +13,7 @@ import { getResReqTypes } from '../getters/resReqTypes';
  */
 export const generateResponsesDefinition = (
   responses: ComponentsObject['responses'] = {},
-  target: InputTarget,
+  context: ContextSpecs,
 ): Promise<GeneratorSchema[]> => {
   if (isEmpty(responses)) {
     return Promise.resolve([]);
@@ -25,7 +25,7 @@ export const generateResponsesDefinition = (
       const allResponseTypes = await getResReqTypes(
         [['Response', response]],
         name,
-        target,
+        context,
       );
 
       const imports = allResponseTypes.reduce<GeneratorImport[]>(

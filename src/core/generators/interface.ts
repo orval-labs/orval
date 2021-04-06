@@ -1,6 +1,6 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { pascal } from '../../utils/case';
 import { getScalar } from '../getters/scalar';
 
@@ -15,14 +15,14 @@ export const generateInterface = async ({
   name,
   schema,
   schemas,
-  target,
+  context,
 }: {
   name: string;
   schema: SchemaObject;
   schemas: SchemasObject;
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
-  const scalar = await getScalar({ item: schema, name, schemas, target });
+  const scalar = await getScalar({ item: schema, name, schemas, context });
   const isEmptyObject = scalar.value === '{}';
   const definitionName = pascal(name);
 

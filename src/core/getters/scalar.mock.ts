@@ -1,6 +1,6 @@
 import { SchemaObject } from 'openapi3-ts';
 import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
-import { InputTarget, MockOptions } from '../../types';
+import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { mergeDeep } from '../../utils/mergeDeep';
@@ -13,12 +13,11 @@ import { getMockObject } from './object.mock';
 
 export const getMockScalar = async ({
   item,
-  schemas,
   mockOptions,
   operationId,
   tags,
   combine,
-  target,
+  context,
 }: {
   item: SchemaObject & {
     name: string;
@@ -26,13 +25,12 @@ export const getMockScalar = async ({
     isRef?: boolean;
     specKey?: string;
   };
-  schemas: { [key: string]: SchemaObject };
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
   tags: string[];
   combine?: { properties: string[] };
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<MockDefinition> => {
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
@@ -103,12 +101,11 @@ export const getMockScalar = async ({
           path: item.path ? `${item.path}.[]` : '#.[]',
           specKey: item.specKey,
         },
-        schemas,
         combine,
         mockOptions,
         operationId,
         tags,
-        target,
+        context,
       });
 
       if (enums) {
@@ -159,12 +156,11 @@ export const getMockScalar = async ({
     default: {
       return getMockObject({
         item,
-        schemas,
         mockOptions,
         operationId,
         tags,
         combine,
-        target,
+        context,
       });
     }
   }

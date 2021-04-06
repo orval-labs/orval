@@ -5,7 +5,7 @@ import {
   RequestBodyObject,
   ResponseObject,
 } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
@@ -13,35 +13,20 @@ import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
 import { getRefInfo } from './ref';
 
-const CONTENT_TYPES = [
-  'application/json',
-  'application/octet-stream',
-  'application/pdf',
-  'multipart/form-data',
-];
-
 const getResReqContentTypes = ({
-  type,
   mediaType,
   propName,
-  target,
+  context,
 }: {
-  type: string;
   mediaType: MediaTypeObject;
   propName?: string;
-  target: InputTarget;
+  context: ContextSpecs;
 }) => {
-  if (!CONTENT_TYPES.includes(type) || !mediaType.schema) {
-    return {
-      value: 'unknown',
-      imports: [],
-      schemas: [],
-      type: 'unknow',
-      isEnum: false,
-    };
+  if (!mediaType.schema) {
+    return undefined;
   }
 
-  return resolveObject({ schema: mediaType.schema, propName, target });
+  return resolveObject({ schema: mediaType.schema, propName, context });
 };
 
 /**
@@ -54,14 +39,14 @@ export const getResReqTypes = async (
     [string, ResponseObject | ReferenceObject | RequestBodyObject]
   >,
   name: string,
-  target: InputTarget,
-): Promise<Array<ResolverValue>> => {
+  context: ContextSpecs,
+): Promise<ResolverValue[]> => {
   const typesArray = await Promise.all(
     responsesOrRequests
       .filter(([_, res]) => Boolean(res))
       .map(async ([key, res]) => {
         if (isReference(res)) {
-          const { name, specKey } = await getRefInfo(res.$ref, target);
+          const { name, specKey } = await getRefInfo(res.$ref, context);
           return [
             {
               value: name,
@@ -74,8 +59,8 @@ export const getResReqTypes = async (
         }
 
         if (res.content) {
-          return Promise.all(
-            Object.entries(res.content).map(([type, mediaType], index, arr) => {
+          const contents = await Promise.all(
+            Object.entries(res.content).map(([, mediaType], index, arr) => {
               let propName = key ? pascal(name) + pascal(key) : undefined;
 
               if (propName && arr.length > 1) {
@@ -83,13 +68,14 @@ export const getResReqTypes = async (
               }
 
               return getResReqContentTypes({
-                type,
                 mediaType,
                 propName,
-                target,
+                context,
               });
             }),
           );
+
+          return contents.filter((x) => x) as ResolverValue[];
         }
 
         return [

@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, relative } from 'path';
-import { OutputOptions } from '../../types';
-import { WriteSpecsProps } from '../../types/writers';
+import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
@@ -18,7 +17,7 @@ export const writeSingleMode = ({
   schemas,
   info,
   output,
-}: WriteSpecsProps & { workspace: string; output: string | OutputOptions }) => {
+}: WriteModeProps) => {
   const targetedPath = isString(output) ? output : output.target || '';
   const { path, dirname } = getFileInfo(join(workspace, targetedPath), {
     backupFilename: camel(info.title),

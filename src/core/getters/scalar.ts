@@ -1,5 +1,5 @@
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
-import { InputTarget } from '../../types';
+import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -14,12 +14,12 @@ export const getScalar = async ({
   item,
   name,
   schemas = {},
-  target,
+  context,
 }: {
   item: SchemaObject;
   name?: string;
   schemas: SchemasObject;
-  target: InputTarget;
+  context: ContextSpecs;
 }): Promise<ResolverValue> => {
   const nullable = item.nullable ? ' | null' : '';
 
@@ -61,7 +61,7 @@ export const getScalar = async ({
         schema: item,
         name,
         schemas,
-        target,
+        context,
       });
       return {
         value: value + nullable,
@@ -97,7 +97,7 @@ export const getScalar = async ({
         item,
         name,
         schemas,
-        target,
+        context,
       });
       return { value: value + nullable, ...rest };
     }
