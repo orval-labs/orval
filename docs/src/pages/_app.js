@@ -36,7 +36,7 @@ function MyApp({ Component, pageProps, err }) {
           `,
           }}
         />
-        <script async src="https://unpkg.com/thesemetrics@latest"></script>
+        <script async src="https://cdn.splitbee.io/sb.js"></script>
       </Head>
       <SearchProvider>
         <Component {...pageProps} err={err} />
