@@ -4,6 +4,7 @@ import {
   GeneratorImport,
   GeneratorMutator,
   GeneratorOperations,
+  GeneratorTarget,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import {
@@ -15,8 +16,8 @@ export const generateTarget = (
   operations: GeneratorOperations,
   info: InfoObject,
   options?: OutputOptions,
-) =>
-  Object.values(operations).reduce(
+): GeneratorTarget => {
+  const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
       if (!index) {
         const header = generateClientHeader(
@@ -25,12 +26,13 @@ export const generateTarget = (
           options?.override?.title,
         );
         acc.implementation += header.implementation;
-        acc.implementationMSW += header.implementationMSW;
+        acc.implementationMSW.handler += header.implementationMSW;
       }
       acc.imports = [...acc.imports, ...operation.imports];
       acc.importsMSW = [...acc.importsMSW, ...operation.importsMSW];
       acc.implementation += operation.implementation;
-      acc.implementationMSW += operation.implementationMSW;
+      acc.implementationMSW.function += operation.implementationMSW.function;
+      acc.implementationMSW.handler += operation.implementationMSW.handler;
       if (operation.mutator) {
         acc.mutators = [...acc.mutators, operation.mutator];
       }
@@ -38,7 +40,7 @@ export const generateTarget = (
       if (index === arr.length - 1) {
         const footer = generateClientFooter(options?.client);
         acc.implementation += footer.implementation;
-        acc.implementationMSW += footer.implementationMSW;
+        acc.implementationMSW.handler += footer.implementationMSW;
         acc.imports = acc.imports;
       }
       return acc;
@@ -46,8 +48,18 @@ export const generateTarget = (
     {
       imports: [] as GeneratorImport[],
       implementation: '',
-      implementationMSW: '',
+      implementationMSW: {
+        function: '',
+        handler: '',
+      },
       importsMSW: [] as GeneratorImport[],
       mutators: [] as GeneratorMutator[],
     },
   );
+
+  return {
+    ...target,
+    implementationMSW:
+      target.implementationMSW.function + target.implementationMSW.handler,
+  };
+};

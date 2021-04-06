@@ -3,6 +3,7 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
+import { pascal } from '../../utils/case';
 import { sanitize } from '../../utils/string';
 import { generateDependencyImports } from './imports';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -97,14 +98,22 @@ export const generateMSW = async (
       : 'text';
 
   return {
-    implementation: `rest.${verb}('${route}', (req, res, ctx) => {
-      return res(
-        ctx.delay(1000),
-        ctx.status(200, 'Mocked status'),${
-          value !== 'undefined' ? `\nctx.${responseType}(${value}),` : ''
-        }
-      )
-    }),`,
+    implementation: {
+      function:
+        value !== 'undefined'
+          ? `export const get${pascal(operationId)}Mock = () => (${value})\n\n`
+          : '',
+      handler: `rest.${verb}('${route}', (req, res, ctx) => {
+        return res(
+          ctx.delay(1000),
+          ctx.status(200, 'Mocked status'),${
+            value !== 'undefined'
+              ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`
+              : ''
+          }
+        )
+      }),`,
+    },
     imports,
   };
 };

@@ -36,10 +36,21 @@ export type GeneratorTarget = {
   mutators?: GeneratorMutator[];
 };
 
+export type GeneratorTargetFull = {
+  imports: GeneratorImport[];
+  implementation: string;
+  implementationMSW: {
+    function: string;
+    handler: string;
+  };
+  importsMSW: GeneratorImport[];
+  mutators?: GeneratorMutator[];
+};
+
 export type GeneratorOperation = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: string;
+  implementationMSW: { function: string; handler: string };
   importsMSW: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;

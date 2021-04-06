@@ -129,7 +129,10 @@ export const generateClient = (
       const msw = options.mock
         ? await generator.msw(verbOption, options)
         : {
-            implementation: '',
+            implementation: {
+              function: '',
+              handler: '',
+            },
             imports: [],
           };
 

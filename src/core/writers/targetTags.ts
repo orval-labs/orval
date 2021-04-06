@@ -3,6 +3,7 @@ import {
   GeneratorOperation,
   GeneratorOperations,
   GeneratorTarget,
+  GeneratorTargetFull,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import {
@@ -16,10 +17,12 @@ const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
 });
 
 const generateTargetTags = (
-  currentAcc: { [key: string]: GeneratorTarget },
+  currentAcc: { [key: string]: GeneratorTargetFull },
   operation: GeneratorOperation,
   options?: OutputOptions,
-): { [key: string]: GeneratorTarget } =>
+): {
+  [key: string]: GeneratorTargetFull;
+} =>
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
     if (!currentOperation) {
@@ -36,8 +39,11 @@ const generateTargetTags = (
           importsMSW: operation.importsMSW,
           mutators: operation.mutator ? [operation.mutator] : [],
           implementation: header.implementation + operation.implementation,
-          implementationMSW:
-            header.implementationMSW + operation.implementationMSW,
+          implementationMSW: {
+            function: operation.implementationMSW.function,
+            handler:
+              header.implementationMSW + operation.implementationMSW.handler,
+          },
         },
       };
     }
@@ -49,8 +55,14 @@ const generateTargetTags = (
           currentOperation.implementation + operation.implementation,
         imports: [...currentOperation.imports, ...operation.imports],
         importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
-        implementationMSW:
-          currentOperation.implementationMSW + operation.implementationMSW,
+        implementationMSW: {
+          function:
+            currentOperation.implementationMSW.function +
+            operation.implementationMSW.function,
+          handler:
+            currentOperation.implementationMSW.handler +
+            operation.implementationMSW.handler,
+        },
         mutators: operation.mutator
           ? [...(currentOperation.mutators || []), operation.mutator]
           : currentOperation.mutators,
@@ -61,8 +73,8 @@ const generateTargetTags = (
 export const generateTargetForTags = (
   operations: GeneratorOperations,
   options?: OutputOptions,
-) =>
-  Object.values(operations)
+) => {
+  const allTargetTags = Object.values(operations)
     .map(addDefaultTagIfEmpty)
     .reduce((acc, operation, index, arr) => {
       const targetTags = generateTargetTags(acc, operation, options);
@@ -75,8 +87,11 @@ export const generateTargetForTags = (
             ...acc,
             [tag]: {
               implementation: target.implementation + footer.implementation,
-              implementationMSW:
-                target.implementationMSW + footer.implementationMSW,
+              implementationMSW: {
+                function: target.implementationMSW.function,
+                handler:
+                  target.implementationMSW.handler + footer.implementationMSW,
+              },
               imports: target.imports,
               importsMSW: target.importsMSW,
               mutators: target.mutators,
@@ -86,4 +101,16 @@ export const generateTargetForTags = (
       }
 
       return targetTags;
-    }, {} as { [key: string]: GeneratorTarget });
+    }, {} as { [key: string]: GeneratorTargetFull });
+
+  return Object.entries(allTargetTags).reduce((acc, [tag, target]) => {
+    return {
+      ...acc,
+      [tag]: {
+        ...target,
+        implementationMSW:
+          target.implementationMSW.function + target.implementationMSW.handler,
+      },
+    };
+  }, {} as { [key: string]: GeneratorTarget });
+};
