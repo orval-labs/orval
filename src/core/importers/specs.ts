@@ -2,6 +2,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { resolve } from 'path';
 import { Options } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { githubResolver } from '../../utils/github';
 import { isObject, isString } from '../../utils/is';
 import { isUrl } from '../../utils/url';
 import { importOpenApi } from './openApi';
@@ -25,7 +26,11 @@ export const importSpecs = async (
   const isPathUrl = isUrl(targetPath);
   const path = isPathUrl ? targetPath : resolve(workspace, targetPath);
 
-  const data = await (await SwaggerParser.resolve(path)).values();
+  const data = (
+    await SwaggerParser.resolve(path, {
+      resolve: { github: githubResolver },
+    } as SwaggerParser.Options)
+  ).values();
 
   return importOpenApi({
     data,

@@ -1,3 +1,4 @@
+import SwaggerParser from '@apidevtools/swagger-parser';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
 import https from 'https';
 import inquirer from 'inquirer';
@@ -106,4 +107,15 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
     }
     throw e.body.message || `Oups... 🍻. ${e}`;
   }
+};
+
+export const githubResolver = {
+  order: 199,
+  canRead(file: SwaggerParser.FileInfo) {
+    return file.url.includes('github.com');
+  },
+
+  read(file: SwaggerParser.FileInfo) {
+    return getGithubOpenApi(file.url);
+  },
 };
