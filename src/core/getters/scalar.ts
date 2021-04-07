@@ -13,12 +13,10 @@ import { getObject } from './object';
 export const getScalar = async ({
   item,
   name,
-  schemas = {},
   context,
 }: {
   item: SchemaObject;
   name?: string;
-  schemas: SchemasObject;
   context: ContextSpecs;
 }): Promise<ResolverValue> => {
   const nullable = item.nullable ? ' | null' : '';
@@ -60,7 +58,6 @@ export const getScalar = async ({
       const { value, ...rest } = await getArray({
         schema: item,
         name,
-        schemas,
         context,
       });
       return {
@@ -96,7 +93,6 @@ export const getScalar = async ({
       const { value, ...rest } = await getObject({
         item,
         name,
-        schemas,
         context,
       });
       return { value: value + nullable, ...rest };

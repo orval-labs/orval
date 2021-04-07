@@ -7,20 +7,17 @@ import { resolveValue } from './value';
 export const resolveObject = async ({
   schema,
   propName,
-  schemas = {},
   combined = false,
   context,
 }: {
   schema: SchemaObject;
   propName?: string;
-  schemas?: SchemasObject;
   combined?: boolean;
   context: ContextSpecs;
 }): Promise<ResolverValue> => {
   const resolvedValue = await resolveValue({
     schema,
     name: propName,
-    schemas,
     context,
   });
   if (

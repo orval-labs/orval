@@ -11,19 +11,16 @@ import { resolveObject } from '../resolvers/object';
 export const getArray = async ({
   schema,
   name,
-  schemas,
   context,
 }: {
   schema: SchemaObject;
   name?: string;
-  schemas: SchemasObject;
   context: ContextSpecs;
 }): Promise<ResolverValue> => {
   if (schema.items) {
     const resolvedObject = await resolveObject({
       schema: schema.items,
       propName: name + 'Item',
-      schemas,
       context,
     });
     return {

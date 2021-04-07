@@ -32,6 +32,7 @@ export const getResponse = async (
     (acc, { imports = [] }) => [...acc, ...imports],
     [],
   );
+
   const schemas = types.reduce<GeneratorSchema[]>(
     (acc, { schemas = [] }) => [...acc, ...schemas],
     [],

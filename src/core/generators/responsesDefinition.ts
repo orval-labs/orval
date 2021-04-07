@@ -32,10 +32,12 @@ export const generateResponsesDefinition = (
         (acc, { imports = [] }) => [...acc, ...imports],
         [],
       );
+
       const schemas = allResponseTypes.reduce<GeneratorSchema[]>(
         (acc, { schemas = [] }) => [...acc, ...schemas],
         [],
       );
+
       const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
       const modelName = `${pascal(name)}Response`;

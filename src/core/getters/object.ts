@@ -1,4 +1,4 @@
-import { ReferenceObject, SchemaObject, SchemasObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { asyncReduce } from '../../utils/async-reduce';
@@ -18,12 +18,10 @@ import { getRefInfo } from './ref';
 export const getObject = async ({
   item,
   name,
-  schemas = {},
   context,
 }: {
   item: SchemaObject;
   name?: string;
-  schemas: SchemasObject;
   context: ContextSpecs;
 }): Promise<ResolverValue> => {
   if (isReference(item)) {
@@ -41,7 +39,6 @@ export const getObject = async ({
     return combineSchemas({
       items: item.allOf,
       name,
-      schemas,
       separator: 'allOf',
       context,
     });
@@ -51,7 +48,6 @@ export const getObject = async ({
     return combineSchemas({
       items: item.oneOf,
       name,
-      schemas,
       separator: 'oneOf',
       context,
     });
@@ -61,7 +57,6 @@ export const getObject = async ({
     return combineSchemas({
       items: item.anyOf,
       name,
-      schemas,
       separator: 'anyOf',
       context,
     });
@@ -81,7 +76,6 @@ export const getObject = async ({
         const resolvedValue = await resolveObject({
           schema,
           propName,
-          schemas,
           context,
         });
         const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
@@ -123,7 +117,6 @@ export const getObject = async ({
     const resolvedValue = await resolveValue({
       schema: item.additionalProperties,
       name,
-      schemas,
       context,
     });
     return {

@@ -100,14 +100,14 @@ export const generateMSW = async (
   return {
     implementation: {
       function:
-        value !== 'undefined'
+        value && value !== 'undefined'
           ? `export const get${pascal(operationId)}Mock = () => (${value})\n\n`
           : '',
       handler: `rest.${verb}('${route}', (req, res, ctx) => {
         return res(
           ctx.delay(1000),
           ctx.status(200, 'Mocked status'),${
-            value !== 'undefined'
+            value && value !== 'undefined'
               ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`
               : ''
           }
