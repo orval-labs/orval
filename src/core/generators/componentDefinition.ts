@@ -6,14 +6,12 @@ import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { getResReqTypes } from '../getters/resReqTypes';
 
-/**
- * Extract all types from #/components/responses
- *
- * @param responses
- */
-export const generateResponsesDefinition = (
-  responses: ComponentsObject['responses'] = {},
+export const generateComponentDefinition = (
+  responses:
+    | ComponentsObject['responses']
+    | ComponentsObject['requestBodies'] = {},
   context: ContextSpecs,
+  suffix: string,
 ): Promise<GeneratorSchema[]> => {
   if (isEmpty(responses)) {
     return Promise.resolve([]);
@@ -23,7 +21,7 @@ export const generateResponsesDefinition = (
     Object.entries(responses),
     async (acc, [name, response]) => {
       const allResponseTypes = await getResReqTypes(
-        [['Response', response]],
+        [[suffix, response]],
         name,
         context,
       );
@@ -40,7 +38,7 @@ export const generateResponsesDefinition = (
 
       const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-      const modelName = `${pascal(name)}Response`;
+      const modelName = `${pascal(name)}${suffix}`;
       const model = `export type ${modelName} = ${type || 'unknown'};\n`;
 
       return [

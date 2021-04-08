@@ -5,10 +5,6 @@ import { isReference } from '../../utils/is';
 import { getScalar } from '../getters/scalar';
 import { resolveRef } from './ref';
 
-/**
- * Resolve the value of a schema object to a proper type definition.
- * @param schema
- */
 export const resolveValue = async ({
   schema,
   name,
@@ -19,15 +15,19 @@ export const resolveValue = async ({
   context: ContextSpecs;
 }): Promise<ResolverValue> => {
   if (isReference(schema)) {
-    const { schema: schemaObject, imports } = await resolveRef(schema, context);
-    const { name, specKey } = imports[0];
+    const { schema: schemaObject, imports } = await resolveRef<SchemaObject>(
+      schema,
+      context,
+    );
+    const { name, specKey, schemaName } = imports[0];
 
     return {
       value: name,
-      imports: [{ name, specKey }],
+      imports: [{ name, specKey, schemaName }],
       type: schemaObject?.type || 'object',
       schemas: [],
       isEnum: !!schemaObject?.enum,
+      ref: schemaObject,
     };
   }
 

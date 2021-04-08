@@ -34,13 +34,12 @@ export const generateSchemasDefinition = async (
       ) {
         return [
           ...acc,
-          ...(await generateInterface({ name, schema, schemas, context })),
+          ...(await generateInterface({ name, schema, context })),
         ];
       } else {
         const resolvedValue = await resolveValue({
           schema,
           name,
-          schemas,
           context,
         });
 

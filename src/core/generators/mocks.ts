@@ -91,7 +91,7 @@ export const getResponsesMockDefinition = ({
 }) => {
   return asyncReduce(
     response.types,
-    async (acc, { value: definition, type, imports }) => {
+    async (acc, { value: definition, isRef, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         acc.definitions = [
           ...acc.definitions,
@@ -110,9 +110,7 @@ export const getResponsesMockDefinition = ({
       const schema = {
         name: definition,
         ...getSchema(
-          type === 'ref'
-            ? schemaImport.name.replace('Response', '')
-            : schemaImport.name,
+          schemaImport.schemaName || schemaImport.name,
           context,
           schemaImport.specKey,
         ),

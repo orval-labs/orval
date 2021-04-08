@@ -1,15 +1,11 @@
 import { omitBy } from 'lodash';
 import { OperationOptions, Verbs } from '../../types';
-import {
-  GeneratorImport,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-} from '../../types/generator';
+import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
 import { camel, pascal } from '../../utils/case';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { stringify, toObjectString } from '../../utils/string';
-import { generateFormData } from './formData';
+import { generateVerbImports } from './imports';
 import { generateAxiosConfig, generateOptions } from './options';
 
 const REACT_QUERY_DEPENDENCIES = [
@@ -23,7 +19,9 @@ const REACT_QUERY_DEPENDENCIES = [
       { name: 'useInfiniteQuery' },
       { name: 'useMutation' },
       { name: 'UseQueryOptions' },
-      { name: 'UseInfiniteQueryOptions' },
+      {
+        name: 'UseInfiniteQueryOptions',
+      },
       { name: 'UseMutationOptions' },
     ],
     dependency: 'react-query',
@@ -44,13 +42,25 @@ const generateAxiosFunction = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
-  const axiosConfig = generateAxiosConfig({
-    route,
-    body,
-    queryParams,
-    response,
-    verb,
-  });
+  if (mutator) {
+    const axiosConfig = generateAxiosConfig({
+      route,
+      body,
+      queryParams,
+      response,
+      verb,
+    });
+
+    return `export const ${definitionName} = <Data = unknown>(\n    ${toObjectString(
+      props,
+      'implementation',
+    )}\n  ) => {
+      return ${mutator.name}<Data extends unknown ? ${
+      response.definition
+    } : Data>(${axiosConfig});
+    }
+  `;
+  }
 
   const options = generateOptions({
     route,
@@ -63,12 +73,10 @@ const generateAxiosFunction = (
   return `export const ${definitionName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ) => {${generateFormData(body)}
-    return ${
-      mutator
-        ? `${mutator.name}<Data extends unknown ? ${response.definition} : Data>(${axiosConfig})`
-        : `axios.${verb}<Data extends unknown ? ${response.definition} : Data>(${options})`
-    };
+  )}\n  ) => {${body.formData}
+    return axios.${verb}<Data extends unknown ? ${
+    response.definition
+  } : Data>(${options});
   }
 `;
 };
@@ -259,21 +267,6 @@ export const ${camel(`use-${definitionName}`)} = <
 `;
 };
 
-const generateImports = ({
-  response,
-  body,
-  queryParams,
-  params,
-}: GeneratorVerbOptions): GeneratorImport[] => [
-  ...response.imports,
-  ...body.imports,
-  ...params.reduce<GeneratorImport[]>(
-    (acc, param) => [...acc, ...param.imports],
-    [],
-  ),
-  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
-];
-
 export const generateReactQueryTitle = () => '';
 
 export const generateReactQueryHeader = () => `type AsyncReturnType<
@@ -286,7 +279,7 @@ export const generateReactQuery = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
-  const imports = generateImports(verbOptions);
+  const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateAxiosFunction(verbOptions, options);
   const hookImplementation = generateReactQueryImplementation(
     verbOptions,

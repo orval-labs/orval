@@ -1,6 +1,10 @@
 import { uniq, uniqWith } from 'lodash';
 import { join } from 'path';
-import { GeneratorImport, GeneratorMutator } from '../../types/generator';
+import {
+  GeneratorImport,
+  GeneratorMutator,
+  GeneratorVerbOptions,
+} from '../../types/generator';
 import { camel } from '../../utils/case';
 
 export const generateImports = ({
@@ -121,3 +125,18 @@ export const generateDependencyImports = (
 
   return dependencies ? dependencies + '\n' : '';
 };
+
+export const generateVerbImports = ({
+  response,
+  body,
+  queryParams,
+  params,
+}: GeneratorVerbOptions): GeneratorImport[] => [
+  ...response.imports,
+  ...body.imports,
+  ...params.reduce<GeneratorImport[]>(
+    (acc, param) => [...acc, ...param.imports],
+    [],
+  ),
+  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
+];

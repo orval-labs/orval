@@ -1,23 +1,49 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import {
+  ParameterObject,
+  RequestBodyObject,
+  ResponseObject,
+  SchemaObject,
+} from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { isReference } from '../../utils/is';
 import { getRefInfo } from '../getters/ref';
 
-export const resolveRef = async (
-  schema: SchemaObject | ReferenceObject,
+type ComponentObject =
+  | SchemaObject
+  | ResponseObject
+  | ParameterObject
+  | RequestBodyObject;
+export const resolveRef = async <
+  Schema extends ComponentObject = ComponentObject
+>(
+  schema: ComponentObject,
   context: ContextSpecs,
   imports: GeneratorImport[] = [],
-): Promise<SchemaObject> => {
+): Promise<{
+  schema: Schema;
+  imports: GeneratorImport[];
+}> => {
   if (!isReference(schema)) {
-    return { schema, imports };
+    return { schema: schema as Schema, imports };
   }
 
-  const { name, specKey } = await getRefInfo(schema.$ref, context);
+  const { name, originalName, specKey, type } = await getRefInfo(
+    schema.$ref,
+    context,
+  );
 
-  return resolveRef(
-    context.specs[specKey || context.specKey].components?.schemas?.[name]!,
+  const currentSchema = context.specs[specKey || context.specKey]?.components?.[
+    type
+  ]?.[originalName]! as Schema;
+
+  if (!currentSchema) {
+    throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
+  }
+
+  return resolveRef<Schema>(
+    currentSchema,
     { ...context, specKey: specKey || context.specKey },
-    [...imports, { name, specKey }],
+    [...imports, { name, specKey, schemaName: originalName }],
   );
 };

@@ -12,7 +12,7 @@ export const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
     return '';
   }
 
-  if (body.isBlob) {
+  if (body.formData) {
     return '\n      formData,';
   }
 
@@ -66,7 +66,7 @@ export const generateBodyAxiosConfig = (body: GetterBody, verb: Verbs) => {
     return '';
   }
 
-  if (body.isBlob) {
+  if (body.formData) {
     return ',\n      data: formData,';
   }
 

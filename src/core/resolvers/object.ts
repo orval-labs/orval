@@ -1,4 +1,4 @@
-import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { getEnum } from '../getters/enum';
@@ -39,6 +39,7 @@ export const resolveObject = async ({
       ],
       isEnum: false,
       type: 'object',
+      ref: resolvedValue.ref,
     };
   }
 
@@ -62,6 +63,7 @@ export const resolveObject = async ({
       ],
       isEnum: false,
       type: 'enum',
+      ref: resolvedValue.ref,
     };
   }
 

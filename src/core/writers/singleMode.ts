@@ -39,7 +39,10 @@ export const writeSingleMode = ({
   let data = getFilesHeader(info);
 
   if (isObject(output) && output.schemas) {
-    const schemasPath = relative(dirname || '', output.schemas);
+    const schemasPath = relative(
+      dirname,
+      getFileInfo(join(workspace, output.schemas)).dirname,
+    );
 
     data += generateClientImports(
       output.client,

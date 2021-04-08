@@ -6,7 +6,7 @@ import { asyncReduce } from '../../utils/async-reduce';
 import { swaggerConverter } from '../../utils/converter';
 import { dynamicImport } from '../../utils/imports';
 import { generateApi } from '../generators/api';
-import { generateResponsesDefinition } from '../generators/responsesDefinition';
+import { generateComponentDefinition } from '../generators/componentDefinition';
 import { generateSchemasDefinition } from '../generators/schemaDefinition';
 import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
 
@@ -59,14 +59,25 @@ export const importOpenApi = async ({
         { specKey, workspace, specs },
       );
 
-      const responseDefinition = await generateResponsesDefinition(
+      const responseDefinition = await generateComponentDefinition(
         spec.components?.responses,
         { specKey, workspace, specs },
+        'Response',
+      );
+
+      const bodyDefinition = await generateComponentDefinition(
+        spec.components?.requestBodies,
+        { specKey, workspace, specs },
+        'Body',
       );
 
       return {
         ...acc,
-        [specKey]: [...schemaDefinition, ...responseDefinition],
+        [specKey]: [
+          ...schemaDefinition,
+          ...responseDefinition,
+          ...bodyDefinition,
+        ],
       };
     },
     {} as Record<string, GeneratorSchema[]>,

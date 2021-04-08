@@ -1,12 +1,11 @@
 import {
   GeneratorClient,
-  GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
-import { generateFormData } from './formData';
+import { generateVerbImports } from './imports';
 import { generateAxiosConfig, generateOptions } from './options';
 
 const AXIOS_DEPENDENCIES = [
@@ -49,7 +48,7 @@ const generateAxiosImplementation = (
   return `  ${definitionName}(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ) {${generateFormData(body)}
+  )}\n  ) {${body.formData}
     return ${
       mutator
         ? `${mutator.name}<${response.definition}>(${axiosConfig})`
@@ -58,21 +57,6 @@ const generateAxiosImplementation = (
   },
 `;
 };
-
-const generateImports = ({
-  response,
-  body,
-  queryParams,
-  params,
-}: GeneratorVerbOptions): GeneratorImport[] => [
-  ...response.imports,
-  ...body.imports,
-  ...params.reduce<GeneratorImport[]>(
-    (acc, param) => [...acc, ...param.imports],
-    [],
-  ),
-  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
-];
 
 export const generateAxiosTitle = (title: string) => {
   const sanTitle = sanitize(title);
@@ -88,7 +72,7 @@ export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ): GeneratorClient => {
-  const imports = generateImports(verbOptions);
+  const imports = generateVerbImports(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);
 
   return { implementation, imports };

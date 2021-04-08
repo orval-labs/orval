@@ -1,3 +1,4 @@
+import { SchemaObject } from 'openapi3-ts';
 import { GeneratorImport, GeneratorSchema } from './generator';
 
 export type ResolverValue = {
@@ -6,4 +7,10 @@ export type ResolverValue = {
   type: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
+  ref?: SchemaObject;
+};
+
+export type ResReqTypesValue = ResolverValue & {
+  formData?: string;
+  isRef?: boolean;
 };

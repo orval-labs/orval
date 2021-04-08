@@ -2,6 +2,7 @@ import { ReferenceObject } from 'openapi3-ts';
 import { resolve } from 'path';
 import url from 'url';
 import { ContextSpecs } from '../../types';
+import { pascal } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { isUrl } from '../../utils/url';
 
@@ -20,7 +21,7 @@ const RefComponentSuffix = {
   [RefComponent.schemas]: '',
   [RefComponent.responses]: 'Response',
   [RefComponent.parameters]: '',
-  [RefComponent.requestBodies]: '',
+  [RefComponent.requestBodies]: 'Body',
 };
 
 /**
@@ -31,7 +32,12 @@ const RefComponentSuffix = {
 export const getRefInfo = async (
   $ref: ReferenceObject['$ref'],
   context: ContextSpecs,
-): Promise<{ name: string; specKey?: string }> => {
+): Promise<{
+  name: string;
+  originalName: string;
+  type: RefComponent;
+  specKey?: string;
+}> => {
   const refComponent = REF_COMPONENTS.find((refComponent) =>
     $ref.includes(`#/components/${refComponent}`),
   );
@@ -44,7 +50,9 @@ export const getRefInfo = async (
 
   if (!refSplitted[0]) {
     return {
-      name: refSplitted[1] + RefComponentSuffix[refComponent],
+      name: pascal(refSplitted[1]) + RefComponentSuffix[refComponent],
+      originalName: refSplitted[1],
+      type: refComponent,
     };
   }
 
@@ -55,7 +63,9 @@ export const getRefInfo = async (
     : resolve(getFileInfo(context.specKey).dirname, pathname);
 
   return {
-    name: refSplitted[1] + RefComponentSuffix[refComponent],
+    name: pascal(refSplitted[1]) + RefComponentSuffix[refComponent],
+    originalName: refSplitted[1],
     specKey: path,
+    type: refComponent,
   };
 };

@@ -3,29 +3,7 @@ import { ContextSpecs } from '../../types';
 import { GetterParameters } from '../../types/getters';
 import { asyncReduce } from '../../utils/async-reduce';
 import { isReference } from '../../utils/is';
-import { getRefInfo } from './ref';
-
-const getRefParameters = async ({
-  parameter,
-  context,
-}: {
-  parameter: ParameterObject | ReferenceObject;
-  context: ContextSpecs;
-}): Promise<ParameterObject> => {
-  if (isReference(parameter)) {
-    const { name, specKey } = await getRefInfo(parameter.$ref, context);
-
-    const refParameter =
-      context.specs[specKey || context.specKey].components?.parameters?.[name];
-
-    return getRefParameters({
-      parameter: refParameter!,
-      context: { ...context, specKey: specKey || context.specKey },
-    });
-  }
-
-  return parameter;
-};
+import { resolveRef } from '../resolvers/ref';
 
 export const getParameters = async ({
   parameters = [],
@@ -38,21 +16,15 @@ export const getParameters = async ({
     parameters,
     async (acc, p) => {
       if (isReference(p)) {
-        const { name, specKey } = await getRefInfo(p.$ref, context);
-
-        const parameter =
-          context.specs[specKey || context.specKey].components?.parameters?.[
-            name
-          ];
-        const refParameter = await getRefParameters({
-          parameter: parameter!,
+        const { schema: parameter } = await resolveRef<ParameterObject>(
+          p,
           context,
-        });
+        );
 
-        if (refParameter.in === 'path' || refParameter.in === 'query') {
+        if (parameter.in === 'path' || parameter.in === 'query') {
           return {
             ...acc,
-            [refParameter.in]: [...acc[refParameter.in], refParameter],
+            [parameter.in]: [...acc[parameter.in], parameter],
           };
         }
 
