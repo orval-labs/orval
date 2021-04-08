@@ -25,15 +25,15 @@ export const generateSchemaFormData = async (
         let formDataValue = '';
 
         if (property.type === 'object' || property.type === 'array') {
-          formDataValue = `formData.append('data', JSON.stringify(${camel(
+          formDataValue = `formData.append('${key}', JSON.stringify(${camel(
             name,
           )}.${key}))\n`;
-        } else if (property.type === 'number') {
-          formDataValue = `formData.append('data', ${camel(
+        } else if (property.type === 'number' || property.type === 'boolean') {
+          formDataValue = `formData.append('${key}', ${camel(
             name,
-          )}.${key}).toString()\n`;
+          )}.${key}.toString())\n`;
         } else {
-          formDataValue = `formData.append('data', ${camel(name)}.${key})\n`;
+          formDataValue = `formData.append('${key}', ${camel(name)}.${key})\n`;
         }
 
         if (schema.required?.includes(key)) {
@@ -54,10 +54,8 @@ export const generateSchemaFormData = async (
     )}))\n`;
   }
 
-  if (schema.type === 'number') {
-    return `${formData}formData.append('data', JSON.stringify(${camel(
-      name,
-    )}.toString()))\n`;
+  if (schema.type === 'number' || schema.type === 'boolean') {
+    return `${formData}formData.append('data', ${camel(name)}.toString())\n`;
   }
 
   return `${formData}formData.append('data', ${camel(name)})\n`;
