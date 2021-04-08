@@ -1,5 +1,5 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'fs';
+import { outputFile, pathExists, readFile, unlink } from 'fs-extra';
 import https from 'https';
 import inquirer from 'inquirer';
 import { join } from 'path';
@@ -46,8 +46,8 @@ export const getGithubSpecReq = ({
 };
 
 export const getGithubAcessToken = async (githubTokenPath: string) => {
-  if (existsSync(githubTokenPath)) {
-    return readFileSync(githubTokenPath, 'utf-8');
+  if (await pathExists(githubTokenPath)) {
+    return readFile(githubTokenPath, 'utf-8');
   } else {
     const answers = await inquirer.prompt<{
       githubToken: string;
@@ -67,7 +67,7 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
       },
     ]);
     if (answers.saveToken) {
-      writeFileSync(githubTokenPath, answers.githubToken);
+      await outputFile(githubTokenPath, answers.githubToken);
     }
     return answers.githubToken;
   }
@@ -102,7 +102,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
         },
       ]);
       if (answers.removeToken) {
-        unlinkSync(githubTokenPath);
+        await unlink(githubTokenPath);
       }
     }
     throw e.body.message || `Oups... 🍻. ${e}`;

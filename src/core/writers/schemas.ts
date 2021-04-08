@@ -1,10 +1,4 @@
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  readFile,
-  writeFileSync,
-} from 'fs';
+import { appendFile, ensureFile, readFile, writeFile } from 'fs-extra';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'path';
 import { GeneratorSchema } from '../../types/generator';
@@ -41,7 +35,7 @@ export const writeModelInline = (acc: string, model: string): string =>
 export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, { model }) => writeModelInline(acc, model), '');
 
-export const writeSchema = ({
+export const writeSchema = async ({
   path,
   info,
   schema,
@@ -57,25 +51,28 @@ export const writeSchema = ({
   specsName: Record<string, string>;
 }) => {
   const name = camel(schema.name);
-  writeFileSync(
-    getPath(path, name),
-    getSchema({ info, schema, rootSpecKey, isRootKey, specsName }),
-  );
-  const indexPath = getPath(path, 'index');
+  try {
+    await writeFile(
+      getPath(path, name),
+      getSchema({ info, schema, rootSpecKey, isRootKey, specsName }),
+    );
+    const indexPath = getPath(path, 'index');
 
-  readFile(indexPath, function (err, data) {
-    if (err) throw err;
+    const data = await readFile(indexPath);
+
     const stringData = data.toString();
     if (
       !stringData.includes(`export * from './${name}'`) &&
       !stringData.includes(`export * from "./${name}"`)
     ) {
-      appendFileSync(getPath(path, 'index'), `export * from './${name}';\n`);
+      await appendFile(getPath(path, 'index'), `export * from './${name}';\n`);
     }
-  });
+  } catch (e) {
+    throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
+  }
 };
 
-export const writeSchemas = ({
+export const writeSchemas = async ({
   workspace,
   schemaPath,
   schemas,
@@ -92,22 +89,18 @@ export const writeSchemas = ({
   isRootKey: boolean;
   specsName: Record<string, string>;
 }) => {
-  if (!existsSync(schemaPath)) {
-    mkdirSync(schemaPath);
-  }
+  await ensureFile(join(schemaPath, '/index.ts'));
 
-  if (!existsSync(schemaPath + '/index.ts')) {
-    writeFileSync(join(schemaPath, '/index.ts'), '');
-  }
-
-  schemas.forEach((schema) =>
-    writeSchema({
-      path: schemaPath,
-      info,
-      schema,
-      rootSpecKey,
-      isRootKey,
-      specsName,
-    }),
+  return Promise.all(
+    schemas.map((schema) =>
+      writeSchema({
+        path: schemaPath,
+        info,
+        schema,
+        rootSpecKey,
+        isRootKey,
+        specsName,
+      }),
+    ),
   );
 };

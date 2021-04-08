@@ -1,27 +1,30 @@
-import { existsSync } from 'fs';
+import { pathExists } from 'fs-extra';
 import { dirname, join } from 'path';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
 import { ExternalConfigFile, Options } from './types';
 import { catchError } from './utils/errors';
 
-export const generateSpec = (
+export const generateSpec = async (
   workspace: string,
   options: Options,
-  backend?: string,
+  projectName?: string,
 ) => {
-  importSpecs(workspace, options)
-    .then(writeSpecs(workspace, options, backend))
-    .catch(catchError);
+  try {
+    const writeSpecProps = await importSpecs(workspace, options);
+    await writeSpecs(writeSpecProps, workspace, options, projectName);
+  } catch (e) {
+    catchError(e);
+  }
 };
 
-export const generateConfig = (
+export const generateConfig = async (
   path: string = './orval.config.js',
   projectName?: string,
 ) => {
   const fullPath = join(process.cwd(), path);
 
-  if (!existsSync(fullPath)) {
+  if (!(await pathExists(fullPath))) {
     catchError('orval config not found');
   }
 
@@ -40,7 +43,9 @@ export const generateConfig = (
     return;
   }
 
-  Object.entries(config).forEach(([backend, options]) => {
-    generateSpec(workspace, options, backend);
-  });
+  return Promise.all(
+    Object.entries(config).map(([projectName, options]) =>
+      generateSpec(workspace, options, projectName),
+    ),
+  );
 };

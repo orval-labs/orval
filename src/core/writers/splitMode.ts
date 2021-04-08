@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { outputFile } from 'fs-extra';
 import { join, relative } from 'path';
 import { OutputClient } from '../../types';
 import { WriteModeProps } from '../../types/writers';
@@ -11,7 +11,7 @@ import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
 import { generateTarget } from './target';
 
-export const writeSplitMode = ({
+export const writeSplitMode = async ({
   operations,
   schemas,
   info,
@@ -19,84 +19,87 @@ export const writeSplitMode = ({
   workspace,
   specsName,
 }: WriteModeProps) => {
-  const { path, filename, dirname, extension } = getFileInfo(
-    join(workspace, output.target || ''),
-    { backupFilename: camel(info.title) },
-  );
-
-  if (!existsSync(dirname)) {
-    mkdirSync(dirname);
-  }
-
-  const {
-    imports,
-    implementation,
-    implementationMSW,
-    importsMSW,
-    mutators,
-  } = generateTarget(operations, info, output);
-
-  const header = getFilesHeader(info);
-
-  let implementationData = header;
-  let mswData = header;
-
-  if (output.schemas) {
-    const schemasPath = relative(
-      dirname,
-      getFileInfo(join(workspace, output.schemas)).dirname,
+  try {
+    const { path, filename, dirname, extension } = getFileInfo(
+      join(workspace, output.target || ''),
+      { backupFilename: camel(info.title) },
     );
 
-    implementationData += generateClientImports(
-      output.client,
+    const {
+      imports,
       implementation,
-      [{ exports: imports, dependency: schemasPath }],
-      specsName,
-    );
-    mswData += generateMSWImports(
       implementationMSW,
-      [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
-      specsName,
-    );
-  } else {
-    const schemasPath = './' + filename + '.schemas';
-    const schemasData = header + generateModelsInline(schemas);
+      importsMSW,
+      mutators,
+    } = generateTarget(operations, info, output);
 
-    writeFileSync(
-      join(dirname, filename + '.schemas' + extension),
-      schemasData,
-    );
+    const header = getFilesHeader(info);
 
-    implementationData += generateClientImports(
-      output.client,
-      implementation,
-      [{ exports: imports, dependency: schemasPath }],
-      specsName,
-    );
-    mswData += generateMSWImports(
-      implementationMSW,
-      [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
-      specsName,
-    );
-  }
+    let implementationData = header;
+    let mswData = header;
 
-  if (mutators) {
-    implementationData += generateMutatorImports(mutators);
-  }
+    if (output.schemas) {
+      const schemasPath = relative(
+        dirname,
+        getFileInfo(join(workspace, output.schemas)).dirname,
+      );
 
-  implementationData += `\n${implementation}`;
-  mswData += `\n${implementationMSW}`;
+      implementationData += generateClientImports(
+        output.client,
+        implementation,
+        [{ exports: imports, dependency: schemasPath }],
+        specsName,
+      );
+      mswData += generateMSWImports(
+        implementationMSW,
+        [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
+        specsName,
+      );
+    } else {
+      const schemasPath = './' + filename + '.schemas';
+      const schemasData = header + generateModelsInline(schemas);
 
-  if (path) {
-    const implementationFilename =
-      filename +
-      (OutputClient.ANGULAR === output.client ? '.service' : '') +
-      extension;
+      await outputFile(
+        join(dirname, filename + '.schemas' + extension),
+        schemasData,
+      );
 
-    writeFileSync(join(dirname, implementationFilename), implementationData);
-
-    if (output.mock) {
-      writeFileSync(join(dirname, filename + '.msw' + extension), mswData);
+      implementationData += generateClientImports(
+        output.client,
+        implementation,
+        [{ exports: imports, dependency: schemasPath }],
+        specsName,
+      );
+      mswData += generateMSWImports(
+        implementationMSW,
+        [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
+        specsName,
+      );
     }
+
+    if (mutators) {
+      implementationData += generateMutatorImports(mutators);
+    }
+
+    implementationData += `\n${implementation}`;
+    mswData += `\n${implementationMSW}`;
+
+    if (path) {
+      const implementationFilename =
+        filename +
+        (OutputClient.ANGULAR === output.client ? '.service' : '') +
+        extension;
+
+      await outputFile(
+        join(dirname, implementationFilename),
+        implementationData,
+      );
+
+      if (output.mock) {
+        await outputFile(join(dirname, filename + '.msw' + extension), mswData);
+      }
+    }
+  } catch (e) {
+    throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
   }
 };

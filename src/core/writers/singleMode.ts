@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { outputFile } from 'fs-extra';
 import { join, relative } from 'path';
 import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
@@ -11,7 +11,7 @@ import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
 import { generateTarget } from './target';
 
-export const writeSingleMode = ({
+export const writeSingleMode = async ({
   workspace,
   operations,
   schemas,
@@ -19,69 +19,69 @@ export const writeSingleMode = ({
   output,
   specsName,
 }: WriteModeProps) => {
-  const targetedPath = isString(output) ? output : output.target || '';
-  const { path, dirname } = getFileInfo(join(workspace, targetedPath), {
-    backupFilename: camel(info.title),
-  });
+  try {
+    const targetedPath = isString(output) ? output : output.target || '';
+    const { path, dirname } = getFileInfo(join(workspace, targetedPath), {
+      backupFilename: camel(info.title),
+    });
 
-  if (!existsSync(dirname)) {
-    mkdirSync(dirname);
-  }
-
-  const {
-    imports,
-    importsMSW,
-    implementation,
-    implementationMSW,
-    mutators,
-  } = generateTarget(operations, info, isObject(output) ? output : undefined);
-
-  let data = getFilesHeader(info);
-
-  if (isObject(output) && output.schemas) {
-    const schemasPath = relative(
-      dirname,
-      getFileInfo(join(workspace, output.schemas)).dirname,
-    );
-
-    data += generateClientImports(
-      output.client,
+    const {
+      imports,
+      importsMSW,
       implementation,
-      [{ exports: imports, dependency: schemasPath }],
-      specsName,
-    );
-    if (output.mock) {
-      data += generateMSWImports(
-        implementationMSW,
-        [{ exports: importsMSW, dependency: schemasPath }],
+      implementationMSW,
+      mutators,
+    } = generateTarget(operations, info, isObject(output) ? output : undefined);
+
+    let data = getFilesHeader(info);
+
+    if (isObject(output) && output.schemas) {
+      const schemasPath = relative(
+        dirname,
+        getFileInfo(join(workspace, output.schemas)).dirname,
+      );
+
+      data += generateClientImports(
+        output.client,
+        implementation,
+        [{ exports: imports, dependency: schemasPath }],
         specsName,
       );
+      if (output.mock) {
+        data += generateMSWImports(
+          implementationMSW,
+          [{ exports: importsMSW, dependency: schemasPath }],
+          specsName,
+        );
+      }
+    } else {
+      data += generateClientImports(
+        isObject(output) ? output.client : undefined,
+        implementation,
+        [],
+        specsName,
+      );
+
+      if (isObject(output) && output.mock) {
+        data += generateMSWImports(implementationMSW, [], specsName);
+      }
+
+      data += generateModelsInline(schemas);
     }
-  } else {
-    data += generateClientImports(
-      isObject(output) ? output.client : undefined,
-      implementation,
-      [],
-      specsName,
-    );
+
+    if (mutators) {
+      data += generateMutatorImports(mutators);
+    }
+
+    data += `\n\n${implementation}`;
 
     if (isObject(output) && output.mock) {
-      data += generateMSWImports(implementationMSW, [], specsName);
+      data += '\n\n';
+      data += implementationMSW;
     }
 
-    data += generateModelsInline(schemas);
+    await outputFile(path, data);
+  } catch (e) {
+    throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
   }
-
-  if (mutators) {
-    data += generateMutatorImports(mutators);
-  }
-
-  data += `\n\n${implementation}`;
-
-  if (isObject(output) && output.mock) {
-    data += '\n\n';
-    data += implementationMSW;
-  }
-
-  writeFileSync(path, data);
 };

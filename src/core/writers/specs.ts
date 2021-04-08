@@ -15,11 +15,12 @@ import { writeTagsMode } from './tagsMode';
 const isSingleMode = (output: string | OutputOptions): output is string =>
   isString(output) || !output.mode || output.mode === OutputMode.SINGLE;
 
-export const writeSpecs = (
+export const writeSpecs = async (
+  { operations, schemas, rootSpecKey, info }: WriteSpecsProps,
   workspace: string,
   options: Options,
-  backend?: string,
-) => ({ operations, schemas, rootSpecKey, info }: WriteSpecsProps) => {
+  projectName?: string,
+) => {
   const { output } = options;
 
   if (!output || (isObject(output) && !output.target && !output.schemas)) {
@@ -40,26 +41,28 @@ export const writeSpecs = (
   if (isObject(output) && output.schemas) {
     const rootSchemaPath = join(workspace, output.schemas);
 
-    Object.entries(schemas).forEach(([specKey, schemas]) => {
-      const isRootKey = rootSpecKey === specKey;
-      const schemaPath = !isRootKey
-        ? join(rootSchemaPath, specsName[specKey])
-        : rootSchemaPath;
+    await Promise.all(
+      Object.entries(schemas).map(([specKey, schemas]) => {
+        const isRootKey = rootSpecKey === specKey;
+        const schemaPath = !isRootKey
+          ? join(rootSchemaPath, specsName[specKey])
+          : rootSchemaPath;
 
-      writeSchemas({
-        workspace,
-        schemaPath,
-        schemas,
-        info,
-        rootSpecKey,
-        specsName,
-        isRootKey,
-      });
-    });
+        return writeSchemas({
+          workspace,
+          schemaPath,
+          schemas,
+          info,
+          rootSpecKey,
+          specsName,
+          isRootKey,
+        });
+      }),
+    );
   }
 
   if (isObject(output) && !output.target) {
-    createSuccessMessage(backend);
+    createSuccessMessage(projectName || info.title);
     return;
   }
 
@@ -87,5 +90,5 @@ export const writeSpecs = (
     });
   }
 
-  createSuccessMessage(backend);
+  createSuccessMessage(projectName || info.title);
 };
