@@ -66,10 +66,6 @@ export const generateBodyAxiosConfig = (body: GetterBody, verb: Verbs) => {
     return '';
   }
 
-  if (body.formData) {
-    return ',\n      data: formData,';
-  }
-
   return `,\n      data: ${body.implementation || 'undefined'}`;
 };
 
