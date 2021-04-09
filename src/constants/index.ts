@@ -22,3 +22,5 @@ export const URL_REGEX = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)*[\w\-\._~:/?#
 export const SPECIAL_CHAR_REGEX = /[^\w\s]/g;
 
 export const SPECIAL_CHAR_REGEX_DEEP = /[^\w\s]|[_]/g;
+
+export const VENDOR_MEDIA_TYPE_REGEX = /application\/vnd\.[-+.\w]+\+json/g;
