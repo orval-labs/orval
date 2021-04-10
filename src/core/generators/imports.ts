@@ -1,4 +1,5 @@
-import { uniq, uniqWith } from 'lodash';
+import uniq from 'lodash.uniq';
+import uniqWith from 'lodash.uniqwith';
 import { join } from 'upath';
 import {
   GeneratorImport,

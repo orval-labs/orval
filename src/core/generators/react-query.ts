@@ -1,4 +1,4 @@
-import { omitBy } from 'lodash';
+import omitBy from 'lodash.omitby';
 import { OperationOptions, Verbs } from '../../types';
 import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';

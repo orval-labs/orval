@@ -1,4 +1,4 @@
-import { get } from 'lodash';
+import get from 'lodash.get';
 import { SPECIAL_CHAR_REGEX, SPECIAL_CHAR_REGEX_DEEP } from '../constants';
 import {
   isBoolean,
