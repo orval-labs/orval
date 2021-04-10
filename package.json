@@ -91,6 +91,7 @@
     "lodash": "^4.17.15",
     "openapi3-ts": "^2.0.0",
     "swagger2openapi": "^7.0.4",
+    "upath": "^2.0.1",
     "url": "^0.11.0",
     "yamljs": "^0.3.0"
   }

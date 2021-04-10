@@ -1,5 +1,5 @@
 import { uniq, uniqWith } from 'lodash';
-import { join } from 'path';
+import { join } from 'upath';
 import {
   GeneratorImport,
   GeneratorMutator,

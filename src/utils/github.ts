@@ -2,7 +2,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { outputFile, pathExists, readFile, unlink } from 'fs-extra';
 import https from 'https';
 import inquirer from 'inquirer';
-import { join } from 'path';
+import { join } from 'upath';
 import { request } from './request';
 export const getGithubSpecReq = ({
   accessToken,

@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join } from 'upath';
 import { Options, OutputMode, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { getExtension } from '../../utils/extension';

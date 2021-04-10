@@ -1,5 +1,5 @@
 import { outputFile } from 'fs-extra';
-import { join, relative } from 'path';
+import { join, relative } from 'upath';
 import { OutputClient } from '../../types';
 import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';

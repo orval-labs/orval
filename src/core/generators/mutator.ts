@@ -1,4 +1,4 @@
-import { relative } from 'path';
+import { relative } from 'upath';
 import { Mutator } from '../../types';
 import { GetterBody } from '../../types/getters';
 import { getFileInfo } from '../../utils/file';

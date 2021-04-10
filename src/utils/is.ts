@@ -1,5 +1,5 @@
 import { ReferenceObject } from 'openapi3-ts';
-import { extname } from 'path';
+import { extname } from 'upath';
 
 /**
  * Discriminator helper for `ReferenceObject`

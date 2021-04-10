@@ -1,5 +1,5 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { resolve } from 'path';
+import { resolve } from 'upath';
 import { Options } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { githubResolver } from '../../utils/github';

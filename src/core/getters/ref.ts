@@ -1,5 +1,5 @@
 import { ReferenceObject } from 'openapi3-ts';
-import { resolve } from 'path';
+import { resolve } from 'upath';
 import url from 'url';
 import { ContextSpecs } from '../../types';
 import { pascal } from '../../utils/case';

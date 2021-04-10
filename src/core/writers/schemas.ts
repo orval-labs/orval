@@ -1,6 +1,6 @@
 import { appendFile, ensureFile, readFile, writeFile } from 'fs-extra';
 import { InfoObject } from 'openapi3-ts';
-import { join } from 'path';
+import { join } from 'upath';
 import { GeneratorSchema } from '../../types/generator';
 import { camel } from '../../utils/case';
 import { getFilesHeader } from '../../utils/messages/inline';

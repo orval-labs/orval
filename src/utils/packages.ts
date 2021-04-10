@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join } from 'upath';
 
 export type PackageJson = {
   name: string;

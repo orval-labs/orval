@@ -1,4 +1,4 @@
-import { basename, dirname, join } from 'path';
+import { basename, dirname, join } from 'upath';
 import { isDirectory } from './is';
 
 export const getFileInfo = (

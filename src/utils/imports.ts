@@ -1,4 +1,4 @@
-import { join } from 'path';
+import { join } from 'upath';
 import { isObject, isString } from './is';
 
 export const dynamicImport = async <T>(

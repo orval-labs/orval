@@ -1,5 +1,5 @@
 import { pathExists } from 'fs-extra';
-import { dirname, join } from 'path';
+import { dirname, join } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
 import { ExternalConfigFile, Options } from './types';
