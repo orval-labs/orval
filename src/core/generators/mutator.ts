@@ -1,6 +1,5 @@
 import { relative } from 'upath';
 import { Mutator } from '../../types';
-import { GetterBody } from '../../types/getters';
 import { getFileInfo } from '../../utils/file';
 import { isString } from '../../utils/is';
 
@@ -17,12 +16,10 @@ const getImport = (output: string, mutator: Mutator) => {
 
 export const generateMutator = ({
   output,
-  body,
   mutator,
   name,
 }: {
   output?: string;
-  body: GetterBody;
   mutator?: Mutator;
   name: string;
 }) => {

@@ -28,8 +28,8 @@ export const generateConfig = async (
     catchError('orval config not found');
   }
 
-  // tslint:disable-next-line: no-var-requires
   const config: ExternalConfigFile = require(fullPath);
+
   const workspace = dirname(fullPath);
 
   if (projectName) {

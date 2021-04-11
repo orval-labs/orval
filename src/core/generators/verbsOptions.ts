@@ -88,7 +88,6 @@ const generateVerbOptions = async ({
 
   const mutator = generateMutator({
     output: output.target,
-    body,
     name: camel(operationId!),
     mutator:
       overrideOperation?.mutator ||

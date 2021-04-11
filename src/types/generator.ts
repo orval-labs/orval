@@ -18,6 +18,12 @@ export type GeneratorImport = {
   schemaName?: string;
   specKey?: string;
   default?: boolean;
+  values?: boolean;
+};
+
+export type GeneratorDependency = {
+  exports: GeneratorImport[];
+  dependency: string;
 };
 
 export type GeneratorApiResponse = {

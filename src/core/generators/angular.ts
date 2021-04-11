@@ -1,5 +1,6 @@
 import {
   GeneratorClient,
+  GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
@@ -8,17 +9,17 @@ import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateAxiosConfig, generateOptions } from './options';
 
-const ANGULAR_DEPENDENCIES = [
+const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [{ name: 'HttpClient' }],
+    exports: [{ name: 'HttpClient', values: true }],
     dependency: '@angular/common/http',
   },
   {
-    exports: [{ name: 'Injectable' }],
+    exports: [{ name: 'Injectable', values: true }],
     dependency: '@angular/core',
   },
   {
-    exports: [{ name: 'Observable' }],
+    exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
   },
 ];

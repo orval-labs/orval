@@ -73,7 +73,6 @@ export const writeSchema = async ({
 };
 
 export const writeSchemas = async ({
-  workspace,
   schemaPath,
   schemas,
   info,
@@ -81,7 +80,6 @@ export const writeSchemas = async ({
   isRootKey,
   specsName,
 }: {
-  workspace: string;
   schemaPath: string;
   schemas: GeneratorSchema[];
   info: InfoObject;

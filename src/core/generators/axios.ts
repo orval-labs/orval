@@ -1,5 +1,6 @@
 import {
   GeneratorClient,
+  GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
@@ -8,9 +9,9 @@ import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateAxiosConfig, generateOptions } from './options';
 
-const AXIOS_DEPENDENCIES = [
+const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [{ name: 'axios', default: true }],
+    exports: [{ name: 'axios', default: true, values: true }],
     dependency: 'axios',
   },
 ];

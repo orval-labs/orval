@@ -1,10 +1,6 @@
 import omitBy from 'lodash.omitby';
 import { OperationOptions, Verbs } from '../../types';
-import {
-  GeneratorDependency,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-} from '../../types/generator';
+import { GeneratorOptions, GeneratorVerbOptions } from '../../types/generator';
 import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
 import { camel, pascal } from '../../utils/case';
 import { mergeDeep } from '../../utils/mergeDeep';
@@ -12,7 +8,7 @@ import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateAxiosConfig, generateOptions } from './options';
 
-const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+const SVELTE_QUERY_DEPENDENCIES = [
   {
     exports: [{ name: 'axios', default: true, values: true }],
     dependency: 'axios',
@@ -29,11 +25,11 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       },
       { name: 'UseMutationOptions', values: true },
     ],
-    dependency: 'react-query',
+    dependency: '@sveltestack/svelte-query',
   },
 ];
 
-export const getReactQueryDependencies = () => REACT_QUERY_DEPENDENCIES;
+export const getSvelteQueryDependencies = () => SVELTE_QUERY_DEPENDENCIES;
 
 const generateAxiosFunction = (
   {
@@ -173,7 +169,7 @@ export const ${camel(`use-${name}`)} = <
 }\n`;
 };
 
-const generateReactQueryImplementation = (
+const generateSvelteQueryImplementation = (
   {
     queryParams,
     definitionName,
@@ -260,7 +256,7 @@ export const ${camel(`use-${definitionName}`)} = <
   Error extends unknown = unknown
 >(\n    mutationConfig?: UseMutationOptions<AsyncReturnType<typeof ${definitionName}>, Error${
     definitions ? `, {${definitions}}` : ''
-  }>\n  ) => {
+  }, unknown>\n  ) => {
   return useMutation<AsyncReturnType<typeof ${definitionName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>((${properties ? 'props' : ''}) => {
@@ -272,21 +268,21 @@ export const ${camel(`use-${definitionName}`)} = <
 `;
 };
 
-export const generateReactQueryTitle = () => '';
+export const generateSvelteQueryTitle = () => '';
 
-export const generateReactQueryHeader = () => `type AsyncReturnType<
+export const generateSvelteQueryHeader = () => `type AsyncReturnType<
 T extends (...args: any) => Promise<any>
 > = T extends (...args: any) => Promise<infer R> ? R : any;\n\n`;
 
-export const generateReactQueryFooter = () => '';
+export const generateSvelteQueryFooter = () => '';
 
-export const generateReactQuery = (
+export const generateSvelteQuery = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateAxiosFunction(verbOptions, options);
-  const hookImplementation = generateReactQueryImplementation(
+  const hookImplementation = generateSvelteQueryImplementation(
     verbOptions,
     options,
   );

@@ -34,13 +34,16 @@ export const generateImports = ({
         const path = specKey !== rootSpecKey ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
-          return `import { ${name} } from \'../${join(path, camel(name))}\';`;
+          return `import type { ${name} } from \'../${join(
+            path,
+            camel(name),
+          )}\';`;
         }
 
-        return `import { ${name} } from \'./${join(path, camel(name))}\';`;
+        return `import type { ${name} } from \'./${join(path, camel(name))}\';`;
       }
 
-      return `import { ${name} } from \'./${camel(name)}\';`;
+      return `import type { ${name} } from \'./${camel(name)}\';`;
     })
     .join('\n');
 };
@@ -85,26 +88,30 @@ export const addDependency = ({
   }
 
   const groupedBySpecKey = toAdds.reduce<
-    Record<string, { name: string; default?: boolean }[]>
-  >(
-    (acc, { specKey, ...rest }) => ({
+    Record<string, { deps: GeneratorImport[]; values: boolean }>
+  >((acc, dep) => {
+    const key = dep.specKey || 'default';
+
+    return {
       ...acc,
-      [specKey || 'default']: [...(acc[specKey || 'default'] || []), rest],
-    }),
-    {},
-  );
+      [key]: {
+        values: acc[key]?.values || dep.values || false,
+        deps: [...(acc[key]?.deps || []), dep],
+      },
+    };
+  }, {});
 
   return Object.entries(groupedBySpecKey)
-    .map(([key, values]) => {
-      const defaultDep = values.find((e) => e.default);
+    .map(([key, { values, deps }]) => {
+      const defaultDep = deps.find((e) => e.default);
 
-      const deps = uniq(
-        values.filter((e) => !e.default).map(({ name }) => name),
+      const depsString = uniq(
+        deps.filter((e) => !e.default).map(({ name }) => name),
       ).join(',\n  ');
 
-      return `import ${
-        defaultDep ? `${defaultDep.name}${deps ? ',' : ''}` : ''
-      }${deps ? `{\n  ${deps}\n}` : ''} from '${dependency}${
+      return `import ${!values ? 'type ' : ''}${
+        defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
+      }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
         key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
       }'`;
     })

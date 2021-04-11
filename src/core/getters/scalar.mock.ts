@@ -77,14 +77,18 @@ export const getMockScalar = async ({
     case 'number':
     case 'integer': {
       return {
-        value: getNullable('faker.random.number()', item.nullable),
+        value: getNullable('faker.datatype.number()', item.nullable),
         imports: [],
         name: item.name,
       };
     }
 
     case 'boolean': {
-      return { value: 'faker.random.boolean()', imports: [], name: item.name };
+      return {
+        value: 'faker.datatype.boolean()',
+        imports: [],
+        name: item.name,
+      };
     }
 
     case 'array': {
@@ -108,8 +112,8 @@ export const getMockScalar = async ({
 
       if (enums) {
         return {
-          value: `[...Array(faker.random.number({min:1, max: ${enums.length}}))].reduce(({values, enums}) => {
-            const newValue = enums[faker.random.number({min:1, max: enums.length})];
+          value: `[...Array(faker.datatype.number({min:1, max: ${enums.length}}))].reduce(({values, enums}) => {
+            const newValue = enums[faker.datatype.number({min:1, max: enums.length})];
             return {
               values: [...values, newValue],
               enums: enums.filter((v: ${name}) => newValue !== v)
@@ -121,14 +125,14 @@ export const getMockScalar = async ({
       }
 
       return {
-        value: `[...Array(faker.random.number({min: 1, max: 10}))].map(() => (${value}))`,
+        value: `[...Array(faker.datatype.number({min: 1, max: 10}))].map(() => (${value}))`,
         imports,
         name: item.name,
       };
     }
 
     case 'string': {
-      let value = 'faker.random.word()';
+      let value = 'faker.datatype.string()';
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {
@@ -136,7 +140,7 @@ export const getMockScalar = async ({
 
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
-          imports = [{ name: item.name }];
+          imports = [{ name: item.name, values: true }];
         }
 
         value = `faker.helpers.randomize(${enumValue})`;

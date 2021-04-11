@@ -31,6 +31,13 @@ import {
   generateReactQueryTitle,
   getReactQueryDependencies,
 } from './react-query';
+import {
+  generateSvelteQuery,
+  generateSvelteQueryFooter,
+  generateSvelteQueryHeader,
+  generateSvelteQueryTitle,
+  getSvelteQueryDependencies,
+} from './svelte-query';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -58,6 +65,14 @@ const GENERATOR_CLIENT = {
     dependencies: getReactQueryDependencies,
     footer: generateReactQueryFooter,
     title: generateReactQueryTitle,
+  },
+  [OutputClient.SVELTE_QUERY]: {
+    client: generateSvelteQuery,
+    msw: generateMSW,
+    header: generateSvelteQueryHeader,
+    dependencies: getSvelteQueryDependencies,
+    footer: generateSvelteQueryFooter,
+    title: generateSvelteQueryTitle,
   },
 };
 export const generateClientImports = (

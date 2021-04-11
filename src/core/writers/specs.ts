@@ -49,7 +49,6 @@ export const writeSpecs = async (
           : rootSchemaPath;
 
         return writeSchemas({
-          workspace,
           schemaPath,
           schemas,
           info,

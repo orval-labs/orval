@@ -91,7 +91,7 @@ export const getResponsesMockDefinition = ({
 }) => {
   return asyncReduce(
     response.types,
-    async (acc, { value: definition, isRef, imports }) => {
+    async (acc, { value: definition, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         acc.definitions = [
           ...acc.definitions,

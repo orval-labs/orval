@@ -1,4 +1,5 @@
 import {
+  GeneratorDependency,
   GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -38,13 +39,13 @@ export const getRoute = (route: string) => {
   }, '*');
 };
 
-const MSW_DEPENDENCIES = [
+const MSW_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [{ name: 'rest' }],
+    exports: [{ name: 'rest', values: true }],
     dependency: 'msw',
   },
   {
-    exports: [{ name: 'faker', default: true }],
+    exports: [{ name: 'faker', default: true, values: true }],
     dependency: 'faker',
   },
 ];
