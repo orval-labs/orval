@@ -104,3 +104,4 @@ examples/*.ts
 examples/model/*
 
 !docs/src/lib
+!samples/svelte-query/src/lib
