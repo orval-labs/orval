@@ -43,7 +43,7 @@ export const resolveObject = async ({
     };
   }
 
-  if (propName && resolvedValue.isEnum && !combined && !schema.$ref) {
+  if (propName && resolvedValue.isEnum && !combined && !resolvedValue.ref) {
     const enumValue = getEnum(
       resolvedValue.value,
       resolvedValue.type,

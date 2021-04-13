@@ -45,7 +45,7 @@ export const generateSchemasDefinition = async (
 
         let output = '';
 
-        if (resolvedValue.isEnum) {
+        if (resolvedValue.isEnum && !resolvedValue.ref) {
           output += getEnum(
             resolvedValue.value,
             resolvedValue.type,

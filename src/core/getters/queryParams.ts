@@ -25,7 +25,7 @@ const getQueryParamsTypes = (
         schema: SchemaObject;
       };
 
-      const { value, imports, isEnum, type, schemas } = await resolveValue({
+      const { value, imports, isEnum, type, schemas, ref } = await resolveValue({
         schema: schema!,
         context,
         name: pascal(definitionName) + pascal(name),
@@ -33,7 +33,7 @@ const getQueryParamsTypes = (
 
       const key = getKey(name);
 
-      if (isEnum) {
+      if (isEnum && !ref) {
         const enumName = pascal(definitionName) + pascal(name);
         const enumValue = getEnum(value, type, enumName);
 
