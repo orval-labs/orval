@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import program from 'commander';
 import pkg from '../../package.json';
 import { generateConfig, generateSpec } from '../generate';
