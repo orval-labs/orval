@@ -1,9 +1,10 @@
 import { pathExists } from 'fs-extra';
-import { dirname, join } from 'upath';
+import { dirname, resolve } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
 import { ExternalConfigFile, Options } from './types';
 import { catchError } from './utils/errors';
+import { dynamicImport } from './utils/imports';
 
 export const generateSpec = async (
   workspace: string,
@@ -22,13 +23,13 @@ export const generateConfig = async (
   path: string = './orval.config.js',
   projectName?: string,
 ) => {
-  const fullPath = join(process.cwd(), path);
+  const fullPath = resolve(process.cwd(), path);
 
   if (!(await pathExists(fullPath))) {
     catchError('orval config not found');
   }
 
-  const config: ExternalConfigFile = require(fullPath);
+  const config = await dynamicImport<ExternalConfigFile>(fullPath);
 
   const workspace = dirname(fullPath);
 

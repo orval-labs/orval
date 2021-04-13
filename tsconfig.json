@@ -1,5 +1,5 @@
 {
-  "exclude": ["node_modules", "lib", "__tests__", "**/*.test*", "**/*.spec*"],
+  "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
   "include": ["src/**/*"],
   "compilerOptions": {
     "skipLibCheck": true,
@@ -8,8 +8,6 @@
     "lib": ["es2015", "dom", "es2016.array.include", "es2017.object"],
     "declaration": true,
     "declarationMap": true,
-    "rootDir": "./src",
-    "outDir": "./lib",
     "downlevelIteration": true,
     "strict": true,
     "noUnusedLocals": true,

@@ -1,14 +1,16 @@
 import program from 'commander';
+import pkg from '../../package.json';
 import { generateConfig, generateSpec } from '../generate';
 import { isString } from '../utils/is';
 import { startMessage } from '../utils/messages/logs';
-import { getPackage } from '../utils/packages';
 
-const { name, version, description } = getPackage();
+startMessage({
+  name: pkg.name,
+  version: pkg.version,
+  description: pkg.description,
+});
 
-startMessage({ name, version, description });
-
-program.version(version);
+program.version(pkg.version);
 
 program
   .command('default [open-api-file]', { isDefault: true, hidden: true })

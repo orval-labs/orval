@@ -89,7 +89,6 @@ typings/
 # dotenv environment variables file
 .env*
 
-lib
 .cache
 
 # End of https://www.gitignore.io/api/node,macos,vscode
@@ -98,10 +97,3 @@ lib
 .cache
 
 package-lock.json
-
-# examples artefacts
-examples/*.ts
-examples/model/*
-
-!docs/src/lib
-!samples/svelte-query/src/lib
