@@ -132,7 +132,7 @@ export const getMockScalar = async ({
     }
 
     case 'string': {
-      let value = 'faker.datatype.string()';
+      let value = 'faker.random.word()';
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {

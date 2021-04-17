@@ -42,7 +42,7 @@ export const getResponse = async (
 
   return {
     imports,
-    definition,
+    definition: definition || 'unknown',
     isBlob: definition === 'Blob',
     types,
     schemas,
