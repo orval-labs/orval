@@ -1,5 +1,5 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { OpenAPIObject } from 'openapi3-ts';
+import { OpenAPIObject, OperationObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import { GeneratorVerbOptions } from './generator';
 
@@ -82,6 +82,11 @@ export type OverrideOutput = {
     required?: boolean;
   };
   query?: QueryOptions;
+  operationName?: (
+    operation: OperationObject,
+    route: string,
+    verb: Verbs,
+  ) => string;
 };
 
 type QueryOptions = {
@@ -107,6 +112,11 @@ export type OperationOptions = {
     properties?: MockProperties;
   };
   query?: QueryOptions;
+  operationName?: (
+    operation: OperationObject,
+    route: string,
+    verb: Verbs,
+  ) => string;
 };
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';

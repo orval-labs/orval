@@ -68,7 +68,7 @@ export type GeneratorVerbOptions = {
   summary?: string;
   tags: string[];
   operationId: string;
-  definitionName: string;
+  operationName: string;
   overrideOperation: OperationOptions | undefined;
   response: GetterResponse;
   body: GetterBody;

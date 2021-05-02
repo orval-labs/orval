@@ -24,7 +24,7 @@ export const generateQueryParamsOptions = (
   queryParams?: GeneratorSchema,
 ) => {
   if (!queryParams && !response.isBlob) {
-    return '';
+    return 'config';
   }
 
   let value = '\n      {';
@@ -37,7 +37,7 @@ export const generateQueryParamsOptions = (
     value += `\n        responseType: 'blob',`;
   }
 
-  value += '\n      },';
+  value += '\n    ...config  },';
 
   return value;
 };
@@ -61,7 +61,7 @@ export const generateOptions = ({
   )}${generateQueryParamsOptions(response, queryParams?.schema)}\n    `;
 };
 
-export const generateBodyAxiosConfig = (body: GetterBody, verb: Verbs) => {
+export const generateBodyMutatorConfig = (body: GetterBody, verb: Verbs) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
   }
@@ -90,7 +90,7 @@ export const generateQueryParamsAxiosConfig = (
   return value;
 };
 
-export const generateAxiosConfig = ({
+export const generateMutatorConfig = ({
   route,
   body,
   queryParams,
@@ -103,7 +103,7 @@ export const generateAxiosConfig = ({
   response: GetterResponse;
   verb: Verbs;
 }) => {
-  return `{url: \`${route}\`, method: '${verb}'${generateBodyAxiosConfig(
+  return `{url: \`${route}\`, method: '${verb}'${generateBodyMutatorConfig(
     body,
     verb,
   )}${generateQueryParamsAxiosConfig(response, queryParams?.schema)}\n    }`;

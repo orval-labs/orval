@@ -9,10 +9,9 @@ export const dynamicImport = async <T>(
     return toImport as T;
   }
 
-  const path = resolve(from, toImport);
-
   try {
     if (isString(toImport)) {
+      const path = resolve(from, toImport);
       const data = await import(path);
       if (isObject(data) && data.default) {
         return (data as any).default as T;
@@ -23,6 +22,6 @@ export const dynamicImport = async <T>(
 
     return Promise.resolve<T>(toImport);
   } catch (error) {
-    throw `Oups... 🍻. Path: ${path} => ${error}`;
+    throw `Oups... 🍻. Path: ${toImport} => ${error}`;
   }
 };

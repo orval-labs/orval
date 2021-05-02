@@ -7,11 +7,15 @@ import {
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
-import { generateAxiosConfig, generateOptions } from './options';
+import { generateMutatorConfig, generateOptions } from './options';
 
 const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [{ name: 'HttpClient', values: true }],
+    exports: [
+      { name: 'HttpClient', values: true },
+      { name: 'HttpHeaders' },
+      { name: 'HttpParams' },
+    ],
     dependency: '@angular/common/http',
   },
   {
@@ -32,6 +36,19 @@ export const generateAngularTitle = (title: string) => {
 };
 
 export const generateAngularHeader = (title: string) => `
+type HttpClientOptions = {
+  headers?: HttpHeaders | {
+      [header: string]: string | string[];
+  };
+  observe?: any;
+  params?: HttpParams | {
+      [param: string]: string | string[];
+  };
+  reportProgress?: boolean;
+  responseType?: any;
+  withCredentials?: boolean;
+}
+
 @Injectable()
 export class ${title} {
   constructor(
@@ -43,7 +60,7 @@ export const generateAngularFooter = () => '};\n';
 const generateImplementation = (
   {
     queryParams,
-    definitionName,
+    operationName,
     response,
     mutator,
     body,
@@ -52,13 +69,25 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
-  const axiosConfig = generateAxiosConfig({
-    route,
-    body,
-    queryParams,
-    response,
-    verb,
-  });
+  if (mutator) {
+    const mutatorConfig = generateMutatorConfig({
+      route,
+      body,
+      queryParams,
+      response,
+      verb,
+    });
+
+    return ` ${operationName} = <Data = unknown>(\n    ${toObjectString(
+      props,
+      'implementation',
+    )}\n  ) => {
+      return ${mutator.name}<Data extends unknown ? ${
+      response.definition
+    } : Data>(${mutatorConfig}, this.http);
+    }
+  `;
+  }
 
   const options = generateOptions({
     route,
@@ -68,15 +97,13 @@ const generateImplementation = (
     verb,
   });
 
-  return `  ${definitionName}(\n    ${toObjectString(
+  return ` ${operationName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ) {${body.formData}
-  return ${
-    mutator
-      ? `${mutator.name}<${response.definition}>(${axiosConfig}, this.http)`
-      : `this.http.${verb}<${response.definition}>(${options})`
-  };
+  )} config?: HttpClientOptions\n  ) => {${body.formData}
+    return this.http.${verb}<Data extends unknown ? ${
+    response.definition
+  } : Data>(${options});
   }
 `;
 };

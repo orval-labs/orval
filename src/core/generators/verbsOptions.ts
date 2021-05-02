@@ -18,8 +18,10 @@ import {
 import { asyncReduce } from '../../utils/async-reduce';
 import { camel } from '../../utils/case';
 import { dynamicImport } from '../../utils/imports';
+import { isVerb } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { getBody } from '../getters/body';
+import { getOperationId } from '../getters/operation';
 import { getParameters } from '../getters/parameters';
 import { getParams } from '../getters/params';
 import { getProps } from '../getters/props';
@@ -35,7 +37,7 @@ const generateVerbOptions = async ({
   verbParameters = [],
   context,
 }: {
-  verb: string;
+  verb: Verbs;
   output?: OutputOptions;
   operation: OperationObject;
   route: string;
@@ -44,12 +46,13 @@ const generateVerbOptions = async ({
   context: ContextSpecs;
 }): Promise<GeneratorVerbOptions> => {
   const {
-    operationId,
     responses,
     requestBody,
     parameters: operationParameters,
     tags = [],
   } = operation;
+
+  const operationId = getOperationId(operation, route, verb);
 
   const overrideOperation =
     output.override?.operations?.[operation.operationId!];
@@ -61,7 +64,11 @@ const generateVerbOptions = async ({
     {},
   );
 
-  const definitionName = camel(operation.operationId!);
+  const overrideOperationName =
+    overrideOperation?.operationName || output.override?.operationName;
+  const operationName = overrideOperationName
+    ? overrideOperationName(operation, route, verb)
+    : camel(operationId);
 
   const response = await getResponse(responses, operationId!, context);
 
@@ -73,7 +80,7 @@ const generateVerbOptions = async ({
 
   const queryParams = await getQueryParams({
     queryParams: parameters.query,
-    definitionName,
+    operationName,
     context,
   });
 
@@ -88,7 +95,7 @@ const generateVerbOptions = async ({
 
   const mutator = generateMutator({
     output: output.target,
-    name: camel(operationId!),
+    name: operationName,
     mutator:
       overrideOperation?.mutator ||
       overrideTag?.mutator ||
@@ -100,7 +107,7 @@ const generateVerbOptions = async ({
     tags,
     summary: operation.summary,
     operationId: operationId!,
-    definitionName,
+    operationName,
     overrideOperation,
     response,
     body,
@@ -134,15 +141,10 @@ export const generateVerbsOptions = ({
   asyncReduce(
     Object.entries(verbs),
     async (acc, [verb, operation]: [string, OperationObject]) => {
-      if (!Object.values(Verbs).includes(verb as Verbs)) {
+      if (!isVerb(verb)) {
         return acc;
       }
 
-      if (!operation.operationId) {
-        throw new Error(
-          `Every path must have a operationId - No operationId set for ${verb} ${route}`,
-        );
-      }
       const verbOptions = await generateVerbOptions({
         verb,
         output,

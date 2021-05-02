@@ -7,11 +7,14 @@ import {
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
-import { generateAxiosConfig, generateOptions } from './options';
+import { generateMutatorConfig, generateOptions } from './options';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [{ name: 'axios', default: true, values: true }],
+    exports: [
+      { name: 'axios', default: true, values: true },
+      { name: 'AxiosRequestConfig' },
+    ],
     dependency: 'axios',
   },
 ];
@@ -21,7 +24,7 @@ export const getAxiosDependencies = () => AXIOS_DEPENDENCIES;
 const generateAxiosImplementation = (
   {
     queryParams,
-    definitionName,
+    operationName,
     response,
     mutator,
     body,
@@ -30,13 +33,25 @@ const generateAxiosImplementation = (
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
-  const axiosConfig = generateAxiosConfig({
-    route,
-    body,
-    queryParams,
-    response,
-    verb,
-  });
+  if (mutator) {
+    const mutatorConfig = generateMutatorConfig({
+      route,
+      body,
+      queryParams,
+      response,
+      verb,
+    });
+
+    return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
+      props,
+      'implementation',
+    )}\n  ) {
+      return ${mutator.name}<Data extends unknown ? ${
+      response.definition
+    } : Data>(${mutatorConfig});
+    },
+  `;
+  }
 
   const options = generateOptions({
     route,
@@ -46,19 +61,16 @@ const generateAxiosImplementation = (
     verb,
   });
 
-  return `  ${definitionName}(\n    ${toObjectString(
+  return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ) {${body.formData}
-    return ${
-      mutator
-        ? `${mutator.name}<${response.definition}>(${axiosConfig})`
-        : `axios.${verb}<${response.definition}>(${options})`
-    };
+  )} config?: AxiosRequestConfig\n  ) {${body.formData}
+    return axios.${verb}<Data extends unknown ? ${
+    response.definition
+  } : Data>(${options});
   },
 `;
 };
-
 export const generateAxiosTitle = (title: string) => {
   const sanTitle = sanitize(title);
   return `get${pascal(sanTitle)}`;

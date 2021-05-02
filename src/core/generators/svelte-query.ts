@@ -6,11 +6,14 @@ import { camel, pascal } from '../../utils/case';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
-import { generateAxiosConfig, generateOptions } from './options';
+import { generateMutatorConfig, generateOptions } from './options';
 
 const SVELTE_QUERY_DEPENDENCIES = [
   {
-    exports: [{ name: 'axios', default: true, values: true }],
+    exports: [
+      { name: 'axios', default: true, values: true },
+      { name: 'AxiosRequestConfig' },
+    ],
     dependency: 'axios',
   },
   {
@@ -18,12 +21,11 @@ const SVELTE_QUERY_DEPENDENCIES = [
       { name: 'useQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
-      { name: 'UseQueryOptions', values: true },
+      { name: 'UseQueryOptions' },
       {
         name: 'UseInfiniteQueryOptions',
-        values: true,
       },
-      { name: 'UseMutationOptions', values: true },
+      { name: 'UseMutationOptions' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -34,7 +36,7 @@ export const getSvelteQueryDependencies = () => SVELTE_QUERY_DEPENDENCIES;
 const generateAxiosFunction = (
   {
     queryParams,
-    definitionName,
+    operationName,
     response,
     mutator,
     body,
@@ -44,7 +46,7 @@ const generateAxiosFunction = (
   { route }: GeneratorOptions,
 ) => {
   if (mutator) {
-    const axiosConfig = generateAxiosConfig({
+    const mutatorConfig = generateMutatorConfig({
       route,
       body,
       queryParams,
@@ -52,13 +54,13 @@ const generateAxiosFunction = (
       verb,
     });
 
-    return `export const ${definitionName} = <Data = unknown>(\n    ${toObjectString(
+    return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
     )}\n  ) => {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
-    } : Data>(${axiosConfig});
+    } : Data>(${mutatorConfig});
     }
   `;
   }
@@ -71,10 +73,10 @@ const generateAxiosFunction = (
     verb,
   });
 
-  return `export const ${definitionName} = <Data = unknown>(\n    ${toObjectString(
+  return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )}\n  ) => {${body.formData}
+  )} config?: AxiosRequestConfig\n  ) => {${body.formData}
     return axios.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});
@@ -93,12 +95,13 @@ const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
 
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, config, type },
-  definitionName,
+  operationName,
   queryProps,
   queryKeyFnName,
   properties,
   params,
   props,
+  hasMutator,
 }: {
   queryOption: {
     name: string;
@@ -106,39 +109,43 @@ const generateQueryImplementation = ({
     type: QueryType;
     queryParam?: string;
   };
-  definitionName: string;
+  operationName: string;
   queryProps: string;
   queryKeyFnName: string;
   properties: string;
   params: GetterParams;
   props: GetterProps;
+  hasMutator: boolean;
 }) => {
+  const httpFunctionProps = queryParam
+    ? props
+        .map(({ name }) =>
+          name === 'params' ? `{ ${queryParam}: pageParam, ...params }` : name,
+        )
+        .join(',')
+    : properties;
+
   return `
 export const ${camel(`use-${name}`)} = <
   Data extends unknown = unknown,
   Error extends unknown = unknown
->(\n ${queryProps}\n queryConfig?: Use${pascal(
+>(\n ${queryProps}\n options?: { query?: Use${pascal(
     type,
-  )}Options<AsyncReturnType<typeof ${definitionName}>, Error>\n  ) => {
+  )}Options<AsyncReturnType<typeof ${operationName}>, Error>${
+    !hasMutator ? `, axios?: AxiosRequestConfig` : ''
+  }}\n  ) => {
   const queryKey = ${queryKeyFnName}(${properties});
+  const {query: queryOptions${!hasMutator ? `, axios` : ''}} = options || {}
 
   const query = ${camel(
     `use-${type}`,
-  )}<AsyncReturnType<typeof ${definitionName}>, Error>(queryKey, (${
+  )}<AsyncReturnType<typeof ${operationName}>, Error>(queryKey, (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
-  }) => ${definitionName}<Data>(${
-    queryParam
-      ? props
-          .map(({ name }) =>
-            name === 'params'
-              ? `{ ${queryParam}: pageParam, ...params }`
-              : name,
-          )
-          .join(',')
-      : properties
-  }), ${
+  }) => ${operationName}<Data>(${httpFunctionProps}${
+    httpFunctionProps ? ', ' : ''
+  }${!hasMutator ? `axios` : ''}), ${
     params.length
       ? `{${
           !config?.hasOwnProperty('enabled')
@@ -158,8 +165,8 @@ export const ${camel(`use-${name}`)} = <
                 }),
               )?.slice(1, -1)}`
             : ''
-        } ...queryConfig}`
-      : 'queryConfig'
+        } ...queryOptions}`
+      : 'queryOptions'
   } )
 
   return {
@@ -172,19 +179,22 @@ export const ${camel(`use-${name}`)} = <
 const generateSvelteQueryImplementation = (
   {
     queryParams,
-    definitionName,
+    operationName,
     body,
     props,
     verb,
     params,
     operationId,
     tags,
+    mutator,
   }: GeneratorVerbOptions,
   { route, override = {} }: GeneratorOptions,
 ) => {
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
+
+  const hasMutator = !!mutator;
 
   if (verb === Verbs.GET) {
     const overrideOperation = override.operations?.[operationId!];
@@ -202,7 +212,7 @@ const generateSvelteQueryImplementation = (
       ...(query?.useInfinite
         ? [
             {
-              name: camel(`${definitionName}-infinite`),
+              name: camel(`${operationName}-infinite`),
               config: query?.config,
               type: QueryType.INFINITE,
               queryParam: query?.useInfiniteQueryParam,
@@ -212,7 +222,7 @@ const generateSvelteQueryImplementation = (
       ...((!query?.useQuery && !query?.useInfinite) || query?.useQuery
         ? [
             {
-              name: definitionName,
+              name: operationName,
               config: query?.config,
               type: QueryType.QUERY,
             },
@@ -220,7 +230,7 @@ const generateSvelteQueryImplementation = (
         : []),
     ];
 
-    const queryKeyFnName = camel(`get-${definitionName}-queryKey`);
+    const queryKeyFnName = camel(`get-${operationName}-queryKey`);
     const queryProps = toObjectString(props, 'implementation');
 
     return `export const ${queryKeyFnName} = (${queryProps}) => [\`${route}\`${
@@ -232,12 +242,13 @@ const generateSvelteQueryImplementation = (
         acc +
         generateQueryImplementation({
           queryOption,
-          definitionName,
+          operationName,
           queryProps,
           queryKeyFnName,
           properties,
           params,
           props,
+          hasMutator,
         }),
       '',
     )}
@@ -251,19 +262,25 @@ const generateSvelteQueryImplementation = (
     .join(';');
 
   return `
-export const ${camel(`use-${definitionName}`)} = <
+export const ${camel(`use-${operationName}`)} = <
   Data extends unknown = unknown,
   Error extends unknown = unknown
->(\n    mutationConfig?: UseMutationOptions<AsyncReturnType<typeof ${definitionName}>, Error${
+>(\n     options?: { mutation?: UseMutationOptions<AsyncReturnType<typeof ${operationName}>, Error${
     definitions ? `, {${definitions}}` : ''
-  }, unknown>\n  ) => {
-  return useMutation<AsyncReturnType<typeof ${definitionName}>, Error${
+  }, unknown>${!hasMutator ? `, axios?: AxiosRequestConfig` : ''}}\n  ) => {
+  const {mutation: mutationOptions${
+    !hasMutator ? `, axios` : ''
+  }} = options || {}
+
+  return useMutation<AsyncReturnType<typeof ${operationName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>((${properties ? 'props' : ''}) => {
     ${properties ? `const {${properties}} = props || {}` : ''};
 
-    return  ${definitionName}<Data>(${properties})
-  }, mutationConfig)
+    return  ${operationName}<Data>(${properties}${properties ? ',' : ''}${
+    !hasMutator ? `axios` : ''
+  })
+  }, mutationOptions)
 }
 `;
 };

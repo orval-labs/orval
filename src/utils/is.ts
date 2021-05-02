@@ -1,5 +1,6 @@
 import { ReferenceObject } from 'openapi3-ts';
 import { extname } from 'upath';
+import { Verbs } from '../types';
 
 /**
  * Discriminator helper for `ReferenceObject`
@@ -41,3 +42,6 @@ export function isUndefined(x: any): x is undefined {
 export function isNull(x: any): x is null {
   return typeof x === null;
 }
+
+export const isVerb = (verb: string): verb is Verbs =>
+  Object.values(Verbs).includes(verb as Verbs);

@@ -14,7 +14,7 @@ type QueryParamsType = {
 
 const getQueryParamsTypes = (
   queryParams: (ParameterObject | GeneratorImport)[],
-  definitionName: string,
+  operationName: string,
   context: ContextSpecs,
 ): Promise<QueryParamsType[]> => {
   return Promise.all(
@@ -28,13 +28,13 @@ const getQueryParamsTypes = (
       const { value, imports, isEnum, type, schemas, ref } = await resolveValue({
         schema: schema!,
         context,
-        name: pascal(definitionName) + pascal(name),
+        name: pascal(operationName) + pascal(name),
       });
 
       const key = getKey(name);
 
       if (isEnum && !ref) {
-        const enumName = pascal(definitionName) + pascal(name);
+        const enumName = pascal(operationName) + pascal(name);
         const enumValue = getEnum(value, type, enumName);
 
         return {
@@ -61,11 +61,11 @@ const getQueryParamsTypes = (
 
 export const getQueryParams = async ({
   queryParams = [],
-  definitionName,
+  operationName,
   context,
 }: {
   queryParams: ParameterObject[];
-  definitionName: string;
+  operationName: string;
   context: ContextSpecs;
 }): Promise<
   { schema: GeneratorSchema; deps: GeneratorSchema[] } | undefined
@@ -73,7 +73,7 @@ export const getQueryParams = async ({
   if (!queryParams.length) {
     return;
   }
-  const types = await getQueryParamsTypes(queryParams, definitionName, context);
+  const types = await getQueryParamsTypes(queryParams, operationName, context);
   const imports = types.reduce<GeneratorImport[]>(
     (acc, { imports = [] }) => [...acc, ...imports],
     [],
@@ -82,7 +82,7 @@ export const getQueryParams = async ({
     (acc, { schemas = [] }) => [...acc, ...schemas],
     [],
   );
-  const name = `${pascal(definitionName)}Params`;
+  const name = `${pascal(operationName)}Params`;
 
   const type = types.map(({ definition }) => definition).join('; ');
 
