@@ -90,16 +90,26 @@ export const generateClientImports = (
     specsName,
   );
 
-export const generateClientHeader = (
-  outputClient: OutputClient = DEFAULT_CLIENT,
-  title: string,
-  customTitleFunc?: (title: string) => string,
-): GeneratorClientExtra => {
+export const generateClientHeader = ({
+  outputClient = DEFAULT_CLIENT,
+  hasMutator,
+  title,
+  customTitleFunc,
+  globalMutator,
+}: {
+  outputClient?: OutputClient;
+  hasMutator: boolean;
+  globalMutator: boolean;
+  title: string;
+  customTitleFunc?: (title: string) => string;
+}): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   return {
-    implementation: GENERATOR_CLIENT[outputClient].header(
-      titles.implementation,
-    ),
+    implementation: GENERATOR_CLIENT[outputClient].header({
+      title: titles.implementation,
+      hasMutator,
+      globalMutator,
+    }),
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };
 };

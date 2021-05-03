@@ -35,8 +35,18 @@ export const generateAngularTitle = (title: string) => {
   return `${pascal(sanTitle)}Service`;
 };
 
-export const generateAngularHeader = (title: string) => `
-type HttpClientOptions = {
+export const generateAngularHeader = ({
+  title,
+  hasMutator,
+  globalMutator,
+}: {
+  title: string;
+  hasMutator: boolean;
+  globalMutator?: boolean;
+}) => `
+${
+  !globalMutator
+    ? `type HttpClientOptions = {
   headers?: HttpHeaders | {
       [header: string]: string | string[];
   };
@@ -47,6 +57,20 @@ type HttpClientOptions = {
   reportProgress?: boolean;
   responseType?: any;
   withCredentials?: boolean;
+}`
+    : ''
+}
+
+${
+  hasMutator
+    ? `type ThirdParameter<T extends (...args: any) => any> = T extends (
+  config: any,
+  httpClient: any,
+  args: infer P,
+) => any
+  ? P
+  : never;`
+    : ''
 }
 
 @Injectable()
@@ -78,13 +102,18 @@ const generateImplementation = (
       verb,
     });
 
-    return ` ${operationName} = <Data = unknown>(\n    ${toObjectString(
+    return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n  ) => {
+    )}\n options?: ThirdParameter<typeof ${mutator.name}>) {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
-    } : Data>(${mutatorConfig}, this.http);
+    } : Data>(
+      ${mutatorConfig},
+      this.http,
+      // eslint-disable-next-line
+      // @ts-ignore
+      options);
     }
   `;
   }
@@ -97,10 +126,10 @@ const generateImplementation = (
     verb,
   });
 
-  return ` ${operationName} = <Data = unknown>(\n    ${toObjectString(
+  return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} config?: HttpClientOptions\n  ) => {${body.formData}
+  )} options?: HttpClientOptions\n  ) {${body.formData}
     return this.http.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});

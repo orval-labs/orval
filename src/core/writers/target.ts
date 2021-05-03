@@ -20,11 +20,13 @@ export const generateTarget = (
   const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
       if (!index) {
-        const header = generateClientHeader(
-          options?.client,
-          pascal(info.title),
-          options?.override?.title,
-        );
+        const header = generateClientHeader({
+          outputClient: options?.client,
+          hasMutator: !!operation.mutator,
+          globalMutator: !!options?.override?.mutator,
+          title: pascal(info.title),
+          customTitleFunc: options?.override?.title,
+        });
         acc.implementation += header.implementation;
         acc.implementationMSW.handler += header.implementationMSW;
       }

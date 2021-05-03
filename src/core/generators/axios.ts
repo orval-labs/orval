@@ -45,10 +45,14 @@ const generateAxiosImplementation = (
     return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n  ) {
+    )}\n options?: SecondParameter<typeof ${mutator.name}>) {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
-    } : Data>(${mutatorConfig});
+    } : Data>(
+      ${mutatorConfig},
+      // eslint-disable-next-line
+      // @ts-ignore
+      options);
     },
   `;
   }
@@ -64,7 +68,7 @@ const generateAxiosImplementation = (
   return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} config?: AxiosRequestConfig\n  ) {${body.formData}
+  )} options?: AxiosRequestConfig\n  ) {${body.formData}
     return axios.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});
@@ -76,8 +80,23 @@ export const generateAxiosTitle = (title: string) => {
   return `get${pascal(sanTitle)}`;
 };
 
-export const generateAxiosHeader = (title: string) =>
-  `export const ${title} = () => ({\n`;
+export const generateAxiosHeader = ({
+  title,
+  hasMutator,
+}: {
+  title: string;
+  hasMutator: boolean;
+}) => `${
+  hasMutator
+    ? `type SecondParameter<T extends (...args: any) => any> = T extends (
+  config: any,
+  args: infer P,
+) => any
+  ? P
+  : never;\n\n`
+    : ''
+}
+  export const ${title} = () => ({\n`;
 
 export const generateAxiosFooter = () => '});\n';
 

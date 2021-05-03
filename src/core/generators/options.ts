@@ -24,7 +24,7 @@ export const generateQueryParamsOptions = (
   queryParams?: GeneratorSchema,
 ) => {
   if (!queryParams && !response.isBlob) {
-    return 'config';
+    return 'options';
   }
 
   let value = '\n      {';
@@ -37,7 +37,7 @@ export const generateQueryParamsOptions = (
     value += `\n        responseType: 'blob',`;
   }
 
-  value += '\n    ...config  },';
+  value += '\n    ...options  },';
 
   return value;
 };

@@ -26,11 +26,13 @@ const generateTargetTags = (
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
     if (!currentOperation) {
-      const header = generateClientHeader(
-        options?.client,
-        pascal(tag),
-        options?.override?.title,
-      );
+      const header = generateClientHeader({
+        outputClient: options?.client,
+        hasMutator: !!operation.mutator,
+        globalMutator: !!options?.override?.mutator,
+        title: pascal(tag),
+        customTitleFunc: options?.override?.title,
+      });
 
       return {
         ...acc,

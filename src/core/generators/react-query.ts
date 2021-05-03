@@ -2,6 +2,7 @@ import omitBy from 'lodash.omitby';
 import { OperationOptions, Verbs } from '../../types';
 import {
   GeneratorDependency,
+  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
@@ -61,10 +62,14 @@ const generateAxiosFunction = (
     return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n  ) => {
+    )}\n options?: SecondParameter<typeof ${mutator.name}>) => {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
-    } : Data>(${mutatorConfig});
+    } : Data>(
+      ${mutatorConfig},
+      // eslint-disable-next-line
+      // @ts-ignore
+      options);
     }
   `;
   }
@@ -80,7 +85,7 @@ const generateAxiosFunction = (
   return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} config?: AxiosRequestConfig\n  ) => {${body.formData}
+  )} options?: AxiosRequestConfig\n  ) => {${body.formData}
     return axios.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});
@@ -105,7 +110,7 @@ const generateQueryImplementation = ({
   properties,
   params,
   props,
-  hasMutator,
+  mutator,
 }: {
   queryOption: {
     name: string;
@@ -119,7 +124,7 @@ const generateQueryImplementation = ({
   properties: string;
   params: GetterParams;
   props: GetterProps;
-  hasMutator: boolean;
+  mutator?: GeneratorMutator;
 }) => {
   const httpFunctionProps = queryParam
     ? props
@@ -136,10 +141,14 @@ export const ${camel(`use-${name}`)} = <
 >(\n ${queryProps}\n options?: { query?: Use${pascal(
     type,
   )}Options<AsyncReturnType<typeof ${operationName}>, Error>${
-    !hasMutator ? `, axios?: AxiosRequestConfig` : ''
+    !mutator
+      ? `, axios?: AxiosRequestConfig`
+      : `, request?: SecondParameter<typeof ${mutator.name}>`
   }}\n  ) => {
   const queryKey = ${queryKeyFnName}(${properties});
-  const {query: queryOptions${!hasMutator ? `, axios` : ''}} = options || {}
+  const {query: queryOptions${
+    !mutator ? `, axios: axiosOptions` : ', request: requestOptions'
+  }} = options || {}
 
   const query = ${camel(
     `use-${type}`,
@@ -149,7 +158,7 @@ export const ${camel(`use-${name}`)} = <
       : ''
   }) => ${operationName}<Data>(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
-  }${!hasMutator ? `axios` : ''}), ${
+  }${!mutator ? `axiosOptions` : 'requestOptions'}), ${
     params.length
       ? `{${
           !config?.hasOwnProperty('enabled')
@@ -197,8 +206,6 @@ const generateReactQueryImplementation = (
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
-
-  const hasMutator = !!mutator;
 
   if (verb === Verbs.GET) {
     const overrideOperation = override.operations?.[operationId!];
@@ -252,7 +259,7 @@ const generateReactQueryImplementation = (
           properties,
           params,
           props,
-          hasMutator,
+          mutator,
         }),
       '',
     )}
@@ -271,9 +278,13 @@ const generateReactQueryImplementation = (
       Error extends unknown = unknown
     >(\n     options?: { mutation?: UseMutationOptions<AsyncReturnType<typeof ${operationName}>, Error${
     definitions ? `, {${definitions}}` : ''
-  }, unknown>${!hasMutator ? `, axios?: AxiosRequestConfig` : ''}}\n  ) => {
+  }, unknown>${
+    !mutator
+      ? `, axios?: AxiosRequestConfig`
+      : `, request?: SecondParameter<typeof ${mutator.name}>`
+  }}\n  ) => {
       const {mutation: mutationOptions${
-        !hasMutator ? `, axios` : ''
+        !mutator ? `, axios: axiosOptions` : ', request: requestOptions'
       }} = options || {}
 
       return useMutation<AsyncReturnType<typeof ${operationName}>, Error${
@@ -282,7 +293,7 @@ const generateReactQueryImplementation = (
         ${properties ? `const {${properties}} = props || {}` : ''};
 
         return  ${operationName}<Data>(${properties}${properties ? ',' : ''}${
-    !hasMutator ? `axios` : ''
+    !mutator ? `axiosOptions` : 'requestOptions'
   })
       }, mutationOptions)
     }
@@ -291,9 +302,23 @@ const generateReactQueryImplementation = (
 
 export const generateReactQueryTitle = () => '';
 
-export const generateReactQueryHeader = () => `type AsyncReturnType<
+export const generateReactQueryHeader = ({
+  hasMutator,
+}: {
+  hasMutator: boolean;
+}) => `type AsyncReturnType<
 T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n`;
+> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
+${
+  hasMutator
+    ? `type SecondParameter<T extends (...args: any) => any> = T extends (
+  config: any,
+  args: infer P,
+) => any
+  ? P
+  : never;\n\n`
+    : ''
+}`;
 
 export const generateReactQueryFooter = () => '';
 
