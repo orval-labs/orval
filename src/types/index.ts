@@ -119,7 +119,7 @@ export type OperationOptions = {
   ) => string;
 };
 
-export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete';
+export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete' | 'head';
 
 export const Verbs = {
   POST: 'post' as Verbs,
@@ -127,6 +127,7 @@ export const Verbs = {
   GET: 'get' as Verbs,
   PATCH: 'patch' as Verbs,
   DELETE: 'delete' as Verbs,
+  HEAD: 'head' as Verbs,
 };
 
 export type ImportOpenApi = {
