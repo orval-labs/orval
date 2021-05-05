@@ -35,6 +35,7 @@
   },
   "scripts": {
     "build": "tsup ./src/bin/orval.ts ./src/index.ts --minify --clean",
+    "dev": "tsup-node ./src/bin/orval.ts ./src/index.ts --clean --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write 'src/**/*.{js,ts}'",
     "release": "dotenv release-it",
@@ -71,7 +72,7 @@
     "prettier": "^2.2.1",
     "release-it": "^14.6.0",
     "rimraf": "^3.0.2",
-    "tsup": "^4.8.21",
+    "tsup": "^4.10.1",
     "typescript": "^4.2.4"
   },
   "dependencies": {
