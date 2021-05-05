@@ -80,6 +80,7 @@ export type OverrideOutput = {
     properties?: MockProperties;
     format?: { [key: string]: unknown };
     required?: boolean;
+    baseUrl?: string;
   };
   query?: QueryOptions;
   operationName?: (

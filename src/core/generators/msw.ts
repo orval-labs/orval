@@ -23,7 +23,7 @@ const getRoutePath = (path: string) => {
   }, '');
 };
 
-export const getRoute = (route: string) => {
+export const getRoute = (route: string, baseUrl = '*') => {
   const splittedRoute = route.split('/');
 
   return splittedRoute.reduce((acc, path) => {
@@ -36,7 +36,7 @@ export const getRoute = (route: string) => {
     }
 
     return `${acc}/${getRoutePath(path)}`;
-  }, '*');
+  }, baseUrl);
 };
 
 const MSW_DEPENDENCIES: GeneratorDependency[] = [
@@ -77,7 +77,7 @@ export const generateMSW = async (
     context,
   });
 
-  const route = getRoute(pathRoute);
+  const route = getRoute(pathRoute, override?.mock?.baseUrl);
   const mockData = getMockOptionsDataOverride(operationId, override);
 
   let value = '';
