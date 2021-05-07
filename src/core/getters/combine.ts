@@ -64,7 +64,7 @@ export const combineSchemas = async ({
       .split(' | ')
       .map((e) => `...${e}`)
       .join(',');
-    console.log(name, resolvedData.imports);
+
     const newEnum = `\n\nexport const ${pascal(name)} = {${enums}}`;
     return {
       ...resolvedData,
@@ -76,7 +76,6 @@ export const combineSchemas = async ({
       isEnum: false,
     };
   }
-  console.log('lol', name);
 
   return resolvedData;
 };
