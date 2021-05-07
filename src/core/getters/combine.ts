@@ -1,5 +1,6 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
+import { GeneratorImport } from '../../types/generator';
 import { ResolverValue } from '../../types/resolvers';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
@@ -53,7 +54,7 @@ export const combineSchemas = async ({
       value: '',
       imports: [],
       schemas: [],
-      isEnum: true,
+      isEnum: true, // check if only enums
       type: 'object',
     } as ResolverValue,
   );
@@ -63,13 +64,19 @@ export const combineSchemas = async ({
       .split(' | ')
       .map((e) => `...${e}`)
       .join(',');
+    console.log(name, resolvedData.imports);
     const newEnum = `\n\nexport const ${pascal(name)} = {${enums}}`;
     return {
       ...resolvedData,
+      imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
+        ...toImport,
+        values: true,
+      })),
       value: resolvedData.value + newEnum,
       isEnum: false,
     };
   }
+  console.log('lol', name);
 
   return resolvedData;
 };

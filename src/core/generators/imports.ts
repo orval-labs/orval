@@ -29,21 +29,26 @@ export const generateImports = ({
       a.name === b.name && a.default === b.default && a.specKey === b.specKey,
   )
     .sort()
-    .map(({ specKey, name }) => {
+    .map(({ specKey, name, values }) => {
       if (specKey) {
         const path = specKey !== rootSpecKey ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
-          return `import type { ${name} } from \'../${join(
+          return `import ${!values ? 'type ' : ''}{ ${name} } from \'../${join(
             path,
             camel(name),
           )}\';`;
         }
 
-        return `import type { ${name} } from \'./${join(path, camel(name))}\';`;
+        return `import ${!values ? 'type ' : ''}{ ${name} } from \'./${join(
+          path,
+          camel(name),
+        )}\';`;
       }
 
-      return `import type { ${name} } from \'./${camel(name)}\';`;
+      return `import ${!values ? 'type ' : ''}{ ${name} } from \'./${camel(
+        name,
+      )}\';`;
     })
     .join('\n');
 };
