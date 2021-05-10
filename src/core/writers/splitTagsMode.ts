@@ -25,7 +25,7 @@ export const writeSplitTagsMode = ({
   );
 
   if (!existsSync(dirname)) {
-    mkdirSync(dirname);
+    mkdirSync(dirname, { recursive: true });
   }
 
   const target = generateTargetForTags(operations, output);
@@ -84,7 +84,7 @@ export const writeSplitTagsMode = ({
 
     if (path) {
       if (!existsSync(join(dirname, kebab(tag)))) {
-        mkdirSync(join(dirname, kebab(tag)));
+        mkdirSync(join(dirname, kebab(tag)), { recursive: true });
       }
 
       const implementationFilename =

@@ -27,7 +27,7 @@ export const writeSingleMode = ({
   );
 
   if (!existsSync(dirname)) {
-    mkdirSync(dirname);
+    mkdirSync(dirname, { recursive: true });
   }
 
   const {

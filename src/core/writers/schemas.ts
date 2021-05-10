@@ -23,7 +23,7 @@ export const writeSchemas = ({
   const schemaPath = join(workspace, output.schemas);
 
   if (!existsSync(schemaPath)) {
-    mkdirSync(schemaPath);
+    mkdirSync(schemaPath, { recursive: true });
   }
 
   if (!existsSync(schemaPath + '/index.ts')) {
