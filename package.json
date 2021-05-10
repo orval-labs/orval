@@ -1,5 +1,5 @@
 {
-  "name": "orval",
+  "name": "@crmdevs/orval",
   "description": "A swagger client generator for typescript",
   "version": "4.2.0",
   "license": "MIT",
