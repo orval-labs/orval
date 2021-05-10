@@ -92,6 +92,7 @@ typings/
 lib
 .cache
 
+.vscode
 # End of https://www.gitignore.io/api/node,macos,vscode
 
 # Cache for parcel serverl in example

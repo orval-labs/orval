@@ -1,0 +1,74 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "example-service",
+    "description": "Example service",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/admin/user/status/{userId}": {
+      "post": {
+        "operationId": "Change user's status",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "description": "user id",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/MongoDbID" }
+          }
+        ],
+        "tags": ["Users"],
+        "summary": "update status of user by admin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "$ref": "#/components/schemas/UserStatusEnum" },
+                  "userId": { "$ref": "#/components/schemas/MongoDbID" }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "message": { "type": "string" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": { "message": { "type": "string" } }
+      },
+      "MongoDbID": { "type": "string", "pattern": "^[0-9a-fA-F]{24}$" },
+      "UserStatusEnum": {
+        "type": "string",
+        "enum": [
+          "NOT_VERIFIED",
+          "VERIFYING",
+          "APPROVED",
+          "REJECTED",
+          "SUSPENDED"
+        ]
+      }
+    }
+  },
+  "tags": []
+}
