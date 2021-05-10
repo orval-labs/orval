@@ -26,7 +26,7 @@ export const writeTagsMode = ({
   );
 
   if (!existsSync(dirname)) {
-    mkdirSync(dirname);
+    mkdirSync(dirname, { recursive: true });
   }
 
   const target = generateTargetForTags(operations, output);

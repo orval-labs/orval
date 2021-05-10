@@ -25,7 +25,7 @@ export const writeSplitMode = ({
   );
 
   if (!existsSync(dirname)) {
-    mkdirSync(dirname);
+    mkdirSync(dirname, { recursive: true });
   }
 
   const {
