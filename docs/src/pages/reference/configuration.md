@@ -380,7 +380,7 @@ Example:
 
 ```js
 module.exports = {
-  input: {
+  output: {
     override: {
       mutator: {
         path: './api/mutator/custom-instance.ts',
