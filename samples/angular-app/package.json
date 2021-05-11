@@ -6,7 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "lint": "ng lint",
-    "generate-api": "node ../../lib/bin/orval.js --config ./orval.config.js"
+    "generate-api": "node ../../dist/bin/orval.js --config ./orval.config.js"
   },
   "private": true,
   "dependencies": {

@@ -5,8 +5,8 @@
   "main": "index.html",
   "scripts": {
     "example": "run-p example:*",
-    "example:basic": "node ../../lib/bin/orval.js --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
-    "example:config": "node ../../lib/bin/orval.js"
+    "example:basic": "node ../../dist/bin/orval.js --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
+    "example:config": "node ../../dist/bin/orval.js"
   },
   "author": "Victor Bury",
   "license": "ISC",
