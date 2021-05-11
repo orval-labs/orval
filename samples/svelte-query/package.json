@@ -7,7 +7,7 @@
     "start": "svelte-kit start",
     "lint": "prettier --check . && eslint --ignore-path .gitignore .",
     "format": "prettier --write .",
-    "generate-api": "node ../../lib/bin/orval.js --config ./orval.config.cjs"
+    "generate-api": "node ../../dist/bin/orval.js --config ./orval.config.cjs"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "next",
