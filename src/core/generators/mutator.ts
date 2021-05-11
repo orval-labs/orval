@@ -1,7 +1,7 @@
-import { relative } from 'upath';
 import { Mutator } from '../../types';
 import { getFileInfo } from '../../utils/file';
 import { isString } from '../../utils/is';
+import { relativeSafe } from '../../utils/path';
 
 const getImport = (output: string, mutator: Mutator) => {
   const outputFileInfo = getFileInfo(output);
@@ -9,7 +9,7 @@ const getImport = (output: string, mutator: Mutator) => {
     isString(mutator) ? mutator : mutator.path,
   );
   const { pathWithoutExtension } = getFileInfo(
-    relative(outputFileInfo.dirname, mutatorFileInfo.path),
+    relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
   return pathWithoutExtension;
 };
