@@ -62,7 +62,7 @@ export const getObject = async ({
     });
   }
 
-  if (item.properties && Object.entries(item.properties)>0) {
+  if (item.properties && Object.entries(item.properties).length>0) {
     return asyncReduce(
       Object.entries(item.properties),
       async (
