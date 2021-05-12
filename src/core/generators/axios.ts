@@ -84,9 +84,11 @@ export const generateAxiosTitle = (title: string) => {
 export const generateAxiosHeader = ({
   title,
   hasMutator,
+  noFunction,
 }: {
   title: string;
   hasMutator: boolean;
+  noFunction?: boolean;
 }) => `${
   hasMutator
     ? `type SecondParameter<T extends (...args: any) => any> = T extends (
@@ -97,7 +99,7 @@ export const generateAxiosHeader = ({
   : never;\n\n`
     : ''
 }
-  export const ${title} = () => {\n`;
+  ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
 
 export const generateAxiosFooter = (operationIds: string[] = []) =>
   `return {${operationIds.join(',')}}};\n`;

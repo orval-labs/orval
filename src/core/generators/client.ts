@@ -4,6 +4,7 @@ import {
   GeneratorImport,
   GeneratorOperations,
   GeneratorOptions,
+  GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
@@ -48,6 +49,22 @@ const GENERATOR_CLIENT = {
     header: generateAxiosHeader,
     dependencies: getAxiosDependencies,
     footer: generateAxiosFooter,
+    title: generateAxiosTitle,
+  },
+  [OutputClient.AXIOS_FUNCTIONS]: {
+    client: (verbOptions: GeneratorVerbOptions, options: GeneratorOptions) => {
+      const { implementation, imports } = generateAxios(verbOptions, options);
+
+      return {
+        implementation: 'export ' + implementation,
+        imports,
+      };
+    },
+    msw: generateMSW,
+    header: (options: { title: string; hasMutator: boolean }) =>
+      generateAxiosHeader({ ...options, noFunction: true }),
+    dependencies: getAxiosDependencies,
+    footer: () => '',
     title: generateAxiosTitle,
   },
   [OutputClient.ANGULAR]: {

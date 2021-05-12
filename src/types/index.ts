@@ -25,11 +25,17 @@ export type InputOptions = {
   parserOptions?: SwaggerParser.Options;
 };
 
-export type OutputClient = 'axios' | 'angular' | 'react-query' | 'svelte-query';
+export type OutputClient =
+  | 'axios'
+  | 'axios-functions'
+  | 'angular'
+  | 'react-query'
+  | 'svelte-query';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,
   AXIOS: 'axios' as OutputClient,
+  AXIOS_FUNCTIONS: 'axios-functions' as OutputClient,
   REACT_QUERY: 'react-query' as OutputClient,
   SVELTE_QUERY: 'svelte-query' as OutputClient,
 };
