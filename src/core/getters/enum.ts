@@ -6,7 +6,9 @@ export const getEnum = (value: string, type: string, enumName: string) => {
 
   const implementation = value.split(' | ').reduce((acc, val) => {
     const key =
-      type === 'number' ? `${upper(type)}_${val}` : sanitize(val, false);
+      type === 'number'
+        ? `${upper(type)}_${val}`
+        : sanitize(val, { underscore: '_', whitespace: '_' });
     const startWithNumber = !Number.isNaN(+key[0]);
 
     return (

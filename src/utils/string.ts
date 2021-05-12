@@ -1,5 +1,4 @@
 import get from 'lodash.get';
-import { SPECIAL_CHAR_REGEX, SPECIAL_CHAR_REGEX_DEEP } from '../constants';
 import {
   isBoolean,
   isFunction,
@@ -46,8 +45,26 @@ export const stringify = (
   }, '');
 };
 
-export const sanitize = (value: string, deep = true) =>
-  value.replace(deep ? SPECIAL_CHAR_REGEX_DEEP : SPECIAL_CHAR_REGEX, '');
+export const sanitize = (
+  value: string,
+  options?: {
+    whitespace?: string | true;
+    underscore?: string | true;
+  },
+) => {
+  const { whitespace = '', underscore = '' } = options || {};
+  let newValue = value.replace(/[^\w\s]/g, '');
+
+  if (whitespace !== true) {
+    newValue = newValue.replace(/[\s]/g, whitespace);
+  }
+
+  if (underscore !== true) {
+    newValue = newValue.replace(/['_']/g, underscore);
+  }
+
+  return newValue;
+};
 
 export const toObjectString = <T>(props: T[], path?: keyof T) => {
   if (!props.length) {
