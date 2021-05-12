@@ -42,10 +42,10 @@ const generateAxiosImplementation = (
       verb,
     });
 
-    return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
+    return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n options?: SecondParameter<typeof ${mutator.name}>) {
+    )}\n options?: SecondParameter<typeof ${mutator.name}>) => {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
     } : Data>(
@@ -53,7 +53,7 @@ const generateAxiosImplementation = (
       // eslint-disable-next-line
       // @ts-ignore
       options);
-    },
+    }
   `;
   }
 
@@ -65,16 +65,17 @@ const generateAxiosImplementation = (
     verb,
   });
 
-  return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
+  return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} options?: AxiosRequestConfig\n  ) {${body.formData}
+  )} options?: AxiosRequestConfig\n  ) => {${body.formData}
     return axios.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});
-  },
+  }
 `;
 };
+
 export const generateAxiosTitle = (title: string) => {
   const sanTitle = sanitize(title);
   return `get${pascal(sanTitle)}`;
@@ -96,9 +97,10 @@ export const generateAxiosHeader = ({
   : never;\n\n`
     : ''
 }
-  export const ${title} = () => ({\n`;
+  export const ${title} = () => {\n`;
 
-export const generateAxiosFooter = () => '});\n';
+export const generateAxiosFooter = (operationIds: string[] = []) =>
+  `return {${operationIds.join(',')}}};\n`;
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,

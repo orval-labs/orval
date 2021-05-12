@@ -116,9 +116,10 @@ export const generateClientHeader = ({
 
 export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
+  operations: string[],
 ): GeneratorClientExtra => {
   return {
-    implementation: GENERATOR_CLIENT[outputClient].footer(),
+    implementation: GENERATOR_CLIENT[outputClient].footer(operations),
     implementationMSW: `]\n`,
   };
 };

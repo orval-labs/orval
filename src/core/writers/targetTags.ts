@@ -76,13 +76,14 @@ export const generateTargetForTags = (
   operations: GeneratorOperations,
   options?: OutputOptions,
 ) => {
+  const operationIds = Object.keys(operations);
   const allTargetTags = Object.values(operations)
     .map(addDefaultTagIfEmpty)
     .reduce((acc, operation, index, arr) => {
       const targetTags = generateTargetTags(acc, operation, options);
 
       if (index === arr.length - 1) {
-        const footer = generateClientFooter(options?.client);
+        const footer = generateClientFooter(options?.client, operationIds);
 
         return Object.entries(targetTags).reduce((acc, [tag, target]) => {
           return {
