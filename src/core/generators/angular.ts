@@ -5,7 +5,8 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { sanitize, toObjectString } from '../../utils/string';
+import { isObject } from '../../utils/is';
+import { sanitize, stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateMutatorConfig, generateOptions } from './options';
 
@@ -37,15 +38,17 @@ export const generateAngularTitle = (title: string) => {
 
 export const generateAngularHeader = ({
   title,
-  hasMutator,
-  globalMutator,
+  isRequestOptions,
+  isMutator,
+  isGlobalMutator,
 }: {
   title: string;
-  hasMutator: boolean;
-  globalMutator?: boolean;
+  isRequestOptions: boolean;
+  isMutator: boolean;
+  isGlobalMutator?: boolean;
 }) => `
 ${
-  !globalMutator
+  isRequestOptions && !isGlobalMutator
     ? `type HttpClientOptions = {
   headers?: HttpHeaders | {
       [header: string]: string | string[];
@@ -62,7 +65,7 @@ ${
 }
 
 ${
-  hasMutator
+  isRequestOptions && isMutator
     ? `type ThirdParameter<T extends (...args: any) => any> = T extends (
   config: any,
   httpClient: any,
@@ -90,9 +93,12 @@ const generateImplementation = (
     body,
     props,
     verb,
+    override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const isRequestOptions = override?.requestOptions !== false;
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -102,18 +108,26 @@ const generateImplementation = (
       verb,
     });
 
+    const requestOptions = isRequestOptions
+      ? isObject(override?.requestOptions)
+        ? ` // eslint-disable-next-line\n// @ts-ignore\n {${stringify(
+            override?.requestOptions,
+          )?.slice(1, -1)} ...options}`
+        : '// eslint-disable-next-line\n// @ts-ignore\n options'
+      : '';
+
     return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n options?: ThirdParameter<typeof ${mutator.name}>) {
+    )}\n ${
+      isRequestOptions ? `options?: ThirdParameter<typeof ${mutator.name}>` : ''
+    }) {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
     } : Data>(
       ${mutatorConfig},
       this.http,
-      // eslint-disable-next-line
-      // @ts-ignore
-      options);
+      ${requestOptions});
     }
   `;
   }
@@ -124,12 +138,15 @@ const generateImplementation = (
     queryParams,
     response,
     verb,
+    requestOptions: override?.requestOptions,
   });
 
   return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} options?: HttpClientOptions\n  ) {${body.formData}
+  )} ${isRequestOptions ? `options?: HttpClientOptions\n` : ''}  ) {${
+    body.formData
+  }
     return this.http.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});

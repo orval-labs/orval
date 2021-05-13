@@ -1,5 +1,5 @@
 import omitBy from 'lodash.omitby';
-import { OperationOptions, Verbs } from '../../types';
+import { Verbs } from '../../types';
 import {
   GeneratorMutator,
   GeneratorOptions,
@@ -7,7 +7,7 @@ import {
 } from '../../types/generator';
 import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
 import { camel, pascal } from '../../utils/case';
-import { mergeDeep } from '../../utils/mergeDeep';
+import { isObject } from '../../utils/is';
 import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateMutatorConfig, generateOptions } from './options';
@@ -46,9 +46,12 @@ const generateAxiosFunction = (
     body,
     props,
     verb,
+    override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const isRequestOptions = override?.requestOptions !== false;
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -58,17 +61,27 @@ const generateAxiosFunction = (
       verb,
     });
 
+    const requestOptions = isRequestOptions
+      ? isObject(override?.requestOptions)
+        ? ` // eslint-disable-next-line\n// @ts-ignore\n {${stringify(
+            override?.requestOptions,
+          )?.slice(1, -1)} ...options}`
+        : '// eslint-disable-next-line\n// @ts-ignore\n options'
+      : '';
+
     return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n options?: SecondParameter<typeof ${mutator.name}>) => {
+    )}\n ${
+      isRequestOptions
+        ? `options?: SecondParameter<typeof ${mutator.name}>`
+        : ''
+    }) => {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
     } : Data>(
       ${mutatorConfig},
-      // eslint-disable-next-line
-      // @ts-ignore
-      options);
+      ${requestOptions});
     }
   `;
   }
@@ -79,12 +92,15 @@ const generateAxiosFunction = (
     queryParams,
     response,
     verb,
+    requestOptions: override?.requestOptions,
   });
 
   return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} options?: AxiosRequestConfig\n  ) => {${body.formData}
+  )} ${isRequestOptions ? `options?: AxiosRequestConfig\n` : ''} ) => {${
+    body.formData
+  }
     return axios.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});
@@ -101,8 +117,86 @@ const QueryType = {
 
 const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
 
+const generateQueryOptions = ({
+  params,
+  options,
+  type,
+}: {
+  params: GetterParams;
+  options?: object | boolean;
+  type: QueryType;
+}) => {
+  if (options === false) {
+    return '';
+  }
+
+  const queryConfig = isObject(options)
+    ? ` ${stringify(
+        omitBy(options, (_, key) => {
+          if (
+            type !== QueryType.INFINITE &&
+            INFINITE_QUERY_PROPERTIES.includes(key)
+          ) {
+            return true;
+          }
+          return false;
+        }),
+      )?.slice(1, -1)}`
+    : '';
+
+  if (!params.length) {
+    if (options) {
+      return `{${queryConfig} ...queryOptions}`;
+    }
+
+    return 'queryOptions';
+  }
+
+  if (options) {
+    return `{${
+      !isObject(options) || !options.hasOwnProperty('enabled')
+        ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
+        : ''
+    }${queryConfig} ...queryOptions}`;
+  }
+
+  return 'queryOptions';
+};
+
+const generateSvelteQueryArguments = ({
+  operationName,
+  definitions,
+  mutator,
+  isRequestOptions,
+  type,
+}: {
+  operationName: string;
+  definitions: string;
+  mutator?: GeneratorMutator;
+  isRequestOptions: boolean;
+  type?: QueryType;
+}) => {
+  const definition = type
+    ? `Use${pascal(
+        type,
+      )}Options<AsyncReturnType<typeof ${operationName}>, Error>`
+    : `UseMutationOptions<AsyncReturnType<typeof ${operationName}>, Error${
+        definitions ? `, {${definitions}}` : ''
+      }, unknown>`;
+
+  if (!isRequestOptions) {
+    return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
+  }
+
+  return `options?: { ${type ? 'query' : 'mutation'}?:${definition}, ${
+    !mutator
+      ? `axios?: AxiosRequestConfig`
+      : `request?: SecondParameter<typeof ${mutator.name}>`
+  }}\n`;
+};
+
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, config, type },
+  queryOption: { name, queryParam, options, type },
   operationName,
   queryProps,
   queryKeyFnName,
@@ -110,13 +204,15 @@ const generateQueryImplementation = ({
   params,
   props,
   mutator,
+  isRequestOptions,
 }: {
   queryOption: {
     name: string;
-    config?: object;
+    options?: object | boolean;
     type: QueryType;
     queryParam?: string;
   };
+  isRequestOptions: boolean;
   operationName: string;
   queryProps: string;
   queryKeyFnName: string;
@@ -137,17 +233,21 @@ const generateQueryImplementation = ({
 export const ${camel(`use-${name}`)} = <
   Data extends unknown = unknown,
   Error extends unknown = unknown
->(\n ${queryProps}\n options?: { query?: Use${pascal(
+>(\n ${queryProps} ${generateSvelteQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
     type,
-  )}Options<AsyncReturnType<typeof ${operationName}>, Error>${
-    !mutator
-      ? `, axios?: AxiosRequestConfig`
-      : `, request?: SecondParameter<typeof ${mutator.name}>`
-  }}\n  ) => {
+  })}\n  ) => {
   const queryKey = ${queryKeyFnName}(${properties});
-  const {query: queryOptions${
-    !mutator ? `, axios: axiosOptions` : ', request: requestOptions'
-  }} = options || {}
+  ${
+    isRequestOptions
+      ? `const {query: queryOptions${
+          !mutator ? `, axios: axiosOptions` : ', request: requestOptions'
+        }} = options || {}`
+      : ''
+  }
 
   const query = ${camel(
     `use-${type}`,
@@ -157,29 +257,13 @@ export const ${camel(`use-${name}`)} = <
       : ''
   }) => ${operationName}<Data>(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
-  }${!mutator ? `axiosOptions` : 'requestOptions'}), ${
-    params.length
-      ? `{${
-          !config?.hasOwnProperty('enabled')
-            ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
-            : ''
-        }${
-          config
-            ? ` ${stringify(
-                omitBy(config, (_, key) => {
-                  if (
-                    type !== QueryType.INFINITE &&
-                    INFINITE_QUERY_PROPERTIES.includes(key)
-                  ) {
-                    return true;
-                  }
-                  return false;
-                }),
-              )?.slice(1, -1)}`
-            : ''
-        } ...queryOptions}`
-      : 'queryOptions'
-  } )
+  }${
+    isRequestOptions ? (!mutator ? `axiosOptions` : 'requestOptions') : ''
+  }), ${generateQueryOptions({
+    params,
+    options,
+    type,
+  })} )
 
   return {
     queryKey,
@@ -196,34 +280,25 @@ const generateSvelteQueryImplementation = (
     props,
     verb,
     params,
-    operationId,
-    tags,
+    override,
     mutator,
   }: GeneratorVerbOptions,
-  { route, override = {} }: GeneratorOptions,
+  { route }: GeneratorOptions,
 ) => {
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
-  if (verb === Verbs.GET) {
-    const overrideOperation = override.operations?.[operationId!];
-    const overrideTag = Object.entries(
-      override.tags || {},
-    ).reduce<OperationOptions>(
-      (acc, [tag, options]) =>
-        tags.includes(tag) ? mergeDeep(acc, options) : acc,
-      {},
-    );
-    const query =
-      overrideOperation?.query || overrideTag?.query || override.query;
+  const query = override?.query;
+  const isRequestOptions = override?.requestOptions !== false;
 
+  if (verb === Verbs.GET) {
     const queries = [
       ...(query?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
-              config: query?.config,
+              options: query?.options,
               type: QueryType.INFINITE,
               queryParam: query?.useInfiniteQueryParam,
             },
@@ -233,7 +308,7 @@ const generateSvelteQueryImplementation = (
         ? [
             {
               name: operationName,
-              config: query?.config,
+              options: query?.options,
               type: QueryType.QUERY,
             },
           ]
@@ -247,22 +322,23 @@ const generateSvelteQueryImplementation = (
       queryParams ? ', ...(params ? [params]: [])' : ''
     }]
 
-    ${queries.reduce(
-      (acc, queryOption) =>
-        acc +
-        generateQueryImplementation({
-          queryOption,
-          operationName,
-          queryProps,
-          queryKeyFnName,
-          properties,
-          params,
-          props,
-          mutator,
-        }),
-      '',
-    )}
-`;
+      ${queries.reduce(
+        (acc, queryOption) =>
+          acc +
+          generateQueryImplementation({
+            queryOption,
+            operationName,
+            queryProps,
+            queryKeyFnName,
+            properties,
+            params,
+            props,
+            mutator,
+            isRequestOptions,
+          }),
+        '',
+      )}
+  `;
   }
 
   const definitions = props
@@ -272,52 +348,59 @@ const generateSvelteQueryImplementation = (
     .join(';');
 
   return `
-export const ${camel(`use-${operationName}`)} = <
-  Data extends unknown = unknown,
-  Error extends unknown = unknown
->(\n     options?: { mutation?: UseMutationOptions<AsyncReturnType<typeof ${operationName}>, Error${
-    definitions ? `, {${definitions}}` : ''
-  }, unknown>${
-    !mutator
-      ? `, axios?: AxiosRequestConfig`
-      : `, request?: SecondParameter<typeof ${mutator.name}>`
-  }}\n  ) => {
-  const {mutation: mutationOptions${
-    !mutator ? `, axios: axiosOptions` : ', request: requestOptions'
-  }} = options || {}
+      export const ${camel(`use-${operationName}`)} = <
+        Data extends unknown = unknown,
+        Error extends unknown = unknown
+      >(${generateSvelteQueryArguments({
+        operationName,
+        definitions,
+        mutator,
+        isRequestOptions,
+      })}) => {
+        ${
+          isRequestOptions
+            ? `const {mutation: mutationOptions${
+                !mutator ? `, axios: axiosOptions` : ', request: requestOptions'
+              }} = options || {}`
+            : ''
+        }
 
-  return useMutation<AsyncReturnType<typeof ${operationName}>, Error${
+        return useMutation<AsyncReturnType<typeof ${operationName}>, Error${
     definitions ? `, {${definitions}}` : ''
   }>((${properties ? 'props' : ''}) => {
-    ${properties ? `const {${properties}} = props || {}` : ''};
+          ${properties ? `const {${properties}} = props || {}` : ''};
 
-    return  ${operationName}<Data>(${properties}${properties ? ',' : ''}${
-    !mutator ? `axiosOptions` : 'requestOptions'
+          return  ${operationName}<Data>(${properties}${properties ? ',' : ''}${
+    isRequestOptions ? (!mutator ? `axiosOptions` : 'requestOptions') : ''
   })
-  }, mutationOptions)
-}
-`;
+        }, mutationOptions)
+      }
+      `;
 };
 
 export const generateSvelteQueryTitle = () => '';
 
 export const generateSvelteQueryHeader = ({
-  hasMutator,
+  isRequestOptions,
+  isMutator,
 }: {
-  hasMutator: boolean;
+  isRequestOptions: boolean;
+  isMutator: boolean;
 }) => `type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
-${
-  hasMutator
-    ? `type SecondParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  args: infer P,
-) => any
-  ? P
-  : never;\n\n`
-    : ''
-}`;
+  T extends (...args: any) => Promise<any>
+  > = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
+  ${
+    isRequestOptions && isMutator
+      ? `type SecondParameter<T extends (...args: any) => any> = T extends (
+    config: any,
+    args: infer P,
+  ) => any
+    ? P extends unknown
+    ? Record<string, any>
+    : P
+    : never;\n\n`
+      : ''
+  }`;
 
 export const generateSvelteQueryFooter = () => '';
 

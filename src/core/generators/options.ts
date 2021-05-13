@@ -6,6 +6,8 @@ import {
   GetterQueryParam,
   GetterResponse,
 } from '../../types/getters';
+import { isObject } from '../../utils/is';
+import { stringify } from '../../utils/string';
 
 export const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
@@ -19,12 +21,14 @@ export const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
   return `\n      ${body.implementation || 'undefined'},`;
 };
 
-export const generateQueryParamsOptions = (
+export const generateAxiosOptions = (
   response: GetterResponse,
   queryParams?: GeneratorSchema,
+  requestOptions?: object | boolean,
 ) => {
+  const isRequestOptions = requestOptions !== false;
   if (!queryParams && !response.isBlob) {
-    return 'options';
+    return isRequestOptions ? 'options' : '';
   }
 
   let value = '\n      {';
@@ -33,11 +37,23 @@ export const generateQueryParamsOptions = (
     value += '\n        params,';
   }
 
-  if (response.isBlob) {
+  if (
+    response.isBlob &&
+    (!isObject(requestOptions) ||
+      !requestOptions.hasOwnProperty('responseType'))
+  ) {
     value += `\n        responseType: 'blob',`;
   }
 
-  value += '\n    ...options  },';
+  if (isObject(requestOptions)) {
+    value += `\n ${stringify(requestOptions)?.slice(1, -1)}`;
+  }
+
+  if (isRequestOptions) {
+    value += '\n    ...options';
+  }
+
+  value += ' },';
 
   return value;
 };
@@ -48,17 +64,23 @@ export const generateOptions = ({
   queryParams,
   response,
   verb,
+  requestOptions,
 }: {
   route: string;
   body: GetterBody;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
   verb: Verbs;
+  requestOptions?: object | boolean;
 }) => {
   return `\n      \`${route}\`,${generateBodyOptions(
     body,
     verb,
-  )}${generateQueryParamsOptions(response, queryParams?.schema)}\n    `;
+  )}${generateAxiosOptions(
+    response,
+    queryParams?.schema,
+    requestOptions,
+  )}\n    `;
 };
 
 export const generateBodyMutatorConfig = (body: GetterBody, verb: Verbs) => {

@@ -23,8 +23,9 @@ export const generateTarget = (
       if (!index) {
         const header = generateClientHeader({
           outputClient: options?.client,
-          hasMutator: !!operation.mutator,
-          globalMutator: !!options?.override?.mutator,
+          isRequestOptions: options?.override?.requestOptions !== false,
+          isMutator: !!operation.mutator,
+          isGlobalMutator: !!options?.override?.mutator,
           title: pascal(info.title),
           customTitleFunc: options?.override?.title,
         });

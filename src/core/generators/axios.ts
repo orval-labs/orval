@@ -5,7 +5,8 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { sanitize, toObjectString } from '../../utils/string';
+import { isObject } from '../../utils/is';
+import { sanitize, stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateMutatorConfig, generateOptions } from './options';
 
@@ -30,9 +31,12 @@ const generateAxiosImplementation = (
     body,
     props,
     verb,
+    override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
+  const isRequestOptions = override?.requestOptions !== false;
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -42,17 +46,27 @@ const generateAxiosImplementation = (
       verb,
     });
 
+    const requestOptions = isRequestOptions
+      ? isObject(override?.requestOptions)
+        ? ` // eslint-disable-next-line\n// @ts-ignore\n {${stringify(
+            override?.requestOptions,
+          )?.slice(1, -1)} ...options}`
+        : '// eslint-disable-next-line\n// @ts-ignore\n options'
+      : '';
+
     return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
-    )}\n options?: SecondParameter<typeof ${mutator.name}>) => {
+    )}\n ${
+      isRequestOptions
+        ? `options?: SecondParameter<typeof ${mutator.name}>`
+        : ''
+    }) => {
       return ${mutator.name}<Data extends unknown ? ${
       response.definition
     } : Data>(
       ${mutatorConfig},
-      // eslint-disable-next-line
-      // @ts-ignore
-      options);
+      ${requestOptions});
     }
   `;
   }
@@ -63,12 +77,15 @@ const generateAxiosImplementation = (
     queryParams,
     response,
     verb,
+    requestOptions: override?.requestOptions,
   });
 
   return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
     props,
     'implementation',
-  )} options?: AxiosRequestConfig\n  ) => {${body.formData}
+  )} ${isRequestOptions ? `options?: AxiosRequestConfig\n` : ''} ) => {${
+    body.formData
+  }
     return axios.${verb}<Data extends unknown ? ${
     response.definition
   } : Data>(${options});
@@ -83,14 +100,16 @@ export const generateAxiosTitle = (title: string) => {
 
 export const generateAxiosHeader = ({
   title,
-  hasMutator,
+  isRequestOptions,
+  isMutator,
   noFunction,
 }: {
   title: string;
-  hasMutator: boolean;
+  isRequestOptions: boolean;
+  isMutator: boolean;
   noFunction?: boolean;
 }) => `${
-  hasMutator
+  isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,

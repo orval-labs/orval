@@ -69,13 +69,13 @@ export type GeneratorVerbOptions = {
   tags: string[];
   operationId: string;
   operationName: string;
-  overrideOperation: OperationOptions | undefined;
   response: GetterResponse;
   body: GetterBody;
   queryParams?: GetterQueryParam;
   params: GetterParams;
   props: GetterProps;
   mutator?: GeneratorMutator;
+  override?: OperationOptions | undefined;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];

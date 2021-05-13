@@ -61,8 +61,11 @@ const GENERATOR_CLIENT = {
       };
     },
     msw: generateMSW,
-    header: (options: { title: string; hasMutator: boolean }) =>
-      generateAxiosHeader({ ...options, noFunction: true }),
+    header: (options: {
+      title: string;
+      isMutator: boolean;
+      isRequestOptions: boolean;
+    }) => generateAxiosHeader({ ...options, noFunction: true }),
     dependencies: getAxiosDependencies,
     footer: () => '',
     title: generateAxiosTitle,
@@ -109,14 +112,16 @@ export const generateClientImports = (
 
 export const generateClientHeader = ({
   outputClient = DEFAULT_CLIENT,
-  hasMutator,
+  isRequestOptions,
   title,
   customTitleFunc,
-  globalMutator,
+  isGlobalMutator,
+  isMutator,
 }: {
   outputClient?: OutputClient;
-  hasMutator: boolean;
-  globalMutator: boolean;
+  isRequestOptions: boolean;
+  isMutator: boolean;
+  isGlobalMutator: boolean;
   title: string;
   customTitleFunc?: (title: string) => string;
 }): GeneratorClientExtra => {
@@ -124,8 +129,9 @@ export const generateClientHeader = ({
   return {
     implementation: GENERATOR_CLIENT[outputClient].header({
       title: titles.implementation,
-      hasMutator,
-      globalMutator,
+      isRequestOptions,
+      isGlobalMutator,
+      isMutator,
     }),
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };

@@ -64,6 +64,8 @@ const generateVerbOptions = async ({
     {},
   );
 
+  const override = { ...output.override, ...overrideTag, ...overrideOperation };
+
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
   const operationName = overrideOperationName
@@ -96,10 +98,7 @@ const generateVerbOptions = async ({
   const mutator = generateMutator({
     output: output.target,
     name: operationName,
-    mutator:
-      overrideOperation?.mutator ||
-      overrideTag?.mutator ||
-      output.override?.mutator,
+    mutator: override?.mutator,
   });
 
   const verbOption = {
@@ -108,19 +107,17 @@ const generateVerbOptions = async ({
     summary: operation.summary,
     operationId: operationId!,
     operationName,
-    overrideOperation,
     response,
     body,
     queryParams,
     params,
     props,
     mutator,
+    override,
   };
 
   const transformer = await dynamicImport(
-    overrideOperation?.transformer ||
-      overrideTag?.transformer ||
-      output.override?.transformer,
+    override?.transformer,
     context.workspace,
   );
 

@@ -94,13 +94,14 @@ export type OverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
+  requestOptions?: object | boolean;
 };
 
 type QueryOptions = {
   useQuery?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
-  config?: object;
+  options?: object;
 };
 
 type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
@@ -124,6 +125,7 @@ export type OperationOptions = {
     route: string,
     verb: Verbs,
   ) => string;
+  requestOptions?: object | boolean;
 };
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete' | 'head';
