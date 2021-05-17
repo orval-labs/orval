@@ -80,6 +80,7 @@
     "chalk": "^4.1.0",
     "commander": "^7.2.0",
     "cuid": "^2.1.8",
+    "esbuild": "^0.11.20",
     "fs-extra": "^9.1.0",
     "ibm-openapi-validator": "^0.40.1",
     "inquirer": "^8.0.0",

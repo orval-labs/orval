@@ -26,7 +26,11 @@ const generateInputSpecs = async ({
   return asyncReduce(
     Object.entries(specs),
     async (acc, [key, value]) => {
-      const schema = await swaggerConverter(value, input?.converterOptions);
+      const schema = await swaggerConverter(
+        value,
+        input?.converterOptions,
+        key,
+      );
       const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
 
       if (input?.validation) {
@@ -70,7 +74,6 @@ export const importOpenApi = async ({
         { specKey, workspace, specs },
         'Body',
       );
-
       return {
         ...acc,
         [specKey]: [

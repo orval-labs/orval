@@ -1,5 +1,6 @@
-import { pathExists } from 'fs-extra';
-import { dirname, resolve } from 'upath';
+import { transformSync } from 'esbuild';
+import { pathExists, readFile, unlink, writeFile } from 'fs-extra';
+import { dirname, resolve, trimExt } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
 import { ExternalConfigFile, Options } from './types';
@@ -29,7 +30,16 @@ export const generateConfig = async (
     catchError('orval config not found');
   }
 
-  const config = await dynamicImport<ExternalConfigFile>(fullPath);
+  const { code } = await readFile(fullPath).then((value) =>
+    transformSync(value.toString('utf8'), { format: 'cjs' }),
+  );
+  const tempFilePath = trimExt(fullPath) + '-tmp.js';
+
+  await writeFile(tempFilePath, code);
+
+  const config = await dynamicImport<ExternalConfigFile>(tempFilePath);
+
+  await unlink(tempFilePath);
 
   const workspace = dirname(fullPath);
 

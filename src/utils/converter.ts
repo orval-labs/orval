@@ -1,18 +1,19 @@
 import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 
-export const swaggerConverter = (
+export const swaggerConverter = async (
   schema: any,
   options: swagger2openapi.Options = {},
+  ref: string,
 ): Promise<OpenAPIObject> => {
   try {
-    return new Promise((resolve, reject) => {
+    return await new Promise((resolve, reject) => {
       if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-        swagger2openapi.convertObj(schema, options, (err, { openapi }) => {
+        swagger2openapi.convertObj(schema, options, (err, spec) => {
           if (err) {
             reject(err);
           } else {
-            resolve(openapi);
+            resolve(spec.openapi);
           }
         });
       } else {
@@ -20,6 +21,6 @@ export const swaggerConverter = (
       }
     });
   } catch (e) {
-    throw `Oups... 🍻. Parsing Error: ${e}`;
+    throw `Oups... 🍻.\nPath: ${ref}\nParsing Error: ${e}`;
   }
 };
