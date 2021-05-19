@@ -153,15 +153,11 @@ const generateQueryOptions = ({
     return 'queryOptions';
   }
 
-  if (options) {
-    return `{${
-      !isObject(options) || !options.hasOwnProperty('enabled')
-        ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
-        : ''
-    }${queryConfig} ...queryOptions}`;
-  }
-
-  return 'queryOptions';
+  return `{${
+    !isObject(options) || !options.hasOwnProperty('enabled')
+      ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
+      : ''
+  }${queryConfig} ...queryOptions}`;
 };
 
 const generateReactQueryArguments = ({
