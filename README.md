@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
+  <img src="./logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
 </p>
 <h1 align="center">
   Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!

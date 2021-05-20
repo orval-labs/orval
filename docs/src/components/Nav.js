@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import * as React from 'react';
 import { siteConfig } from 'siteConfig';
-import logoSrc from '../images/orval-logo-horizontal.png';
+import logoSrc from '../images/orval-logo-horizontal.svg';
 import { Search } from './Search';
 
 export const Nav = () => (

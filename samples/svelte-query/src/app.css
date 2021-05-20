@@ -8,7 +8,6 @@ body {
 		'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	background-color: #282c34;
 }
 
 .App {
@@ -22,5 +21,9 @@ body {
 	align-items: center;
 	justify-content: center;
 	font-size: calc(10px + 2vmin);
-	color: white;
+	color: black;
+}
+
+.App-logo {
+	width: 100%;
 }

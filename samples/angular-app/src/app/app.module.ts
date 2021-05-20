@@ -1,19 +1,14 @@
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
+import { PetsService } from '../api/endpoints/pets/pets.service';
 import { environment } from '../environments/environment';
-import { PetsModule } from '../api/endpoints/pets/pets.module';
 import { AppComponent } from './app.component';
 
 @NgModule({
   declarations: [AppComponent],
-  imports: [
-    BrowserModule,
-    PetsModule,
-    HttpClientModule,
-    ...environment.modules,
-  ],
-  providers: [],
+  imports: [BrowserModule, HttpClientModule, ...environment.modules],
+  providers: [PetsService],
   bootstrap: [AppComponent],
 })
 export class AppModule {}
