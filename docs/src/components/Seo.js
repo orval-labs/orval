@@ -2,7 +2,7 @@ import Head from 'next/head';
 import { withRouter } from 'next/router';
 import React from 'react';
 
-const ogImage = require('images/orval-logo-horizontal.svg?url');
+const ogImage = require('images/og-image.png?url');
 const favicon = require('images/favicon.svg?url');
 
 export const Seo = withRouter(
