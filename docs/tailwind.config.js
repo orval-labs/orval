@@ -15,16 +15,12 @@ module.exports = {
     },
   },
   theme: {
-    backgroundColor: (theme) => ({
-      ...theme('colors'),
-      highlight: '#5e5a6f',
-    }),
     extend: {
       colors: {
         coral: {
-          light: '#5e5a6f',
-          default: '#9c7344',
-          dark: '#5e5a6f',
+          light: '#F79D53',
+          default: '#6F40C9',
+          dark: '#F79D53',
         },
       },
     },

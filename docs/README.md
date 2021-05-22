@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../logo/orval-logo-horizontal.png?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
+  <img src="../logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
 </p>
 
 This is source code to orval.dev. It is forked from the [Formik](https://formik.org) docs and is built with:
