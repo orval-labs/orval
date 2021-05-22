@@ -36,6 +36,11 @@
           "editUrl": "/guides/react-query.md"
         },
         {
+          "title": "Svelte query",
+          "path": "/guides/svelte-query",
+          "editUrl": "/guides/svelte-query.md"
+        },
+        {
           "title": "Angular",
           "path": "/guides/angular",
           "editUrl": "/guides/angular.md"
@@ -48,8 +53,28 @@
       "routes": [
         {
           "title": "Configuration",
-          "path": "/reference/configuration",
-          "editUrl": "/reference/configuration.md"
+          "routes": [
+            {
+              "title": "Overview",
+              "path": "/reference/configuration/overview",
+              "editUrl": "/reference/configuration/overview.md"
+            },
+            {
+              "title": "Input",
+              "path": "/reference/configuration/input",
+              "editUrl": "/reference/configuration/input.md"
+            },
+            {
+              "title": "Output",
+              "path": "/reference/configuration/output",
+              "editUrl": "/reference/configuration/output.md"
+            },
+            {
+              "title": "Full example",
+              "path": "/reference/configuration/full-example",
+              "editUrl": "/reference/configuration/full-example.md"
+            }
+          ]
         },
         {
           "title": "CLI",
@@ -60,6 +85,16 @@
           "title": "Integration",
           "path": "/reference/integration",
           "editUrl": "/reference/integration.md"
+        }
+      ]
+    },
+    {
+      "title": "Versions",
+      "heading": true,
+      "routes": [
+        {
+          "title": "v4",
+          "href": "https://v4.orval.dev/"
         }
       ]
     }

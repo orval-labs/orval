@@ -137,7 +137,7 @@ function getCategoryPath(routes) {
 function SidebarRoutes({ isMobile, routes: currentRoutes, level = 1 }) {
   const { asPath } = useRouter();
   let { slug, tag } = getSlugAndTag(asPath);
-  return currentRoutes.map(({ path, title, routes, heading, open }) => {
+  return currentRoutes.map(({ path, href, title, routes, heading, open }) => {
     if (routes) {
       const pathname = getCategoryPath(routes);
       const selected = slug.startsWith(pathname);
@@ -173,7 +173,7 @@ function SidebarRoutes({ isMobile, routes: currentRoutes, level = 1 }) {
       );
     }
 
-    const pagePath = removeFromLast(path, '.');
+    const pagePath = path ? removeFromLast(path, '.') : href;
     const pathname = addTagToSlug(pagePath, tag);
     const selected = slug === pagePath;
     const route = {

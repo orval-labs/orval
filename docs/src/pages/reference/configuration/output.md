@@ -1,110 +1,7 @@
 ---
-id: configuration
-title: Configuration
+id: configuration-output
+title: Output
 ---
-
-This page is a reference to the different ways of configuring your orval projects.
-
-Using an orval-config.js configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the orval generated files.
-
-Configuration options for the following are described on this page:
-
-<div>
-<table className="table-auto">
-  <thead>
-    <tr>
-      <th className="px-4 py-2">Category</th>
-      <th className="px-4 py-2">Description</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr>
-      <td className="border px-4 py-2">Input</td>
-      <td className="border px-4 py-2">Directly the path to the specification or the configuration of the imported specification and also what you want to override on it.
-      </td>
-    </tr>
-    <tr className="bg-gray-100">
-      <td className="border px-4 py-2">Output</td>
-      <td className="border px-4 py-2">Directly the path to where you want to generate your models and HTTP calls or the configuration of what and where you want to write the generated code.</td>
-    </tr>
-  </tbody>
-</table>
-</div>
-
-#### orval.config.js
-
-```js
-module.exports = {
-  petstore: {
-    input: './petstore.yaml',
-    output: './petstore.ts',
-  },
-};
-```
-
-## Input
-
-### target
-
-Type: `String`.
-
-Valid values: path or link to the specification.
-
-```js
-module.exports = {
-  petstore: {
-    input: {
-      target: './petstore.yaml',
-    },
-  },
-};
-```
-
-### validation
-
-Type: `Boolean`.
-
-Default Value: `false`.
-
-To enforce the best quality as possible of specification, we have integrated the amazing <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>. We strongly encourage you to setup your custom rules with a `.validaterc` file, you can find all useful information about this configuration <a href="https://github.com/IBM/openapi-validator/#configuration" target="_blank">here</a>.
-
-```js
-module.exports = {
-  petstore: {
-    input: {
-      validation: true,
-    },
-  },
-};
-```
-
-### override
-
-Type: `Object`.
-
-Give you the possibility to override the specification
-
-#### transformer
-
-Type: `String` or `Function`.
-
-Valid values: path or implementation of the transformer function.
-
-This function is executed when you generate and take in argument an <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/OpenApi.ts#L18" target="_blank">OpenAPIObject</a> and should return an <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/OpenApi.ts#L18" target="_blank">OpenAPIObject</a>.
-
-```js
-module.exports = {
-  input: {
-    override: {
-      transformer: 'src/api/transformer/add-version.js',
-    },
-  },
-};
-```
-
-Example of transformer <a href="https://github.com/anymaniax/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
-
-## Output
 
 ### target
 
@@ -126,7 +23,7 @@ module.exports = {
 
 Type: `String`.
 
-Valid values: `axios`, `angular`, `react-query`.
+Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`.
 
 Default Value: `axios`.
 
@@ -341,9 +238,11 @@ This function is executed for each call when you generate and take in argument a
 
 ```js
 module.exports = {
-  input: {
-    override: {
-      transformer: 'src/yourfunction.js',
+  petstore: {
+    output: {
+      override: {
+        transformer: 'src/yourfunction.js',
+      },
     },
   },
 };
@@ -380,12 +279,14 @@ Example:
 
 ```js
 module.exports = {
-  input: {
-    override: {
-      mutator: {
-        path: './api/mutator/custom-instance.ts',
-        name: 'customInstance',
-        // default: true
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+          // default: true
+        },
       },
     },
   },
@@ -430,7 +331,7 @@ module.exports = {
           useQuery: true,
           useInfinite: true,
           useInfiniteQueryParam: 'nextId',
-          config: {
+          options: {
             staleTime: 10000,
           },
         },
@@ -441,25 +342,25 @@ module.exports = {
 };
 ```
 
-#### useQuery
+##### useQuery
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
 
-#### useInfinite
+##### useInfinite
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://react-query.tanstack.com/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
 
-#### useInfiniteQueryParam
+##### useInfiniteQueryParam
 
 Type: `String`.
 
 Use to automatically add to the request the query param provided by the useInfiniteQuery when you use `getFetchMore` function.
 
-#### config
+##### options
 
 Type: `Object`.
 
@@ -479,12 +380,14 @@ You can use this to override the generated mock per property. Properties can tak
 
 ```js
 module.exports = {
-  input: {
-    override: {
-      mock: {
-        properties: {
-          '/tag|name/': 'jon',
-          email: () => faker.internet.email(),
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          properties: {
+            '/tag|name/': 'jon',
+            email: () => faker.internet.email(),
+          },
         },
       },
     },
@@ -500,12 +403,14 @@ Give you the possibility to put a value for a `format`. In your specification, i
 
 ```js
 module.exports = {
-  input: {
-    override: {
-      mock: {
-        format: {
-          email: () => faker.internet.email(),
-          iban: () => faker.finance.iban(),
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          format: {
+            email: () => faker.internet.email(),
+            iban: () => faker.finance.iban(),
+          },
         },
       },
     },
@@ -533,57 +438,12 @@ The mock options have one more possibility the data property. Which can take a f
 
 ```js
 module.exports = {
-  input: {
-    override: {
-      operations: {
-        listPets: {
-          transformer: 'src/yourfunction.js',
-          mutator: 'src/response-type.js',
-          mock: {
-            properties: () => {
-              return {
-                id: () => faker.random.number({ min: 1, max: 99999 }),
-              };
-            },
-          },
-        },
-        showPetById: {
-          mock: {
-            data: () => ({
-              id: faker.random.number({ min: 1, max: 99 }),
-              name: faker.name.firstName(),
-              tag: faker.helpers.randomize([faker.random.word(), undefined]),
-            }),
-          },
-        },
-      },
-    },
-  },
-};
-```
-
-#### tags
-
-Type: `Object`.
-
-Exactly the same as the `override.operations` but this time you can do it by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
-
-## Full example
-
-```js
-const faker = require('faker');
-
-module.exports = {
   petstore: {
     output: {
-      mode: 'split',
-      target: 'src/petstore.ts',
-      schemas: 'src/model',
-      client: 'react-query',
-      mock: true,
       override: {
         operations: {
           listPets: {
+            transformer: 'src/yourfunction.js',
             mutator: 'src/response-type.js',
             mock: {
               properties: () => {
@@ -603,19 +463,30 @@ module.exports = {
             },
           },
         },
-        mock: {
-          properties: {
-            '/tag|name/': () => faker.name.lastName(),
-          },
-        },
-      },
-    },
-    input: {
-      target: './petstore.yaml',
-      override: {
-        transformer: 'src/add-version.js',
       },
     },
   },
 };
 ```
+
+#### tags
+
+Type: `Object`.
+
+Exactly the same as the `override.operations` but this time you can do it by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
+
+#### operationName
+
+Type: `Function`.
+
+```ts
+(operation: OperationObject, route: string, verb: Verbs) => string;
+```
+
+Function to override the generate operation name.
+
+#### requestOptions
+
+Type: `Object | Boolean`.
+
+Use this property to provide a config to your http client or completly remove the request options property from the generated files.

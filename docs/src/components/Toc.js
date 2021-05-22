@@ -11,7 +11,8 @@ function getHeaderAnchors() {
       (el) =>
         el.parentNode.nodeName === 'H2' ||
         el.parentNode.nodeName === 'H3' ||
-        el.parentNode.nodeName === 'H4',
+        el.parentNode.nodeName === 'H4' ||
+        el.parentNode.nodeName === 'H5',
     ),
   ].filter(Boolean);
 }
@@ -50,7 +51,12 @@ export const Toc = ({ title }) => {
               className={cx('text-sm ', {
                 'pl-2': h?.depth === 3,
                 'pl-4': h?.depth === 4,
-                hidden: h.depth && h.depth > (active?.url === h.url ? 4 : 3),
+                'pl-6': h?.depth === 5,
+                hidden:
+                  h.depth &&
+                  h.depth > 3 &&
+                  active?.parent?.url !== h.parent?.url &&
+                  active?.url !== h.parent.url,
               })}
             >
               <a className={styles.contents__link} href={h.url}>

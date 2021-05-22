@@ -1,11 +1,11 @@
 ---
-id: react-query
-title: React query
+id: svelte-query
+title: Svelte query
 ---
 
-You should have an OpenApi specification and an orval config where you define the mode as react-query.
+You should have an OpenApi specification and an orval config where you define the mode as svelte-query.
 
-#### Example with react query
+#### Example with svelte query
 
 ```js
 module.exports = {
@@ -14,7 +14,7 @@ module.exports = {
       mode: 'tags-split',
       target: 'src/petstore.ts',
       schemas: 'src/model',
-      client: 'react-query',
+      client: 'svelte-query',
       mock: true,
     },
     input: {
@@ -26,9 +26,9 @@ module.exports = {
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The react query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
+The svelte query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
 
-Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
+Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/svelte-query/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
 export const showPetById = <Data = unknown>(
@@ -160,7 +160,7 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 
   // @ts-ignore
   promise.cancel = () => {
-    source.cancel('Query was cancelled by React Query');
+    source.cancel('Query was cancelled by Svelte Query');
   };
 
   return promise;
@@ -179,44 +179,3 @@ axios.interceptors.request.use((config) => {
   };
 });
 ```
-
-### How to add headers
-
-Like for the backend url you should use an interceptor to set your header automatically.
-
-You can use a context to add automatically an authorization for example.
-
-```ts
-const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
-  // it's a quick demo with useState but you can also have a more complexe state with a useReducer
-  const [token, setToken] = useState(initialState);
-
-  useEffect(() => {
-    const interceptorId = axios.interceptors.request.use((config) => {
-      return {
-        ...config,
-        headers: token
-          ? {
-              ...config.headers,
-              Authorization: `Bearer ${token}`,
-            }
-          : config.headers,
-      };
-    });
-
-    return () => {
-      axios.interceptors.request.eject(interceptorId);
-    };
-  }, [token]);
-
-  return (
-    <AuthContext.Provider value={token}>
-      <AuthDispatchContext.Provider value={setToken}>
-        {children}
-      </AuthDispatchContext.Provider>
-    </AuthContext.Provider>
-  );
-};
-```
-
-Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/src/auth.context.tsx" target="_blank">here</a> the full example
