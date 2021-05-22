@@ -21,6 +21,8 @@
     "angular",
     "react",
     "react-query",
+    "svelte",
+    "svelte-query",
     "msw",
     "mock",
     "axios"
