@@ -1,20 +1,31 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { OpenAPIObject, OperationObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
-import { GeneratorVerbOptions } from './generator';
+import {
+  ClientGeneratorsBuilder,
+  ClientMSWBuilder,
+  GeneratorClients,
+  GeneratorVerbOptions,
+} from './generator';
 
 export interface Options {
   output?: string | OutputOptions;
   input?: string | InputOptions;
 }
 
+export type OutputClientFunc = (
+  clients: GeneratorClients,
+) => ClientGeneratorsBuilder;
+
+
+
 export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean;
+  mock?: boolean | ClientMSWBuilder;
   override?: OverrideOutput;
-  client?: OutputClient;
+  client?: OutputClient | OutputClientFunc;
 };
 
 export type InputOptions = {

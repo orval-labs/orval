@@ -1,6 +1,7 @@
-import { OutputClient } from '../../types';
+import { OutputClient, OutputClientFunc } from '../../types';
 import {
   GeneratorClientExtra,
+  GeneratorClients,
   GeneratorImport,
   GeneratorOperations,
   GeneratorOptions,
@@ -9,6 +10,7 @@ import {
 } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
+import { isFunction } from '../../utils/is';
 import {
   generateAngular,
   generateAngularFooter,
@@ -36,10 +38,9 @@ import {
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
-const GENERATOR_CLIENT = {
+export const GENERATOR_CLIENT = {
   [OutputClient.AXIOS]: {
     client: generateAxios,
-    msw: generateMSW,
     header: generateAxiosHeader,
     dependencies: getAxiosDependencies,
     footer: generateAxiosFooter,
@@ -54,7 +55,6 @@ const GENERATOR_CLIENT = {
         imports,
       };
     },
-    msw: generateMSW,
     header: (options: {
       title: string;
       isMutator: boolean;
@@ -66,7 +66,6 @@ const GENERATOR_CLIENT = {
   },
   [OutputClient.ANGULAR]: {
     client: generateAngular,
-    msw: generateMSW,
     header: generateAngularHeader,
     dependencies: getAngularDependencies,
     footer: generateAngularFooter,
@@ -74,7 +73,6 @@ const GENERATOR_CLIENT = {
   },
   [OutputClient.REACT_QUERY]: {
     client: generateQuery,
-    msw: generateMSW,
     header: generateQueryHeader,
     dependencies: getReactQueryDependencies,
     footer: generateQueryFooter,
@@ -82,16 +80,17 @@ const GENERATOR_CLIENT = {
   },
   [OutputClient.SVELTE_QUERY]: {
     client: generateQuery,
-    msw: generateMSW,
     header: generateQueryHeader,
     dependencies: getSvelteQueryDependencies,
     footer: generateQueryFooter,
     title: generateQueryTitle,
   },
-};
+} as GeneratorClients;
 
-const getGeneratorClient = (outputClient: OutputClient) => {
-  const generator = GENERATOR_CLIENT[outputClient];
+const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
+  const generator = isFunction(outputClient)
+    ? outputClient(GENERATOR_CLIENT)
+    : GENERATOR_CLIENT[outputClient];
 
   if (!generator) {
     throw `Oups... 🍻. Client not found: ${outputClient}`;
@@ -174,27 +173,39 @@ export const generateClientTitle = (
     implementationMSW: `get${pascal(title)}MSW`,
   };
 };
+
+const generateMock = async (
+  verbOption: GeneratorVerbOptions,
+  options: GeneratorOptions,
+) => {
+  if (!options.mock) {
+    return {
+      implementation: {
+        function: '',
+        handler: '',
+      },
+      imports: [],
+    };
+  }
+
+  if (isFunction(options.mock)) {
+    return options.mock(verbOption, options);
+  }
+
+  return generateMSW(verbOption, options);
+};
+
 export const generateClient = (
-  outputClient: OutputClient = DEFAULT_CLIENT,
+  outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
 ): Promise<GeneratorOperations> => {
   return asyncReduce(
     verbsOptions,
     async (acc, verbOption) => {
-      const { client: generatorClient, msw: generatorMSW } = getGeneratorClient(
-        outputClient,
-      );
+      const { client: generatorClient } = getGeneratorClient(outputClient);
       const client = generatorClient(verbOption, options);
-      const msw = options.mock
-        ? await generatorMSW(verbOption, options)
-        : {
-            implementation: {
-              function: '',
-              handler: '',
-            },
-            imports: [],
-          };
+      const msw = await generateMock(verbOption, options);
 
       return {
         ...acc,
