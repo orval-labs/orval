@@ -38,15 +38,15 @@ import {
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
-export const GENERATOR_CLIENT = {
-  [OutputClient.AXIOS]: {
+export const GENERATOR_CLIENT: GeneratorClients = {
+  axios: {
     client: generateAxios,
     header: generateAxiosHeader,
     dependencies: getAxiosDependencies,
     footer: generateAxiosFooter,
     title: generateAxiosTitle,
   },
-  [OutputClient.AXIOS_FUNCTIONS]: {
+  'axios-functions': {
     client: (verbOptions: GeneratorVerbOptions, options: GeneratorOptions) => {
       const { implementation, imports } = generateAxios(verbOptions, options);
 
@@ -64,28 +64,28 @@ export const GENERATOR_CLIENT = {
     footer: () => '',
     title: generateAxiosTitle,
   },
-  [OutputClient.ANGULAR]: {
+  angular: {
     client: generateAngular,
     header: generateAngularHeader,
     dependencies: getAngularDependencies,
     footer: generateAngularFooter,
     title: generateAngularTitle,
   },
-  [OutputClient.REACT_QUERY]: {
+  'react-query': {
     client: generateQuery,
     header: generateQueryHeader,
     dependencies: getReactQueryDependencies,
     footer: generateQueryFooter,
     title: generateQueryTitle,
   },
-  [OutputClient.SVELTE_QUERY]: {
+  'svelte-query': {
     client: generateQuery,
     header: generateQueryHeader,
     dependencies: getSvelteQueryDependencies,
     footer: generateQueryFooter,
     title: generateQueryTitle,
   },
-} as GeneratorClients;
+};
 
 const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
   const generator = isFunction(outputClient)
