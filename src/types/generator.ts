@@ -133,7 +133,7 @@ export type ClientMSWBuilder = (
 export interface ClientGeneratorsBuilder {
   client: ClientBuilder,
   msw: ClientMSWBuilder,
-  header :ClientHeaderBuilder,
+  header: ClientHeaderBuilder,
   dependencies: ClientDependenciesBuilder,
   footer: ClientFooterBuilder,
   title: ClientTitleBuilder,
