@@ -26,19 +26,13 @@ import {
 import { generateDependencyImports } from './imports';
 import { generateMSW } from './msw';
 import {
-  generateReactQuery,
-  generateReactQueryFooter,
-  generateReactQueryHeader,
-  generateReactQueryTitle,
+  generateQuery,
+  generateQueryFooter,
+  generateQueryHeader,
+  generateQueryTitle,
   getReactQueryDependencies,
-} from './react-query';
-import {
-  generateSvelteQuery,
-  generateSvelteQueryFooter,
-  generateSvelteQueryHeader,
-  generateSvelteQueryTitle,
   getSvelteQueryDependencies,
-} from './svelte-query';
+} from './query';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -79,22 +73,33 @@ const GENERATOR_CLIENT = {
     title: generateAngularTitle,
   },
   [OutputClient.REACT_QUERY]: {
-    client: generateReactQuery,
+    client: generateQuery,
     msw: generateMSW,
-    header: generateReactQueryHeader,
+    header: generateQueryHeader,
     dependencies: getReactQueryDependencies,
-    footer: generateReactQueryFooter,
-    title: generateReactQueryTitle,
+    footer: generateQueryFooter,
+    title: generateQueryTitle,
   },
   [OutputClient.SVELTE_QUERY]: {
-    client: generateSvelteQuery,
+    client: generateQuery,
     msw: generateMSW,
-    header: generateSvelteQueryHeader,
+    header: generateQueryHeader,
     dependencies: getSvelteQueryDependencies,
-    footer: generateSvelteQueryFooter,
-    title: generateSvelteQueryTitle,
+    footer: generateQueryFooter,
+    title: generateQueryTitle,
   },
 };
+
+const getGeneratorClient = (outputClient: OutputClient) => {
+  const generator = GENERATOR_CLIENT[outputClient];
+
+  if (!generator) {
+    throw `Oups... 🍻. Client not found: ${outputClient}`;
+  }
+
+  return generator;
+};
+
 export const generateClientImports = (
   client = DEFAULT_CLIENT,
   implementation: string,
@@ -103,12 +108,14 @@ export const generateClientImports = (
     dependency: string;
   }[],
   specsName: Record<string, string>,
-): string =>
-  generateDependencyImports(
+): string => {
+  const { dependencies } = getGeneratorClient(client);
+  return generateDependencyImports(
     implementation,
-    [...GENERATOR_CLIENT[client].dependencies(), ...imports],
+    [...dependencies(), ...imports],
     specsName,
   );
+};
 
 export const generateClientHeader = ({
   outputClient = DEFAULT_CLIENT,
@@ -126,8 +133,9 @@ export const generateClientHeader = ({
   customTitleFunc?: (title: string) => string;
 }): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
+  const { header } = getGeneratorClient(outputClient);
   return {
-    implementation: GENERATOR_CLIENT[outputClient].header({
+    implementation: header({
       title: titles.implementation,
       isRequestOptions,
       isGlobalMutator,
@@ -141,8 +149,9 @@ export const generateClientFooter = (
   outputClient: OutputClient = DEFAULT_CLIENT,
   operations: string[],
 ): GeneratorClientExtra => {
+  const { footer } = getGeneratorClient(outputClient);
   return {
-    implementation: GENERATOR_CLIENT[outputClient].footer(operations),
+    implementation: footer(operations),
     implementationMSW: `]\n`,
   };
 };
@@ -152,19 +161,19 @@ export const generateClientTitle = (
   title: string,
   customTitleFunc?: (title: string) => string,
 ) => {
+  const { title: generatorTitle } = getGeneratorClient(outputClient);
   if (customTitleFunc) {
     const customTitle = customTitleFunc(title);
     return {
-      implementation: GENERATOR_CLIENT[outputClient].title(customTitle),
+      implementation: generatorTitle(customTitle),
       implementationMSW: `get${pascal(customTitle)}MSW`,
     };
   }
   return {
-    implementation: GENERATOR_CLIENT[outputClient].title(title),
+    implementation: generatorTitle(title),
     implementationMSW: `get${pascal(title)}MSW`,
   };
 };
-
 export const generateClient = (
   outputClient: OutputClient = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
@@ -173,10 +182,12 @@ export const generateClient = (
   return asyncReduce(
     verbsOptions,
     async (acc, verbOption) => {
-      const generator = GENERATOR_CLIENT[outputClient];
-      const client = generator.client(verbOption, options);
+      const { client: generatorClient, msw: generatorMSW } = getGeneratorClient(
+        outputClient,
+      );
+      const client = generatorClient(verbOption, options);
       const msw = options.mock
-        ? await generator.msw(verbOption, options)
+        ? await generatorMSW(verbOption, options)
         : {
             implementation: {
               function: '',

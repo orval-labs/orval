@@ -13,6 +13,31 @@ import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateMutatorConfig, generateOptions } from './options';
 
+const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'axios', default: true, values: true },
+      { name: 'AxiosRequestConfig' },
+    ],
+    dependency: 'axios',
+  },
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+      { name: 'UseQueryOptions' },
+      {
+        name: 'UseInfiniteQueryOptions',
+      },
+      { name: 'UseMutationOptions' },
+    ],
+    dependency: '@sveltestack/svelte-query',
+  },
+];
+
+export const getSvelteQueryDependencies = () => SVELTE_QUERY_DEPENDENCIES;
+
 const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -36,7 +61,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getReactQueryDependencies = () => REACT_QUERY_DEPENDENCIES;
 
-const generateAxiosFunction = (
+const generateQueryRequestFunction = (
   {
     queryParams,
     operationName,
@@ -67,9 +92,11 @@ const generateAxiosFunction = (
           )?.slice(1, -1)} ...options}`
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
-   
-    const mutatorTyping = response.definition ? `<Data extends unknown ? ${ response.definition} : Data>` : '<Data>';
-    
+
+    const mutatorTyping = response.definition
+      ? `<Data extends unknown ? ${response.definition} : Data>`
+      : '<Data>';
+
     return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
@@ -158,7 +185,7 @@ const generateQueryOptions = ({
   }${queryConfig} ...queryOptions}`;
 };
 
-const generateReactQueryArguments = ({
+const generateQueryArguments = ({
   operationName,
   definitions,
   mutator,
@@ -228,7 +255,7 @@ const generateQueryImplementation = ({
 export const ${camel(`use-${name}`)} = <
   Data extends unknown = unknown,
   Error extends unknown = unknown
->(\n ${queryProps} ${generateReactQueryArguments({
+>(\n ${queryProps} ${generateQueryArguments({
     operationName,
     definitions: '',
     mutator,
@@ -267,7 +294,7 @@ export const ${camel(`use-${name}`)} = <
 }\n`;
 };
 
-const generateReactQueryImplementation = (
+const generateQueryHook = (
   {
     queryParams,
     operationName,
@@ -346,7 +373,7 @@ const generateReactQueryImplementation = (
     export const ${camel(`use-${operationName}`)} = <
       Data extends unknown = unknown,
       Error extends unknown = unknown
-    >(${generateReactQueryArguments({
+    >(${generateQueryArguments({
       operationName,
       definitions,
       mutator,
@@ -373,9 +400,9 @@ const generateReactQueryImplementation = (
     `;
 };
 
-export const generateReactQueryTitle = () => '';
+export const generateQueryTitle = () => '';
 
-export const generateReactQueryHeader = ({
+export const generateQueryHeader = ({
   isRequestOptions,
   isMutator,
 }: {
@@ -397,18 +424,18 @@ ${
     : ''
 }`;
 
-export const generateReactQueryFooter = () => '';
+export const generateQueryFooter = () => '';
 
-export const generateReactQuery = (
+export const generateQuery = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
   const imports = generateVerbImports(verbOptions);
-  const functionImplementation = generateAxiosFunction(verbOptions, options);
-  const hookImplementation = generateReactQueryImplementation(
+  const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
   );
+  const hookImplementation = generateQueryHook(verbOptions, options);
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
