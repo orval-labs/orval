@@ -100,7 +100,7 @@ const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
 };
 
 export const generateClientImports = (
-  client = DEFAULT_CLIENT,
+  client: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   implementation: string,
   imports: {
     exports: GeneratorImport[];
@@ -124,7 +124,7 @@ export const generateClientHeader = ({
   isGlobalMutator,
   isMutator,
 }: {
-  outputClient?: OutputClient;
+  outputClient?: OutputClient | OutputClientFunc;
   isRequestOptions: boolean;
   isMutator: boolean;
   isGlobalMutator: boolean;
@@ -145,7 +145,7 @@ export const generateClientHeader = ({
 };
 
 export const generateClientFooter = (
-  outputClient: OutputClient = DEFAULT_CLIENT,
+  outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   operations: string[],
 ): GeneratorClientExtra => {
   const { footer } = getGeneratorClient(outputClient);
@@ -156,7 +156,7 @@ export const generateClientFooter = (
 };
 
 export const generateClientTitle = (
-  outputClient: OutputClient = DEFAULT_CLIENT,
+  outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   title: string,
   customTitleFunc?: (title: string) => string,
 ) => {
