@@ -135,6 +135,6 @@ export interface ClientGeneratorsBuilder {
   msw: ClientMSWBuilder,
   header :ClientHeaderBuilder,
   dependencies: ClientDependenciesBuilder,
-  footer :ClientFooterBuilder,
+  footer: ClientFooterBuilder,
   title: ClientTitleBuilder,
-};
+}
