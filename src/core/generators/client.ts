@@ -6,6 +6,7 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
+  ClientGeneratorsBuilder,
 } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
@@ -89,6 +90,50 @@ const GENERATOR_CLIENT = {
     title: generateQueryTitle,
   },
 };
+
+export const addGeneratorClient = (
+  newOutputClient: string, 
+  newGenerator :ClientGeneratorsBuilder, 
+  basedOn?: OutputClient,
+) => {
+  if (!newOutputClient || typeof newOutputClient !== 'string') {
+    throw `Please, specify correct name for new client generator`;
+  } 
+
+  const existingGenerator = GENERATOR_CLIENT[newOutputClient];
+
+  if (existingGenerator) {
+    throw `Oups... 🍻. Generator already exists: ${newOutputClient}`;
+  }
+
+  const oldClient = basedOn ? GENERATOR_CLIENT[basedOn] : null;
+  if (basedOn && !oldClient ) {
+    throw `Oops... 🍻. Initial client generator doesn't exist: ${basedOn}`;
+  }
+
+  const newGeneratorBuilder = {
+    ...(oldClient || {}),
+    newGenerator,
+  };
+
+  const requiredKeys = [
+    'client',
+    'msw',
+    'header',
+    'dependencies',
+    'footer',
+    'title',
+  ];
+
+  for (const keyName of requiredKeys) {
+    if (!newGeneratorBuilder.hasOwnProperty(keyName)) {
+      throw `Oops... 🍻. '${keyName}' field is missing in client generator`;
+    }
+  }
+
+  // @ts-ignore - all fields are checked, adding generator.
+  GENERATOR_CLIENT[newOutputClient] = newGeneratorBuilder;
+}
 
 const getGeneratorClient = (outputClient: OutputClient) => {
   const generator = GENERATOR_CLIENT[outputClient];
