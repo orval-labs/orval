@@ -1,4 +1,4 @@
-import { appendFile, ensureFile, readFile, writeFile } from 'fs-extra';
+import { appendFile, ensureFile, outputFile, readFile } from 'fs-extra';
 import { InfoObject } from 'openapi3-ts';
 import { join } from 'upath';
 import { GeneratorSchema } from '../../types/generator';
@@ -52,7 +52,7 @@ export const writeSchema = async ({
 }) => {
   const name = camel(schema.name);
   try {
-    await writeFile(
+    await outputFile(
       getPath(path, name),
       getSchema({ info, schema, rootSpecKey, isRootKey, specsName }),
     );
