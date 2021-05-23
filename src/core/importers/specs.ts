@@ -36,6 +36,13 @@ export const importSpecs = async (
     : parserDefaultOptions;
   const data = (await SwaggerParser.resolve(path, parserOptions)).values();
 
+  // normalizing slashes after SwaggerParser
+  Object.keys(c).forEach(key => {
+    const value = c[key];
+    delete c[key];
+    c[resolve(key)] = value;
+  });
+  
   return importOpenApi({
     data,
     ...(isObject(input) && {
