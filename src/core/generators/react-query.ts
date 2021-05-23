@@ -68,7 +68,7 @@ const generateAxiosFunction = (
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
    
-    const mutatorTyping = `<Data extends unknown ? ${ response.definition || 'Data' } : Data>`;
+    const mutatorTyping = response.definition ? `<Data extends unknown ? ${ response.definition} : Data>` : '<Data>';
     
     return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
