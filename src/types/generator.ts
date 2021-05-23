@@ -103,3 +103,38 @@ export type GeneratorMutator = {
   path: string;
   default: boolean;
 };
+
+export type ClientBuilder = (
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+) => GeneratorClient;
+
+export type ClientHeaderBuilder = (params: {
+  title: string;
+  isRequestOptions: boolean;
+  isMutator: boolean;
+  noFunction?: boolean;
+}) => string;
+
+export type ClientFooterBuilder = (operationIds?: string[]) => string;
+
+export type ClientTitleBuilder = (title: string) => string;
+
+export type ClientDependenciesBuilder = () => GeneratorDependency[];
+
+export type ClientMSWBuilder = (
+  verbOptions: GeneratorVerbOptions, 
+  generatorOptions: GeneratorOptions,
+) => { 
+  imports :string[]; 
+  implementation :string,
+};
+
+export interface ClientGeneratorsBuilder {
+  client: ClientBuilder,
+  msw: ClientMSWBuilder,
+  header :ClientHeaderBuilder,
+  dependencies: ClientDependenciesBuilder,
+  footer :ClientFooterBuilder,
+  title: ClientTitleBuilder,
+};
