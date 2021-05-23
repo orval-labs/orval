@@ -27,9 +27,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
       { name: 'UseQueryOptions' },
-      {
-        name: 'UseInfiniteQueryOptions',
-      },
+      { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
     ],
     dependency: 'react-query',
@@ -69,7 +67,9 @@ const generateAxiosFunction = (
           )?.slice(1, -1)} ...options}`
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
-
+   
+    const mutatorTyping = `<Data extends unknown ? ${ response.definition || 'Data' } : Data>`;
+    
     return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
       props,
       'implementation',
@@ -78,9 +78,7 @@ const generateAxiosFunction = (
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {
-      return ${mutator.name}<Data extends unknown ? ${
-      response.definition
-    } : Data>(
+      return ${mutator.name}${mutatorTyping}(
       ${mutatorConfig},
       ${requestOptions});
     }
