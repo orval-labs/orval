@@ -8,6 +8,18 @@ import { mergeDeep } from '../../utils/mergeDeep';
 import { isUrl } from '../../utils/url';
 import { importOpenApi } from './openApi';
 
+const resolveSpecs = async (
+  path: string,
+  parserOptions: SwaggerParser.Options,
+) => {
+  const data = (await SwaggerParser.resolve(path, parserOptions)).values();
+
+  // normalizing slashes after SwaggerParser
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [resolve(key), value]),
+  );
+};
+
 const parserDefaultOptions = {
   resolve: { github: githubResolver },
 } as SwaggerParser.Options;
@@ -34,21 +46,9 @@ export const importSpecs = async (
   const parserOptions = isObject(options.input)
     ? mergeDeep(parserDefaultOptions, options.input.parserOptions || {})
     : parserDefaultOptions;
-  const data = (await SwaggerParser.resolve(path, parserOptions)).values();
 
-const resolveSpecs = async (
-  path: string,
-  parserOptions: SwaggerParser.Options,
-) => {
-  const data = (await SwaggerParser.resolve(path, parserOptions)).values();
+  const data = await resolveSpecs(path, parserOptions);
 
-  // normalizing slashes after SwaggerParser
-  return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [resolve(key), value]),
-  );
-};
-
-const data = await resolveSpecs(path, parserOptions);
   return importOpenApi({
     data,
     ...(isObject(input) && {
