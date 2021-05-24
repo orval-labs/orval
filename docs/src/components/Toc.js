@@ -56,7 +56,7 @@ export const Toc = ({ title }) => {
                   h.depth &&
                   h.depth > 3 &&
                   active?.parent?.url !== h.parent?.url &&
-                  active?.url !== h.parent.url,
+                  active?.url !== h.parent?.url,
               })}
             >
               <a className={styles.contents__link} href={h.url}>
