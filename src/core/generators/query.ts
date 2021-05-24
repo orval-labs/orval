@@ -417,9 +417,7 @@ ${
   config: any,
   args: infer P,
 ) => any
-  ? P extends unknown
-  ? Record<string, any>
-  : P
+  ? P
   : never;\n\n`
     : ''
 }`;
