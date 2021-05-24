@@ -11,8 +11,13 @@ import { importOpenApi } from './openApi';
 const resolveSpecs = async (
   path: string,
   parserOptions: SwaggerParser.Options,
+  isUrl: boolean,
 ) => {
   const data = (await SwaggerParser.resolve(path, parserOptions)).values();
+
+  if (isUrl) {
+    return data;
+  }
 
   // normalizing slashes after SwaggerParser
   return Object.fromEntries(
@@ -47,7 +52,7 @@ export const importSpecs = async (
     ? mergeDeep(parserDefaultOptions, options.input.parserOptions || {})
     : parserDefaultOptions;
 
-  const data = await resolveSpecs(path, parserOptions);
+  const data = await resolveSpecs(path, parserOptions, isPathUrl);
 
   return importOpenApi({
     data,
