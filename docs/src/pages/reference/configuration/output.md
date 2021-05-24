@@ -21,7 +21,7 @@ module.exports = {
 
 ### client
 
-Type: `String`.
+Type: `String | Function`.
 
 Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`.
 
@@ -36,6 +36,8 @@ module.exports = {
   },
 };
 ```
+
+if you want you can provide a function to extend or create you custom client generator and this function receive a [GeneratorClients](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L148) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L140).
 
 ### schemas
 
@@ -206,7 +208,7 @@ module.exports = {
 
 ### mock
 
-Type: `Boolean`.
+Type: `Boolean | Function`.
 
 Default Value: `false`.
 
@@ -221,6 +223,8 @@ module.exports = {
   },
 };
 ```
+
+If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type
 
 ### override
 
@@ -423,6 +427,12 @@ module.exports = {
 Type: `Boolean`.
 
 Give you the possibility to set every property required.
+
+#### baseUrl
+
+Type: `String`.
+
+Give you the possibility to set base url to your mock handlers.
 
 #### operations
 
