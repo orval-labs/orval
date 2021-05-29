@@ -262,7 +262,7 @@ export const ${camel(`use-${name}`)} = <
     isRequestOptions,
     type,
   })}\n  ) => {
-  const queryKey = ${queryKeyFnName}(${properties});
+  const queryKey = options?.query?.queryKey ?? ${queryKeyFnName}(${properties});
   ${
     isRequestOptions
       ? `const {query: queryOptions${
