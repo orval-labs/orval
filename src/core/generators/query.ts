@@ -262,7 +262,7 @@ export const ${camel(`use-${name}`)} = <
     isRequestOptions,
     type,
   })}\n  ) => {
-  const queryKey = options?.query?.queryKey ?? ${queryKeyFnName}(${properties});
+
   ${
     isRequestOptions
       ? `const {query: queryOptions${
@@ -271,6 +271,7 @@ export const ${camel(`use-${name}`)} = <
       : ''
   }
 
+  const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
   const query = ${camel(
     `use-${type}`,
   )}<AsyncReturnType<typeof ${operationName}>, Error>(queryKey, (${
