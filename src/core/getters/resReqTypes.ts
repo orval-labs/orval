@@ -122,6 +122,7 @@ export const getResReqTypes = async (
                   mediaType.schema!,
                   context,
                 );
+
                 return {
                   ...resolvedValue,
                   formData,
