@@ -146,11 +146,11 @@ export const generateClientHeader = ({
 
 export const generateClientFooter = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
-  operations: string[],
+  operationNames: string[],
 ): GeneratorClientExtra => {
   const { footer } = getGeneratorClient(outputClient);
   return {
-    implementation: footer(operations),
+    implementation: footer(operationNames),
     implementationMSW: `]\n`,
   };
 };
@@ -216,6 +216,7 @@ export const generateClient = (
           importsMSW: msw.imports,
           tags: verbOption.tags,
           mutator: verbOption.mutator,
+          operationName: verbOption.operationName,
         },
       };
     },

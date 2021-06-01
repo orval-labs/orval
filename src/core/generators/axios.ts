@@ -120,8 +120,8 @@ export const generateAxiosHeader = ({
 }
   ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
 
-export const generateAxiosFooter = (operationIds: string[] = []) =>
-  `return {${operationIds.join(',')}}};\n`;
+export const generateAxiosFooter = (operationNames: string[] = []) =>
+  `return {${operationNames.join(',')}}};\n`;
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,

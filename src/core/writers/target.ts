@@ -17,7 +17,9 @@ export const generateTarget = (
   info: InfoObject,
   options?: OutputOptions,
 ): GeneratorTarget => {
-  const operationIds = Object.keys(operations);
+  const operationNames = Object.values(operations).map(
+    ({ operationName }) => operationName,
+  );
   const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
       if (!index) {
@@ -42,7 +44,7 @@ export const generateTarget = (
       }
 
       if (index === arr.length - 1) {
-        const footer = generateClientFooter(options?.client, operationIds);
+        const footer = generateClientFooter(options?.client, operationNames);
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;
         acc.imports = acc.imports;

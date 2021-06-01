@@ -67,6 +67,7 @@ export type GeneratorOperation = {
   importsMSW: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
+  operationName: string;
 };
 
 export type GeneratorVerbOptions = {
