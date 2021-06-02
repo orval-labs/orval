@@ -1,3 +1,4 @@
+import cuid from 'cuid';
 import { OutputClient, OutputClientFunc } from '../../types';
 import {
   GeneratorClientExtra,
@@ -206,10 +207,11 @@ export const generateClient = (
       const { client: generatorClient } = getGeneratorClient(outputClient);
       const client = generatorClient(verbOption, options);
       const msw = await generateMock(verbOption, options);
+      const key = cuid()
 
       return {
         ...acc,
-        [verbOption.operationId]: {
+        [key]: {
           implementation: client.implementation,
           imports: client.imports,
           implementationMSW: msw.implementation,
