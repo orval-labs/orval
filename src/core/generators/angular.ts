@@ -123,7 +123,7 @@ const generateImplementation = (
       isRequestOptions ? `options?: ThirdParameter<typeof ${mutator.name}>` : ''
     }) {
       return ${mutator.name}<Data extends unknown ? ${
-      response.definition
+      response.definition.success
     } : Data>(
       ${mutatorConfig},
       this.http,
@@ -148,7 +148,7 @@ const generateImplementation = (
     body.formData
   }
     return this.http.${verb}<Data extends unknown ? ${
-    response.definition
+    response.definition.success
   } : Data>(${options});
   }
 `;

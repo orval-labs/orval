@@ -96,7 +96,7 @@ export const getResponsesMockDefinition = ({
         acc.definitions = [
           ...acc.definitions,
           transformer
-            ? transformer(undefined, response.definition)
+            ? transformer(undefined, response.definition.success)
             : 'undefined',
         ];
         return acc;
@@ -132,7 +132,7 @@ export const getResponsesMockDefinition = ({
       acc.definitions = [
         ...acc.definitions,
         transformer
-          ? transformer(scalar.value, response.definition)
+          ? transformer(scalar.value,  response.definition.success)
           : scalar.value.toString(),
       ];
 

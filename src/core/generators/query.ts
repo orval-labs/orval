@@ -6,7 +6,12 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
-import { GetterParams, GetterProps, GetterPropType } from '../../types/getters';
+import {
+  GetterParams,
+  GetterProps,
+  GetterPropType,
+  GetterResponse,
+} from '../../types/getters';
 import { camel, pascal } from '../../utils/case';
 import { isObject } from '../../utils/is';
 import { stringify, toObjectString } from '../../utils/string';
@@ -93,19 +98,14 @@ const generateQueryRequestFunction = (
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
 
-    const mutatorTyping = response.definition
-      ? `<Data extends unknown ? ${response.definition} : Data>`
-      : '<Data>';
-
-    return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    return `export const ${operationName} = <TData = ${
+      response.definition.success || 'unknown'
+    }>(\n    ${toObjectString(props, 'implementation')}\n ${
       isRequestOptions
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {
-      return ${mutator.name}${mutatorTyping}(
+      return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
     }
@@ -121,15 +121,12 @@ const generateQueryRequestFunction = (
     requestOptions: override?.requestOptions,
   });
 
-  return `export const ${operationName} = <Data = unknown>(\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${isRequestOptions ? `options?: AxiosRequestConfig\n` : ''} ) => {${
-    body.formData
-  }
-    return axios.${verb}<Data extends unknown ? ${
-    response.definition
-  } : Data>(${options});
+  return `export const ${operationName} = <TData = ${
+    response.definition.success || 'unknown'
+  }>(\n    ${toObjectString(props, 'implementation')} ${
+    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
+  } ) => {${body.formData}
+    return axios.${verb}<TData>(${options});
   }
 `;
 };
@@ -201,10 +198,10 @@ const generateQueryArguments = ({
   const definition = type
     ? `Use${pascal(
         type,
-      )}Options<AsyncReturnType<typeof ${operationName}>, Error>`
-    : `UseMutationOptions<AsyncReturnType<typeof ${operationName}>, Error${
-        definitions ? `, {${definitions}}` : ''
-      }, unknown>`;
+      )}Options<AsyncReturnType<typeof ${operationName}>, TError, TData>`
+    : `UseMutationOptions<AsyncReturnType<typeof ${operationName}>, TError,${
+        definitions ? `{${definitions}}` : 'TVariables'
+      }, TContext>`;
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
@@ -227,6 +224,7 @@ const generateQueryImplementation = ({
   props,
   mutator,
   isRequestOptions,
+  response,
 }: {
   queryOption: {
     name: string;
@@ -241,6 +239,7 @@ const generateQueryImplementation = ({
   properties: string;
   params: GetterParams;
   props: GetterProps;
+  response: GetterResponse;
   mutator?: GeneratorMutator;
 }) => {
   const httpFunctionProps = queryParam
@@ -252,10 +251,11 @@ const generateQueryImplementation = ({
     : properties;
 
   return `
-export const ${camel(`use-${name}`)} = <
-  Data extends unknown = unknown,
-  Error extends unknown = unknown
->(\n ${queryProps} ${generateQueryArguments({
+export const ${camel(`use-${name}`)} = <TQueryFnData = ${
+    response.definition.success || 'unknown'
+  }, TError = ${
+    response.definition.errors || 'unknown'
+  }, TData = TQueryFnData>(\n ${queryProps} ${generateQueryArguments({
     operationName,
     definitions: '',
     mutator,
@@ -272,13 +272,14 @@ export const ${camel(`use-${name}`)} = <
   }
 
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
+
   const query = ${camel(
     `use-${type}`,
-  )}<AsyncReturnType<typeof ${operationName}>, Error>(queryKey, (${
+  )}<AsyncReturnType<typeof ${operationName}>, TError, TData>(queryKey, (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
-  }) => ${operationName}<Data>(${httpFunctionProps}${
+  }) => ${operationName}<TQueryFnData>(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
   }${
     isRequestOptions ? (!mutator ? `axiosOptions` : 'requestOptions') : ''
@@ -305,6 +306,7 @@ const generateQueryHook = (
     params,
     override,
     mutator,
+    response,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
@@ -358,6 +360,7 @@ const generateQueryHook = (
           props,
           mutator,
           isRequestOptions,
+          response,
         }),
       '',
     )}
@@ -371,10 +374,12 @@ const generateQueryHook = (
     .join(';');
 
   return `
-    export const ${camel(`use-${operationName}`)} = <
-      Data extends unknown = unknown,
-      Error extends unknown = unknown
-    >(${generateQueryArguments({
+    export const ${camel(`use-${operationName}`)} = <TData = ${
+    response.definition.success || 'unknown'
+  },
+    TError = ${response.definition.errors || 'unknown'},
+    ${!definitions ? `TVariables = void,` : ''}
+    TContext = unknown>(${generateQueryArguments({
       operationName,
       definitions,
       mutator,
@@ -388,12 +393,12 @@ const generateQueryHook = (
           : ''
       }
 
-      return useMutation<AsyncReturnType<typeof ${operationName}>, Error${
-    definitions ? `, {${definitions}}` : ''
-  }>((${properties ? 'props' : ''}) => {
+      return useMutation<AsyncReturnType<typeof ${operationName}>, TError, ${
+    definitions ? `{${definitions}}` : 'TVariables'
+  }, TContext>((${properties ? 'props' : ''}) => {
         ${properties ? `const {${properties}} = props || {}` : ''};
 
-        return  ${operationName}<Data>(${properties}${properties ? ',' : ''}${
+        return  ${operationName}<TData>(${properties}${properties ? ',' : ''}${
     isRequestOptions ? (!mutator ? `axiosOptions` : 'requestOptions') : ''
   })
       }, mutationOptions)

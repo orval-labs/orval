@@ -63,7 +63,7 @@ const generateAxiosImplementation = (
         : ''
     }) => {
       return ${mutator.name}<Data extends unknown ? ${
-      response.definition
+      response.definition.success
     } : Data>(
       ${mutatorConfig},
       ${requestOptions});
@@ -87,7 +87,7 @@ const generateAxiosImplementation = (
     body.formData
   }
     return axios.${verb}<Data extends unknown ? ${
-    response.definition
+      response.definition.success
   } : Data>(${options});
   }
 `;
