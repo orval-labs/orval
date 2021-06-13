@@ -5,7 +5,7 @@ title: Configuration
 
 This page is a reference to the different ways of configuring your orval projects.
 
-Using an orval-config.js configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the orval generated files.
+Using an orval.config.js configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the orval generated files.
 
 Configuration options for the following are described on this page:
 
