@@ -58,8 +58,12 @@ paths:
                 tag:
                   type: string
       responses:
-        '201':
-          description: Null response
+        '200':
+          description: Created Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
         default:
           description: unexpected error
           content:

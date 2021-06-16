@@ -196,10 +196,8 @@ const generateQueryArguments = ({
   type?: QueryType;
 }) => {
   const definition = type
-    ? `Use${pascal(
-        type,
-      )}Options<AsyncReturnType<typeof ${operationName}>, TError, TData>`
-    : `UseMutationOptions<AsyncReturnType<typeof ${operationName}>, TError,${
+    ? `Use${pascal(type)}Options<TQueryFnData, TError, TData>`
+    : `UseMutationOptions<TData, TError,${
         definitions ? `{${definitions}}` : 'TVariables'
       }, TContext>`;
 
@@ -251,9 +249,11 @@ const generateQueryImplementation = ({
     : properties;
 
   return `
-export const ${camel(`use-${name}`)} = <TQueryFnData = ${
+export const ${camel(
+    `use-${name}`,
+  )} = <TQueryFnData = AsyncReturnType<typeof ${operationName}, ${
     response.definition.success || 'unknown'
-  }, TError = ${
+  }>, TError = ${
     response.definition.errors || 'unknown'
   }, TData = TQueryFnData>(\n ${queryProps} ${generateQueryArguments({
     operationName,
@@ -275,7 +275,7 @@ export const ${camel(`use-${name}`)} = <TQueryFnData = ${
 
   const query = ${camel(
     `use-${type}`,
-  )}<AsyncReturnType<typeof ${operationName}>, TError, TData>(queryKey, (${
+  )}<TQueryFnData, TError, TData>(queryKey, (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
@@ -374,9 +374,11 @@ const generateQueryHook = (
     .join(';');
 
   return `
-    export const ${camel(`use-${operationName}`)} = <TData = ${
+    export const ${camel(
+      `use-${operationName}`,
+    )} = <TData = AsyncReturnType<typeof ${operationName},${
     response.definition.success || 'unknown'
-  },
+  }>,
     TError = ${response.definition.errors || 'unknown'},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
@@ -393,9 +395,9 @@ const generateQueryHook = (
           : ''
       }
 
-      return useMutation<AsyncReturnType<typeof ${operationName}>, TError, ${
-    definitions ? `{${definitions}}` : 'TVariables'
-  }, TContext>((${properties ? 'props' : ''}) => {
+      return useMutation<TData, TError, ${
+        definitions ? `{${definitions}}` : 'TVariables'
+      }, TContext>((${properties ? 'props' : ''}) => {
         ${properties ? `const {${properties}} = props || {}` : ''};
 
         return  ${operationName}<TData>(${properties}${properties ? ',' : ''}${
@@ -415,8 +417,9 @@ export const generateQueryHeader = ({
   isRequestOptions: boolean;
   isMutator: boolean;
 }) => `type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
+T extends (...args: any) => Promise<any>,
+U = unknown
+> = T extends (...args: any) => Promise<infer R> ? (U extends R ? U : R) : any;\n\n
 ${
   isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: any) => any> = T extends (
