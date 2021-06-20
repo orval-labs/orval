@@ -29,26 +29,24 @@ export const generateImports = ({
       a.name === b.name && a.default === b.default && a.specKey === b.specKey,
   )
     .sort()
-    .map(({ specKey, name, values }) => {
+    .map(({ specKey, name, values, alias }) => {
       if (specKey) {
         const path = specKey !== rootSpecKey ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
-          return `import ${!values ? 'type ' : ''}{ ${name} } from \'../${join(
-            path,
-            camel(name),
-          )}\';`;
+          return `import ${!values ? 'type ' : ''}{ ${name}${
+            alias ? ` as ${alias}` : ''
+          } } from \'../${join(path, camel(name))}\';`;
         }
 
-        return `import ${!values ? 'type ' : ''}{ ${name} } from \'./${join(
-          path,
-          camel(name),
-        )}\';`;
+        return `import ${!values ? 'type ' : ''}{ ${name}${
+          alias ? ` as ${alias}` : ''
+        } } from \'./${join(path, camel(name))}\';`;
       }
 
-      return `import ${!values ? 'type ' : ''}{ ${name} } from \'./${camel(
-        name,
-      )}\';`;
+      return `import ${!values ? 'type ' : ''}{ ${name}${
+        alias ? ` as ${alias}` : ''
+      } } from \'./${camel(name)}\';`;
     })
     .join('\n');
 };

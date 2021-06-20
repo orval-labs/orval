@@ -5,6 +5,7 @@ import { GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
+import { getSpecName } from '../../utils/path';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from '../resolvers/value';
 import { generateInterface } from './interface';
@@ -45,23 +46,46 @@ export const generateSchemasDefinition = async (
 
         let output = '';
 
+        const schemaName = pascal(name);
+        let imports = resolvedValue.imports;
+
         if (resolvedValue.isEnum && !resolvedValue.ref) {
           output += getEnum(
             resolvedValue.value,
             resolvedValue.type,
-            pascal(name),
+            schemaName,
           );
+        } else if (schemaName === resolvedValue.value && resolvedValue.ref) {
+          const imp = resolvedValue.imports.find(
+            (imp) => imp.name === schemaName,
+          );
+
+          if (!imp) {
+            output += `export type ${schemaName} = ${resolvedValue.value};\n`;
+          } else {
+            const alias = imp?.specKey
+              ? `${pascal(getSpecName(imp.specKey, context.specKey))}${
+                  resolvedValue.value
+                }`
+              : `${resolvedValue.value}Bis`;
+
+            output += `export type ${schemaName} = ${alias};\n`;
+
+            imports = imports.map((imp) =>
+              imp.name === schemaName ? { ...imp, alias } : imp,
+            );
+          }
         } else {
-          output += `export type ${pascal(name)} = ${resolvedValue.value};\n`;
+          output += `export type ${schemaName} = ${resolvedValue.value};\n`;
         }
 
         return [
           ...acc,
           ...resolvedValue.schemas,
           {
-            name: pascal(name),
+            name: schemaName,
             model: output,
-            imports: resolvedValue.imports,
+            imports,
           },
         ];
       }

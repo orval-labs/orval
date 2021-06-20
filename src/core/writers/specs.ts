@@ -1,11 +1,9 @@
 import { join } from 'upath';
 import { Options, OutputMode, OutputOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { getExtension } from '../../utils/extension';
-import { getFileInfo } from '../../utils/file';
 import { isObject, isString } from '../../utils/is';
 import { createSuccessMessage } from '../../utils/messages/logs';
-import { isUrl } from '../../utils/url';
+import { getSpecName } from '../../utils/path';
 import { writeSchemas } from './schemas';
 import { writeSingleMode } from './singleMode';
 import { writeSplitMode } from './splitMode';
@@ -28,10 +26,7 @@ export const writeSpecs = async (
   }
 
   const specsName = Object.keys(schemas).reduce((acc, specKey) => {
-    const basePath = (isUrl(specKey)
-      ? specKey.replace(rootSpecKey, '')
-      : specKey.replace(getFileInfo(rootSpecKey).dirname, '')
-    ).replace(`.${getExtension(specKey)}`, '');
+    const basePath = getSpecName(specKey, rootSpecKey);
 
     const name = basePath.slice(1).split('/').join('-');
 
