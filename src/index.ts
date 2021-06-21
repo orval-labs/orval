@@ -14,5 +14,7 @@ const generate = (
   return generateSpec(workspace, options, projectName);
 };
 
+export * from './types/generator';
+export { Options };
 export { generate };
 export default generate;
