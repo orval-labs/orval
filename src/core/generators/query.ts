@@ -121,12 +121,13 @@ const generateQueryRequestFunction = (
     requestOptions: override?.requestOptions,
   });
 
-  return `export const ${operationName} = <TData = ${
+  return `export const ${operationName} = async <TData = ${
     response.definition.success || 'unknown'
   }>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ) => {${body.formData}
-    return axios.${verb}<TData>(${options});
+    const { data } = await axios.${verb}<TData>(${options});
+    return data;
   }
 `;
 };
