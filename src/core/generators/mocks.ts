@@ -90,7 +90,7 @@ export const getResponsesMockDefinition = ({
   context: ContextSpecs;
 }) => {
   return asyncReduce(
-    response.types,
+    response.types.success,
     async (acc, { value: definition, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         acc.definitions = [
@@ -132,7 +132,7 @@ export const getResponsesMockDefinition = ({
       acc.definitions = [
         ...acc.definitions,
         transformer
-          ? transformer(scalar.value,  response.definition.success)
+          ? transformer(scalar.value, response.definition.success)
           : scalar.value.toString(),
       ];
 

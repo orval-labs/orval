@@ -9,7 +9,10 @@ export type GetterResponse = {
     errors: string;
   };
   isBlob: boolean;
-  types: ResReqTypesValue[];
+  types: {
+    success: ResReqTypesValue[];
+    errors: ResReqTypesValue[];
+  };
   schemas: GeneratorSchema[];
 };
 

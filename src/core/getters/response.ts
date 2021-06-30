@@ -18,7 +18,7 @@ export const getResponse = async (
         errors: '',
       },
       isBlob: false,
-      types: [],
+      types: { success: [], errors: [] },
       schemas: [],
     };
   }
@@ -60,7 +60,7 @@ export const getResponse = async (
       errors: errors || 'unknown',
     },
     isBlob: success === 'Blob',
-    types,
+    types: groupedByStatus,
     schemas,
   };
 };
