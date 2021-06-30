@@ -116,15 +116,12 @@ const generateImplementation = (
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
 
-    return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    return ` ${operationName}<TData = ${
+      response.definition.success || 'unknown'
+    }>(\n    ${toObjectString(props, 'implementation')}\n ${
       isRequestOptions ? `options?: ThirdParameter<typeof ${mutator.name}>` : ''
     }) {
-      return ${mutator.name}<Data extends unknown ? ${
-      response.definition.success
-    } : Data>(
+      return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
       ${requestOptions});
@@ -141,15 +138,12 @@ const generateImplementation = (
     requestOptions: override?.requestOptions,
   });
 
-  return ` ${operationName}<Data = unknown>(\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${isRequestOptions ? `options?: HttpClientOptions\n` : ''}  ) {${
-    body.formData
-  }
-    return this.http.${verb}<Data extends unknown ? ${
-    response.definition.success
-  } : Data>(${options});
+  return ` ${operationName}<TData = ${
+    response.definition.success || 'unknown'
+  }>(\n    ${toObjectString(props, 'implementation')} ${
+    isRequestOptions ? `options?: HttpClientOptions\n` : ''
+  }  ): Observable<TData>  {${body.formData}
+    return this.http.${verb}<TData>(${options});
   }
 `;
 };

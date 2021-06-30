@@ -18,14 +18,19 @@ import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import { generateMutatorConfig, generateOptions } from './options';
 
-const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'axios', default: true, values: true },
       { name: 'AxiosRequestConfig' },
+      { name: 'AxiosResponse' },
     ],
     dependency: 'axios',
   },
+];
+
+const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useQuery', values: true },
@@ -44,13 +49,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 export const getSvelteQueryDependencies = () => SVELTE_QUERY_DEPENDENCIES;
 
 const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      { name: 'axios', default: true, values: true },
-      { name: 'AxiosRequestConfig' },
-    ],
-    dependency: 'axios',
-  },
+  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useQuery', values: true },
@@ -121,12 +120,12 @@ const generateQueryRequestFunction = (
     requestOptions: override?.requestOptions,
   });
 
-  return `export const ${operationName} = <TData = ${
+  return `export const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
-  }>(\n    ${toObjectString(props, 'implementation')} ${
+  }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ) => {${body.formData}
-    return axios.${verb}<TData>(${options});
+  } ): Promise<TData> => {${body.formData}
+    return axios.${verb}(${options});
   }
 `;
 };
@@ -248,12 +247,14 @@ const generateQueryImplementation = ({
         .join(',')
     : properties;
 
+  const tData = !mutator
+    ? `AxiosResponse<${response.definition.success || 'unknown'}>`
+    : response.definition.success || 'unknown';
+
   return `
 export const ${camel(
     `use-${name}`,
-  )} = <TQueryFnData = AsyncReturnType<typeof ${operationName}, ${
-    response.definition.success || 'unknown'
-  }>, TError = ${
+  )} = <TQueryFnData = AsyncReturnType<typeof ${operationName}, ${tData}>, TError = ${
     response.definition.errors || 'unknown'
   }, TData = TQueryFnData>(\n ${queryProps} ${generateQueryArguments({
     operationName,
@@ -373,12 +374,14 @@ const generateQueryHook = (
     )
     .join(';');
 
+  const tData = !mutator
+    ? `AxiosResponse<${response.definition.success || 'unknown'}>`
+    : response.definition.success || 'unknown';
+
   return `
     export const ${camel(
       `use-${operationName}`,
-    )} = <TData = AsyncReturnType<typeof ${operationName},${
-    response.definition.success || 'unknown'
-  }>,
+    )} = <TData = AsyncReturnType<typeof ${operationName},${tData}>,
     TError = ${response.definition.errors || 'unknown'},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({

@@ -15,6 +15,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     exports: [
       { name: 'axios', default: true, values: true },
       { name: 'AxiosRequestConfig' },
+      { name: 'AxiosResponse' },
     ],
     dependency: 'axios',
   },
@@ -54,7 +55,7 @@ const generateAxiosImplementation = (
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
 
-    return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
+    return `const ${operationName} = <TData = ${response.definition.success || 'unknown'}>(\n    ${toObjectString(
       props,
       'implementation',
     )}\n ${
@@ -62,9 +63,7 @@ const generateAxiosImplementation = (
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {
-      return ${mutator.name}<Data extends unknown ? ${
-      response.definition.success
-    } : Data>(
+      return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
     }
@@ -80,15 +79,12 @@ const generateAxiosImplementation = (
     requestOptions: override?.requestOptions,
   });
 
-  return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${isRequestOptions ? `options?: AxiosRequestConfig\n` : ''} ) => {${
-    body.formData
-  }
-    return axios.${verb}<Data extends unknown ? ${
-      response.definition.success
-  } : Data>(${options});
+  return `const ${operationName} = <TData = AxiosResponse<${
+    response.definition.success || 'unknown'
+  }>>(\n    ${toObjectString(props, 'implementation')} ${
+    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
+  } ): Promise<TData> => {${body.formData}
+    return axios.${verb}(${options});
   }
 `;
 };
