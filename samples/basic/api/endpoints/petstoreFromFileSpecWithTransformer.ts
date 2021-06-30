@@ -62,9 +62,7 @@ const showPetById = <TData = AxiosResponse<Pet>>(
 return {listPets,createPets,showPetById}};
 
 
-export const getListPetsMock = () => (faker.helpers.randomize([[...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({id: faker.datatype.number(), name: 'jon', tag: 'jon'})), {code: faker.datatype.number(), message: faker.random.word()}]))
-
-export const getCreatePetsMock = () => (faker.helpers.randomize([undefined, {code: faker.datatype.number(), message: faker.random.word()}]))
+export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({id: faker.datatype.number(), name: 'jon', tag: 'jon'})))
 
 export const getShowPetByIdMock = () => ((() => ({
                 id: faker.random.number({ min: 1, max: 99 }),
@@ -83,7 +81,6 @@ ctx.json(getListPetsMock()),
         return res(
           ctx.delay(1000),
           ctx.status(200, 'Mocked status'),
-ctx.json(getCreatePetsMock()),
         )
       }),rest.get('*/v:version/pets/:petId', (req, res, ctx) => {
         return res(

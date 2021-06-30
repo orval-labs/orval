@@ -13,9 +13,9 @@ import type {
   Pet
 } from '../model'
 
-export const getListPetsMock = () => (faker.helpers.randomize([[...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({id: (() => faker.random.number({ min: 1, max: 99999 }))(), name: (() => faker.name.lastName())(), tag: (() => faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined])})), {code: faker.datatype.number(), message: faker.random.word()}]))
+export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({id: (() => faker.random.number({ min: 1, max: 99999 }))(), name: (() => faker.name.lastName())(), tag: (() => faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined])})))
 
-export const getCreatePetsMock = () => (faker.helpers.randomize([{id: faker.datatype.number(), name: (() => faker.name.lastName())(), tag: (() => faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined])}, {code: faker.datatype.number(), message: faker.random.word()}]))
+export const getCreatePetsMock = () => ({id: faker.datatype.number(), name: (() => faker.name.lastName())(), tag: (() => faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined])})
 
 export const getShowPetByIdMock = () => ((() => ({
                 id: faker.random.number({ min: 1, max: 99 }),
