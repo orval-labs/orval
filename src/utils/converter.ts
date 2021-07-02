@@ -1,18 +1,22 @@
+import chalk from 'chalk';
 import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
+import { log } from './messages/logs';
 
 export const swaggerConverter = (
   schema: any,
   options: swagger2openapi.Options = {},
+  specKey: string,
 ): Promise<OpenAPIObject> => {
   try {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-        swagger2openapi.convertObj(schema, options, (err, { openapi }) => {
+        swagger2openapi.convertObj(schema, options, (err, value) => {
           if (err) {
-            reject(err);
+            log(chalk.yellow(`${specKey}\n=> ${err}`));
+            resolve(schema);
           } else {
-            resolve(openapi);
+            resolve(value.openapi);
           }
         });
       } else {
