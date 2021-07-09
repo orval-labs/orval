@@ -130,13 +130,13 @@ Here depending on the configuration, you will have multiple files named petstore
 - petstore.ts
 - petstore.msw.ts
 
-For angular:
+For Angular:
 
 => petstore.ts is petstore.service.ts
 
 #### Value: tags
 
-Use this mode if you want one file by tag. Tag is a reference of the OpenApi specification tag. If you have a `pets` tag for all your pet calls then orval will generate a file pets.ts in the target folder
+Use this mode if you want one file by tag. Tag is a reference of the OpenApi specification tag. If you have a `pets` tag for all your pet calls then Orval will generate a file pets.ts in the target folder
 
 ```js
 module.exports = {
@@ -156,7 +156,7 @@ my-app
     └── petstore.schemas.ts
 ```
 
-For angular:
+For Angular:
 
 => petstore.ts is petstore.service.ts
 
@@ -164,7 +164,7 @@ If you don't use the `schemas` property only one file will be created with all t
 
 #### Value: tags-split
 
-This mode is a combination of the tags and split mode. orval will generate a folder for every tag in the target folder and split into multiple files in those folders.
+This mode is a combination of the tags and split mode. Orval will generate a folder for every tag in the target folder and split into multiple files in those folders.
 
 ```js
 module.exports = {
@@ -277,7 +277,7 @@ interface RequestConfig {
 }
 ```
 
-- The second is only provided for the angular client and give an instance of HttpClient
+- The second is only provided for the Angular client and give an instance of HttpClient
 
 Example:
 
@@ -403,7 +403,7 @@ module.exports = {
 
 Type: `Object`.
 
-Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property orval will automatically generate a random email for you. See <a href="https://github.com/anymaniax/orval/blob/next/src/constants/format.mock.ts" target="_blank">here</a> the default available format.
+Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property Orval will automatically generate a random email for you. See <a href="https://github.com/anymaniax/orval/blob/next/src/constants/format.mock.ts" target="_blank">here</a> the default available format.
 
 ```js
 module.exports = {

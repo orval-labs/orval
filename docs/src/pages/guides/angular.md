@@ -3,7 +3,7 @@ id: angular
 title: Angular
 ---
 
-You should have an OpenApi specification and an orval config where you define the mode as angular.
+You should have an OpenApi specification and an Orval config where you define the mode as Angular.
 
 #### Example with angular
 
@@ -26,7 +26,7 @@ module.exports = {
 
 Checkout the [orval config](../reference/orval-config) reference to see all available options.
 
-The angular mode will generate automatically two classes. One abstract with the definition and a service with the implementation. You should add the service inside a module and use it where you want.
+The Angular mode will generate automatically two classes. One abstract with the definition and a service with the implementation. You should add the service inside a module and use it where you want.
 
 You can checkout an example <a href="https://github.com/anymaniax/orval/tree/master/samples/angular-app" target="_blank">here</a>
 

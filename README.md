@@ -16,5 +16,5 @@
 You can find below some samples on codesandbox
 
 - [react app](https://github.com/anymaniax/orval/tree/master/samples/react-app)
-- [react app with react query](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-react-query)
+- [react app with React query](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-react-query)
 - [angular app](https://github.com/anymaniax/orval/tree/master/samples/angular-app)
