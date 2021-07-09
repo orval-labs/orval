@@ -32,26 +32,31 @@ export const generateSchemaFormData = async (
         if (property.type === 'object' || property.type === 'array') {
           formDataValue = `formData.append('${key}', JSON.stringify(${camel(
             propName,
-          )}.${key}))\n`;
+          )}${key.includes('-') ? `['${key}']` : `.${key}`})\n`;
         } else if (
           property.type === 'number' ||
           property.type === 'integer' ||
           property.type === 'boolean'
         ) {
-          formDataValue = `formData.append('${key}', ${camel(
-            propName,
-          )}.${key}.toString())\n`;
+          formDataValue = `formData.append('${key}', ${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          }.toString())\n`;
         } else {
-          formDataValue = `formData.append('${key}', ${camel(
-            propName,
-          )}.${key})\n`;
+          formDataValue = `formData.append('${key}', ${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          })\n`;
         }
 
         if (schema.required?.includes(key)) {
           return acc + formDataValue;
         }
 
-        return acc + `if(${camel(propName)}.${key}) {\n ${formDataValue} }\n`;
+        return (
+          acc +
+          `if(${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          }) {\n ${formDataValue} }\n`
+        );
       },
       '',
     );
