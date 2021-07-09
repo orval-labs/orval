@@ -9,8 +9,9 @@ title: Quick Start
 $ orval --input ./petstore.yaml --output ./src/petstore.ts
 ```
 
-The --input can take a yaml or a json
-The --output is the file where you want to generate your models and HTTP calls.
+The `--input` can take a yaml or a json.
+
+The `--output` is the file where you want to generate your models and HTTP calls.
 
 ## Example with config:
 
@@ -20,7 +21,7 @@ $ orval --config ./orval.config.js
 $ orval
 ```
 
-#### File orval.config.js
+**File orval.config.js**
 
 ```js
 module.exports = {
