@@ -61,7 +61,7 @@ export const writeSpecs = async (
   }
 
   if (isSingleMode(output)) {
-    writeSingleMode({
+    await writeSingleMode({
       workspace,
       operations,
       output: isString(output) ? { target: output } : output,
@@ -70,11 +70,25 @@ export const writeSpecs = async (
       specsName,
     });
   } else if (output.mode === OutputMode.SPLIT) {
-    writeSplitMode({ workspace, operations, output, info, schemas, specsName });
+    await writeSplitMode({
+      workspace,
+      operations,
+      output,
+      info,
+      schemas,
+      specsName,
+    });
   } else if (output.mode === OutputMode.TAGS) {
-    writeTagsMode({ workspace, operations, output, info, schemas, specsName });
+    await writeTagsMode({
+      workspace,
+      operations,
+      output,
+      info,
+      schemas,
+      specsName,
+    });
   } else if (output.mode === OutputMode.TAGS_SPLIT) {
-    writeSplitTagsMode({
+    await writeSplitTagsMode({
       workspace,
       operations,
       output,
