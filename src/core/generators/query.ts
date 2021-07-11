@@ -79,7 +79,8 @@ const generateQueryRequestFunction = (
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-
+  const isFormData = override?.formData !== false;
+  
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -87,6 +88,7 @@ const generateQueryRequestFunction = (
       queryParams,
       response,
       verb,
+      isFormData,
     });
 
     const requestOptions = isRequestOptions
@@ -103,7 +105,7 @@ const generateQueryRequestFunction = (
       isRequestOptions
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {
+    }) => {${isFormData ? body.formData : ''}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
@@ -118,13 +120,14 @@ const generateQueryRequestFunction = (
     response,
     verb,
     requestOptions: override?.requestOptions,
+    isFormData
   });
 
   return `export const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ): Promise<TData> => {${body.formData}
+  } ): Promise<TData> => {${isFormData ? body.formData : ''}
     return axios.${verb}(${options});
   }
 `;

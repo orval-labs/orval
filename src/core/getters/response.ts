@@ -50,7 +50,9 @@ export const getResponse = async (
     [],
   );
 
-  const success = groupedByStatus.success.map(({ value }) => value).join(' | ');
+  const success = groupedByStatus.success
+    .map(({ value, formData }) => (formData ? 'Blob' : value))
+    .join(' | ');
   const errors = groupedByStatus.errors.map(({ value }) => value).join(' | ');
 
   return {

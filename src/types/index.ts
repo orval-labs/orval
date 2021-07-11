@@ -17,8 +17,6 @@ export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
 
-
-
 export type OutputOptions = {
   target?: string;
   schemas?: string;
@@ -99,6 +97,7 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
+  formData?: boolean;
   query?: QueryOptions;
   operationName?: (
     operation: OperationObject,
@@ -136,6 +135,7 @@ export type OperationOptions = {
     route: string,
     verb: Verbs,
   ) => string;
+  formData?: boolean;
   requestOptions?: object | boolean;
 };
 

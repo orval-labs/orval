@@ -98,6 +98,7 @@ const generateImplementation = (
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
+  const isFormData = override?.formData !== false;
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -106,6 +107,7 @@ const generateImplementation = (
       queryParams,
       response,
       verb,
+      isFormData
     });
 
     const requestOptions = isRequestOptions
@@ -120,7 +122,7 @@ const generateImplementation = (
       response.definition.success || 'unknown'
     }>(\n    ${toObjectString(props, 'implementation')}\n ${
       isRequestOptions ? `options?: ThirdParameter<typeof ${mutator.name}>` : ''
-    }) {
+    }) {${isFormData ? body.formData : ''}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
@@ -136,13 +138,14 @@ const generateImplementation = (
     response,
     verb,
     requestOptions: override?.requestOptions,
+    isFormData
   });
 
   return ` ${operationName}<TData = ${
     response.definition.success || 'unknown'
   }>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: HttpClientOptions\n` : ''
-  }  ): Observable<TData>  {${body.formData}
+  }  ): Observable<TData>  {${isFormData ? body.formData : ''}
     return this.http.${verb}<TData>(${options});
   }
 `;
