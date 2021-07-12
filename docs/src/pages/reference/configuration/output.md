@@ -500,3 +500,11 @@ Function to override the generate operation name.
 Type: `Object | Boolean`.
 
 Use this property to provide a config to your http client or completly remove the request options property from the generated files.
+
+#### formData
+
+Type: `Boolean`.
+
+Default Value: `true`.
+
+Use this property to disable the auto generation of form data if you use multipart
