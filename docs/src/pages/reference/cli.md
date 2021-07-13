@@ -3,15 +3,15 @@ id: cli
 title: CLI
 ---
 
-## orval reference
+## Orval reference
 
-orval provides a set of options that allow you to generate your models or the API calls of your application. This page contains a complete list of all orval options available.
+Orval provides a set of options that allow you to generate your models or the API calls of your application. This page contains a complete list of all Orval options available.
 
-To download and install orval, [follow the instructions here](../installation).
+To download and install Orval, [follow the instructions here](../installation).
 
 ### Basic Usage
 
-The `orval` command is used to generate client with appropriate type-signatures. By default search for an orval.config.js file.
+The `orval` command is used to generate client with appropriate type-signatures. By default search for an `orval.config.js` file.
 
 ```bash
 $ orval
@@ -35,15 +35,15 @@ $ orval --output ./api/endpoints/petstoreFromFileSpec.ts"
 
 ### Config
 
-The `--config` option, shorthand `-c`, can be used to set the path to an orval config.
+The `--config` option, shorthand `-c`, can be used to set the path to your Orval config.
 
 ```bash
 $ orval --config ./api/orval.config.js
 ```
 
-### Projet
+### Project
 
-The `--project` option, shorthand `-p`, can be used to focus on one project of your orval config.
+The `--project` option, shorthand `-p`, can be used to focus on one project of your Orval config.
 
 ```bash
 $ orval --project petstore
