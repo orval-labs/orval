@@ -3,9 +3,9 @@ id: react-query
 title: React query
 ---
 
-You should have an OpenApi specification and an orval config where you define the mode as react-query.
+You should have an OpenApi specification and an Orval config where you define the mode as react-query.
 
-#### Example with react query
+#### Example with React query
 
 ```js
 module.exports = {
@@ -26,7 +26,7 @@ module.exports = {
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The react query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
+The React query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
 
@@ -77,7 +77,7 @@ export const useShowPetById = <
 
 ### How use other query
 
-With the following example orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the options props.
+With the following example Orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the options props.
 
 ```js
 module.exports = {

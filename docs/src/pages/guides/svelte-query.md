@@ -3,7 +3,7 @@ id: svelte-query
 title: Svelte query
 ---
 
-You should have an OpenApi specification and an orval config where you define the mode as svelte-query.
+You should have an OpenApi specification and an Orval config where you define the mode as svelte-query.
 
 #### Example with svelte query
 
@@ -77,7 +77,7 @@ export const useShowPetById = <
 
 ### How use other query
 
-With the following example orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the options props.
+With the following example Orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the options props.
 
 ```js
 module.exports = {
