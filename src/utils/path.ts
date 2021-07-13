@@ -20,8 +20,16 @@ export const relativeSafe = (from: string, to: string) => {
   return relativePath;
 };
 
-export const getSpecName = (specKey: string, rootSpecKey: string) =>
-  (isUrl(specKey)
-    ? specKey.replace(rootSpecKey, '')
-    : specKey.replace(getFileInfo(rootSpecKey).dirname, '')
-  ).replace(`.${getExtension(specKey)}`, '');
+export const getSpecName = (specKey: string, rootSpecKey: string) => {
+  if (isUrl(specKey)) {
+    const url = new URL(rootSpecKey);
+    return specKey
+      .replace(url.origin, '')
+      .replace(getFileInfo(url.pathname).dirname, '')
+      .replace(`.${getExtension(specKey)}`, '');
+  }
+
+  return specKey
+    .replace(getFileInfo(rootSpecKey).dirname, '')
+    .replace(`.${getExtension(specKey)}`, '');
+};
