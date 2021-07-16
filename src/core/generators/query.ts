@@ -64,6 +64,27 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 export const getReactQueryDependencies = () => REACT_QUERY_DEPENDENCIES;
+const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+  ...AXIOS_DEPENDENCIES,
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+    ],
+    dependency: 'vue-query',
+  },
+  {
+    exports: [
+      { name: 'UseQueryOptions' },
+      { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseMutationOptions' },
+    ],
+    dependency: 'vue-query/types',
+  },
+];
+
+export const getVueQueryDependencies = () => VUE_QUERY_DEPENDENCIES;
 
 const generateQueryRequestFunction = (
   {
@@ -80,7 +101,7 @@ const generateQueryRequestFunction = (
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
-  
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -120,7 +141,7 @@ const generateQueryRequestFunction = (
     response,
     verb,
     requestOptions: override?.requestOptions,
-    isFormData
+    isFormData,
   });
 
   return `export const ${operationName} = <TData = AxiosResponse<${

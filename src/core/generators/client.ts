@@ -34,6 +34,7 @@ import {
   generateQueryTitle,
   getReactQueryDependencies,
   getSvelteQueryDependencies,
+  getVueQueryDependencies,
 } from './query';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
@@ -82,6 +83,13 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     client: generateQuery,
     header: generateQueryHeader,
     dependencies: getSvelteQueryDependencies,
+    footer: generateQueryFooter,
+    title: generateQueryTitle,
+  },
+  'vue-query': {
+    client: generateQuery,
+    header: generateQueryHeader,
+    dependencies: getVueQueryDependencies,
     footer: generateQueryFooter,
     title: generateQueryTitle,
   },

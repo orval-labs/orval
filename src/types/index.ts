@@ -39,7 +39,8 @@ export type OutputClient =
   | 'axios-functions'
   | 'angular'
   | 'react-query'
-  | 'svelte-query';
+  | 'svelte-query'
+  | 'vue-query';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,
