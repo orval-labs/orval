@@ -41,6 +41,11 @@
           "editUrl": "/guides/svelte-query.md"
         },
         {
+          "title": "Vue query",
+          "path": "/guides/vue-query",
+          "editUrl": "/guides/vue-query.md"
+        },
+        {
           "title": "Angular",
           "path": "/guides/angular",
           "editUrl": "/guides/angular.md"
