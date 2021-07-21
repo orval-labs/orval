@@ -110,6 +110,7 @@ export type GeneratorMutator = {
   name: string;
   path: string;
   default: boolean;
+  mutatorFn: Function;
 };
 
 export type ClientBuilder = (

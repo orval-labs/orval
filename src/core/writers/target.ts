@@ -1,5 +1,5 @@
 import { InfoObject } from 'openapi3-ts';
-import { OutputOptions } from '../../types';
+import { OutputClient, OutputOptions } from '../../types';
 import {
   GeneratorImport,
   GeneratorMutator,
@@ -20,20 +20,10 @@ export const generateTarget = (
   const operationNames = Object.values(operations).map(
     ({ operationName }) => operationName,
   );
+  const isAngularClient = options?.client === OutputClient.ANGULAR;
+
   const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
-      if (!index) {
-        const header = generateClientHeader({
-          outputClient: options?.client,
-          isRequestOptions: options?.override?.requestOptions !== false,
-          isMutator: !!operation.mutator,
-          isGlobalMutator: !!options?.override?.mutator,
-          title: pascal(info.title),
-          customTitleFunc: options?.override?.title,
-        });
-        acc.implementation += header.implementation;
-        acc.implementationMSW.handler += header.implementationMSW;
-      }
       acc.imports = [...acc.imports, ...operation.imports];
       acc.importsMSW = [...acc.importsMSW, ...operation.importsMSW];
       acc.implementation += operation.implementation;
@@ -44,6 +34,21 @@ export const generateTarget = (
       }
 
       if (index === arr.length - 1) {
+        const isMutator = !!acc.mutators?.some(
+          (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
+        );
+        const header = generateClientHeader({
+          outputClient: options?.client,
+          isRequestOptions: options?.override?.requestOptions !== false,
+          isMutator,
+          isGlobalMutator: !!options?.override?.mutator,
+          title: pascal(info.title),
+          customTitleFunc: options?.override?.title,
+        });
+        acc.implementation = header.implementation + acc.implementation;
+        acc.implementationMSW.handler =
+          header.implementationMSW + acc.implementationMSW.handler;
+
         const footer = generateClientFooter(options?.client, operationNames);
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;

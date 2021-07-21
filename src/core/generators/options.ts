@@ -148,3 +148,20 @@ export const generateMutatorConfig = ({
     isFormData,
   )}${generateQueryParamsAxiosConfig(response, queryParams?.schema)}\n    }`;
 };
+
+export const generateMutatorRequestOptions = (
+  requestOptions: boolean | object | undefined,
+  hasSecondArgument: boolean,
+) => {
+  if (!hasSecondArgument) {
+    return isObject(requestOptions)
+      ? stringify(requestOptions)?.slice(1, -1)
+      : '';
+  }
+
+  if (isObject(requestOptions)) {
+    return `{${stringify(requestOptions)?.slice(1, -1)} ...options}`;
+  }
+
+  return 'options';
+};

@@ -100,7 +100,6 @@ const generateVerbOptions = async ({
     name: operationName,
     workspace: context.workspace,
     mutator: override?.mutator,
-    workspace: context.workspace,
   });
 
   const verbOption = {

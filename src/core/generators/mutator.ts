@@ -1,10 +1,9 @@
-import { transformSync } from 'esbuild';
-import { readFile, unlink, writeFile } from 'fs-extra';
-import { join, trimExt } from 'upath';
+import chalk from 'chalk';
+import { join } from 'upath';
 import { Mutator, MutatorObject } from '../../types';
-import { getFileInfo } from '../../utils/file';
-import { dynamicImport } from '../../utils/imports';
+import { getFileInfo, loadFile } from '../../utils/file';
 import { isString } from '../../utils/is';
+import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
 
 const getImport = (output: string, mutator: Mutator, workspace: string) => {
@@ -40,24 +39,25 @@ export const generateMutator = async ({
     isString(mutator) ? mutator : mutator.path,
   );
 
-  const { code } = await readFile(importPath).then((value) =>
-    transformSync(value.toString('utf8'), { format: 'cjs', loader: 'ts' }),
-  );
+  const { file } = await loadFile<Record<string, Function>>(importPath, {
+    isDefault: false,
+  });
 
-  const tempFilePath = trimExt(importPath) + '-tmp.js';
+  const mutatorFn =
+    file[isDefault ? 'default' : (mutator as MutatorObject).name];
 
-  await writeFile(tempFilePath, code);
-
-  const config = await dynamicImport(tempFilePath, process.cwd(), false);
-
-  await unlink(tempFilePath);
-
-  const hasSecondArgument =
-    config[isDefault ? 'default' : (mutator as MutatorObject).name]?.length > 1;
-
-  console.log(hasSecondArgument);
+  if (!mutatorFn) {
+    createLogger().error(
+      chalk.red(
+        `Your mutator file doesn't have the ${
+          isDefault ? 'default' : (mutator as MutatorObject).name
+        } exported function`,
+      ),
+    );
+    process.exit(1);
+  }
 
   const path = getImport(output, mutator, workspace);
 
-  return { name: importName, path, default: isDefault };
+  return { name: importName, path, default: isDefault, mutatorFn };
 };
