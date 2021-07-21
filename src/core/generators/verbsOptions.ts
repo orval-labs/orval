@@ -95,7 +95,7 @@ const generateVerbOptions = async ({
 
   const props = getProps({ body, queryParams: queryParams?.schema, params });
 
-  const mutator = generateMutator({
+  const mutator = await generateMutator({
     output: output.target,
     name: operationName,
     workspace: context.workspace,

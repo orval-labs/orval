@@ -74,7 +74,6 @@ export const importOpenApi = async ({
         { specKey, workspace, specs },
         'Body',
       );
-
       return {
         ...acc,
         [specKey]: [

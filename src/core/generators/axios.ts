@@ -5,10 +5,13 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { isObject } from '../../utils/is';
-import { sanitize, stringify, toObjectString } from '../../utils/string';
+import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
-import { generateMutatorConfig, generateOptions } from './options';
+import {
+  generateMutatorConfig,
+  generateMutatorRequestOptions,
+  generateOptions,
+} from './options';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -46,22 +49,21 @@ const generateAxiosImplementation = (
       queryParams,
       response,
       verb,
-      isFormData
+      isFormData,
     });
 
+    const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
     const requestOptions = isRequestOptions
-      ? isObject(override?.requestOptions)
-        ? ` // eslint-disable-next-line\n// @ts-ignore\n {${stringify(
-            override?.requestOptions,
-          )?.slice(1, -1)} ...options}`
-        : '// eslint-disable-next-line\n// @ts-ignore\n options'
+      ? generateMutatorRequestOptions(
+          override?.requestOptions,
+          isMutatorHasSecondArg,
+        )
       : '';
 
-    return `const ${operationName} = <TData = ${response.definition.success || 'unknown'}>(\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
-      isRequestOptions
+    return `const ${operationName} = <TData = ${
+      response.definition.success || 'unknown'
+    }>(\n    ${toObjectString(props, 'implementation')}\n ${
+      isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${isFormData ? body.formData : ''}
@@ -79,7 +81,7 @@ const generateAxiosImplementation = (
     response,
     verb,
     requestOptions: override?.requestOptions,
-    isFormData
+    isFormData,
   });
 
   return `const ${operationName} = <TData = AxiosResponse<${

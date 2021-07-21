@@ -19,7 +19,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "generate-api": "node ../../dist/bin/orval.js --config ./orval.config.js"
+    "generate-api": "node ../../dist/bin/orval.js"
   },
   "eslintConfig": {
     "extends": "react-app"

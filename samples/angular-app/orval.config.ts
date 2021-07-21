@@ -1,24 +1,22 @@
-const faker = require('faker');
-const transformer = require('./api/transformer/add-version.js');
+import * as faker from 'faker';
+import { Options } from '../../dist';
 
-module.exports = {
-  'petstore-file': {
-    input: './petstore.yaml',
-    output: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
-  },
-  'petstore-file-transfomer': {
+const config: Record<string, Options> = {
+  petstore: {
     output: {
-      target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',
-      schemas: './api/model',
+      mode: 'tags-split',
+      target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
       mock: true,
       override: {
         operations: {
           listPets: {
-            mutator: './api/mutator/response-type.ts',
+            mutator: 'src/api/mutator/response-type.ts',
             mock: {
               properties: () => {
                 return {
-                  id: faker.random.number({ min: 1, max: 9 }),
+                  id: () => faker.random.number({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -35,7 +33,7 @@ module.exports = {
         },
         mock: {
           properties: {
-            '/tag|name/': 'jon',
+            '/tag|name/': () => faker.name.lastName(),
           },
         },
       },
@@ -43,8 +41,10 @@ module.exports = {
     input: {
       target: './petstore.yaml',
       override: {
-        transformer,
+        transformer: 'src/api/transformer/add-version.js',
       },
     },
   },
 };
+
+export default config;

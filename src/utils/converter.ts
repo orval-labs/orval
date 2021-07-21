@@ -3,7 +3,7 @@ import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import { log } from './messages/logs';
 
-export const swaggerConverter = (
+export const swaggerConverter = async (
   schema: any,
   options: swagger2openapi.Options = {},
   specKey: string,
@@ -24,6 +24,6 @@ export const swaggerConverter = (
       }
     });
   } catch (e) {
-    throw `Oups... 🍻. Parsing Error: ${e}`;
+    throw `Oups... 🍻.\nPath: ${specKey}\nParsing Error: ${e}`;
   }
 };
