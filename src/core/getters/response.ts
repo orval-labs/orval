@@ -1,11 +1,9 @@
-import { ReferenceObject, ResponseObject, ResponsesObject } from 'openapi3-ts';
+import { ResponsesObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
+import { ResReqTypesValue } from '../../types/resolvers';
 import { getResReqTypes } from './resReqTypes';
-
-const isOk = ([statusCode]: [string, ResponseObject | ReferenceObject]) =>
-  statusCode.toString().startsWith('2');
 
 export const getResponse = async (
   responses: ResponsesObject,
@@ -15,17 +13,31 @@ export const getResponse = async (
   if (!responses) {
     return {
       imports: [],
-      definition: '',
+      definition: {
+        success: '',
+        errors: '',
+      },
       isBlob: false,
-      types: [],
+      types: { success: [], errors: [] },
       schemas: [],
     };
   }
 
   const types = await getResReqTypes(
-    Object.entries(responses).filter(isOk),
+    Object.entries(responses),
     operationId,
     context,
+  );
+
+  const groupedByStatus = types.reduce<{
+    success: ResReqTypesValue[];
+    errors: ResReqTypesValue[];
+  }>(
+    (acc, type) =>
+      type.key.startsWith('2')
+        ? { ...acc, success: [...acc.success, type] }
+        : { ...acc, errors: [...acc.errors, type] },
+    { success: [], errors: [] },
   );
 
   const imports = types.reduce<GeneratorImport[]>(
@@ -38,13 +50,19 @@ export const getResponse = async (
     [],
   );
 
-  const definition = types.map(({ value }) => value).join(' | ');
+  const success = groupedByStatus.success
+    .map(({ value, formData }) => (formData ? 'Blob' : value))
+    .join(' | ');
+  const errors = groupedByStatus.errors.map(({ value }) => value).join(' | ');
 
   return {
     imports,
-    definition: definition || 'unknown',
-    isBlob: definition === 'Blob',
-    types,
+    definition: {
+      success: success || 'unknown',
+      errors: errors || 'unknown',
+    },
+    isBlob: success === 'Blob',
+    types: groupedByStatus,
     schemas,
   };
 };

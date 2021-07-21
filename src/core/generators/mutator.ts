@@ -7,14 +7,15 @@ import { dynamicImport } from '../../utils/imports';
 import { isString } from '../../utils/is';
 import { relativeSafe } from '../../utils/path';
 
-const getImport = (output: string, mutator: Mutator) => {
-  const outputFileInfo = getFileInfo(output);
+const getImport = (output: string, mutator: Mutator, workspace: string) => {
+  const outputFileInfo = getFileInfo(join(workspace, output));
   const mutatorFileInfo = getFileInfo(
-    isString(mutator) ? mutator : mutator.path,
+    join(workspace, isString(mutator) ? mutator : mutator.path),
   );
   const { pathWithoutExtension } = getFileInfo(
     relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
+
   return pathWithoutExtension;
 };
 
@@ -56,7 +57,7 @@ export const generateMutator = async ({
 
   console.log(hasSecondArgument);
 
-  const path = getImport(output, mutator);
+  const path = getImport(output, mutator, workspace);
 
   return { name: importName, path, default: isDefault };
 };

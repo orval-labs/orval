@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useListPets } from './api/endpoints/petstoreFromFileSpecWithTransformer';
 import './App.css';
 import { useAuthDispatch } from './auth.context';
-import logo from './logo.png';
+import logo from './logo.svg';
 
 function App() {
   const dispatch = useAuthDispatch();

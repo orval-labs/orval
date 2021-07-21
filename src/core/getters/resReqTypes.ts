@@ -6,7 +6,7 @@ import {
   ResponseObject,
 } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
-import { ResolverValue, ResReqTypesValue } from '../../types/resolvers';
+import { ResReqTypesValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { getNumberWord } from '../../utils/string';
@@ -67,6 +67,7 @@ export const getResReqTypes = async (
                 type: 'unknown',
                 isEnum: false,
                 isRef: true,
+                key,
               },
             ] as ResReqTypesValue[];
           }
@@ -89,6 +90,7 @@ export const getResReqTypes = async (
               isEnum: false,
               formData,
               isRef: true,
+              key,
             },
           ] as ResReqTypesValue[];
         }
@@ -122,15 +124,18 @@ export const getResReqTypes = async (
                   mediaType.schema!,
                   context,
                 );
+
                 return {
                   ...resolvedValue,
                   formData,
-                } as ResReqTypesValue;
+                };
               },
             ),
           );
 
-          return contents.filter((x) => x) as ResReqTypesValue[];
+          return contents
+            .filter((x) => x)
+            .map((x) => ({ ...x, key })) as ResReqTypesValue[];
         }
 
         return [
@@ -140,13 +145,14 @@ export const getResReqTypes = async (
             schemas: [],
             type: 'unknown',
             isEnum: false,
+            key,
           },
         ] as ResReqTypesValue[];
       }),
   );
 
   return uniqBy(
-    typesArray.reduce<ResolverValue[]>((acc, it) => [...acc, ...it], []),
+    typesArray.reduce<ResReqTypesValue[]>((acc, it) => [...acc, ...it], []),
     'value',
   );
 };

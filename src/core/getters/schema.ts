@@ -27,5 +27,5 @@ export const getSchema = (
 
   const allSchemas = { ...schemas, ...responses };
 
-  return allSchemas[name];
+  return { ...allSchemas[name], specKey };
 };

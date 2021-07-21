@@ -3,7 +3,7 @@ import { Pets } from './api/model';
 import { useApi } from './api/useApi';
 import './App.css';
 import { useAuthDispatch } from './auth.context';
-import logo from './logo.png';
+import logo from './logo.svg';
 
 function App() {
   const dispatch = useAuthDispatch();

@@ -1,15 +1,20 @@
-import { SchemaObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { asyncReduce } from '../../utils/async-reduce';
 import { camel } from '../../utils/case';
+import { isReference } from '../../utils/is';
 import { resolveRef } from '../resolvers/ref';
 
 export const generateSchemaFormData = async (
   name: string,
-  schemaObject: SchemaObject,
+  schemaObject: SchemaObject | ReferenceObject,
   context: ContextSpecs,
 ) => {
-  const { schema } = await resolveRef<SchemaObject>(schemaObject, context);
+  const { schema, imports } = await resolveRef<SchemaObject>(
+    schemaObject,
+    context,
+  );
+  const propName = isReference(schemaObject) ? imports[0].name : name;
 
   const formData = 'const formData = new FormData();\n';
 
@@ -26,21 +31,32 @@ export const generateSchemaFormData = async (
 
         if (property.type === 'object' || property.type === 'array') {
           formDataValue = `formData.append('${key}', JSON.stringify(${camel(
-            name,
-          )}.${key}))\n`;
-        } else if (property.type === 'number' || property.type === 'boolean') {
-          formDataValue = `formData.append('${key}', ${camel(
-            name,
-          )}.${key}.toString())\n`;
+            propName,
+          )}${key.includes('-') ? `['${key}']` : `.${key}`})\n`;
+        } else if (
+          property.type === 'number' ||
+          property.type === 'integer' ||
+          property.type === 'boolean'
+        ) {
+          formDataValue = `formData.append('${key}', ${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          }.toString())\n`;
         } else {
-          formDataValue = `formData.append('${key}', ${camel(name)}.${key})\n`;
+          formDataValue = `formData.append('${key}', ${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          })\n`;
         }
 
         if (schema.required?.includes(key)) {
           return acc + formDataValue;
         }
 
-        return acc + `if(${camel(name)}.${key}) {\n ${formDataValue} }\n`;
+        return (
+          acc +
+          `if(${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          }) {\n ${formDataValue} }\n`
+        );
       },
       '',
     );
@@ -50,13 +66,15 @@ export const generateSchemaFormData = async (
 
   if (schema.type === 'array') {
     return `${formData}formData.append('data', JSON.stringify(${camel(
-      name,
+      propName,
     )}))\n`;
   }
 
   if (schema.type === 'number' || schema.type === 'boolean') {
-    return `${formData}formData.append('data', ${camel(name)}.toString())\n`;
+    return `${formData}formData.append('data', ${camel(
+      propName,
+    )}.toString())\n`;
   }
 
-  return `${formData}formData.append('data', ${camel(name)})\n`;
+  return `${formData}formData.append('data', ${camel(propName)})\n`;
 };

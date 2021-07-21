@@ -62,7 +62,7 @@ export const getObject = async ({
     });
   }
 
-  if (item.properties && Object.entries(item.properties).length>0) {
+  if (item.properties && Object.entries(item.properties).length > 0) {
     return asyncReduce(
       Object.entries(item.properties),
       async (
@@ -72,7 +72,7 @@ export const getObject = async ({
         arr,
       ) => {
         const isRequired = (item.required || []).includes(key);
-        const propName = name ? name + pascal(key) : undefined;
+        const propName = name ? pascal(name) + pascal(key) : undefined;
         const resolvedValue = await resolveObject({
           schema,
           propName,

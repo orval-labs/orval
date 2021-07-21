@@ -74,6 +74,24 @@ const getMockWithoutFunc = (
     : {}),
 });
 
+const getMockScalarJsTypes = (definition: string) => {
+  const isArray = definition.endsWith('[]');
+  const type = isArray ? definition.slice(0, -2) : definition;
+
+  switch (type) {
+    case 'number':
+      return isArray
+        ? `Array.from({length: faker.datatype.number({min: 1, max: 10})}, () => faker.datatype.number())`
+        : 'faker.datatype.number().toString()';
+    case 'string':
+      return isArray
+        ? `Array.from({length: faker.datatype.number({min: 1, max: 10})}, () => faker.random.word())`
+        : 'faker.random.word()';
+    default:
+      return 'undefined';
+  }
+};
+
 export const getResponsesMockDefinition = ({
   operationId,
   tags,
@@ -90,19 +108,24 @@ export const getResponsesMockDefinition = ({
   context: ContextSpecs;
 }) => {
   return asyncReduce(
-    response.types,
+    response.types.success,
     async (acc, { value: definition, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
+        const value = getMockScalarJsTypes(definition);
+
         acc.definitions = [
           ...acc.definitions,
-          transformer
-            ? transformer(undefined, response.definition)
-            : 'undefined',
+          transformer ? transformer(value, response.definition.success) : value,
         ];
         return acc;
       }
 
-      const schemaImport = imports.find(({ name }) => name === definition);
+      const schemaImport = imports.find(
+        ({ name }) =>
+          name ===
+          (definition.endsWith('[]') ? definition.slice(0, -2) : definition),
+      );
+
       if (!schemaImport) {
         return acc;
       }
@@ -132,7 +155,7 @@ export const getResponsesMockDefinition = ({
       acc.definitions = [
         ...acc.definitions,
         transformer
-          ? transformer(scalar.value, response.definition)
+          ? transformer(scalar.value, response.definition.success)
           : scalar.value.toString(),
       ];
 

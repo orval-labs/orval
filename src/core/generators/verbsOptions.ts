@@ -98,6 +98,7 @@ const generateVerbOptions = async ({
   const mutator = await generateMutator({
     output: output.target,
     name: operationName,
+    workspace: context.workspace,
     mutator: override?.mutator,
     workspace: context.workspace,
   });

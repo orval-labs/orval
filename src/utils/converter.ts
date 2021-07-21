@@ -1,19 +1,22 @@
+import chalk from 'chalk';
 import { OpenAPIObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
+import { log } from './messages/logs';
 
 export const swaggerConverter = async (
   schema: any,
   options: swagger2openapi.Options = {},
-  ref: string,
+  specKey: string,
 ): Promise<OpenAPIObject> => {
   try {
-    return await new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
-        swagger2openapi.convertObj(schema, options, (err, spec) => {
+        swagger2openapi.convertObj(schema, options, (err, value) => {
           if (err) {
-            reject(err);
+            log(chalk.yellow(`${specKey}\n=> ${err}`));
+            resolve(schema);
           } else {
-            resolve(spec.openapi);
+            resolve(value.openapi);
           }
         });
       } else {
@@ -21,6 +24,6 @@ export const swaggerConverter = async (
       }
     });
   } catch (e) {
-    throw `Oups... 🍻.\nPath: ${ref}\nParsing Error: ${e}`;
+    throw `Oups... 🍻.\nPath: ${specKey}\nParsing Error: ${e}`;
   }
 };

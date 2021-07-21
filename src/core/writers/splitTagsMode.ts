@@ -1,10 +1,11 @@
 import { outputFile } from 'fs-extra';
-import { join, relative } from 'upath';
+import { join } from 'upath';
 import { OutputClient } from '../../types';
 import { WriteModeProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { getFilesHeader } from '../../utils/messages/inline';
+import { relativeSafe } from '../../utils/path';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -44,7 +45,7 @@ export const writeSplitTagsMode = ({
         if (output.schemas) {
           const schemasPath =
             '../' +
-            relative(
+            relativeSafe(
               dirname,
               getFileInfo(join(workspace, output.schemas)).dirname,
             );

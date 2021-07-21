@@ -25,11 +25,11 @@ const generateInputSpecs = async ({
 
   return asyncReduce(
     Object.entries(specs),
-    async (acc, [key, value]) => {
+    async (acc, [specKey, value]) => {
       const schema = await swaggerConverter(
         value,
         input?.converterOptions,
-        key,
+        specKey,
       );
       const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
 
@@ -39,7 +39,7 @@ const generateInputSpecs = async ({
 
       return {
         ...acc,
-        [key]: transfomedSchema,
+        [specKey]: transfomedSchema,
       };
     },
     {} as Record<string, OpenAPIObject>,

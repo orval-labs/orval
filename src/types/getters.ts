@@ -4,9 +4,15 @@ import { ResReqTypesValue } from './resolvers';
 
 export type GetterResponse = {
   imports: GeneratorImport[];
-  definition: string;
+  definition: {
+    success: string;
+    errors: string;
+  };
   isBlob: boolean;
-  types: ResReqTypesValue[];
+  types: {
+    success: ResReqTypesValue[];
+    errors: ResReqTypesValue[];
+  };
   schemas: GeneratorSchema[];
 };
 

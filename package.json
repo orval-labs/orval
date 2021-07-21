@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "5.2.0",
+  "version": "5.5.0",
   "license": "MIT",
   "files": [
     "dist"
@@ -21,6 +21,8 @@
     "angular",
     "react",
     "react-query",
+    "svelte",
+    "svelte-query",
     "msw",
     "mock",
     "axios"
@@ -34,7 +36,7 @@
     "url": "https://github.com/anymaniax/orval"
   },
   "scripts": {
-    "build": "tsup ./src/bin/orval.ts ./src/index.ts --minify --clean",
+    "build": "tsup ./src/bin/orval.ts ./src/index.ts --minify --clean --dts",
     "dev": "tsup-node ./src/bin/orval.ts ./src/index.ts --clean --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write 'src/**/*.{js,ts}'",

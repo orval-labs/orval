@@ -9,12 +9,16 @@ import {
 import { isObject } from '../../utils/is';
 import { stringify } from '../../utils/string';
 
-export const generateBodyOptions = (body: GetterBody, verb: Verbs) => {
+export const generateBodyOptions = (
+  body: GetterBody,
+  verb: Verbs,
+  isFormData: boolean,
+) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
   }
 
-  if (body.formData) {
+  if (isFormData && body.formData) {
     return '\n      formData,';
   }
 
@@ -65,6 +69,7 @@ export const generateOptions = ({
   response,
   verb,
   requestOptions,
+  isFormData,
 }: {
   route: string;
   body: GetterBody;
@@ -72,10 +77,12 @@ export const generateOptions = ({
   response: GetterResponse;
   verb: Verbs;
   requestOptions?: object | boolean;
+  isFormData: boolean;
 }) => {
   return `\n      \`${route}\`,${generateBodyOptions(
     body,
     verb,
+    isFormData,
   )}${generateAxiosOptions(
     response,
     queryParams?.schema,
@@ -83,9 +90,17 @@ export const generateOptions = ({
   )}\n    `;
 };
 
-export const generateBodyMutatorConfig = (body: GetterBody, verb: Verbs) => {
+export const generateBodyMutatorConfig = (
+  body: GetterBody,
+  verb: Verbs,
+  isFormData: boolean,
+) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
+  }
+
+  if (isFormData && body.formData) {
+    return ',\n       data: formData';
   }
 
   return `,\n      data: ${body.implementation || 'undefined'}`;
@@ -118,15 +133,18 @@ export const generateMutatorConfig = ({
   queryParams,
   response,
   verb,
+  isFormData,
 }: {
   route: string;
   body: GetterBody;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
   verb: Verbs;
+  isFormData: boolean;
 }) => {
   return `{url: \`${route}\`, method: '${verb}'${generateBodyMutatorConfig(
     body,
     verb,
+    isFormData,
   )}${generateQueryParamsAxiosConfig(response, queryParams?.schema)}\n    }`;
 };

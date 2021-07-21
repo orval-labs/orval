@@ -1,15 +1,12 @@
 <script lang="ts">
 	import { useListPets } from '../api/endpoints/petstoreFromFileSpecWithTransformer';
 
-
 	const pets = useListPets();
 </script>
 
-
-
 <main class="App">
 	<header class="App-header">
-		<img src="/logo.png" class="App-logo" alt="logo" />
+		<img src="/logo.svg" class="App-logo" alt="logo" />
 		{#if $pets.isLoading}
 			<span>Loading...</span>
 		{:else if $pets.isError}
@@ -23,7 +20,3 @@
 		{/if}
 	</header>
 </main>
-
-
-
-

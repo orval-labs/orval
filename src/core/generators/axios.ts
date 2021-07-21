@@ -15,6 +15,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     exports: [
       { name: 'axios', default: true, values: true },
       { name: 'AxiosRequestConfig' },
+      { name: 'AxiosResponse' },
     ],
     dependency: 'axios',
   },
@@ -36,6 +37,7 @@ const generateAxiosImplementation = (
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
+  const isFormData = override?.formData !== false;
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -44,6 +46,7 @@ const generateAxiosImplementation = (
       queryParams,
       response,
       verb,
+      isFormData
     });
 
     const requestOptions = isRequestOptions
@@ -54,17 +57,15 @@ const generateAxiosImplementation = (
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
 
-    return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
+    return `const ${operationName} = <TData = ${response.definition.success || 'unknown'}>(\n    ${toObjectString(
       props,
       'implementation',
     )}\n ${
       isRequestOptions
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {
-      return ${mutator.name}<Data extends unknown ? ${
-      response.definition
-    } : Data>(
+    }) => {${isFormData ? body.formData : ''}
+      return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
     }
@@ -78,17 +79,15 @@ const generateAxiosImplementation = (
     response,
     verb,
     requestOptions: override?.requestOptions,
+    isFormData
   });
 
-  return `const ${operationName} = <Data = unknown>(\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${isRequestOptions ? `options?: AxiosRequestConfig\n` : ''} ) => {${
-    body.formData
-  }
-    return axios.${verb}<Data extends unknown ? ${
-    response.definition
-  } : Data>(${options});
+  return `const ${operationName} = <TData = AxiosResponse<${
+    response.definition.success || 'unknown'
+  }>>(\n    ${toObjectString(props, 'implementation')} ${
+    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
+  } ): Promise<TData> => {${isFormData ? body.formData : ''}
+    return axios.${verb}(${options});
   }
 `;
 };
@@ -120,8 +119,8 @@ export const generateAxiosHeader = ({
 }
   ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
 
-export const generateAxiosFooter = (operationIds: string[] = []) =>
-  `return {${operationIds.join(',')}}};\n`;
+export const generateAxiosFooter = (operationNames: string[] = []) =>
+  `return {${operationNames.join(',')}}};\n`;
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,

@@ -77,11 +77,6 @@ h6:hover .anchor::after {
   visibility: visible;
 }
 
-.bg-highlight .prism-code {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
 /* Algolia v3 overrides */
 :root {
   --docsearch-modal-background: #fff;

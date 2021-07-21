@@ -3,9 +3,9 @@ id: react-query
 title: React query
 ---
 
-You should have an OpenApi specification and an orval config where you define the mode as react-query.
+You should have an OpenApi specification and an Orval config where you define the mode as react-query.
 
-#### Example with react query
+#### Example with React query
 
 ```js
 module.exports = {
@@ -24,32 +24,48 @@ module.exports = {
 };
 ```
 
-Checkout the [orval config](../reference/orval-config) reference to see all available options.
+Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The react query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
+The React query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
-export const showPetById = (petId: string, version: number = 1) => {
-  return axios.get<Pet>(`/v${version}/pets/${petId}`);
+export const showPetById = <Data = unknown>(
+  petId: string,
+  version = 1,
+  options?: SecondParameter<typeof customInstance>,
+) => {
+  return customInstance<Data extends unknown ? Pet : Data>(
+    { url: `/v${version}/pets/${petId}`, method: 'get' },
+    // eslint-disable-next-line
+    // @ts-ignore
+    options,
+  );
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => [
+export const getShowPetByIdQueryKey = (petId: string, version = 1) => [
   `/v${version}/pets/${petId}`,
 ];
 
-export const useShowPetById = <Error = unknown>(
+export const useShowPetById = <
+  Data extends unknown = unknown,
+  Error extends unknown = unknown
+>(
   petId: string,
-  version: number = 1,
-  queryConfig?: UseQueryOptions<AsyncReturnType<typeof showPetById>, Error>,
+  version = 1,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, Error>;
+    request?: SecondParameter<typeof customInstance>;
+  },
 ) => {
   const queryKey = getShowPetByIdQueryKey(petId, version);
+  const { query: queryOptions, request: requestOptions } = options || {};
 
   const query = useQuery<AsyncReturnType<typeof showPetById>, Error>(
     queryKey,
-    () => showPetById(petId, version),
-    { enabled: !!(version && petId), ...queryConfig },
+    () => showPetById<Data>(petId, version, requestOptions),
+    { enabled: !!(version && petId), ...queryOptions },
   );
 
   return {
@@ -61,7 +77,7 @@ export const useShowPetById = <Error = unknown>(
 
 ### How use other query
 
-With the following example orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the config props.
+With the following example Orval will generate a useQuery and useInfinteQuery with a nextId queryparam. You can also override the config for each one with the options props.
 
 ```js
 module.exports = {
@@ -73,7 +89,7 @@ module.exports = {
           useQuery: true,
           useInfinite: true,
           useInfiniteQueryParam: 'nextId',
-          config: {
+          options: {
             staleTime: 10000,
           },
         },

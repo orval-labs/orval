@@ -6,9 +6,9 @@ import { Pet } from '../api/model';
 @Component({
   selector: 'app-root',
   template: `
-    <div className="App">
-      <header className="App-header">
-        <img src="../assets/logo.png" className="App-logo" alt="logo" />
+    <div class="App">
+      <header class="App-header">
+        <img src="../assets/logo.svg" class="App-logo" alt="logo" />
         <p *ngFor="let pet of pets$ | async">{{ pet.name }}</p>
       </header>
     </div>

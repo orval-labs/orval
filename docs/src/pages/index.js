@@ -27,7 +27,7 @@ const Home = () => {
         <div className="relative bg-white overflow-hidden">
           <div className="py-24 mx-auto container px-4 sm:mt-12  relative">
             <img
-              src={require('images/emblem.png')}
+              src={require('images/emblem.svg')}
               className="absolute transform right-0 top-5/12 h-0 lg:h-full scale-100 translate-x-1/12 -translate-y-1/2"
               alt="orval Emblem"
             />
@@ -40,8 +40,7 @@ const Home = () => {
                     <span>with appropriate type-signatures</span>
                   </h1>
                   <p className="mt-3 text-base text-gray-700 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                    Generate, valid, cache and mock in your React and Angular
-                    applications all with your OpenAPI specification.
+                    Generate, valid, cache and mock in your frontend applications all with your OpenAPI specification.
                   </p>
 
                   <div className="mt-5  mx-auto sm:flex sm:justify-center lg:justify-start lg:mx-0 md:mt-8">
@@ -130,7 +129,7 @@ const Home = () => {
           />
         </div>
 
-        <section className="bg-highlight body-font">
+        <section className="bg-coral body-font">
           <div className="container max-w-7xl px-4  mx-auto -mt-72 relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-x-hidden">
               <Highlight>
@@ -179,73 +178,73 @@ my-app
             <div>
               <div className="grid grid-flow-row grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4 text-white max-w-screen-lg mx-auto text-lg">
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Codegen
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Model Typescript
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Axios Client
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   React query
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Angular
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Config override
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Faker Mock
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   MSW
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Swagger validation
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Easy setup
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Just a CLI
                 </a>
                 <a className="mb-2">
-                  <span className="bg-coral text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
                   Import from link
@@ -279,17 +278,6 @@ my-app
           </div>
         </div>
         <Footer />
-        <style jsx global>{`
-          .gradient {
-            -webkit-mask-image: linear-gradient(
-              180deg,
-              transparent 0,
-              #000 30px,
-              #000 calc(100% - 200px),
-              transparent calc(100% - 100px)
-            );
-          }
-        `}</style>
       </div>
     </>
   );

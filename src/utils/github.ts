@@ -82,11 +82,31 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
   const path = paths.join('/');
 
   try {
-    const { body } = await request<{ data?: { repository: any } }>(
-      ...getGithubSpecReq({ accessToken, repo, owner, branch, path }),
-    );
+    const { body } = await request<{
+      data?: { repository: any };
+      errors?: { type: string }[];
+    }>(...getGithubSpecReq({ accessToken, repo, owner, branch, path }));
+    if (body.errors?.length) {
+      const isErrorRemoveLink = body.errors?.some(
+        (error) => error?.type === 'NOT_FOUND',
+      );
 
-    return body.data?.repository.object.text;
+      if (isErrorRemoveLink) {
+        const answers = await inquirer.prompt<{ removeToken: boolean }>([
+          {
+            type: 'confirm',
+            name: 'removeToken',
+            message:
+              "Your token doesn't have the correct permissions, should we remove it?",
+          },
+        ]);
+        if (answers.removeToken) {
+          await unlink(githubTokenPath);
+        }
+      }
+    }
+
+    return body.data?.repository?.object.text;
   } catch (e) {
     if (!e.body) {
       throw `Oups... 🍻. ${e}`;

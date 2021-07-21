@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import * as React from 'react';
 export function SidebarNavLink({
-  route: { href, pathname, title, selected },
+  route: { href, target, pathname, title, selected },
   onClick,
 }) {
   const router = useRouter();

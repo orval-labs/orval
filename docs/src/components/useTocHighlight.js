@@ -15,7 +15,24 @@ export function useTocHighlight(
   const [headings, setHeadings] = React.useState([]);
 
   React.useEffect(() => {
-    setHeadings(getHeaderAnchors().map(getHeaderDataFromAnchor));
+    const { anchors } = getHeaderAnchors().reduce(
+      (acc, el) => {
+        const anchor = getHeaderDataFromAnchor(el);
+        if (anchor.depth <= 3) {
+          return {
+            lastParent: anchor,
+            anchors: [...acc.anchors, anchor],
+          };
+        }
+
+        return {
+          ...acc,
+          anchors: [...acc.anchors, { ...anchor, parent: acc.lastParent }],
+        };
+      },
+      { lastParent: null, anchors: [] },
+    );
+    setHeadings(anchors);
   }, [setHeadings]);
 
   React.useEffect(() => {
@@ -81,6 +98,11 @@ export function useTocHighlight(
   });
   return {
     headings,
-    active: lastActiveLink && getHeaderDataFromAnchor(lastActiveLink),
+    active:
+      lastActiveLink &&
+      headings.find(
+        (heading) =>
+          heading.url === getHeaderDataFromAnchor(lastActiveLink).url,
+      ),
   };
 }
