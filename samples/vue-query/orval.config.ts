@@ -1,26 +1,25 @@
-const faker = require('faker');
-/**
- * Example config for `yarn example:advanced`
- */
+import * as faker from 'faker';
+import { Options } from '../../dist';
 
-module.exports = {
+const config: Record<string, Options> = {
   petstore: {
     output: {
-      mode: 'tags-split',
+      mode: 'split',
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
-      client: 'angular',
+      client: 'vue-query',
       mock: true,
       override: {
+        mutator: {
+          path: './src/api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.js',
             mock: {
-              properties: () => {
-                return {
-                  id: () => faker.random.number({ min: 1, max: 99999 }),
-                };
-              },
+              properties: () => ({
+                '[].id': () => faker.random.number({ min: 1, max: 99999 }),
+              }),
             },
           },
           showPetById: {
@@ -38,13 +37,20 @@ module.exports = {
             '/tag|name/': () => faker.name.lastName(),
           },
         },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
       },
     },
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.js',
+        transformer: './src/api/transformer/add-version.js',
       },
     },
   },
 };
+
+export default config;
