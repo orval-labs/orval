@@ -107,7 +107,7 @@ const generateImplementation = (
       queryParams,
       response,
       verb,
-      isFormData
+      isFormData,
     });
 
     const requestOptions = isRequestOptions
@@ -138,7 +138,7 @@ const generateImplementation = (
     response,
     verb,
     requestOptions: override?.requestOptions,
-    isFormData
+    isFormData,
   });
 
   return ` ${operationName}<TData = ${

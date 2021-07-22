@@ -46,7 +46,7 @@ const generateAxiosImplementation = (
       queryParams,
       response,
       verb,
-      isFormData
+      isFormData,
     });
 
     const requestOptions = isRequestOptions
@@ -57,10 +57,9 @@ const generateAxiosImplementation = (
         : '// eslint-disable-next-line\n// @ts-ignore\n options'
       : '';
 
-    return `const ${operationName} = <TData = ${response.definition.success || 'unknown'}>(\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    return `const ${operationName} = <TData = ${
+      response.definition.success || 'unknown'
+    }>(\n    ${toObjectString(props, 'implementation')}\n ${
       isRequestOptions
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
@@ -79,7 +78,7 @@ const generateAxiosImplementation = (
     response,
     verb,
     requestOptions: override?.requestOptions,
-    isFormData
+    isFormData,
   });
 
   return `const ${operationName} = <TData = AxiosResponse<${
