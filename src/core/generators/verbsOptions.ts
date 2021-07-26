@@ -31,14 +31,14 @@ import { generateMutator } from './mutator';
 
 const generateVerbOptions = async ({
   verb,
-  output = {},
+  output,
   operation,
   route,
   verbParameters = [],
   context,
 }: {
   verb: Verbs;
-  output?: OutputOptions;
+  output: OutputOptions;
   operation: OperationObject;
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
@@ -132,7 +132,7 @@ export const generateVerbsOptions = ({
   context,
 }: {
   verbs: PathItemObject;
-  output?: OutputOptions;
+  output: OutputOptions;
   route: string;
   context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>

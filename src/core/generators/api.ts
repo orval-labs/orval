@@ -10,7 +10,7 @@ export const generateApi = async ({
   output,
   context,
 }: {
-  output?: OutputOptions;
+  output: OutputOptions;
   context: ContextSpecs;
 }) => {
   return asyncReduce(
@@ -35,12 +35,12 @@ export const generateApi = async ({
         [],
       );
 
-      const client = await generateClient(output?.client, verbsOptions, {
+      const client = await generateClient(output.client, verbsOptions, {
         route,
         pathRoute,
-        override: output?.override,
+        override: output.override,
         context,
-        mock: !!output?.mock,
+        mock: !!output.mock,
       });
 
       return {

@@ -16,10 +16,10 @@ const generateInputSpecs = async ({
   workspace,
 }: {
   specs: Record<string, OpenAPIObject>;
-  input?: InputOptions;
+  input: InputOptions;
   workspace: string;
 }): Promise<Record<string, OpenAPIObject>> => {
-  const transformerFn = input?.override?.transformer
+  const transformerFn = input.override?.transformer
     ? await dynamicImport(input.override.transformer, workspace)
     : undefined;
 
@@ -28,12 +28,12 @@ const generateInputSpecs = async ({
     async (acc, [specKey, value]) => {
       const schema = await swaggerConverter(
         value,
-        input?.converterOptions,
+        input.converterOptions,
         specKey,
       );
       const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
 
-      if (input?.validation) {
+      if (input.validation) {
         await ibmOpenapiValidator(transfomedSchema);
       }
 

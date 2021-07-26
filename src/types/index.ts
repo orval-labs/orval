@@ -13,6 +13,14 @@ export interface Options {
   input?: string | InputOptions;
 }
 
+export interface NormalizedOptions {
+  output: Omit<Required<OutputOptions>, 'schemas' | 'target'> & {
+    target?: string;
+    schemas?: string;
+  };
+  input: Required<InputOptions>;
+}
+
 export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
@@ -27,7 +35,7 @@ export type OutputOptions = {
 };
 
 export type InputOptions = {
-  target?: string;
+  target: string;
   validation?: boolean;
   override?: OverrideInput;
   converterOptions?: swagger2openapi.Options;
@@ -153,8 +161,8 @@ export const Verbs = {
 
 export type ImportOpenApi = {
   data: Record<string, OpenAPIObject>;
-  input?: InputOptions;
-  output?: OutputOptions;
+  input: InputOptions;
+  output: OutputOptions;
   path: string;
   workspace: string;
 };

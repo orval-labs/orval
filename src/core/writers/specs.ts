@@ -1,7 +1,6 @@
 import { join } from 'upath';
-import { Options, OutputMode, OutputOptions } from '../../types';
+import { NormalizedOptions, OutputMode } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
-import { isObject, isString } from '../../utils/is';
 import { createSuccessMessage } from '../../utils/messages/logs';
 import { getSpecName } from '../../utils/path';
 import { writeSchemas } from './schemas';
@@ -10,20 +9,13 @@ import { writeSplitMode } from './splitMode';
 import { writeSplitTagsMode } from './splitTagsMode';
 import { writeTagsMode } from './tagsMode';
 
-const isSingleMode = (output: string | OutputOptions): output is string =>
-  isString(output) || !output.mode || output.mode === OutputMode.SINGLE;
-
 export const writeSpecs = async (
   { operations, schemas, rootSpecKey, info }: WriteSpecsProps,
   workspace: string,
-  options: Options,
+  options: NormalizedOptions,
   projectName?: string,
 ) => {
   const { output } = options;
-
-  if (!output || (isObject(output) && !output.target && !output.schemas)) {
-    throw new Error('You need to provide an output');
-  }
 
   const specsName = Object.keys(schemas).reduce((acc, specKey) => {
     const basePath = getSpecName(specKey, rootSpecKey);
@@ -33,7 +25,7 @@ export const writeSpecs = async (
     return { ...acc, [specKey]: name };
   }, {} as Record<keyof typeof schemas, string>);
 
-  if (isObject(output) && output.schemas) {
+  if (output.schemas) {
     const rootSchemaPath = join(workspace, output.schemas);
 
     await Promise.all(
@@ -55,16 +47,16 @@ export const writeSpecs = async (
     );
   }
 
-  if (isObject(output) && !output.target) {
+  if (!output.target) {
     createSuccessMessage(projectName || info.title);
     return;
   }
 
-  if (isSingleMode(output)) {
+  if (output.mode === OutputMode.SINGLE) {
     await writeSingleMode({
       workspace,
       operations,
-      output: isString(output) ? { target: output } : output,
+      output,
       info,
       schemas,
       specsName,

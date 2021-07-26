@@ -23,6 +23,8 @@
     "react-query",
     "svelte",
     "svelte-query",
+    "vue",
+    "vue-query",
     "msw",
     "mock",
     "axios"

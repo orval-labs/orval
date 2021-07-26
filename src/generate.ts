@@ -1,13 +1,14 @@
 import { dirname } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
-import { ExternalConfigFile, Options } from './types';
+import { ExternalConfigFile, NormalizedOptions } from './types';
 import { catchError } from './utils/errors';
 import { loadFile } from './utils/file';
+import { normalizeOptions } from './utils/options';
 
 export const generateSpec = async (
   workspace: string,
-  options: Options,
+  options: NormalizedOptions,
   projectName?: string,
 ) => {
   try {
@@ -35,7 +36,7 @@ export const generateConfig = async (
     const project = config[projectName];
 
     if (project) {
-      generateSpec(workspace, project, projectName);
+      generateSpec(workspace, normalizeOptions(project), projectName);
     } else {
       catchError('Project not found');
     }
@@ -44,7 +45,7 @@ export const generateConfig = async (
 
   return Promise.all(
     Object.entries(config).map(([projectName, options]) =>
-      generateSpec(workspace, options, projectName),
+      generateSpec(workspace, normalizeOptions(options), projectName),
     ),
   );
 };
