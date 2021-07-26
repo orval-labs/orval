@@ -1,5 +1,6 @@
 import cuid from 'cuid';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { keyword } from 'esutils';
 import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
@@ -86,11 +87,14 @@ export const getMockObject = async ({
             imports = [...imports, ...resolvedValue.imports];
             properties = [...properties, key];
 
+            const keyDefinition = keyword.isIdentifierNameES5(key)
+              ? key
+              : `'${key}'`;
             if (!isRequired && !resolvedValue.overrided) {
-              return `${key}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
+              return `${keyDefinition}: faker.helpers.randomize([${resolvedValue.value}, undefined])`;
             }
 
-            return `${key}: ${resolvedValue.value}`;
+            return `${keyDefinition}: ${resolvedValue.value}`;
           },
         ),
       )
