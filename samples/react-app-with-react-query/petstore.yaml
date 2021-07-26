@@ -110,6 +110,9 @@ components:
         - id
         - name
       properties:
+        '@id':
+          type: string
+          format: iri-reference
         id:
           type: integer
           format: int64

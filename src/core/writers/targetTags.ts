@@ -77,7 +77,9 @@ export const generateTargetForTags = (
   operations: GeneratorOperations,
   options?: OutputOptions,
 ) => {
-  const operationNames = Object.values(operations).map(({operationName}) => operationName);
+  const operationNames = Object.values(operations).map(
+    ({ operationName }) => operationName,
+  );
   const allTargetTags = Object.values(operations)
     .map(addDefaultTagIfEmpty)
     .reduce((acc, operation, index, arr) => {
