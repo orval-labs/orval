@@ -1,4 +1,4 @@
-import { OpenAPIObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
 import { ContextSpecs, MockOptions, OverrideOutput } from '../../types';
 import { GeneratorImport } from '../../types/generator';
@@ -7,7 +7,7 @@ import { asyncReduce } from '../../utils/async-reduce';
 import { isFunction } from '../../utils/is';
 import { stringify } from '../../utils/string';
 import { getMockScalar } from '../getters/scalar.mock';
-import { getSchema } from '../getters/schema';
+import { resolveRef } from '../resolvers/ref';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
   Object.entries(isFunction(properties) ? properties(spec) : properties).reduce(
@@ -109,7 +109,7 @@ export const getResponsesMockDefinition = ({
 }) => {
   return asyncReduce(
     response.types.success,
-    async (acc, { value: definition, imports }) => {
+    async (acc, { value: definition, schema }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
@@ -120,31 +120,17 @@ export const getResponsesMockDefinition = ({
         return acc;
       }
 
-      const schemaImport = imports.find(
-        ({ name }) =>
-          name ===
-          (definition.endsWith('[]') ? definition.slice(0, -2) : definition),
-      );
-
-      if (!schemaImport) {
-        return acc;
-      }
-
-      const schema = {
-        name: definition,
-        ...getSchema(
-          schemaImport.schemaName || schemaImport.name,
-          context,
-          schemaImport.specKey,
-        ),
-      };
-
       if (!schema) {
         return acc;
       }
 
+      const resolvedRef = await resolveRef<SchemaObject>(schema, context);
+
       const scalar = await getMockScalar({
-        item: schema,
+        item: {
+          name: definition,
+          ...resolvedRef.schema,
+        },
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,

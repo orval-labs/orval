@@ -16,7 +16,7 @@ import { resolveRef } from '../resolvers/ref';
 
 const formDataContentTypes = ['multipart/form-data'];
 
-const getResReqContentTypes = ({
+const getResReqContentTypes = async ({
   mediaType,
   propName,
   context,
@@ -29,7 +29,16 @@ const getResReqContentTypes = ({
     return undefined;
   }
 
-  return resolveObject({ schema: mediaType.schema, propName, context });
+  const resolvedObject = await resolveObject({
+    schema: mediaType.schema,
+    propName,
+    context,
+  });
+
+  return {
+    ...resolvedObject,
+    schema: mediaType.schema,
+  };
 };
 
 export const getResReqTypes = async (
@@ -67,6 +76,7 @@ export const getResReqTypes = async (
                 type: 'unknown',
                 isEnum: false,
                 isRef: true,
+                schema: mediaType?.schema,
                 key,
               },
             ] as ResReqTypesValue[];
@@ -90,6 +100,7 @@ export const getResReqTypes = async (
               isEnum: false,
               formData,
               isRef: true,
+              schema: mediaType?.schema,
               key,
             },
           ] as ResReqTypesValue[];
