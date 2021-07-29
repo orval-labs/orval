@@ -14,4 +14,5 @@ export type ResReqTypesValue = ResolverValue & {
   formData?: string;
   isRef?: boolean;
   key: string;
+  schema?: SchemaObject;
 };
