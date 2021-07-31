@@ -107,7 +107,7 @@ export const getObject = async ({
   if (item.additionalProperties) {
     if (isBoolean(item.additionalProperties)) {
       return {
-        value: `{[key: string]: object}`,
+        value: `{ [key: string]: any }`,
         imports: [],
         schemas: [],
         isEnum: false,
