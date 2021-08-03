@@ -1,6 +1,5 @@
-import { ParameterObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
-import { GetterParams } from '../../types/getters';
+import { GetterParameters, GetterParams } from '../../types/getters';
 import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
 
@@ -33,49 +32,64 @@ export const getParams = ({
   context,
 }: {
   route: string;
-  pathParams?: ParameterObject[];
+  pathParams?: GetterParameters['query'];
   operationId: string;
   context: ContextSpecs;
 }): Promise<GetterParams> => {
   const params = getParamsInPath(route);
   return Promise.all(
     params.map(async (p) => {
-      try {
-        const { name: nameWithoutSanitize, required, schema } = pathParams.find(
-          (i) => sanitize(i.name) === p,
-        ) as {
-          name: string;
-          required: boolean;
-          schema: SchemaObject;
-        };
+      const pathParam = pathParams.find(
+        ({ parameter }) => sanitize(parameter.name) === p,
+      );
 
-        const name = sanitize(nameWithoutSanitize);
-
-        const resolvedValue = await resolveValue({ schema, context });
-
-        const definition = `${name}${!required || schema.default ? '?' : ''}: ${
-          resolvedValue.value
-        }`;
-
-        const implementation = `${name}${
-          !required && !schema.default ? '?' : ''
-        }${
-          !schema.default ? `: ${resolvedValue.value}` : `= ${schema.default}`
-        }`;
-
-        return {
-          name,
-          definition,
-          implementation,
-          default: schema.default,
-          required,
-          imports: resolvedValue.imports,
-        };
-      } catch (err) {
+      if (!pathParam) {
         throw new Error(
           `The path params ${p} can't be found in parameters (${operationId})`,
         );
       }
+
+      const {
+        name: nameWithoutSanitize,
+        required = false,
+        schema,
+      } = pathParam.parameter;
+
+      const name = sanitize(nameWithoutSanitize);
+
+      if (!schema) {
+        return {
+          name,
+          definition: `${name}${!required ? '?' : ''}: unknown`,
+          implementation: `${name}${!required ? '?' : ''}: unknown`,
+          default: false,
+          required,
+          imports: [],
+        };
+      }
+
+      const resolvedValue = await resolveValue({ schema, context });
+
+      const definition = `${name}${
+        !required || resolvedValue.originalSchema!.default ? '?' : ''
+      }: ${resolvedValue.value}`;
+
+      const implementation = `${name}${
+        !required && !resolvedValue.originalSchema!.default ? '?' : ''
+      }${
+        !resolvedValue.originalSchema!.default
+          ? `: ${resolvedValue.value}`
+          : `= ${resolvedValue.originalSchema!.default}`
+      }`;
+
+      return {
+        name,
+        definition,
+        implementation,
+        default: resolvedValue.originalSchema!.default,
+        required,
+        imports: resolvedValue.imports,
+      };
     }),
   );
 };

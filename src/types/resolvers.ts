@@ -7,12 +7,12 @@ export type ResolverValue = {
   type: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  ref?: SchemaObject;
+  originalSchema?: SchemaObject;
+  isRef: boolean;
 };
 
 export type ResReqTypesValue = ResolverValue & {
   formData?: string;
   isRef?: boolean;
   key: string;
-  schema?: SchemaObject;
 };

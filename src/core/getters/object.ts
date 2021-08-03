@@ -32,6 +32,7 @@ export const getObject = async ({
       schemas: [],
       isEnum: false,
       type: 'object',
+      isRef: true,
     };
   }
 
@@ -82,6 +83,7 @@ export const getObject = async ({
         if (!index) {
           acc.value += '{';
         }
+
         acc.imports = [...acc.imports, ...resolvedValue.imports];
         acc.value += `\n  ${isReadOnly ? 'readonly ' : ''}${getKey(key)}${
           isRequired ? '' : '?'
@@ -100,6 +102,8 @@ export const getObject = async ({
         value: '',
         isEnum: false,
         type: 'object',
+        isRef: false,
+        schema: {},
       } as ResolverValue,
     );
   }
@@ -112,6 +116,7 @@ export const getObject = async ({
         schemas: [],
         isEnum: false,
         type: 'object',
+        isRef: false,
       };
     }
     const resolvedValue = await resolveValue({
@@ -125,6 +130,7 @@ export const getObject = async ({
       schemas: resolvedValue.schemas || [],
       isEnum: false,
       type: 'object',
+      isRef: false,
     };
   }
 
@@ -134,5 +140,6 @@ export const getObject = async ({
     schemas: [],
     isEnum: false,
     type: 'object',
+    isRef: false,
   };
 };

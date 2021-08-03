@@ -47,15 +47,16 @@ export const generateSchemasDefinition = async (
         let output = '';
 
         const schemaName = pascal(name);
+
         let imports = resolvedValue.imports;
 
-        if (resolvedValue.isEnum && !resolvedValue.ref) {
+        if (resolvedValue.isEnum && !resolvedValue.isRef) {
           output += getEnum(
             resolvedValue.value,
             resolvedValue.type,
             schemaName,
           );
-        } else if (schemaName === resolvedValue.value && resolvedValue.ref) {
+        } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
           const imp = resolvedValue.imports.find(
             (imp) => imp.name === schemaName,
           );

@@ -7,6 +7,7 @@ import { swaggerConverter } from '../../utils/converter';
 import { dynamicImport } from '../../utils/imports';
 import { generateApi } from '../generators/api';
 import { generateComponentDefinition } from '../generators/componentDefinition';
+import { generateParameterDefinition } from '../generators/parameterDefinition';
 import { generateSchemasDefinition } from '../generators/schemaDefinition';
 import { ibmOpenapiValidator } from '../validators/ibm-openapi-validator';
 
@@ -74,12 +75,19 @@ export const importOpenApi = async ({
         { specKey, workspace, specs },
         'Body',
       );
+
+      const parameters = await generateParameterDefinition(
+        spec.components?.parameters,
+        { specKey, workspace, specs },
+      );
+
       return {
         ...acc,
         [specKey]: [
           ...schemaDefinition,
           ...responseDefinition,
           ...bodyDefinition,
+          ...parameters,
         ],
       };
     },

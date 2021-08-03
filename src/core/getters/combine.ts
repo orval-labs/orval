@@ -56,6 +56,7 @@ export const combineSchemas = async ({
       schemas: [],
       isEnum: true, // check if only enums
       type: 'object',
+      isRef: false,
     } as ResolverValue,
   );
 

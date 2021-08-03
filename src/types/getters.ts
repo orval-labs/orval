@@ -25,8 +25,8 @@ export type GetterBody = {
 };
 
 export type GetterParameters = {
-  query: ParameterObject[];
-  path: ParameterObject[];
+  query: { parameter: ParameterObject; imports: GeneratorImport[] }[];
+  path: { parameter: ParameterObject; imports: GeneratorImport[] }[];
 };
 
 export type GetterParam = {

@@ -39,11 +39,12 @@ export const resolveObject = async ({
       ],
       isEnum: false,
       type: 'object',
-      ref: resolvedValue.ref,
+      originalSchema: resolvedValue.originalSchema,
+      isRef: resolvedValue.isRef,
     };
   }
 
-  if (propName && resolvedValue.isEnum && !combined && !resolvedValue.ref) {
+  if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
     const enumValue = getEnum(
       resolvedValue.value,
       resolvedValue.type,
@@ -63,7 +64,8 @@ export const resolveObject = async ({
       ],
       isEnum: false,
       type: 'enum',
-      ref: resolvedValue.ref,
+      originalSchema: resolvedValue.originalSchema,
+      isRef: resolvedValue.isRef,
     };
   }
 

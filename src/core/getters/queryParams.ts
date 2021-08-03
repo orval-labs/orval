@@ -1,6 +1,7 @@
-import { ParameterObject, SchemaObject } from 'openapi3-ts';
+import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
+import { GetterParameters } from '../../types/getters';
 import { pascal } from '../../utils/case';
 import { resolveValue } from '../resolvers/value';
 import { getEnum } from './enum';
@@ -13,29 +14,44 @@ type QueryParamsType = {
 };
 
 const getQueryParamsTypes = (
-  queryParams: (ParameterObject | GeneratorImport)[],
+  queryParams: GetterParameters['query'],
   operationName: string,
   context: ContextSpecs,
 ): Promise<QueryParamsType[]> => {
   return Promise.all(
-    queryParams.map(async (p) => {
-      const { name, required, schema } = p as {
+    queryParams.map(async ({ parameter, imports: parameterImports }) => {
+      const { name, required, schema } = parameter as {
         name: string;
         required: boolean;
         schema: SchemaObject;
       };
 
-      const { value, imports, isEnum, type, schemas, ref } = await resolveValue(
-        {
-          schema: schema!,
-          context,
-          name: pascal(operationName) + pascal(name),
-        },
-      );
+      const {
+        value,
+        imports,
+        isEnum,
+        type,
+        schemas,
+        isRef,
+      } = await resolveValue({
+        schema: schema!,
+        context,
+        name: pascal(operationName) + pascal(name),
+      });
 
       const key = getKey(name);
 
-      if (isEnum && !ref) {
+      if (parameterImports.length) {
+        return {
+          definition: `${key}${!required || schema.default ? '?' : ''}: ${
+            parameterImports[0].name
+          }`,
+          imports: parameterImports,
+          schemas: [],
+        };
+      }
+
+      if (isEnum && !isRef) {
         const enumName = pascal(operationName) + pascal(name);
         const enumValue = getEnum(value, type, enumName);
 
@@ -66,7 +82,7 @@ export const getQueryParams = async ({
   operationName,
   context,
 }: {
-  queryParams: ParameterObject[];
+  queryParams: GetterParameters['query'];
   operationName: string;
   context: ContextSpecs;
 }): Promise<

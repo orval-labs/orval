@@ -16,15 +16,15 @@ export const getParameters = async ({
     parameters,
     async (acc, p) => {
       if (isReference(p)) {
-        const { schema: parameter } = await resolveRef<ParameterObject>(
-          p,
-          context,
-        );
+        const {
+          schema: parameter,
+          imports,
+        } = await resolveRef<ParameterObject>(p, context);
 
         if (parameter.in === 'path' || parameter.in === 'query') {
           return {
             ...acc,
-            [parameter.in]: [...acc[parameter.in], parameter],
+            [parameter.in]: [...acc[parameter.in], { parameter, imports }],
           };
         }
 
@@ -33,15 +33,15 @@ export const getParameters = async ({
         if (p.in !== 'query' && p.in !== 'path') {
           return acc;
         }
-        return { ...acc, [p.in]: [...acc[p.in], p] };
+        return {
+          ...acc,
+          [p.in]: [...acc[p.in], { parameter: p, imports: [] }],
+        };
       }
     },
     {
       path: [],
       query: [],
-    } as {
-      path: ParameterObject[];
-      query: ParameterObject[];
-    },
+    } as GetterParameters,
   );
 };

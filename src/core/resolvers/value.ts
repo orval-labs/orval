@@ -27,9 +27,16 @@ export const resolveValue = async ({
       type: schemaObject?.type || 'object',
       schemas: [],
       isEnum: !!schemaObject?.enum,
-      ref: schemaObject,
+      originalSchema: schemaObject,
+      isRef: true,
     };
   }
 
-  return getScalar({ item: schema, name, context });
+  const scalar = await getScalar({ item: schema, name, context });
+
+  return {
+    ...scalar,
+    originalSchema: schema,
+    isRef: false,
+  };
 };

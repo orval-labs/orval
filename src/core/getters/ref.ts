@@ -20,7 +20,7 @@ const REF_COMPONENTS = Object.values(RefComponent);
 const RefComponentSuffix = {
   [RefComponent.schemas]: '',
   [RefComponent.responses]: 'Response',
-  [RefComponent.parameters]: '',
+  [RefComponent.parameters]: 'Parameter',
   [RefComponent.requestBodies]: 'Body',
 };
 

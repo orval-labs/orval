@@ -35,10 +35,7 @@ const getResReqContentTypes = async ({
     context,
   });
 
-  return {
-    ...resolvedObject,
-    schema: mediaType.schema,
-  };
+  return resolvedObject;
 };
 
 export const getResReqTypes = async (
@@ -76,7 +73,7 @@ export const getResReqTypes = async (
                 type: 'unknown',
                 isEnum: false,
                 isRef: true,
-                schema: mediaType?.schema,
+                originalSchema: mediaType?.schema,
                 key,
               },
             ] as ResReqTypesValue[];
@@ -100,7 +97,7 @@ export const getResReqTypes = async (
               isEnum: false,
               formData,
               isRef: true,
-              schema: mediaType?.schema,
+              originalSchema: mediaType?.schema,
               key,
             },
           ] as ResReqTypesValue[];
@@ -157,6 +154,7 @@ export const getResReqTypes = async (
             type: 'unknown',
             isEnum: false,
             key,
+            isRef: false,
           },
         ] as ResReqTypesValue[];
       }),
