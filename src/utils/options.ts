@@ -27,7 +27,7 @@ export const normalizeOptions = (options: Options) => {
 
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: inputOptions.target as string,
+      target: inputOptions.target,
       validation: inputOptions.validation || false,
       override: inputOptions.override || { transformer: undefined },
       converterOptions: inputOptions.converterOptions || {},

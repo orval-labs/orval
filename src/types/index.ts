@@ -35,7 +35,7 @@ export type OutputOptions = {
 };
 
 export type InputOptions = {
-  target: string;
+  target: string | OpenAPIObject;
   validation?: boolean;
   override?: OverrideInput;
   converterOptions?: swagger2openapi.Options;

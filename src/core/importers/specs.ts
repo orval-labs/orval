@@ -2,6 +2,7 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import { resolve } from 'upath';
 import { NormalizedOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { isObject } from '../../utils/is';
 import { isUrl } from '../../utils/url';
 import { importOpenApi } from './openApi';
 
@@ -27,6 +28,16 @@ export const importSpecs = async (
   options: NormalizedOptions,
 ): Promise<WriteSpecsProps> => {
   const { input, output } = options;
+
+  if (isObject(input.target)) {
+    return importOpenApi({
+      data: input.target,
+      input,
+      output,
+      path: workspace,
+      workspace,
+    });
+  }
 
   const isPathUrl = isUrl(input.target);
   const path = isPathUrl ? input.target : resolve(workspace, input.target);
