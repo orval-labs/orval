@@ -32,7 +32,7 @@ export const generateSchemaFormData = async (
         if (property.type === 'object' || property.type === 'array') {
           formDataValue = `formData.append('${key}', JSON.stringify(${camel(
             propName,
-          )}${key.includes('-') ? `['${key}']` : `.${key}`})\n`;
+          )}${key.includes('-') ? `['${key}']` : `.${key}`}))\n`;
         } else if (
           property.type === 'number' ||
           property.type === 'integer' ||
