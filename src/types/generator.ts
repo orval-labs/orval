@@ -48,6 +48,7 @@ export type GeneratorTarget = {
   implementationMSW: string;
   importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
+  formData?: GeneratorMutator[];
 };
 
 export type GeneratorTargetFull = {
@@ -59,6 +60,7 @@ export type GeneratorTargetFull = {
   };
   importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
+  formData?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
@@ -68,6 +70,7 @@ export type GeneratorOperation = {
   importsMSW: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
+  formData?: GeneratorMutator;
   operationName: string;
 };
 
@@ -83,6 +86,7 @@ export type GeneratorVerbOptions = {
   params: GetterParams;
   props: GetterProps;
   mutator?: GeneratorMutator;
+  formData?: GeneratorMutator;
   override?: OperationOptions | undefined;
 };
 

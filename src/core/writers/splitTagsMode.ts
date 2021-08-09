@@ -36,6 +36,7 @@ export const writeSplitTagsMode = ({
           implementationMSW,
           importsMSW,
           mutators,
+          formData,
         } = target;
         const header = getFilesHeader(info);
 
@@ -85,6 +86,10 @@ export const writeSplitTagsMode = ({
 
         if (mutators) {
           implementationData += generateMutatorImports(mutators, true);
+        }
+
+        if (formData) {
+          implementationData += generateMutatorImports(formData);
         }
 
         implementationData += `\n${implementation}`;

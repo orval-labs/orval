@@ -32,6 +32,7 @@ export const writeSplitMode = async ({
       implementationMSW,
       importsMSW,
       mutators,
+      formData,
     } = generateTarget(operations, info, output);
 
     const header = getFilesHeader(info);
@@ -80,6 +81,10 @@ export const writeSplitMode = async ({
 
     if (mutators) {
       implementationData += generateMutatorImports(mutators);
+    }
+
+    if (formData) {
+      implementationData += generateMutatorImports(formData);
     }
 
     implementationData += `\n${implementation}`;

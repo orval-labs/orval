@@ -224,6 +224,7 @@ export const generateClient = (
           importsMSW: msw.imports,
           tags: verbOption.tags,
           mutator: verbOption.mutator,
+          formData: verbOption.formData,
           operationName: verbOption.operationName,
         },
       };

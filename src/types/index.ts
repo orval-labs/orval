@@ -106,7 +106,7 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
-  formData?: boolean;
+  formData?: boolean | Mutator;
   query?: QueryOptions;
   operationName?: (
     operation: OperationObject,
@@ -144,7 +144,7 @@ export type OperationOptions = {
     route: string,
     verb: Verbs,
   ) => string;
-  formData?: boolean;
+  formData?: boolean | Mutator;
   requestOptions?: object | boolean;
 };
 

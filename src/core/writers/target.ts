@@ -33,6 +33,10 @@ export const generateTarget = (
         acc.mutators = [...acc.mutators, operation.mutator];
       }
 
+      if (operation.formData) {
+        acc.formData = [...acc.formData, operation.formData];
+      }
+
       if (index === arr.length - 1) {
         const isMutator = !!acc.mutators?.some(
           (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
@@ -65,6 +69,7 @@ export const generateTarget = (
       },
       importsMSW: [] as GeneratorImport[],
       mutators: [] as GeneratorMutator[],
+      formData: [] as GeneratorMutator[],
     },
   );
 

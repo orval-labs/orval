@@ -18,7 +18,7 @@ import {
 import { asyncReduce } from '../../utils/async-reduce';
 import { camel } from '../../utils/case';
 import { dynamicImport } from '../../utils/imports';
-import { isVerb } from '../../utils/is';
+import { isObject, isString, isVerb } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { getBody } from '../getters/body';
 import { getOperationId } from '../getters/operation';
@@ -64,7 +64,7 @@ const generateVerbOptions = async ({
     {},
   );
 
-  const override = { ...output.override, ...overrideTag, ...overrideOperation };
+  const override: OperationOptions = { ...output.override, ...overrideTag, ...overrideOperation };
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
@@ -102,7 +102,17 @@ const generateVerbOptions = async ({
     mutator: override?.mutator,
   });
 
-  const verbOption = {
+  const formData =
+    isString(override?.formData) || isObject(override?.formData)
+      ? await generateMutator({
+          output: output.target,
+          name: operationName,
+          workspace: context.workspace,
+          mutator: override?.formData,
+        })
+      : undefined;
+
+  const verbOption: GeneratorVerbOptions = {
     verb: verb as Verbs,
     tags,
     summary: operation.summary,
@@ -114,6 +124,7 @@ const generateVerbOptions = async ({
     params,
     props,
     mutator,
+    formData,
     override,
   };
 

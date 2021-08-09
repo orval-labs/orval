@@ -7,6 +7,7 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import {
+  GetterBody,
   GetterParams,
   GetterProps,
   GetterPropType,
@@ -90,6 +91,26 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getVueQueryDependencies = () => VUE_QUERY_DEPENDENCIES;
 
+const generateQueryFormDataFunction = ({
+  isFormData,
+  formData,
+  body,
+}: {
+  body: GetterBody;
+  formData: GeneratorMutator | undefined;
+  isFormData: boolean;
+}) => {
+  if (!isFormData) {
+    return '';
+  }
+
+  if (formData && body.formData) {
+    return `const formData = ${formData.name}(${body.implementation})`;
+  }
+
+  return body.formData;
+};
+
 const generateQueryRequestFunction = (
   {
     queryParams,
@@ -99,12 +120,19 @@ const generateQueryRequestFunction = (
     body,
     props,
     verb,
+    formData,
     override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+
+  const formDataImplementation = generateQueryFormDataFunction({
+    isFormData,
+    formData,
+    body,
+  });
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -130,7 +158,7 @@ const generateQueryRequestFunction = (
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${isFormData ? body.formData : ''}
+    }) => {${formDataImplementation}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
@@ -152,7 +180,7 @@ const generateQueryRequestFunction = (
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ): Promise<TData> => {${isFormData ? body.formData : ''}
+  } ): Promise<TData> => {${formDataImplementation}
     return axios.${verb}(${options});
   }
 `;

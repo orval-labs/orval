@@ -32,6 +32,7 @@ export const writeSingleMode = async ({
       implementation,
       implementationMSW,
       mutators,
+      formData
     } = generateTarget(operations, info, isObject(output) ? output : undefined);
 
     let data = getFilesHeader(info);
@@ -72,6 +73,10 @@ export const writeSingleMode = async ({
 
     if (mutators) {
       data += generateMutatorImports(mutators);
+    }
+
+    if (formData) {
+      data += generateMutatorImports(formData);
     }
 
     data += `\n\n${implementation}`;

@@ -1,9 +1,11 @@
 import {
   GeneratorClient,
   GeneratorDependency,
+  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
+import { GetterBody } from '../../types/getters';
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
@@ -87,6 +89,26 @@ export class ${title} {
 
 export const generateAngularFooter = () => '};\n';
 
+const generateQueryFormDataFunction = ({
+  isFormData,
+  formData,
+  body,
+}: {
+  body: GetterBody;
+  formData: GeneratorMutator | undefined;
+  isFormData: boolean;
+}) => {
+  if (!isFormData) {
+    return '';
+  }
+
+  if (formData && body.formData) {
+    return `const formData = ${formData.name}(${body.implementation})`;
+  }
+
+  return body.formData;
+};
+
 const generateImplementation = (
   {
     queryParams,
@@ -97,11 +119,18 @@ const generateImplementation = (
     props,
     verb,
     override,
+    formData,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+
+  const formDataImplementation = generateQueryFormDataFunction({
+    isFormData,
+    formData,
+    body,
+  });
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -127,7 +156,7 @@ const generateImplementation = (
       isRequestOptions && isMutatorHasThirdArg
         ? `options?: ThirdParameter<typeof ${mutator.name}>`
         : ''
-    }) {${isFormData ? body.formData : ''}
+    }) {${formDataImplementation}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
@@ -150,7 +179,7 @@ const generateImplementation = (
     response.definition.success || 'unknown'
   }>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: HttpClientOptions\n` : ''
-  }  ): Observable<TData>  {${isFormData ? body.formData : ''}
+  }  ): Observable<TData>  {${formDataImplementation}
     return this.http.${verb}<TData>(${options});
   }
 `;

@@ -1,9 +1,11 @@
 import {
   GeneratorClient,
   GeneratorDependency,
+  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
+import { GetterBody } from '../../types/getters';
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
@@ -26,6 +28,26 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getAxiosDependencies = () => AXIOS_DEPENDENCIES;
 
+const generateQueryFormDataFunction = ({
+  isFormData,
+  formData,
+  body,
+}: {
+  body: GetterBody;
+  formData: GeneratorMutator | undefined;
+  isFormData: boolean;
+}) => {
+  if (!isFormData) {
+    return '';
+  }
+
+  if (formData && body.formData) {
+    return `const formData = ${formData.name}(${body.implementation})`;
+  }
+
+  return body.formData;
+};
+
 const generateAxiosImplementation = (
   {
     queryParams,
@@ -36,11 +58,18 @@ const generateAxiosImplementation = (
     props,
     verb,
     override,
+    formData,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+
+  const formDataImplementation = generateQueryFormDataFunction({
+    isFormData,
+    formData,
+    body,
+  });
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -66,7 +95,7 @@ const generateAxiosImplementation = (
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${isFormData ? body.formData : ''}
+    }) => {${formDataImplementation}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
@@ -88,7 +117,7 @@ const generateAxiosImplementation = (
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ): Promise<TData> => {${isFormData ? body.formData : ''}
+  } ): Promise<TData> => {${formDataImplementation}
     return axios.${verb}(${options});
   }
 `;

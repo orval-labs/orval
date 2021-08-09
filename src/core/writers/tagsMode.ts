@@ -36,6 +36,7 @@ export const writeTagsMode = ({
           implementationMSW,
           importsMSW,
           mutators,
+          formData,
         } = target;
         const header = getFilesHeader(info);
         let data = header;
@@ -85,6 +86,10 @@ export const writeTagsMode = ({
 
         if (mutators) {
           data += generateMutatorImports(mutators);
+        }
+
+        if (formData) {
+          data += generateMutatorImports(formData);
         }
 
         data += '\n\n';
