@@ -1,9 +1,10 @@
 import { dirname } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
-import { ExternalConfigFile, NormalizedOptions } from './types';
+import { ConfigExternal, NormalizedOptions } from './types';
 import { catchError } from './utils/errors';
 import { loadFile } from './utils/file';
+import { isFunction } from './utils/is';
 import { normalizeOptions } from './utils/options';
 
 export const generateSpec = async (
@@ -23,7 +24,7 @@ export const generateConfig = async (
   configFile?: string,
   projectName?: string,
 ) => {
-  const { path, file: config } = await loadFile<ExternalConfigFile>(
+  const { path, file: configExternal } = await loadFile<ConfigExternal>(
     configFile,
     {
       defaultFileName: 'orval.config',
@@ -32,11 +33,16 @@ export const generateConfig = async (
 
   const workspace = dirname(path);
 
-  if (projectName) {
-    const project = config[projectName];
+  const config = await (isFunction(configExternal)
+    ? configExternal()
+    : configExternal);
 
-    if (project) {
-      generateSpec(workspace, normalizeOptions(project), projectName);
+  if (projectName) {
+    const optionsExport = config[projectName];
+    const normalizedOptions = await normalizeOptions(optionsExport);
+
+    if (normalizedOptions) {
+      generateSpec(workspace, normalizedOptions, projectName);
     } else {
       catchError('Project not found');
     }
@@ -44,8 +50,10 @@ export const generateConfig = async (
   }
 
   return Promise.all(
-    Object.entries(config).map(([projectName, options]) =>
-      generateSpec(workspace, normalizeOptions(options), projectName),
-    ),
+    Object.entries(config).map(async ([projectName, optionsExport]) => {
+      const normalizedOptions = await normalizeOptions(optionsExport);
+
+      return generateSpec(workspace, normalizedOptions, projectName);
+    }),
   );
 };

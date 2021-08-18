@@ -1,7 +1,7 @@
 import * as faker from 'faker';
-import { Options } from '../../dist';
+import { defineConfig } from 'orval';
 
-const config: Record<string, Options> = {
+export default defineConfig({
   petstore: {
     output: {
       mode: 'split',
@@ -47,6 +47,4 @@ const config: Record<string, Options> = {
       },
     },
   },
-};
-
-export default config;
+});

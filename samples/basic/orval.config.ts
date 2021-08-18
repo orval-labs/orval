@@ -1,8 +1,8 @@
 import * as faker from 'faker';
-import { Options } from '../../dist';
+import { defineConfig } from 'orval';
 import transformer from './api/transformer/add-version.js';
 
-const config: Record<string, Options> = {
+export default defineConfig({
   'petstore-file': {
     input: './petstore.yaml',
     output: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
@@ -48,6 +48,4 @@ const config: Record<string, Options> = {
       },
     },
   },
-};
-
-export default config;
+});

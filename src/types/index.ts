@@ -13,6 +13,16 @@ export interface Options {
   input?: string | InputOptions;
 }
 
+export type OptionsFn = () => Options | Promise<Options>;
+export type OptionsExport = Options | Promise<Options> | OptionsFn;
+
+export type Config = {
+  [project: string]: OptionsExport;
+};
+export type ConfigFn = () => Config | Promise<Config>;
+
+export type ConfigExternal = Config | Promise<Config> | ConfigFn;
+
 export interface NormalizedOptions {
   output: Omit<Required<OutputOptions>, 'schemas' | 'target'> & {
     target?: string;
@@ -77,10 +87,6 @@ export type MockOptions = {
 export type MockProperties =
   | { [key: string]: unknown }
   | ((specs: OpenAPIObject) => { [key: string]: unknown });
-
-export interface ExternalConfigFile {
-  [backend: string]: Options;
-}
 
 type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 

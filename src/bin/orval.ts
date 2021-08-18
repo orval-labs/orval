@@ -4,6 +4,7 @@ import pkg from '../../package.json';
 import { generateConfig, generateSpec } from '../generate';
 import { isString } from '../utils/is';
 import { startMessage } from '../utils/messages/logs';
+import { normalizeOptions } from '../utils/options';
 
 startMessage({
   name: pkg.name,
@@ -20,9 +21,13 @@ program
   .option('-i, --input <path>', 'input file (yaml or json openapi specs)')
   .option('-c, --config <path>', 'override flags by a config file')
   .option('-p, --project <name>', 'focus a project of the config')
-  .action((paths, cmd) => {
+  .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
-      generateSpec(process.cwd(), { input: cmd.input, output: cmd.output });
+      const normalizedOptions = await normalizeOptions({
+        input: cmd.input,
+        output: cmd.output,
+      });
+      generateSpec(process.cwd(), normalizedOptions);
     } else {
       generateConfig(cmd.config, cmd.project);
     }

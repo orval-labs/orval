@@ -1,21 +1,24 @@
 import { generateConfig, generateSpec } from './generate';
-import { Options } from './types';
+import { Options, OptionsExport } from './types';
 import { isString } from './utils/is';
-import { normalizeOptions } from './utils/options';
+import { defineConfig, normalizeOptions } from './utils/options';
 
-const generate = (
-  options?: string | Options,
+const generate = async (
+  optionsExport?: string | OptionsExport,
   workspace = process.cwd(),
   projectName?: string,
 ) => {
-  if (!options || isString(options)) {
-    return generateConfig(options, projectName);
+  if (!optionsExport || isString(optionsExport)) {
+    return generateConfig(optionsExport, projectName);
   }
 
-  return generateSpec(workspace, normalizeOptions(options), projectName);
+  const normalizedOptions = await normalizeOptions(optionsExport);
+  return generateSpec(workspace, normalizedOptions, projectName);
 };
 
 export * from './types/generator';
+export { defineConfig };
 export { Options };
 export { generate };
+
 export default generate;

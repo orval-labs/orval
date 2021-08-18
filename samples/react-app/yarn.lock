@@ -8345,6 +8345,10 @@ original@^1.0.0:
   dependencies:
     url-parse "^1.4.3"
 
+"orval@link:../../dist":
+  version "0.0.0"
+  uid ""
+
 os-browserify@^0.3.0:
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/os-browserify/-/os-browserify-0.3.0.tgz#854373c7f5c2315914fc9bfc6bd8238fdda1ec27"

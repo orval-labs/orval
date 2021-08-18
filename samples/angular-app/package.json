@@ -33,6 +33,7 @@
     "msw": "^0.21.2",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",
-    "typescript": "~3.9.7"
+    "typescript": "~3.9.7",
+    "orval": "link:../../dist"
   }
 }

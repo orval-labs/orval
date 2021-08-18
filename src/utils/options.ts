@@ -1,12 +1,29 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
-import { NormalizedOptions, Options, OutputClient } from '../types';
+import {
+  NormalizedOptions,
+  OptionsExport,
+  ConfigExternal,
+  OutputClient,
+} from '../types';
 import { githubResolver } from './github';
-import { isString } from './is';
+import { isFunction, isString } from './is';
 import { mergeDeep } from './mergeDeep';
 import { createLogger } from './messages/logs';
 
-export const normalizeOptions = (options: Options) => {
+/**
+ * Type helper to make it easier to use orval.config.ts
+ * accepts a direct {@link ConfigExternal} object.
+ */
+export function defineConfig(options: ConfigExternal): ConfigExternal {
+  return options;
+}
+
+export const normalizeOptions = async (optionsExport: OptionsExport) => {
+  const options = await (isFunction(optionsExport)
+    ? optionsExport()
+    : optionsExport);
+
   if (!options.input) {
     createLogger().error(chalk.red(`Config require an input`));
     process.exit(1);
