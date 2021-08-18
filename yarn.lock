@@ -237,6 +237,18 @@
     call-me-maybe "^1.0.1"
     glob-to-regexp "^0.3.0"
 
+"@napi-rs/triples@^1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@napi-rs/triples/-/triples-1.0.3.tgz#76d6d0c3f4d16013c61e45dfca5ff1e6c31ae53c"
+  integrity sha512-jDJTpta+P4p1NZTFVLHJ/TLFVYVcOqv6l8xwOeBKNPMgY/zDYH/YH7SJbvrr/h1RcS9GzbPcLKGzpuK9cV56UA==
+
+"@node-rs/helper@^1.0.0":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@node-rs/helper/-/helper-1.2.1.tgz#e079b05f21ff4329d82c4e1f71c0290e4ecdc70c"
+  integrity sha512-R5wEmm8nbuQU0YGGmYVjEc0OHtYsuXdpRG+Ut/3wZ9XAvQWyThN08bTh2cBJgoZxHQUPtvRfeQuxcAgLuiBISg==
+  dependencies:
+    "@napi-rs/triples" "^1.0.3"
+
 "@nodelib/fs.scandir@2.1.3":
   version "2.1.3"
   resolved "https://registry.yarnpkg.com/@nodelib/fs.scandir/-/fs.scandir-2.1.3.tgz#3a582bdb53804c6ba6d146579c46e52130cf4a3b"
@@ -537,6 +549,86 @@
     "@stoplight/types" "^11.9.0"
     "@stoplight/yaml-ast-parser" "0.0.48"
     tslib "^1.12.0"
+
+"@swc/core-android-arm64@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-android-arm64/-/core-android-arm64-1.2.78.tgz#ae25dfc4d27946f29fb2daf0e4bcfb8d99072ad7"
+  integrity sha512-4J8j0kK3xfR1SN++aiNP4q+qwn1AmXNgux0U6ZLTh4LUrlKm7lFMyz88fjHTpBlzj+CB2/MdXn19G9TyTXC/wA==
+
+"@swc/core-darwin-arm64@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-darwin-arm64/-/core-darwin-arm64-1.2.78.tgz#327ef1faa48391636333765488ef166b8018ebb0"
+  integrity sha512-xe4Qw52ikhrwYheceNmG7Mha4fj02eGYP42LCun9E2rwGt0vflLk0StSVgAeZt6ILbGPwPvYv9fk5TjA/kBhgQ==
+
+"@swc/core-darwin-x64@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-darwin-x64/-/core-darwin-x64-1.2.78.tgz#f7140ca2865324702050e0a8eaa91c3dc004a03c"
+  integrity sha512-bYbUVr6DrO615d0wO30VRr9Inv+CqA+ceSeXwfWA0aYAUB1jSGMyzMH6BAvf8vXKbG7o6E1hfXKfXrCMEO9T0g==
+
+"@swc/core-freebsd-x64@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-freebsd-x64/-/core-freebsd-x64-1.2.78.tgz#2bb0758283523cf0627ea00e7f58716847732a55"
+  integrity sha512-70Qx16sW3AHe2Jt7qDMiDAhGkuXo6Ln2xprJWO502BgtZ8M6giBHpP5xN4lg+9PRZ643+tJkIFMsfQAPJNW1+g==
+
+"@swc/core-linux-arm-gnueabihf@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-arm-gnueabihf/-/core-linux-arm-gnueabihf-1.2.78.tgz#d03d80ad21dcff84a127bc5b390eb08bddbf66b2"
+  integrity sha512-EtuSmacnE3XdDZNApoZOF/27xCSoEWUnJeOpoj3LyRjlD86ukvKQzuvRmHjbDi8kYJT5qICxZXd3hKWXGMyxSw==
+
+"@swc/core-linux-arm64-gnu@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-arm64-gnu/-/core-linux-arm64-gnu-1.2.78.tgz#2b4c64c3fbb3b5b15a84dca2e78929f221f39945"
+  integrity sha512-ISrFRGaDOhz3DNRZu3VoffyXun/0fA5OJvffLhdP8AqHfcj3ULhghldpXiVYCAhsWQaVBI/Z8jE6Rx7N5UDQsQ==
+
+"@swc/core-linux-arm64-musl@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-arm64-musl/-/core-linux-arm64-musl-1.2.78.tgz#8f0ac7c038978ebf07addd88000b0a077340d9ca"
+  integrity sha512-nN/pRyL2MXVBcHPV8C9W4+BKETTBOjFUkDy79My0PiTff0Ws6D7pDnIAwodiPJ3NZu6e7ckm8rAE7Mjuhyt57Q==
+
+"@swc/core-linux-x64-gnu@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-x64-gnu/-/core-linux-x64-gnu-1.2.78.tgz#b00ffb15d6ed0224ee3345a181dbbbc84a251b6d"
+  integrity sha512-gl35BAfT40FGCw/GOscYwemDiq5jhOzw3LTF4PVzNeHObR9i8vtCV6mScL7S9flCXHHND4V5RrzWk6q+Li/7Qg==
+
+"@swc/core-linux-x64-musl@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-linux-x64-musl/-/core-linux-x64-musl-1.2.78.tgz#15fd59a35ab08409e969eecf084078d980bf320d"
+  integrity sha512-1cduWAWTPNKAl0wRE2jAGBMSsSjUd0cp1L9HIkZYRnCYDHdXoznguLV6XOosffk3uWdFLniaB3kxF0sFbejsyw==
+
+"@swc/core-win32-arm64-msvc@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32-arm64-msvc/-/core-win32-arm64-msvc-1.2.78.tgz#5b846577ae6e3aa6b55ee89a01add3b4ae75d13b"
+  integrity sha512-fHI+tMrdK1AEkdO1qIjvCZkHNgNCIRCLPnfvlsZCAFCyaeQEv5c/u/P9ssBgiNlwNNoa1RRCNPkhzCzriVpgZw==
+
+"@swc/core-win32-ia32-msvc@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32-ia32-msvc/-/core-win32-ia32-msvc-1.2.78.tgz#312d602d7537566bd8ced33f5aae1832b59377a8"
+  integrity sha512-/vFN6Pb7Tkb1Dq7Xlhvc5Q9QRscbCYg3C/vAbCbntWBVTUtliZ33t4n1ZCWULHOgevazWx523J2CIznNuhjpAA==
+
+"@swc/core-win32-x64-msvc@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core-win32-x64-msvc/-/core-win32-x64-msvc-1.2.78.tgz#0cb19ec2f996c00f8c480475994a71e022925c7b"
+  integrity sha512-L/fHA4QKH9vbuDj+2Uf29oNROO/r6k5kHe99rBEyjbTitC0QN2yiVKI57TyWHvrfzOuz+OkQvPckYqsQ8IdPSQ==
+
+"@swc/core@^1.2.78":
+  version "1.2.78"
+  resolved "https://registry.yarnpkg.com/@swc/core/-/core-1.2.78.tgz#9aca7eaf675f42187ec773e1ded985517736bcb5"
+  integrity sha512-/Mu5JljqHmgIwPCwvrotvMRwWqYff5a6i9tD14kRoKX72hJ9jJum/moJvxF5lr6g63uRklmB+uLTlGSDcUwLcg==
+  dependencies:
+    "@node-rs/helper" "^1.0.0"
+  optionalDependencies:
+    "@swc/core-android-arm64" "^1.2.78"
+    "@swc/core-darwin-arm64" "^1.2.78"
+    "@swc/core-darwin-x64" "^1.2.78"
+    "@swc/core-freebsd-x64" "^1.2.78"
+    "@swc/core-linux-arm-gnueabihf" "^1.2.78"
+    "@swc/core-linux-arm64-gnu" "^1.2.78"
+    "@swc/core-linux-arm64-musl" "^1.2.78"
+    "@swc/core-linux-x64-gnu" "^1.2.78"
+    "@swc/core-linux-x64-musl" "^1.2.78"
+    "@swc/core-win32-arm64-msvc" "^1.2.78"
+    "@swc/core-win32-ia32-msvc" "^1.2.78"
+    "@swc/core-win32-x64-msvc" "^1.2.78"
 
 "@szmarczak/http-timer@^1.1.2":
   version "1.1.2"
@@ -2112,11 +2204,6 @@ esbuild@^0.11.12:
   version "0.11.18"
   resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.11.18.tgz#b587ec9e84d2e291b545e3c6342b5b703fd009cb"
   integrity sha512-KD7v4N9b5B8bxPUNn/3GA9r0HWo4nJk3iwjZ+2zG1ffg+r8ig+wqj7sW6zgI6Sn4/B2FnbzqWxcAokAGGM5zwQ==
-
-esbuild@^0.11.20:
-  version "0.11.20"
-  resolved "https://registry.yarnpkg.com/esbuild/-/esbuild-0.11.20.tgz#7cefa1aee8b372c184e42457885f7ce5d3e62a1e"
-  integrity sha512-QOZrVpN/Yz74xfat0H6euSgn3RnwLevY1mJTEXneukz1ln9qB+ieaerRMzSeETpz/UJWsBMzRVR/andBht5WKw==
 
 escalade@^3.1.1:
   version "3.1.1"

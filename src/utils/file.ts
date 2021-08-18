@@ -1,11 +1,10 @@
+import * as swc from '@swc/core';
 import chalk from 'chalk';
-import { build } from 'esbuild';
 import fs from 'fs';
 import path from 'path';
 import { basename, dirname, join, normalizeSafe } from 'upath';
 import { createDebugger } from './debug';
 import { isDirectory } from './is';
-import { lookupFile } from './lookup-file';
 import { createLogger, LogLevel } from './messages/logs';
 
 export const getFileInfo = (
@@ -103,28 +102,6 @@ export async function loadFile<File = unknown>(
   try {
     let file: File | undefined;
 
-    if (isMjs) {
-      const fileUrl = require('url').pathToFileURL(resolvedPath);
-      if (isTS) {
-        // before we can register loaders without requiring users to run node
-        // with --experimental-loader themselves, we have to do a hack here:
-        // bundle the file w/ ts transforms first, write it to disk,
-        // load it with native Node ESM, then delete the file.
-        const bundled = await bundleFile(resolvedPath, true);
-        dependencies = bundled.dependencies;
-        fs.writeFileSync(resolvedPath + '.js', bundled.code);
-        file = (await eval(`import(fileUrl + '.js?t=${Date.now()}')`)).default;
-        fs.unlinkSync(resolvedPath + '.js');
-        debug(`TS + native esm loaded in ${Date.now() - start}ms`, fileUrl);
-      } else {
-        // using eval to avoid this from being compiled away by TS/Rollup
-        // append a query so that we force reload fresh config in case of
-        // server restart
-        file = (await eval(`import(fileUrl + '?t=${Date.now()}')`)).default;
-        debug(`native esm loaded in ${Date.now() - start}ms`, fileUrl);
-      }
-    }
-
     if (!file && !isTS && !isMjs) {
       // 1. try to directly require the module (assuming commonjs)
       try {
@@ -155,12 +132,7 @@ export async function loadFile<File = unknown>(
       // transpile es import syntax to require syntax using rollup.
       // lazy require rollup (it's actually in dependencies)
       const bundled = await bundleFile(resolvedPath);
-      dependencies = bundled.dependencies;
-      file = await loadFromBundledFile<File>(
-        resolvedPath,
-        bundled.code,
-        isDefault,
-      );
+      file = await loadFromBundledFile<File>(resolvedPath, bundled, isDefault);
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
 
@@ -177,62 +149,14 @@ export async function loadFile<File = unknown>(
   }
 }
 
-async function bundleFile(
-  fileName: string,
-  mjs = false,
-): Promise<{ code: string; dependencies: string[] }> {
-  const result = await build({
-    absWorkingDir: process.cwd(),
-    entryPoints: [fileName],
-    outfile: 'out.js',
-    write: false,
-    platform: 'node',
-    bundle: true,
-    format: mjs ? 'esm' : 'cjs',
-    sourcemap: 'inline',
-    metafile: true,
-    plugins: [
-      {
-        name: 'externalize-deps',
-        setup(build) {
-          build.onResolve({ filter: /.*/ }, (args) => {
-            const id = args.path;
-            if (id[0] !== '.' && !path.isAbsolute(id)) {
-              return {
-                external: true,
-              };
-            }
-          });
-        },
-      },
-      {
-        name: 'replace-import-meta',
-        setup(build) {
-          build.onLoad({ filter: /\.[jt]s$/ }, async (args) => {
-            const contents = await fs.promises.readFile(args.path, 'utf8');
-            return {
-              loader: args.path.endsWith('.ts') ? 'ts' : 'js',
-              contents: contents
-                .replace(
-                  /\bimport\.meta\.url\b/g,
-                  JSON.stringify(`file://${args.path}`),
-                )
-                .replace(
-                  /\b__dirname\b/g,
-                  JSON.stringify(path.dirname(args.path)),
-                )
-                .replace(/\b__filename\b/g, JSON.stringify(args.path)),
-            };
-          });
-        },
-      },
-    ],
+async function bundleFile(fileName: string, mjs = false): Promise<string> {
+  const { code } = await swc.transformFile(fileName, {
+    module: {
+      type: 'commonjs',
+    },
   });
-  const { text } = result.outputFiles[0];
-  return {
-    code: text,
-    dependencies: result.metafile ? Object.keys(result.metafile.inputs) : [],
-  };
+
+  return code;
 }
 
 interface NodeModuleWithCompile extends NodeModule {

@@ -81,11 +81,11 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.0.2",
+    "@swc/core": "^1.2.78",
     "chalk": "^4.1.0",
     "commander": "^7.2.0",
     "cuid": "^2.1.8",
     "debug": "^4.3.2",
-    "esbuild": "^0.11.20",
     "esutils": "2.0.3",
     "fs-extra": "^9.1.0",
     "ibm-openapi-validator": "^0.40.1",
