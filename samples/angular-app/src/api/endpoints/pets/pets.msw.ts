@@ -13,11 +13,19 @@ import type {
   Pet
 } from '../../model'
 
-export const getShowPetByIdMock = () => ((() => ({
-                id: faker.random.number({min: 1, max: 99}),
-                name: faker.name.firstName(),
-                tag: faker.helpers.randomize([faker.random.word(), void 0])
-              }))())
+export const getShowPetByIdMock = () => ((function() {
+                                return {
+                                    id: faker.random.number({
+                                        min: 1,
+                                        max: 99
+                                    }),
+                                    name: faker.name.firstName(),
+                                    tag: faker.helpers.randomize([
+                                        faker.random.word(),
+                                        undefined
+                                    ])
+                                };
+                            })())
 
 export const getPetsMSW = () => [
 rest.get('*/v:version/pets', (req, res, ctx) => {

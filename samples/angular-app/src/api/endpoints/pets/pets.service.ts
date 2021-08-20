@@ -39,7 +39,7 @@ type HttpClientOptions = {
 
 
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class PetsService {
   constructor(
     private http: HttpClient,

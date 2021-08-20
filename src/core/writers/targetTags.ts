@@ -1,4 +1,4 @@
-import { OutputClient, OutputOptions } from '../../types';
+import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
   GeneratorOperation,
   GeneratorOperations,
@@ -68,12 +68,12 @@ const generateTargetTags = (
 
 export const generateTargetForTags = (
   operations: GeneratorOperations,
-  options?: OutputOptions,
+  options: NormalizedOutputOptions,
 ) => {
   const operationNames = Object.values(operations).map(
     ({ operationName }) => operationName,
   );
-  const isAngularClient = options?.client === OutputClient.ANGULAR;
+  const isAngularClient = options.client === OutputClient.ANGULAR;
 
   const allTargetTags = Object.values(operations)
     .map(addDefaultTagIfEmpty)
@@ -88,12 +88,13 @@ export const generateTargetForTags = (
             (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
           );
           const header = generateClientHeader({
-            outputClient: options?.client,
-            isRequestOptions: options?.override?.requestOptions !== false,
+            outputClient: options.client,
+            isRequestOptions: options.override.requestOptions !== false,
             isMutator,
-            isGlobalMutator: !!options?.override?.mutator,
+            isGlobalMutator: !!options.override.mutator,
             title: pascal(tag),
-            customTitleFunc: options?.override?.title,
+            customTitleFunc: options.override.title,
+            provideInRoot: options.override.angular.provideInRoot,
           });
           return {
             ...acc,

@@ -24,12 +24,49 @@ export type ConfigFn = () => Config | Promise<Config>;
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
 export interface NormalizedOptions {
-  output: Omit<Required<OutputOptions>, 'schemas' | 'target'> & {
-    target?: string;
-    schemas?: string;
-  };
-  input: Required<InputOptions>;
+  output: NormalizedOutputOptions;
+  input: NormalizedInputOptions;
 }
+
+export type NormalizedOutputOptions = {
+  target?: string;
+  schemas?: string;
+  mode: OutputMode;
+  mock: boolean | ClientMSWBuilder;
+  override: NormalizedOverrideOutput;
+  client: OutputClient | OutputClientFunc;
+};
+
+export type NormalizedOverrideOutput = {
+  title?: (title: string) => string;
+  transformer?: OutputTransformer;
+  mutator?: Mutator;
+  operations?: { [key: string]: OperationOptions };
+  tags?: { [key: string]: OperationOptions };
+  mock?: {
+    properties?: MockProperties;
+    format?: { [key: string]: unknown };
+    required?: boolean;
+    baseUrl?: string;
+  };
+  formData: boolean | Mutator;
+  query: QueryOptions;
+  angular: Required<AngularOptions>;
+  operationName?: (
+    operation: OperationObject,
+    route: string,
+    verb: Verbs,
+  ) => string;
+  requestOptions: Record<string, any> | boolean;
+};
+
+export type NormalizedInputOptions = {
+  target: string | OpenAPIObject;
+  validation: boolean;
+  override: OverrideInput;
+  converterOptions: swagger2openapi.Options;
+  parserOptions: SwaggerParser.Options;
+};
 
 export type OutputClientFunc = (
   clients: GeneratorClients,
@@ -114,12 +151,13 @@ export type OverrideOutput = {
   };
   formData?: boolean | Mutator;
   query?: QueryOptions;
+  angular?: AngularOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
     verb: Verbs,
   ) => string;
-  requestOptions?: object | boolean;
+  requestOptions?: Record<string, any> | boolean;
 };
 
 type QueryOptions = {
@@ -127,6 +165,10 @@ type QueryOptions = {
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: object;
+};
+
+export type AngularOptions = {
+  provideInRoot?: boolean;
 };
 
 type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

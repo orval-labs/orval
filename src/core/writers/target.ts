@@ -1,5 +1,5 @@
 import { InfoObject } from 'openapi3-ts';
-import { OutputClient, OutputOptions } from '../../types';
+import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
   GeneratorImport,
   GeneratorMutator,
@@ -15,7 +15,7 @@ import {
 export const generateTarget = (
   operations: GeneratorOperations,
   info: InfoObject,
-  options?: OutputOptions,
+  options: NormalizedOutputOptions,
 ): GeneratorTarget => {
   const operationNames = Object.values(operations).map(
     ({ operationName }) => operationName,
@@ -42,12 +42,13 @@ export const generateTarget = (
           (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
         );
         const header = generateClientHeader({
-          outputClient: options?.client,
-          isRequestOptions: options?.override?.requestOptions !== false,
+          outputClient: options.client,
+          isRequestOptions: options.override.requestOptions !== false,
           isMutator,
-          isGlobalMutator: !!options?.override?.mutator,
+          isGlobalMutator: !!options.override.mutator,
           title: pascal(info.title),
-          customTitleFunc: options?.override?.title,
+          customTitleFunc: options.override.title,
+          provideInRoot: options.override.angular.provideInRoot,
         });
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMSW.handler =

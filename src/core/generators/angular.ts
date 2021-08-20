@@ -46,11 +46,13 @@ export const generateAngularHeader = ({
   isRequestOptions,
   isMutator,
   isGlobalMutator,
+  provideInRoot,
 }: {
   title: string;
   isRequestOptions: boolean;
   isMutator: boolean;
   isGlobalMutator?: boolean;
+  provideInRoot: boolean;
 }) => `
 ${
   isRequestOptions && !isGlobalMutator
@@ -81,7 +83,7 @@ ${
     : ''
 }
 
-@Injectable()
+@Injectable(${provideInRoot ? `{ providedIn: 'root' }` : ''})
 export class ${title} {
   constructor(
     private http: HttpClient,

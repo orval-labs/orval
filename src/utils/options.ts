@@ -1,9 +1,9 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
 import {
+  ConfigExternal,
   NormalizedOptions,
   OptionsExport,
-  ConfigExternal,
   OutputClient,
 } from '../types';
 import { githubResolver } from './github';
@@ -56,13 +56,20 @@ export const normalizeOptions = async (optionsExport: OptionsExport) => {
     output: {
       target: outputOptions.target,
       schemas: outputOptions.schemas,
-      client: outputOptions.client || OutputClient.AXIOS,
-      mode: outputOptions.mode || 'single',
-      mock: outputOptions.mock || false,
+      client: outputOptions.client ?? OutputClient.AXIOS,
+      mode: outputOptions.mode ?? 'single',
+      mock: outputOptions.mock ?? false,
       override: {
         ...outputOptions.override,
-        formData: outputOptions.override?.formData || true,
-        requestOptions: outputOptions.override?.requestOptions || true,
+        formData: outputOptions.override?.formData ?? true,
+        requestOptions: outputOptions.override?.requestOptions ?? true,
+        query: {
+          useQuery: true,
+          ...(outputOptions.override?.query || {}),
+        },
+        angular: {
+          provideInRoot: outputOptions.override?.angular?.provideInRoot ?? true,
+        },
       },
     },
   };
