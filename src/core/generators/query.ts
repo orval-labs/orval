@@ -378,17 +378,25 @@ const generateQueryHook = (
     override,
     mutator,
     response,
+    operationId,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, override: { operations = {} } }: GeneratorOptions,
 ) => {
   const properties = props
-    .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
+    .map(({ name, type }) =>
+      type === GetterPropType.BODY ? body.implementation || 'data' : name,
+    )
     .join(',');
 
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
+  const operationQueryOptions = operations[operationId]?.query;
 
-  if (verb === Verbs.GET) {
+  if (
+    verb === Verbs.GET ||
+    operationQueryOptions?.useInfinite ||
+    operationQueryOptions?.useQuery
+  ) {
     const queries = [
       ...(query?.useInfinite
         ? [
@@ -416,7 +424,7 @@ const generateQueryHook = (
 
     return `export const ${queryKeyFnName} = (${queryProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
-    }]
+    }${body.implementation ? `, ${body.implementation}` : ''}];
 
     ${queries.reduce(
       (acc, queryOption) =>

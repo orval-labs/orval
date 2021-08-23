@@ -95,7 +95,7 @@ export type GeneratorVerbsOptions = GeneratorVerbOptions[];
 export type GeneratorOptions = {
   route: string;
   pathRoute: string;
-  override?: OverrideOutput;
+  override: OverrideOutput;
   context: ContextSpecs;
   mock: boolean;
 };
