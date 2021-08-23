@@ -42,6 +42,7 @@ export const getScalar = async ({
         type: 'number',
         schemas: [],
         imports: [],
+        isRef: false,
       };
     }
 
@@ -52,6 +53,7 @@ export const getScalar = async ({
         isEnum: false,
         schemas: [],
         imports: [],
+        isRef: false,
       };
 
     case 'array': {
@@ -85,6 +87,7 @@ export const getScalar = async ({
         type: 'string',
         imports: [],
         schemas: [],
+        isRef: false,
       };
     }
 

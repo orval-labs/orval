@@ -18,6 +18,7 @@ import { generateInterface } from './interface';
 export const generateSchemasDefinition = async (
   schemas: SchemasObject = {},
   context: ContextSpecs,
+  suffix: string,
 ): Promise<GeneratorSchema[]> => {
   if (isEmpty(schemas)) {
     return [];
@@ -35,7 +36,7 @@ export const generateSchemasDefinition = async (
       ) {
         return [
           ...acc,
-          ...(await generateInterface({ name, schema, context })),
+          ...(await generateInterface({ name, schema, context, suffix })),
         ];
       } else {
         const resolvedValue = await resolveValue({
@@ -46,7 +47,7 @@ export const generateSchemasDefinition = async (
 
         let output = '';
 
-        const schemaName = pascal(name);
+        const schemaName = pascal(name) + suffix;
 
         let imports = resolvedValue.imports;
 

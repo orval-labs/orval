@@ -1,5 +1,5 @@
 import { PathItemObject } from 'openapi3-ts';
-import { ContextSpecs, OutputOptions } from '../../types';
+import { ContextSpecs, NormalizedOutputOptions } from '../../types';
 import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { getRoute } from '../getters/route';
@@ -10,7 +10,7 @@ export const generateApi = async ({
   output,
   context,
 }: {
-  output: OutputOptions;
+  output: NormalizedOutputOptions;
   context: ContextSpecs;
 }) => {
   return asyncReduce(

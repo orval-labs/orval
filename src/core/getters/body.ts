@@ -12,7 +12,7 @@ export const getBody = async (
   context: ContextSpecs,
 ): Promise<GetterBody> => {
   const allBodyTypes = await getResReqTypes(
-    [['body', requestBody]],
+    [[context.override.components.requestBodies.suffix, requestBody]],
     operationId,
     context,
   );
@@ -31,7 +31,7 @@ export const getBody = async (
   const implementation =
     generalJSTypesWithArray.includes(definition.toLowerCase()) ||
     allBodyTypes.length > 1
-      ? camel(operationId) + 'Body'
+      ? camel(operationId) + context.override.components.requestBodies.suffix
       : camel(definition);
   const formData =
     allBodyTypes.length === 1 ? allBodyTypes[0].formData : undefined;

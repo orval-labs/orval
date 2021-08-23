@@ -15,14 +15,16 @@ export const generateInterface = async ({
   name,
   schema,
   context,
+  suffix,
 }: {
   name: string;
   schema: SchemaObject;
   context: ContextSpecs;
+  suffix: string;
 }) => {
   const scalar = await getScalar({ item: schema, name, context });
   const isEmptyObject = scalar.value === '{}';
-  const definitionName = pascal(name);
+  const definitionName = pascal(name) + suffix;
 
   let model = isEmptyObject
     ? '// tslint:disable-next-line:no-empty-interface\n'

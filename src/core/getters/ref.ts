@@ -17,11 +17,11 @@ const RefComponent = {
 
 const REF_COMPONENTS = Object.values(RefComponent);
 
-const RefComponentSuffix = {
-  [RefComponent.schemas]: '',
-  [RefComponent.responses]: 'Response',
-  [RefComponent.parameters]: 'Parameter',
-  [RefComponent.requestBodies]: 'Body',
+export const RefComponentSuffix: Record<RefComponent, string> = {
+  schemas: '',
+  responses: 'Response',
+  parameters: 'Parameter',
+  requestBodies: 'Body',
 };
 
 /**
@@ -46,11 +46,13 @@ export const getRefInfo = async (
     throw new Error('Unresolved $ref');
   }
 
+  const suffix = context.override.components[refComponent].suffix;
+
   const refSplitted = $ref.split(`#/components/${refComponent}/`);
 
   if (!refSplitted[0]) {
     return {
-      name: pascal(refSplitted[1]) + RefComponentSuffix[refComponent],
+      name: pascal(refSplitted[1]) + suffix,
       originalName: refSplitted[1],
       type: refComponent,
     };
@@ -63,7 +65,7 @@ export const getRefInfo = async (
     : resolve(getFileInfo(context.specKey).dirname, pathname);
 
   return {
-    name: pascal(refSplitted[1]) + RefComponentSuffix[refComponent],
+    name: pascal(refSplitted[1]) + suffix,
     originalName: refSplitted[1],
     specKey: path,
     type: refComponent,

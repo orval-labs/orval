@@ -382,12 +382,6 @@ const generateQueryHook = (
   }: GeneratorVerbOptions,
   { route, override: { operations = {} } }: GeneratorOptions,
 ) => {
-  const properties = props
-    .map(({ name, type }) =>
-      type === GetterPropType.BODY ? body.implementation || 'data' : name,
-    )
-    .join(',');
-
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
@@ -397,6 +391,12 @@ const generateQueryHook = (
     operationQueryOptions?.useInfinite ||
     operationQueryOptions?.useQuery
   ) {
+    const properties = props
+      .map(({ name, type }) =>
+        type === GetterPropType.BODY ? body.implementation : name,
+      )
+      .join(',');
+
     const queries = [
       ...(query?.useInfinite
         ? [
@@ -457,6 +457,10 @@ const generateQueryHook = (
     : response.definition.success || 'unknown';
 
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
+
+  const properties = props
+    .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
+    .join(',');
 
   return `
     export const ${camel(

@@ -1,5 +1,6 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
+import { RefComponentSuffix } from '../core/getters/ref';
 import {
   ConfigExternal,
   NormalizedOptions,
@@ -63,6 +64,24 @@ export const normalizeOptions = async (optionsExport: OptionsExport) => {
         ...outputOptions.override,
         formData: outputOptions.override?.formData ?? true,
         requestOptions: outputOptions.override?.requestOptions ?? true,
+        components: {
+          schemas: {
+            suffix: RefComponentSuffix.schemas,
+            ...(outputOptions.override?.components?.schemas || {}),
+          },
+          responses: {
+            suffix: RefComponentSuffix.responses,
+            ...(outputOptions.override?.components?.responses || {}),
+          },
+          parameters: {
+            suffix: RefComponentSuffix.parameters,
+            ...(outputOptions.override?.components?.parameters || {}),
+          },
+          requestBodies: {
+            suffix: RefComponentSuffix.requestBodies,
+            ...(outputOptions.override?.components?.requestBodies || {}),
+          },
+        },
         query: {
           useQuery: true,
           ...(outputOptions.override?.query || {}),

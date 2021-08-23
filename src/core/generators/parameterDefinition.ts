@@ -8,11 +8,12 @@ import { resolveRef } from '../resolvers/ref';
 export const generateParameterDefinition = (
   parameters: ComponentsObject['parameters'] = {},
   context: ContextSpecs,
+  suffix: string,
 ): Promise<GeneratorSchema[]> => {
   return asyncReduce(
     Object.entries(parameters),
     async (acc, [parameterName, parameter]) => {
-      const modelName = `${parameterName}Parameter`;
+      const modelName = `${parameterName}${suffix}`;
       const { schema, imports } = await resolveRef<ParameterObject>(
         parameter,
         context,

@@ -50,6 +50,20 @@ export type NormalizedOverrideOutput = {
     baseUrl?: string;
   };
   formData: boolean | Mutator;
+  components: {
+    schemas: {
+      suffix: string;
+    };
+    responses: {
+      suffix: string;
+    };
+    parameters: {
+      suffix: string;
+    };
+    requestBodies: {
+      suffix: string;
+    };
+  };
   query: QueryOptions;
   angular: Required<AngularOptions>;
   operationName?: (
@@ -150,6 +164,20 @@ export type OverrideOutput = {
     baseUrl?: string;
   };
   formData?: boolean | Mutator;
+  components?: {
+    schemas?: {
+      suffix?: string;
+    };
+    responses?: {
+      suffix?: string;
+    };
+    parameters?: {
+      suffix?: string;
+    };
+    requestBodies?: {
+      suffix?: string;
+    };
+  };
   query?: QueryOptions;
   angular?: AngularOptions;
   operationName?: (
@@ -210,7 +238,7 @@ export const Verbs = {
 export type ImportOpenApi = {
   data: Record<string, OpenAPIObject>;
   input: InputOptions;
-  output: OutputOptions;
+  output: NormalizedOutputOptions;
   path: string;
   workspace: string;
 };
@@ -219,4 +247,5 @@ export interface ContextSpecs {
   specKey: string;
   workspace: string;
   specs: Record<string, OpenAPIObject>;
+  override: NormalizedOverrideOutput;
 }
