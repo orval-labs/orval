@@ -96,4 +96,7 @@ typings/
 # Cache for parcel serverl in example
 .cache
 
+# Ignore IDE webstorm folder
+/.idea
+
 package-lock.json

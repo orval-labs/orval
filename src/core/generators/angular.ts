@@ -21,6 +21,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'HttpClient', values: true },
       { name: 'HttpHeaders' },
       { name: 'HttpParams' },
+      { name: 'HttpContext' },
     ],
     dependency: '@angular/common/http',
   },
@@ -60,14 +61,15 @@ ${
   headers?: HttpHeaders | {
       [header: string]: string | string[];
   };
+  context?: HttpContext;
   observe?: any;
   params?: HttpParams | {
-      [param: string]: string | string[];
+    [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
   };
   reportProgress?: boolean;
   responseType?: any;
   withCredentials?: boolean;
-}`
+};`
     : ''
 }
 
