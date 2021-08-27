@@ -7,8 +7,8 @@ import {
 } from 'openapi3-ts';
 import {
   ContextSpecs,
-  OperationOptions,
-  OutputOptions,
+  NormalizedOperationOptions,
+  NormalizedOutputOptions,
   Verbs,
 } from '../../types';
 import {
@@ -38,7 +38,7 @@ const generateVerbOptions = async ({
   context,
 }: {
   verb: Verbs;
-  output: OutputOptions;
+  output: NormalizedOutputOptions;
   operation: OperationObject;
   route: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
@@ -54,17 +54,20 @@ const generateVerbOptions = async ({
 
   const operationId = getOperationId(operation, route, verb);
 
-  const overrideOperation =
-    output.override?.operations?.[operation.operationId!];
+  const overrideOperation = output.override.operations[operation.operationId!];
   const overrideTag = Object.entries(
-    output.override?.tags || {},
-  ).reduce<OperationOptions>(
+    output.override.tags,
+  ).reduce<NormalizedOperationOptions>(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {},
+    {} as NormalizedOperationOptions,
   );
 
-  const override: OperationOptions = { ...output.override, ...overrideTag, ...overrideOperation };
+  const override: NormalizedOperationOptions = {
+    ...output.override,
+    ...overrideTag,
+    ...overrideOperation,
+  };
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
@@ -98,7 +101,6 @@ const generateVerbOptions = async ({
   const mutator = await generateMutator({
     output: output.target,
     name: operationName,
-    workspace: context.workspace,
     mutator: override?.mutator,
   });
 
@@ -107,8 +109,7 @@ const generateVerbOptions = async ({
       ? await generateMutator({
           output: output.target,
           name: operationName,
-          workspace: context.workspace,
-          mutator: override?.formData,
+          mutator: override.formData,
         })
       : undefined;
 
@@ -143,7 +144,7 @@ export const generateVerbsOptions = ({
   context,
 }: {
   verbs: PathItemObject;
-  output: OutputOptions;
+  output: NormalizedOutputOptions;
   route: string;
   context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>

@@ -29,6 +29,7 @@ export interface NormalizedOptions {
 }
 
 export type NormalizedOutputOptions = {
+  workspace?: string;
   target?: string;
   schemas?: string;
   mode: OutputMode;
@@ -40,16 +41,16 @@ export type NormalizedOutputOptions = {
 export type NormalizedOverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
-  mutator?: Mutator;
-  operations?: { [key: string]: OperationOptions };
-  tags?: { [key: string]: OperationOptions };
+  mutator?: NormalizedMutator;
+  operations: { [key: string]: NormalizedOperationOptions };
+  tags: { [key: string]: NormalizedOperationOptions };
   mock?: {
     properties?: MockProperties;
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
   };
-  formData: boolean | Mutator;
+  formData: boolean | NormalizedMutator;
   components: {
     schemas: {
       suffix: string;
@@ -74,6 +75,28 @@ export type NormalizedOverrideOutput = {
   requestOptions: Record<string, any> | boolean;
 };
 
+export type NormalizedMutator = {
+  path: string;
+  name?: string;
+  default: boolean;
+};
+
+export type NormalizedOperationOptions = {
+  transformer?: OutputTransformer;
+  mutator?: NormalizedMutator;
+  mock?: {
+    data?: MockProperties;
+    properties?: MockProperties;
+  };
+  query?: QueryOptions;
+  operationName?: (
+    operation: OperationObject,
+    route: string,
+    verb: Verbs,
+  ) => string;
+  formData: boolean | NormalizedMutator;
+  requestOptions: object | boolean;
+};
 export type NormalizedInputOptions = {
   target: string | OpenAPIObject;
   validation: boolean;
@@ -87,6 +110,7 @@ export type OutputClientFunc = (
 ) => ClientGeneratorsBuilder;
 
 export type OutputOptions = {
+  workspace?: string;
   target?: string;
   schemas?: string;
   mode?: OutputMode;

@@ -39,7 +39,7 @@ export const generateConfig = async (
 
   if (projectName) {
     const optionsExport = config[projectName];
-    const normalizedOptions = await normalizeOptions(optionsExport);
+    const normalizedOptions = await normalizeOptions(optionsExport, workspace);
 
     if (normalizedOptions) {
       generateSpec(workspace, normalizedOptions, projectName);
@@ -51,7 +51,7 @@ export const generateConfig = async (
 
   return Promise.all(
     Object.entries(config).map(async ([projectName, optionsExport]) => {
-      const normalizedOptions = await normalizeOptions(optionsExport);
+      const normalizedOptions = await normalizeOptions(optionsExport, workspace);
 
       return generateSpec(workspace, normalizedOptions, projectName);
     }),

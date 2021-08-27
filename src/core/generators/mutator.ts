@@ -1,16 +1,16 @@
 import chalk from 'chalk';
 import { join } from 'upath';
-import { Mutator, MutatorObject } from '../../types';
+import { MutatorObject, NormalizedMutator } from '../../types';
 import { getFileInfo, loadFile } from '../../utils/file';
-import { isString } from '../../utils/is';
 import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
 
-const getImport = (output: string, mutator: Mutator, workspace: string) => {
-  const outputFileInfo = getFileInfo(join(workspace, output));
-  const mutatorFileInfo = getFileInfo(
-    join(workspace, isString(mutator) ? mutator : mutator.path),
-  );
+const getImport = (
+  output: string,
+  mutator: NormalizedMutator,
+) => {
+  const outputFileInfo = getFileInfo(output);
+  const mutatorFileInfo = getFileInfo(mutator.path);
   const { pathWithoutExtension } = getFileInfo(
     relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
@@ -22,22 +22,17 @@ export const generateMutator = async ({
   output,
   mutator,
   name,
-  workspace,
 }: {
   output?: string;
-  mutator?: Mutator;
+  mutator?: NormalizedMutator;
   name: string;
-  workspace: string;
 }) => {
   if (!mutator || !output) {
     return;
   }
-  const isDefault = isString(mutator) ? true : mutator.default || false;
-  const importName = isString(mutator) ? `${name}Mutator` : mutator.name;
-  const importPath = join(
-    workspace,
-    isString(mutator) ? mutator : mutator.path,
-  );
+  const isDefault = mutator.default;
+  const importName = mutator.name ? mutator.name : `${name}Mutator`;
+  const importPath = mutator.path;
 
   const { file } = await loadFile<Record<string, Function>>(importPath, {
     isDefault: false,
@@ -57,7 +52,7 @@ export const generateMutator = async ({
     process.exit(1);
   }
 
-  const path = getImport(output, mutator, workspace);
+  const path = getImport(output, mutator);
 
   return { name: importName, path, default: isDefault, mutatorFn };
 };

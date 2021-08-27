@@ -7,9 +7,9 @@ import {
 } from './getters';
 import {
   ContextSpecs,
-  OperationOptions,
+  NormalizedOperationOptions,
+  NormalizedOverrideOutput,
   OutputClient,
-  OverrideOutput,
   Verbs,
 } from './index';
 
@@ -87,7 +87,7 @@ export type GeneratorVerbOptions = {
   props: GetterProps;
   mutator?: GeneratorMutator;
   formData?: GeneratorMutator;
-  override?: OperationOptions | undefined;
+  override: NormalizedOperationOptions;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -95,7 +95,7 @@ export type GeneratorVerbsOptions = GeneratorVerbOptions[];
 export type GeneratorOptions = {
   route: string;
   pathRoute: string;
-  override: OverrideOutput;
+  override: NormalizedOverrideOutput;
   context: ContextSpecs;
   mock: boolean;
 };

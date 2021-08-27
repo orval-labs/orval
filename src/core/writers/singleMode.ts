@@ -3,7 +3,6 @@ import { join } from 'upath';
 import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { isObject, isString } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { relativeSafe } from '../../utils/path';
 import { generateClientImports } from '../generators/client';
@@ -21,8 +20,7 @@ export const writeSingleMode = async ({
   specsName,
 }: WriteModeProps) => {
   try {
-    const targetedPath = isString(output) ? output : output.target || '';
-    const { path, dirname } = getFileInfo(join(workspace, targetedPath), {
+    const { path, dirname } = getFileInfo(output.target, {
       backupFilename: camel(info.title),
     });
 
@@ -32,12 +30,12 @@ export const writeSingleMode = async ({
       implementation,
       implementationMSW,
       mutators,
-      formData
-    } = generateTarget(operations, info, isObject(output) ? output : undefined);
+      formData,
+    } = generateTarget(operations, info, output);
 
     let data = getFilesHeader(info);
 
-    if (isObject(output) && output.schemas) {
+    if (output.schemas) {
       const schemasPath = relativeSafe(
         dirname,
         getFileInfo(join(workspace, output.schemas)).dirname,
@@ -58,13 +56,13 @@ export const writeSingleMode = async ({
       }
     } else {
       data += generateClientImports(
-        isObject(output) ? output.client : undefined,
+        output.client,
         implementation,
         [],
         specsName,
       );
 
-      if (isObject(output) && output.mock) {
+      if (output.mock) {
         data += generateMSWImports(implementationMSW, [], specsName);
       }
 
@@ -81,7 +79,7 @@ export const writeSingleMode = async ({
 
     data += `\n\n${implementation}`;
 
-    if (isObject(output) && output.mock) {
+    if (output.mock) {
       data += '\n\n';
       data += implementationMSW;
     }

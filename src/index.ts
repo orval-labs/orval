@@ -12,7 +12,7 @@ const generate = async (
     return generateConfig(optionsExport, projectName);
   }
 
-  const normalizedOptions = await normalizeOptions(optionsExport);
+  const normalizedOptions = await normalizeOptions(optionsExport, workspace);
   return generateSpec(workspace, normalizedOptions, projectName);
 };
 

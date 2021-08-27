@@ -1,16 +1,22 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
+import { resolve } from 'upath';
 import { RefComponentSuffix } from '../core/getters/ref';
 import {
   ConfigExternal,
+  Mutator,
+  NormalizedMutator,
+  NormalizedOperationOptions,
   NormalizedOptions,
+  OperationOptions,
   OptionsExport,
   OutputClient,
 } from '../types';
 import { githubResolver } from './github';
-import { isFunction, isString } from './is';
+import { isBoolean, isFunction, isObject, isString } from './is';
 import { mergeDeep } from './mergeDeep';
 import { createLogger } from './messages/logs';
+import { isUrl } from './url';
 
 /**
  * Type helper to make it easier to use orval.config.ts
@@ -20,7 +26,10 @@ export function defineConfig(options: ConfigExternal): ConfigExternal {
   return options;
 }
 
-export const normalizeOptions = async (optionsExport: OptionsExport) => {
+export const normalizeOptions = async (
+  optionsExport: OptionsExport,
+  workspace = process.cwd(),
+) => {
   const options = await (isFunction(optionsExport)
     ? optionsExport()
     : optionsExport);
@@ -45,9 +54,14 @@ export const normalizeOptions = async (optionsExport: OptionsExport) => {
 
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: inputOptions.target,
+      target: normalizePath(inputOptions.target, workspace),
       validation: inputOptions.validation || false,
-      override: inputOptions.override || { transformer: undefined },
+      override: {
+        transformer: normalizePath(
+          inputOptions.override?.transformer,
+          workspace,
+        ),
+      },
       converterOptions: inputOptions.converterOptions || {},
       parserOptions: mergeDeep(
         parserDefaultOptions,
@@ -55,14 +69,26 @@ export const normalizeOptions = async (optionsExport: OptionsExport) => {
       ),
     },
     output: {
-      target: outputOptions.target,
-      schemas: outputOptions.schemas,
+      target: normalizePath(outputOptions.target, workspace),
+      schemas: normalizePath(outputOptions.schemas, workspace),
       client: outputOptions.client ?? OutputClient.AXIOS,
       mode: outputOptions.mode ?? 'single',
       mock: outputOptions.mock ?? false,
       override: {
         ...outputOptions.override,
-        formData: outputOptions.override?.formData ?? true,
+        operations: normalizeOperationsAndTags(
+          outputOptions.override?.operations || {},
+          workspace,
+        ),
+        tags: normalizeOperationsAndTags(
+          outputOptions.override?.tags || {},
+          workspace,
+        ),
+        mutator: normalizeMutator(workspace, outputOptions.override?.mutator),
+        formData:
+          (!isBoolean(outputOptions.override?.formData)
+            ? normalizeMutator(workspace, outputOptions.override?.formData)
+            : outputOptions.override?.formData) ?? true,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
           schemas: {
@@ -111,3 +137,69 @@ export const normalizeOptions = async (optionsExport: OptionsExport) => {
 const parserDefaultOptions = {
   resolve: { github: githubResolver },
 } as SwaggerParser.Options;
+
+const normalizeMutator = <T>(
+  workspace: string,
+  mutator?: Mutator,
+): NormalizedMutator | undefined => {
+  if (isObject(mutator)) {
+    if (!mutator.path) {
+      createLogger().error(chalk.red(`Mutator need a path`));
+      process.exit(1);
+    }
+
+    return {
+      ...mutator,
+      path: resolve(workspace, mutator.path),
+      default: mutator.default ?? false,
+    };
+  }
+
+  if (isString(mutator)) {
+    return {
+      path: resolve(workspace, mutator),
+      default: true,
+    };
+  }
+
+  return mutator;
+};
+
+const normalizePath = <T>(path: T, workspace: string) => {
+  if (isString(path) && !isUrl(path)) {
+    return resolve(workspace, path);
+  }
+
+  return path;
+};
+
+const normalizeOperationsAndTags = (
+  operationsOrTags: {
+    [key: string]: OperationOptions;
+  },
+  workspace: string,
+): {
+  [key: string]: NormalizedOperationOptions;
+} => {
+  return Object.fromEntries(
+    Object.entries(operationsOrTags).map(([key, value]) => {
+      return [
+        key,
+        {
+          ...value,
+          transformer: normalizePath(value.transformer, workspace),
+          mutator: normalizeMutator(workspace, value.mutator),
+          formData:
+            (!isBoolean(value.formData)
+              ? normalizeMutator(workspace, value.formData)
+              : value.formData) ?? true,
+          requestOptions: value.requestOptions ?? true,
+          query: {
+            useQuery: true,
+            ...(value.query || {}),
+          },
+        },
+      ];
+    }),
+  );
+};

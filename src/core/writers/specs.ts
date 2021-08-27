@@ -26,7 +26,7 @@ export const writeSpecs = async (
   }, {} as Record<keyof typeof schemas, string>);
 
   if (output.schemas) {
-    const rootSchemaPath = join(workspace, output.schemas);
+    const rootSchemaPath = output.schemas;
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {

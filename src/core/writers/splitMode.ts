@@ -17,14 +17,12 @@ export const writeSplitMode = async ({
   schemas,
   info,
   output,
-  workspace,
   specsName,
 }: WriteModeProps) => {
   try {
-    const { path, filename, dirname, extension } = getFileInfo(
-      join(workspace, output.target || ''),
-      { backupFilename: camel(info.title) },
-    );
+    const { path, filename, dirname, extension } = getFileInfo(output.target, {
+      backupFilename: camel(info.title),
+    });
 
     const {
       imports,
@@ -43,7 +41,7 @@ export const writeSplitMode = async ({
     if (output.schemas) {
       const schemasPath = relativeSafe(
         dirname,
-        getFileInfo(join(workspace, output.schemas)).dirname,
+        getFileInfo(output.schemas).dirname,
       );
 
       implementationData += generateClientImports(

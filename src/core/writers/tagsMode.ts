@@ -20,10 +20,9 @@ export const writeTagsMode = ({
   workspace,
   specsName,
 }: WriteModeProps) => {
-  const { filename, dirname, extension } = getFileInfo(
-    join(workspace, output.target || ''),
-    { backupFilename: camel(info.title) },
-  );
+  const { filename, dirname, extension } = getFileInfo(output.target, {
+    backupFilename: camel(info.title),
+  });
 
   const target = generateTargetForTags(operations, output);
 

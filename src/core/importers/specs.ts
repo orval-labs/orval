@@ -40,15 +40,14 @@ export const importSpecs = async (
   }
 
   const isPathUrl = isUrl(input.target);
-  const path = isPathUrl ? input.target : resolve(workspace, input.target);
 
-  const data = await resolveSpecs(path, input.parserOptions, isPathUrl);
+  const data = await resolveSpecs(input.target, input.parserOptions, isPathUrl);
 
   return importOpenApi({
     data,
     input,
     output,
-    path,
+    path: input.target,
     workspace,
   });
 };
