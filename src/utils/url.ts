@@ -1,8 +1,3 @@
-export const isUrl = (path: string) => {
-  try {
-    new URL(path);
-    return true;
-  } catch (e) {
-    return false;
-  }
-};
+import validUrl from 'valid-url';
+
+export const isUrl = (path: string) => !!validUrl.isUri(path);

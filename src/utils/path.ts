@@ -1,4 +1,5 @@
 import {
+  normalize,
   normalizeSafe,
   relative as normalizedRelative,
   sep as seperator,
@@ -29,7 +30,11 @@ export const getSpecName = (specKey: string, rootSpecKey: string) => {
       .replace(`.${getExtension(specKey)}`, '');
   }
 
-  return specKey
-    .replace(getFileInfo(rootSpecKey).dirname, '')
-    .replace(`.${getExtension(specKey)}`, '');
+  return (
+    '/' +
+    normalize(normalizedRelative(getFileInfo(rootSpecKey).dirname, specKey))
+      .split('../')
+      .join('')
+      .replace(`.${getExtension(specKey)}`, '')
+  );
 };
