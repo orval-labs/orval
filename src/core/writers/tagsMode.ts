@@ -3,7 +3,6 @@ import { join } from 'upath';
 import { WriteModeProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { isObject } from '../../utils/is';
 import { getFilesHeader } from '../../utils/messages/inline';
 import { relativeSafe } from '../../utils/path';
 import { generateClientImports } from '../generators/client';
@@ -12,21 +11,21 @@ import { generateModelsInline } from '../generators/modelsInline';
 import { generateMSWImports } from '../generators/msw';
 import { generateTargetForTags } from './targetTags';
 
-export const writeTagsMode = ({
+export const writeTagsMode = async ({
   operations,
   schemas,
   info,
   output,
   workspace,
   specsName,
-}: WriteModeProps) => {
+}: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(info.title),
   });
 
   const target = generateTargetForTags(operations, output);
 
-  return Promise.all(
+  const generatedFilePathsArray = await Promise.all(
     Object.entries(target).map(async ([tag, target]) => {
       try {
         const {
@@ -37,50 +36,40 @@ export const writeTagsMode = ({
           mutators,
           formData,
         } = target;
+
         const header = getFilesHeader(info);
         let data = header;
 
-        if (isObject(output) && output.schemas) {
-          const schemasPath = relativeSafe(
-            dirname,
-            getFileInfo(join(workspace, output.schemas)).dirname,
-          );
+        const schemasPathRelative = output.schemas
+          ? relativeSafe(
+              dirname,
+              getFileInfo(join(workspace, output.schemas)).dirname,
+            )
+          : './' + filename + '.schemas';
 
-          data += generateClientImports(
-            output.client,
-            implementation,
-            [{ exports: imports, dependency: schemasPath }],
+        data += generateClientImports(
+          output.client,
+          implementation,
+          [{ exports: imports, dependency: schemasPathRelative }],
+          specsName,
+        );
+
+        if (output.mock) {
+          data += generateMSWImports(
+            implementationMSW,
+            [{ exports: importsMSW, dependency: schemasPathRelative }],
             specsName,
           );
-          if (output.mock) {
-            data += generateMSWImports(
-              implementationMSW,
-              [{ exports: importsMSW, dependency: schemasPath }],
-              specsName,
-            );
-          }
-        } else {
-          const schemasPath = './' + filename + '.schemas';
+        }
+
+        const schemasPath = !output.schemas
+          ? join(dirname, filename + '.schemas' + extension)
+          : undefined;
+
+        if (schemasPath) {
           const schemasData = header + generateModelsInline(schemas);
 
-          await outputFile(
-            join(dirname, filename + '.schemas' + extension),
-            schemasData,
-          );
-
-          data += generateClientImports(
-            output.client,
-            implementation,
-            [{ exports: imports, dependency: schemasPath }],
-            specsName,
-          );
-          if (output.mock) {
-            data += generateMSWImports(
-              implementationMSW,
-              [{ exports: importsMSW, dependency: schemasPath }],
-              specsName,
-            );
-          }
+          await outputFile(schemasPath, schemasData);
         }
 
         if (mutators) {
@@ -94,16 +83,21 @@ export const writeTagsMode = ({
         data += '\n\n';
         data += implementation;
 
-        if (isObject(output) && output.mock) {
+        if (output.mock) {
           data += '\n\n';
 
           data += implementationMSW;
         }
 
-        await outputFile(join(dirname, `${kebab(tag)}${extension}`), data);
+        const implementationPath = join(dirname, `${kebab(tag)}${extension}`);
+        await outputFile(implementationPath, data);
+
+        return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
       } catch (e) {
         throw `Oups... 🍻. An Error occurred while writing tag ${tag} => ${e}`;
       }
     }),
   );
+
+  return generatedFilePathsArray.reduce((acc, it) => [...acc, ...it], []);
 };

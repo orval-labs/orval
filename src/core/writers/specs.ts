@@ -1,8 +1,10 @@
+import { outputFile } from 'fs-extra';
 import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { getFileInfo } from '../../utils/file';
 import { createSuccessMessage } from '../../utils/messages/logs';
-import { getSpecName } from '../../utils/path';
+import { getSpecName, relativeSafe } from '../../utils/path';
 import { writeSchemas } from './schemas';
 import { writeSingleMode } from './singleMode';
 import { writeSplitMode } from './splitMode';
@@ -52,8 +54,10 @@ export const writeSpecs = async (
     return;
   }
 
+  let implementationPaths: string[] = [];
+
   if (output.mode === OutputMode.SINGLE) {
-    await writeSingleMode({
+    implementationPaths = await writeSingleMode({
       workspace,
       operations,
       output,
@@ -62,7 +66,7 @@ export const writeSpecs = async (
       specsName,
     });
   } else if (output.mode === OutputMode.SPLIT) {
-    await writeSplitMode({
+    implementationPaths = await writeSplitMode({
       workspace,
       operations,
       output,
@@ -71,7 +75,7 @@ export const writeSpecs = async (
       specsName,
     });
   } else if (output.mode === OutputMode.TAGS) {
-    await writeTagsMode({
+    implementationPaths = await writeTagsMode({
       workspace,
       operations,
       output,
@@ -80,7 +84,7 @@ export const writeSpecs = async (
       specsName,
     });
   } else if (output.mode === OutputMode.TAGS_SPLIT) {
-    await writeSplitTagsMode({
+    implementationPaths = await writeSplitTagsMode({
       workspace,
       operations,
       output,
@@ -88,6 +92,28 @@ export const writeSpecs = async (
       schemas,
       specsName,
     });
+  }
+
+  if (output.workspace) {
+    const workspacePath = output.workspace;
+    let imports = implementationPaths
+      .map(
+        (path) =>
+          `export * from '${relativeSafe(
+            workspacePath,
+            getFileInfo(path).pathWithoutExtension,
+          )}';`,
+      )
+      .join('\n');
+
+    if (output.schemas) {
+      imports += `\nexport * from '${relativeSafe(
+        workspacePath,
+        getFileInfo(output.schemas).dirname,
+      )}';`;
+    }
+
+    await outputFile(join(workspacePath, '/index.ts'), imports);
   }
 
   createSuccessMessage(projectName || info.title);

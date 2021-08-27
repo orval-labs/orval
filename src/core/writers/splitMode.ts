@@ -18,9 +18,9 @@ export const writeSplitMode = async ({
   info,
   output,
   specsName,
-}: WriteModeProps) => {
+}: WriteModeProps): Promise<string[]> => {
   try {
-    const { path, filename, dirname, extension } = getFileInfo(output.target, {
+    const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: camel(info.title),
     });
 
@@ -38,42 +38,37 @@ export const writeSplitMode = async ({
     let implementationData = header;
     let mswData = header;
 
-    if (output.schemas) {
-      const schemasPath = relativeSafe(
-        dirname,
-        getFileInfo(output.schemas).dirname,
-      );
+    const relativeSchemasPath = output.schemas
+      ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+      : './' + filename + '.schemas';
 
-      implementationData += generateClientImports(
-        output.client,
-        implementation,
-        [{ exports: imports, dependency: schemasPath }],
-        specsName,
-      );
-      mswData += generateMSWImports(
-        implementationMSW,
-        [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
-        specsName,
-      );
-    } else {
-      const schemasPath = './' + filename + '.schemas';
+    implementationData += generateClientImports(
+      output.client,
+      implementation,
+      [{ exports: imports, dependency: relativeSchemasPath }],
+      specsName,
+    );
+    mswData += generateMSWImports(
+      implementationMSW,
+      [
+        {
+          exports: [...imports, ...importsMSW],
+          dependency: relativeSchemasPath,
+        },
+      ],
+      specsName,
+    );
+
+    const schemasPath = !output.schemas
+      ? join(dirname, filename + '.schemas' + extension)
+      : undefined;
+
+    if (schemasPath) {
       const schemasData = header + generateModelsInline(schemas);
 
       await outputFile(
         join(dirname, filename + '.schemas' + extension),
         schemasData,
-      );
-
-      implementationData += generateClientImports(
-        output.client,
-        implementation,
-        [{ exports: imports, dependency: schemasPath }],
-        specsName,
-      );
-      mswData += generateMSWImports(
-        implementationMSW,
-        [{ exports: [...imports, ...importsMSW], dependency: schemasPath }],
-        specsName,
       );
     }
 
@@ -88,21 +83,19 @@ export const writeSplitMode = async ({
     implementationData += `\n${implementation}`;
     mswData += `\n${implementationMSW}`;
 
-    if (path) {
-      const implementationFilename =
-        filename +
-        (OutputClient.ANGULAR === output.client ? '.service' : '') +
-        extension;
+    const implementationFilename =
+      filename +
+      (OutputClient.ANGULAR === output.client ? '.service' : '') +
+      extension;
 
-      await outputFile(
-        join(dirname, implementationFilename),
-        implementationData,
-      );
+    const implementationPath = join(dirname, implementationFilename);
+    await outputFile(join(dirname, implementationFilename), implementationData);
 
-      if (output.mock) {
-        await outputFile(join(dirname, filename + '.msw' + extension), mswData);
-      }
+    if (output.mock) {
+      await outputFile(join(dirname, filename + '.msw' + extension), mswData);
     }
+
+    return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
   }

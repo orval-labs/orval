@@ -18,7 +18,7 @@ export const writeSingleMode = async ({
   info,
   output,
   specsName,
-}: WriteModeProps) => {
+}: WriteModeProps): Promise<string[]> => {
   try {
     const { path, dirname } = getFileInfo(output.target, {
       backupFilename: camel(info.title),
@@ -35,37 +35,29 @@ export const writeSingleMode = async ({
 
     let data = getFilesHeader(info);
 
-    if (output.schemas) {
-      const schemasPath = relativeSafe(
-        dirname,
-        getFileInfo(join(workspace, output.schemas)).dirname,
-      );
+    const schemasPath = output.schemas
+      ? relativeSafe(
+          dirname,
+          getFileInfo(join(workspace, output.schemas)).dirname,
+        )
+      : undefined;
 
-      data += generateClientImports(
-        output.client,
-        implementation,
-        [{ exports: imports, dependency: schemasPath }],
+    data += generateClientImports(
+      output.client,
+      implementation,
+      schemasPath ? [{ exports: imports, dependency: schemasPath }] : [],
+      specsName,
+    );
+
+    if (output.mock) {
+      data += generateMSWImports(
+        implementationMSW,
+        schemasPath ? [{ exports: importsMSW, dependency: schemasPath }] : [],
         specsName,
       );
-      if (output.mock) {
-        data += generateMSWImports(
-          implementationMSW,
-          [{ exports: importsMSW, dependency: schemasPath }],
-          specsName,
-        );
-      }
-    } else {
-      data += generateClientImports(
-        output.client,
-        implementation,
-        [],
-        specsName,
-      );
+    }
 
-      if (output.mock) {
-        data += generateMSWImports(implementationMSW, [], specsName);
-      }
-
+    if (!output.schemas) {
       data += generateModelsInline(schemas);
     }
 
@@ -85,6 +77,8 @@ export const writeSingleMode = async ({
     }
 
     await outputFile(path, data);
+
+    return [path];
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
   }

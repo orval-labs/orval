@@ -52,6 +52,11 @@ export const normalizeOptions = async (
     ? { target: options.output }
     : options.output;
 
+  const outputWorkspace = normalizePath(
+    outputOptions.workspace || '',
+    workspace,
+  );
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: normalizePath(inputOptions.target, workspace),
@@ -69,8 +74,9 @@ export const normalizeOptions = async (
       ),
     },
     output: {
-      target: normalizePath(outputOptions.target, workspace),
-      schemas: normalizePath(outputOptions.schemas, workspace),
+      target: normalizePath(outputOptions.target, outputWorkspace),
+      schemas: normalizePath(outputOptions.schemas, outputWorkspace),
+      workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? OutputClient.AXIOS,
       mode: outputOptions.mode ?? 'single',
       mock: outputOptions.mock ?? false,
@@ -78,16 +84,22 @@ export const normalizeOptions = async (
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations || {},
-          workspace,
+          outputWorkspace,
         ),
         tags: normalizeOperationsAndTags(
           outputOptions.override?.tags || {},
-          workspace,
+          outputWorkspace,
         ),
-        mutator: normalizeMutator(workspace, outputOptions.override?.mutator),
+        mutator: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.mutator,
+        ),
         formData:
           (!isBoolean(outputOptions.override?.formData)
-            ? normalizeMutator(workspace, outputOptions.override?.formData)
+            ? normalizeMutator(
+                outputWorkspace,
+                outputOptions.override?.formData,
+              )
             : outputOptions.override?.formData) ?? true,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
