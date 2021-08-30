@@ -61,7 +61,7 @@
     "@types/lodash.uniqwith": "^4.5.6",
     "@types/node": "^14.14.37",
     "@types/request": "^2.48.4",
-    "@types/valid-url": "^1.0.3",
+    "@types/validator": "^13.6.3",
     "@typescript-eslint/eslint-plugin": "^4.21.0",
     "@typescript-eslint/parser": "^4.21.0",
     "dotenv-cli": "^4.0.0",
@@ -96,6 +96,6 @@
     "swagger2openapi": "^7.0.5",
     "upath": "^2.0.1",
     "url": "^0.11.0",
-    "valid-url": "^1.0.9"
+    "validator": "^13.6.0"
   }
 }

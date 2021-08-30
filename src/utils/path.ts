@@ -4,9 +4,9 @@ import {
   relative as normalizedRelative,
   sep as seperator,
 } from 'upath';
+import isUrl from 'validator/lib/isURL';
 import { getExtension } from './extension';
 import { getFileInfo } from './file';
-import { isUrl } from './url';
 
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"

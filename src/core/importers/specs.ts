@@ -5,7 +5,7 @@ import { WriteSpecsProps } from '../../types/writers';
 import { githubResolver } from '../../utils/github';
 import { isObject, isString } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
-import { isUrl } from '../../utils/url';
+import isUrl  from 'validator/lib/isURL';
 import { importOpenApi } from './openApi';
 
 const resolveSpecs = async (
