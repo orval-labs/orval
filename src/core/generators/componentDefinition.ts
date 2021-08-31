@@ -24,6 +24,7 @@ export const generateComponentDefinition = (
         [[suffix, response]],
         name,
         context,
+        'void',
       );
 
       const imports = allResponseTypes.reduce<GeneratorImport[]>(

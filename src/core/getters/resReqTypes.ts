@@ -47,6 +47,7 @@ export const getResReqTypes = async (
   >,
   name: string,
   context: ContextSpecs,
+  defaultType = 'unknown',
 ): Promise<ResReqTypesValue[]> => {
   const typesArray = await Promise.all(
     responsesOrRequests
@@ -151,10 +152,10 @@ export const getResReqTypes = async (
 
         return [
           {
-            value: 'unknown',
+            value: defaultType,
             imports: [],
             schemas: [],
-            type: 'unknown',
+            type: defaultType,
             isEnum: false,
             key,
           },
