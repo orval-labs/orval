@@ -55,7 +55,7 @@ export const generateSchemaFormData = async (
           acc +
           `if(${camel(propName)}${
             key.includes('-') ? `['${key}']` : `.${key}`
-          } === undefined) {\n ${formDataValue} }\n`
+          } !== undefined) {\n ${formDataValue} }\n`
         );
       },
       '',
