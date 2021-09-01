@@ -1,6 +1,7 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
 import { resolve } from 'upath';
+import isUrl from 'validator/lib/isURL';
 import { RefComponentSuffix } from '../core/getters/ref';
 import {
   ConfigExternal,
@@ -16,7 +17,6 @@ import { githubResolver } from './github';
 import { isBoolean, isFunction, isObject, isString } from './is';
 import { mergeDeep } from './mergeDeep';
 import { createLogger } from './messages/logs';
-import { isUrl } from './url';
 
 /**
  * Type helper to make it easier to use orval.config.ts
