@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-import program from 'commander';
+import { Command } from 'commander';
 import pkg from '../../package.json';
 import { generateConfig, generateSpec } from '../generate';
 import { isString } from '../utils/is';
 import { startMessage } from '../utils/messages/logs';
 import { normalizeOptions } from '../utils/options';
+
+const program = new Command();
 
 startMessage({
   name: pkg.name,

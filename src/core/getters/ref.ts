@@ -1,10 +1,10 @@
 import { ReferenceObject } from 'openapi3-ts';
 import { resolve } from 'upath';
 import url from 'url';
+import isUrl from 'validator/lib/isURL';
 import { ContextSpecs } from '../../types';
 import { pascal } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { isUrl } from '../../utils/url';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 

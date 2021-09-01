@@ -1,3 +1,5 @@
+import { keyword } from 'esutils';
+
 export const getKey = (key: string) => {
-  return key.match(/[^\w\s]/g) !== null ? `'${key}'` : key;
+  return keyword.isIdentifierNameES5(key) ? key : `'${key}'`;
 };

@@ -27,6 +27,7 @@ export const getResponse = async (
     Object.entries(responses),
     operationId,
     context,
+    'void',
   );
 
   const groupedByStatus = types.reduce<{

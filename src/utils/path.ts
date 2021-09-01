@@ -1,11 +1,12 @@
 import {
+  normalize,
   normalizeSafe,
   relative as normalizedRelative,
   sep as seperator,
 } from 'upath';
+import isUrl from 'validator/lib/isURL';
 import { getExtension } from './extension';
 import { getFileInfo } from './file';
-import { isUrl } from './url';
 
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"
@@ -29,7 +30,11 @@ export const getSpecName = (specKey: string, rootSpecKey: string) => {
       .replace(`.${getExtension(specKey)}`, '');
   }
 
-  return specKey
-    .replace(getFileInfo(rootSpecKey).dirname, '')
-    .replace(`.${getExtension(specKey)}`, '');
+  return (
+    '/' +
+    normalize(normalizedRelative(getFileInfo(rootSpecKey).dirname, specKey))
+      .split('../')
+      .join('')
+      .replace(`.${getExtension(specKey)}`, '')
+  );
 };

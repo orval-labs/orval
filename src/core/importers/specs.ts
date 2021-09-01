@@ -1,9 +1,9 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { resolve } from 'upath';
+import isUrl from 'validator/lib/isURL';
 import { NormalizedOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { isObject } from '../../utils/is';
-import { isUrl } from '../../utils/url';
 import { importOpenApi } from './openApi';
 
 const resolveSpecs = async (
