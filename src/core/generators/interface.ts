@@ -2,6 +2,7 @@ import { SchemaObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
 import { ContextSpecs } from '../../types';
 import { pascal } from '../../utils/case';
+import { jsDoc } from '../../utils/doc';
 import { getScalar } from '../getters/scalar';
 
 /**
@@ -26,9 +27,13 @@ export const generateInterface = async ({
   const isEmptyObject = scalar.value === '{}';
   const definitionName = pascal(name) + suffix;
 
-  let model = isEmptyObject
-    ? '// tslint:disable-next-line:no-empty-interface\n'
-    : '';
+  let model = '';
+
+  model += jsDoc(schema);
+
+  if (isEmptyObject) {
+    model += '// tslint:disable-next-line:no-empty-interface\n';
+  }
 
   if (!generalJSTypesWithArray.includes(scalar.value)) {
     model += `export interface ${definitionName} ${scalar.value}\n`;

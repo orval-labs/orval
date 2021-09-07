@@ -4,6 +4,7 @@ import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
+import { jsDoc } from '../../utils/doc';
 import { isReference } from '../../utils/is';
 import { getSpecName } from '../../utils/path';
 import { getEnum } from '../getters/enum';
@@ -50,6 +51,8 @@ export const generateSchemasDefinition = async (
         const schemaName = pascal(name) + suffix;
 
         let imports = resolvedValue.imports;
+
+        output += jsDoc(schema);
 
         if (resolvedValue.isEnum && !resolvedValue.isRef) {
           output += getEnum(

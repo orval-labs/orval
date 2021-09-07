@@ -1,9 +1,15 @@
 import isEmpty from 'lodash/isEmpty';
-import { ComponentsObject } from 'openapi3-ts';
+import {
+  ComponentsObject,
+  ReferenceObject,
+  RequestBodyObject,
+  ResponseObject,
+} from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
+import { jsDoc } from '../../utils/doc';
 import { getResReqTypes } from '../getters/resReqTypes';
 
 export const generateComponentDefinition = (
@@ -19,7 +25,13 @@ export const generateComponentDefinition = (
 
   return asyncReduce(
     Object.entries(responses),
-    async (acc, [name, response]) => {
+    async (
+      acc,
+      [name, response]: [
+        string,
+        ReferenceObject | RequestBodyObject | ResponseObject,
+      ],
+    ) => {
       const allResponseTypes = await getResReqTypes(
         [[suffix, response]],
         name,
@@ -40,7 +52,8 @@ export const generateComponentDefinition = (
       const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
       const modelName = `${pascal(name)}${suffix}`;
-      const model = `export type ${modelName} = ${type || 'unknown'};\n`;
+      const doc = jsDoc(response as ResponseObject | RequestBodyObject);
+      const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
 
       return [
         ...acc,

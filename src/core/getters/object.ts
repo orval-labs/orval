@@ -3,6 +3,7 @@ import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
+import { jsDoc } from '../../utils/doc';
 import { isBoolean, isReference } from '../../utils/is';
 import { resolveObject } from '../resolvers/object';
 import { resolveValue } from '../resolvers/value';
@@ -84,10 +85,12 @@ export const getObject = async ({
           acc.value += '{';
         }
 
+        const doc = jsDoc(schema as SchemaObject, true);
+
         acc.imports = [...acc.imports, ...resolvedValue.imports];
-        acc.value += `\n  ${isReadOnly ? 'readonly ' : ''}${getKey(key)}${
-          isRequired ? '' : '?'
-        }: ${resolvedValue.value};`;
+        acc.value += `\n  ${doc ? `${doc}  ` : ''}${
+          isReadOnly ? 'readonly ' : ''
+        }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
         acc.schemas = [...acc.schemas, ...resolvedValue.schemas];
 
         if (arr.length - 1 === index) {

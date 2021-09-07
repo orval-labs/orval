@@ -2,6 +2,7 @@ import { ComponentsObject, ParameterObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
+import { jsDoc } from '../../utils/doc';
 import { resolveObject } from '../resolvers/object';
 import { resolveRef } from '../resolvers/ref';
 
@@ -50,7 +51,9 @@ export const generateParameterDefinition = (
         context,
       });
 
-      const model = `export type ${modelName} = ${
+      const doc = jsDoc(parameter as ParameterObject);
+
+      const model = `${doc}export type ${modelName} = ${
         resolvedObject.value || 'unknown'
       };\n`;
 
