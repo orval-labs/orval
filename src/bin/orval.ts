@@ -5,6 +5,7 @@ import { generateConfig, generateSpec } from '../generate';
 import { isString } from '../utils/is';
 import { startMessage } from '../utils/messages/logs';
 import { normalizeOptions } from '../utils/options';
+import { startWatcher } from '../utils/watcher';
 
 const program = new Command();
 
@@ -23,15 +24,28 @@ program
   .option('-i, --input <path>', 'input file (yaml or json openapi specs)')
   .option('-c, --config <path>', 'override flags by a config file')
   .option('-p, --project <name>', 'focus a project of the config')
+  .option(
+    '-w, --watch [path]',
+    'Watch mode, if path is not specified, it watches the input target',
+  )
   .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
         input: cmd.input,
         output: cmd.output,
       });
-      generateSpec(process.cwd(), normalizedOptions);
+
+      if (cmd.watch) {
+        startWatcher(
+          cmd.watch,
+          () => generateSpec(process.cwd(), normalizedOptions),
+          normalizedOptions.input.target as string,
+        );
+      } else {
+        generateSpec(process.cwd(), normalizedOptions);
+      }
     } else {
-      generateConfig(cmd.config, cmd.project);
+      generateConfig(cmd.config, cmd.project, cmd.watch);
     }
   });
 

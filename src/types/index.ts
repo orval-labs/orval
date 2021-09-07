@@ -23,6 +23,10 @@ export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
+export type NormizaledConfig = {
+  [project: string]: NormalizedOptions;
+};
+
 export interface NormalizedOptions {
   output: NormalizedOutputOptions;
   input: NormalizedInputOptions;
