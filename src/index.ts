@@ -7,23 +7,30 @@ import { startWatcher } from './utils/watcher';
 const generate = async (
   optionsExport?: string | OptionsExport,
   workspace = process.cwd(),
-  projectName?: string,
-  watch?: boolean | string | (string | boolean)[],
+  options?: {
+    projectName?: string;
+    watch?: boolean | string | (string | boolean)[];
+    clean?: boolean | string[];
+  },
 ) => {
   if (!optionsExport || isString(optionsExport)) {
-    return generateConfig(optionsExport, projectName, watch);
+    return generateConfig(optionsExport, options);
   }
 
-  const normalizedOptions = await normalizeOptions(optionsExport, workspace);
+  const normalizedOptions = await normalizeOptions(
+    optionsExport,
+    workspace,
+    options?.clean,
+  );
 
-  if (watch) {
+  if (options?.watch) {
     startWatcher(
-      watch,
+      options?.watch,
       () => generateSpec(process.cwd(), normalizedOptions),
       normalizedOptions.input.target as string,
     );
   } else {
-    return generateSpec(workspace, normalizedOptions, projectName);
+    return generateSpec(workspace, normalizedOptions, options?.projectName);
   }
 };
 

@@ -4,8 +4,9 @@ import { writeSpecs } from './core/writers/specs';
 import { ConfigExternal, NormalizedOptions, NormizaledConfig } from './types';
 import { asyncReduce } from './utils/async-reduce';
 import { catchError } from './utils/errors';
-import { loadFile } from './utils/file';
+import { getFileInfo, loadFile, removeFiles } from './utils/file';
 import { isFunction, isString } from './utils/is';
+import { log } from './utils/messages/logs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
 
@@ -15,6 +16,26 @@ export const generateSpec = async (
   projectName?: string,
 ) => {
   try {
+    if (options.output.clean) {
+      const extraPatterns = Array.isArray(options.output.clean)
+        ? options.output.clean
+        : [];
+
+      if (options.output.target) {
+        await removeFiles(
+          ['**/*', '!**/*.d.ts', ...extraPatterns],
+          getFileInfo(options.output.target).dirname,
+        );
+      }
+      if (options.output.schemas) {
+        await removeFiles(
+          ['**/*', '!**/*.d.ts', ...extraPatterns],
+          getFileInfo(options.output.schemas).dirname,
+        );
+      }
+      log(`${projectName ? `${projectName}: ` : ''}Cleaning output folder`);
+    }
+
     const writeSpecProps = await importSpecs(workspace, options);
     await writeSpecs(writeSpecProps, workspace, options, projectName);
   } catch (e) {
@@ -47,8 +68,11 @@ export const generateSpecs = async (
 
 export const generateConfig = async (
   configFile?: string,
-  projectName?: string,
-  watch?: boolean | string | (string | boolean)[],
+  options?: {
+    projectName?: string;
+    watch?: boolean | string | (string | boolean)[];
+    clean?: boolean | string[];
+  },
 ) => {
   const { path, file: configExternal } = await loadFile<ConfigExternal>(
     configFile,
@@ -63,24 +87,24 @@ export const generateConfig = async (
     ? configExternal()
     : configExternal);
 
-  const normizaliedConfig = await asyncReduce(
+  const normalizedConfig = await asyncReduce(
     Object.entries(config),
     async (acc, [key, value]) => ({
       ...acc,
-      [key]: await normalizeOptions(value, workspace),
+      [key]: await normalizeOptions(value, workspace, options?.clean),
     }),
     {} as NormizaledConfig,
   );
 
-  if (watch) {
+  if (options?.watch) {
     startWatcher(
-      watch,
-      () => generateSpecs(normizaliedConfig, workspace, projectName),
-      Object.values(normizaliedConfig)
+      options?.watch,
+      () => generateSpecs(normalizedConfig, workspace, options?.projectName),
+      Object.values(normalizedConfig)
         .map(({ input }) => input.target)
         .filter((target) => isString(target)) as string[],
     );
   } else {
-    generateSpecs(normizaliedConfig, workspace, projectName);
+    generateSpecs(normalizedConfig, workspace, options?.projectName);
   }
 };

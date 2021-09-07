@@ -1,6 +1,7 @@
 import * as swc from '@swc/core';
 import chalk from 'chalk';
 import fs from 'fs';
+import glob from 'globby';
 import path from 'path';
 import { basename, dirname, join, normalizeSafe } from 'upath';
 import { createDebugger } from './debug';
@@ -48,8 +49,12 @@ export async function loadFile<File = unknown>(
   file: File;
   dependencies: string[];
 }> {
-  const { root = process.cwd(), isDefault = true, defaultFileName, logLevel } =
-    options || {};
+  const {
+    root = process.cwd(),
+    isDefault = true,
+    defaultFileName,
+    logLevel,
+  } = options || {};
   const start = Date.now();
 
   let resolvedPath: string | undefined;
@@ -183,4 +188,12 @@ async function loadFromBundledFile<File = unknown>(
   const file = isDefault && raw.__esModule ? raw.default : raw;
   require.extensions[extension] = defaultLoader;
   return file;
+}
+
+export async function removeFiles(patterns: string[], dir: string) {
+  const files = await glob(patterns, {
+    cwd: dir,
+    absolute: true,
+  });
+  await Promise.all(files.map((file) => fs.promises.unlink(file)));
 }

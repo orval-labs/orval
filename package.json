@@ -92,6 +92,7 @@
     "debug": "^4.3.2",
     "esutils": "2.0.3",
     "fs-extra": "^10.0.0",
+    "globby": "11.0.4",
     "ibm-openapi-validator": "^0.46.4",
     "inquirer": "^8.1.2",
     "lodash.get": "^4.4.2",

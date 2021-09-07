@@ -40,6 +40,7 @@ export type NormalizedOutputOptions = {
   mock: boolean | ClientMSWBuilder;
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
+  clean: boolean | string[];
 };
 
 export type NormalizedOverrideOutput = {
@@ -121,6 +122,7 @@ export type OutputOptions = {
   mock?: boolean | ClientMSWBuilder;
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
+  clean?: boolean | string[];
 };
 
 export type InputOptions = {

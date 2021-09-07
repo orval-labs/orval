@@ -28,11 +28,12 @@ program
     '-w, --watch [path]',
     'Watch mode, if path is not specified, it watches the input target',
   )
+  .option('--clean [path]', 'Clean output directory')
   .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
         input: cmd.input,
-        output: cmd.output,
+        output: { target: cmd.output, clean: cmd.clean },
       });
 
       if (cmd.watch) {
@@ -45,7 +46,11 @@ program
         generateSpec(process.cwd(), normalizedOptions);
       }
     } else {
-      generateConfig(cmd.config, cmd.project, cmd.watch);
+      generateConfig(cmd.config, {
+        projectName: cmd.project,
+        watch: cmd.watch,
+        clean: cmd.clean,
+      });
     }
   });
 

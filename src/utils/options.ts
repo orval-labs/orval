@@ -29,6 +29,7 @@ export function defineConfig(options: ConfigExternal): ConfigExternal {
 export const normalizeOptions = async (
   optionsExport: OptionsExport,
   workspace = process.cwd(),
+  clean?: boolean | string[],
 ) => {
   const options = await (isFunction(optionsExport)
     ? optionsExport()
@@ -80,6 +81,7 @@ export const normalizeOptions = async (
       client: outputOptions.client ?? OutputClient.AXIOS,
       mode: outputOptions.mode ?? 'single',
       mock: outputOptions.mock ?? false,
+      clean: (outputOptions.clean || clean) ?? false,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
