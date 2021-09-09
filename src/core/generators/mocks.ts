@@ -109,7 +109,7 @@ export const getResponsesMockDefinition = ({
 }) => {
   return asyncReduce(
     response.types.success,
-    async (acc, { value: definition, schema }) => {
+    async (acc, { value: definition, originalSchema }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
@@ -120,11 +120,14 @@ export const getResponsesMockDefinition = ({
         return acc;
       }
 
-      if (!schema) {
+      if (!originalSchema) {
         return acc;
       }
 
-      const resolvedRef = await resolveRef<SchemaObject>(schema, context);
+      const resolvedRef = await resolveRef<SchemaObject>(
+        originalSchema,
+        context,
+      );
 
       const scalar = await getMockScalar({
         item: {
