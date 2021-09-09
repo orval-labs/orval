@@ -31,7 +31,7 @@ export const importSpecs = async (
 
   if (isObject(input.target)) {
     return importOpenApi({
-      data: input.target,
+      data: { [workspace]: input.target },
       input,
       output,
       path: workspace,
