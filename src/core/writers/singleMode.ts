@@ -1,5 +1,4 @@
 import { outputFile } from 'fs-extra';
-import { join } from 'upath';
 import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
@@ -12,7 +11,6 @@ import { generateMSWImports } from '../generators/msw';
 import { generateTarget } from './target';
 
 export const writeSingleMode = async ({
-  workspace,
   operations,
   schemas,
   info,
@@ -36,10 +34,7 @@ export const writeSingleMode = async ({
     let data = getFilesHeader(info);
 
     const schemasPath = output.schemas
-      ? relativeSafe(
-          dirname,
-          getFileInfo(join(workspace, output.schemas)).dirname,
-        )
+      ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
       : undefined;
 
     data += generateClientImports(

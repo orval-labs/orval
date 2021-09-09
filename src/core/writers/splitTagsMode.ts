@@ -17,7 +17,6 @@ export const writeSplitTagsMode = async ({
   schemas,
   info,
   output,
-  workspace,
   specsName,
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
@@ -43,11 +42,7 @@ export const writeSplitTagsMode = async ({
         let mswData = header;
 
         const relativeSchemasPath = output.schemas
-          ? '../' +
-            relativeSafe(
-              dirname,
-              getFileInfo(join(workspace, output.schemas)).dirname,
-            )
+          ? '../' + relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : '../' + filename + '.schemas';
 
         implementationData += generateClientImports(

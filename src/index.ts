@@ -26,11 +26,11 @@ const generate = async (
   if (options?.watch) {
     startWatcher(
       options?.watch,
-      () => generateSpec(process.cwd(), normalizedOptions),
+      () => generateSpec(workspace, normalizedOptions),
       normalizedOptions.input.target as string,
     );
   } else {
-    return generateSpec(workspace, normalizedOptions, options?.projectName);
+    return generateSpec(workspace, normalizedOptions);
   }
 };
 

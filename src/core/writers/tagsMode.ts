@@ -16,7 +16,6 @@ export const writeTagsMode = async ({
   schemas,
   info,
   output,
-  workspace,
   specsName,
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
@@ -41,10 +40,7 @@ export const writeTagsMode = async ({
         let data = header;
 
         const schemasPathRelative = output.schemas
-          ? relativeSafe(
-              dirname,
-              getFileInfo(join(workspace, output.schemas)).dirname,
-            )
+          ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : './' + filename + '.schemas';
 
         data += generateClientImports(
