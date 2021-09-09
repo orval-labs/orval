@@ -36,6 +36,13 @@ import {
   getSvelteQueryDependencies,
   getVueQueryDependencies,
 } from './query';
+import {
+  generateSwr,
+  generateSwrFooter,
+  generateSwrHeader,
+  generateSwrTitle,
+  getSwrDependencies,
+} from './swr';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -92,6 +99,13 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     dependencies: getVueQueryDependencies,
     footer: generateQueryFooter,
     title: generateQueryTitle,
+  },
+  swr: {
+    client: generateSwr,
+    header: generateSwrHeader,
+    dependencies: getSwrDependencies,
+    footer: generateSwrFooter,
+    title: generateSwrTitle,
   },
 };
 

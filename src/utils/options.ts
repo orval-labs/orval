@@ -200,9 +200,12 @@ const normalizeOperationsAndTags = (
       return [
         key,
         {
-          ...value,
-          transformer: normalizePath(value.transformer, workspace),
-          mutator: normalizeMutator(workspace, value.mutator),
+          ...(value.transformer
+            ? { transformer: normalizePath(value.transformer, workspace) }
+            : {}),
+          ...(value.mutator
+            ? { mutator: normalizeMutator(workspace, value.mutator) }
+            : {}),
           formData:
             (!isBoolean(value.formData)
               ? normalizeMutator(workspace, value.formData)

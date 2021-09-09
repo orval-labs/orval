@@ -29,7 +29,8 @@
     "mock",
     "axios",
     "vue-query",
-    "vue"
+    "vue",
+    "swr"
   ],
   "author": {
     "name": "Victor Bury",

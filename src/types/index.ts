@@ -139,7 +139,8 @@ export type OutputClient =
   | 'angular'
   | 'react-query'
   | 'svelte-query'
-  | 'vue-query';
+  | 'vue-query'
+  | 'swr';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,
