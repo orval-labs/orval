@@ -3,7 +3,6 @@ import { InfoObject } from 'openapi3-ts';
 import { join } from 'upath';
 import { GeneratorSchema } from '../../types/generator';
 import { camel } from '../../utils/case';
-import { getFilesHeader } from '../../utils/messages/inline';
 import { generateImports } from '../generators/imports';
 
 const getSchema = ({
@@ -12,14 +11,16 @@ const getSchema = ({
   rootSpecKey,
   isRootKey,
   specsName,
+  header,
 }: {
   info: InfoObject;
   schema: GeneratorSchema;
   rootSpecKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
+  header: string;
 }): string => {
-  let file = getFilesHeader(info);
+  let file = header;
   file += generateImports({ imports, rootSpecKey, isRootKey, specsName });
   file += imports.length ? '\n\n' : '\n';
   file += model;
@@ -42,6 +43,7 @@ export const writeSchema = async ({
   rootSpecKey,
   isRootKey,
   specsName,
+  header,
 }: {
   path: string;
   info: InfoObject;
@@ -49,12 +51,13 @@ export const writeSchema = async ({
   rootSpecKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
+  header: string;
 }) => {
   const name = camel(schema.name);
   try {
     await outputFile(
       getPath(path, name),
-      getSchema({ info, schema, rootSpecKey, isRootKey, specsName }),
+      getSchema({ info, schema, rootSpecKey, isRootKey, specsName, header }),
     );
     const indexPath = getPath(path, 'index');
 
@@ -79,6 +82,7 @@ export const writeSchemas = async ({
   rootSpecKey,
   isRootKey,
   specsName,
+  header,
 }: {
   schemaPath: string;
   schemas: GeneratorSchema[];
@@ -86,6 +90,7 @@ export const writeSchemas = async ({
   rootSpecKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
+  header: string;
 }) => {
   await ensureFile(join(schemaPath, '/index.ts'));
 
@@ -98,6 +103,7 @@ export const writeSchemas = async ({
         rootSpecKey,
         isRootKey,
         specsName,
+        header,
       }),
     ),
   );

@@ -2,6 +2,7 @@ import { outputFile } from 'fs-extra';
 import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
+import { jsDoc } from '../../utils/doc';
 import { getFileInfo } from '../../utils/file';
 import { createSuccessMessage } from '../../utils/messages/logs';
 import { getSpecName, relativeSafe } from '../../utils/path';
@@ -27,6 +28,12 @@ export const writeSpecs = async (
     return { ...acc, [specKey]: name };
   }, {} as Record<keyof typeof schemas, string>);
 
+  const header = output.override.header
+    ? jsDoc({
+        description: output.override.header(info),
+      })
+    : '';
+
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
 
@@ -44,6 +51,7 @@ export const writeSpecs = async (
           rootSpecKey,
           specsName,
           isRootKey,
+          header,
         });
       }),
     );
@@ -64,6 +72,7 @@ export const writeSpecs = async (
       info,
       schemas,
       specsName,
+      header,
     });
   } else if (output.mode === OutputMode.SPLIT) {
     implementationPaths = await writeSplitMode({
@@ -73,6 +82,7 @@ export const writeSpecs = async (
       info,
       schemas,
       specsName,
+      header,
     });
   } else if (output.mode === OutputMode.TAGS) {
     implementationPaths = await writeTagsMode({
@@ -82,6 +92,7 @@ export const writeSpecs = async (
       info,
       schemas,
       specsName,
+      header,
     });
   } else if (output.mode === OutputMode.TAGS_SPLIT) {
     implementationPaths = await writeSplitTagsMode({
@@ -91,6 +102,7 @@ export const writeSpecs = async (
       info,
       schemas,
       specsName,
+      header,
     });
   }
 

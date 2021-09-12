@@ -1,5 +1,5 @@
 import { InfoObject } from 'openapi3-ts';
-import { NormalizedOutputOptions, OutputOptions } from '.';
+import { NormalizedOutputOptions } from '.';
 import { GeneratorOperations, GeneratorSchema } from './generator';
 
 export type WriteSpecsProps = {
@@ -16,4 +16,5 @@ export type WriteModeProps = {
   output: NormalizedOutputOptions;
   workspace: string;
   specsName: Record<string, string>;
+  header: string;
 };

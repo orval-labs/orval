@@ -1,5 +1,5 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { OpenAPIObject, OperationObject } from 'openapi3-ts';
+import { InfoObject, OpenAPIObject, OperationObject } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
 import {
   ClientGeneratorsBuilder,
@@ -55,6 +55,7 @@ export type NormalizedOverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
+  header: false | ((info: InfoObject) => string[]);
   formData: boolean | NormalizedMutator;
   components: {
     schemas: {
@@ -194,6 +195,7 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
+  header?: boolean | ((info: InfoObject) => string[]);
   formData?: boolean | Mutator;
   components?: {
     schemas?: {

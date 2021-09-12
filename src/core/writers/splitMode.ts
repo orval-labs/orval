@@ -4,7 +4,6 @@ import { OutputClient } from '../../types';
 import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { getFilesHeader } from '../../utils/messages/inline';
 import { relativeSafe } from '../../utils/path';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
@@ -18,6 +17,7 @@ export const writeSplitMode = async ({
   info,
   output,
   specsName,
+  header,
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
@@ -32,8 +32,6 @@ export const writeSplitMode = async ({
       mutators,
       formData,
     } = generateTarget(operations, info, output);
-
-    const header = getFilesHeader(info);
 
     let implementationData = header;
     let mswData = header;

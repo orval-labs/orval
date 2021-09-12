@@ -2,7 +2,6 @@ import { outputFile } from 'fs-extra';
 import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { getFilesHeader } from '../../utils/messages/inline';
 import { relativeSafe } from '../../utils/path';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
@@ -16,6 +15,7 @@ export const writeSingleMode = async ({
   info,
   output,
   specsName,
+  header,
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { path, dirname } = getFileInfo(output.target, {
@@ -31,7 +31,7 @@ export const writeSingleMode = async ({
       formData,
     } = generateTarget(operations, info, output);
 
-    let data = getFilesHeader(info);
+    let data = header;
 
     const schemasPath = output.schemas
       ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)

@@ -3,11 +3,13 @@ export function jsDoc(
     description,
     deprecated,
   }: {
-    description?: string;
+    description?: string[] | string;
     deprecated?: boolean;
   },
   tryOneLine = false,
 ): string {
+  const lines = Array.isArray(description) ? description : [description];
+
   if (!description && !deprecated) {
     return '';
   }
@@ -21,7 +23,7 @@ export function jsDoc(
     if (!oneLine) {
       doc += `\n${tryOneLine ? '  ' : ''} *`;
     }
-    doc += ` ${description}`;
+    doc += ` ${lines.join('\n * ')}`;
   }
 
   if (deprecated) {

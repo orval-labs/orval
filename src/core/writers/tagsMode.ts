@@ -3,7 +3,6 @@ import { join } from 'upath';
 import { WriteModeProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
-import { getFilesHeader } from '../../utils/messages/inline';
 import { relativeSafe } from '../../utils/path';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
@@ -17,6 +16,7 @@ export const writeTagsMode = async ({
   info,
   output,
   specsName,
+  header,
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(info.title),
@@ -36,7 +36,6 @@ export const writeTagsMode = async ({
           formData,
         } = target;
 
-        const header = getFilesHeader(info);
         let data = header;
 
         const schemasPathRelative = output.schemas

@@ -16,6 +16,7 @@ import {
 import { githubResolver } from './github';
 import { isBoolean, isFunction, isObject, isString } from './is';
 import { mergeDeep } from './mergeDeep';
+import { getFilesHeader } from './messages/inline';
 import { createLogger } from './messages/logs';
 
 /**
@@ -103,6 +104,13 @@ export const normalizeOptions = async (
                 outputOptions.override?.formData,
               )
             : outputOptions.override?.formData) ?? true,
+
+        header:
+          outputOptions.override?.header === false
+            ? false
+            : isFunction(outputOptions.override?.header)
+            ? outputOptions.override?.header!
+            : getFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
           schemas: {
