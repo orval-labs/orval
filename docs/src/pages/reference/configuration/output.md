@@ -253,6 +253,8 @@ Default Value: `false`.
 
 Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
 
+Be carefull clean all output target and schemas folder.
+
 ### override
 
 Type: `Object`.

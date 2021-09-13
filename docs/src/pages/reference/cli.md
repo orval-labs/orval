@@ -63,7 +63,7 @@ $ orval --watch ./src
 
 ### Clean
 
-The `--clean`, can be used to clean generated files
+The `--clean`, can be used to clean generated files. Be carefull clean all output target and schemas folder.
 
 ```bash
 $ orval --watch
