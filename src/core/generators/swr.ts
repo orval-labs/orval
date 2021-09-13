@@ -194,6 +194,10 @@ const generateSwrImplementation = ({
   const httpFunctionProps = properties;
 
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
+  const swrKeyImplementation = params.length
+    ? `const isEnable = !!(${params.map(({ name }) => name).join(' && ')})
+  const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${properties}) : null);`
+    : `const swrKey = swrOptions?.swrKey ?? (() => ${swrKeyFnName}(${properties}))`;
 
   return `
 export const ${camel(`use-${operationName}`)} = <TError = ${
@@ -217,8 +221,7 @@ export const ${camel(`use-${operationName}`)} = <TError = ${
       : ''
   }
 
-  const isEnable = !!(${params.map(({ name }) => name).join(' && ')})
-  const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${properties}) : null);
+  ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
   }${
