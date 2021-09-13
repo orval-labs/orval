@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "5.5.9",
+  "version": "5.5.10",
   "license": "MIT",
   "files": [
     "dist"
