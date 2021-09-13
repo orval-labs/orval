@@ -57,6 +57,25 @@ module.exports = {
 };
 ```
 
+### workspace
+
+Type: `String`.
+
+Valid values: path to the folder which will contains all the generated files. This value will be use as a base for all the other path used in the orval config.
+
+If you provide this option, an `index.ts` file will be also created with all the available exports
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      workspace: 'src/'
+      target: './petstore.ts',
+    },
+  },
+};
+```
+
 ### mode
 
 Type: `String`.
@@ -226,6 +245,14 @@ module.exports = {
 
 If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type
 
+### clean
+
+Type: `Boolean | String[]`.
+
+Default Value: `false`.
+
+Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
+
 ### override
 
 Type: `Object`.
@@ -370,6 +397,36 @@ Type: `Object`.
 
 Use to override the query config. Check available options <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">here</a>
 
+#### angular
+
+Type: `Object`.
+
+Give you specific options for the angular client
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        angular: {
+          provideInRoot: false,
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### provideInRoot
+
+Type: `Boolean`.
+
+Default Value: `true`.
+
+Use to remove the provide in root in the generated angular services
+
 #### mock
 
 Type: `Object`.
@@ -434,6 +491,37 @@ Type: `String`.
 
 Give you the possibility to set base url to your mock handlers.
 
+#### components
+
+Type: `Object`.
+
+Give you the possibility to override the models
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: {
+            suffix: 'DTO',
+          },
+          responses: {
+            suffix: 'Response',
+          },
+          parameters: {
+            suffix: 'Params',
+          },
+          requestBodies: {
+            suffix: 'Bodies',
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 #### operations
 
 Type: `Object`.
@@ -490,6 +578,7 @@ Exactly the same as the `override.operations` but this time you can do it by <a 
 Type: `Function`.
 
 ```ts
+// type signature
 (operation: OperationObject, route: string, verb: Verbs) => string;
 ```
 
@@ -503,8 +592,15 @@ Use this property to provide a config to your http client or completly remove th
 
 #### formData
 
-Type: `Boolean`.
+Type: `Boolean | Function`.
 
 Default Value: `true`.
 
 Use this property to disable the auto generation of form data if you use multipart
+
+You can provide a function to customize the way you want to format your FormData. You will receive the body object in argument and you should return a FormData.
+
+```ts
+// type signature
+const customFormDataFn = <Body>(body: Body) => FormData;
+```

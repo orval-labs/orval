@@ -31,44 +31,37 @@ The Vue query model will generate an implementation file with one custom hook pe
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/vue-query/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
-export const showPetById = <TData = Pet>(
+export const showPetById = (
   petId: string,
-  version = 1,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<TData>(
-    { url: `/v${version}/pets/${petId}`, method: 'get' },
-    // eslint-disable-next-line
-    // @ts-ignore
-    options,
-  );
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version = 1) => [
-  `/v${version}/pets/${petId}`,
-];
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
 
 export const useShowPetById = <
-  TQueryFnData = AsyncReturnType<typeof showPetById, Pet>,
+  TData = AsyncReturnType<typeof showPetById>,
   TError = Error,
-  TData = TQueryFnData
 >(
   petId: string,
-  version = 1,
   options?: {
-    query?: UseQueryOptions<TQueryFnData, TError, TData>;
-    request?: SecondParameter<typeof customInstance>;
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
   },
 ) => {
-  const { query: queryOptions, request: requestOptions } = options || {};
+  const { query: queryOptions, axios: axiosOptions } = options || {};
 
-  const queryKey =
-    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
 
-  const query = useQuery<TQueryFnData, TError, TData>(
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
     queryKey,
-    () => showPetById<TQueryFnData>(petId, version, requestOptions),
-    { enabled: !!(version && petId), ...queryOptions },
+    queryFn,
+    {
+      enabled: !!petId,
+      ...queryOptions,
+    },
   );
 
   return {
@@ -125,60 +118,4 @@ module.exports = {
 };
 ```
 
-### How to set a backend url
-
-#### Mutator
-
-You can add a mutator function to your config and setup a custom instance of your prefered HTTP client.
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      ...
-      override: {
-        mutator: {
-          path: './api/mutator/custom-instance.ts',
-          name: 'customInstance',
-        },
-      },
-    }
-    ...
-  },
-};
-```
-
-```ts
-// custom-instance.ts
-
-import Axios, { AxiosRequestConfig } from 'axios';
-
-export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
-
-export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
-  const source = Axios.CancelToken.source();
-  const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
-    ({ data }) => data,
-  );
-
-  // @ts-ignore
-  promise.cancel = () => {
-    source.cancel('Query was cancelled by Vue Query');
-  };
-
-  return promise;
-};
-```
-
-#### Alternative
-
-You can add an interceptor to set automatically your url
-
-```js
-axios.interceptors.request.use((config) => {
-  return {
-    ...config,
-    baseURL: '<BACKEND URL>',
-  };
-});
-```
+Checkout <a href="https://github.com/anymaniax/orval/tree/master/samples/vue-query" target="_blank">here</a> the full example

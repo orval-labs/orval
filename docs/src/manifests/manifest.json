@@ -26,6 +26,21 @@
       "heading": true,
       "routes": [
         {
+          "title": "Use your own base url",
+          "path": "/guides/set-base-url",
+          "editUrl": "/guides/set-base-url.md"
+        },
+        {
+          "title": "Custom HTTP client",
+          "path": "/guides/custom-client",
+          "editUrl": "/guides/custom-client.md"
+        },
+        {
+          "title": "Custom Axios instance",
+          "path": "/guides/custom-axios",
+          "editUrl": "/guides/custom-axios.md"
+        },
+        {
           "title": "Basics",
           "path": "/guides/basics",
           "editUrl": "/guides/basics.md"
@@ -49,6 +64,11 @@
           "title": "Angular",
           "path": "/guides/angular",
           "editUrl": "/guides/angular.md"
+        },
+        {
+          "title": "SWR",
+          "path": "/guides/swr",
+          "editUrl": "/guides/swr.md"
         }
       ]
     },

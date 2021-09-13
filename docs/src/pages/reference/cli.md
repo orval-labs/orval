@@ -48,3 +48,27 @@ The `--project` option, shorthand `-p`, can be used to focus on one project of y
 ```bash
 $ orval --project petstore
 ```
+
+### Watch
+
+The `--watch` option, shorthand `-w`, can be used to watch some files and execute orval when they change. if path is not specified, it watches the specification files. Repeat "--watch" for more than one path
+
+```bash
+$ orval --watch
+```
+
+```bash
+$ orval --watch ./src
+```
+
+### Clean
+
+The `--clean`, can be used to clean generated files
+
+```bash
+$ orval --watch
+```
+
+```bash
+$ orval --watch ./src
+```

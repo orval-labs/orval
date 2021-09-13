@@ -31,41 +31,34 @@ The React query model will generate an implementation file with one custom hook 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
-export const showPetById = <Data = unknown>(
+export const showPetById = (
   petId: string,
-  version = 1,
-  options?: SecondParameter<typeof customInstance>,
-) => {
-  return customInstance<Data extends unknown ? Pet : Data>(
-    { url: `/v${version}/pets/${petId}`, method: 'get' },
-    // eslint-disable-next-line
-    // @ts-ignore
-    options,
-  );
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version = 1) => [
-  `/v${version}/pets/${petId}`,
-];
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
 
 export const useShowPetById = <
-  Data extends unknown = unknown,
-  Error extends unknown = unknown
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
 >(
   petId: string,
-  version = 1,
   options?: {
-    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, Error>;
-    request?: SecondParameter<typeof customInstance>;
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
   },
 ) => {
-  const queryKey = getShowPetByIdQueryKey(petId, version);
-  const { query: queryOptions, request: requestOptions } = options || {};
+  const { query: queryOptions, axios: axiosOptions } = options || {};
 
-  const query = useQuery<AsyncReturnType<typeof showPetById>, Error>(
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
     queryKey,
-    () => showPetById<Data>(petId, version, requestOptions),
-    { enabled: !!(version && petId), ...queryOptions },
+    queryFn,
+    { enabled: !!petId, ...queryOptions },
   );
 
   return {
@@ -122,101 +115,4 @@ module.exports = {
 };
 ```
 
-### How to set a backend url
-
-#### Mutator
-
-You can add a mutator function to your config and setup a custom instance of your prefered HTTP client.
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      ...
-      override: {
-        mutator: {
-          path: './api/mutator/custom-instance.ts',
-          name: 'customInstance',
-        },
-      },
-    }
-    ...
-  },
-};
-```
-
-```ts
-// custom-instance.ts
-
-import Axios, { AxiosRequestConfig } from 'axios';
-
-export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
-
-export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
-  const source = Axios.CancelToken.source();
-  const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
-    ({ data }) => data,
-  );
-
-  // @ts-ignore
-  promise.cancel = () => {
-    source.cancel('Query was cancelled by React Query');
-  };
-
-  return promise;
-};
-```
-
-#### Alternative
-
-You can add an interceptor to set automatically your url
-
-```js
-axios.interceptors.request.use((config) => {
-  return {
-    ...config,
-    baseURL: '<BACKEND URL>',
-  };
-});
-```
-
-### How to add headers
-
-Like for the backend url you should use an interceptor to set your header automatically.
-
-You can use a context to add automatically an authorization for example.
-
-```ts
-const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
-  // it's a quick demo with useState but you can also have a more complexe state with a useReducer
-  const [token, setToken] = useState(initialState);
-
-  useEffect(() => {
-    const interceptorId = axios.interceptors.request.use((config) => {
-      return {
-        ...config,
-        headers: token
-          ? {
-              ...config.headers,
-              Authorization: `Bearer ${token}`,
-            }
-          : config.headers,
-      };
-    });
-
-    return () => {
-      axios.interceptors.request.eject(interceptorId);
-    };
-  }, [token]);
-
-  return (
-    <AuthContext.Provider value={token}>
-      <AuthDispatchContext.Provider value={setToken}>
-        {children}
-      </AuthDispatchContext.Provider>
-    </AuthContext.Provider>
-  );
-};
-```
-
-Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query/src/auth.context.tsx" target="_blank">here</a> the full example
+Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/react-app-with-react-query" target="_blank">here</a> the full example
