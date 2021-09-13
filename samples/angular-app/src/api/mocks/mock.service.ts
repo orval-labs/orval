@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@angular/core';
-import { setupWorker } from 'msw';
-import { SetupWorkerApi } from 'msw/lib/types/setupWorker/setupWorker';
+import { setupWorker, SetupWorkerApi } from 'msw';
 import { getPetsMSW } from '../endpoints/pets/pets.msw';
 import { MOCKED_API } from './mock.token';
 import { MockedApi } from './mock.type';
