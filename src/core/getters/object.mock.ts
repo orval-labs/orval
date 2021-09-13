@@ -25,7 +25,7 @@ export const getMockObject = async ({
   context: ContextSpecs;
 }): Promise<MockDefinition> => {
   if (isReference(item)) {
-    return await resolveMockValue({
+    return resolveMockValue({
       schema: {
         ...item,
         name: item.name,
@@ -67,7 +67,7 @@ export const getMockObject = async ({
             const isRequired =
               mockOptions?.required || (item.required || []).includes(key);
 
-            if (count(item.path, `.${key}.`) >= 1) {
+            if (count(item.path, `\\.${key}\\.`) >= 1) {
               return undefined;
             }
 
