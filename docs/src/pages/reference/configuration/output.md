@@ -260,7 +260,7 @@ Valid values: path of the mutator function or object with a path and name.
 
 If you provide an object you can also add a default property to use an export default function.
 
-This function is executed for each call when this one is executed. It takes all the options passed to the verb as an argument and should return a promise with your custom implementation or prefered HTTP client.
+This function is executed for each call when this one is executed. It takes all the options passed to the verb as an argument and should return a promise with your custom implementation or preferred HTTP client.
 
 Possible arguments:
 
