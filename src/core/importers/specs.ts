@@ -1,17 +1,20 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { resolve } from 'upath';
 import isUrl from 'validator/lib/isURL';
-import { NormalizedOptions } from '../../types';
+import { NormalizedOptions, SwaggerParserOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { isObject } from '../../utils/is';
 import { importOpenApi } from './openApi';
 
 const resolveSpecs = async (
   path: string,
-  parserOptions: SwaggerParser.Options,
+  { validate, ...options }: SwaggerParserOptions,
   isUrl: boolean,
 ) => {
-  const data = (await SwaggerParser.resolve(path, parserOptions)).values();
+  if (validate) {
+    await SwaggerParser.validate(path);
+  }
+  const data = (await SwaggerParser.resolve(path, options)).values();
 
   if (isUrl) {
     return data;

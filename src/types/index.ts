@@ -108,7 +108,7 @@ export type NormalizedInputOptions = {
   validation: boolean;
   override: OverrideInput;
   converterOptions: swagger2openapi.Options;
-  parserOptions: SwaggerParser.Options;
+  parserOptions: SwaggerParserOptions;
 };
 
 export type OutputClientFunc = (
@@ -126,12 +126,16 @@ export type OutputOptions = {
   clean?: boolean | string[];
 };
 
+export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
+  validate?: boolean;
+};
+
 export type InputOptions = {
   target: string | OpenAPIObject;
   validation?: boolean;
   override?: OverrideInput;
   converterOptions?: swagger2openapi.Options;
-  parserOptions?: SwaggerParser.Options;
+  parserOptions?: SwaggerParserOptions;
 };
 
 export type OutputClient =

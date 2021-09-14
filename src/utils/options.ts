@@ -1,4 +1,3 @@
-import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
 import { resolve } from 'upath';
 import isUrl from 'validator/lib/isURL';
@@ -12,6 +11,7 @@ import {
   OperationOptions,
   OptionsExport,
   OutputClient,
+  SwaggerParserOptions,
 } from '../types';
 import { githubResolver } from './github';
 import { isBoolean, isFunction, isObject, isString } from './is';
@@ -157,8 +157,9 @@ export const normalizeOptions = async (
 };
 
 const parserDefaultOptions = {
+  validate: true,
   resolve: { github: githubResolver },
-} as SwaggerParser.Options;
+} as SwaggerParserOptions;
 
 const normalizeMutator = <T>(
   workspace: string,
