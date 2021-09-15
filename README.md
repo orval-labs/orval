@@ -13,8 +13,12 @@
 
 ### Samples
 
-You can find below some samples on codesandbox
+You can find below some samples
 
 - [react app](https://github.com/anymaniax/orval/tree/master/samples/react-app)
 - [react app with React query](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-react-query)
+- [svelte query](https://github.com/anymaniax/orval/tree/master/samples/svelte-query)
+- [vue query](https://github.com/anymaniax/orval/tree/master/samples/vue-query)
+- [react app with swr](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-swr)
+- [nx fastify react](https://github.com/anymaniax/orval/tree/master/samples/nx-fastify-react)
 - [angular app](https://github.com/anymaniax/orval/tree/master/samples/angular-app)
