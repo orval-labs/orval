@@ -96,13 +96,19 @@ export const generateConfig = async (
     {} as NormizaledConfig,
   );
 
-  if (options?.watch) {
+  const fileToWatch = Object.entries(normalizedConfig)
+    .filter(
+      ([project]) =>
+        options?.projectName === undefined || project === options?.projectName,
+    )
+    .map(([, { input }]) => input.target)
+    .filter((target) => isString(target)) as string[];
+
+  if (options?.watch && fileToWatch.length) {
     startWatcher(
       options?.watch,
       () => generateSpecs(normalizedConfig, workspace, options?.projectName),
-      Object.values(normalizedConfig)
-        .map(({ input }) => input.target)
-        .filter((target) => isString(target)) as string[],
+      fileToWatch,
     );
   } else {
     generateSpecs(normalizedConfig, workspace, options?.projectName);
