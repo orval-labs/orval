@@ -42,6 +42,7 @@ export const writeSingleMode = async ({
       implementation,
       schemasPath ? [{ exports: imports, dependency: schemasPath }] : [],
       specsName,
+      !!output.schemas,
     );
 
     if (output.mock) {
@@ -49,6 +50,7 @@ export const writeSingleMode = async ({
         implementationMSW,
         schemasPath ? [{ exports: importsMSW, dependency: schemasPath }] : [],
         specsName,
+        !!output.schemas,
       );
     }
 

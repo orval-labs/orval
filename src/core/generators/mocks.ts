@@ -1,6 +1,10 @@
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
-import { ContextSpecs, MockOptions, OverrideOutput } from '../../types';
+import {
+  ContextSpecs,
+  MockOptions,
+  NormalizedOverrideOutput,
+} from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { asyncReduce } from '../../utils/async-reduce';
@@ -20,7 +24,7 @@ const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
 
 const getMockWithoutFunc = (
   spec: OpenAPIObject,
-  override?: OverrideOutput,
+  override?: NormalizedOverrideOutput,
 ): MockOptions => ({
   required: override?.mock?.required,
   ...(override?.mock?.properties
@@ -168,7 +172,7 @@ export const getMockDefinition = async ({
   operationId: string;
   tags: string[];
   response: GetterResponse;
-  override?: OverrideOutput;
+  override: NormalizedOverrideOutput;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
 }) => {
@@ -195,7 +199,7 @@ export const getMockDefinition = async ({
 
 export const getMockOptionsDataOverride = (
   operationId: string,
-  override?: OverrideOutput,
+  override: NormalizedOverrideOutput,
 ) => {
   const responseOverride = override?.operations?.[operationId]?.mock?.data;
   return isFunction(responseOverride)

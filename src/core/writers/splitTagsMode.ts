@@ -49,6 +49,7 @@ export const writeSplitTagsMode = async ({
           implementation,
           [{ exports: imports, dependency: relativeSchemasPath }],
           specsName,
+          !!output.schemas,
         );
         mswData += generateMSWImports(
           implementationMSW,
@@ -59,6 +60,7 @@ export const writeSplitTagsMode = async ({
             },
           ],
           specsName,
+          !!output.schemas,
         );
 
         const schemasPath = !output.schemas

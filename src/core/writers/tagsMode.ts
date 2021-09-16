@@ -47,6 +47,7 @@ export const writeTagsMode = async ({
           implementation,
           [{ exports: imports, dependency: schemasPathRelative }],
           specsName,
+          !!output.schemas,
         );
 
         if (output.mock) {
@@ -54,6 +55,7 @@ export const writeTagsMode = async ({
             implementationMSW,
             [{ exports: importsMSW, dependency: schemasPathRelative }],
             specsName,
+            !!output.schemas,
           );
         }
 

@@ -57,11 +57,13 @@ export const generateMSWImports = (
     dependency: string;
   }[],
   specsName: Record<string, string>,
+  hasSchemaDir: boolean,
 ): string => {
   return generateDependencyImports(
     implementation,
     [...MSW_DEPENDENCIES, ...imports],
     specsName,
+    hasSchemaDir,
   );
 };
 

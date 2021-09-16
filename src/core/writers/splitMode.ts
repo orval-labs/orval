@@ -45,6 +45,7 @@ export const writeSplitMode = async ({
       implementation,
       [{ exports: imports, dependency: relativeSchemasPath }],
       specsName,
+      !!output.schemas,
     );
     mswData += generateMSWImports(
       implementationMSW,
@@ -55,6 +56,7 @@ export const writeSplitMode = async ({
         },
       ],
       specsName,
+      !!output.schemas,
     );
 
     const schemasPath = !output.schemas

@@ -129,12 +129,14 @@ export const generateClientImports = (
     dependency: string;
   }[],
   specsName: Record<string, string>,
+  hasSchemaDir: boolean,
 ): string => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
     [...dependencies(), ...imports],
     specsName,
+    hasSchemaDir,
   );
 };
 

@@ -78,11 +78,13 @@ export const addDependency = ({
   exports,
   dependency,
   specsName,
+  hasSchemaDir,
 }: {
   implementation: string;
   exports: GeneratorImport[];
   dependency: string;
   specsName: Record<string, string>;
+  hasSchemaDir: boolean;
 }) => {
   const toAdds = exports.filter((e) => implementation.includes(e.name));
 
@@ -93,7 +95,7 @@ export const addDependency = ({
   const groupedBySpecKey = toAdds.reduce<
     Record<string, { deps: GeneratorImport[]; values: boolean }>
   >((acc, dep) => {
-    const key = dep.specKey || 'default';
+    const key = hasSchemaDir && dep.specKey ? dep.specKey : 'default';
 
     return {
       ...acc,
@@ -128,9 +130,12 @@ export const generateDependencyImports = (
     dependency: string;
   }[],
   specsName: Record<string, string>,
+  hasSchemaDir: boolean,
 ): string => {
   const dependencies = imports
-    .map((dep) => addDependency({ ...dep, implementation, specsName }))
+    .map((dep) =>
+      addDependency({ ...dep, implementation, specsName, hasSchemaDir }),
+    )
     .filter(Boolean)
     .join('\n');
 
