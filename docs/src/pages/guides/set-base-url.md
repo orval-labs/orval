@@ -10,7 +10,7 @@ You can set a default baseUrl
 Axios.defaults.baseURL = '<BACKEND URL>'; // use your own URL here or environment variable
 ```
 
-You can also use an interceptor do it
+You can also use an interceptor to do it
 
 ```ts
 axios.interceptors.request.use((config) => {
