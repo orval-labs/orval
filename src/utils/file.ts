@@ -1,5 +1,5 @@
-import * as swc from '@swc/core';
 import chalk from 'chalk';
+import { build } from 'esbuild';
 import fs from 'fs';
 import glob from 'globby';
 import path from 'path';
@@ -136,8 +136,8 @@ export async function loadFile<File = unknown>(
       // the user has type: "module" in their package.json (#917)
       // transpile es import syntax to require syntax using rollup.
       // lazy require rollup (it's actually in dependencies)
-      const bundled = await bundleFile(resolvedPath);
-      file = await loadFromBundledFile<File>(resolvedPath, bundled, isDefault);
+      const { code } = await bundleFile(resolvedPath, isMjs);
+      file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
 
@@ -154,14 +154,63 @@ export async function loadFile<File = unknown>(
   }
 }
 
-async function bundleFile(fileName: string, mjs = false): Promise<string> {
-  const { code } = await swc.transformFile(fileName, {
-    module: {
-      type: 'commonjs',
-    },
+async function bundleFile(
+  fileName: string,
+  mjs = false,
+): Promise<{ code: string; dependencies: string[] }> {
+  const result = await build({
+    absWorkingDir: process.cwd(),
+    entryPoints: [fileName],
+    outfile: 'out.js',
+    write: false,
+    platform: 'node',
+    bundle: true,
+    format: mjs ? 'esm' : 'cjs',
+    sourcemap: 'inline',
+    metafile: true,
+    target: 'es6',
+    plugins: [
+      {
+        name: 'externalize-deps',
+        setup(build) {
+          build.onResolve({ filter: /.*/ }, (args) => {
+            const id = args.path;
+            if (id[0] !== '.' && !path.isAbsolute(id)) {
+              return {
+                external: true,
+              };
+            }
+          });
+        },
+      },
+      {
+        name: 'replace-import-meta',
+        setup(build) {
+          build.onLoad({ filter: /\.[jt]s$/ }, async (args) => {
+            const contents = await fs.promises.readFile(args.path, 'utf8');
+            return {
+              loader: args.path.endsWith('.ts') ? 'ts' : 'js',
+              contents: contents
+                .replace(
+                  /\bimport\.meta\.url\b/g,
+                  JSON.stringify(`file://${args.path}`),
+                )
+                .replace(
+                  /\b__dirname\b/g,
+                  JSON.stringify(path.dirname(args.path)),
+                )
+                .replace(/\b__filename\b/g, JSON.stringify(args.path)),
+            };
+          });
+        },
+      },
+    ],
   });
-
-  return code;
+  const { text } = result.outputFiles[0];
+  return {
+    code: text,
+    dependencies: result.metafile ? Object.keys(result.metafile.inputs) : [],
+  };
 }
 
 interface NodeModuleWithCompile extends NodeModule {
