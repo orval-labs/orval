@@ -205,27 +205,33 @@ const normalizeOperationsAndTags = (
   [key: string]: NormalizedOperationOptions;
 } => {
   return Object.fromEntries(
-    Object.entries(operationsOrTags).map(([key, value]) => {
-      return [
+    Object.entries(operationsOrTags).map(
+      ([
         key,
-        {
-          ...(value.transformer
-            ? { transformer: normalizePath(value.transformer, workspace) }
-            : {}),
-          ...(value.mutator
-            ? { mutator: normalizeMutator(workspace, value.mutator) }
-            : {}),
-          formData:
-            (!isBoolean(value.formData)
-              ? normalizeMutator(workspace, value.formData)
-              : value.formData) ?? true,
-          requestOptions: value.requestOptions ?? true,
-          query: {
-            useQuery: true,
-            ...(value.query || {}),
+        { transformer, mutator, formData, requestOptions, query, ...rest },
+      ]) => {
+        return [
+          key,
+          {
+            ...rest,
+            ...(transformer
+              ? { transformer: normalizePath(transformer, workspace) }
+              : {}),
+            ...(mutator
+              ? { mutator: normalizeMutator(workspace, mutator) }
+              : {}),
+            formData:
+              (!isBoolean(formData)
+                ? normalizeMutator(workspace, formData)
+                : formData) ?? true,
+            requestOptions: requestOptions ?? true,
+            query: {
+              useQuery: true,
+              ...(query || {}),
+            },
           },
-        },
-      ];
-    }),
+        ];
+      },
+    ),
   );
 };

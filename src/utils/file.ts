@@ -169,6 +169,7 @@ async function bundleFile(
     sourcemap: 'inline',
     metafile: true,
     target: 'es6',
+    minifyWhitespace: true,
     plugins: [
       {
         name: 'externalize-deps',
