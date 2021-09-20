@@ -7,7 +7,7 @@ title: Overview
 
 ## Motivation
 
-I often use a swagger as contract between the frontend and backend team. And before Orval, I used the <a href="editor.swagger.io" target="_blank">swagger editor</a> or <a href="https://swagger.io/tools/swagger-codegen" target="_blank">swagger codegen</a> but that wasn't enough for my need. That's why I started Orval.
+I often use a swagger as contract between the frontend and backend team. And before Orval, I used the <a href="https://editor.swagger.io" target="_blank">swagger editor</a> or <a href="https://swagger.io/tools/swagger-codegen" target="_blank">swagger codegen</a> but that wasn't enough for my need. That's why I started Orval.
 
 Main goals:
 
