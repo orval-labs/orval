@@ -255,6 +255,14 @@ Can be used to clean generated files. Provide an array of glob if you want to cu
 
 Be carefull clean all output target and schemas folder.
 
+### prettier
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Can be used to prettier generated files. You need to have prettier in your dependencies.
+
 ### override
 
 Type: `Object`.

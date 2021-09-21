@@ -72,3 +72,11 @@ $ orval --watch
 ```bash
 $ orval --watch ./src
 ```
+
+### Prettier
+
+The `--prettier`, can be used to prettier generated files. You need to have prettier in your dependencies.
+
+```bash
+$ orval --prettier
+```

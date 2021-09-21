@@ -33,20 +33,20 @@ app.ready(async () => {
   await orval(
     {
       output: {
-        target: './api/endpoints',
-        schemas: './api/schemas',
+        target: './endpoints',
+        schemas: './schemas',
         client: 'react-query',
         clean: true,
         override: {
           mutator: {
-            path: './api/mutator/custom-instance.ts',
+            path: './mutator/custom-instance.ts',
             name: 'customInstance',
           },
         },
       },
       input: { target: app.swagger() },
     },
-    '/Users/anymaniax/Documents/milenko/orval/samples/nx-fastify-react/apps/app/src'
+    './apps/app/src/api'
   );
 
   console.log('ready port 3000');

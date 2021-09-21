@@ -18,9 +18,13 @@ startMessage({
 cli.version(pkg.version);
 
 cli
-  .command('[config]', 'generate client with appropriate type-signatures from OpenAPI specs', {
-    ignoreOptionDefaultValue: true,
-  })
+  .command(
+    '[config]',
+    'generate client with appropriate type-signatures from OpenAPI specs',
+    {
+      ignoreOptionDefaultValue: true,
+    },
+  )
   .option('-o, --output <path>', 'output file destination')
   .option('-i, --input <path>', 'input file (yaml or json openapi specs)')
   .option('-c, --config <path>', 'override flags by a config file')
@@ -30,11 +34,16 @@ cli
     'Watch mode, if path is not specified, it watches the input target',
   )
   .option('--clean [path]', 'Clean output directory')
+  .option('--prettier [path]', 'Prettier generated files')
   .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
         input: cmd.input,
-        output: { target: cmd.output, clean: cmd.clean },
+        output: {
+          target: cmd.output,
+          clean: cmd.clean,
+          prettier: cmd.prettier,
+        },
       });
 
       if (cmd.watch) {
@@ -51,6 +60,7 @@ cli
         projectName: cmd.project,
         watch: cmd.watch,
         clean: cmd.clean,
+        prettier: cmd.prettier,
       });
     }
   });

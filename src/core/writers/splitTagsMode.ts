@@ -96,14 +96,19 @@ export const writeSplitTagsMode = async ({
         );
         await outputFile(implementationPath, implementationData);
 
-        if (output.mock) {
-          await outputFile(
-            join(dirname, kebab(tag), kebab(tag) + '.msw' + extension),
-            mswData,
-          );
+        const mockPath = output.mock
+          ? join(dirname, kebab(tag), kebab(tag) + '.msw' + extension)
+          : undefined;
+
+        if (mockPath) {
+          await outputFile(mockPath, mswData);
         }
 
-        return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
+        return [
+          implementationPath,
+          ...(schemasPath ? [schemasPath] : []),
+          ...(mockPath ? [mockPath] : []),
+        ];
       } catch (e) {
         throw `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${e}`;
       }

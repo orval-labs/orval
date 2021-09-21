@@ -11,6 +11,7 @@ const generate = async (
     projectName?: string;
     watch?: boolean | string | (string | boolean)[];
     clean?: boolean | string[];
+    prettier?: boolean;
   },
 ) => {
   if (!optionsExport || isString(optionsExport)) {
@@ -21,6 +22,7 @@ const generate = async (
     optionsExport,
     workspace,
     options?.clean,
+    options?.prettier,
   );
 
   if (options?.watch) {

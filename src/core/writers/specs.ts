@@ -1,3 +1,6 @@
+import chalk from 'chalk';
+import { log } from 'console';
+import execa from 'execa';
 import { outputFile } from 'fs-extra';
 import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
@@ -19,6 +22,7 @@ export const writeSpecs = async (
   projectName?: string,
 ) => {
   const { output } = options;
+  const projectTitle = projectName || info.title;
 
   const specsName = Object.keys(schemas).reduce((acc, specKey) => {
     const basePath = getSpecName(specKey, rootSpecKey);
@@ -109,6 +113,7 @@ export const writeSpecs = async (
   if (output.workspace) {
     const workspacePath = output.workspace;
     let imports = implementationPaths
+      .filter((path) => !path.endsWith('.msw.ts'))
       .map(
         (path) =>
           `export * from '${relativeSafe(
@@ -128,5 +133,21 @@ export const writeSpecs = async (
     await outputFile(join(workspacePath, '/index.ts'), imports);
   }
 
-  createSuccessMessage(projectName || info.title);
+  if (output.prettier) {
+    try {
+      await execa('prettier', [
+        '--write',
+        getFileInfo(output.schemas).dirname,
+        ...implementationPaths,
+      ]);
+    } catch (e) {
+      log(
+        chalk.yellow(
+          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Prettier not found`,
+        ),
+      );
+    }
+  }
+
+  createSuccessMessage(projectTitle);
 };

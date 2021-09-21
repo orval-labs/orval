@@ -72,6 +72,7 @@ export const generateConfig = async (
     projectName?: string;
     watch?: boolean | string | (string | boolean)[];
     clean?: boolean | string[];
+    prettier?: boolean;
   },
 ) => {
   const { path, file: configExternal } = await loadFile<ConfigExternal>(
@@ -91,7 +92,12 @@ export const generateConfig = async (
     Object.entries(config),
     async (acc, [key, value]) => ({
       ...acc,
-      [key]: await normalizeOptions(value, workspace, options?.clean),
+      [key]: await normalizeOptions(
+        value,
+        workspace,
+        options?.clean,
+        options?.prettier,
+      ),
     }),
     {} as NormizaledConfig,
   );

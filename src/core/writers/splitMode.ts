@@ -91,11 +91,19 @@ export const writeSplitMode = async ({
     const implementationPath = join(dirname, implementationFilename);
     await outputFile(join(dirname, implementationFilename), implementationData);
 
-    if (output.mock) {
-      await outputFile(join(dirname, filename + '.msw' + extension), mswData);
+    const mockPath = output.mock
+      ? join(dirname, filename + '.msw' + extension)
+      : undefined;
+
+    if (mockPath) {
+      await outputFile(mockPath, mswData);
     }
 
-    return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
+    return [
+      implementationPath,
+      ...(schemasPath ? [schemasPath] : []),
+      ...(mockPath ? [mockPath] : []),
+    ];
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
   }

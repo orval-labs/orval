@@ -41,6 +41,7 @@ export type NormalizedOutputOptions = {
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   clean: boolean | string[];
+  prettier: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -124,6 +125,7 @@ export type OutputOptions = {
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   clean?: boolean | string[];
+  prettier?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {

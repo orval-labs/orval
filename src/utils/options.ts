@@ -31,6 +31,7 @@ export const normalizeOptions = async (
   optionsExport: OptionsExport,
   workspace = process.cwd(),
   clean?: boolean | string[],
+  prettier?: boolean,
 ) => {
   const options = await (isFunction(optionsExport)
     ? optionsExport()
@@ -83,6 +84,7 @@ export const normalizeOptions = async (
       mode: outputOptions.mode ?? 'single',
       mock: outputOptions.mock ?? false,
       clean: (outputOptions.clean || clean) ?? false,
+      prettier: (outputOptions.prettier || prettier) ?? false,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
