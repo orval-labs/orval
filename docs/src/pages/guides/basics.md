@@ -37,4 +37,4 @@ The input options configures the imported specification and also what you want t
 - `override` is to quickly override the input
   - `transformer` to transform the specification like add a param to every call.
 
-Checkout the [orval config](../reference/orval-config) to see all available options.
+Checkout the [orval input configuration](../reference/configuration/input) to see all available options.
