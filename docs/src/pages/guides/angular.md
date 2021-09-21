@@ -24,7 +24,7 @@ module.exports = {
 };
 ```
 
-Checkout the [orval config](../reference/orval-config) reference to see all available options.
+Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
 The Angular mode will generate automatically two classes. One abstract with the definition and a service with the implementation. You should add the service inside a module and use it where you want.
 
