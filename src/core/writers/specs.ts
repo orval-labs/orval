@@ -137,7 +137,7 @@ export const writeSpecs = async (
     try {
       await execa('prettier', [
         '--write',
-        getFileInfo(output.schemas).dirname,
+        ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
         ...implementationPaths,
       ]);
     } catch (e) {
