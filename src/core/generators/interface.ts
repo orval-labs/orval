@@ -1,7 +1,6 @@
 import { SchemaObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../../constants';
 import { ContextSpecs } from '../../types';
-import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
 import { getScalar } from '../getters/scalar';
 
@@ -23,9 +22,12 @@ export const generateInterface = async ({
   context: ContextSpecs;
   suffix: string;
 }) => {
-  const scalar = await getScalar({ item: schema, name, context });
+  const scalar = await getScalar({
+    item: schema,
+    name,
+    context,
+  });
   const isEmptyObject = scalar.value === '{}';
-  const definitionName = pascal(name) + suffix;
 
   let model = '';
 
@@ -36,20 +38,20 @@ export const generateInterface = async ({
   }
 
   if (!generalJSTypesWithArray.includes(scalar.value)) {
-    model += `export interface ${definitionName} ${scalar.value}\n`;
+    model += `export interface ${name} ${scalar.value}\n`;
   } else {
-    model += `export type ${definitionName} = ${scalar.value};\n`;
+    model += `export type ${name} = ${scalar.value};\n`;
   }
 
   // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
   const externalModulesImportsOnly = scalar.imports.filter(
-    (importName) => importName.name !== definitionName,
+    (importName) => importName.name !== name,
   );
 
   return [
     ...scalar.schemas,
     {
-      name: definitionName,
+      name,
       model,
       imports: externalModulesImportsOnly,
     },

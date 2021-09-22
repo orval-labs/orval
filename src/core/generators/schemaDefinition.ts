@@ -28,6 +28,7 @@ export const generateSchemasDefinition = async (
   const models = asyncReduce(
     Object.entries(schemas),
     async (acc, [name, schema]) => {
+      const schemaName = pascal(name) + suffix;
       if (
         (!schema.type || schema.type === 'object') &&
         !schema.allOf &&
@@ -37,18 +38,21 @@ export const generateSchemasDefinition = async (
       ) {
         return [
           ...acc,
-          ...(await generateInterface({ name, schema, context, suffix })),
+          ...(await generateInterface({
+            name: schemaName,
+            schema,
+            context,
+            suffix,
+          })),
         ];
       } else {
         const resolvedValue = await resolveValue({
           schema,
-          name,
+          name: schemaName,
           context,
         });
 
         let output = '';
-
-        const schemaName = pascal(name) + suffix;
 
         let imports = resolvedValue.imports;
 
