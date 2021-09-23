@@ -17,6 +17,7 @@ import {
 } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { camel } from '../../utils/case';
+import { jsDoc } from '../../utils/doc';
 import { dynamicImport } from '../../utils/imports';
 import { isObject, isString, isVerb } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
@@ -50,6 +51,9 @@ const generateVerbOptions = async ({
     requestBody,
     parameters: operationParameters,
     tags = [],
+    deprecated,
+    description,
+    summary,
   } = operation;
 
   const operationId = getOperationId(operation, route, verb);
@@ -113,6 +117,8 @@ const generateVerbOptions = async ({
         })
       : undefined;
 
+  const doc = jsDoc({ description, deprecated, summary });
+
   const verbOption: GeneratorVerbOptions = {
     verb: verb as Verbs,
     tags,
@@ -127,6 +133,7 @@ const generateVerbOptions = async ({
     mutator,
     formData,
     override,
+    doc,
   };
 
   const transformer = await dynamicImport(

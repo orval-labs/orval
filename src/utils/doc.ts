@@ -2,21 +2,26 @@ export function jsDoc(
   {
     description,
     deprecated,
+    summary,
   }: {
     description?: string[] | string;
     deprecated?: boolean;
+    summary?: string;
   },
   tryOneLine = false,
 ): string {
   const lines = Array.isArray(description) ? description : [description];
 
-  if (!description && !deprecated) {
+  const count = [description, deprecated, summary].reduce(
+    (acc, it) => (it ? acc + 1 : acc),
+    0,
+  );
+
+  if (!count) {
     return '';
   }
 
-  const oneLine =
-    ((description && !deprecated) || (deprecated && !description)) &&
-    tryOneLine;
+  const oneLine = count === 1 && tryOneLine;
   let doc = '/**';
 
   if (description) {
@@ -31,6 +36,13 @@ export function jsDoc(
       doc += `\n${tryOneLine ? '  ' : ''} *`;
     }
     doc += ' @deprecated';
+  }
+
+  if (summary) {
+    if (!oneLine) {
+      doc += `\n${tryOneLine ? '  ' : ''} *`;
+    }
+    doc += ` @summary ${summary}`;
   }
 
   doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';

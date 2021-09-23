@@ -26,7 +26,7 @@ export const generateTarget = (
     (acc, operation, index, arr) => {
       acc.imports = [...acc.imports, ...operation.imports];
       acc.importsMSW = [...acc.importsMSW, ...operation.importsMSW];
-      acc.implementation += operation.implementation;
+      acc.implementation += operation.implementation + '\n';
       acc.implementationMSW.function += operation.implementationMSW.function;
       acc.implementationMSW.handler += operation.implementationMSW.handler;
       if (operation.mutator) {

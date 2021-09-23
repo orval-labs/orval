@@ -77,6 +77,7 @@ export type GeneratorOperation = {
 export type GeneratorVerbOptions = {
   verb: Verbs;
   summary?: string;
+  doc: string;
   tags: string[];
   operationId: string;
   operationName: string;

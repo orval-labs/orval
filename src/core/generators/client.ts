@@ -237,7 +237,7 @@ export const generateClient = (
       return {
         ...acc,
         [verbOption.operationId]: {
-          implementation: client.implementation,
+          implementation: verbOption.doc + client.implementation,
           imports: client.imports,
           implementationMSW: msw.implementation,
           importsMSW: msw.imports,
