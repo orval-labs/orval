@@ -1,3 +1,4 @@
+import chalk from 'chalk';
 import { dirname } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
@@ -15,32 +16,28 @@ export const generateSpec = async (
   options: NormalizedOptions,
   projectName?: string,
 ) => {
-  try {
-    if (options.output.clean) {
-      const extraPatterns = Array.isArray(options.output.clean)
-        ? options.output.clean
-        : [];
+  if (options.output.clean) {
+    const extraPatterns = Array.isArray(options.output.clean)
+      ? options.output.clean
+      : [];
 
-      if (options.output.target) {
-        await removeFiles(
-          ['**/*', '!**/*.d.ts', ...extraPatterns],
-          getFileInfo(options.output.target).dirname,
-        );
-      }
-      if (options.output.schemas) {
-        await removeFiles(
-          ['**/*', '!**/*.d.ts', ...extraPatterns],
-          getFileInfo(options.output.schemas).dirname,
-        );
-      }
-      log(`${projectName ? `${projectName}: ` : ''}Cleaning output folder`);
+    if (options.output.target) {
+      await removeFiles(
+        ['**/*', '!**/*.d.ts', ...extraPatterns],
+        getFileInfo(options.output.target).dirname,
+      );
     }
-
-    const writeSpecProps = await importSpecs(workspace, options);
-    await writeSpecs(writeSpecProps, workspace, options, projectName);
-  } catch (e) {
-    catchError(e);
+    if (options.output.schemas) {
+      await removeFiles(
+        ['**/*', '!**/*.d.ts', ...extraPatterns],
+        getFileInfo(options.output.schemas).dirname,
+      );
+    }
+    log(`${projectName ? `${projectName}: ` : ''}Cleaning output folder`);
   }
+
+  const writeSpecProps = await importSpecs(workspace, options);
+  await writeSpecs(writeSpecProps, workspace, options, projectName);
 };
 
 export const generateSpecs = async (
@@ -52,7 +49,11 @@ export const generateSpecs = async (
     const options = config[projectName];
 
     if (options) {
-      generateSpec(workspace, options, projectName);
+      try {
+        await generateSpec(workspace, options, projectName);
+      } catch (e) {
+        log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
+      }
     } else {
       catchError('Project not found');
     }
@@ -61,7 +62,11 @@ export const generateSpecs = async (
 
   return Promise.all(
     Object.entries(config).map(async ([projectName, options]) => {
-      return generateSpec(workspace, options, projectName);
+      try {
+        return await generateSpec(workspace, options, projectName);
+      } catch (e) {
+        log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
+      }
     }),
   );
 };
@@ -117,6 +122,6 @@ export const generateConfig = async (
       fileToWatch,
     );
   } else {
-    generateSpecs(normalizedConfig, workspace, options?.projectName);
+    await generateSpecs(normalizedConfig, workspace, options?.projectName);
   }
 };

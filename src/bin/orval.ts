@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { cac } from 'cac';
+import chalk from 'chalk';
 import pkg from '../../package.json';
 import { generateConfig, generateSpec } from '../generate';
 import { isString } from '../utils/is';
-import { startMessage } from '../utils/messages/logs';
+import { log, startMessage } from '../utils/messages/logs';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
 
@@ -49,14 +50,24 @@ cli
       if (cmd.watch) {
         startWatcher(
           cmd.watch,
-          () => generateSpec(process.cwd(), normalizedOptions),
+          async () => {
+            try {
+              await generateSpec(process.cwd(), normalizedOptions);
+            } catch (e) {
+              log(chalk.red(`🛑  ${e}`));
+            }
+          },
           normalizedOptions.input.target as string,
         );
       } else {
-        generateSpec(process.cwd(), normalizedOptions);
+        try {
+          await generateSpec(process.cwd(), normalizedOptions);
+        } catch (e) {
+          log(chalk.red(`🛑  ${e}`));
+        }
       }
     } else {
-      generateConfig(cmd.config, {
+      await generateConfig(cmd.config, {
         projectName: cmd.project,
         watch: cmd.watch,
         clean: cmd.clean,

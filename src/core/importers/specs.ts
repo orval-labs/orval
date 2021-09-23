@@ -1,4 +1,6 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
+import chalk from 'chalk';
+import { log } from 'console';
 import { resolve } from 'upath';
 import isUrl from 'validator/lib/isURL';
 import { NormalizedOptions, SwaggerParserOptions } from '../../types';
@@ -12,8 +14,16 @@ const resolveSpecs = async (
   isUrl: boolean,
 ) => {
   if (validate) {
-    await SwaggerParser.validate(path);
+    try {
+      await SwaggerParser.validate(path);
+    } catch (e: any) {
+      if (e?.name === 'ParserError') {
+        throw e;
+      }
+      log(`⚠️  ${chalk.yellow(e)}`);
+    }
   }
+
   const data = (await SwaggerParser.resolve(path, options)).values();
 
   if (isUrl) {

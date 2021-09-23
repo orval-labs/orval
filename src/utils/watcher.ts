@@ -1,8 +1,9 @@
+import chalk from 'chalk';
 import { log } from './messages/logs';
 
 export const startWatcher = async (
   watchOptions: boolean | string | (string | boolean)[],
-  watchFn: () => any,
+  watchFn: () => Promise<any>,
   defaultTarget: string | string[] = '.',
 ) => {
   if (!watchOptions) return;
@@ -32,6 +33,10 @@ export const startWatcher = async (
   watcher.on('all', async (type, file) => {
     log(`Change detected: ${type} ${file}`);
 
-    watchFn();
+    try {
+      await watchFn();
+    } catch (e) {
+      log(chalk.red(e));
+    }
   });
 };

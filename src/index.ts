@@ -1,6 +1,8 @@
+import chalk from 'chalk';
 import { generateConfig, generateSpec } from './generate';
 import { Options, OptionsExport } from './types';
 import { isString } from './utils/is';
+import { log } from './utils/messages/logs';
 import { defineConfig, normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
 
@@ -28,11 +30,31 @@ const generate = async (
   if (options?.watch) {
     startWatcher(
       options?.watch,
-      () => generateSpec(workspace, normalizedOptions),
+      async () => {
+        try {
+          await generateSpec(workspace, normalizedOptions);
+        } catch (e) {
+          log(
+            chalk.red(
+              `🛑  ${
+                options?.projectName ? `${options?.projectName} - ` : ''
+              }${e}`,
+            ),
+          );
+        }
+      },
       normalizedOptions.input.target as string,
     );
   } else {
-    return generateSpec(workspace, normalizedOptions);
+    try {
+      return await generateSpec(workspace, normalizedOptions);
+    } catch (e) {
+      log(
+        chalk.red(
+          `🛑  ${options?.projectName ? `${options?.projectName} - ` : ''}${e}`,
+        ),
+      );
+    }
   }
 };
 
