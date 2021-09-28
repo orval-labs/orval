@@ -1,6 +1,8 @@
 import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
+import { isString } from '../../utils/is';
+import { escape } from '../../utils/string';
 import { getArray } from './array';
 import { getObject } from './object';
 
@@ -73,7 +75,11 @@ export const getScalar = async ({
       let isEnum = false;
 
       if (item.enum) {
-        value = `'${item.enum.join(`' | '`)}'`;
+        value = `'${item.enum
+          .map((enumItem: string) =>
+            isString(enumItem) ? escape(enumItem) : enumItem,
+          )
+          .join(`' | '`)}'`;
         isEnum = true;
       }
 
