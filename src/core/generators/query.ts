@@ -344,7 +344,7 @@ export const ${camel(
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
   const queryFn = (${
     queryParam && props.some(({ type }) => type === 'queryParam')
-      ? `{ pageParam }`
+      ? `{ pageParam }: { pageParam?: string }`
       : ''
   }) => ${operationName}(${httpFunctionProps}${httpFunctionProps ? ', ' : ''}${
     isRequestOptions
