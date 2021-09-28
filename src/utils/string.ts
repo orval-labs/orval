@@ -93,3 +93,6 @@ export const getNumberWord = (num: number) => {
   const arrayOfNumber = num.toString().split('') as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 };
+
+export const escape = (str: string, char: string = "'") =>
+  str.replace(char, `\\${char}`);
