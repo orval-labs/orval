@@ -3,7 +3,7 @@ import { sanitize } from '../../utils/string';
 export const getEnum = (value: string, type: string, enumName: string) => {
   let enumValue = `export type ${enumName} = ${value};\n`;
 
-  const implementation = value.split(' | ').reduce((acc, val) => {
+  const implementation = [...new Set(value.split(' | '))].reduce((acc, val) => {
     const isTypeNumber = type === 'number';
     const isNumber = !Number.isNaN(Number(val.slice(1, -1)));
     const key =
