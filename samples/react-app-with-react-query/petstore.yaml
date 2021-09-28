@@ -123,6 +123,9 @@ components:
         email:
           type: string
           format: email
+        callingCode:
+          type: string
+          enum: ['+33', '+420']
     Pets:
       type: array
       items:
