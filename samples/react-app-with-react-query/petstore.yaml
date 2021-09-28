@@ -126,6 +126,9 @@ components:
         callingCode:
           type: string
           enum: ['+33', '+420']
+        country:
+          type: string
+          enum: ["People's Republic of China", 'Uruguay']
     Pets:
       type: array
       items:

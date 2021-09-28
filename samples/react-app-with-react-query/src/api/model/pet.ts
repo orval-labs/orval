@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { PetCallingCode } from './petCallingCode';
+import type { PetCountry } from './petCountry';
 
 export interface Pet {
   '@id'?: string;
@@ -13,4 +14,5 @@ export interface Pet {
   tag?: string;
   email?: string;
   callingCode?: PetCallingCode;
+  country?: PetCountry;
 }
