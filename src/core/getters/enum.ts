@@ -1,3 +1,4 @@
+import { keyword } from 'esutils';
 import { sanitize } from '../../utils/string';
 
 export const getEnum = (value: string, type: string, enumName: string) => {
@@ -10,10 +11,12 @@ export const getEnum = (value: string, type: string, enumName: string) => {
       isNumber || isTypeNumber
         ? toNumberKey(isTypeNumber ? val.toString() : val.slice(1, -1))
         : sanitize(val, { underscore: '_', whitespace: '_' });
-    const startWithNumber = !Number.isNaN(+key[0]);
 
     return (
-      acc + `  ${startWithNumber ? `'${key}'` : key}: ${val} as ${enumName},\n`
+      acc +
+      `  ${
+        keyword.isIdentifierNameES5(key) ? key : `'${key}'`
+      }: ${val} as ${enumName},\n`
     );
   }, '');
 
@@ -25,6 +28,9 @@ export const getEnum = (value: string, type: string, enumName: string) => {
 const toNumberKey = (value: string) => {
   if (value[0] === '-') {
     return `NUMBER_MINUS_${value.slice(1)}`;
+  }
+  if (value[0] === '+') {
+    return `NUMBER_PLUS_${value.slice(1)}`;
   }
   return `NUMBER_${value}`;
 };
