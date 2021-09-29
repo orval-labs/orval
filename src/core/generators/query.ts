@@ -46,6 +46,8 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
         name: 'UseInfiniteQueryOptions',
       },
       { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -63,6 +65,8 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
     ],
     dependency: 'react-query',
   },
@@ -84,6 +88,8 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
     ],
     dependency: 'vue-query/types',
   },
@@ -342,7 +348,7 @@ export const ${camel(
   }
 
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
-  const queryFn = (${
+  const queryFn: QueryFunction<AsyncReturnType<typeof ${operationName}>> = (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
@@ -358,7 +364,7 @@ export const ${camel(
 
   const query = ${camel(
     `use-${type}`,
-  )}<AsyncReturnType<typeof queryFn>, TError, TData>(queryKey, queryFn, ${generateQueryOptions(
+  )}<AsyncReturnType<typeof ${operationName}>, TError, TData>(queryKey, queryFn, ${generateQueryOptions(
     {
       params,
       options,
@@ -488,12 +494,12 @@ const generateQueryHook = (
           : ''
       }
 
-      return useMutation<AsyncReturnType<typeof ${operationName}>, TError, ${
+      const mutationFn: MutationFunction<AsyncReturnType<typeof ${operationName}>, ${
     definitions ? `{${definitions}}` : 'TVariables'
-  }, TContext>((${properties ? 'props' : ''}) => {
-        ${properties ? `const {${properties}} = props || {}` : ''};
+  }> = (${properties ? 'props' : ''}) => {
+          ${properties ? `const {${properties}} = props || {}` : ''};
 
-        return  ${operationName}(${properties}${properties ? ',' : ''}${
+          return  ${operationName}(${properties}${properties ? ',' : ''}${
     isRequestOptions
       ? !mutator
         ? `axiosOptions`
@@ -502,7 +508,11 @@ const generateQueryHook = (
         : ''
       : ''
   })
-      }, mutationOptions)
+        }
+
+      return useMutation<AsyncReturnType<typeof ${operationName}>, TError, ${
+    definitions ? `{${definitions}}` : 'TVariables'
+  }, TContext>(mutationFn, mutationOptions)
     }
     `;
 };
