@@ -5,7 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type PetCallingCode = '+33' | '+420';
+export type PetCallingCode = '+33' | '+420' | '+33';
 
 
 export const PetCallingCode = {
