@@ -208,10 +208,7 @@ const normalizeOperationsAndTags = (
 } => {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
-      ([
-        key,
-        { transformer, mutator, formData, requestOptions, query, ...rest },
-      ]) => {
+      ([key, { transformer, mutator, formData, requestOptions, ...rest }]) => {
         return [
           key,
           {
@@ -227,10 +224,6 @@ const normalizeOperationsAndTags = (
                 ? normalizeMutator(workspace, formData)
                 : formData) ?? true,
             requestOptions: requestOptions ?? true,
-            query: {
-              useQuery: true,
-              ...(query || {}),
-            },
           },
         ];
       },
