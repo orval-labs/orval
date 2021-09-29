@@ -13,9 +13,9 @@ import type {
   Pet
 } from '../model'
 
-export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({'@id': faker.helpers.randomize([faker.random.word(), undefined]), id: (()=>faker.random.number({min:1,max:99999}))(), name: (()=>faker.name.lastName())(), tag: (()=>faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined]), callingCode: faker.helpers.randomize([faker.helpers.randomize(['+33','+420']), undefined])})))
+export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({'@id': faker.helpers.randomize([faker.random.word(), undefined]), id: (()=>faker.random.number({min:1,max:99999}))(), name: (()=>faker.name.lastName())(), tag: (()=>faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined]), callingCode: faker.helpers.randomize([faker.helpers.randomize(['+33','+420','+33']), undefined]), country: faker.helpers.randomize([faker.helpers.randomize(['People's Republic of China','Uruguay']), undefined])})))
 
-export const getCreatePetsMock = () => ({'@id': faker.helpers.randomize([faker.random.word(), undefined]), id: faker.datatype.number(), name: (()=>faker.name.lastName())(), tag: (()=>faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined]), callingCode: faker.helpers.randomize([faker.helpers.randomize(['+33','+420']), undefined])})
+export const getCreatePetsMock = () => ({'@id': faker.helpers.randomize([faker.random.word(), undefined]), id: faker.datatype.number(), name: (()=>faker.name.lastName())(), tag: (()=>faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined]), callingCode: faker.helpers.randomize([faker.helpers.randomize(['+33','+420','+33']), undefined]), country: faker.helpers.randomize([faker.helpers.randomize(['People's Republic of China','Uruguay']), undefined])})
 
 export const getShowPetByIdMock = () => ((()=>({id:faker.random.number({min:1,max:99}),name:faker.name.firstName(),tag:faker.helpers.randomize([faker.random.word(),void 0])}))())
 

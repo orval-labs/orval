@@ -125,7 +125,10 @@ components:
           format: email
         callingCode:
           type: string
-          enum: ['+33', '+420']
+          enum: ['+33', '+420', '+33'] # intentional duplicated value
+        country:
+          type: string
+          enum: ["People's Republic of China", 'Uruguay']
     Pets:
       type: array
       items:
