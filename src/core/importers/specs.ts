@@ -52,7 +52,7 @@ export const importSpecs = async (
     });
   }
 
-  const isPathUrl = isUrl(input.target);
+  const isPathUrl = isUrl(input.target, { require_tld: false });
 
   const data = await resolveSpecs(input.target, input.parserOptions, isPathUrl);
 

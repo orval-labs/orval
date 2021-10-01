@@ -22,7 +22,7 @@ export const relativeSafe = (from: string, to: string) => {
 };
 
 export const getSpecName = (specKey: string, rootSpecKey: string) => {
-  if (isUrl(specKey)) {
+  if (isUrl(specKey, { require_tld: false })) {
     const url = new URL(rootSpecKey);
     return specKey
       .replace(url.origin, '')

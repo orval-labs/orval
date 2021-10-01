@@ -193,7 +193,7 @@ const normalizeMutator = <T>(
 };
 
 const normalizePath = <T>(path: T, workspace: string) => {
-  if (isString(path) && !isUrl(path)) {
+  if (isString(path) && !isUrl(path, { require_tld: false })) {
     return resolve(workspace, path);
   }
 
