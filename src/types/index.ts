@@ -288,3 +288,13 @@ export interface ContextSpecs {
   specs: Record<string, OpenAPIObject>;
   override: NormalizedOverrideOutput;
 }
+
+export interface GlobalOptions {
+  projectName?: string;
+  watch?: boolean | string | (string | boolean)[];
+  clean?: boolean | string[];
+  prettier?: boolean;
+  mock?: boolean;
+  client?: OutputClient;
+  mode?: OutputMode;
+}

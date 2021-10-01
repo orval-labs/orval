@@ -2,7 +2,12 @@ import chalk from 'chalk';
 import { dirname } from 'upath';
 import { importSpecs } from './core/importers/specs';
 import { writeSpecs } from './core/writers/specs';
-import { ConfigExternal, NormalizedOptions, NormizaledConfig } from './types';
+import {
+  ConfigExternal,
+  GlobalOptions,
+  NormalizedOptions,
+  NormizaledConfig,
+} from './types';
 import { asyncReduce } from './utils/async-reduce';
 import { catchError } from './utils/errors';
 import { getFileInfo, loadFile, removeFiles } from './utils/file';
@@ -73,12 +78,7 @@ export const generateSpecs = async (
 
 export const generateConfig = async (
   configFile?: string,
-  options?: {
-    projectName?: string;
-    watch?: boolean | string | (string | boolean)[];
-    clean?: boolean | string[];
-    prettier?: boolean;
-  },
+  options?: GlobalOptions,
 ) => {
   const { path, file: configExternal } = await loadFile<ConfigExternal>(
     configFile,
@@ -97,12 +97,7 @@ export const generateConfig = async (
     Object.entries(config),
     async (acc, [key, value]) => ({
       ...acc,
-      [key]: await normalizeOptions(
-        value,
-        workspace,
-        options?.clean,
-        options?.prettier,
-      ),
+      [key]: await normalizeOptions(value, workspace, options),
     }),
     {} as NormizaledConfig,
   );

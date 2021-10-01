@@ -30,6 +30,9 @@ cli
   .option('-i, --input <path>', 'input file (yaml or json openapi specs)')
   .option('-c, --config <path>', 'override flags by a config file')
   .option('-p, --project <name>', 'focus a project of the config')
+  .option('-m, --mode <name>', 'default mode that will be used')
+  .option('-c, --client <name>', 'default client that will be used')
+  .option('--mock', 'activate the mock')
   .option(
     '-w, --watch [path]',
     'Watch mode, if path is not specified, it watches the input target',
@@ -44,6 +47,9 @@ cli
           target: cmd.output,
           clean: cmd.clean,
           prettier: cmd.prettier,
+          mock: cmd.mock,
+          client: cmd.client,
+          mode: cmd.mode,
         },
       });
 
@@ -72,6 +78,9 @@ cli
         watch: cmd.watch,
         clean: cmd.clean,
         prettier: cmd.prettier,
+        mock: cmd.mock,
+        client: cmd.client,
+        mode: cmd.mode,
       });
     }
   });

@@ -23,8 +23,7 @@ const generate = async (
   const normalizedOptions = await normalizeOptions(
     optionsExport,
     workspace,
-    options?.clean,
-    options?.prettier,
+    options,
   );
 
   if (options?.watch) {

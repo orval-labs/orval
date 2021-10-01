@@ -4,6 +4,7 @@ import isUrl from 'validator/lib/isURL';
 import { RefComponentSuffix } from '../core/getters/ref';
 import {
   ConfigExternal,
+  GlobalOptions,
   Mutator,
   NormalizedMutator,
   NormalizedOperationOptions,
@@ -30,8 +31,7 @@ export function defineConfig(options: ConfigExternal): ConfigExternal {
 export const normalizeOptions = async (
   optionsExport: OptionsExport,
   workspace = process.cwd(),
-  clean?: boolean | string[],
-  prettier?: boolean,
+  globalOptions: GlobalOptions = {},
 ) => {
   const options = await (isFunction(optionsExport)
     ? optionsExport()
@@ -60,6 +60,8 @@ export const normalizeOptions = async (
     workspace,
   );
 
+  const { clean, prettier, client, mode, mock } = globalOptions;
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: normalizePath(inputOptions.target, workspace),
@@ -80,11 +82,11 @@ export const normalizeOptions = async (
       target: normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
-      client: outputOptions.client ?? OutputClient.AXIOS,
-      mode: outputOptions.mode ?? 'single',
-      mock: outputOptions.mock ?? false,
-      clean: (outputOptions.clean || clean) ?? false,
-      prettier: (outputOptions.prettier || prettier) ?? false,
+      client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
+      mode: outputOptions.mode ?? mode ?? 'single',
+      mock: outputOptions.mock ?? mock ?? false,
+      clean: outputOptions.clean ?? clean ?? false,
+      prettier: outputOptions.prettier ?? prettier ?? false,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
