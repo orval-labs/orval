@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import { resolve } from 'upath';
-import isUrl from 'validator/lib/isURL';
 import { RefComponentSuffix } from '../core/getters/ref';
 import {
   ConfigExternal,
@@ -19,6 +18,7 @@ import { isBoolean, isFunction, isObject, isString } from './is';
 import { mergeDeep } from './mergeDeep';
 import { getFilesHeader } from './messages/inline';
 import { createLogger } from './messages/logs';
+import { isUrl } from './url';
 
 /**
  * Type helper to make it easier to use orval.config.ts
@@ -193,7 +193,7 @@ const normalizeMutator = <T>(
 };
 
 const normalizePath = <T>(path: T, workspace: string) => {
-  if (isString(path) && !isUrl(path, { require_tld: false })) {
+  if (isString(path) && !isUrl(path)) {
     return resolve(workspace, path);
   }
 

@@ -2,10 +2,10 @@ import SwaggerParser from '@apidevtools/swagger-parser';
 import chalk from 'chalk';
 import { log } from 'console';
 import { resolve } from 'upath';
-import isUrl from 'validator/lib/isURL';
 import { NormalizedOptions, SwaggerParserOptions } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { isObject } from '../../utils/is';
+import { isUrl } from '../../utils/url';
 import { importOpenApi } from './openApi';
 
 const resolveSpecs = async (
@@ -52,7 +52,7 @@ export const importSpecs = async (
     });
   }
 
-  const isPathUrl = isUrl(input.target, { require_tld: false });
+  const isPathUrl = isUrl(input.target);
 
   const data = await resolveSpecs(input.target, input.parserOptions, isPathUrl);
 
