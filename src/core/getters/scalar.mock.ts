@@ -4,6 +4,7 @@ import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { mergeDeep } from '../../utils/mergeDeep';
+import { escape } from '../../utils/string';
 import {
   getNullable,
   resolveMockOverride,
@@ -136,7 +137,8 @@ export const getMockScalar = async ({
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {
-        let enumValue = "['" + item.enum.join("','") + "']";
+        let enumValue =
+          "['" + item.enum.map((e) => escape(e)).join("','") + "']";
 
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
