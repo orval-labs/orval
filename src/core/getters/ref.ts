@@ -60,7 +60,7 @@ export const getRefInfo = async (
 
   const pathname = refSplitted[0];
 
-  const path = isUrl(context.specKey)
+  const path = isUrl(context.specKey, { require_tld: false })
     ? url.resolve(context.specKey, pathname)
     : resolve(getFileInfo(context.specKey).dirname, pathname);
 
