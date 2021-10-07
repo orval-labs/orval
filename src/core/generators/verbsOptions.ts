@@ -106,6 +106,7 @@ const generateVerbOptions = async ({
     output: output.target,
     name: operationName,
     mutator: override?.mutator,
+    workspace: context.workspace,
   });
 
   const formData =
@@ -114,6 +115,7 @@ const generateVerbOptions = async ({
           output: output.target,
           name: operationName,
           mutator: override.formData,
+          workspace: context.workspace,
         })
       : undefined;
 

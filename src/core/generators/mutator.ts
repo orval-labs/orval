@@ -1,14 +1,10 @@
 import chalk from 'chalk';
-import { join } from 'upath';
-import { MutatorObject, NormalizedMutator } from '../../types';
+import { NormalizedMutator } from '../../types';
 import { getFileInfo, loadFile } from '../../utils/file';
 import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
 
-const getImport = (
-  output: string,
-  mutator: NormalizedMutator,
-) => {
+const getImport = (output: string, mutator: NormalizedMutator) => {
   const outputFileInfo = getFileInfo(output);
   const mutatorFileInfo = getFileInfo(mutator.path);
   const { pathWithoutExtension } = getFileInfo(
@@ -22,10 +18,12 @@ export const generateMutator = async ({
   output,
   mutator,
   name,
+  workspace,
 }: {
   output?: string;
   mutator?: NormalizedMutator;
   name: string;
+  workspace: string;
 }) => {
   if (!mutator || !output) {
     return;
@@ -36,16 +34,18 @@ export const generateMutator = async ({
 
   const { file } = await loadFile<Record<string, Function>>(importPath, {
     isDefault: false,
+    root: workspace,
+    alias: mutator.alias,
   });
 
   const mutatorFn =
-    file[isDefault ? 'default' : (mutator as MutatorObject).name];
+    file[mutator.default || !mutator.name ? 'default' : mutator.name];
 
   if (!mutatorFn) {
     createLogger().error(
       chalk.red(
         `Your mutator file doesn't have the ${
-          isDefault ? 'default' : (mutator as MutatorObject).name
+          mutator.default ? 'default' : mutator.name
         } exported function`,
       ),
     );
