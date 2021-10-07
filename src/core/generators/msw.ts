@@ -97,6 +97,7 @@ export const generateMSW = async (
     value[0] === '[' ||
     value.startsWith('(function() {') ||
     value.startsWith('(()=>({') ||
+    value.startsWith('()=>(()=>[') ||
     value.startsWith('faker.helpers') ||
     value.startsWith('Array.from')
       ? 'json'
