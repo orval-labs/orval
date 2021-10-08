@@ -25,6 +25,11 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'axios', default: true, values: true },
+    ],
+    dependency: 'axios',
+  },
+  {
+    exports: [
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
     ],
@@ -37,6 +42,11 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'useSwr', values: true, default: true },
+    ],
+    dependency: 'swr',
+  },
+  {
+    exports: [
       { name: 'SWRConfiguration' },
       { name: 'Key' },
     ],
@@ -140,7 +150,7 @@ const generateSwrRequestFunction = (
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${formDataImplementation}
-    return axios.${verb}(${options});
+    return axios.default.${verb}(${options});
   }
 `;
 };
@@ -234,7 +244,7 @@ export const ${camel(`use-${operationName}`)} = <TError = ${
       : ''
   });
 
-  const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(swrKey, swrFn, swrOptions)
+  const query = useSwr.default<AsyncReturnType<typeof swrFn>, TError>(swrKey, swrFn, swrOptions)
 
   return {
     swrKey,

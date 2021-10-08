@@ -4,14 +4,9 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  rest
-} from 'msw'
-import faker from 'faker'
-import type {
-  Pets,
-  Pet
-} from '../model'
+import { rest } from 'msw';
+import * as faker from 'faker';
+import type { Pets, Pet } from '../model';
 
 export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({'@id': faker.helpers.randomize([faker.random.word(), undefined]), id: (()=>faker.random.number({min:1,max:99999}))(), name: (()=>faker.name.lastName())(), tag: (()=>faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined])})))
 

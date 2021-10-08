@@ -4,7 +4,8 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios,{
+import * as axios from 'axios'
+import type {
   AxiosRequestConfig,
   AxiosResponse
 } from 'axios'
@@ -37,7 +38,7 @@ export type CreatePetsBody = {
 export const listPets = <TData = AxiosResponse<Pets>>(
     params?: ListPetsParams, options?: AxiosRequestConfig
  ): Promise<TData> => {
-    return axios.get(
+    return axios.default.get(
       `/pets`,
       {
         params,
@@ -51,7 +52,7 @@ export const listPets = <TData = AxiosResponse<Pets>>(
 export const createPets = <TData = AxiosResponse<void>>(
     createPetsBody: CreatePetsBody, options?: AxiosRequestConfig
  ): Promise<TData> => {
-    return axios.post(
+    return axios.default.post(
       `/pets`,
       createPetsBody,options
     );
@@ -63,7 +64,7 @@ export const createPets = <TData = AxiosResponse<void>>(
 export const showPetById = <TData = AxiosResponse<Pet>>(
     petId: string, options?: AxiosRequestConfig
  ): Promise<TData> => {
-    return axios.get(
+    return axios.default.get(
       `/pets/${petId}`,options
     );
   }

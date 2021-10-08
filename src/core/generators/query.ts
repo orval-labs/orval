@@ -27,6 +27,11 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'axios', default: true, values: true },
+    ],
+    dependency: 'axios',
+  },
+  {
+    exports: [
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
     ],
@@ -191,7 +196,7 @@ const generateQueryRequestFunction = (
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${formDataImplementation}
-    return axios.${verb}(${options});
+    return axios.default.${verb}(${options});
   }
 `;
 };

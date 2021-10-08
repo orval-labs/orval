@@ -18,7 +18,12 @@ import {
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
-      { name: 'axios', default: true, values: true },
+      { name: 'axios', default: true, values: true }
+    ],
+    dependency: 'axios',
+  },
+  {
+    exports: [
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
     ],
@@ -118,7 +123,7 @@ const generateAxiosImplementation = (
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${formDataImplementation}
-    return axios.${verb}(${options});
+    return axios.default.${verb}(${options});
   }
 `;
 };

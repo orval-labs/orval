@@ -115,7 +115,7 @@ export const addDependency = ({
       ).join(',\n  ');
 
       return `import ${!values ? 'type ' : ''}${
-        defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
+        defaultDep ? `* as ${defaultDep.name}${depsString ? ',' : ''}` : ''
       }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
         key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
       }'`;
