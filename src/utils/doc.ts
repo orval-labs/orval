@@ -11,8 +11,9 @@ export function jsDoc(
   tryOneLine = false,
 ): string {
   // Ensure there aren't any comment terminations in doc
-  const lines = (Array.isArray(description) ? description : [description])
-    .map(line => line.replace('*/', '*\\/'));
+  const lines = (
+    Array.isArray(description) ? description : [description || '']
+  ).map((line) => line.replace('*/', '*\\/'));
 
   const count = [description, deprecated, summary].reduce(
     (acc, it) => (it ? acc + 1 : acc),
