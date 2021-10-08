@@ -100,3 +100,4 @@ typings/
 /.idea
 
 package-lock.json
+tests/generated/**
