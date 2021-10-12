@@ -49,6 +49,11 @@ app.ready(async () => {
     './apps/app/src/api'
   );
 
+  if (process.env.UPDATE_SPEC) {
+    app.close();
+    process.exit(0);
+  }
+
   console.log('ready port 3000');
 });
 
