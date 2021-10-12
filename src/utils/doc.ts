@@ -45,7 +45,7 @@ export function jsDoc(
     if (!oneLine) {
       doc += `\n${tryOneLine ? '  ' : ''} *`;
     }
-    doc += ` @summary ${summary}`;
+    doc += ` @summary ${summary.replace('*/', '*\\/')}`;
   }
 
   doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';
