@@ -76,6 +76,7 @@ export const getResReqTypes = async (
                 isRef: true,
                 originalSchema: mediaType?.schema,
                 key,
+                contentType,
               },
             ] as ResReqTypesValue[];
           }
@@ -100,6 +101,7 @@ export const getResReqTypes = async (
               isRef: true,
               originalSchema: mediaType?.schema,
               key,
+              contentType,
             },
           ] as ResReqTypesValue[];
         }
@@ -120,12 +122,12 @@ export const getResReqTypes = async (
                   context,
                 });
 
-                if (
-                  !resolvedValue ||
-                  !formDataContentTypes.includes(contentType) ||
-                  !propName
-                ) {
-                  return resolvedValue;
+                if (!resolvedValue) {
+                  return;
+                }
+
+                if (!formDataContentTypes.includes(contentType) || !propName) {
+                  return { ...resolvedValue, contentType };
                 }
 
                 const formData = await generateSchemaFormData(
@@ -137,6 +139,7 @@ export const getResReqTypes = async (
                 return {
                   ...resolvedValue,
                   formData,
+                  contentType,
                 };
               },
             ),
@@ -156,6 +159,7 @@ export const getResReqTypes = async (
             isEnum: false,
             key,
             isRef: false,
+            contentType: 'application/json',
           },
         ] as ResReqTypesValue[];
       }),

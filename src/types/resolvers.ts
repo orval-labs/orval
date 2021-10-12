@@ -15,4 +15,5 @@ export type ResReqTypesValue = ResolverValue & {
   formData?: string;
   isRef?: boolean;
   key: string;
+  contentType: string;
 };
