@@ -47,7 +47,7 @@
     "format": "prettier --write 'src/**/*.{js,ts}'",
     "prerelease": "yarn build && cd ./tests && yarn generate && yarn build",
     "release": "dotenv release-it",
-    "postrelease": "yarn update-samples",
+    "postrelease": "yarn build && yarn update-samples",
     "generate-api": "node ./dist/bin/orval.js --config ./samples/react-app-with-react-query/orval.config.ts --watch",
     "prepare": "husky install",
     "commitlint": "commitlint",
