@@ -73,7 +73,9 @@ export const getObject = async ({
         index,
         arr,
       ) => {
-        const isRequired = (item.required || []).includes(key);
+        const isRequired = (
+          Array.isArray(item.required) ? item.required : []
+        ).includes(key);
         const propName = name ? pascal(name) + pascal(key) : undefined;
         const resolvedValue = await resolveObject({
           schema,
