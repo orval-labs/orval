@@ -1,3 +1,5 @@
+//@ts-ignore
+const esprima = require('esprima');
 import omitBy from 'lodash.omitby';
 import { Verbs } from '../../types';
 import {
@@ -158,6 +160,28 @@ const generateQueryRequestFunction = (
         )
       : '';
 
+    const isMutatorHook =
+      mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
+
+    if (isMutatorHook) {
+      return `export const use${pascal(
+        operationName,
+      )}Hook = () => {${formDataImplementation}
+        const ${operationName} = ${mutator.name}<${
+        response.definition.success || 'unknown'
+      }>();
+
+        return (\n    ${toObjectString(props, 'implementation')}\n ${
+        isRequestOptions && isMutatorHasSecondArg
+          ? `options?: SecondParameter<typeof ${mutator.name}>`
+          : ''
+      }) => ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions})
+      }
+    `;
+    }
+
     return `export const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
@@ -262,13 +286,19 @@ const generateQueryArguments = ({
   type?: QueryType;
   isMutatorHasSecondArg: boolean;
 }) => {
+  const isMutatorHook =
+    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const definition = type
-    ? `Use${pascal(
-        type,
-      )}Options<AsyncReturnType<typeof ${operationName}>, TError, TData>`
-    : `UseMutationOptions<AsyncReturnType<typeof ${operationName}>, TError,${
-        definitions ? `{${definitions}}` : 'TVariables'
-      }, TContext>`;
+    ? `Use${pascal(type)}Options<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, TError, TData>`
+    : `UseMutationOptions<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, TError,${definitions ? `{${definitions}}` : 'TVariables'}, TContext>`;
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
@@ -311,6 +341,8 @@ const generateQueryImplementation = ({
   response: GetterResponse;
   mutator?: GeneratorMutator;
 }) => {
+  const isMutatorHook =
+    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
@@ -322,9 +354,11 @@ const generateQueryImplementation = ({
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
 
   return `
-export const ${camel(
-    `use-${name}`,
-  )} = <TData = AsyncReturnType<typeof ${operationName}>, TError = ${
+export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
+    isMutatorHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`
+  }>, TError = ${
     response.definition.errors || 'unknown'
   }>(\n ${queryProps} ${generateQueryArguments({
     operationName,
@@ -348,7 +382,18 @@ export const ${camel(
   }
 
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
-  const queryFn: QueryFunction<AsyncReturnType<typeof ${operationName}>> = (${
+
+  ${
+    isMutatorHook
+      ? `const ${operationName} =  use${pascal(operationName)}Hook()`
+      : ''
+  }
+
+  const queryFn: QueryFunction<AsyncReturnType<${
+    isMutatorHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`
+  }>> = (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
@@ -362,15 +407,15 @@ export const ${camel(
       : ''
   });
 
-  const query = ${camel(
-    `use-${type}`,
-  )}<AsyncReturnType<typeof ${operationName}>, TError, TData>(queryKey, queryFn, ${generateQueryOptions(
-    {
-      params,
-      options,
-      type,
-    },
-  )})
+  const query = ${camel(`use-${type}`)}<AsyncReturnType<${
+    isMutatorHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`
+  }>, TError, TData>(queryKey, queryFn, ${generateQueryOptions({
+    params,
+    options,
+    type,
+  })})
 
   return {
     queryKey,
@@ -464,6 +509,8 @@ const generateQueryHook = (
     )
     .join(';');
 
+  const isMutatorHook =
+    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
 
   const properties = props
@@ -494,9 +541,20 @@ const generateQueryHook = (
           : ''
       }
 
-      const mutationFn: MutationFunction<AsyncReturnType<typeof ${operationName}>, ${
-    definitions ? `{${definitions}}` : 'TVariables'
-  }> = (${properties ? 'props' : ''}) => {
+      ${
+        isMutatorHook
+          ? `const ${operationName} =  use${pascal(operationName)}Hook()`
+          : ''
+      }
+
+
+      const mutationFn: MutationFunction<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, ${definitions ? `{${definitions}}` : 'TVariables'}> = (${
+    properties ? 'props' : ''
+  }) => {
           ${properties ? `const {${properties}} = props || {}` : ''};
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
