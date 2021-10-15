@@ -1,14 +1,11 @@
 import chalk from 'chalk';
-import { join } from 'upath';
+import { GeneratorMutator } from '../..';
 import { MutatorObject, NormalizedMutator } from '../../types';
 import { getFileInfo, loadFile } from '../../utils/file';
 import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
 
-const getImport = (
-  output: string,
-  mutator: NormalizedMutator,
-) => {
+const getImport = (output: string, mutator: NormalizedMutator) => {
   const outputFileInfo = getFileInfo(output);
   const mutatorFileInfo = getFileInfo(mutator.path);
   const { pathWithoutExtension } = getFileInfo(
@@ -26,7 +23,7 @@ export const generateMutator = async ({
   output?: string;
   mutator?: NormalizedMutator;
   name: string;
-}) => {
+}): Promise<GeneratorMutator | undefined> => {
   if (!mutator || !output) {
     return;
   }
@@ -34,25 +31,42 @@ export const generateMutator = async ({
   const importName = mutator.name ? mutator.name : `${name}Mutator`;
   const importPath = mutator.path;
 
-  const { file } = await loadFile<Record<string, Function>>(importPath, {
-    isDefault: false,
-  });
+  try {
+    const { file } = await loadFile<Record<string, Function>>(importPath, {
+      isDefault: false,
+    });
 
-  const mutatorFn =
-    file[isDefault ? 'default' : (mutator as MutatorObject).name];
+    const mutatorFn =
+      file[isDefault ? 'default' : (mutator as MutatorObject).name];
 
-  if (!mutatorFn) {
-    createLogger().error(
-      chalk.red(
-        `Your mutator file doesn't have the ${
-          isDefault ? 'default' : (mutator as MutatorObject).name
-        } exported function`,
+    if (!mutatorFn) {
+      createLogger().error(
+        chalk.red(
+          `Your mutator file doesn't have the ${
+            isDefault ? 'default' : (mutator as MutatorObject).name
+          } exported function`,
+        ),
+      );
+      process.exit(1);
+    }
+
+    const path = getImport(output, mutator);
+
+    return { name: importName, path, default: isDefault, mutatorFn };
+  } catch (e) {
+    const path = getImport(output, mutator);
+
+    createLogger().warn(
+      chalk.yellow(
+        'Your mutator cannot be loaded so default setup has been applied',
       ),
     );
-    process.exit(1);
+
+    return {
+      name: importName,
+      path,
+      default: isDefault,
+      mutatorFn: () => undefined,
+    };
   }
-
-  const path = getImport(output, mutator);
-
-  return { name: importName, path, default: isDefault, mutatorFn };
 };
