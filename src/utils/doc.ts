@@ -13,7 +13,7 @@ export function jsDoc(
   // Ensure there aren't any comment terminations in doc
   const lines = (
     Array.isArray(description) ? description : [description || '']
-  ).map((line) => line.replace('*/', '*\\/'));
+  ).map((line) => line.replaceAll('*/', '*\\/'));
 
   const count = [description, deprecated, summary].reduce(
     (acc, it) => (it ? acc + 1 : acc),
@@ -45,7 +45,7 @@ export function jsDoc(
     if (!oneLine) {
       doc += `\n${tryOneLine ? '  ' : ''} *`;
     }
-    doc += ` @summary ${summary.replace('*/', '*\\/')}`;
+    doc += ` @summary ${summary.replaceAll('*/', '*\\/')}`;
   }
 
   doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';
