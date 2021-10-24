@@ -29,6 +29,7 @@ export const writeSingleMode = async ({
       implementationMSW,
       mutators,
       formData,
+      formUrlEncoded,
     } = generateTarget(operations, info, output);
 
     let data = header;
@@ -64,6 +65,10 @@ export const writeSingleMode = async ({
 
     if (formData) {
       data += generateMutatorImports(formData);
+    }
+
+    if (formUrlEncoded) {
+      data += generateMutatorImports(formUrlEncoded);
     }
 
     data += `\n\n${implementation}`;

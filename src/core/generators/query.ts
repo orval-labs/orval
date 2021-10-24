@@ -7,7 +7,6 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import {
-  GetterBody,
   GetterParams,
   GetterProps,
   GetterPropType,
@@ -18,6 +17,7 @@ import { isObject } from '../../utils/is';
 import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import {
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
@@ -97,26 +97,6 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getVueQueryDependencies = () => VUE_QUERY_DEPENDENCIES;
 
-const generateQueryFormDataFunction = ({
-  isFormData,
-  formData,
-  body,
-}: {
-  body: GetterBody;
-  formData: GeneratorMutator | undefined;
-  isFormData: boolean;
-}) => {
-  if (!isFormData) {
-    return '';
-  }
-
-  if (formData && body.formData) {
-    return `const formData = ${formData.name}(${body.implementation})`;
-  }
-
-  return body.formData;
-};
-
 const generateQueryRequestFunction = (
   {
     queryParams,
@@ -127,17 +107,21 @@ const generateQueryRequestFunction = (
     props,
     verb,
     formData,
+    formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+  const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
-  const formDataImplementation = generateQueryFormDataFunction({
-    isFormData,
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
+    formUrlEncoded,
     body,
+    isFormData,
+    isFormUrlEncoded,
   });
 
   if (mutator) {
@@ -148,6 +132,7 @@ const generateQueryRequestFunction = (
       response,
       verb,
       isFormData,
+      isFormUrlEncoded,
     });
 
     const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
@@ -165,7 +150,7 @@ const generateQueryRequestFunction = (
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${formDataImplementation}
+    }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -181,6 +166,7 @@ const generateQueryRequestFunction = (
     verb,
     requestOptions: override?.requestOptions,
     isFormData,
+    isFormUrlEncoded,
   });
 
   return `export const ${operationName} = (\n    ${toObjectString(
@@ -190,7 +176,7 @@ const generateQueryRequestFunction = (
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
-  }>> => {${formDataImplementation}
+  }>> => {${bodyForm}
     return axios.${verb}(${options});
   }
 `;

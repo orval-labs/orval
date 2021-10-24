@@ -244,6 +244,7 @@ export const generateClient = (
           tags: verbOption.tags,
           mutator: verbOption.mutator,
           formData: verbOption.formData,
+          formUrlEncoded: verbOption.formUrlEncoded,
           operationName: verbOption.operationName,
         },
       };

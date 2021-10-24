@@ -1,15 +1,14 @@
 import {
   GeneratorClient,
   GeneratorDependency,
-  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
-import { GetterBody } from '../../types/getters';
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import {
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
@@ -28,26 +27,6 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getAxiosDependencies = () => AXIOS_DEPENDENCIES;
 
-const generateQueryFormDataFunction = ({
-  isFormData,
-  formData,
-  body,
-}: {
-  body: GetterBody;
-  formData: GeneratorMutator | undefined;
-  isFormData: boolean;
-}) => {
-  if (!isFormData) {
-    return '';
-  }
-
-  if (formData && body.formData) {
-    return `const formData = ${formData.name}(${body.implementation})`;
-  }
-
-  return body.formData;
-};
-
 const generateAxiosImplementation = (
   {
     queryParams,
@@ -59,16 +38,20 @@ const generateAxiosImplementation = (
     verb,
     override,
     formData,
+    formUrlEncoded,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+  const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
-  const formDataImplementation = generateQueryFormDataFunction({
-    isFormData,
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
+    formUrlEncoded,
     body,
+    isFormData,
+    isFormUrlEncoded,
   });
 
   if (mutator) {
@@ -79,6 +62,7 @@ const generateAxiosImplementation = (
       response,
       verb,
       isFormData,
+      isFormUrlEncoded,
     });
 
     const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
@@ -95,7 +79,7 @@ const generateAxiosImplementation = (
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${formDataImplementation}
+    }) => {${bodyForm}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       ${requestOptions});
@@ -111,13 +95,14 @@ const generateAxiosImplementation = (
     verb,
     requestOptions: override?.requestOptions,
     isFormData,
+    isFormUrlEncoded,
   });
 
   return `const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ): Promise<TData> => {${formDataImplementation}
+  } ): Promise<TData> => {${bodyForm}
     return axios.${verb}(${options});
   }
 `;

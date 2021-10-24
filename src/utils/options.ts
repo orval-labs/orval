@@ -108,7 +108,13 @@ export const normalizeOptions = async (
                 outputOptions.override?.formData,
               )
             : outputOptions.override?.formData) ?? true,
-
+        formUrlEncoded:
+          (!isBoolean(outputOptions.override?.formUrlEncoded)
+            ? normalizeMutator(
+                outputWorkspace,
+                outputOptions.override?.formUrlEncoded,
+              )
+            : outputOptions.override?.formUrlEncoded) ?? true,
         header:
           outputOptions.override?.header === false
             ? false
@@ -210,7 +216,17 @@ const normalizeOperationsAndTags = (
 } => {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
-      ([key, { transformer, mutator, formData, requestOptions, ...rest }]) => {
+      ([
+        key,
+        {
+          transformer,
+          mutator,
+          formData,
+          formUrlEncoded,
+          requestOptions,
+          ...rest
+        },
+      ]) => {
         return [
           key,
           {
@@ -225,6 +241,10 @@ const normalizeOperationsAndTags = (
               (!isBoolean(formData)
                 ? normalizeMutator(workspace, formData)
                 : formData) ?? true,
+            formUrlEncoded:
+              (!isBoolean(formUrlEncoded)
+                ? normalizeMutator(workspace, formUrlEncoded)
+                : formUrlEncoded) ?? true,
             requestOptions: requestOptions ?? true,
           },
         ];

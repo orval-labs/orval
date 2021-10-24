@@ -36,11 +36,15 @@ export const getBody = async (
   const formData =
     allBodyTypes.length === 1 ? allBodyTypes[0].formData : undefined;
 
+  const formUrlEncoded =
+    allBodyTypes.length === 1 ? allBodyTypes[0].formUrlEncoded : undefined;
+
   return {
     definition,
     implementation,
     imports,
     schemas,
     formData: formData || '',
+    formUrlEncoded: formUrlEncoded || '',
   };
 };

@@ -36,6 +36,9 @@ export const generateTarget = (
       if (operation.formData) {
         acc.formData = [...acc.formData, operation.formData];
       }
+      if (operation.formUrlEncoded) {
+        acc.formUrlEncoded = [...acc.formUrlEncoded, operation.formUrlEncoded];
+      }
 
       if (index === arr.length - 1) {
         const isMutator = !!acc.mutators?.some(
@@ -71,6 +74,7 @@ export const generateTarget = (
       importsMSW: [] as GeneratorImport[],
       mutators: [] as GeneratorMutator[],
       formData: [] as GeneratorMutator[],
+      formUrlEncoded: [] as GeneratorMutator[],
     },
   );
 
