@@ -664,3 +664,40 @@ export const customFormDataFn = <Body>(body: Body): FormData => {
   return FormData;
 };
 ```
+
+#### formUrlEncoded
+
+Type: `Boolean` or `String` or `Object`.
+
+Valid values: path of the formUrlEncoded function or object with a path and name.
+
+Use this property to disable the auto generation of form url encoded
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/custom-form-url-encoded-fn.ts',
+          name: 'customFormUrlEncodedFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
+  // do your implementation to transform it to FormData
+
+  return URLSearchParams;
+};
+```
