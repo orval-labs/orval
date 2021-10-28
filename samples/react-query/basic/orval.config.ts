@@ -12,7 +12,7 @@ export default defineConfig({
       override: {
         mutator: {
           path: './src/api/mutator/custom-instance.ts',
-          name: 'useCustomInstance',
+          name: 'customInstance',
         },
         operations: {
           listPets: {
