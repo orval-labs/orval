@@ -645,7 +645,7 @@ module.exports = {
   petstore: {
     output: {
       override: {
-        mutator: {
+        formData: {
           path: './api/mutator/custom-form-data-fn.ts',
           name: 'customFormDataFn',
           // default: true
