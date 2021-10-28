@@ -178,7 +178,7 @@ const normalizeMutator = <T>(
     return {
       ...mutator,
       path: resolve(workspace, mutator.path),
-      default: mutator.default ?? false,
+      default: (mutator.default || !mutator.name) ?? false,
     };
   }
 

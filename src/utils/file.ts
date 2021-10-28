@@ -1,9 +1,10 @@
 import chalk from 'chalk';
-import { build } from 'esbuild';
+import { build, PluginBuild } from 'esbuild';
 import fs from 'fs';
 import glob from 'globby';
+import mm from 'micromatch';
 import path from 'path';
-import { basename, dirname, join, normalizeSafe } from 'upath';
+import { basename, dirname, join, normalizeSafe, resolve } from 'upath';
 import { createDebugger } from './debug';
 import { isDirectory } from './is';
 import { createLogger, LogLevel } from './messages/logs';
@@ -43,6 +44,7 @@ export async function loadFile<File = unknown>(
     defaultFileName?: string;
     logLevel?: LogLevel;
     isDefault?: boolean;
+    alias?: Record<string, string>;
   },
 ): Promise<{
   path: string;
@@ -54,6 +56,7 @@ export async function loadFile<File = unknown>(
     isDefault = true,
     defaultFileName,
     logLevel,
+    alias,
   } = options || {};
   const start = Date.now();
 
@@ -131,18 +134,25 @@ export async function loadFile<File = unknown>(
       }
     }
 
+    const path = normalizeSafe(resolvedPath);
+
     if (!file) {
       // 2. if we reach here, the file is ts or using es import syntax, or
       // the user has type: "module" in their package.json (#917)
       // transpile es import syntax to require syntax using rollup.
       // lazy require rollup (it's actually in dependencies)
-      const { code } = await bundleFile(resolvedPath, isMjs);
+      const { code } = await bundleFile(
+        resolvedPath,
+        isMjs,
+        root || dirname(path),
+        alias,
+      );
       file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
 
     return {
-      path: normalizeSafe(resolvedPath),
+      path,
       file,
       dependencies,
     };
@@ -154,6 +164,8 @@ export async function loadFile<File = unknown>(
 async function bundleFile(
   fileName: string,
   mjs = false,
+  workspace: string,
+  alias?: Record<string, string>,
 ): Promise<{ code: string; dependencies: string[] }> {
   const result = await build({
     absWorkingDir: process.cwd(),
@@ -168,6 +180,37 @@ async function bundleFile(
     target: 'es6',
     minifyWhitespace: true,
     plugins: [
+      ...(alias
+        ? [
+            {
+              name: 'aliasing',
+              setup(build: PluginBuild) {
+                build.onResolve(
+                  { filter: /^[\w@][^:]/ },
+                  async ({ path: id, importer, kind }) => {
+                    const matchKeys = Object.keys(alias);
+                    const match = matchKeys.find(
+                      (key) => id.startsWith(key) || mm.isMatch(id, matchKeys),
+                    );
+
+                    if (match) {
+                      const find = mm.scan(match);
+                      const replacement = mm.scan(alias[match]);
+                      const aliased = `${id.replace(
+                        find.base,
+                        resolve(workspace, replacement.base),
+                      )}.ts`;
+
+                      return {
+                        path: aliased,
+                      };
+                    }
+                  },
+                );
+              },
+            },
+          ]
+        : []),
       {
         name: 'externalize-deps',
         setup(build) {

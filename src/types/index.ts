@@ -86,6 +86,7 @@ export type NormalizedMutator = {
   path: string;
   name?: string;
   default: boolean;
+  alias?: Record<string, string>;
 };
 
 export type NormalizedOperationOptions = {
@@ -183,8 +184,9 @@ type OutputTransformer = string | OutputTransformerFn;
 
 export type MutatorObject = {
   path: string;
-  name: string;
+  name?: string;
   default?: boolean;
+  alias?: Record<string, string>;
 };
 
 export type Mutator = string | MutatorObject;

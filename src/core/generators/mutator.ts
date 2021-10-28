@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { GeneratorMutator } from '../..';
-import { MutatorObject, NormalizedMutator } from '../../types';
+import { NormalizedMutator } from '../../types';
 import { getFileInfo, loadFile } from '../../utils/file';
 import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
@@ -19,10 +19,12 @@ export const generateMutator = async ({
   output,
   mutator,
   name,
+  workspace,
 }: {
   output?: string;
   mutator?: NormalizedMutator;
   name: string;
+  workspace: string;
 }): Promise<GeneratorMutator | undefined> => {
   if (!mutator || !output) {
     return;
@@ -34,16 +36,18 @@ export const generateMutator = async ({
   try {
     const { file } = await loadFile<Record<string, Function>>(importPath, {
       isDefault: false,
+      root: workspace,
+      alias: mutator.alias,
     });
 
     const mutatorFn =
-      file[isDefault ? 'default' : (mutator as MutatorObject).name];
+      file[mutator.default || !mutator.name ? 'default' : mutator.name];
 
     if (!mutatorFn) {
       createLogger().error(
         chalk.red(
           `Your mutator file doesn't have the ${
-            isDefault ? 'default' : (mutator as MutatorObject).name
+            mutator.default ? 'default' : mutator.name
           } exported function`,
         ),
       );
