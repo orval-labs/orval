@@ -1,0 +1,15 @@
+{
+  "name": "react-query-form-url-encoded-mutator",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "orval": "link:../../../dist"
+  },
+  "scripts": {
+    "generate-api": "node ../../../dist/bin/orval.js"
+  },
+  "dependencies": {
+    "axios": "^0.24.0",
+    "react-query": "^3.29.0"
+  }
+}

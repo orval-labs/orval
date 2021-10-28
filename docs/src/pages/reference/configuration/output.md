@@ -356,6 +356,61 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 };
 ```
 
+If you use one of the following clients `react-query`, `vue-query` and `svelte-query`. You can also provide a hook like this
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/use-custom-instance.ts',
+          name: 'useCustomInstance',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// use-custom-instance.ts
+
+import Axios, { AxiosRequestConfig } from 'axios';
+import { useQueryClient } from 'react-query';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+export const useCustomInstance = <T>(): ((
+  config: AxiosRequestConfig,
+) => Promise<T>) => {
+  const token = useToken(); // Do what you want
+
+  return (config: AxiosRequestConfig) => {
+    const source = Axios.CancelToken.source();
+    const promise = AXIOS_INSTANCE({
+      ...config,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+      cancelToken: source.token,
+    }).then(({ data }) => data);
+
+    // @ts-ignore
+    promise.cancel = () => {
+      source.cancel('Query was cancelled by React Query');
+    };
+
+    return promise;
+  };
+};
+
+export default useCustomInstance;
+```
+
 #### header
 
 Type: `Boolean | Function`.
@@ -682,7 +737,7 @@ module.exports = {
   petstore: {
     output: {
       override: {
-        mutator: {
+        formUrlEncoded: {
           path: './api/mutator/custom-form-url-encoded-fn.ts',
           name: 'customFormUrlEncodedFn',
           // default: true

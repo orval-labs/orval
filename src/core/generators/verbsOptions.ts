@@ -125,6 +125,7 @@ const generateVerbOptions = async ({
           output: output.target,
           name: operationName,
           mutator: override.formUrlEncoded,
+          workspace: context.workspace,
         })
       : undefined;
 

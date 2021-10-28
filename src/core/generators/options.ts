@@ -195,17 +195,17 @@ export const generateFormDataAndUrlEncodedFunction = ({
   isFormData: boolean;
   isFormUrlEncoded: boolean;
 }) => {
-  if (isFormData) {
-    if (formData && body.formData) {
-      return `const formData = ${formData.name}(${body.formData})`;
+  if (isFormData && body.formData) {
+    if (formData) {
+      return `const formData = ${formData.name}(${body.implementation})`;
     }
 
     return body.formData;
   }
 
-  if (isFormUrlEncoded) {
-    if (formUrlEncoded && body.formUrlEncoded) {
-      return `const formUrlEncoded = ${formUrlEncoded.name}(${body.formUrlEncoded})`;
+  if (isFormUrlEncoded && body.formUrlEncoded) {
+    if (formUrlEncoded) {
+      return `const formUrlEncoded = ${formUrlEncoded.name}(${body.implementation})`;
     }
 
     return body.formUrlEncoded;

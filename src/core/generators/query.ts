@@ -149,9 +149,7 @@ const generateQueryRequestFunction = (
       mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
 
     if (isMutatorHook) {
-      return `export const use${pascal(
-        operationName,
-      )}Hook = () => {${formDataImplementation}
+      return `export const use${pascal(operationName)}Hook = () => {${bodyForm}
         const ${operationName} = ${mutator.name}<${
         response.definition.success || 'unknown'
       }>();
