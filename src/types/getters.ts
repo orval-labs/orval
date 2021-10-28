@@ -23,6 +23,7 @@ export type GetterBody = {
   implementation: string;
   schemas: GeneratorSchema[];
   formData?: string;
+  formUrlEncoded?: string;
 };
 
 export type GetterParameters = {

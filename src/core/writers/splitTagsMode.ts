@@ -35,6 +35,7 @@ export const writeSplitTagsMode = async ({
           importsMSW,
           mutators,
           formData,
+          formUrlEncoded,
         } = target;
 
         let implementationData = header;
@@ -79,6 +80,9 @@ export const writeSplitTagsMode = async ({
 
         if (formData) {
           implementationData += generateMutatorImports(formData);
+        }
+        if (formUrlEncoded) {
+          implementationData += generateMutatorImports(formUrlEncoded);
         }
 
         implementationData += `\n${implementation}`;

@@ -119,6 +119,15 @@ const generateVerbOptions = async ({
         })
       : undefined;
 
+  const formUrlEncoded =
+    isString(override?.formUrlEncoded) || isObject(override?.formUrlEncoded)
+      ? await generateMutator({
+          output: output.target,
+          name: operationName,
+          mutator: override.formUrlEncoded,
+        })
+      : undefined;
+
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
@@ -134,6 +143,7 @@ const generateVerbOptions = async ({
     props,
     mutator,
     formData,
+    formUrlEncoded,
     override,
     doc,
   };

@@ -10,11 +10,13 @@ import { ResReqTypesValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { getNumberWord } from '../../utils/string';
-import { generateSchemaFormData } from '../generators/formData';
+import { generateSchemaFormDataAndUrlEncoded } from '../generators/formData';
 import { resolveObject } from '../resolvers/object';
 import { resolveRef } from '../resolvers/ref';
 
 const formDataContentTypes = ['multipart/form-data'];
+
+const formUrlEncodedContentTypes = ['application/x-www-form-urlencoded'];
 
 const getResReqContentTypes = async ({
   mediaType,
@@ -62,10 +64,11 @@ export const getResReqTypes = async (
           const [contentType, mediaType] =
             Object.entries(bodySchema.content || {})[0] || [];
 
-          if (
-            !formDataContentTypes.includes(contentType) ||
-            !mediaType?.schema
-          ) {
+          const isFormData = formDataContentTypes.includes(contentType);
+          const isFormUrlEncoded =
+            formUrlEncodedContentTypes.includes(contentType);
+
+          if ((!isFormData && !isFormUrlEncoded) || !mediaType?.schema) {
             return [
               {
                 value: name,
@@ -81,14 +84,28 @@ export const getResReqTypes = async (
             ] as ResReqTypesValue[];
           }
 
-          const formData = await generateSchemaFormData(
-            name,
-            mediaType?.schema,
-            {
-              ...context,
-              specKey: specKey || context.specKey,
-            },
-          );
+          const formData = isFormData
+            ? await generateSchemaFormDataAndUrlEncoded(
+                name,
+                mediaType?.schema,
+                {
+                  ...context,
+                  specKey: specKey || context.specKey,
+                },
+              )
+            : undefined;
+
+          const formUrlEncoded = isFormUrlEncoded
+            ? await generateSchemaFormDataAndUrlEncoded(
+                name,
+                mediaType?.schema,
+                {
+                  ...context,
+                  specKey: specKey || context.specKey,
+                },
+                true,
+              )
+            : undefined;
 
           return [
             {
@@ -98,6 +115,7 @@ export const getResReqTypes = async (
               type: 'unknown',
               isEnum: false,
               formData,
+              formUrlEncoded,
               isRef: true,
               originalSchema: mediaType?.schema,
               key,
@@ -126,19 +144,35 @@ export const getResReqTypes = async (
                   return;
                 }
 
-                if (!formDataContentTypes.includes(contentType) || !propName) {
+                const isFormData = formDataContentTypes.includes(contentType);
+                const isFormUrlEncoded =
+                  formUrlEncodedContentTypes.includes(contentType);
+
+                if ((!isFormData && !isFormUrlEncoded) || !propName) {
                   return { ...resolvedValue, contentType };
                 }
 
-                const formData = await generateSchemaFormData(
-                  propName,
-                  mediaType.schema!,
-                  context,
-                );
+                const formData = isFormData
+                  ? await generateSchemaFormDataAndUrlEncoded(
+                      propName,
+                      mediaType.schema!,
+                      context,
+                    )
+                  : undefined;
+
+                const formUrlEncoded = isFormUrlEncoded
+                  ? await generateSchemaFormDataAndUrlEncoded(
+                      propName,
+                      mediaType.schema!,
+                      context,
+                      true,
+                    )
+                  : undefined;
 
                 return {
                   ...resolvedValue,
                   formData,
+                  formUrlEncoded,
                   contentType,
                 };
               },

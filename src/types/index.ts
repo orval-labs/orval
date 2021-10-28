@@ -58,6 +58,7 @@ export type NormalizedOverrideOutput = {
   };
   header: false | ((info: InfoObject) => string[]);
   formData: boolean | NormalizedMutator;
+  formUrlEncoded: boolean | NormalizedMutator;
   components: {
     schemas: {
       suffix: string;
@@ -103,6 +104,7 @@ export type NormalizedOperationOptions = {
     verb: Verbs,
   ) => string;
   formData: boolean | NormalizedMutator;
+  formUrlEncoded: boolean | NormalizedMutator;
   requestOptions: object | boolean;
 };
 export type NormalizedInputOptions = {
@@ -205,6 +207,7 @@ export type OverrideOutput = {
   };
   header?: boolean | ((info: InfoObject) => string[]);
   formData?: boolean | Mutator;
+  formUrlEncoded?: boolean | Mutator;
   components?: {
     schemas?: {
       suffix?: string;
@@ -262,6 +265,7 @@ export type OperationOptions = {
     verb: Verbs,
   ) => string;
   formData?: boolean | Mutator;
+  formUrlEncoded?: boolean | Mutator;
   requestOptions?: object | boolean;
 };
 
