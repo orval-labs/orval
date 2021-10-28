@@ -157,10 +157,7 @@ export async function loadFile<File = unknown>(
       dependencies,
     };
   } catch (e) {
-    createLogger(logLevel).error(
-      chalk.red(`failed to load from ${resolvedPath}`),
-    );
-    throw e;
+    throw `failed to load from ${resolvedPath} => ${e}`;
   }
 }
 

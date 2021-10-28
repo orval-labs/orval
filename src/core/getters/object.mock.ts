@@ -65,7 +65,8 @@ export const getMockObject = async ({
             }
 
             const isRequired =
-              mockOptions?.required || (item.required || []).includes(key);
+              mockOptions?.required ||
+              (Array.isArray(item.required) ? item.required : []).includes(key);
 
             if (count(item.path, `\\.${key}\\.`) >= 1) {
               return undefined;

@@ -13,6 +13,7 @@ export type GetterResponse = {
     success: ResReqTypesValue[];
     errors: ResReqTypesValue[];
   };
+  contentTypes: string[];
   schemas: GeneratorSchema[];
 };
 

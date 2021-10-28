@@ -1,3 +1,8 @@
+const search = '\\*/'; // Find '*/'
+const replacement = '*\\/'; // Replace With '*\/'
+
+const regex = new RegExp(search, 'g');
+
 export function jsDoc(
   {
     description,
@@ -10,7 +15,10 @@ export function jsDoc(
   },
   tryOneLine = false,
 ): string {
-  const lines = Array.isArray(description) ? description : [description];
+  // Ensure there aren't any comment terminations in doc
+  const lines = (
+    Array.isArray(description) ? description : [description || '']
+  ).map((line) => line.replace(regex, replacement));
 
   const count = [description, deprecated, summary].reduce(
     (acc, it) => (it ? acc + 1 : acc),
@@ -42,7 +50,7 @@ export function jsDoc(
     if (!oneLine) {
       doc += `\n${tryOneLine ? '  ' : ''} *`;
     }
-    doc += ` @summary ${summary}`;
+    doc += ` @summary ${summary.replace(regex, replacement)}`;
   }
 
   doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';

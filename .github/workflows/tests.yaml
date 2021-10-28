@@ -1,0 +1,29 @@
+name: tests
+
+on:
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: install
+        run: yarn
+      - name: build
+        run: yarn build
+      - name: tests install
+        working-directory: ./tests
+        run: yarn
+      - name: tests generate
+        working-directory: ./tests
+        run: yarn generate
+      - name: tests build
+        working-directory: ./tests
+        run: yarn build

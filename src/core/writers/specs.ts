@@ -61,53 +61,50 @@ export const writeSpecs = async (
     );
   }
 
-  if (!output.target) {
-    createSuccessMessage(projectName || info.title);
-    return;
-  }
-
   let implementationPaths: string[] = [];
 
-  if (output.mode === OutputMode.SINGLE) {
-    implementationPaths = await writeSingleMode({
-      workspace,
-      operations,
-      output,
-      info,
-      schemas,
-      specsName,
-      header,
-    });
-  } else if (output.mode === OutputMode.SPLIT) {
-    implementationPaths = await writeSplitMode({
-      workspace,
-      operations,
-      output,
-      info,
-      schemas,
-      specsName,
-      header,
-    });
-  } else if (output.mode === OutputMode.TAGS) {
-    implementationPaths = await writeTagsMode({
-      workspace,
-      operations,
-      output,
-      info,
-      schemas,
-      specsName,
-      header,
-    });
-  } else if (output.mode === OutputMode.TAGS_SPLIT) {
-    implementationPaths = await writeSplitTagsMode({
-      workspace,
-      operations,
-      output,
-      info,
-      schemas,
-      specsName,
-      header,
-    });
+  if (output.target) {
+    if (output.mode === OutputMode.SINGLE) {
+      implementationPaths = await writeSingleMode({
+        workspace,
+        operations,
+        output,
+        info,
+        schemas,
+        specsName,
+        header,
+      });
+    } else if (output.mode === OutputMode.SPLIT) {
+      implementationPaths = await writeSplitMode({
+        workspace,
+        operations,
+        output,
+        info,
+        schemas,
+        specsName,
+        header,
+      });
+    } else if (output.mode === OutputMode.TAGS) {
+      implementationPaths = await writeTagsMode({
+        workspace,
+        operations,
+        output,
+        info,
+        schemas,
+        specsName,
+        header,
+      });
+    } else if (output.mode === OutputMode.TAGS_SPLIT) {
+      implementationPaths = await writeSplitTagsMode({
+        workspace,
+        operations,
+        output,
+        info,
+        schemas,
+        specsName,
+        header,
+      });
+    }
   }
 
   if (output.workspace) {

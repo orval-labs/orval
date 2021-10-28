@@ -20,6 +20,7 @@ export const getResponse = async (
       isBlob: false,
       types: { success: [], errors: [] },
       schemas: [],
+      contentTypes: [],
     };
   }
 
@@ -51,6 +52,10 @@ export const getResponse = async (
     [],
   );
 
+  const contentTypes = [
+    ...new Set(types.map(({ contentType }) => contentType)),
+  ];
+
   const success = groupedByStatus.success
     .map(({ value, formData }) => (formData ? 'Blob' : value))
     .join(' | ');
@@ -64,6 +69,7 @@ export const getResponse = async (
     },
     isBlob: success === 'Blob',
     types: groupedByStatus,
+    contentTypes,
     schemas,
   };
 };

@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "6.2.0",
+  "version": "6.2.3",
   "license": "MIT",
   "files": [
     "dist"
@@ -45,10 +45,13 @@
     "dev": "tsup ./src/bin/orval.ts ./src/index.ts --clean --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "format": "prettier --write 'src/**/*.{js,ts}'",
+    "prerelease": "yarn build && cd ./tests && yarn generate && yarn build",
     "release": "dotenv release-it",
+    "postrelease": "yarn build && yarn update-samples",
     "generate-api": "node ./dist/bin/orval.js --config ./samples/react-app-with-react-query/orval.config.ts --watch",
     "prepare": "husky install",
-    "commitlint": "commitlint"
+    "commitlint": "commitlint",
+    "update-samples": "zx ./scripts/update-samples.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^13.1.0",
@@ -83,7 +86,8 @@
     "release-it": "^14.11.5",
     "rimraf": "^3.0.2",
     "tsup": "^4.14.0",
-    "typescript": "^4.4.2"
+    "typescript": "^4.4.2",
+    "zx": "^4.2.0"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.0.3",
