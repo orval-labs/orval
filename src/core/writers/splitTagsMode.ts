@@ -78,7 +78,7 @@ export const writeSplitTagsMode = async ({
         }
 
         if (formData) {
-          implementationData += generateMutatorImports(formData);
+          implementationData += generateMutatorImports(formData, true);
         }
 
         implementationData += `\n${implementation}`;
