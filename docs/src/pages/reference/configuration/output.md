@@ -314,7 +314,7 @@ interface RequestConfig {
 }
 ```
 
-- The second is only provided for the Angular client and give an instance of HttpClient
+- The second argument is only provided for the Angular client and give an instance of HttpClient
 
 Example:
 
@@ -356,7 +356,52 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 };
 ```
 
-If you use one of the following clients `react-query`, `vue-query` and `svelte-query`. You can also provide a hook like this
+- If your file have some alias you will also need to define them in the mutator object.
+
+Example:
+
+```ts
+// custom-instance.ts
+
+import Axios, { AxiosRequestConfig } from 'axios';
+import config from '@config';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '', ...config });
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  const source = Axios.CancelToken.source();
+  const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
+    ({ data }) => data,
+  );
+
+  // @ts-ignore
+  promise.cancel = () => {
+    source.cancel('Query was cancelled by React Query');
+  };
+
+  return promise;
+};
+```
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+          alias: {
+            '@config': path.resolve(_dirname, './src/config'),
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+- If you use one of the following clients `react-query`, `vue-query` and `svelte-query`. You can also provide a hook like this
 
 Example:
 
