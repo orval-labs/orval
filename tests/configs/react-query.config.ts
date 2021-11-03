@@ -72,8 +72,8 @@ export default defineConfig({
   },
   formDataMutator: {
     output: {
-      target: '../generated/react-query/formData/endpoints.ts',
-      schemas: '../generated/react-query/formData/model',
+      target: '../generated/react-query/form-data/endpoints.ts',
+      schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
       mock: true,
       override: {
@@ -81,7 +81,7 @@ export default defineConfig({
           path: '../mutators/custom-instance.ts',
           name: 'customInstance',
         },
-        formUrlEncoded: {
+        formData: {
           path: '../mutators/custom-form-data.ts',
           name: 'customFormData',
         },
@@ -93,8 +93,8 @@ export default defineConfig({
   },
   formUrlEncoded: {
     output: {
-      target: '../generated/react-query/formUrlEncoded/endpoints.ts',
-      schemas: '../generated/react-query/formUrlEncoded/model',
+      target: '../generated/react-query/form-url-encoded/endpoints.ts',
+      schemas: '../generated/react-query/form-url-encoded/model',
       client: 'react-query',
       mock: true,
       override: {
