@@ -33,13 +33,16 @@ export const generateMutator = async ({
   const importName = mutator.name ? mutator.name : `${name}Mutator`;
   const importPath = mutator.path;
 
-  try {
-    const { file } = await loadFile<Record<string, Function>>(importPath, {
+  const { file, cached } = await loadFile<Record<string, Function>>(
+    importPath,
+    {
       isDefault: false,
       root: workspace,
       alias: mutator.alias,
-    });
+    },
+  );
 
+  if (file) {
     const mutatorFn =
       file[mutator.default || !mutator.name ? 'default' : mutator.name];
 
@@ -57,14 +60,16 @@ export const generateMutator = async ({
     const path = getImport(output, mutator);
 
     return { name: importName, path, default: isDefault, mutatorFn };
-  } catch (e) {
+  } else {
     const path = getImport(output, mutator);
 
-    createLogger().warn(
-      chalk.yellow(
-        'Your mutator cannot be loaded so default setup has been applied',
-      ),
-    );
+    if (!cached) {
+      createLogger().warn(
+        chalk.yellow(
+          `Your mutator cannot be loaded so default setup has been applied => ${importPath}`,
+        ),
+      );
+    }
 
     return {
       name: importName,

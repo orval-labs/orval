@@ -37,6 +37,8 @@ export const getFileInfo = (
 
 const debug = createDebugger('orval:file-load');
 
+const cache = new Map<string, { file?: any; error?: any }>();
+
 export async function loadFile<File = unknown>(
   filePath?: string,
   options?: {
@@ -48,8 +50,9 @@ export async function loadFile<File = unknown>(
   },
 ): Promise<{
   path: string;
-  file: File;
-  dependencies: string[];
+  file?: File;
+  error?: any;
+  cached?: boolean;
 }> {
   const {
     root = process.cwd(),
@@ -63,7 +66,6 @@ export async function loadFile<File = unknown>(
   let resolvedPath: string | undefined;
   let isTS = false;
   let isMjs = false;
-  let dependencies: string[] = [];
 
   if (filePath) {
     // explicit path is always resolved from cwd
@@ -107,6 +109,17 @@ export async function loadFile<File = unknown>(
     process.exit(1);
   }
 
+  const normalizeResolvedPath = normalizeSafe(resolvedPath);
+  const cachedData = cache.get(resolvedPath);
+
+  if (cachedData) {
+    return {
+      path: normalizeResolvedPath,
+      ...cachedData,
+      cached: true,
+    };
+  }
+
   try {
     let file: File | undefined;
 
@@ -115,7 +128,9 @@ export async function loadFile<File = unknown>(
       try {
         // clear cache in case of server restart
         delete require.cache[require.resolve(resolvedPath)];
+
         file = require(resolvedPath);
+
         debug(`cjs loaded in ${Date.now() - start}ms`);
       } catch (e) {
         const ignored = new RegExp(
@@ -134,8 +149,6 @@ export async function loadFile<File = unknown>(
       }
     }
 
-    const path = normalizeSafe(resolvedPath);
-
     if (!file) {
       // 2. if we reach here, the file is ts or using es import syntax, or
       // the user has type: "module" in their package.json (#917)
@@ -144,20 +157,27 @@ export async function loadFile<File = unknown>(
       const { code } = await bundleFile(
         resolvedPath,
         isMjs,
-        root || dirname(path),
+        root || dirname(normalizeResolvedPath),
         alias,
       );
       file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
+
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
 
+    cache.set(resolvedPath, { file });
+
     return {
-      path,
+      path: normalizeResolvedPath,
       file,
-      dependencies,
     };
-  } catch (e) {
-    throw `failed to load from ${resolvedPath} => ${e}`;
+  } catch (error: any) {
+    cache.set(resolvedPath, { error });
+
+    return {
+      path: normalizeResolvedPath,
+      error,
+    };
   }
 }
 
