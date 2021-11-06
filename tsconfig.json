@@ -1,6 +1,7 @@
 {
   "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
   "include": ["src/**/*"],
+  "ts-node": {  "files": true },
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "es5",

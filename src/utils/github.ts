@@ -108,10 +108,12 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
 
     return body.data?.repository?.object.text;
   } catch (e) {
+    // @ts-ignore
     if (!e.body) {
       throw `Oups... 🍻. ${e}`;
     }
 
+    // @ts-ignore
     if (e.body.message === 'Bad credentials') {
       const answers = await inquirer.prompt<{ removeToken: boolean }>([
         {
@@ -125,6 +127,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
         await unlink(githubTokenPath);
       }
     }
+    // @ts-ignore
     throw e.body.message || `Oups... 🍻. ${e}`;
   }
 };

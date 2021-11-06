@@ -8,7 +8,7 @@
     "generate:cli": "node ../dist/bin/orval.js --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",
     "generate:default": "node ../dist/bin/orval.js --config ./configs/default.config.ts",
     "generate:axios": "node ../dist/bin/orval.js --config ./configs/axios.config.ts",
-    "generate:angular": "node ../dist/bin/orval.js --config ./configs/angular.config.ts",
+    "generate:angular": "ts-node ../src/bin/orval.ts --config ./configs/angular.config.ts",
     "generate:react-query": "node ../dist/bin/orval.js --config ./configs/react-query.config.ts",
     "generate:svelte-query": "node ../dist/bin/orval.js --config ./configs/svelte-query.config.ts",
     "generate:vue-query": "node ../dist/bin/orval.js --config ./configs/vue-query.config.ts",
@@ -20,6 +20,7 @@
   "devDependencies": {
     "npm-run-all": "^4.1.5",
     "orval": "link:../dist",
+    "ts-node": "^10.4.0",
     "typescript": "^4.4.3"
   },
   "dependencies": {

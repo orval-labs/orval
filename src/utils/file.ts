@@ -125,6 +125,7 @@ export async function loadFile<File = unknown>(
             `Unexpected identifier`,
           ].join('|'),
         );
+        // @ts-ignore
         if (!ignored.test(e.message)) {
           throw e;
         }
@@ -178,6 +179,10 @@ async function bundleFile(
                 external: true,
               };
             }
+
+            return {
+              external: false,
+            };
           });
         },
       },
