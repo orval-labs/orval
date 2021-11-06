@@ -20,7 +20,7 @@ export const getEnum = (value: string, type: string, enumName: string) => {
     );
   }, '');
 
-  enumValue += `\n\nexport const ${enumName} = {\n${implementation}};\n`;
+  enumValue += `\n\nexport const ${enumName}AllOf = {\n${implementation}};\n`;
 
   return enumValue;
 };

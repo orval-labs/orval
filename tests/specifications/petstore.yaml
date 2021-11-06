@@ -102,6 +102,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /colors:
+    get:
+      summary: List colors
+      operationId: listColors
+      tags:
+        - colors
+      responses:
+        '200':
+          description: An array of colors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Color'
 components:
   schemas:
     Pet:
@@ -144,3 +157,9 @@ components:
           format: int32
         message:
           type: string
+    Color:
+      type: string
+      enum:
+        - red
+        - green
+        - blue
