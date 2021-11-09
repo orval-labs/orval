@@ -243,7 +243,7 @@ export type AngularOptions = {
   provideInRoot?: boolean;
 };
 
-type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
 
 type InputTransformer = string | InputTransformerFn;
 
