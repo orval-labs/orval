@@ -127,7 +127,9 @@ export const writeSpecs = async (
       )}';`;
     }
 
-    await outputFile(join(workspacePath, '/index.ts'), imports);
+    const indexFile = join(workspacePath, '/index.ts');
+    await outputFile(indexFile, imports);
+    implementationPaths = [indexFile, ...implementationPaths];
   }
 
   if (output.prettier) {
