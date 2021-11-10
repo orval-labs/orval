@@ -1,3 +1,4 @@
+import uniq from 'lodash.uniq';
 import chalk from 'chalk';
 import { log } from 'console';
 import execa from 'execa';
@@ -117,18 +118,17 @@ export const writeSpecs = async (
             workspacePath,
             getFileInfo(path).pathWithoutExtension,
           )}';`,
-      )
-      .join('\n');
+      );
 
     if (output.schemas) {
-      imports += `\nexport * from '${relativeSafe(
+      imports.push(`export * from '${relativeSafe(
         workspacePath,
         getFileInfo(output.schemas).dirname,
-      )}';`;
+      )}';`);
     }
 
     const indexFile = join(workspacePath, '/index.ts');
-    await outputFile(indexFile, imports);
+    await outputFile(indexFile, uniq(imports).join('\n'));
     implementationPaths = [indexFile, ...implementationPaths];
   }
 
