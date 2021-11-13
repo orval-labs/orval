@@ -40,7 +40,7 @@ export const generateAxiosOptions = (
     return isRequestOptions ? 'options' : '';
   }
 
-  let value = '\n      {';
+  let value = '';
 
   if (queryParams) {
     value += '\n        params,';
@@ -61,8 +61,6 @@ export const generateAxiosOptions = (
   if (isRequestOptions) {
     value += '\n    ...options';
   }
-
-  value += ' },';
 
   return value;
 };
@@ -86,16 +84,28 @@ export const generateOptions = ({
   isFormData: boolean;
   isFormUrlEncoded: boolean;
 }) => {
-  return `\n      \`${route}\`,${generateBodyOptions(
+  const bodyOptions = generateBodyOptions(
     body,
     verb,
     isFormData,
     isFormUrlEncoded,
-  )}${generateAxiosOptions(
+  );
+
+  const axiosOptions = generateAxiosOptions(
     response,
     queryParams?.schema,
     requestOptions,
-  )}\n    `;
+  );
+
+  if (verb === Verbs.DELETE) {
+    return `\n      \`${route}\`,{data:${bodyOptions} ${
+      axiosOptions === 'options' ? `...${axiosOptions}` : axiosOptions
+    }}\n    `;
+  }
+
+  return `\n      \`${route}\`,${bodyOptions}${
+    axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`
+  }\n    `;
 };
 
 export const generateBodyMutatorConfig = (
