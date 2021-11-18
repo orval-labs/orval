@@ -8,13 +8,13 @@ export const getSchema = (
   specKey?: string,
 ) => {
   const schemas = Object.entries(
-    context.specs[specKey || context.specKey].components?.schemas || [],
+    context.specs[specKey || context.specKey]?.components?.schemas || [],
   ).reduce((acc, [name, type]) => ({ ...acc, [name]: type }), {}) as {
     [key: string]: SchemaObject;
   };
 
   const responses = Object.entries(
-    context.specs[specKey || context.specKey].components?.responses || [],
+    context.specs[specKey || context.specKey]?.components?.responses || [],
   ).reduce(
     (acc, [name, type]) => ({
       ...acc,
