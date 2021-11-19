@@ -65,6 +65,9 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
       { name: 'UseQueryOptions' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
@@ -404,7 +407,7 @@ export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
   return {
     queryKey,
     ...query
-  }
+  } as Use${pascal(type)}Result<TData, TError> & { queryKey: QueryKey }
 }\n`;
 };
 
