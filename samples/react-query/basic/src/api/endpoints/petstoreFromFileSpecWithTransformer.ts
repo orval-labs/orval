@@ -9,6 +9,9 @@ import {
   useInfiniteQuery,
   useMutation,
   UseQueryOptions,
+  UseQueryResult,
+  UseInfiniteQueryResult,
+  QueryKey,
   UseInfiniteQueryOptions,
   UseMutationOptions,
   QueryFunction,
@@ -66,7 +69,7 @@ export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TE
   return {
     queryKey,
     ...query
-  }
+  } as UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey }
 }
 
 export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
@@ -88,7 +91,7 @@ export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = E
   return {
     queryKey,
     ...query
-  }
+  } as UseQueryResult<TData, TError> & { queryKey: QueryKey }
 }
 
 
@@ -163,7 +166,7 @@ export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetByI
   return {
     queryKey,
     ...query
-  }
+  } as UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey }
 }
 
 export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
@@ -185,7 +188,7 @@ export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TErr
   return {
     queryKey,
     ...query
-  }
+  } as UseQueryResult<TData, TError> & { queryKey: QueryKey }
 }
 
 
