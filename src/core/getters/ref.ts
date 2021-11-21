@@ -43,7 +43,7 @@ export const getRefInfo = async (
   );
 
   if (!refComponent) {
-    throw new Error('Unresolved $ref');
+    throw new Error(`Unresolved $ref. Reference ${$ref} should use one of the following components [${REF_COMPONENTS.join(", ")}]`);
   }
 
   const suffix = context.override.components[refComponent].suffix;
