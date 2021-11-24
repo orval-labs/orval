@@ -80,3 +80,11 @@ The `--prettier`, can be used to prettier generated files. You need to have pret
 ```bash
 $ orval --prettier
 ```
+
+### Eslint
+
+The `--eslint`, can be used to specify `eslint` as typescript linter instead of `tslint`. You need to have eslint & typescript presets in your dependencies.
+
+```bash
+$ orval --eslint
+```

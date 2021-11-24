@@ -263,6 +263,14 @@ Default Value: `false`.
 
 Can be used to prettier generated files. You need to have prettier in your dependencies.
 
+### eslint
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Can be used to specify `eslint` as typescript linter instead of `tslint`. You need to have eslint & typescript presets in your dependencies.
+
 ### override
 
 Type: `Object`.
