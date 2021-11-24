@@ -59,7 +59,13 @@ export const importOpenApi = async ({
   const schemas = await asyncReduce(
     Object.entries(specs),
     async (acc, [specKey, spec]) => {
-      const context = { specKey, workspace, specs, override: output.override };
+      const context = {
+        specKey,
+        workspace,
+        specs,
+        override: output.override,
+        eslint: output.eslint,
+      };
       const schemaDefinition = await generateSchemasDefinition(
         spec.components?.schemas,
         context,
@@ -99,7 +105,7 @@ export const importOpenApi = async ({
 
   const api = await generateApi({
     output,
-    context: { specKey: path, workspace, specs, override: output.override },
+    context: { specKey: path, workspace, specs, override: output.override, eslint: output.eslint },
   });
 
   return {
