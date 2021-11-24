@@ -42,6 +42,7 @@ export type NormalizedOutputOptions = {
   client: OutputClient | OutputClientFunc;
   clean: boolean | string[];
   prettier: boolean;
+  eslint: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -129,6 +130,7 @@ export type OutputOptions = {
   client?: OutputClient | OutputClientFunc;
   clean?: boolean | string[];
   prettier?: boolean;
+  eslint?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -291,6 +293,7 @@ export type ImportOpenApi = {
 export interface ContextSpecs {
   specKey: string;
   workspace: string;
+  eslint: boolean;
   specs: Record<string, OpenAPIObject>;
   override: NormalizedOverrideOutput;
 }
@@ -300,6 +303,7 @@ export interface GlobalOptions {
   watch?: boolean | string | (string | boolean)[];
   clean?: boolean | string[];
   prettier?: boolean;
+  eslint?: boolean;
   mock?: boolean;
   client?: OutputClient;
   mode?: OutputMode;
