@@ -34,10 +34,10 @@ export const generateInterface = async ({
   model += jsDoc(schema);
 
   if (isEmptyObject) {
-    if (context.eslint) {
-      model += '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
-    } else {
+    if (context.tslint) {
       model += '// tslint:disable-next-line:no-empty-interface\n';
+    } else {
+      model += '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
     }
   }
 

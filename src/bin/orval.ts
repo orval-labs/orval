@@ -39,7 +39,7 @@ cli
   )
   .option('--clean [path]', 'Clean output directory')
   .option('--prettier [path]', 'Prettier generated files')
-  .option('--eslint [path]', 'Eslint generated files')
+  .option('--tslint [path]', 'tslint generated files')
   .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
@@ -48,7 +48,7 @@ cli
           target: cmd.output,
           clean: cmd.clean,
           prettier: cmd.prettier,
-          eslint: cmd.eslint,
+          tslint: cmd.tslint,
           mock: cmd.mock,
           client: cmd.client,
           mode: cmd.mode,
@@ -80,7 +80,7 @@ cli
         watch: cmd.watch,
         clean: cmd.clean,
         prettier: cmd.prettier,
-        eslint: cmd.eslint,
+        tslint: cmd.tslint,
         mock: cmd.mock,
         client: cmd.client,
         mode: cmd.mode,

@@ -60,7 +60,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, mode, mock, eslint } = globalOptions;
+  const { clean, prettier, client, mode, mock, tslint } = globalOptions;
 
   const normalizedOptions: NormalizedOptions = {
     input: {
@@ -87,7 +87,7 @@ export const normalizeOptions = async (
       mock: outputOptions.mock ?? mock ?? false,
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
-      eslint: outputOptions.eslint ?? eslint ?? false,
+      tslint: outputOptions.tslint ?? tslint ?? false,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(

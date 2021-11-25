@@ -19,12 +19,12 @@ export default defineConfig({
       },
     },
   },
-  'petstore-eslint': {
+  'petstore-tslint': {
     input: '../specifications/petstore.yaml',
     output: {
-      target: '../generated/default/petstore-eslint/endpoints.ts',
-      schemas: '../generated/default/petstore-eslint/model',
-      eslint: true
+      target: '../generated/default/petstore-tslint/endpoints.ts',
+      schemas: '../generated/default/petstore-tslint/model',
+      tslint: true
     },
   },
 });

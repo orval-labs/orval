@@ -64,7 +64,7 @@ export const importOpenApi = async ({
         workspace,
         specs,
         override: output.override,
-        eslint: output.eslint,
+        tslint: output.tslint,
       };
       const schemaDefinition = await generateSchemasDefinition(
         spec.components?.schemas,
@@ -105,7 +105,7 @@ export const importOpenApi = async ({
 
   const api = await generateApi({
     output,
-    context: { specKey: path, workspace, specs, override: output.override, eslint: output.eslint },
+    context: { specKey: path, workspace, specs, override: output.override, tslint: output.tslint },
   });
 
   return {
