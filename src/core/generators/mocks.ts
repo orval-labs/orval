@@ -139,7 +139,7 @@ export const getResponsesMockDefinition = ({
           ...resolvedRef.schema,
           ...(response.imports.length
             ? {
-                specKey: response.imports[response.imports.length - 1].specKey,
+                specKey: response.imports[0].specKey,
               }
             : {}),
         },

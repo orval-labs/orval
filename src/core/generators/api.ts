@@ -32,7 +32,7 @@ export const generateApi = async ({
           ...context,
           ...(imports.length
             ? {
-                specKey: imports[imports.length - 1].specKey,
+                specKey: imports[0].specKey,
               }
             : {}),
         };
