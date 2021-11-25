@@ -23,7 +23,7 @@ export const resolveValue = async ({
 
     return {
       value: name,
-      imports: [{ name, specKey, schemaName }],
+      imports: [{ name, specKey: specKey || context.specKey, schemaName }],
       type: schemaObject?.type || 'object',
       schemas: [],
       isEnum: !!schemaObject?.enum,

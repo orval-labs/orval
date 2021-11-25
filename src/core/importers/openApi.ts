@@ -105,8 +105,15 @@ export const importOpenApi = async ({
 
   const api = await generateApi({
     output,
-    context: { specKey: path, workspace, specs, override: output.override, tslint: output.tslint },
+    context: {
+      specKey: path,
+      workspace,
+      specs,
+      override: output.override,
+      tslint: output.tslint,
+    },
   });
+
 
   return {
     ...api,

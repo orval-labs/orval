@@ -1,3 +1,4 @@
+import get from 'lodash.get';
 import {
   ParameterObject,
   RequestBodyObject,
@@ -15,7 +16,7 @@ type ComponentObject =
   | ParameterObject
   | RequestBodyObject;
 export const resolveRef = async <
-  Schema extends ComponentObject = ComponentObject
+  Schema extends ComponentObject = ComponentObject,
 >(
   schema: ComponentObject,
   context: ContextSpecs,
@@ -28,14 +29,15 @@ export const resolveRef = async <
     return { schema: schema as Schema, imports };
   }
 
-  const { name, originalName, specKey, type } = await getRefInfo(
+  const { name, originalName, specKey, refPaths } = await getRefInfo(
     schema.$ref,
     context,
   );
 
-  const currentSchema = context.specs[specKey || context.specKey]?.components?.[
-    type
-  ]?.[originalName]! as Schema;
+  const currentSchema = get(
+    context.specs[specKey || context.specKey],
+    refPaths,
+  ) as Schema;
 
   if (!currentSchema) {
     throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
