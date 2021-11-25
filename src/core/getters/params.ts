@@ -74,8 +74,7 @@ export const getParams = ({
           ...context,
           ...(pathParam.imports.length
             ? {
-                specKey:
-                  pathParam.imports[pathParam.imports.length - 1].specKey,
+                specKey: pathParam.imports[0].specKey,
               }
             : {}),
         },

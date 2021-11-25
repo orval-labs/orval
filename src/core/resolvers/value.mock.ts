@@ -64,7 +64,7 @@ export const resolveMockValue = async ({
     });
 
     const newSchema = {
-      ...getSchema(name, context, specKey || schema.specKey),
+      ...getSchema(name, context, specKey || schema.specKey || context.specKey),
       name,
       path: schema.path,
       isRef: true,
