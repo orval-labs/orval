@@ -124,7 +124,10 @@ export const importOpenApi = async ({
 
   return {
     ...api,
-    schemas: { ...schemas, [target]: [...schemas[target], ...api.schemas] },
+    schemas: {
+      ...schemas,
+      [target]: [...(schemas[target] || []), ...api.schemas],
+    },
     target,
     info: specs[target].info,
   };
