@@ -40,27 +40,35 @@ export const combineSchemas = async ({
         context,
       });
 
+      if (acc.isEnum.length && !acc.isEnum.includes(resolvedValue.isEnum)) {
+        throw new Error(`Enums can only combine with enum`);
+      }
+
       return {
-        ...acc,
-        value: acc.value
-          ? `${acc.value} ${SEPARATOR[separator]} ${resolvedValue.value}`
-          : resolvedValue.value,
+        values: [...acc.values, resolvedValue.value],
         imports: [...acc.imports, ...resolvedValue.imports],
         schemas: [...acc.schemas, ...resolvedValue.schemas],
-        isEnum: !acc.isEnum ? acc.isEnum : resolvedValue.isEnum,
+        isEnum: [...acc.isEnum, resolvedValue.isEnum],
+        isRef: [...acc.isRef, resolvedValue.isRef],
       };
     },
     {
-      value: '',
+      values: [],
       imports: [],
       schemas: [],
-      isEnum: true, // check if only enums
+      isEnum: [], // check if only enums
       type: 'object',
-      isRef: false,
-    } as ResolverValue,
+      isRef: [],
+    } as Omit<ResolverValue, 'isRef' | 'isEnum' | 'value'> & {
+      values: string[];
+      isRef: boolean[];
+      isEnum: boolean[];
+    },
   );
 
-  if (resolvedData.isEnum && name) {
+  const isAllEnums = resolvedData.isEnum.every((v) => v);
+
+  if (isAllEnums && name) {
     const enums = resolvedData.value
       .split(' | ')
       .map((e) => `...${e}`)
