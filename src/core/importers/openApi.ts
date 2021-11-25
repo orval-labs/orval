@@ -90,14 +90,20 @@ export const importOpenApi = async ({
         output.override.components.parameters.suffix,
       );
 
+      const schemas = [
+        ...schemaDefinition,
+        ...responseDefinition,
+        ...bodyDefinition,
+        ...parameters,
+      ];
+
+      if (!schemas.length) {
+        return acc;
+      }
+
       return {
         ...acc,
-        [specKey]: [
-          ...schemaDefinition,
-          ...responseDefinition,
-          ...bodyDefinition,
-          ...parameters,
-        ],
+        [specKey]: schemas,
       };
     },
     {} as Record<string, GeneratorSchema[]>,
@@ -113,7 +119,6 @@ export const importOpenApi = async ({
       tslint: output.tslint,
     },
   });
-
 
   return {
     ...api,
