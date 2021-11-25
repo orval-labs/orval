@@ -137,6 +137,11 @@ export const getResponsesMockDefinition = ({
         item: {
           name: definition,
           ...resolvedRef.schema,
+          ...(response.imports.length
+            ? {
+                specKey: response.imports[response.imports.length - 1].specKey,
+              }
+            : {}),
         },
         mockOptions: mockOptionsWithoutFunc,
         operationId,

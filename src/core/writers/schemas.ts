@@ -1,19 +1,16 @@
 import { appendFile, ensureFile, outputFile, readFile } from 'fs-extra';
-import { InfoObject } from 'openapi3-ts';
 import { join } from 'upath';
 import { GeneratorSchema } from '../../types/generator';
 import { camel } from '../../utils/case';
 import { generateImports } from '../generators/imports';
 
 const getSchema = ({
-  info,
   schema: { imports, model },
   target,
   isRootKey,
   specsName,
   header,
 }: {
-  info: InfoObject;
   schema: GeneratorSchema;
   target: string;
   isRootKey: boolean;
@@ -38,7 +35,6 @@ export const writeModelsInline = (array: GeneratorSchema[]): string =>
 
 export const writeSchema = async ({
   path,
-  info,
   schema,
   target,
   isRootKey,
@@ -46,7 +42,6 @@ export const writeSchema = async ({
   header,
 }: {
   path: string;
-  info: InfoObject;
   schema: GeneratorSchema;
   target: string;
   isRootKey: boolean;
@@ -57,7 +52,7 @@ export const writeSchema = async ({
   try {
     await outputFile(
       getPath(path, name),
-      getSchema({ info, schema, target, isRootKey, specsName, header }),
+      getSchema({ schema, target, isRootKey, specsName, header }),
     );
     const indexPath = getPath(path, 'index');
 
@@ -78,7 +73,6 @@ export const writeSchema = async ({
 export const writeSchemas = async ({
   schemaPath,
   schemas,
-  info,
   target,
   isRootKey,
   specsName,
@@ -86,7 +80,6 @@ export const writeSchemas = async ({
 }: {
   schemaPath: string;
   schemas: GeneratorSchema[];
-  info: InfoObject;
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
@@ -98,7 +91,6 @@ export const writeSchemas = async ({
     schemas.map((schema) =>
       writeSchema({
         path: schemaPath,
-        info,
         schema,
         target,
         isRootKey,

@@ -5,16 +5,16 @@ import { isReference } from '../../utils/is';
 export const getSchema = (
   name: string,
   context: ContextSpecs,
-  specKey?: string,
+  specKey: string,
 ) => {
   const schemas = Object.entries(
-    context.specs[specKey || context.specKey].components?.schemas || [],
+    context.specs[specKey].components?.schemas || [],
   ).reduce((acc, [name, type]) => ({ ...acc, [name]: type }), {}) as {
     [key: string]: SchemaObject;
   };
 
   const responses = Object.entries(
-    context.specs[specKey || context.specKey].components?.responses || [],
+    context.specs[specKey].components?.responses || [],
   ).reduce(
     (acc, [name, type]) => ({
       ...acc,
