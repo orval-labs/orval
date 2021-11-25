@@ -10,7 +10,7 @@ export const swaggerConverter = async (
 ): Promise<OpenAPIObject> => {
   try {
     return new Promise((resolve) => {
-      if (!schema.openapi || !schema.openapi.startsWith('3.0')) {
+      if (!schema.openapi && schema.swagger === '2.0') {
         swagger2openapi.convertObj(schema, options, (err, value) => {
           if (err) {
             log(chalk.yellow(`${specKey}\n=> ${err}`));

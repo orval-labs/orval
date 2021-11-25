@@ -104,6 +104,7 @@
     "ibm-openapi-validator": "^0.46.4",
     "inquirer": "^8.1.2",
     "lodash.get": "^4.4.2",
+    "lodash.omit": "^4.5.0",
     "lodash.omitby": "^4.6.0",
     "lodash.uniq": "^4.5.0",
     "lodash.uniqby": "^4.7.0",

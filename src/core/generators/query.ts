@@ -1,5 +1,3 @@
-//@ts-ignore
-const esprima = require('esprima');
 import omitBy from 'lodash.omitby';
 import { OutputClient, OutputClientFunc, Verbs } from '../../types';
 import {
