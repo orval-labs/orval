@@ -10,12 +10,12 @@ import { camel } from '../../utils/case';
 
 export const generateImports = ({
   imports = [],
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
 }: {
   imports: GeneratorImport[];
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
 }) => {
@@ -31,7 +31,7 @@ export const generateImports = ({
     .sort()
     .map(({ specKey, name, values, alias }) => {
       if (specKey) {
-        const path = specKey !== rootSpecKey ? specsName[specKey] : '';
+        const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
           return `import ${!values ? 'type ' : ''}{ ${name}${

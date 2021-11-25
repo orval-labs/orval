@@ -47,7 +47,7 @@ export const importSpecs = async (
       data: { [workspace]: input.target },
       input,
       output,
-      path: workspace,
+      target: workspace,
       workspace,
     });
   }
@@ -60,7 +60,7 @@ export const importSpecs = async (
     data,
     input,
     output,
-    path: input.target,
+    target: input.target,
     workspace,
   });
 };

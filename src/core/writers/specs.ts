@@ -1,8 +1,8 @@
-import uniq from 'lodash.uniq';
 import chalk from 'chalk';
 import { log } from 'console';
 import execa from 'execa';
 import { outputFile } from 'fs-extra';
+import uniq from 'lodash.uniq';
 import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
@@ -17,7 +17,7 @@ import { writeSplitTagsMode } from './splitTagsMode';
 import { writeTagsMode } from './tagsMode';
 
 export const writeSpecs = async (
-  { operations, schemas, rootSpecKey, info }: WriteSpecsProps,
+  { operations, schemas, target, info }: WriteSpecsProps,
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
@@ -26,7 +26,7 @@ export const writeSpecs = async (
   const projectTitle = projectName || info.title;
 
   const specsName = Object.keys(schemas).reduce((acc, specKey) => {
-    const basePath = getSpecName(specKey, rootSpecKey);
+    const basePath = getSpecName(specKey, target);
 
     const name = basePath.slice(1).split('/').join('-');
 
@@ -44,7 +44,7 @@ export const writeSpecs = async (
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
-        const isRootKey = rootSpecKey === specKey;
+        const isRootKey = target === specKey;
         const schemaPath = !isRootKey
           ? join(rootSchemaPath, specsName[specKey])
           : rootSchemaPath;
@@ -53,7 +53,7 @@ export const writeSpecs = async (
           schemaPath,
           schemas,
           info,
-          rootSpecKey,
+          target,
           specsName,
           isRootKey,
           header,
@@ -121,10 +121,12 @@ export const writeSpecs = async (
       );
 
     if (output.schemas) {
-      imports.push(`export * from '${relativeSafe(
-        workspacePath,
-        getFileInfo(output.schemas).dirname,
-      )}';`);
+      imports.push(
+        `export * from '${relativeSafe(
+          workspacePath,
+          getFileInfo(output.schemas).dirname,
+        )}';`,
+      );
     }
 
     const indexFile = join(workspacePath, '/index.ts');

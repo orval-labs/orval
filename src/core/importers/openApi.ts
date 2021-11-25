@@ -51,7 +51,7 @@ export const importOpenApi = async ({
   data,
   input,
   output,
-  path,
+  target,
   workspace,
 }: ImportOpenApi): Promise<WriteSpecsProps> => {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
@@ -61,6 +61,7 @@ export const importOpenApi = async ({
     async (acc, [specKey, spec]) => {
       const context = {
         specKey,
+        target,
         workspace,
         specs,
         override: output.override,
@@ -90,14 +91,20 @@ export const importOpenApi = async ({
         output.override.components.parameters.suffix,
       );
 
+      const schemas = [
+        ...schemaDefinition,
+        ...responseDefinition,
+        ...bodyDefinition,
+        ...parameters,
+      ];
+
+      if (!schemas.length) {
+        return acc;
+      }
+
       return {
         ...acc,
-        [specKey]: [
-          ...schemaDefinition,
-          ...responseDefinition,
-          ...bodyDefinition,
-          ...parameters,
-        ],
+        [specKey]: schemas,
       };
     },
     {} as Record<string, GeneratorSchema[]>,
@@ -105,13 +112,20 @@ export const importOpenApi = async ({
 
   const api = await generateApi({
     output,
-    context: { specKey: path, workspace, specs, override: output.override, tslint: output.tslint },
+    context: {
+      specKey: target,
+      target,
+      workspace,
+      specs,
+      override: output.override,
+      tslint: output.tslint,
+    },
   });
 
   return {
     ...api,
-    schemas: { ...schemas, [path]: [...schemas[path], ...api.schemas] },
-    rootSpecKey: path,
-    info: specs[path].info,
+    schemas: { ...schemas, [target]: [...schemas[target], ...api.schemas] },
+    target,
+    info: specs[target].info,
   };
 };
