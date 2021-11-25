@@ -23,6 +23,8 @@ export const RefComponentSuffix: Record<RefComponent, string> = {
   requestBodies: 'Body',
 };
 
+const regex = new RegExp('~1', 'g');
+
 /**
  * Return the output type from the $ref
  *
@@ -39,7 +41,10 @@ export const getRefInfo = async (
 }> => {
   const [pathname, ref] = $ref.split('#');
 
-  const refPaths = ref.slice(1).split('/');
+  const refPaths = ref
+    .slice(1)
+    .split('/')
+    .map((part) => part.replace(regex, '/'));
 
   const suffix = get(context.override, [...refPaths.slice(0, 2), 'suffix'], '');
 
