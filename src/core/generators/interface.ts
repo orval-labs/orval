@@ -6,7 +6,7 @@ import { getScalar } from '../getters/scalar';
 
 /**
  * Generate the interface string
- * A tslint comment is insert if the resulted object is empty
+ * A eslint|tslint comment is insert if the resulted object is empty
  *
  * @param name interface name
  * @param schema
@@ -34,7 +34,11 @@ export const generateInterface = async ({
   model += jsDoc(schema);
 
   if (isEmptyObject) {
-    model += '// tslint:disable-next-line:no-empty-interface\n';
+    if (context.tslint) {
+      model += '// tslint:disable-next-line:no-empty-interface\n';
+    } else {
+      model += '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
+    }
   }
 
   if (!generalJSTypesWithArray.includes(scalar.value)) {

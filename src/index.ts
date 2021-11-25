@@ -14,6 +14,7 @@ const generate = async (
     watch?: boolean | string | (string | boolean)[];
     clean?: boolean | string[];
     prettier?: boolean;
+    tslint?: boolean;
   },
 ) => {
   if (!optionsExport || isString(optionsExport)) {
