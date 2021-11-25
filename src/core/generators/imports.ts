@@ -86,7 +86,9 @@ export const addDependency = ({
   specsName: Record<string, string>;
   hasSchemaDir: boolean;
 }) => {
-  const toAdds = exports.filter((e) => implementation.includes(e.name));
+  const toAdds = exports.filter((e) =>
+    implementation.includes(e.alias || e.name),
+  );
 
   if (!toAdds.length) {
     return undefined;
@@ -111,7 +113,9 @@ export const addDependency = ({
       const defaultDep = deps.find((e) => e.default);
 
       const depsString = uniq(
-        deps.filter((e) => !e.default).map(({ name }) => name),
+        deps
+          .filter((e) => !e.default)
+          .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
       ).join(',\n  ');
 
       return `import ${!values ? 'type ' : ''}${
