@@ -16,8 +16,6 @@ const RefComponent = {
   requestBodies: 'requestBodies' as RefComponent,
 };
 
-const REF_COMPONENTS = Object.values(RefComponent);
-
 export const RefComponentSuffix: Record<RefComponent, string> = {
   schemas: '',
   responses: 'Response',
@@ -43,7 +41,7 @@ export const getRefInfo = async (
 
   const refPaths = ref.slice(1).split('/');
 
-  const suffix = get(context.override, [...refPaths.slice(-1), 'suffix'], '');
+  const suffix = get(context.override, [...refPaths.slice(0, 2), 'suffix'], '');
 
   const originalName = refPaths[refPaths.length - 1];
 

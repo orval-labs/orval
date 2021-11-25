@@ -286,12 +286,13 @@ export type ImportOpenApi = {
   data: Record<string, OpenAPIObject>;
   input: InputOptions;
   output: NormalizedOutputOptions;
-  path: string;
+  target: string;
   workspace: string;
 };
 
 export interface ContextSpecs {
   specKey: string;
+  target: string;
   workspace: string;
   tslint: boolean;
   specs: Record<string, OpenAPIObject>;

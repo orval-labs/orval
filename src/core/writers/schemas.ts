@@ -8,20 +8,20 @@ import { generateImports } from '../generators/imports';
 const getSchema = ({
   info,
   schema: { imports, model },
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
   header,
 }: {
   info: InfoObject;
   schema: GeneratorSchema;
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
 }): string => {
   let file = header;
-  file += generateImports({ imports, rootSpecKey, isRootKey, specsName });
+  file += generateImports({ imports, target, isRootKey, specsName });
   file += imports.length ? '\n\n' : '\n';
   file += model;
   return file;
@@ -40,7 +40,7 @@ export const writeSchema = async ({
   path,
   info,
   schema,
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
   header,
@@ -48,7 +48,7 @@ export const writeSchema = async ({
   path: string;
   info: InfoObject;
   schema: GeneratorSchema;
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
@@ -57,7 +57,7 @@ export const writeSchema = async ({
   try {
     await outputFile(
       getPath(path, name),
-      getSchema({ info, schema, rootSpecKey, isRootKey, specsName, header }),
+      getSchema({ info, schema, target, isRootKey, specsName, header }),
     );
     const indexPath = getPath(path, 'index');
 
@@ -79,7 +79,7 @@ export const writeSchemas = async ({
   schemaPath,
   schemas,
   info,
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
   header,
@@ -87,7 +87,7 @@ export const writeSchemas = async ({
   schemaPath: string;
   schemas: GeneratorSchema[];
   info: InfoObject;
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
@@ -100,7 +100,7 @@ export const writeSchemas = async ({
         path: schemaPath,
         info,
         schema,
-        rootSpecKey,
+        target,
         isRootKey,
         specsName,
         header,

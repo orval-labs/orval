@@ -6,7 +6,7 @@ export type WriteSpecsProps = {
   operations: GeneratorOperations;
   schemas: Record<string, GeneratorSchema[]>;
   info: InfoObject;
-  rootSpecKey: string;
+  target: string;
 };
 
 export type WriteModeProps = {

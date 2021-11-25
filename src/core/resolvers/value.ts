@@ -21,9 +21,13 @@ export const resolveValue = async ({
     );
     const { name, specKey, schemaName } = imports[0];
 
+    const importSpecKey =
+      specKey ||
+      (context.specKey !== context.target ? context.specKey : undefined);
+
     return {
       value: name,
-      imports: [{ name, specKey: specKey || context.specKey, schemaName }],
+      imports: [{ name, specKey: importSpecKey, schemaName }],
       type: schemaObject?.type || 'object',
       schemas: [],
       isEnum: !!schemaObject?.enum,
