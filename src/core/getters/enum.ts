@@ -6,7 +6,11 @@ export const getEnum = (value: string, type: string, enumName: string) => {
 
   const implementation = getEnumImplementation(value, type, enumName);
 
-  enumValue += `\n\nexport const ${enumName} = {\n${implementation}};\n`;
+  enumValue += `\n\n`;
+
+  enumValue += '// eslint-disable-next-line @typescript-eslint/no-redeclare\n';
+
+  enumValue += `export const ${enumName} = {\n${implementation}};\n`;
 
   return enumValue;
 };

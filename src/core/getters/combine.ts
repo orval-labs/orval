@@ -87,7 +87,9 @@ export const combineSchemas = async ({
       })
       .join(',');
 
-    const newEnum = `\n\nexport const ${pascal(name)} = {${enums}}`;
+    const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
+      name,
+    )} = {${enums}}`;
 
     return {
       value: value + newEnum,
