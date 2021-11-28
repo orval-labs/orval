@@ -55,10 +55,6 @@ export const writeSingleMode = async ({
       );
     }
 
-    if (!output.schemas) {
-      data += generateModelsInline(schemas);
-    }
-
     if (mutators) {
       data += generateMutatorImports(mutators);
     }
@@ -69,6 +65,10 @@ export const writeSingleMode = async ({
 
     if (formUrlEncoded) {
       data += generateMutatorImports(formUrlEncoded);
+    }
+
+    if (!output.schemas) {
+      data += generateModelsInline(schemas);
     }
 
     data += `\n\n${implementation}`;
