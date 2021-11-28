@@ -10,6 +10,7 @@ import {
   NormalizedOperationOptions,
   NormalizedOverrideOutput,
   OutputClient,
+  OutputClientFunc,
   Verbs,
 } from './index';
 
@@ -120,11 +121,13 @@ export type GeneratorMutator = {
   path: string;
   default: boolean;
   mutatorFn: Function;
+  hasErrorType: boolean;
 };
 
 export type ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => GeneratorClient;
 
 export type ClientHeaderBuilder = (params: {

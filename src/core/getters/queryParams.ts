@@ -27,18 +27,12 @@ const getQueryParamsTypes = (
         content: ContentObject;
       };
 
-      const {
-        value,
-        imports,
-        isEnum,
-        type,
-        schemas,
-        isRef,
-      } = await resolveValue({
-        schema: (schema || content['application/json'].schema)!,
-        context,
-        name: pascal(operationName) + pascal(name),
-      });
+      const { value, imports, isEnum, type, schemas, isRef } =
+        await resolveValue({
+          schema: (schema || content['application/json'].schema)!,
+          context,
+          name: pascal(operationName) + pascal(name),
+        });
 
       const key = getKey(name);
 

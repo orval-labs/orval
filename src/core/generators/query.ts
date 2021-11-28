@@ -1,7 +1,5 @@
-//@ts-ignore
-const esprima = require('esprima');
 import omitBy from 'lodash.omitby';
-import { Verbs } from '../../types';
+import { OutputClient, OutputClientFunc, Verbs } from '../../types';
 import {
   GeneratorDependency,
   GeneratorMutator,
@@ -31,6 +29,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'axios', default: true, values: true },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
+      { name: 'AxiosError' },
     ],
     dependency: 'axios',
   },
@@ -50,6 +49,9 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'UseQueryStoreResult' },
+      { name: 'UseInfiniteQueryStoreResult' },
+      { name: 'QueryKey' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -69,6 +71,9 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
     ],
     dependency: 'react-query',
   },
@@ -92,6 +97,9 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
     ],
     dependency: 'vue-query/types',
   },
@@ -308,6 +316,7 @@ const generateQueryImplementation = ({
   mutator,
   isRequestOptions,
   response,
+  outputClient,
 }: {
   queryOption: {
     name: string;
@@ -324,6 +333,7 @@ const generateQueryImplementation = ({
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
+  outputClient: OutputClient | OutputClientFunc;
 }) => {
   const isMutatorHook =
     mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
@@ -337,21 +347,36 @@ const generateQueryImplementation = ({
 
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
 
+  const returnType =
+    outputClient !== OutputClient.SVELTE_QUERY
+      ? ` Use${pascal(type)}Result<TData, TError>`
+      : `Use${pascal(type)}StoreResult<AsyncReturnType<${
+          isMutatorHook
+            ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+            : `typeof ${operationName}`
+        }>, TError, TData, QueryKey>`;
+
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
 export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
     isMutatorHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>, TError = ${
-    response.definition.errors || 'unknown'
-  }>(\n ${queryProps} ${generateQueryArguments({
+  }>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments({
     operationName,
     definitions: '',
     mutator,
     isRequestOptions,
     isMutatorHasSecondArg,
     type,
-  })}\n  ) => {
+  })}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
   ${
     isRequestOptions
@@ -422,6 +447,7 @@ const generateQueryHook = (
     operationId,
   }: GeneratorVerbOptions,
   { route, override: { operations = {} } }: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
@@ -481,6 +507,7 @@ const generateQueryHook = (
           mutator,
           isRequestOptions,
           response,
+          outputClient,
         }),
       '',
     )}
@@ -501,10 +528,16 @@ const generateQueryHook = (
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
-    export const ${camel(`use-${operationName}`)} = <TError = ${
-    response.definition.errors || 'unknown'
-  },
+    export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
       operationName,
@@ -586,13 +619,18 @@ export const generateQueryFooter = () => '';
 export const generateQuery = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
   );
-  const hookImplementation = generateQueryHook(verbOptions, options);
+  const hookImplementation = generateQueryHook(
+    verbOptions,
+    options,
+    outputClient,
+  );
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,

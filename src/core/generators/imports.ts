@@ -10,12 +10,12 @@ import { camel } from '../../utils/case';
 
 export const generateImports = ({
   imports = [],
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
 }: {
   imports: GeneratorImport[];
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
 }) => {
@@ -31,7 +31,7 @@ export const generateImports = ({
     .sort()
     .map(({ specKey, name, values, alias }) => {
       if (specKey) {
-        const path = specKey !== rootSpecKey ? specsName[specKey] : '';
+        const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
           return `import ${!values ? 'type ' : ''}{ ${name}${
@@ -61,8 +61,8 @@ export const generateMutatorImports = (
   )
     .map((mutator) => {
       const importDefault = mutator.default
-        ? mutator.name
-        : `{ ${mutator.name} }`;
+        ? `${mutator.name}${mutator.hasErrorType ? ', { ErrorType }' : ''}`
+        : `{ ${mutator.name}${mutator.hasErrorType ? ', ErrorType' : ''} }`;
 
       return `import ${importDefault} from '${oneMore ? '../' : ''}${
         mutator.path
@@ -86,7 +86,9 @@ export const addDependency = ({
   specsName: Record<string, string>;
   hasSchemaDir: boolean;
 }) => {
-  const toAdds = exports.filter((e) => implementation.includes(e.name));
+  const toAdds = exports.filter((e) =>
+    implementation.includes(e.alias || e.name),
+  );
 
   if (!toAdds.length) {
     return undefined;
@@ -111,7 +113,9 @@ export const addDependency = ({
       const defaultDep = deps.find((e) => e.default);
 
       const depsString = uniq(
-        deps.filter((e) => !e.default).map(({ name }) => name),
+        deps
+          .filter((e) => !e.default)
+          .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
       ).join(',\n  ');
 
       return `import ${!values ? 'type ' : ''}${

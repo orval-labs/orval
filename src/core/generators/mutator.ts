@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { readFile } from 'fs-extra';
 import { GeneratorMutator } from '../..';
 import { NormalizedMutator } from '../../types';
 import { getFileInfo, loadFile } from '../../utils/file';
@@ -33,6 +34,12 @@ export const generateMutator = async ({
   const importName = mutator.name ? mutator.name : `${name}Mutator`;
   const importPath = mutator.path;
 
+  const rawFile = await readFile(importPath, 'utf8');
+
+  const hasErrorType =
+    rawFile.includes('export type ErrorType') ||
+    rawFile.includes('export interface ErrorType');
+
   const { file, cached } = await loadFile<Record<string, Function>>(
     importPath,
     {
@@ -59,7 +66,13 @@ export const generateMutator = async ({
 
     const path = getImport(output, mutator);
 
-    return { name: importName, path, default: isDefault, mutatorFn };
+    return {
+      name: importName,
+      path,
+      default: isDefault,
+      mutatorFn,
+      hasErrorType,
+    };
   } else {
     const path = getImport(output, mutator);
 
@@ -76,6 +89,7 @@ export const generateMutator = async ({
       path,
       default: isDefault,
       mutatorFn: () => undefined,
+      hasErrorType,
     };
   }
 };
