@@ -6,6 +6,7 @@ import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
+import { getEnumImplementation } from './enum';
 
 const SEPARATOR = {
   allOf: '&',
@@ -45,10 +46,12 @@ export const combineSchemas = async ({
       }
 
       return {
+        ...acc,
         values: [...acc.values, resolvedValue.value],
         imports: [...acc.imports, ...resolvedValue.imports],
         schemas: [...acc.schemas, ...resolvedValue.schemas],
         isEnum: [...acc.isEnum, resolvedValue.isEnum],
+        types: [...acc.types, resolvedValue.type],
         isRef: [...acc.isRef, resolvedValue.isRef],
       };
     },
@@ -57,34 +60,54 @@ export const combineSchemas = async ({
       imports: [],
       schemas: [],
       isEnum: [], // check if only enums
-      type: 'object',
       isRef: [],
-    } as Omit<ResolverValue, 'isRef' | 'isEnum' | 'value'> & {
+      types: [],
+    } as Omit<ResolverValue, 'isRef' | 'isEnum' | 'value' | 'type'> & {
       values: string[];
       isRef: boolean[];
       isEnum: boolean[];
+      types: string[];
     },
   );
 
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
+  const value = resolvedData.values.join(
+    ` ${!isAllEnums ? SEPARATOR[separator] : '|'} `,
+  );
+
   if (isAllEnums && name) {
-    const enums = resolvedData.value
-      .split(' | ')
-      .map((e) => `...${e}`)
+    const enums = resolvedData.values
+      .map((e, i) => {
+        if (resolvedData.isRef[i]) {
+          return `...${e}`;
+        }
+
+        return getEnumImplementation(e, resolvedData.types[i], pascal(name));
+      })
       .join(',');
 
     const newEnum = `\n\nexport const ${pascal(name)} = {${enums}}`;
+
     return {
-      ...resolvedData,
+      value: value + newEnum,
       imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
         ...toImport,
         values: true,
       })),
-      value: resolvedData.value + newEnum,
+      schemas: resolvedData.schemas,
       isEnum: false,
+      type: 'object',
+      isRef: false,
     };
   }
 
-  return resolvedData;
+  return {
+    value,
+    imports: resolvedData.imports,
+    schemas: resolvedData.schemas,
+    isEnum: isAllEnums,
+    type: 'object',
+    isRef: false,
+  };
 };
