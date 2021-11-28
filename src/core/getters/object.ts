@@ -83,12 +83,23 @@ export const getObject = async ({
         const isRequired = (
           Array.isArray(item.required) ? item.required : []
         ).includes(key);
-        const propName = name ? pascal(name) + pascal(key) : undefined;
+        let propName = name ? pascal(name) + pascal(key) : undefined;
+
+        const isNameAlreadyTaken =
+          !!context.specs[context.target]?.components?.schemas?.[
+            propName || ''
+          ];
+
+        if (isNameAlreadyTaken) {
+          propName = propName + 'Property';
+        }
+
         const resolvedValue = await resolveObject({
           schema,
           propName,
           context,
         });
+
         const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
         if (!index) {
           acc.value += '{';
