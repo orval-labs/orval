@@ -37,6 +37,31 @@ export default defineConfig({
       },
     },
   },
+  errorType: {
+    output: {
+      target: '../generated/react-query/error-type/endpoints.ts',
+      schemas: '../generated/react-query/error-type/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/error-type.ts',
+          name: 'customInstance',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
   hookMutator: {
     output: {
       target: '../generated/react-query/hook-mutator/endpoints.ts',

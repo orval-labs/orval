@@ -10,7 +10,7 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 
   // @ts-ignore
   promise.cancel = () => {
-    source.cancel('Query was cancelled by Vue Query');
+    source.cancel('Query was cancelled by React Query');
   };
 
   return promise;
@@ -18,4 +18,4 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 
 export default customInstance;
 
-export interface ErrorType<Error> extends AxiosError<Error> {}
+export type ErrorType<Error> = AxiosError<Error>;

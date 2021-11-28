@@ -61,8 +61,8 @@ export const generateMutatorImports = (
   )
     .map((mutator) => {
       const importDefault = mutator.default
-        ? mutator.name
-        : `{ ${mutator.name} }`;
+        ? `${mutator.name}${mutator.hasErrorType ? ', { ErrorType }' : ''}`
+        : `{ ${mutator.name}${mutator.hasErrorType ? ', ErrorType' : ''} }`;
 
       return `import ${importDefault} from '${oneMore ? '../' : ''}${
         mutator.path

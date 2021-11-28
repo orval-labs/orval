@@ -121,6 +121,7 @@ export type GeneratorMutator = {
   path: string;
   default: boolean;
   mutatorFn: Function;
+  hasErrorType: boolean;
 };
 
 export type ClientBuilder = (

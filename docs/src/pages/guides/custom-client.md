@@ -48,4 +48,7 @@ export const customInstance = async <T>({
 };
 
 export default customInstance;
+
+// In some case with react-query and swr you want to be able to override the return error type so you can also do it here like this
+export type ErrorType<Error> = AxiosError<Error>;
 ```

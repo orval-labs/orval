@@ -29,6 +29,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'axios', default: true, values: true },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
+      { name: 'AxiosError' },
     ],
     dependency: 'axios',
   },
@@ -355,14 +356,20 @@ const generateQueryImplementation = ({
             : `typeof ${operationName}`
         }>, TError, TData, QueryKey>`;
 
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
 export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
     isMutatorHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>, TError = ${
-    response.definition.errors || 'unknown'
-  }>(\n ${queryProps} ${generateQueryArguments({
+  }>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments({
     operationName,
     definitions: '',
     mutator,
@@ -521,10 +528,16 @@ const generateQueryHook = (
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
-    export const ${camel(`use-${operationName}`)} = <TError = ${
-    response.definition.errors || 'unknown'
-  },
+    export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
       operationName,

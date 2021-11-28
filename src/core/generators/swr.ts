@@ -27,6 +27,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'axios', default: true, values: true },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
+      { name: 'AxiosError' },
     ],
     dependency: 'axios',
   },
@@ -185,10 +186,18 @@ const generateSwrImplementation = ({
   const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${properties}) : null);`
     : `const swrKey = swrOptions?.swrKey ?? (() => ${swrKeyFnName}(${properties}))`;
 
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
-export const ${camel(`use-${operationName}`)} = <TError = ${
-    response.definition.errors || 'unknown'
-  }>(\n ${swrProps} ${generateSwrArguments({
+export const ${camel(
+    `use-${operationName}`,
+  )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
     operationName,
     mutator,
     isRequestOptions,

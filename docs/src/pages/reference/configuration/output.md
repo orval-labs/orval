@@ -362,6 +362,9 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 
   return promise;
 };
+
+// In some case with react-query and swr you want to be able to override the return error type so you can also do it here like this
+export type ErrorType<Error> = AxiosError<Error>;
 ```
 
 - If your file have some alias you will also need to define them in the mutator object.
@@ -389,6 +392,8 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 
   return promise;
 };
+
+export type ErrorType<Error> = AxiosError<Error>;
 ```
 
 ```js
@@ -462,6 +467,8 @@ export const useCustomInstance = <T>(): ((
 };
 
 export default useCustomInstance;
+
+export type ErrorType<Error> = AxiosError<Error>;
 ```
 
 #### header
