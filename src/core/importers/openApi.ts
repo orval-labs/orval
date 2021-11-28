@@ -70,33 +70,23 @@ export const importOpenApi = async ({
         tslint: output.tslint,
       };
 
-      if (!spec.openapi) {
-        const schemaObject = omit(spec, [
-          'openapi',
-          'info',
-          'servers',
-          'paths',
-          'components',
-          'security',
-          'tags',
-          'externalDocs',
-        ]);
-
-        // First version to try to handle non-openapi files
-        const schemaDefinition = await generateSchemasDefinition(
-          { ...schemaObject, ...(spec.components?.schemas || {}) },
-          context,
-          output.override.components.schemas.suffix,
-        );
-
-        return {
-          ...acc,
-          [specKey]: schemaDefinition,
-        };
-      }
-
+      // First version to try to handle non-openapi files
       const schemaDefinition = await generateSchemasDefinition(
-        spec.components?.schemas,
+        !spec.openapi
+          ? {
+              ...omit(spec, [
+                'openapi',
+                'info',
+                'servers',
+                'paths',
+                'components',
+                'security',
+                'tags',
+                'externalDocs',
+              ]),
+              ...(spec.components?.schemas || {}),
+            }
+          : spec.components?.schemas,
         context,
         output.override.components.schemas.suffix,
       );
