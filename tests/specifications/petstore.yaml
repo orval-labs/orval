@@ -29,7 +29,7 @@ paths:
               schema:
                 type: string
           content:
-            application/json:
+            application/hal+json:
               schema:
                 $ref: '#/components/schemas/Pets'
         default:
@@ -103,6 +103,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /health:
+    get:
+      summary: health check
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: A paged array of pets
+          content:
+            text/plain:
+              schema:
+                type: string
         default:
           description: unexpected error
           content:
