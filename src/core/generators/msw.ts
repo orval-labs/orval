@@ -92,9 +92,9 @@ export const generateMSW = async (
     value = definitions[0];
   }
 
-  const responseType = response.contentTypes.includes('application/json')
-    ? 'json'
-    : 'text';
+  const responseType = response.contentTypes.includes('text/plain')
+    ? 'text'
+    : 'json';
 
   return {
     implementation: {
