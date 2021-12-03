@@ -42,6 +42,7 @@ export type NormalizedOutputOptions = {
   client: OutputClient | OutputClientFunc;
   clean: boolean | string[];
   prettier: boolean;
+  tslint: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -58,6 +59,7 @@ export type NormalizedOverrideOutput = {
   };
   header: false | ((info: InfoObject) => string[]);
   formData: boolean | NormalizedMutator;
+  formUrlEncoded: boolean | NormalizedMutator;
   components: {
     schemas: {
       suffix: string;
@@ -86,6 +88,7 @@ export type NormalizedMutator = {
   path: string;
   name?: string;
   default: boolean;
+  alias?: Record<string, string>;
 };
 
 export type NormalizedOperationOptions = {
@@ -102,6 +105,7 @@ export type NormalizedOperationOptions = {
     verb: Verbs,
   ) => string;
   formData: boolean | NormalizedMutator;
+  formUrlEncoded: boolean | NormalizedMutator;
   requestOptions: object | boolean;
 };
 export type NormalizedInputOptions = {
@@ -126,6 +130,7 @@ export type OutputOptions = {
   client?: OutputClient | OutputClientFunc;
   clean?: boolean | string[];
   prettier?: boolean;
+  tslint?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -183,8 +188,9 @@ type OutputTransformer = string | OutputTransformerFn;
 
 export type MutatorObject = {
   path: string;
-  name: string;
+  name?: string;
   default?: boolean;
+  alias?: Record<string, string>;
 };
 
 export type Mutator = string | MutatorObject;
@@ -203,6 +209,7 @@ export type OverrideOutput = {
   };
   header?: boolean | ((info: InfoObject) => string[]);
   formData?: boolean | Mutator;
+  formUrlEncoded?: boolean | Mutator;
   components?: {
     schemas?: {
       suffix?: string;
@@ -238,7 +245,7 @@ export type AngularOptions = {
   provideInRoot?: boolean;
 };
 
-type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
 
 type InputTransformer = string | InputTransformerFn;
 
@@ -260,6 +267,7 @@ export type OperationOptions = {
     verb: Verbs,
   ) => string;
   formData?: boolean | Mutator;
+  formUrlEncoded?: boolean | Mutator;
   requestOptions?: object | boolean;
 };
 
@@ -278,13 +286,15 @@ export type ImportOpenApi = {
   data: Record<string, OpenAPIObject>;
   input: InputOptions;
   output: NormalizedOutputOptions;
-  path: string;
+  target: string;
   workspace: string;
 };
 
 export interface ContextSpecs {
   specKey: string;
+  target: string;
   workspace: string;
+  tslint: boolean;
   specs: Record<string, OpenAPIObject>;
   override: NormalizedOverrideOutput;
 }
@@ -294,6 +304,7 @@ export interface GlobalOptions {
   watch?: boolean | string | (string | boolean)[];
   clean?: boolean | string[];
   prettier?: boolean;
+  tslint?: boolean;
   mock?: boolean;
   client?: OutputClient;
   mode?: OutputMode;

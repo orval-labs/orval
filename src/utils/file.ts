@@ -1,9 +1,10 @@
 import chalk from 'chalk';
-import { build } from 'esbuild';
+import { build, PluginBuild } from 'esbuild';
 import fs from 'fs';
 import glob from 'globby';
+import mm from 'micromatch';
 import path from 'path';
-import { basename, dirname, join, normalizeSafe } from 'upath';
+import { basename, dirname, join, normalizeSafe, resolve } from 'upath';
 import { createDebugger } from './debug';
 import { isDirectory } from './is';
 import { createLogger, LogLevel } from './messages/logs';
@@ -36,6 +37,8 @@ export const getFileInfo = (
 
 const debug = createDebugger('orval:file-load');
 
+const cache = new Map<string, { file?: any; error?: any }>();
+
 export async function loadFile<File = unknown>(
   filePath?: string,
   options?: {
@@ -43,24 +46,26 @@ export async function loadFile<File = unknown>(
     defaultFileName?: string;
     logLevel?: LogLevel;
     isDefault?: boolean;
+    alias?: Record<string, string>;
   },
 ): Promise<{
   path: string;
-  file: File;
-  dependencies: string[];
+  file?: File;
+  error?: any;
+  cached?: boolean;
 }> {
   const {
     root = process.cwd(),
     isDefault = true,
     defaultFileName,
     logLevel,
+    alias,
   } = options || {};
   const start = Date.now();
 
   let resolvedPath: string | undefined;
   let isTS = false;
   let isMjs = false;
-  let dependencies: string[] = [];
 
   if (filePath) {
     // explicit path is always resolved from cwd
@@ -104,6 +109,17 @@ export async function loadFile<File = unknown>(
     process.exit(1);
   }
 
+  const normalizeResolvedPath = normalizeSafe(resolvedPath);
+  const cachedData = cache.get(resolvedPath);
+
+  if (cachedData) {
+    return {
+      path: normalizeResolvedPath,
+      ...cachedData,
+      cached: true,
+    };
+  }
+
   try {
     let file: File | undefined;
 
@@ -112,7 +128,9 @@ export async function loadFile<File = unknown>(
       try {
         // clear cache in case of server restart
         delete require.cache[require.resolve(resolvedPath)];
+
         file = require(resolvedPath);
+
         debug(`cjs loaded in ${Date.now() - start}ms`);
       } catch (e) {
         const ignored = new RegExp(
@@ -136,27 +154,38 @@ export async function loadFile<File = unknown>(
       // the user has type: "module" in their package.json (#917)
       // transpile es import syntax to require syntax using rollup.
       // lazy require rollup (it's actually in dependencies)
-      const { code } = await bundleFile(resolvedPath, isMjs);
+      const { code } = await bundleFile(
+        resolvedPath,
+        isMjs,
+        root || dirname(normalizeResolvedPath),
+        alias,
+      );
       file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
+
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
 
+    cache.set(resolvedPath, { file });
+
     return {
-      path: normalizeSafe(resolvedPath),
+      path: normalizeResolvedPath,
       file,
-      dependencies,
     };
-  } catch (e) {
-    createLogger(logLevel).error(
-      chalk.red(`failed to load from ${resolvedPath}`),
-    );
-    throw e;
+  } catch (error: any) {
+    cache.set(resolvedPath, { error });
+
+    return {
+      path: normalizeResolvedPath,
+      error,
+    };
   }
 }
 
 async function bundleFile(
   fileName: string,
   mjs = false,
+  workspace: string,
+  alias?: Record<string, string>,
 ): Promise<{ code: string; dependencies: string[] }> {
   const result = await build({
     absWorkingDir: process.cwd(),
@@ -171,6 +200,37 @@ async function bundleFile(
     target: 'es6',
     minifyWhitespace: true,
     plugins: [
+      ...(alias
+        ? [
+            {
+              name: 'aliasing',
+              setup(build: PluginBuild) {
+                build.onResolve(
+                  { filter: /^[\w@][^:]/ },
+                  async ({ path: id, importer, kind }) => {
+                    const matchKeys = Object.keys(alias);
+                    const match = matchKeys.find(
+                      (key) => id.startsWith(key) || mm.isMatch(id, matchKeys),
+                    );
+
+                    if (match) {
+                      const find = mm.scan(match);
+                      const replacement = mm.scan(alias[match]);
+                      const aliased = `${id.replace(
+                        find.base,
+                        resolve(workspace, replacement.base),
+                      )}.ts`;
+
+                      return {
+                        path: aliased,
+                      };
+                    }
+                  },
+                );
+              },
+            },
+          ]
+        : []),
       {
         name: 'externalize-deps',
         setup(build) {

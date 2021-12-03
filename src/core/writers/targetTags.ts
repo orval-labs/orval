@@ -32,6 +32,7 @@ const generateTargetTags = (
           importsMSW: operation.importsMSW,
           mutators: operation.mutator ? [operation.mutator] : [],
           formData: operation.formData ? [operation.formData] : [],
+          formUrlEncoded: operation.formUrlEncoded ? [operation.formUrlEncoded] : [],
           implementation: operation.implementation,
           implementationMSW: {
             function: operation.implementationMSW.function,
@@ -62,6 +63,12 @@ const generateTargetTags = (
         formData: operation.formData
           ? [...(currentOperation.formData || []), operation.formData]
           : currentOperation.formData,
+        formUrlEncoded: operation.formUrlEncoded
+          ? [
+              ...(currentOperation.formUrlEncoded || []),
+              operation.formUrlEncoded,
+            ]
+          : currentOperation.formUrlEncoded,
       },
     };
   }, currentAcc);
@@ -114,6 +121,7 @@ export const generateTargetForTags = (
               importsMSW: target.importsMSW,
               mutators: target.mutators,
               formData: target.formData,
+              formUrlEncoded: target.formUrlEncoded,
             },
           };
         }, {});

@@ -29,6 +29,7 @@ export const getArray = async ({
       schemas: resolvedObject.schemas,
       isEnum: false,
       type: 'array',
+      isRef: false,
     };
   } else {
     throw new Error('All arrays must have an `items` key define');

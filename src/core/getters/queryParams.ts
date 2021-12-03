@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts';
+import { ContentObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterParameters } from '../../types/getters';
@@ -20,24 +20,19 @@ const getQueryParamsTypes = (
 ): Promise<QueryParamsType[]> => {
   return Promise.all(
     queryParams.map(async ({ parameter, imports: parameterImports }) => {
-      const { name, required, schema } = parameter as {
+      const { name, required, schema, content } = parameter as {
         name: string;
         required: boolean;
         schema: SchemaObject;
+        content: ContentObject;
       };
 
-      const {
-        value,
-        imports,
-        isEnum,
-        type,
-        schemas,
-        isRef,
-      } = await resolveValue({
-        schema: schema!,
-        context,
-        name: pascal(operationName) + pascal(name),
-      });
+      const { value, imports, isEnum, type, schemas, isRef } =
+        await resolveValue({
+          schema: (schema || content['application/json'].schema)!,
+          context,
+          name: pascal(operationName) + pascal(name),
+        });
 
       const key = getKey(name);
 

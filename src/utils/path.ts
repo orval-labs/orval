@@ -21,9 +21,9 @@ export const relativeSafe = (from: string, to: string) => {
   return relativePath;
 };
 
-export const getSpecName = (specKey: string, rootSpecKey: string) => {
+export const getSpecName = (specKey: string, target: string) => {
   if (isUrl(specKey)) {
-    const url = new URL(rootSpecKey);
+    const url = new URL(target);
     return specKey
       .replace(url.origin, '')
       .replace(getFileInfo(url.pathname).dirname, '')
@@ -32,7 +32,7 @@ export const getSpecName = (specKey: string, rootSpecKey: string) => {
 
   return (
     '/' +
-    normalize(normalizedRelative(getFileInfo(rootSpecKey).dirname, specKey))
+    normalize(normalizedRelative(getFileInfo(target).dirname, specKey))
       .split('../')
       .join('')
       .replace(`.${getExtension(specKey)}`, '')

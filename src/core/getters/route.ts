@@ -17,8 +17,8 @@ const getRoutePath = (path: string) => {
 export const getRoute = (route: string) => {
   const splittedRoute = route.split('/');
 
-  return splittedRoute.reduce((acc, path) => {
-    if (!path) {
+  return splittedRoute.reduce((acc, path, i) => {
+    if (!path && !i) {
       return acc;
     }
 

@@ -10,6 +10,7 @@ import {
   NormalizedOperationOptions,
   NormalizedOverrideOutput,
   OutputClient,
+  OutputClientFunc,
   Verbs,
 } from './index';
 
@@ -49,6 +50,7 @@ export type GeneratorTarget = {
   importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
+  formUrlEncoded?: GeneratorMutator[];
 };
 
 export type GeneratorTargetFull = {
@@ -61,6 +63,7 @@ export type GeneratorTargetFull = {
   importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
+  formUrlEncoded?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
@@ -71,6 +74,7 @@ export type GeneratorOperation = {
   tags: string[];
   mutator?: GeneratorMutator;
   formData?: GeneratorMutator;
+  formUrlEncoded?: GeneratorMutator;
   operationName: string;
 };
 
@@ -88,6 +92,7 @@ export type GeneratorVerbOptions = {
   props: GetterProps;
   mutator?: GeneratorMutator;
   formData?: GeneratorMutator;
+  formUrlEncoded?: GeneratorMutator;
   override: NormalizedOperationOptions;
 };
 
@@ -116,11 +121,13 @@ export type GeneratorMutator = {
   path: string;
   default: boolean;
   mutatorFn: Function;
+  hasErrorType: boolean;
 };
 
 export type ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => GeneratorClient;
 
 export type ClientHeaderBuilder = (params: {

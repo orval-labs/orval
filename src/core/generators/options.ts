@@ -1,6 +1,6 @@
 import { VERBS_WITH_BODY } from '../../constants';
 import { Verbs } from '../../types';
-import { GeneratorSchema } from '../../types/generator';
+import { GeneratorMutator, GeneratorSchema } from '../../types/generator';
 import {
   GetterBody,
   GetterQueryParam,
@@ -13,6 +13,7 @@ export const generateBodyOptions = (
   body: GetterBody,
   verb: Verbs,
   isFormData: boolean,
+  isFormUrlEncoded: boolean,
 ) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
@@ -20,6 +21,10 @@ export const generateBodyOptions = (
 
   if (isFormData && body.formData) {
     return '\n      formData,';
+  }
+
+  if (isFormUrlEncoded && body.formUrlEncoded) {
+    return '\n      formUrlEncoded,';
   }
 
   return `\n      ${body.implementation || 'undefined'},`;
@@ -35,7 +40,7 @@ export const generateAxiosOptions = (
     return isRequestOptions ? 'options' : '';
   }
 
-  let value = '\n      {';
+  let value = '';
 
   if (queryParams) {
     value += '\n        params,';
@@ -57,8 +62,6 @@ export const generateAxiosOptions = (
     value += '\n    ...options';
   }
 
-  value += ' },';
-
   return value;
 };
 
@@ -70,6 +73,7 @@ export const generateOptions = ({
   verb,
   requestOptions,
   isFormData,
+  isFormUrlEncoded,
 }: {
   route: string;
   body: GetterBody;
@@ -78,22 +82,37 @@ export const generateOptions = ({
   verb: Verbs;
   requestOptions?: object | boolean;
   isFormData: boolean;
+  isFormUrlEncoded: boolean;
 }) => {
-  return `\n      \`${route}\`,${generateBodyOptions(
+  const bodyOptions = generateBodyOptions(
     body,
     verb,
     isFormData,
-  )}${generateAxiosOptions(
+    isFormUrlEncoded,
+  );
+
+  const axiosOptions = generateAxiosOptions(
     response,
     queryParams?.schema,
     requestOptions,
-  )}\n    `;
+  );
+
+  if (verb === Verbs.DELETE) {
+    return `\n      \`${route}\`,{data:${bodyOptions} ${
+      axiosOptions === 'options' ? `...${axiosOptions}` : axiosOptions
+    }}\n    `;
+  }
+
+  return `\n      \`${route}\`,${bodyOptions}${
+    axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`
+  }\n    `;
 };
 
 export const generateBodyMutatorConfig = (
   body: GetterBody,
   verb: Verbs,
   isFormData: boolean,
+  isFormUrlEncoded: boolean,
 ) => {
   if (!VERBS_WITH_BODY.includes(verb)) {
     return '';
@@ -101,6 +120,10 @@ export const generateBodyMutatorConfig = (
 
   if (isFormData && body.formData) {
     return ',\n       data: formData';
+  }
+
+  if (isFormUrlEncoded && body.formUrlEncoded) {
+    return ',\n       data: formUrlEncoded';
   }
 
   return `,\n      data: ${body.implementation || 'undefined'}`;
@@ -134,6 +157,7 @@ export const generateMutatorConfig = ({
   response,
   verb,
   isFormData,
+  isFormUrlEncoded,
 }: {
   route: string;
   body: GetterBody;
@@ -141,11 +165,13 @@ export const generateMutatorConfig = ({
   response: GetterResponse;
   verb: Verbs;
   isFormData: boolean;
+  isFormUrlEncoded: boolean;
 }) => {
   return `{url: \`${route}\`, method: '${verb}'${generateBodyMutatorConfig(
     body,
     verb,
     isFormData,
+    isFormUrlEncoded,
   )}${generateQueryParamsAxiosConfig(response, queryParams?.schema)}\n    }`;
 };
 
@@ -164,4 +190,36 @@ export const generateMutatorRequestOptions = (
   }
 
   return 'options';
+};
+
+export const generateFormDataAndUrlEncodedFunction = ({
+  body,
+  formData,
+  formUrlEncoded,
+  isFormData,
+  isFormUrlEncoded,
+}: {
+  body: GetterBody;
+  formData?: GeneratorMutator;
+  formUrlEncoded?: GeneratorMutator;
+  isFormData: boolean;
+  isFormUrlEncoded: boolean;
+}) => {
+  if (isFormData && body.formData) {
+    if (formData) {
+      return `const formData = ${formData.name}(${body.implementation})`;
+    }
+
+    return body.formData;
+  }
+
+  if (isFormUrlEncoded && body.formUrlEncoded) {
+    if (formUrlEncoded) {
+      return `const formUrlEncoded = ${formUrlEncoded.name}(${body.implementation})`;
+    }
+
+    return body.formUrlEncoded;
+  }
+
+  return '';
 };

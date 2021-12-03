@@ -92,16 +92,9 @@ export const generateMSW = async (
     value = definitions[0];
   }
 
-  const responseType =
-    value[0] === '{' ||
-    value[0] === '[' ||
-    value.startsWith('(function() {') ||
-    value.startsWith('(()=>({') ||
-    value.startsWith('()=>(()=>[') ||
-    value.startsWith('faker.helpers') ||
-    value.startsWith('Array.from')
-      ? 'json'
-      : 'text';
+  const responseType = response.contentTypes.includes('text/plain')
+    ? 'text'
+    : 'json';
 
   return {
     implementation: {

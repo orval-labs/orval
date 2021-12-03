@@ -1,5 +1,5 @@
 import omitBy from 'lodash.omitby';
-import { Verbs } from '../../types';
+import { OutputClient, OutputClientFunc, Verbs } from '../../types';
 import {
   GeneratorDependency,
   GeneratorMutator,
@@ -7,7 +7,6 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import {
-  GetterBody,
   GetterParams,
   GetterProps,
   GetterPropType,
@@ -18,6 +17,7 @@ import { isObject } from '../../utils/is';
 import { stringify, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import {
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
@@ -34,6 +34,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     exports: [
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
+      { name: 'AxiosError' },
     ],
     dependency: 'axios',
   },
@@ -53,6 +54,9 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'UseQueryStoreResult' },
+      { name: 'UseInfiniteQueryStoreResult' },
+      { name: 'QueryKey' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -72,6 +76,9 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
     ],
     dependency: 'react-query',
   },
@@ -95,32 +102,15 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
     ],
     dependency: 'vue-query/types',
   },
 ];
 
 export const getVueQueryDependencies = () => VUE_QUERY_DEPENDENCIES;
-
-const generateQueryFormDataFunction = ({
-  isFormData,
-  formData,
-  body,
-}: {
-  body: GetterBody;
-  formData: GeneratorMutator | undefined;
-  isFormData: boolean;
-}) => {
-  if (!isFormData) {
-    return '';
-  }
-
-  if (formData && body.formData) {
-    return `const formData = ${formData.name}(${body.implementation})`;
-  }
-
-  return body.formData;
-};
 
 const generateQueryRequestFunction = (
   {
@@ -132,17 +122,21 @@ const generateQueryRequestFunction = (
     props,
     verb,
     formData,
+    formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+  const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
-  const formDataImplementation = generateQueryFormDataFunction({
-    isFormData,
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
+    formUrlEncoded,
     body,
+    isFormData,
+    isFormUrlEncoded,
   });
 
   if (mutator) {
@@ -153,6 +147,7 @@ const generateQueryRequestFunction = (
       response,
       verb,
       isFormData,
+      isFormUrlEncoded,
     });
 
     const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
@@ -163,6 +158,26 @@ const generateQueryRequestFunction = (
         )
       : '';
 
+    const isMutatorHook =
+      mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
+
+    if (isMutatorHook) {
+      return `export const use${pascal(operationName)}Hook = () => {${bodyForm}
+        const ${operationName} = ${mutator.name}<${
+        response.definition.success || 'unknown'
+      }>();
+
+        return (\n    ${toObjectString(props, 'implementation')}\n ${
+        isRequestOptions && isMutatorHasSecondArg
+          ? `options?: SecondParameter<typeof ${mutator.name}>`
+          : ''
+      }) => ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions})
+      }
+    `;
+    }
+
     return `export const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
@@ -170,7 +185,7 @@ const generateQueryRequestFunction = (
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${formDataImplementation}
+    }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -186,6 +201,7 @@ const generateQueryRequestFunction = (
     verb,
     requestOptions: override?.requestOptions,
     isFormData,
+    isFormUrlEncoded,
   });
 
   return `export const ${operationName} = (\n    ${toObjectString(
@@ -195,7 +211,7 @@ const generateQueryRequestFunction = (
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
-  }>> => {${formDataImplementation}
+  }>> => {${bodyForm}
     return axios.default.${verb}(${options});
   }
 `;
@@ -267,13 +283,19 @@ const generateQueryArguments = ({
   type?: QueryType;
   isMutatorHasSecondArg: boolean;
 }) => {
+  const isMutatorHook =
+    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const definition = type
-    ? `Use${pascal(
-        type,
-      )}Options<AsyncReturnType<typeof ${operationName}>, TError, TData>`
-    : `UseMutationOptions<AsyncReturnType<typeof ${operationName}>, TError,${
-        definitions ? `{${definitions}}` : 'TVariables'
-      }, TContext>`;
+    ? `Use${pascal(type)}Options<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, TError, TData>`
+    : `UseMutationOptions<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, TError,${definitions ? `{${definitions}}` : 'TVariables'}, TContext>`;
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
@@ -299,6 +321,7 @@ const generateQueryImplementation = ({
   mutator,
   isRequestOptions,
   response,
+  outputClient,
 }: {
   queryOption: {
     name: string;
@@ -315,7 +338,10 @@ const generateQueryImplementation = ({
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
+  outputClient: OutputClient | OutputClientFunc;
 }) => {
+  const isMutatorHook =
+    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
@@ -326,19 +352,36 @@ const generateQueryImplementation = ({
 
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
 
+  const returnType =
+    outputClient !== OutputClient.SVELTE_QUERY
+      ? ` Use${pascal(type)}Result<TData, TError>`
+      : `Use${pascal(type)}StoreResult<AsyncReturnType<${
+          isMutatorHook
+            ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+            : `typeof ${operationName}`
+        }>, TError, TData, QueryKey>`;
+
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
-export const ${camel(
-    `use-${name}`,
-  )} = <TData = AsyncReturnType<typeof ${operationName}>, TError = ${
-    response.definition.errors || 'unknown'
-  }>(\n ${queryProps} ${generateQueryArguments({
+export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
+    isMutatorHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`
+  }>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments({
     operationName,
     definitions: '',
     mutator,
     isRequestOptions,
     isMutatorHasSecondArg,
     type,
-  })}\n  ) => {
+  })}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
   ${
     isRequestOptions
@@ -353,7 +396,18 @@ export const ${camel(
   }
 
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
-  const queryFn: QueryFunction<AsyncReturnType<typeof ${operationName}>> = (${
+
+  ${
+    isMutatorHook
+      ? `const ${operationName} =  use${pascal(operationName)}Hook()`
+      : ''
+  }
+
+  const queryFn: QueryFunction<AsyncReturnType<${
+    isMutatorHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`
+  }>> = (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ pageParam }`
       : ''
@@ -367,15 +421,15 @@ export const ${camel(
       : ''
   });
 
-  const query = ${camel(
-    `use-${type}`,
-  )}<AsyncReturnType<typeof ${operationName}>, TError, TData>(queryKey, queryFn, ${generateQueryOptions(
-    {
-      params,
-      options,
-      type,
-    },
-  )})
+  const query = ${camel(`use-${type}`)}<AsyncReturnType<${
+    isMutatorHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`
+  }>, TError, TData>(queryKey, queryFn, ${generateQueryOptions({
+    params,
+    options,
+    type,
+  })})
 
   return {
     queryKey,
@@ -398,6 +452,7 @@ const generateQueryHook = (
     operationId,
   }: GeneratorVerbOptions,
   { route, override: { operations = {} } }: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
@@ -457,6 +512,7 @@ const generateQueryHook = (
           mutator,
           isRequestOptions,
           response,
+          outputClient,
         }),
       '',
     )}
@@ -469,16 +525,24 @@ const generateQueryHook = (
     )
     .join(';');
 
+  const isMutatorHook =
+    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
 
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
 
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
-    export const ${camel(`use-${operationName}`)} = <TError = ${
-    response.definition.errors || 'unknown'
-  },
+    export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
       operationName,
@@ -499,9 +563,20 @@ const generateQueryHook = (
           : ''
       }
 
-      const mutationFn: MutationFunction<AsyncReturnType<typeof ${operationName}>, ${
-    definitions ? `{${definitions}}` : 'TVariables'
-  }> = (${properties ? 'props' : ''}) => {
+      ${
+        isMutatorHook
+          ? `const ${operationName} =  use${pascal(operationName)}Hook()`
+          : ''
+      }
+
+
+      const mutationFn: MutationFunction<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, ${definitions ? `{${definitions}}` : 'TVariables'}> = (${
+    properties ? 'props' : ''
+  }) => {
           ${properties ? `const {${properties}} = props || {}` : ''};
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
@@ -549,13 +624,18 @@ export const generateQueryFooter = () => '';
 export const generateQuery = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
   );
-  const hookImplementation = generateQueryHook(verbOptions, options);
+  const hookImplementation = generateQueryHook(
+    verbOptions,
+    options,
+    outputClient,
+  );
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,

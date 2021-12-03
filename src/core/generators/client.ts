@@ -231,7 +231,7 @@ export const generateClient = (
     verbsOptions,
     async (acc, verbOption) => {
       const { client: generatorClient } = getGeneratorClient(outputClient);
-      const client = generatorClient(verbOption, options);
+      const client = generatorClient(verbOption, options, outputClient);
       const msw = await generateMock(verbOption, options);
 
       return {
@@ -244,6 +244,7 @@ export const generateClient = (
           tags: verbOption.tags,
           mutator: verbOption.mutator,
           formData: verbOption.formData,
+          formUrlEncoded: verbOption.formUrlEncoded,
           operationName: verbOption.operationName,
         },
       };

@@ -29,6 +29,7 @@ export const writeSingleMode = async ({
       implementationMSW,
       mutators,
       formData,
+      formUrlEncoded,
     } = generateTarget(operations, info, output);
 
     let data = header;
@@ -54,16 +55,20 @@ export const writeSingleMode = async ({
       );
     }
 
-    if (!output.schemas) {
-      data += generateModelsInline(schemas);
-    }
-
     if (mutators) {
       data += generateMutatorImports(mutators);
     }
 
     if (formData) {
       data += generateMutatorImports(formData);
+    }
+
+    if (formUrlEncoded) {
+      data += generateMutatorImports(formUrlEncoded);
+    }
+
+    if (!output.schemas) {
+      data += generateModelsInline(schemas);
     }
 
     data += `\n\n${implementation}`;

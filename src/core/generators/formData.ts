@@ -5,10 +5,11 @@ import { camel } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { resolveRef } from '../resolvers/ref';
 
-export const generateSchemaFormData = async (
+export const generateSchemaFormDataAndUrlEncoded = async (
   name: string,
   schemaObject: SchemaObject | ReferenceObject,
   context: ContextSpecs,
+  isUrlEncoded?: boolean,
 ) => {
   const { schema, imports } = await resolveRef<SchemaObject>(
     schemaObject,
@@ -16,7 +17,10 @@ export const generateSchemaFormData = async (
   );
   const propName = isReference(schemaObject) ? imports[0].name : name;
 
-  const formData = 'const formData = new FormData();\n';
+  const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
+  const form = isUrlEncoded
+    ? `const ${variableName} = new URLSearchParams();\n`
+    : `const ${variableName} = new FormData();\n`;
 
   if (schema.type === 'object' && schema.properties) {
     const formDataValues = await asyncReduce(
@@ -30,7 +34,7 @@ export const generateSchemaFormData = async (
         let formDataValue = '';
 
         if (property.type === 'object' || property.type === 'array') {
-          formDataValue = `formData.append('${key}', JSON.stringify(${camel(
+          formDataValue = `${variableName}.append('${key}', JSON.stringify(${camel(
             propName,
           )}${key.includes('-') ? `['${key}']` : `.${key}`}))\n`;
         } else if (
@@ -38,11 +42,11 @@ export const generateSchemaFormData = async (
           property.type === 'integer' ||
           property.type === 'boolean'
         ) {
-          formDataValue = `formData.append('${key}', ${camel(propName)}${
+          formDataValue = `${variableName}.append('${key}', ${camel(propName)}${
             key.includes('-') ? `['${key}']` : `.${key}`
           }.toString())\n`;
         } else {
-          formDataValue = `formData.append('${key}', ${camel(propName)}${
+          formDataValue = `${variableName}.append('${key}', ${camel(propName)}${
             key.includes('-') ? `['${key}']` : `.${key}`
           })\n`;
         }
@@ -61,20 +65,20 @@ export const generateSchemaFormData = async (
       '',
     );
 
-    return `${formData}${formDataValues}`;
+    return `${form}${formDataValues}`;
   }
 
   if (schema.type === 'array') {
-    return `${formData}formData.append('data', JSON.stringify(${camel(
+    return `${form}${variableName}.append('data', JSON.stringify(${camel(
       propName,
     )}))\n`;
   }
 
   if (schema.type === 'number' || schema.type === 'boolean') {
-    return `${formData}formData.append('data', ${camel(
+    return `${form}${variableName}.append('data', ${camel(
       propName,
     )}.toString())\n`;
   }
 
-  return `${formData}formData.append('data', ${camel(propName)})\n`;
+  return `${form}${variableName}.append('data', ${camel(propName)})\n`;
 };

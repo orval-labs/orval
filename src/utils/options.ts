@@ -60,7 +60,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, mode, mock } = globalOptions;
+  const { clean, prettier, client, mode, mock, tslint } = globalOptions;
 
   const normalizedOptions: NormalizedOptions = {
     input: {
@@ -87,6 +87,7 @@ export const normalizeOptions = async (
       mock: outputOptions.mock ?? mock ?? false,
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
+      tslint: outputOptions.tslint ?? tslint ?? false,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
@@ -108,7 +109,13 @@ export const normalizeOptions = async (
                 outputOptions.override?.formData,
               )
             : outputOptions.override?.formData) ?? true,
-
+        formUrlEncoded:
+          (!isBoolean(outputOptions.override?.formUrlEncoded)
+            ? normalizeMutator(
+                outputWorkspace,
+                outputOptions.override?.formUrlEncoded,
+              )
+            : outputOptions.override?.formUrlEncoded) ?? true,
         header:
           outputOptions.override?.header === false
             ? false
@@ -178,7 +185,7 @@ const normalizeMutator = <T>(
     return {
       ...mutator,
       path: resolve(workspace, mutator.path),
-      default: mutator.default ?? false,
+      default: (mutator.default || !mutator.name) ?? false,
     };
   }
 
@@ -210,7 +217,17 @@ const normalizeOperationsAndTags = (
 } => {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
-      ([key, { transformer, mutator, formData, requestOptions, ...rest }]) => {
+      ([
+        key,
+        {
+          transformer,
+          mutator,
+          formData,
+          formUrlEncoded,
+          requestOptions,
+          ...rest
+        },
+      ]) => {
         return [
           key,
           {
@@ -225,6 +242,10 @@ const normalizeOperationsAndTags = (
               (!isBoolean(formData)
                 ? normalizeMutator(workspace, formData)
                 : formData) ?? true,
+            formUrlEncoded:
+              (!isBoolean(formUrlEncoded)
+                ? normalizeMutator(workspace, formUrlEncoded)
+                : formUrlEncoded) ?? true,
             requestOptions: requestOptions ?? true,
           },
         ];

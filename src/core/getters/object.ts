@@ -1,3 +1,4 @@
+import omit from 'lodash.omit';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
@@ -39,7 +40,9 @@ export const getObject = async ({
 
   if (item.allOf) {
     return combineSchemas({
-      items: item.allOf,
+      items: item.properties
+        ? [...item.allOf, omit(item, 'allOf')]
+        : item.allOf,
       name,
       separator: 'allOf',
       context,
@@ -48,7 +51,9 @@ export const getObject = async ({
 
   if (item.oneOf) {
     return combineSchemas({
-      items: item.oneOf,
+      items: item.properties
+        ? [...item.oneOf, omit(item, 'oneOf')]
+        : item.oneOf,
       name,
       separator: 'oneOf',
       context,
@@ -57,7 +62,9 @@ export const getObject = async ({
 
   if (item.anyOf) {
     return combineSchemas({
-      items: item.anyOf,
+      items: item.properties
+        ? [...item.anyOf, omit(item, 'anyOf')]
+        : item.anyOf,
       name,
       separator: 'anyOf',
       context,
@@ -73,13 +80,26 @@ export const getObject = async ({
         index,
         arr,
       ) => {
-        const isRequired = (item.required || []).includes(key);
-        const propName = name ? pascal(name) + pascal(key) : undefined;
+        const isRequired = (
+          Array.isArray(item.required) ? item.required : []
+        ).includes(key);
+        let propName = name ? pascal(name) + pascal(key) : undefined;
+
+        const isNameAlreadyTaken =
+          !!context.specs[context.target]?.components?.schemas?.[
+            propName || ''
+          ];
+
+        if (isNameAlreadyTaken) {
+          propName = propName + 'Property';
+        }
+
         const resolvedValue = await resolveObject({
           schema,
           propName,
           context,
         });
+
         const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
         if (!index) {
           acc.value += '{';

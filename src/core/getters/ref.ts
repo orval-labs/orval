@@ -1,3 +1,4 @@
+import get from 'lodash.get';
 import { ReferenceObject } from 'openapi3-ts';
 import { resolve } from 'upath';
 import url from 'url';
@@ -15,14 +16,14 @@ const RefComponent = {
   requestBodies: 'requestBodies' as RefComponent,
 };
 
-const REF_COMPONENTS = Object.values(RefComponent);
-
 export const RefComponentSuffix: Record<RefComponent, string> = {
   schemas: '',
   responses: 'Response',
   parameters: 'Parameter',
   requestBodies: 'Body',
 };
+
+const regex = new RegExp('~1', 'g');
 
 /**
  * Return the output type from the $ref
@@ -35,39 +36,36 @@ export const getRefInfo = async (
 ): Promise<{
   name: string;
   originalName: string;
-  type: RefComponent;
+  refPaths: string[];
   specKey?: string;
 }> => {
-  const refComponent = REF_COMPONENTS.find((refComponent) =>
-    $ref.includes(`#/components/${refComponent}`),
-  );
+  const [pathname, ref] = $ref.split('#');
 
-  if (!refComponent) {
-    throw new Error('Unresolved $ref');
-  }
+  const refPaths = ref
+    .slice(1)
+    .split('/')
+    .map((part) => part.replace(regex, '/'));
 
-  const suffix = context.override.components[refComponent].suffix;
+  const suffix = get(context.override, [...refPaths.slice(0, 2), 'suffix'], '');
 
-  const refSplitted = $ref.split(`#/components/${refComponent}/`);
+  const originalName = refPaths[refPaths.length - 1];
 
-  if (!refSplitted[0]) {
+  if (!pathname) {
     return {
-      name: pascal(refSplitted[1]) + suffix,
-      originalName: refSplitted[1],
-      type: refComponent,
+      name: pascal(originalName) + suffix,
+      originalName,
+      refPaths,
     };
   }
-
-  const pathname = refSplitted[0];
 
   const path = isUrl(context.specKey)
     ? url.resolve(context.specKey, pathname)
     : resolve(getFileInfo(context.specKey).dirname, pathname);
 
   return {
-    name: pascal(refSplitted[1]) + suffix,
-    originalName: refSplitted[1],
+    name: pascal(originalName) + suffix,
+    originalName,
     specKey: path,
-    type: refComponent,
+    refPaths,
   };
 };

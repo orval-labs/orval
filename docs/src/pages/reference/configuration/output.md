@@ -263,6 +263,14 @@ Default Value: `false`.
 
 Can be used to prettier generated files. You need to have prettier in your dependencies.
 
+### tslint
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
+
 ### override
 
 Type: `Object`.
@@ -314,7 +322,7 @@ interface RequestConfig {
 }
 ```
 
-- The second is only provided for the Angular client and give an instance of HttpClient
+- The second argument is only provided for the Angular client and give an instance of HttpClient
 
 Example:
 
@@ -354,6 +362,113 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 
   return promise;
 };
+
+// In some case with react-query and swr you want to be able to override the return error type so you can also do it here like this
+export type ErrorType<Error> = AxiosError<Error>;
+```
+
+- If your file have some alias you will also need to define them in the mutator object.
+
+Example:
+
+```ts
+// custom-instance.ts
+
+import Axios, { AxiosRequestConfig } from 'axios';
+import config from '@config';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '', ...config });
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  const source = Axios.CancelToken.source();
+  const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
+    ({ data }) => data,
+  );
+
+  // @ts-ignore
+  promise.cancel = () => {
+    source.cancel('Query was cancelled by React Query');
+  };
+
+  return promise;
+};
+
+export type ErrorType<Error> = AxiosError<Error>;
+```
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+          alias: {
+            '@config': path.resolve(_dirname, './src/config'),
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+- If you use one of the following clients `react-query`, `vue-query` and `svelte-query`. You can also provide a hook like this
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/use-custom-instance.ts',
+          name: 'useCustomInstance',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// use-custom-instance.ts
+
+import Axios, { AxiosRequestConfig } from 'axios';
+import { useQueryClient } from 'react-query';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+export const useCustomInstance = <T>(): ((
+  config: AxiosRequestConfig,
+) => Promise<T>) => {
+  const token = useToken(); // Do what you want
+
+  return (config: AxiosRequestConfig) => {
+    const source = Axios.CancelToken.source();
+    const promise = AXIOS_INSTANCE({
+      ...config,
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+      cancelToken: source.token,
+    }).then(({ data }) => data);
+
+    // @ts-ignore
+    promise.cancel = () => {
+      source.cancel('Query was cancelled by React Query');
+    };
+
+    return promise;
+  };
+};
+
+export default useCustomInstance;
+
+export type ErrorType<Error> = AxiosError<Error>;
 ```
 
 #### header
@@ -645,7 +760,7 @@ module.exports = {
   petstore: {
     output: {
       override: {
-        mutator: {
+        formData: {
           path: './api/mutator/custom-form-data-fn.ts',
           name: 'customFormDataFn',
           // default: true
@@ -662,5 +777,42 @@ export const customFormDataFn = <Body>(body: Body): FormData => {
   // do your implementation to transform it to FormData
 
   return FormData;
+};
+```
+
+#### formUrlEncoded
+
+Type: `Boolean` or `String` or `Object`.
+
+Valid values: path of the formUrlEncoded function or object with a path and name.
+
+Use this property to disable the auto generation of form url encoded
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formUrlEncoded: {
+          path: './api/mutator/custom-form-url-encoded-fn.ts',
+          name: 'customFormUrlEncodedFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
+  // do your implementation to transform it to FormData
+
+  return URLSearchParams;
 };
 ```

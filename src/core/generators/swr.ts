@@ -6,7 +6,6 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import {
-  GetterBody,
   GetterParams,
   GetterProps,
   GetterPropType,
@@ -16,6 +15,7 @@ import { camel } from '../../utils/case';
 import { toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import {
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
@@ -32,6 +32,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     exports: [
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
+      { name: 'AxiosError' },
     ],
     dependency: 'axios',
   },
@@ -56,26 +57,6 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getSwrDependencies = () => SWR_DEPENDENCIES;
 
-const generateSwrFormDataFunction = ({
-  isFormData,
-  formData,
-  body,
-}: {
-  body: GetterBody;
-  formData: GeneratorMutator | undefined;
-  isFormData: boolean;
-}) => {
-  if (!isFormData) {
-    return '';
-  }
-
-  if (formData && body.formData) {
-    return `const formData = ${formData.name}(${body.implementation})`;
-  }
-
-  return body.formData;
-};
-
 const generateSwrRequestFunction = (
   {
     queryParams,
@@ -86,17 +67,21 @@ const generateSwrRequestFunction = (
     props,
     verb,
     formData,
+    formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+  const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
-  const formDataImplementation = generateSwrFormDataFunction({
-    isFormData,
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
+    formUrlEncoded,
     body,
+    isFormData,
+    isFormUrlEncoded,
   });
 
   if (mutator) {
@@ -107,6 +92,7 @@ const generateSwrRequestFunction = (
       response,
       verb,
       isFormData,
+      isFormUrlEncoded,
     });
 
     const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
@@ -124,7 +110,7 @@ const generateSwrRequestFunction = (
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${formDataImplementation}
+    }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -140,6 +126,7 @@ const generateSwrRequestFunction = (
     verb,
     requestOptions: override?.requestOptions,
     isFormData,
+    isFormUrlEncoded,
   });
 
   return `export const ${operationName} = (\n    ${toObjectString(
@@ -149,7 +136,7 @@ const generateSwrRequestFunction = (
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
-  }>> => {${formDataImplementation}
+  }>> => {${bodyForm}
     return axios.default.${verb}(${options});
   }
 `;
@@ -209,10 +196,18 @@ const generateSwrImplementation = ({
   const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${properties}) : null);`
     : `const swrKey = swrOptions?.swrKey ?? (() => ${swrKeyFnName}(${properties}))`;
 
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   return `
-export const ${camel(`use-${operationName}`)} = <TError = ${
-    response.definition.errors || 'unknown'
-  }>(\n ${swrProps} ${generateSwrArguments({
+export const ${camel(
+    `use-${operationName}`,
+  )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
     operationName,
     mutator,
     isRequestOptions,

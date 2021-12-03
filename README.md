@@ -16,7 +16,7 @@
 You can find below some samples
 
 - [react app](https://github.com/anymaniax/orval/tree/master/samples/react-app)
-- [react app with React query](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-react-query)
+- [react query](https://github.com/anymaniax/orval/tree/master/samples/react-query)
 - [svelte query](https://github.com/anymaniax/orval/tree/master/samples/svelte-query)
 - [vue query](https://github.com/anymaniax/orval/tree/master/samples/vue-query)
 - [react app with swr](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-swr)

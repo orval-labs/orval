@@ -80,12 +80,17 @@ export const generateConfig = async (
   configFile?: string,
   options?: GlobalOptions,
 ) => {
-  const { path, file: configExternal } = await loadFile<ConfigExternal>(
-    configFile,
-    {
-      defaultFileName: 'orval.config',
-    },
-  );
+  const {
+    path,
+    file: configExternal,
+    error,
+  } = await loadFile<ConfigExternal>(configFile, {
+    defaultFileName: 'orval.config',
+  });
+
+  if (!configExternal) {
+    throw `failed to load from ${path} => ${error}`;
+  }
 
   const workspace = dirname(path);
 

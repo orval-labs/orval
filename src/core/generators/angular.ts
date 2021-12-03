@@ -10,6 +10,7 @@ import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import {
+  generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
@@ -124,16 +125,20 @@ const generateImplementation = (
     verb,
     override,
     formData,
+    formUrlEncoded,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
+  const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
-  const formDataImplementation = generateQueryFormDataFunction({
-    isFormData,
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
+    formUrlEncoded,
     body,
+    isFormData,
+    isFormUrlEncoded,
   });
 
   if (mutator) {
@@ -144,6 +149,7 @@ const generateImplementation = (
       response,
       verb,
       isFormData,
+      isFormUrlEncoded,
     });
 
     const isMutatorHasThirdArg = mutator.mutatorFn.length > 2;
@@ -160,7 +166,7 @@ const generateImplementation = (
       isRequestOptions && isMutatorHasThirdArg
         ? `options?: ThirdParameter<typeof ${mutator.name}>`
         : ''
-    }) {${formDataImplementation}
+    }) {${bodyForm}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.http,
@@ -177,13 +183,14 @@ const generateImplementation = (
     verb,
     requestOptions: override?.requestOptions,
     isFormData,
+    isFormUrlEncoded,
   });
 
   return ` ${operationName}<TData = ${
     response.definition.success || 'unknown'
   }>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: HttpClientOptions\n` : ''
-  }  ): Observable<TData>  {${formDataImplementation}
+  }  ): Observable<TData>  {${bodyForm}
     return this.http.${verb}<TData>(${options});
   }
 `;

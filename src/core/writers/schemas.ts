@@ -1,27 +1,24 @@
 import { appendFile, ensureFile, outputFile, readFile } from 'fs-extra';
-import { InfoObject } from 'openapi3-ts';
 import { join } from 'upath';
 import { GeneratorSchema } from '../../types/generator';
 import { camel } from '../../utils/case';
 import { generateImports } from '../generators/imports';
 
 const getSchema = ({
-  info,
   schema: { imports, model },
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
   header,
 }: {
-  info: InfoObject;
   schema: GeneratorSchema;
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
 }): string => {
   let file = header;
-  file += generateImports({ imports, rootSpecKey, isRootKey, specsName });
+  file += generateImports({ imports, target, isRootKey, specsName });
   file += imports.length ? '\n\n' : '\n';
   file += model;
   return file;
@@ -38,17 +35,15 @@ export const writeModelsInline = (array: GeneratorSchema[]): string =>
 
 export const writeSchema = async ({
   path,
-  info,
   schema,
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
   header,
 }: {
   path: string;
-  info: InfoObject;
   schema: GeneratorSchema;
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
@@ -57,7 +52,7 @@ export const writeSchema = async ({
   try {
     await outputFile(
       getPath(path, name),
-      getSchema({ info, schema, rootSpecKey, isRootKey, specsName, header }),
+      getSchema({ schema, target, isRootKey, specsName, header }),
     );
     const indexPath = getPath(path, 'index');
 
@@ -78,16 +73,14 @@ export const writeSchema = async ({
 export const writeSchemas = async ({
   schemaPath,
   schemas,
-  info,
-  rootSpecKey,
+  target,
   isRootKey,
   specsName,
   header,
 }: {
   schemaPath: string;
   schemas: GeneratorSchema[];
-  info: InfoObject;
-  rootSpecKey: string;
+  target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
@@ -98,9 +91,8 @@ export const writeSchemas = async ({
     schemas.map((schema) =>
       writeSchema({
         path: schemaPath,
-        info,
         schema,
-        rootSpecKey,
+        target,
         isRootKey,
         specsName,
         header,

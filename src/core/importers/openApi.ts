@@ -1,3 +1,4 @@
+import omit from 'lodash.omit';
 import { OpenAPIObject } from 'openapi3-ts';
 import { ImportOpenApi, InputOptions } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
@@ -32,6 +33,7 @@ const generateInputSpecs = async ({
         input.converterOptions,
         specKey,
       );
+
       const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
 
       if (input.validation) {
@@ -51,7 +53,7 @@ export const importOpenApi = async ({
   data,
   input,
   output,
-  path,
+  target,
   workspace,
 }: ImportOpenApi): Promise<WriteSpecsProps> => {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
@@ -59,9 +61,32 @@ export const importOpenApi = async ({
   const schemas = await asyncReduce(
     Object.entries(specs),
     async (acc, [specKey, spec]) => {
-      const context = { specKey, workspace, specs, override: output.override };
+      const context = {
+        specKey,
+        target,
+        workspace,
+        specs,
+        override: output.override,
+        tslint: output.tslint,
+      };
+
+      // First version to try to handle non-openapi files
       const schemaDefinition = await generateSchemasDefinition(
-        spec.components?.schemas,
+        !spec.openapi
+          ? {
+              ...omit(spec, [
+                'openapi',
+                'info',
+                'servers',
+                'paths',
+                'components',
+                'security',
+                'tags',
+                'externalDocs',
+              ]),
+              ...(spec.components?.schemas || {}),
+            }
+          : spec.components?.schemas,
         context,
         output.override.components.schemas.suffix,
       );
@@ -84,14 +109,20 @@ export const importOpenApi = async ({
         output.override.components.parameters.suffix,
       );
 
+      const schemas = [
+        ...schemaDefinition,
+        ...responseDefinition,
+        ...bodyDefinition,
+        ...parameters,
+      ];
+
+      if (!schemas.length) {
+        return acc;
+      }
+
       return {
         ...acc,
-        [specKey]: [
-          ...schemaDefinition,
-          ...responseDefinition,
-          ...bodyDefinition,
-          ...parameters,
-        ],
+        [specKey]: schemas,
       };
     },
     {} as Record<string, GeneratorSchema[]>,
@@ -99,13 +130,23 @@ export const importOpenApi = async ({
 
   const api = await generateApi({
     output,
-    context: { specKey: path, workspace, specs, override: output.override },
+    context: {
+      specKey: target,
+      target,
+      workspace,
+      specs,
+      override: output.override,
+      tslint: output.tslint,
+    },
   });
 
   return {
     ...api,
-    schemas: { ...schemas, [path]: [...schemas[path], ...api.schemas] },
-    rootSpecKey: path,
-    info: specs[path].info,
+    schemas: {
+      ...schemas,
+      [target]: [...(schemas[target] || []), ...api.schemas],
+    },
+    target,
+    info: specs[target].info,
   };
 };

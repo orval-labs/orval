@@ -68,7 +68,17 @@ export const getParams = ({
         };
       }
 
-      const resolvedValue = await resolveValue({ schema, context });
+      const resolvedValue = await resolveValue({
+        schema,
+        context: {
+          ...context,
+          ...(pathParam.imports.length
+            ? {
+                specKey: pathParam.imports[0].specKey,
+              }
+            : {}),
+        },
+      });
 
       const definition = `${name}${
         !required || resolvedValue.originalSchema!.default ? '?' : ''

@@ -31,6 +31,7 @@ export const writeSplitMode = async ({
       importsMSW,
       mutators,
       formData,
+      formUrlEncoded,
     } = generateTarget(operations, info, output);
 
     let implementationData = header;
@@ -78,6 +79,10 @@ export const writeSplitMode = async ({
 
     if (formData) {
       implementationData += generateMutatorImports(formData);
+    }
+
+    if (formUrlEncoded) {
+      implementationData += generateMutatorImports(formUrlEncoded);
     }
 
     implementationData += `\n${implementation}`;
