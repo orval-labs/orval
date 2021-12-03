@@ -61,8 +61,14 @@ export const generateMutatorImports = (
   )
     .map((mutator) => {
       const importDefault = mutator.default
-        ? `${mutator.name}${mutator.hasErrorType ? ', { ErrorType }' : ''}`
-        : `{ ${mutator.name}${mutator.hasErrorType ? ', ErrorType' : ''} }`;
+        ? `${mutator.name}${
+            mutator.hasErrorType
+              ? `, { ErrorType as ${mutator.errorTypeName} }`
+              : ''
+          }`
+        : `{ ${mutator.name}${
+            mutator.hasErrorType ? `, ${mutator.errorTypeName}` : ''
+          } }`;
 
       return `import ${importDefault} from '${oneMore ? '../' : ''}${
         mutator.path
@@ -79,12 +85,14 @@ export const addDependency = ({
   dependency,
   specsName,
   hasSchemaDir,
+  isAllowSyntheticDefaultImports,
 }: {
   implementation: string;
   exports: GeneratorImport[];
   dependency: string;
   specsName: Record<string, string>;
   hasSchemaDir: boolean;
+  isAllowSyntheticDefaultImports: boolean;
 }) => {
   const toAdds = exports.filter((e) =>
     implementation.includes(e.alias || e.name),
@@ -102,7 +110,10 @@ export const addDependency = ({
     return {
       ...acc,
       [key]: {
-        values: acc[key]?.values || dep.values || false,
+        values:
+          acc[key]?.values ||
+          (dep.values && !dep.syntheticDefaultImport) ||
+          false,
         deps: [...(acc[key]?.deps || []), dep],
       },
     };
@@ -110,19 +121,43 @@ export const addDependency = ({
 
   return Object.entries(groupedBySpecKey)
     .map(([key, { values, deps }]) => {
-      const defaultDep = deps.find((e) => e.default);
+      const defaultDep = deps.find(
+        (e) => e.default && !e.syntheticDefaultImport,
+      );
+      const syntheticDefaultImportDep = deps.find(
+        (e) => e.syntheticDefaultImport,
+      );
 
       const depsString = uniq(
         deps
-          .filter((e) => !e.default)
+          .filter((e) => !e.default && !e.syntheticDefaultImport)
           .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
       ).join(',\n  ');
 
-      return `import ${!values ? 'type ' : ''}${
-        defaultDep ? `* as ${defaultDep.name}${depsString ? ',' : ''}` : ''
+      let importString = '';
+
+      const syntheticDefaultImport = syntheticDefaultImportDep
+        ? `import * as ${syntheticDefaultImportDep.name} from  '${dependency}';`
+        : '';
+
+      if (syntheticDefaultImport) {
+        if (deps.length === 1) {
+          return syntheticDefaultImport;
+        }
+        importString += `${syntheticDefaultImport}\n`;
+      }
+
+      importString += `import ${!values ? 'type ' : ''}${
+        defaultDep
+          ? `${!isAllowSyntheticDefaultImports ? '* as ' : ''}${
+              defaultDep.name
+            }${depsString ? ',' : ''}`
+          : ''
       }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
         key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
       }'`;
+
+      return importString;
     })
     .join('\n');
 };
@@ -135,10 +170,17 @@ export const generateDependencyImports = (
   }[],
   specsName: Record<string, string>,
   hasSchemaDir: boolean,
+  isAllowSyntheticDefaultImports: boolean,
 ): string => {
   const dependencies = imports
     .map((dep) =>
-      addDependency({ ...dep, implementation, specsName, hasSchemaDir }),
+      addDependency({
+        ...dep,
+        implementation,
+        specsName,
+        hasSchemaDir,
+        isAllowSyntheticDefaultImports,
+      }),
     )
     .filter(Boolean)
     .join('\n');

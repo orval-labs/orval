@@ -18,6 +18,7 @@ import { isBoolean, isFunction, isObject, isString } from './is';
 import { mergeDeep } from './mergeDeep';
 import { getFilesHeader } from './messages/inline';
 import { createLogger } from './messages/logs';
+import { loadTsconfig } from './tsconfig';
 import { isUrl } from './url';
 
 /**
@@ -62,6 +63,11 @@ export const normalizeOptions = async (
 
   const { clean, prettier, client, mode, mock, tslint } = globalOptions;
 
+  const tsconfig = await loadTsconfig(
+    outputOptions.tsconfig || globalOptions.tsconfig,
+    workspace,
+  );
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: normalizePath(inputOptions.target, workspace),
@@ -88,6 +94,7 @@ export const normalizeOptions = async (
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,
+      tsconfig,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
@@ -199,7 +206,7 @@ const normalizeMutator = <T>(
   return mutator;
 };
 
-const normalizePath = <T>(path: T, workspace: string) => {
+export const normalizePath = <T>(path: T, workspace: string) => {
   if (isString(path) && !isUrl(path)) {
     return resolve(workspace, path);
   }

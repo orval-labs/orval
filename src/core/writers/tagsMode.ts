@@ -24,6 +24,9 @@ export const writeTagsMode = async ({
 
   const target = generateTargetForTags(operations, output);
 
+  const isAllowSyntheticDefaultImports =
+    !!output.tsconfig?.compilerOptions?.allowSyntheticDefaultImports;
+
   const generatedFilePathsArray = await Promise.all(
     Object.entries(target).map(async ([tag, target]) => {
       try {
@@ -49,6 +52,7 @@ export const writeTagsMode = async ({
           [{ exports: imports, dependency: schemasPathRelative }],
           specsName,
           !!output.schemas,
+          isAllowSyntheticDefaultImports,
         );
 
         if (output.mock) {
@@ -57,6 +61,7 @@ export const writeTagsMode = async ({
             [{ exports: importsMSW, dependency: schemasPathRelative }],
             specsName,
             !!output.schemas,
+            isAllowSyntheticDefaultImports,
           );
         }
 

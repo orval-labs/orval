@@ -27,6 +27,7 @@ export type GeneratorImport = {
   specKey?: string;
   default?: boolean;
   values?: boolean;
+  syntheticDefaultImport?: boolean;
 };
 
 export type GeneratorDependency = {
@@ -122,6 +123,7 @@ export type GeneratorMutator = {
   default: boolean;
   mutatorFn: Function;
   hasErrorType: boolean;
+  errorTypeName: string;
 };
 
 export type ClientBuilder = (

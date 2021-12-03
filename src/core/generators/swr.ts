@@ -13,6 +13,7 @@ import {
 } from '../../types/getters';
 import { camel } from '../../utils/case';
 import { toObjectString } from '../../utils/string';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateVerbImports } from './imports';
 import {
   generateFormDataAndUrlEncodedFunction,
@@ -24,12 +25,12 @@ import {
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
-      { name: 'axios', default: true, values: true },
-    ],
-    dependency: 'axios',
-  },
-  {
-    exports: [
+      {
+        name: 'axios',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
       { name: 'AxiosError' },
@@ -41,16 +42,11 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 const SWR_DEPENDENCIES: GeneratorDependency[] = [
   ...AXIOS_DEPENDENCIES,
   {
-    exports: [
-      { name: 'useSwr', values: true, default: true },
-    ],
+    exports: [{ name: 'useSwr', values: true, default: true }],
     dependency: 'swr',
   },
   {
-    exports: [
-      { name: 'SWRConfiguration' },
-      { name: 'Key' },
-    ],
+    exports: [{ name: 'SWRConfiguration' }, { name: 'Key' }],
     dependency: 'swr',
   },
 ];
@@ -70,11 +66,15 @@ const generateSwrRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    context.tsconfig,
+  );
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -137,7 +137,9 @@ const generateSwrRequestFunction = (
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
-    return axios.default.${verb}(${options});
+    return axios${
+      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+    }.${verb}(${options});
   }
 `;
 };

@@ -5,6 +5,7 @@ import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { relativeSafe } from '../../utils/path';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -41,12 +42,17 @@ export const writeSplitMode = async ({
       ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
       : './' + filename + '.schemas';
 
+    const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+      output.tsconfig,
+    );
+
     implementationData += generateClientImports(
       output.client,
       implementation,
       [{ exports: imports, dependency: relativeSchemasPath }],
       specsName,
       !!output.schemas,
+      isSyntheticDefaultImportsAllowed,
     );
     mswData += generateMSWImports(
       implementationMSW,
@@ -58,6 +64,7 @@ export const writeSplitMode = async ({
       ],
       specsName,
       !!output.schemas,
+      isSyntheticDefaultImportsAllowed,
     );
 
     const schemasPath = !output.schemas

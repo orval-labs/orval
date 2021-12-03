@@ -43,6 +43,7 @@ export type NormalizedOutputOptions = {
   clean: boolean | string[];
   prettier: boolean;
   tslint: boolean;
+  tsconfig?: Tsconfig;
 };
 
 export type NormalizedOverrideOutput = {
@@ -131,6 +132,7 @@ export type OutputOptions = {
   clean?: boolean | string[];
   prettier?: boolean;
   tslint?: boolean;
+  tsconfig?: string | Tsconfig;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -297,6 +299,7 @@ export interface ContextSpecs {
   tslint: boolean;
   specs: Record<string, OpenAPIObject>;
   override: NormalizedOverrideOutput;
+  tsconfig?: Tsconfig;
 }
 
 export interface GlobalOptions {
@@ -308,4 +311,14 @@ export interface GlobalOptions {
   mock?: boolean;
   client?: OutputClient;
   mode?: OutputMode;
+  tsconfig?: Tsconfig;
+}
+
+export interface Tsconfig {
+  baseUrl?: string;
+  compilerOptions?: {
+    esModuleInterop?: boolean;
+    allowSyntheticDefaultImports?: boolean;
+    paths?: Record<string, string[]>;
+  };
 }

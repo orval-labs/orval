@@ -130,6 +130,7 @@ export const generateClientImports = (
   }[],
   specsName: Record<string, string>,
   hasSchemaDir: boolean,
+  isAllowSyntheticDefaultImports: boolean,
 ): string => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
@@ -137,6 +138,7 @@ export const generateClientImports = (
     [...dependencies(), ...imports],
     specsName,
     hasSchemaDir,
+    isAllowSyntheticDefaultImports,
   );
 };
 

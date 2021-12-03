@@ -15,6 +15,7 @@ import {
 import { camel, pascal } from '../../utils/case';
 import { isObject } from '../../utils/is';
 import { stringify, toObjectString } from '../../utils/string';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateVerbImports } from './imports';
 import {
   generateFormDataAndUrlEncodedFunction,
@@ -26,12 +27,12 @@ import {
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
-      { name: 'axios', default: true, values: true },
-    ],
-    dependency: 'axios',
-  },
-  {
-    exports: [
+      {
+        name: 'axios',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
       { name: 'AxiosError' },
@@ -125,11 +126,15 @@ const generateQueryRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    context.tsconfig,
+  );
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -212,7 +217,9 @@ const generateQueryRequestFunction = (
   } ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
-    return axios.default.${verb}(${options});
+    return axios${
+      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+    }.${verb}(${options});
   }
 `;
 };
@@ -365,7 +372,9 @@ const generateQueryImplementation = ({
 
   if (mutator) {
     errorType = mutator.hasErrorType
-      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
+          response.definition.errors || 'unknown'
+        }>`
       : response.definition.errors || 'unknown';
   }
 
@@ -537,7 +546,9 @@ const generateQueryHook = (
 
   if (mutator) {
     errorType = mutator.hasErrorType
-      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
+          response.definition.errors || 'unknown'
+        }>`
       : response.definition.errors || 'unknown';
   }
 
