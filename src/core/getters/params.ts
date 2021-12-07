@@ -25,6 +25,20 @@ export const getParamsInPath = (path: string) => {
   return output;
 };
 
+/**
+ * objToString handles the rendering for specific types
+ * 
+ * @param obj
+ */
+const objToString = (obj: any): string => {
+  switch (typeof obj) {
+    case 'string':
+      return `'${obj}'`;
+    default:
+      return `${obj}`;
+  }
+};
+
 export const getParams = ({
   route,
   pathParams = [],
@@ -89,7 +103,7 @@ export const getParams = ({
       }${
         !resolvedValue.originalSchema!.default
           ? `: ${resolvedValue.value}`
-          : `= ${resolvedValue.originalSchema!.default}`
+          : `= ${objToString(resolvedValue.originalSchema!.default)}`
       }`;
 
       return {
