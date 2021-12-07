@@ -27,4 +27,12 @@ export default defineConfig({
       tslint: true
     },
   },
+  'endpointParameters': {
+    input: '../specifications/parameters.yaml',
+    output: {
+      target: '../generated/default/endpointParameters/endpoints.ts',
+      schemas: '../generated/react-query/endpointParameters/model',
+      mock: true,
+    },
+  },
 });
