@@ -24,14 +24,14 @@ export default defineConfig({
     output: {
       target: '../generated/default/petstore-tslint/endpoints.ts',
       schemas: '../generated/default/petstore-tslint/model',
-      tslint: true
+      tslint: true,
     },
   },
-  'endpointParameters': {
+  endpointParameters: {
     input: '../specifications/parameters.yaml',
     output: {
       target: '../generated/default/endpointParameters/endpoints.ts',
-      schemas: '../generated/react-query/endpointParameters/model',
+      schemas: '../generated/default/endpointParameters/model',
       mock: true,
     },
   },
