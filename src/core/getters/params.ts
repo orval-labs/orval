@@ -1,6 +1,6 @@
 import { ContextSpecs } from '../../types';
 import { GetterParameters, GetterParams } from '../../types/getters';
-import { sanitize } from '../../utils/string';
+import { sanitize, stringify } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
 
 /**
@@ -23,20 +23,6 @@ export const getParamsInPath = (path: string) => {
   }
 
   return output;
-};
-
-/**
- * objToString handles the rendering for specific types
- * 
- * @param obj
- */
-const objToString = (obj: any): string => {
-  switch (typeof obj) {
-    case 'string':
-      return `'${obj}'`;
-    default:
-      return `${obj}`;
-  }
 };
 
 export const getParams = ({
@@ -103,7 +89,7 @@ export const getParams = ({
       }${
         !resolvedValue.originalSchema!.default
           ? `: ${resolvedValue.value}`
-          : `= ${objToString(resolvedValue.originalSchema!.default)}`
+          : `= ${stringify(resolvedValue.originalSchema!.default)}`
       }`;
 
       return {
