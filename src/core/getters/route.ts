@@ -10,7 +10,7 @@ const getRoutePath = (path: string) => {
       return acc + '}';
     }
 
-    return acc + sanitize(letter);
+    return acc + sanitize(letter, { dot: true });
   }, '');
 };
 

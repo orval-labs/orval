@@ -50,9 +50,10 @@ export const sanitize = (
   options?: {
     whitespace?: string | true;
     underscore?: string | true;
+    dot?: string | true;
   },
 ) => {
-  const { whitespace = '', underscore = '' } = options || {};
+  const { whitespace = '', underscore = '', dot = '' } = options || {};
   let newValue = value.replace(/[^\w\s.]/g, '');
 
   if (whitespace !== true) {
@@ -61,6 +62,10 @@ export const sanitize = (
 
   if (underscore !== true) {
     newValue = newValue.replace(/['_']/g, underscore);
+  }
+
+  if (dot !== true) {
+    newValue = newValue.replace(/[.]/g, dot);
   }
 
   return newValue;
