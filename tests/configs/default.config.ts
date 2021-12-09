@@ -35,4 +35,11 @@ export default defineConfig({
       mock: true,
     },
   },
+  translation: {
+    input: '../specifications/translation.yaml',
+    output: {
+      target: '../generated/default/translation/endpoints.ts',
+      schemas: '../generated/default/translation/model'
+    },
+  },
 });

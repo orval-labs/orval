@@ -1,0 +1,34 @@
+openapi: 3.0.3
+info:
+  title: Translation API
+  description: 'Translation APIs'
+  license:
+    name: MIT
+  version: 1.0.0
+tags:
+  - name: translation
+    description: Everything about Translation
+servers:
+  - url: http://localhost
+paths:
+  /{locale}.js:
+    get:
+      tags:
+        - translation
+      summary: Retrieve Translations
+      operationId: retrieveTranslations
+      parameters:
+        - name: locale
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties:
+                  type: string
