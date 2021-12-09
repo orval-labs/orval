@@ -53,7 +53,7 @@ export const sanitize = (
   },
 ) => {
   const { whitespace = '', underscore = '' } = options || {};
-  let newValue = value.replace(/[^\w\s]/g, '');
+  let newValue = value.replace(/[^\w\s.]/g, '');
 
   if (whitespace !== true) {
     newValue = newValue.replace(/[\s]/g, whitespace);
