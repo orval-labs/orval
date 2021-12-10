@@ -148,12 +148,14 @@ export const generateClientHeader = ({
   isGlobalMutator,
   isMutator,
   provideInRoot,
+  provideIn,
 }: {
   outputClient?: OutputClient | OutputClientFunc;
   isRequestOptions: boolean;
   isMutator: boolean;
   isGlobalMutator: boolean;
   provideInRoot: boolean;
+  provideIn: boolean | 'root' | 'any';
   title: string;
   customTitleFunc?: (title: string) => string;
 }): GeneratorClientExtra => {
@@ -166,6 +168,7 @@ export const generateClientHeader = ({
       isGlobalMutator,
       isMutator,
       provideInRoot,
+      provideIn,
     }),
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };

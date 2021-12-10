@@ -55,6 +55,10 @@ export const normalizeOptions = async (
     ? { target: options.output }
     : options.output;
 
+  if (typeof outputOptions.override?.angular?.provideInRoot !== 'undefined') {
+    console.warn('provideInRoot is deprecated, use provideIn instead');
+  }
+
   const outputWorkspace = normalizePath(
     outputOptions.workspace || '',
     workspace,
@@ -146,7 +150,10 @@ export const normalizeOptions = async (
           ...(outputOptions.override?.query || {}),
         },
         angular: {
-          provideInRoot: outputOptions.override?.angular?.provideInRoot ?? true,
+          provideIn:
+            outputOptions.override?.angular?.provideIn ??
+            outputOptions.override?.angular?.provideInRoot ??
+            'root',
         },
       },
     },

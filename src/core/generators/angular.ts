@@ -1,12 +1,11 @@
 import {
   GeneratorClient,
   GeneratorDependency,
-  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
-import { GetterBody } from '../../types/getters';
 import { pascal } from '../../utils/case';
+import { isBoolean } from '../../utils/is';
 import { sanitize, toObjectString } from '../../utils/string';
 import { generateVerbImports } from './imports';
 import {
@@ -49,12 +48,14 @@ export const generateAngularHeader = ({
   isMutator,
   isGlobalMutator,
   provideInRoot,
+  provideIn,
 }: {
   title: string;
   isRequestOptions: boolean;
   isMutator: boolean;
   isGlobalMutator?: boolean;
   provideInRoot: boolean;
+  provideIn: boolean | 'root' | 'any';
 }) => `
 ${
   isRequestOptions && !isGlobalMutator
@@ -86,33 +87,17 @@ ${
     : ''
 }
 
-@Injectable(${provideInRoot ? `{ providedIn: 'root' }` : ''})
+@Injectable(${
+  provideIn
+    ? `{ providedIn: '${isBoolean(provideIn) ? 'root' : provideIn}' }`
+    : ''
+})
 export class ${title} {
   constructor(
     private http: HttpClient,
   ) {}`;
 
 export const generateAngularFooter = () => '};\n';
-
-const generateQueryFormDataFunction = ({
-  isFormData,
-  formData,
-  body,
-}: {
-  body: GetterBody;
-  formData: GeneratorMutator | undefined;
-  isFormData: boolean;
-}) => {
-  if (!isFormData) {
-    return '';
-  }
-
-  if (formData && body.formData) {
-    return `const formData = ${formData.name}(${body.implementation})`;
-  }
-
-  return body.formData;
-};
 
 const generateImplementation = (
   {

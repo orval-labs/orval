@@ -75,7 +75,7 @@ export type NormalizedOverrideOutput = {
     };
   };
   query: QueryOptions;
-  angular: Required<AngularOptions>;
+  angular: Omit<Required<AngularOptions>, 'provideInRoot'>;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -243,6 +243,7 @@ type QueryOptions = {
 
 export type AngularOptions = {
   provideInRoot?: boolean;
+  provideIn?: 'root' | 'any' | boolean;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

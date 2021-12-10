@@ -137,6 +137,7 @@ export type ClientHeaderBuilder = (params: {
   noFunction?: boolean;
   isGlobalMutator: boolean;
   provideInRoot: boolean;
+  provideIn: boolean | 'root' | 'any';
 }) => string;
 
 export type ClientFooterBuilder = (operationIds?: string[]) => string;
