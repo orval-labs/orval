@@ -51,7 +51,8 @@ export const generateTarget = (
           isGlobalMutator: !!options.override.mutator,
           title: pascal(info.title),
           customTitleFunc: options.override.title,
-          provideInRoot: options.override.angular.provideInRoot,
+          provideInRoot: !!options.override.angular.provideIn,
+          provideIn: options.override.angular.provideIn,
         });
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMSW.handler =

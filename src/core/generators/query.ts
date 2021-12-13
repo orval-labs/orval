@@ -167,7 +167,7 @@ const generateQueryRequestFunction = (
       mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
 
     if (isMutatorHook) {
-      return `export const use${pascal(operationName)}Hook = () => {${bodyForm}
+      return `export const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
         response.definition.success || 'unknown'
       }>();
@@ -176,9 +176,11 @@ const generateQueryRequestFunction = (
         isRequestOptions && isMutatorHasSecondArg
           ? `options?: SecondParameter<typeof ${mutator.name}>`
           : ''
-      }) => ${operationName}(
+      }) => {${bodyForm}
+        return ${operationName}(
           ${mutatorConfig},
-          ${requestOptions})
+          ${requestOptions});
+        }
       }
     `;
     }

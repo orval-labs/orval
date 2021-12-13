@@ -95,6 +95,23 @@ export default defineConfig({
       target: '../specifications/form-data.yaml',
     },
   },
+  formDataWithHook: {
+    output: {
+      target: '../generated/react-query/formDataWithHook/endpoints.ts',
+      schemas: '../generated/react-query/formDataWithHook/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance.ts',
+          name: 'useCustomInstance',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/form-data.yaml',
+    },
+  },
   formDataMutator: {
     output: {
       target: '../generated/react-query/form-data/endpoints.ts',

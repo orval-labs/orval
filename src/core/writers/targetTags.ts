@@ -32,7 +32,9 @@ const generateTargetTags = (
           importsMSW: operation.importsMSW,
           mutators: operation.mutator ? [operation.mutator] : [],
           formData: operation.formData ? [operation.formData] : [],
-          formUrlEncoded: operation.formUrlEncoded ? [operation.formUrlEncoded] : [],
+          formUrlEncoded: operation.formUrlEncoded
+            ? [operation.formUrlEncoded]
+            : [],
           implementation: operation.implementation,
           implementationMSW: {
             function: operation.implementationMSW.function,
@@ -101,7 +103,8 @@ export const generateTargetForTags = (
             isGlobalMutator: !!options.override.mutator,
             title: pascal(tag),
             customTitleFunc: options.override.title,
-            provideInRoot: options.override.angular.provideInRoot,
+            provideInRoot: !!options.override.angular.provideIn,
+            provideIn: options.override.angular.provideIn,
           });
           return {
             ...acc,
