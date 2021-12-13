@@ -112,7 +112,8 @@ export const addDependency = ({
       [key]: {
         values:
           acc[key]?.values ||
-          (dep.values && !dep.syntheticDefaultImport) ||
+          (dep.values &&
+            (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)) ||
           false,
         deps: [...(acc[key]?.deps || []), dep],
       },
@@ -122,11 +123,13 @@ export const addDependency = ({
   return Object.entries(groupedBySpecKey)
     .map(([key, { values, deps }]) => {
       const defaultDep = deps.find(
-        (e) => e.default && !e.syntheticDefaultImport,
+        (e) =>
+          e.default &&
+          (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
       );
-      const syntheticDefaultImportDep = deps.find(
-        (e) => e.syntheticDefaultImport,
-      );
+      const syntheticDefaultImportDep = !isAllowSyntheticDefaultImports
+        ? deps.find((e) => e.syntheticDefaultImport)
+        : undefined;
 
       const depsString = uniq(
         deps
@@ -148,11 +151,7 @@ export const addDependency = ({
       }
 
       importString += `import ${!values ? 'type ' : ''}${
-        defaultDep
-          ? `${!isAllowSyntheticDefaultImports ? '* as ' : ''}${
-              defaultDep.name
-            }${depsString ? ',' : ''}`
-          : ''
+        defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
       }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
         key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
       }'`;

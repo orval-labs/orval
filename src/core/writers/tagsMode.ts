@@ -4,6 +4,7 @@ import { WriteModeProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { relativeSafe } from '../../utils/path';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -24,8 +25,9 @@ export const writeTagsMode = async ({
 
   const target = generateTargetForTags(operations, output);
 
-  const isAllowSyntheticDefaultImports =
-    !!output.tsconfig?.compilerOptions?.allowSyntheticDefaultImports;
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    output.tsconfig,
+  );
 
   const generatedFilePathsArray = await Promise.all(
     Object.entries(target).map(async ([tag, target]) => {
@@ -52,7 +54,7 @@ export const writeTagsMode = async ({
           [{ exports: imports, dependency: schemasPathRelative }],
           specsName,
           !!output.schemas,
-          isAllowSyntheticDefaultImports,
+          isSyntheticDefaultImportsAllowed,
         );
 
         if (output.mock) {
@@ -61,7 +63,7 @@ export const writeTagsMode = async ({
             [{ exports: importsMSW, dependency: schemasPathRelative }],
             specsName,
             !!output.schemas,
-            isAllowSyntheticDefaultImports,
+            isSyntheticDefaultImportsAllowed,
           );
         }
 

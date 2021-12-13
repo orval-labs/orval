@@ -42,11 +42,11 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 const SWR_DEPENDENCIES: GeneratorDependency[] = [
   ...AXIOS_DEPENDENCIES,
   {
-    exports: [{ name: 'useSwr', values: true, default: true }],
-    dependency: 'swr',
-  },
-  {
-    exports: [{ name: 'SWRConfiguration' }, { name: 'Key' }],
+    exports: [
+      { name: 'useSwr', values: true, default: true },
+      { name: 'SWRConfiguration' },
+      { name: 'Key' },
+    ],
     dependency: 'swr',
   },
 ];
@@ -241,7 +241,7 @@ export const ${camel(
       : ''
   });
 
-  const query = useSwr.default<AsyncReturnType<typeof swrFn>, TError>(swrKey, swrFn, swrOptions)
+  const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(swrKey, swrFn, swrOptions)
 
   return {
     swrKey,
