@@ -7,7 +7,7 @@
 import {
   rest
 } from 'msw'
-import * as faker from 'faker'
+import faker from 'faker'
 import type {
   Pets,
   Pet
