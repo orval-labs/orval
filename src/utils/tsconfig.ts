@@ -21,10 +21,16 @@ export const loadTsconfig = async (
   }
 
   if (isString(tsconfig)) {
-    if (existsSync(tsconfig)) {
-      const normalizedPath = normalizePath(tsconfig, workspace);
+    const normalizedPath = normalizePath(tsconfig, workspace);
+    if (existsSync(normalizedPath)) {
       const config = await parse(normalizedPath);
-      return config.tsconfig;
+
+      const tsconfig =
+        config.referenced?.find(
+          ({ tsconfigFile }) => tsconfigFile === normalizedPath,
+        )?.tsconfig || config.tsconfig;
+
+      return tsconfig;
     }
     return;
   }

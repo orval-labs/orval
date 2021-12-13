@@ -140,7 +140,7 @@ export const addDependency = ({
       let importString = '';
 
       const syntheticDefaultImport = syntheticDefaultImportDep
-        ? `import * as ${syntheticDefaultImportDep.name} from  '${dependency}';`
+        ? `import * as ${syntheticDefaultImportDep.name} from '${dependency}';`
         : '';
 
       if (syntheticDefaultImport) {
