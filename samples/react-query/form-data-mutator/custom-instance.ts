@@ -1,10 +1,9 @@
-import * as axios from 'axios';
-import { AxiosRequestConfig } from 'axios';
+import Axios, { AxiosRequestConfig } from 'axios';
 
-export const AXIOS_INSTANCE = axios.create({ baseURL: '' });
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
 
 export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
-  const source = axios.CancelToken.source();
+  const source = Axios.CancelToken.source();
   const promise = AXIOS_INSTANCE({ ...config, cancelToken: source.token }).then(
     ({ data }) => data,
   );
