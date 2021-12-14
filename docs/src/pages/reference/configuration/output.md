@@ -271,6 +271,12 @@ Default Value: `false`.
 
 Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
 
+### tsconfig
+
+Type: `Boolean`.
+
+Can be used to specify the path to your `tsconfig`.
+
 ### override
 
 Type: `Object`.

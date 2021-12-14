@@ -88,3 +88,11 @@ The `--tslint`, can be used to specify `tslint` ([TSLint is deprecated in favour
 ```bash
 $ orval --tslint
 ```
+
+### tsconfig
+
+The `--tsconfig`, can be used to specify the path to your `tsconfig`.
+
+```bash
+$ orval --tsconfig ./src/tsconfig.json
+```
