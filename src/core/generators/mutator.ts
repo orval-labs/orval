@@ -1,7 +1,8 @@
 import chalk from 'chalk';
 import { readFile } from 'fs-extra';
 import { GeneratorMutator } from '../..';
-import { NormalizedMutator } from '../../types';
+import { NormalizedMutator, Tsconfig } from '../../types';
+import { pascal } from '../../utils/case';
 import { getFileInfo, loadFile } from '../../utils/file';
 import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
@@ -21,11 +22,13 @@ export const generateMutator = async ({
   mutator,
   name,
   workspace,
+  tsconfig,
 }: {
   output?: string;
   mutator?: NormalizedMutator;
   name: string;
   workspace: string;
+  tsconfig?: Tsconfig;
 }): Promise<GeneratorMutator | undefined> => {
   if (!mutator || !output) {
     return;
@@ -40,12 +43,17 @@ export const generateMutator = async ({
     rawFile.includes('export type ErrorType') ||
     rawFile.includes('export interface ErrorType');
 
+  const errorTypeName = !mutator.default
+    ? 'ErrorType'
+    : `${pascal(name)}ErrorType`;
+
   const { file, cached } = await loadFile<Record<string, Function>>(
     importPath,
     {
       isDefault: false,
       root: workspace,
       alias: mutator.alias,
+      tsconfig,
     },
   );
 
@@ -72,6 +80,7 @@ export const generateMutator = async ({
       default: isDefault,
       mutatorFn,
       hasErrorType,
+      errorTypeName,
     };
   } else {
     const path = getImport(output, mutator);
@@ -90,6 +99,7 @@ export const generateMutator = async ({
       default: isDefault,
       mutatorFn: () => undefined,
       hasErrorType,
+      errorTypeName,
     };
   }
 };

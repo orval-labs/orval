@@ -45,7 +45,14 @@ const MSW_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'msw',
   },
   {
-    exports: [{ name: 'faker', default: true, values: true }],
+    exports: [
+      {
+        name: 'faker',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
     dependency: 'faker',
   },
 ];
@@ -58,12 +65,14 @@ export const generateMSWImports = (
   }[],
   specsName: Record<string, string>,
   hasSchemaDir: boolean,
+  isAllowSyntheticDefaultImports: boolean,
 ): string => {
   return generateDependencyImports(
     implementation,
     [...MSW_DEPENDENCIES, ...imports],
     specsName,
     hasSchemaDir,
+    isAllowSyntheticDefaultImports,
   );
 };
 

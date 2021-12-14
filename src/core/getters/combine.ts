@@ -41,10 +41,6 @@ export const combineSchemas = async ({
         context,
       });
 
-      if (acc.isEnum.length && !acc.isEnum.includes(resolvedValue.isEnum)) {
-        throw new Error(`Enums can only combine with enum`);
-      }
-
       return {
         ...acc,
         values: [...acc.values, resolvedValue.value],

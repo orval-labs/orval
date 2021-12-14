@@ -3,6 +3,7 @@ import { WriteModeProps } from '../../types/writers';
 import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { relativeSafe } from '../../utils/path';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -38,12 +39,17 @@ export const writeSingleMode = async ({
       ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
       : undefined;
 
+    const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+      output.tsconfig,
+    );
+
     data += generateClientImports(
       output.client,
       implementation,
       schemasPath ? [{ exports: imports, dependency: schemasPath }] : [],
       specsName,
       !!output.schemas,
+      isSyntheticDefaultImportsAllowed,
     );
 
     if (output.mock) {
@@ -52,6 +58,7 @@ export const writeSingleMode = async ({
         schemasPath ? [{ exports: importsMSW, dependency: schemasPath }] : [],
         specsName,
         !!output.schemas,
+        isSyntheticDefaultImportsAllowed,
       );
     }
 

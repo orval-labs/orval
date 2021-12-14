@@ -9,6 +9,7 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'angular',
       mock: true,
+      tsconfig: './tsconfig.app.json',
       override: {
         operations: {
           listPets: {
