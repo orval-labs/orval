@@ -68,6 +68,7 @@ export const importOpenApi = async ({
         specs,
         override: output.override,
         tslint: output.tslint,
+        tsconfig: output.tsconfig,
       };
 
       // First version to try to handle non-openapi files
@@ -137,6 +138,7 @@ export const importOpenApi = async ({
       specs,
       override: output.override,
       tslint: output.tslint,
+      tsconfig: output.tsconfig,
     },
   });
 

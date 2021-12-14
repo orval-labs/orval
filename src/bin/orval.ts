@@ -40,6 +40,7 @@ cli
   .option('--clean [path]', 'Clean output directory')
   .option('--prettier [path]', 'Prettier generated files')
   .option('--tslint [path]', 'tslint generated files')
+  .option('--tsconfig [path]', 'path to your tsconfig file')
   .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({

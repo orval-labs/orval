@@ -107,6 +107,7 @@ const generateVerbOptions = async ({
     name: operationName,
     mutator: override?.mutator,
     workspace: context.workspace,
+    tsconfig: context.tsconfig,
   });
 
   const formData =
@@ -116,6 +117,7 @@ const generateVerbOptions = async ({
           name: operationName,
           mutator: override.formData,
           workspace: context.workspace,
+          tsconfig: context.tsconfig,
         })
       : undefined;
 
@@ -126,6 +128,7 @@ const generateVerbOptions = async ({
           name: operationName,
           mutator: override.formUrlEncoded,
           workspace: context.workspace,
+          tsconfig: context.tsconfig,
         })
       : undefined;
 

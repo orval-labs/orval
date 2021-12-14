@@ -6,6 +6,7 @@ import {
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { sanitize, toObjectString } from '../../utils/string';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateVerbImports } from './imports';
 import {
   generateFormDataAndUrlEncodedFunction,
@@ -17,7 +18,12 @@ import {
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
-      { name: 'axios', default: true, values: true },
+      {
+        name: 'axios',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
     ],
@@ -40,11 +46,15 @@ const generateAxiosImplementation = (
     formData,
     formUrlEncoded,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    context.tsconfig,
+  );
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -103,7 +113,9 @@ const generateAxiosImplementation = (
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
-    return axios.${verb}(${options});
+    return axios${
+      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+    }.${verb}(${options});
   }
 `;
 };

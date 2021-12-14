@@ -5,6 +5,7 @@ import { WriteModeProps } from '../../types/writers';
 import { camel, kebab } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { relativeSafe } from '../../utils/path';
+import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateClientImports } from '../generators/client';
 import { generateMutatorImports } from '../generators/imports';
 import { generateModelsInline } from '../generators/modelsInline';
@@ -24,6 +25,10 @@ export const writeSplitTagsMode = async ({
   });
 
   const target = generateTargetForTags(operations, output);
+
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    output.tsconfig,
+  );
 
   const generatedFilePathsArray = await Promise.all(
     Object.entries(target).map(async ([tag, target]) => {
@@ -51,6 +56,7 @@ export const writeSplitTagsMode = async ({
           [{ exports: imports, dependency: relativeSchemasPath }],
           specsName,
           !!output.schemas,
+          isSyntheticDefaultImportsAllowed,
         );
         mswData += generateMSWImports(
           implementationMSW,
@@ -62,6 +68,7 @@ export const writeSplitTagsMode = async ({
           ],
           specsName,
           !!output.schemas,
+          isSyntheticDefaultImportsAllowed,
         );
 
         const schemasPath = !output.schemas
