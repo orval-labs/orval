@@ -169,6 +169,7 @@ const generateImplementation = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    isAngular: true,
   });
 
   return ` ${operationName}<TData = ${

@@ -11,14 +11,9 @@ import { stringify } from '../../utils/string';
 
 export const generateBodyOptions = (
   body: GetterBody,
-  verb: Verbs,
   isFormData: boolean,
   isFormUrlEncoded: boolean,
 ) => {
-  if (!VERBS_WITH_BODY.includes(verb)) {
-    return '';
-  }
-
   if (isFormData && body.formData) {
     return '\n      formData,';
   }
@@ -27,7 +22,11 @@ export const generateBodyOptions = (
     return '\n      formUrlEncoded,';
   }
 
-  return `\n      ${body.implementation || 'undefined'},`;
+  if (body.implementation) {
+    return `\n      ${body.implementation},`;
+  }
+
+  return '';
 };
 
 export const generateAxiosOptions = (
@@ -74,6 +73,7 @@ export const generateOptions = ({
   requestOptions,
   isFormData,
   isFormUrlEncoded,
+  isAngular,
 }: {
   route: string;
   body: GetterBody;
@@ -83,13 +83,12 @@ export const generateOptions = ({
   requestOptions?: object | boolean;
   isFormData: boolean;
   isFormUrlEncoded: boolean;
+  isAngular?: boolean;
 }) => {
-  const bodyOptions = generateBodyOptions(
-    body,
-    verb,
-    isFormData,
-    isFormUrlEncoded,
-  );
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
+  const bodyOptions = isBodyVerb
+    ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
+    : '';
 
   const axiosOptions = generateAxiosOptions(
     response,
@@ -98,26 +97,29 @@ export const generateOptions = ({
   );
 
   if (verb === Verbs.DELETE) {
-    return `\n      \`${route}\`,{data:${bodyOptions} ${
+    if (!bodyOptions) {
+      return `\n      \`${route}\`,${
+        axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`
+      }\n    `;
+    }
+
+    return `\n      \`${route}\`,{${
+      isAngular ? 'body' : 'data'
+    }:${bodyOptions} ${
       axiosOptions === 'options' ? `...${axiosOptions}` : axiosOptions
     }}\n    `;
   }
 
-  return `\n      \`${route}\`,${bodyOptions}${
-    axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`
-  }\n    `;
+  return `\n      \`${route}\`,${
+    isBodyVerb ? bodyOptions || 'undefined,' : ''
+  }${axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`}\n    `;
 };
 
 export const generateBodyMutatorConfig = (
   body: GetterBody,
-  verb: Verbs,
   isFormData: boolean,
   isFormUrlEncoded: boolean,
 ) => {
-  if (!VERBS_WITH_BODY.includes(verb)) {
-    return '';
-  }
-
   if (isFormData && body.formData) {
     return ',\n       data: formData';
   }
@@ -126,7 +128,11 @@ export const generateBodyMutatorConfig = (
     return ',\n       data: formUrlEncoded';
   }
 
-  return `,\n      data: ${body.implementation || 'undefined'}`;
+  if (body.implementation) {
+    return `,\n      data: ${body.implementation}`;
+  }
+
+  return '';
 };
 
 export const generateQueryParamsAxiosConfig = (
@@ -167,12 +173,17 @@ export const generateMutatorConfig = ({
   isFormData: boolean;
   isFormUrlEncoded: boolean;
 }) => {
-  return `{url: \`${route}\`, method: '${verb}'${generateBodyMutatorConfig(
-    body,
-    verb,
-    isFormData,
-    isFormUrlEncoded,
-  )}${generateQueryParamsAxiosConfig(response, queryParams?.schema)}\n    }`;
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
+  const bodyOptions = isBodyVerb
+    ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
+    : '';
+
+  const queryParamsOptions = generateQueryParamsAxiosConfig(
+    response,
+    queryParams?.schema,
+  );
+
+  return `{url: \`${route}\`, method: '${verb}'${bodyOptions}${queryParamsOptions}\n    }`;
 };
 
 export const generateMutatorRequestOptions = (
