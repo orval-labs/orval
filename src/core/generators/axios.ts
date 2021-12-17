@@ -83,14 +83,15 @@ const generateAxiosImplementation = (
         )
       : '';
 
-    return `const ${operationName} = <TData = ${
-      response.definition.success || 'unknown'
-    }>(\n    ${toObjectString(props, 'implementation')}\n ${
+    return `const ${operationName} = ${toObjectString(
+      props,
+      'implementation',
+    )}\n ${
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}
-      return ${mutator.name}<TData>(
+      return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
     }

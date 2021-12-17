@@ -15,6 +15,12 @@ export const generalJSTypesWithArray = generalJSTypes.reduce<string[]>(
   [],
 );
 
-export const VERBS_WITH_BODY = [Verbs.POST, Verbs.PUT, Verbs.PATCH, Verbs.DELETE];
+export const VERBS_WITH_BODY = [
+  Verbs.POST,
+  Verbs.PUT,
+  Verbs.PATCH,
+  Verbs.DELETE,
+];
 
-export const URL_REGEX = /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
+export const URL_REGEX =
+  /^(?:http(s)?:\/\/)?[\w.-]+(?:\.[\w\.-]+)+[\w\-\._~:/?#[\]@!\$&'\(\)\*\+,;=.]+$/;
