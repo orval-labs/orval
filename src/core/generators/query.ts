@@ -618,12 +618,14 @@ export const generateQueryHeader = ({
 }: {
   isRequestOptions: boolean;
   isMutator: boolean;
-}) => `type AsyncReturnType<
+}) => `// eslint-disable-next-line @typescript-eslint/no-explicit-any\n
+type AsyncReturnType<
 T extends (...args: any) => Promise<any>
 > = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
 ${
   isRequestOptions && isMutator
-    ? `type SecondParameter<T extends (...args: any) => any> = T extends (
+    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any\n
+  type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
 ) => any
