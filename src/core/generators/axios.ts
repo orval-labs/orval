@@ -83,7 +83,7 @@ const generateAxiosImplementation = (
         )
       : '';
 
-    return `const ${operationName} = ${toObjectString(
+    return `const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
     )}\n ${
