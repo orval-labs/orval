@@ -46,17 +46,8 @@ export const getResponse = async (
     { success: [], errors: [] },
   );
 
-  const imports = types.reduce<GeneratorImport[]>((acc, { imports = [] }) => {
-    acc.push(...imports);
-
-    return acc;
-  }, []);
-
-  const schemas = types.reduce<GeneratorSchema[]>((acc, { schemas = [] }) => {
-    acc.push(...schemas);
-
-    return acc;
-  }, []);
+  const imports = types.flatMap(({ imports }) => imports);
+  const schemas = types.flatMap(({ schemas }) => schemas);
 
   const contentTypes = [
     ...new Set(types.map(({ contentType }) => contentType)),

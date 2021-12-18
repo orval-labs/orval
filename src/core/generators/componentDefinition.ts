@@ -39,23 +39,8 @@ export const generateComponentDefinition = (
         'void',
       );
 
-      const imports = allResponseTypes.reduce<GeneratorImport[]>(
-        (acc, { imports = [] }) => {
-          acc.push(...imports);
-
-          return acc;
-        },
-        [],
-      );
-
-      const schemas = allResponseTypes.reduce<GeneratorSchema[]>(
-        (acc, { schemas = [] }) => {
-          acc.push(...schemas);
-
-          return acc;
-        },
-        [],
-      );
+      const imports = allResponseTypes.flatMap(({ imports }) => imports);
+      const schemas = allResponseTypes.flatMap(({ schemas }) => schemas);
 
       const type = allResponseTypes.map(({ value }) => value).join(' | ');
 

@@ -87,16 +87,8 @@ export const getQueryParams = async ({
     return;
   }
   const types = await getQueryParamsTypes(queryParams, operationName, context);
-  const imports = types.reduce<GeneratorImport[]>((acc, { imports = [] }) => {
-    acc.push(...imports);
-
-    return acc;
-  }, []);
-  const schemas = types.reduce<GeneratorSchema[]>((acc, { schemas = [] }) => {
-    acc.push(...schemas);
-
-    return acc;
-  }, []);
+  const imports = types.flatMap(({ imports }) => imports);
+  const schemas = types.flatMap(({ schemas }) => schemas);
   const name = `${pascal(operationName)}Params`;
 
   const type = types.map(({ definition }) => definition).join('; ');

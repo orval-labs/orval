@@ -108,9 +108,5 @@ export const writeTagsMode = async ({
     }),
   );
 
-  return generatedFilePathsArray.reduce((acc, it) => {
-    acc.push(...it);
-
-    return acc;
-  }, []);
+  return generatedFilePathsArray.flatMap((it) => it);
 };

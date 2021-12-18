@@ -17,22 +17,8 @@ export const getBody = async (
     context,
   );
 
-  const imports = allBodyTypes.reduce<GeneratorImport[]>(
-    (acc, { imports = [] }) => {
-      acc.push(...imports);
-
-      return acc;
-    },
-    [],
-  );
-  const schemas = allBodyTypes.reduce<GeneratorSchema[]>(
-    (acc, { schemas = [] }) => {
-      acc.push(...schemas);
-
-      return acc;
-    },
-    [],
-  );
+  const imports = allBodyTypes.flatMap(({ imports }) => imports);
+  const schemas = allBodyTypes.flatMap(({ schemas }) => schemas)
 
   const definition = allBodyTypes.map(({ value }) => value).join(' | ');
 
