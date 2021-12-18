@@ -14,13 +14,13 @@ import { getMockScalar } from '../getters/scalar.mock';
 import { resolveRef } from '../resolvers/ref';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
-  Object.entries(isFunction(properties) ? properties(spec) : properties).reduce(
-    (acc, [key, value]) => ({
-      ...acc,
-      [key]: isFunction(value) ? `(${value})()` : stringify(value as string),
-    }),
-    {},
-  );
+  Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<
+    Record<string, string>
+  >((acc, [key, value]) => {
+    acc[key] = isFunction(value) ? `(${value})()` : stringify(value as string)!;
+
+    return acc;
+  }, {});
 
 const getMockWithoutFunc = (
   spec: OpenAPIObject,
@@ -42,38 +42,38 @@ const getMockWithoutFunc = (
     : {}),
   ...(override?.operations
     ? {
-        operations: Object.entries(override.operations).reduce(
-          (acc, [key, value]) => ({
-            ...acc,
-            [key]: value.mock?.properties
-              ? {
-                  properties: getMockPropertiesWithoutFunc(
-                    value.mock.properties,
-                    spec,
-                  ),
-                }
-              : {},
-          }),
-          {},
-        ),
+        operations: Object.entries(override.operations).reduce<
+          Exclude<MockOptions['operations'], undefined>
+        >((acc, [key, value]) => {
+          if (value.mock?.properties) {
+            acc[key] = {
+              properties: getMockPropertiesWithoutFunc(
+                value.mock.properties,
+                spec,
+              ),
+            };
+          }
+
+          return acc;
+        }, {}),
       }
     : {}),
   ...(override?.tags
     ? {
-        tags: Object.entries(override.tags).reduce(
-          (acc, [key, value]) => ({
-            ...acc,
-            [key]: value.mock?.properties
-              ? {
-                  properties: getMockPropertiesWithoutFunc(
-                    value.mock.properties,
-                    spec,
-                  ),
-                }
-              : {},
-          }),
-          {},
-        ),
+        tags: Object.entries(override.tags).reduce<
+          Exclude<MockOptions['tags'], undefined>
+        >((acc, [key, value]) => {
+          if (value.mock?.properties) {
+            acc[key] = {
+              properties: getMockPropertiesWithoutFunc(
+                value.mock.properties,
+                spec,
+              ),
+            };
+          }
+
+          return acc;
+        }, {}),
       }
     : {}),
 });
@@ -117,10 +117,10 @@ export const getResponsesMockDefinition = ({
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
-        acc.definitions = [
-          ...acc.definitions,
+        acc.definitions.push(
           transformer ? transformer(value, response.definition.success) : value,
-        ];
+        );
+
         return acc;
       }
 
@@ -149,13 +149,12 @@ export const getResponsesMockDefinition = ({
         context,
       });
 
-      acc.imports = [...acc.imports, ...scalar.imports];
-      acc.definitions = [
-        ...acc.definitions,
+      acc.imports.push(...scalar.imports);
+      acc.definitions.push(
         transformer
           ? transformer(scalar.value, response.definition.success)
           : scalar.value.toString(),
-      ];
+      );
 
       return acc;
     },

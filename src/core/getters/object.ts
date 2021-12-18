@@ -107,11 +107,11 @@ export const getObject = async ({
 
         const doc = jsDoc(schema as SchemaObject, true);
 
-        acc.imports = [...acc.imports, ...resolvedValue.imports];
+        acc.imports.push(...resolvedValue.imports);
         acc.value += `\n  ${doc ? `${doc}  ` : ''}${
           isReadOnly ? 'readonly ' : ''
         }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
-        acc.schemas = [...acc.schemas, ...resolvedValue.schemas];
+        acc.schemas.push(...resolvedValue.schemas);
 
         if (arr.length - 1 === index) {
           acc.value += '\n}';

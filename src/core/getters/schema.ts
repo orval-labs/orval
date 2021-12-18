@@ -9,21 +9,21 @@ export const getSchema = (
 ) => {
   const schemas = Object.entries(
     context.specs[specKey].components?.schemas || [],
-  ).reduce((acc, [name, type]) => ({ ...acc, [name]: type }), {}) as {
-    [key: string]: SchemaObject;
-  };
+  ).reduce<Record<string, SchemaObject>>((acc, [name, type]) => {
+    acc[name] = type;
+
+    return acc;
+  }, {});
 
   const responses = Object.entries(
     context.specs[specKey].components?.responses || [],
-  ).reduce(
-    (acc, [name, type]) => ({
-      ...acc,
-      [name]: isReference(type)
-        ? type
-        : type.content?.['application/json']?.schema,
-    }),
-    {},
-  ) as { [key: string]: SchemaObject };
+  ).reduce<Record<string, SchemaObject | undefined>>((acc, [name, type]) => {
+    acc[name] = isReference(type)
+      ? type
+      : type.content?.['application/json']?.schema;
+
+    return acc;
+  }, {});
 
   const allSchemas = { ...schemas, ...responses };
 

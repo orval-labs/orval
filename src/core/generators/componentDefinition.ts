@@ -40,12 +40,20 @@ export const generateComponentDefinition = (
       );
 
       const imports = allResponseTypes.reduce<GeneratorImport[]>(
-        (acc, { imports = [] }) => [...acc, ...imports],
+        (acc, { imports = [] }) => {
+          acc.push(...imports);
+
+          return acc;
+        },
         [],
       );
 
       const schemas = allResponseTypes.reduce<GeneratorSchema[]>(
-        (acc, { schemas = [] }) => [...acc, ...schemas],
+        (acc, { schemas = [] }) => {
+          acc.push(...schemas);
+
+          return acc;
+        },
         [],
       );
 
@@ -55,19 +63,17 @@ export const generateComponentDefinition = (
       const doc = jsDoc(response as ResponseObject | RequestBodyObject);
       const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
 
-      return [
-        ...acc,
-        ...schemas,
-        ...(modelName !== type
-          ? [
-              {
-                name: modelName,
-                model,
-                imports,
-              },
-            ]
-          : []),
-      ];
+      acc.push(...schemas);
+
+      if (modelName !== type) {
+        acc.push({
+          name: modelName,
+          model,
+          imports,
+        });
+      }
+
+      return acc;
     },
     [] as GeneratorSchema[],
   );

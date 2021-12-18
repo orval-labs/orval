@@ -12,11 +12,13 @@ export function mergeDeep<T extends Record<string, any>>(
     const sourceValue = acc[key];
 
     if (Array.isArray(sourceValue) && Array.isArray(value)) {
-      return { ...acc, [key]: [...sourceValue, ...value] };
+      (acc[key] as any) = [...sourceValue, ...value];
+    } else if (isObject(sourceValue) && isObject(value)) {
+      (acc[key] as any) = mergeDeep(sourceValue, value);
+    } else {
+      (acc[key] as any) = value;
     }
-    if (isObject(sourceValue) && isObject(value)) {
-      return { ...acc, [key]: mergeDeep(sourceValue, value) };
-    }
-    return { ...acc, [key]: value };
+
+    return acc;
   }, source);
 }

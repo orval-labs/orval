@@ -20,22 +20,15 @@ export const getParameters = async ({
           await resolveRef<ParameterObject>(p, context);
 
         if (parameter.in === 'path' || parameter.in === 'query') {
-          return {
-            ...acc,
-            [parameter.in]: [...acc[parameter.in], { parameter, imports }],
-          };
+          acc[parameter.in].push({ parameter, imports });
         }
-
-        return acc;
       } else {
-        if (p.in !== 'query' && p.in !== 'path') {
-          return acc;
+        if (p.in === 'query' || p.in === 'path') {
+          acc[p.in].push({ parameter: p, imports: [] });
         }
-        return {
-          ...acc,
-          [p.in]: [...acc[p.in], { parameter: p, imports: [] }],
-        };
       }
+
+      return acc;
     },
     {
       path: [],

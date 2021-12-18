@@ -100,10 +100,11 @@ export const generateConfig = async (
 
   const normalizedConfig = await asyncReduce(
     Object.entries(config),
-    async (acc, [key, value]) => ({
-      ...acc,
-      [key]: await normalizeOptions(value, workspace, options),
-    }),
+    async (acc, [key, value]) => {
+      acc[key] = await normalizeOptions(value, workspace, options);
+
+      return acc;
+    },
     {} as NormizaledConfig,
   );
 
