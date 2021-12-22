@@ -27,10 +27,11 @@ export const writeSpecs = async (
 
   const specsName = Object.keys(schemas).reduce((acc, specKey) => {
     const basePath = getSpecName(specKey, target);
-
     const name = basePath.slice(1).split('/').join('-');
 
-    return { ...acc, [specKey]: name };
+    acc[specKey] = name;
+
+    return acc;
   }, {} as Record<keyof typeof schemas, string>);
 
   const header = output.override.header

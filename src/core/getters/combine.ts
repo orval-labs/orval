@@ -41,15 +41,14 @@ export const combineSchemas = async ({
         context,
       });
 
-      return {
-        ...acc,
-        values: [...acc.values, resolvedValue.value],
-        imports: [...acc.imports, ...resolvedValue.imports],
-        schemas: [...acc.schemas, ...resolvedValue.schemas],
-        isEnum: [...acc.isEnum, resolvedValue.isEnum],
-        types: [...acc.types, resolvedValue.type],
-        isRef: [...acc.isRef, resolvedValue.isRef],
-      };
+      acc.values.push(resolvedValue.value);
+      acc.imports.push(...resolvedValue.imports);
+      acc.schemas.push(...resolvedValue.schemas);
+      acc.isEnum.push(resolvedValue.isEnum);
+      acc.types.push(resolvedValue.type);
+      acc.isRef.push(resolvedValue.isRef);
+
+      return acc;
     },
     {
       values: [],

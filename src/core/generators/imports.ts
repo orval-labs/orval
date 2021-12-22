@@ -107,17 +107,16 @@ export const addDependency = ({
   >((acc, dep) => {
     const key = hasSchemaDir && dep.specKey ? dep.specKey : 'default';
 
-    return {
-      ...acc,
-      [key]: {
-        values:
-          acc[key]?.values ||
-          (dep.values &&
-            (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)) ||
-          false,
-        deps: [...(acc[key]?.deps || []), dep],
-      },
+    acc[key] = {
+      values:
+        acc[key]?.values ||
+        (dep.values &&
+          (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)) ||
+        false,
+      deps: [...(acc[key]?.deps || []), dep],
     };
+
+    return acc;
   }, {});
 
   return Object.entries(groupedBySpecKey)
@@ -195,9 +194,6 @@ export const generateVerbImports = ({
 }: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
-  ...params.reduce<GeneratorImport[]>(
-    (acc, param) => [...acc, ...param.imports],
-    [],
-  ),
   ...(queryParams ? [{ name: queryParams.schema.name }] : []),
+  ...params.flatMap<GeneratorImport>(({ imports }) => imports),
 ];

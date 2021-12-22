@@ -239,20 +239,19 @@ export const generateClient = (
       const client = generatorClient(verbOption, options, outputClient);
       const msw = await generateMock(verbOption, options);
 
-      return {
-        ...acc,
-        [verbOption.operationId]: {
-          implementation: verbOption.doc + client.implementation,
-          imports: client.imports,
-          implementationMSW: msw.implementation,
-          importsMSW: msw.imports,
-          tags: verbOption.tags,
-          mutator: verbOption.mutator,
-          formData: verbOption.formData,
-          formUrlEncoded: verbOption.formUrlEncoded,
-          operationName: verbOption.operationName,
-        },
+      acc[verbOption.operationId] = {
+        implementation: verbOption.doc + client.implementation,
+        imports: client.imports,
+        implementationMSW: msw.implementation,
+        importsMSW: msw.imports,
+        tags: verbOption.tags,
+        mutator: verbOption.mutator,
+        formData: verbOption.formData,
+        formUrlEncoded: verbOption.formUrlEncoded,
+        operationName: verbOption.operationName,
       };
+
+      return acc;
     },
     {} as GeneratorOperations,
   );

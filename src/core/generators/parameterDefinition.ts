@@ -26,24 +26,23 @@ export const generateParameterDefinition = (
       }
 
       if (!schema.schema || imports.length) {
-        return [
-          ...acc,
-          {
-            name: modelName,
-            imports: imports.length
-              ? [
-                  {
-                    name: imports[0].name,
-                    specKey: imports[0].specKey,
-                    schemaName: imports[0].schemaName,
-                  },
-                ]
-              : [],
-            model: `export type ${modelName} = ${
-              imports.length ? imports[0].name : 'unknown'
-            };\n`,
-          },
-        ];
+        acc.push({
+          name: modelName,
+          imports: imports.length
+            ? [
+                {
+                  name: imports[0].name,
+                  specKey: imports[0].specKey,
+                  schemaName: imports[0].schemaName,
+                },
+              ]
+            : [],
+          model: `export type ${modelName} = ${
+            imports.length ? imports[0].name : 'unknown'
+          };\n`,
+        });
+
+        return acc;
       }
 
       const resolvedObject = await resolveObject({
@@ -58,19 +57,17 @@ export const generateParameterDefinition = (
         resolvedObject.value || 'unknown'
       };\n`;
 
-      return [
-        ...acc,
-        ...resolvedObject.schemas,
-        ...(modelName !== resolvedObject.value
-          ? [
-              {
-                name: modelName,
-                model,
-                imports: resolvedObject.imports,
-              },
-            ]
-          : []),
-      ];
+      acc.push(...resolvedObject.schemas);
+
+      if (modelName !== resolvedObject.value) {
+        acc.push({
+          name: modelName,
+          model,
+          imports: resolvedObject.imports,
+        });
+      }
+
+      return acc;
     },
     [] as GeneratorSchema[],
   );

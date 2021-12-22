@@ -138,7 +138,7 @@ export const generateAxiosHeader = ({
   noFunction?: boolean;
 }) => `${
   isRequestOptions && isMutator
-    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any\n
+    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
   type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
