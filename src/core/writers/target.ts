@@ -24,24 +24,24 @@ export const generateTarget = (
 
   const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
-      acc.imports = [...acc.imports, ...operation.imports];
-      acc.importsMSW = [...acc.importsMSW, ...operation.importsMSW];
+      acc.imports.push(...operation.imports);
+      acc.importsMSW.push(...operation.importsMSW);
       acc.implementation += operation.implementation + '\n';
       acc.implementationMSW.function += operation.implementationMSW.function;
       acc.implementationMSW.handler += operation.implementationMSW.handler;
       if (operation.mutator) {
-        acc.mutators = [...acc.mutators, operation.mutator];
+        acc.mutators.push(operation.mutator);
       }
 
       if (operation.formData) {
-        acc.formData = [...acc.formData, operation.formData];
+        acc.formData.push(operation.formData);
       }
       if (operation.formUrlEncoded) {
-        acc.formUrlEncoded = [...acc.formUrlEncoded, operation.formUrlEncoded];
+        acc.formUrlEncoded.push(operation.formUrlEncoded);
       }
 
       if (index === arr.length - 1) {
-        const isMutator = !!acc.mutators?.some(
+        const isMutator = acc.mutators.some(
           (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
         );
         const header = generateClientHeader({
@@ -61,7 +61,6 @@ export const generateTarget = (
         const footer = generateClientFooter(options?.client, operationNames);
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;
-        acc.imports = acc.imports;
       }
       return acc;
     },

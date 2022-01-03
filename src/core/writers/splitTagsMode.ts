@@ -126,5 +126,5 @@ export const writeSplitTagsMode = async ({
     }),
   );
 
-  return generatedFilePathsArray.reduce((acc, it) => [...acc, ...it], []);
+  return generatedFilePathsArray.flatMap((it) => it);
 };

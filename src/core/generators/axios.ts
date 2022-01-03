@@ -83,14 +83,15 @@ const generateAxiosImplementation = (
         )
       : '';
 
-    return `const ${operationName} = <TData = ${
-      response.definition.success || 'unknown'
-    }>(\n    ${toObjectString(props, 'implementation')}\n ${
+    return `const ${operationName} = (\n    ${toObjectString(
+      props,
+      'implementation',
+    )}\n ${
       isRequestOptions && isMutatorHasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}
-      return ${mutator.name}<TData>(
+      return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
     }
@@ -137,7 +138,8 @@ export const generateAxiosHeader = ({
   noFunction?: boolean;
 }) => `${
   isRequestOptions && isMutator
-    ? `type SecondParameter<T extends (...args: any) => any> = T extends (
+    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
 ) => any
