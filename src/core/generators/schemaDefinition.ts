@@ -36,15 +36,16 @@ export const generateSchemasDefinition = async (
         !isReference(schema) &&
         !schema.nullable
       ) {
-        return [
-          ...acc,
+        acc.push(
           ...(await generateInterface({
             name: schemaName,
             schema,
             context,
             suffix,
           })),
-        ];
+        );
+
+        return acc;
       } else {
         const resolvedValue = await resolveValue({
           schema,
@@ -88,15 +89,13 @@ export const generateSchemasDefinition = async (
           output += `export type ${schemaName} = ${resolvedValue.value};\n`;
         }
 
-        return [
-          ...acc,
-          ...resolvedValue.schemas,
-          {
-            name: schemaName,
-            model: output,
-            imports,
-          },
-        ];
+        acc.push(...resolvedValue.schemas, {
+          name: schemaName,
+          model: output,
+          imports,
+        });
+
+        return acc;
       }
     },
     [] as GeneratorSchema[],

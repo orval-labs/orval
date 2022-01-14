@@ -174,20 +174,20 @@ export const generateVerbsOptions = ({
   asyncReduce(
     Object.entries(verbs),
     async (acc, [verb, operation]: [string, OperationObject]) => {
-      if (!isVerb(verb)) {
-        return acc;
+      if (isVerb(verb)) {
+        const verbOptions = await generateVerbOptions({
+          verb,
+          output,
+          verbParameters: verbs.parameters,
+          route,
+          operation,
+          context,
+        });
+
+        acc.push(verbOptions);
       }
 
-      const verbOptions = await generateVerbOptions({
-        verb,
-        output,
-        verbParameters: verbs.parameters,
-        route,
-        operation,
-        context,
-      });
-
-      return [...acc, verbOptions];
+      return acc;
     },
     [] as GeneratorVerbsOptions,
   );

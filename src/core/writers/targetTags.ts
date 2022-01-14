@@ -24,10 +24,9 @@ const generateTargetTags = (
 } =>
   operation.tags.reduce((acc, tag) => {
     const currentOperation = acc[tag];
-    if (!currentOperation) {
-      return {
-        ...acc,
-        [tag]: {
+
+    acc[tag] = !currentOperation
+      ? {
           imports: operation.imports,
           importsMSW: operation.importsMSW,
           mutators: operation.mutator ? [operation.mutator] : [],
@@ -40,39 +39,35 @@ const generateTargetTags = (
             function: operation.implementationMSW.function,
             handler: operation.implementationMSW.handler,
           },
-        },
-      };
-    }
+        }
+      : {
+          implementation:
+            currentOperation.implementation + operation.implementation,
+          imports: [...currentOperation.imports, ...operation.imports],
+          importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
+          implementationMSW: {
+            function:
+              currentOperation.implementationMSW.function +
+              operation.implementationMSW.function,
+            handler:
+              currentOperation.implementationMSW.handler +
+              operation.implementationMSW.handler,
+          },
+          mutators: operation.mutator
+            ? [...(currentOperation.mutators || []), operation.mutator]
+            : currentOperation.mutators,
+          formData: operation.formData
+            ? [...(currentOperation.formData || []), operation.formData]
+            : currentOperation.formData,
+          formUrlEncoded: operation.formUrlEncoded
+            ? [
+                ...(currentOperation.formUrlEncoded || []),
+                operation.formUrlEncoded,
+              ]
+            : currentOperation.formUrlEncoded,
+        };
 
-    return {
-      ...acc,
-      [tag]: {
-        implementation:
-          currentOperation.implementation + operation.implementation,
-        imports: [...currentOperation.imports, ...operation.imports],
-        importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
-        implementationMSW: {
-          function:
-            currentOperation.implementationMSW.function +
-            operation.implementationMSW.function,
-          handler:
-            currentOperation.implementationMSW.handler +
-            operation.implementationMSW.handler,
-        },
-        mutators: operation.mutator
-          ? [...(currentOperation.mutators || []), operation.mutator]
-          : currentOperation.mutators,
-        formData: operation.formData
-          ? [...(currentOperation.formData || []), operation.formData]
-          : currentOperation.formData,
-        formUrlEncoded: operation.formUrlEncoded
-          ? [
-              ...(currentOperation.formUrlEncoded || []),
-              operation.formUrlEncoded,
-            ]
-          : currentOperation.formUrlEncoded,
-      },
-    };
+    return acc;
   }, currentAcc);
 
 export const generateTargetForTags = (
@@ -92,7 +87,9 @@ export const generateTargetForTags = (
       if (index === arr.length - 1) {
         const footer = generateClientFooter(options?.client, operationNames);
 
-        return Object.entries(targetTags).reduce((acc, [tag, target]) => {
+        return Object.entries(targetTags).reduce<
+          Record<string, GeneratorTargetFull>
+        >((acc, [tag, target]) => {
           const isMutator = !!target.mutators?.some(
             (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
           );
@@ -106,41 +103,43 @@ export const generateTargetForTags = (
             provideInRoot: !!options.override.angular.provideIn,
             provideIn: options.override.angular.provideIn,
           });
-          return {
-            ...acc,
-            [tag]: {
-              implementation:
-                header.implementation +
-                target.implementation +
-                footer.implementation,
-              implementationMSW: {
-                function: target.implementationMSW.function,
-                handler:
-                  header.implementationMSW +
-                  target.implementationMSW.handler +
-                  footer.implementationMSW,
-              },
-              imports: target.imports,
-              importsMSW: target.importsMSW,
-              mutators: target.mutators,
-              formData: target.formData,
-              formUrlEncoded: target.formUrlEncoded,
+
+          acc[tag] = {
+            implementation:
+              header.implementation +
+              target.implementation +
+              footer.implementation,
+            implementationMSW: {
+              function: target.implementationMSW.function,
+              handler:
+                header.implementationMSW +
+                target.implementationMSW.handler +
+                footer.implementationMSW,
             },
+            imports: target.imports,
+            importsMSW: target.importsMSW,
+            mutators: target.mutators,
+            formData: target.formData,
+            formUrlEncoded: target.formUrlEncoded,
           };
+
+          return acc;
         }, {});
       }
 
       return targetTags;
     }, {} as { [key: string]: GeneratorTargetFull });
 
-  return Object.entries(allTargetTags).reduce((acc, [tag, target]) => {
-    return {
-      ...acc,
-      [tag]: {
+  return Object.entries(allTargetTags).reduce<Record<string, GeneratorTarget>>(
+    (acc, [tag, target]) => {
+      acc[tag] = {
         ...target,
         implementationMSW:
           target.implementationMSW.function + target.implementationMSW.handler,
-      },
-    };
-  }, {} as { [key: string]: GeneratorTarget });
+      };
+
+      return acc;
+    },
+    {},
+  );
 };

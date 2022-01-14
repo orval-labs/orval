@@ -83,7 +83,7 @@ const generateAxiosImplementation = (
         )
       : '';
 
-    return `const ${operationName} = ${toObjectString(
+    return `const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
     )}\n ${
@@ -138,7 +138,8 @@ export const generateAxiosHeader = ({
   noFunction?: boolean;
 }) => `${
   isRequestOptions && isMutator
-    ? `type SecondParameter<T extends (...args: any) => any> = T extends (
+    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
 ) => any
