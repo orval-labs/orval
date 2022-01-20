@@ -56,7 +56,7 @@ export const GENERATOR_CLIENT: GeneratorClients = {
   },
   'axios-functions': {
     client: (verbOptions: GeneratorVerbOptions, options: GeneratorOptions) => {
-      const { implementation, imports } = generateAxios(verbOptions, options);
+      const { implementation, imports } = generateAxios(verbOptions, {...options, noFunction: true });
 
       return {
         implementation: 'export ' + implementation,

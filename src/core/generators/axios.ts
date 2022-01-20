@@ -26,6 +26,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
       },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
+      { name: 'AxiosInstance' },
     ],
     dependency: 'axios',
   },
@@ -46,7 +47,7 @@ const generateAxiosImplementation = (
     formData,
     formUrlEncoded,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route, context, noFunction }: GeneratorOptions & {noFunction?: boolean},
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
@@ -114,7 +115,7 @@ const generateAxiosImplementation = (
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
-    return axios${
+    return ${noFunction === true ? 'axios' : 'localAxios'}${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
     }.${verb}(${options});
   }
@@ -147,14 +148,14 @@ export const generateAxiosHeader = ({
   : never;\n\n`
     : ''
 }
-  ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
+  ${!noFunction ? `export const ${title} = ({axios: localAxios = axios}: {axios?: AxiosInstance} = {}) => {\n` : ''}`;
 
 export const generateAxiosFooter = (operationNames: string[] = []) =>
   `return {${operationNames.join(',')}}};\n`;
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
+  options: GeneratorOptions & {noFunction?: boolean},
 ): GeneratorClient => {
   const imports = generateVerbImports(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);
