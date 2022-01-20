@@ -35,22 +35,19 @@ export const getResponse = async (
     success: ResReqTypesValue[];
     errors: ResReqTypesValue[];
   }>(
-    (acc, type) =>
-      type.key.startsWith('2')
-        ? { ...acc, success: [...acc.success, type] }
-        : { ...acc, errors: [...acc.errors, type] },
+    (acc, type) => {
+      if (type.key.startsWith('2')) {
+        acc.success.push(type);
+      } else {
+        acc.errors.push(type);
+      }
+      return acc;
+    },
     { success: [], errors: [] },
   );
 
-  const imports = types.reduce<GeneratorImport[]>(
-    (acc, { imports = [] }) => [...acc, ...imports],
-    [],
-  );
-
-  const schemas = types.reduce<GeneratorSchema[]>(
-    (acc, { schemas = [] }) => [...acc, ...schemas],
-    [],
-  );
+  const imports = types.flatMap(({ imports }) => imports);
+  const schemas = types.flatMap(({ schemas }) => schemas);
 
   const contentTypes = [
     ...new Set(types.map(({ contentType }) => contentType)),

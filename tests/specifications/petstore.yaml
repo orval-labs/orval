@@ -20,6 +20,19 @@ paths:
           required: false
           schema:
             type: string
+        - name: sort
+          in: query
+          description: |
+            Which property to sort by?
+            Example: name sorts ASC while -name sorts DESC.
+          required: false
+          schema:
+            type: string
+            enum:
+              - name
+              - -name
+              - email
+              - -email
       responses:
         '200':
           description: A paged array of pets

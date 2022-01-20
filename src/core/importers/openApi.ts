@@ -40,10 +40,9 @@ const generateInputSpecs = async ({
         await ibmOpenapiValidator(transfomedSchema);
       }
 
-      return {
-        ...acc,
-        [specKey]: transfomedSchema,
-      };
+      acc[specKey] = transfomedSchema;
+
+      return acc;
     },
     {} as Record<string, OpenAPIObject>,
   );
@@ -121,10 +120,9 @@ export const importOpenApi = async ({
         return acc;
       }
 
-      return {
-        ...acc,
-        [specKey]: schemas,
-      };
+      acc[specKey] = schemas;
+
+      return acc;
     },
     {} as Record<string, GeneratorSchema[]>,
   );

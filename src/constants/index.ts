@@ -11,7 +11,11 @@ export const generalJSTypes = [
 ];
 
 export const generalJSTypesWithArray = generalJSTypes.reduce<string[]>(
-  (acc, type) => [...acc, type, `Array<${type}>`, `${type}[]`],
+  (acc, type) => {
+    acc.push(type, `Array<${type}>`, `${type}[]`);
+
+    return acc;
+  },
   [],
 );
 

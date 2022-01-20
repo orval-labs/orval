@@ -200,7 +200,7 @@ export const getResReqTypes = async (
   );
 
   return uniqBy(
-    typesArray.reduce<ResReqTypesValue[]>((acc, it) => [...acc, ...it], []),
+    typesArray.flatMap((it) => it),
     'value',
   );
 };
