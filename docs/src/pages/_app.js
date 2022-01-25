@@ -37,7 +37,7 @@ function MyApp({ Component, pageProps, err }) {
           }}
         />
         <script async src="https://unpkg.com/thesemetrics@latest"></script>
-        <script defer data-domain="orval.dev" src="http://analytics.anymaniax.com/js/plausible.js"></script>
+        <script defer data-domain="orval.dev" src="https://analytics.anymaniax.com/js/plausible.js"></script>
       </Head>
       <SearchProvider>
         <Component {...pageProps} err={err} />
