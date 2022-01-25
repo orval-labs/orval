@@ -26,7 +26,7 @@ export const getEnumImplementation = (
     const key =
       isNumber || isTypeNumber
         ? toNumberKey(isTypeNumber ? val.toString() : val.slice(1, -1))
-        : sanitize(val, { underscore: '_', whitespace: '_' });
+        : sanitize(val, { underscore: '_', whitespace: '_', dash: '-' });
 
     return (
       acc +

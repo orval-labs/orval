@@ -51,10 +51,11 @@ export const sanitize = (
     whitespace?: string | true;
     underscore?: string | true;
     dot?: string | true;
+    dash?: string | true;
   },
 ) => {
-  const { whitespace = '', underscore = '', dot = '' } = options || {};
-  let newValue = value.replace(/[^\w\s.]/g, '');
+  const { whitespace = '', underscore = '', dot = '', dash = '' } = options || {};
+  let newValue = value.replace(/[^\w\s.-]/g, '');
 
   if (whitespace !== true) {
     newValue = newValue.replace(/[\s]/g, whitespace);
@@ -66,6 +67,10 @@ export const sanitize = (
 
   if (dot !== true) {
     newValue = newValue.replace(/[.]/g, dot);
+  }
+
+  if (dash !== true) {
+    newValue = newValue.replace(/[-]/g, dash);
   }
 
   return newValue;
