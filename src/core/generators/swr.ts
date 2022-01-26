@@ -167,7 +167,7 @@ const generateSwrArguments = ({
       : isMutatorHasSecondArg
       ? `request?: SecondParameter<typeof ${mutator.name}>`
       : ''
-  }}\n`;
+  } }\n`;
 };
 
 const generateSwrImplementation = ({
