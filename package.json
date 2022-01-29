@@ -49,10 +49,9 @@
     "release": "dotenv release-it",
     "postrelease": "yarn build && yarn update-samples",
     "generate-api": "node ./dist/bin/orval.js --config ./samples/react-query/basic/orval.config.ts --watch",
-    "prepare": "husky install",
+    "prepare": "husky install && cd ./samples/react-query/basic && yarn",
     "commitlint": "commitlint",
-    "update-samples": "zx ./scripts/update-samples.mjs",
-    "postinstall": "cd ./samples/react-query/basic && yarn"
+    "update-samples": "zx ./scripts/update-samples.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^15.0.0",
