@@ -51,7 +51,8 @@
     "generate-api": "node ./dist/bin/orval.js --config ./samples/react-query/basic/orval.config.ts --watch",
     "prepare": "husky install",
     "commitlint": "commitlint",
-    "update-samples": "zx ./scripts/update-samples.mjs"
+    "update-samples": "zx ./scripts/update-samples.mjs",
+    "postinstall": "cd ./samples/react-query/basic && yarn"
   },
   "devDependencies": {
     "@commitlint/cli": "^15.0.0",
