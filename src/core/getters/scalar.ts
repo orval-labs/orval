@@ -87,6 +87,10 @@ export const getScalar = async ({
         value = 'Blob';
       }
 
+      if (item.format === 'date' || item.format === 'date-time') {
+        value = 'Date';
+      }
+
       return {
         value: isEnum ? value : value + nullable,
         isEnum,
