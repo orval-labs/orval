@@ -162,6 +162,7 @@ export const normalizeOptions = async (
             outputOptions.override?.angular?.provideInRoot ??
             'root',
         },
+        useDates: outputOptions.override?.useDates || false,
       },
     },
   };

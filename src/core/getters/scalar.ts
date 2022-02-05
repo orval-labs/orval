@@ -87,8 +87,10 @@ export const getScalar = async ({
         value = 'Blob';
       }
 
-      if (item.format === 'date' || item.format === 'date-time') {
-        value = 'Date';
+      if (context.override.useDates) {
+        if (item.format === 'date' || item.format === 'date-time') {
+          value = 'Date';
+        }
       }
 
       return {
