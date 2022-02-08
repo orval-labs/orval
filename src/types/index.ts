@@ -235,6 +235,7 @@ export type OverrideOutput = {
     verb: Verbs,
   ) => string;
   requestOptions?: Record<string, any> | boolean;
+  useDates: boolean;
 };
 
 type QueryOptions = {
