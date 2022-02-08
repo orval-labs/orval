@@ -847,10 +847,13 @@ module.exports = {
 ```
 
 **Note:** You must provide and Axios converter to convert these to dates as this just makes the TypeScript definition a Date.
+You can choose to use any Date library you want like Moment, Luxon, or native JS Dates.
 
 ```ts
 // type signature
-const client = axios.create({baseURL: ''});
+const client = axios.create({
+    baseURL: ''
+});
 
 client.interceptors.response.use(originalResponse => {
     handleDates(originalResponse.data);
@@ -871,8 +874,14 @@ export function handleDates(body: any) {
 
     for (const key of Object.keys(body)) {
         const value = body[key];
-        if (isIsoDateString(value)) body[key] = new Date(value);
-        else if (typeof value === "object") handleDates(value);
+        if (isIsoDateString(value)) {
+            body[key] = new Date(value); // default JS conversion
+            // body[key] = parseISO(value); // date-fns conversion
+            // body[key] = luxon.DateTime.fromISO(value); // Luxon conversion
+            // body[key] = moment(value).toDate(); // Moment.js conversion
+        } else if (typeof value === "object") {
+            handleDates(value);
+        }
     }
 }
 ```
