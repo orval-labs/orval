@@ -83,7 +83,7 @@ export type NormalizedOverrideOutput = {
     verb: Verbs,
   ) => string;
   requestOptions: Record<string, any> | boolean;
-  useDates: boolean;
+  useDates?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -235,7 +235,7 @@ export type OverrideOutput = {
     verb: Verbs,
   ) => string;
   requestOptions?: Record<string, any> | boolean;
-  useDates: boolean;
+  useDates?: boolean;
 };
 
 type QueryOptions = {
