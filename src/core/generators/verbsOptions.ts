@@ -56,7 +56,10 @@ const generateVerbOptions = async ({
     summary,
   } = operation;
 
-  const operationId = getOperationId(operation, route, verb);
+  const overrideOperationId = output.override?.operationId;
+  const operationId = overrideOperationId
+    ? overrideOperationId(operation, route, verb)
+    : getOperationId(route, verb);
 
   const overrideOperation = output.override.operations[operation.operationId!];
   const overrideTag = Object.entries(

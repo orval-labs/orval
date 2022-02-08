@@ -82,6 +82,11 @@ export type NormalizedOverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
+  operationId?: (
+    operation: OperationObject,
+    route: string,
+    verb: Verbs,
+  ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
 };

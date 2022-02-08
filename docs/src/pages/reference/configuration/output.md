@@ -732,6 +732,42 @@ Type: `Object`.
 
 Exactly the same as the `override.operations` but this time you can do it by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
 
+#### operationId
+
+Type: `Function`.
+
+Function to override the generate operation id. The id is then used to generate all types and functions names.
+You can see <a href="https://github.com/anymaniax/orval/blob/next/src/core/getters/operation.ts" target="_blank">here</a> how we compute that id by default (`getOperationId`).
+
+**Important notice:** The id returned here should always be unique by route and verb otherwise you'll get naming conflicts when generating types/functions.
+
+
+```ts
+// type signature
+(operation: OperationObject, route: string, verb: Verbs) => string;
+// Example
+import { capitalize, camelCase } from 'lodash';
+const sanitizeId = (str) =>
+  str.replace(/[^\w{}]/g, '').replace(/{(\w+)}/g, 'By-$1');
+
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        // From: /api/endpoint/objects/{id}/index
+        // To: <verb>ApiEndpointObjectsByIdIndex
+        opearationId: (operation, route, verb) => {
+          return capitalize(
+            camelCase(
+              [verb, ...route.split('/').map((p) => sanitizeId(p))].join('-'),
+            ),
+          );
+        },
+      },
+    },
+  },
+};
+```
 #### operationName
 
 Type: `Function`.
@@ -741,7 +777,7 @@ Type: `Function`.
 (operation: OperationObject, route: string, verb: Verbs) => string;
 ```
 
-Function to override the generate operation name.
+Function to override the generate operation name. This will affect only the hook/client functions name.
 
 #### requestOptions
 
