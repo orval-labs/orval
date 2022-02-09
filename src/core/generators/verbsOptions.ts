@@ -79,9 +79,9 @@ const generateVerbOptions = async ({
     ? overrideOperationName(operation, route, verb)
     : camel(operationId);
 
-  const response = await getResponse(responses, operationId!, context);
+  const response = await getResponse(responses, operationName, context);
 
-  const body = await getBody(requestBody!, operationId!, context);
+  const body = await getBody(requestBody!, operationName, context);
   const parameters = await getParameters({
     parameters: [...verbParameters, ...(operationParameters || [])],
     context,

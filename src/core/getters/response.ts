@@ -1,13 +1,12 @@
 import { ResponsesObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
-import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
 import { ResReqTypesValue } from '../../types/resolvers';
 import { getResReqTypes } from './resReqTypes';
 
 export const getResponse = async (
   responses: ResponsesObject,
-  operationId: string,
+  operationName: string,
   context: ContextSpecs,
 ): Promise<GetterResponse> => {
   if (!responses) {
@@ -26,7 +25,7 @@ export const getResponse = async (
 
   const types = await getResReqTypes(
     Object.entries(responses),
-    operationId,
+    operationName,
     context,
     'void',
   );
