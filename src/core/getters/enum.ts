@@ -21,6 +21,8 @@ export const getEnumImplementation = (
   enumName: string,
 ) => {
   return [...new Set(value.split(' | '))].reduce((acc, val) => {
+    // nullable value shouldn't be in the enum implementation
+    if (val === 'null') return acc
     const isTypeNumber = type === 'number';
     const isNumber = !Number.isNaN(Number(val.slice(1, -1)));
     const key =

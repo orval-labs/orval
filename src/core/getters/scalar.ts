@@ -79,6 +79,7 @@ export const getScalar = async ({
           .map((enumItem: string) =>
             isString(enumItem) ? escape(enumItem) : enumItem,
           )
+          .filter(Boolean)
           .join(`' | '`)}'`;
         isEnum = true;
       }
@@ -94,7 +95,7 @@ export const getScalar = async ({
       }
 
       return {
-        value: isEnum ? value : value + nullable,
+        value: value + nullable,
         isEnum,
         type: 'string',
         imports: [],
