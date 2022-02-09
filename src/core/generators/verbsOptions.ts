@@ -5,6 +5,7 @@ import {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts';
+import { keyword } from 'esutils';
 import {
   ContextSpecs,
   NormalizedOperationOptions,
@@ -75,9 +76,12 @@ const generateVerbOptions = async ({
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
-  const operationName = overrideOperationName
+  const overriddenOperationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
     : camel(operationId);
+  const operationName = keyword.isKeyWordES5(overriddenOperationName)
+    ? `_${overriddenOperationName}`
+    : overriddenOperationName;
 
   const response = await getResponse(responses, operationName, context);
 
