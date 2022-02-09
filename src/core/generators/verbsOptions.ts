@@ -79,7 +79,7 @@ const generateVerbOptions = async ({
   const overriddenOperationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
     : camel(operationId);
-  const operationName = keyword.isKeyWordES5(overriddenOperationName)
+  const operationName = keyword.isKeyWordES5(overriddenOperationName, true)
     ? `_${overriddenOperationName}`
     : overriddenOperationName;
 
