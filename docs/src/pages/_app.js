@@ -2,7 +2,6 @@ import '@docsearch/react/dist/style.css';
 import * as Sentry from '@sentry/node';
 import { SearchProvider } from 'components/useSearch';
 import Head from 'next/head';
-import React from 'react';
 import '../styles/index.css';
 
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -36,8 +35,6 @@ function MyApp({ Component, pageProps, err }) {
           `,
           }}
         />
-        <script async src="https://unpkg.com/thesemetrics@latest"></script>
-        <script defer data-domain="orval.dev" src="https://analytics.anymaniax.com/js/plausible.js"></script>
       </Head>
       <SearchProvider>
         <Component {...pageProps} err={err} />
