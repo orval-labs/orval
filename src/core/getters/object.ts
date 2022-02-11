@@ -117,6 +117,19 @@ export const getObject = async ({
           acc.value += '\n}';
         }
 
+        if (item.additionalProperties) {
+          if (isBoolean(item.additionalProperties)) {
+            acc.value += ` & { [key: string]: any }`
+          } else {
+            const resolvedValue = await resolveValue({
+              schema: item.additionalProperties,
+              name,
+              context,
+            });
+            acc.value += ` & {[key: string]: ${resolvedValue.value}}`
+          }
+        }
+
         return acc;
       },
       {
