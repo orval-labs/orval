@@ -552,7 +552,16 @@ const generateQueryHook = (
       : response.definition.errors || 'unknown';
   }
 
+  const dataType = mutator?.isHook
+    ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+    : `typeof ${operationName}`;
+
   return `
+    export type ${pascal(
+      operationName,
+    )}QueryData = NonNullable<AsyncReturnType<${dataType}>>
+    export type ${pascal(operationName)}QueryError = ${errorType}
+
     export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
@@ -580,13 +589,9 @@ const generateQueryHook = (
       }
 
 
-      const mutationFn: MutationFunction<AsyncReturnType<${
-        mutator?.isHook
-          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-          : `typeof ${operationName}`
-      }>, ${definitions ? `{${definitions}}` : 'TVariables'}> = (${
-    properties ? 'props' : ''
-  }) => {
+      const mutationFn: MutationFunction<AsyncReturnType<${dataType}>, ${
+    definitions ? `{${definitions}}` : 'TVariables'
+  }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props || {}` : ''};
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
