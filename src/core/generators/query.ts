@@ -381,7 +381,7 @@ const generateQueryImplementation = ({
     : `typeof ${operationName}`;
 
   return `
-export type ${pascal(name)}QueryData = AsyncReturnType<${dataType}>
+export type ${pascal(name)}QueryData = NonNullable<AsyncReturnType<${dataType}>>
 export type ${pascal(name)}QueryError = ${errorType}
 
 export const ${camel(
