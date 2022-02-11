@@ -376,18 +376,25 @@ const generateQueryImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
+  const dataType = mutator?.isHook
+    ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+    : `typeof ${operationName}`;
+
   return `
-export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
-    mutator?.isHook
-      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-      : `typeof ${operationName}`
-  }>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments({
-    operationName,
-    definitions: '',
-    mutator,
-    isRequestOptions,
-    type,
-  })}\n  ): ${returnType} & { queryKey: QueryKey } => {
+export type ${pascal(name)}QueryData = AsyncReturnType<${dataType}>
+export type ${pascal(name)}QueryError = ${errorType}
+
+export const ${camel(
+    `use-${name}`,
+  )} = <TData = AsyncReturnType<${dataType}>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments(
+    {
+      operationName,
+      definitions: '',
+      mutator,
+      isRequestOptions,
+      type,
+    },
+  )}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
   ${
     isRequestOptions
