@@ -559,8 +559,8 @@ const generateQueryHook = (
   return `
     export type ${pascal(
       operationName,
-    )}QueryData = NonNullable<AsyncReturnType<${dataType}>>
-    export type ${pascal(operationName)}QueryError = ${errorType}
+    )}MutationData = NonNullable<AsyncReturnType<${dataType}>>
+    export type ${pascal(operationName)}MutationError = ${errorType}
 
     export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
