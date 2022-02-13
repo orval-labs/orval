@@ -7,6 +7,7 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { camel } from '../../utils/case';
+import { BODY_TYPE_NAME } from './mutator';
 
 export const generateImports = ({
   imports = [],
@@ -63,12 +64,14 @@ export const generateMutatorImports = (
       const importDefault = mutator.default
         ? `${mutator.name}${
             mutator.hasErrorType
-              ? `, { ErrorType as ${mutator.errorTypeName} }`
+              ? `, { ErrorType as ${mutator.errorTypeName}${
+                  mutator.bodyTypeName ? `, ${BODY_TYPE_NAME} as ${mutator.bodyTypeName}` : ''
+                } }`
               : ''
           }`
         : `{ ${mutator.name}${
             mutator.hasErrorType ? `, ${mutator.errorTypeName}` : ''
-          } }`;
+          }${mutator.bodyTypeName ? `, ${mutator.bodyTypeName}` : ''} }`;
 
       return `import ${importDefault} from '${oneMore ? '../' : ''}${
         mutator.path

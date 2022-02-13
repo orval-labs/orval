@@ -129,6 +129,7 @@ export type GeneratorMutator = {
   hasSecondArg: boolean;
   hasThirdArg: boolean;
   isHook: boolean;
+  bodyTypeName?: string
 };
 
 export type ClientBuilder = (
