@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { log } from 'console';
 import execa from 'execa';
-import { outputFile } from 'fs-extra';
+import { appendFile, outputFile, pathExists, readFile } from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
@@ -112,25 +112,36 @@ export const writeSpecs = async (
     const workspacePath = output.workspace;
     let imports = implementationPaths
       .filter((path) => !path.endsWith('.msw.ts'))
-      .map(
-        (path) =>
-          `export * from '${relativeSafe(
-            workspacePath,
-            getFileInfo(path).pathWithoutExtension,
-          )}';`,
+      .map((path) =>
+        relativeSafe(workspacePath, getFileInfo(path).pathWithoutExtension),
       );
 
     if (output.schemas) {
       imports.push(
-        `export * from '${relativeSafe(
-          workspacePath,
-          getFileInfo(output.schemas).dirname,
-        )}';`,
+        relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
       );
     }
 
     const indexFile = join(workspacePath, '/index.ts');
-    await outputFile(indexFile, uniq(imports).join('\n'));
+
+    if (await pathExists(indexFile)) {
+      const data = await readFile(indexFile, 'utf8');
+      const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
+      await appendFile(
+        indexFile,
+        uniq(importsNotDeclared)
+          .map((imp) => `export * from '${imp}';`)
+          .join('\n') + '\n',
+      );
+    } else {
+      await outputFile(
+        indexFile,
+        uniq(imports)
+          .map((imp) => `export * from '${imp}';`)
+          .join('\n') + '\n',
+      );
+    }
+
     implementationPaths = [indexFile, ...implementationPaths];
   }
 
