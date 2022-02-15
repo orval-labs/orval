@@ -97,8 +97,8 @@ export default defineConfig({
   },
   formDataWithHook: {
     output: {
-      target: '../generated/react-query/formDataWithHook/endpoints.ts',
-      schemas: '../generated/react-query/formDataWithHook/model',
+      target: '../generated/react-query/form-data-with-hook/endpoints.ts',
+      schemas: '../generated/react-query/form-data-with-hook/model',
       client: 'react-query',
       mock: true,
       override: {
