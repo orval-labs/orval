@@ -71,7 +71,8 @@ export const generateSchemasDefinition = async (
           );
 
           if (!imp) {
-            output += `export type ${schemaName} = ${resolvedValue.value};\n`;
+            const outputValue = resolvedValue.value === '{}' ? 'any' : resolvedValue.value;
+            output += `export type ${schemaName} = ${outputValue};\n`;
           } else {
             const alias = imp?.specKey
               ? `${pascal(getSpecName(imp.specKey, context.specKey))}${
@@ -86,7 +87,8 @@ export const generateSchemasDefinition = async (
             );
           }
         } else {
-          output += `export type ${schemaName} = ${resolvedValue.value};\n`;
+          const outputValue = resolvedValue.value === '{}' ? 'any' : resolvedValue.value;
+          output += `export type ${schemaName} = ${outputValue};\n`;
         }
 
         acc.push(...resolvedValue.schemas, {
