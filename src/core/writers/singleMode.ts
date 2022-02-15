@@ -50,6 +50,7 @@ export const writeSingleMode = async ({
       specsName,
       !!output.schemas,
       isSyntheticDefaultImportsAllowed,
+      !!output.override.mutator,
     );
 
     if (output.mock) {

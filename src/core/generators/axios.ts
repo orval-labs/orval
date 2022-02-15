@@ -31,7 +31,9 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getAxiosDependencies = () => AXIOS_DEPENDENCIES;
+export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+];
 
 const generateAxiosImplementation = (
   {

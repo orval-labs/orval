@@ -40,7 +40,6 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 const SWR_DEPENDENCIES: GeneratorDependency[] = [
-  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useSwr', values: true, default: true },
@@ -51,7 +50,10 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getSwrDependencies = () => SWR_DEPENDENCIES;
+export const getSwrDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...SWR_DEPENDENCIES,
+];
 
 const generateSwrRequestFunction = (
   {
