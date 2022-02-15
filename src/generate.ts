@@ -65,14 +65,17 @@ export const generateSpecs = async (
     return;
   }
 
-  return Promise.all(
-    Object.entries(config).map(async ([projectName, options]) => {
+  return asyncReduce(
+    Object.entries(config),
+    async (acc, [projectName, options]) => {
       try {
-        return await generateSpec(workspace, options, projectName);
+        acc.push(await generateSpec(workspace, options, projectName));
       } catch (e) {
         log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
       }
-    }),
+      return acc;
+    },
+    [] as void[],
   );
 };
 
