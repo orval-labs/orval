@@ -131,11 +131,12 @@ export const generateClientImports = (
   specsName: Record<string, string>,
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
+  hasGlobalMutator: boolean,
 ): string => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
-    [...dependencies(), ...imports],
+    [...dependencies(hasGlobalMutator), ...imports],
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,

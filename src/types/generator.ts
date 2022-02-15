@@ -146,7 +146,9 @@ export type ClientFooterBuilder = (operationIds?: string[]) => string;
 
 export type ClientTitleBuilder = (title: string) => string;
 
-export type ClientDependenciesBuilder = () => GeneratorDependency[];
+export type ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+) => GeneratorDependency[];
 
 export type ClientMSWBuilder = (
   verbOptions: GeneratorVerbOptions,

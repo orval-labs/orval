@@ -42,7 +42,6 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
-  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useQuery', values: true },
@@ -63,10 +62,12 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getSvelteQueryDependencies = () => SVELTE_QUERY_DEPENDENCIES;
+export const getSvelteQueryDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...SVELTE_QUERY_DEPENDENCIES,
+];
 
 const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
-  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useQuery', values: true },
@@ -85,9 +86,12 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getReactQueryDependencies = () => REACT_QUERY_DEPENDENCIES;
+export const getReactQueryDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...REACT_QUERY_DEPENDENCIES,
+];
+
 const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
-  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useQuery', values: true },
@@ -111,7 +115,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getVueQueryDependencies = () => VUE_QUERY_DEPENDENCIES;
+export const getVueQueryDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...VUE_QUERY_DEPENDENCIES,
+];
 
 const generateQueryRequestFunction = (
   {

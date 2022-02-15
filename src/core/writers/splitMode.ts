@@ -53,12 +53,13 @@ export const writeSplitMode = async ({
       specsName,
       !!output.schemas,
       isSyntheticDefaultImportsAllowed,
+      !!output.override.mutator,
     );
     mswData += generateMSWImports(
       implementationMSW,
       [
         {
-          exports: [...imports, ...importsMSW],
+          exports: importsMSW,
           dependency: relativeSchemasPath,
         },
       ],
