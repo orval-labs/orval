@@ -11,6 +11,7 @@ import {
   OperationOptions,
   OptionsExport,
   OutputClient,
+  OutputMode,
   SwaggerParserOptions,
 } from '../types';
 import { githubResolver } from './github';
@@ -93,7 +94,7 @@ export const normalizeOptions = async (
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
-      mode: outputOptions.mode ?? mode ?? 'single',
+      mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock: outputOptions.mock ?? mock ?? false,
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
@@ -267,4 +268,17 @@ const normalizeOperationsAndTags = (
       },
     ),
   );
+};
+
+const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
+  if (!mode) {
+    return OutputMode.SINGLE;
+  }
+
+  if (!Object.values(OutputMode).includes(mode)) {
+    createLogger().warn(chalk.yellow(`Unknown the provided mode => ${mode}`));
+    return OutputMode.SINGLE;
+  }
+
+  return mode;
 };
