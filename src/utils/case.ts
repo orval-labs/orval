@@ -106,6 +106,10 @@ export const camel = (s: string) => {
   return decap(pascal(s));
 };
 
+export const snake = (s: string) => {
+  return lower(s, '_', true);
+};
+
 export const kebab = (s: string) => {
   return lower(s, '-', true);
 };

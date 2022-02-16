@@ -86,7 +86,7 @@ export const generateTargetForTags = (
           Record<string, GeneratorTargetFull>
         >((acc, [tag, target]) => {
           const isMutator = !!target.mutators?.some(
-            (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
+            (mutator) => mutator.numberOfParams > (isAngularClient ? 2 : 1),
           );
           const operationNames = Object.values(operations)
             .filter(({ tags }) => tags.includes(tag))

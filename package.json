@@ -92,6 +92,7 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.0.3",
+    "acorn": "^8.7.0",
     "cac": "^6.7.12",
     "chalk": "^4.1.2",
     "chokidar": "^3.5.3",

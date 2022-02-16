@@ -1,6 +1,7 @@
+import { Parser } from 'acorn';
 import chalk from 'chalk';
 import { readFile } from 'fs-extra';
-import { GeneratorMutator } from '../..';
+import { GeneratorMutator, GeneratorMutatorParsingInfo } from '../..';
 import { NormalizedMutator, Tsconfig } from '../../types';
 import { pascal } from '../../utils/case';
 import { getFileInfo, loadFile } from '../../utils/file';
@@ -47,26 +48,22 @@ export const generateMutator = async ({
     ? 'ErrorType'
     : `${pascal(name)}ErrorType`;
 
-  const { file, cached } = await loadFile<Record<string, Function>>(
-    importPath,
-    {
-      isDefault: false,
-      root: workspace,
-      alias: mutator.alias,
-      tsconfig,
-    },
-  );
+  const { file, cached } = await loadFile<string>(importPath, {
+    isDefault: false,
+    root: workspace,
+    alias: mutator.alias,
+    tsconfig,
+    load: false,
+  });
 
   if (file) {
-    const mutatorFn =
-      file[mutator.default || !mutator.name ? 'default' : mutator.name];
+    const mutatorInfoName = isDefault ? 'default' : mutator.name!;
+    const mutatorInfo = parseFile(file, mutatorInfoName);
 
-    if (!mutatorFn) {
+    if (!mutatorInfo) {
       createLogger().error(
         chalk.red(
-          `Your mutator file doesn't have the ${
-            mutator.default ? 'default' : mutator.name
-          } exported function`,
+          `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
         ),
       );
       process.exit(1);
@@ -78,18 +75,18 @@ export const generateMutator = async ({
       name: importName,
       path,
       default: isDefault,
-      mutatorFn,
       hasErrorType,
       errorTypeName,
+      hasSecondArg: mutatorInfo.numberOfParams > 1,
+      hasThirdArg: mutatorInfo.numberOfParams > 2,
+      isHook: !!mutator?.name?.startsWith('use') && !mutatorInfo.numberOfParams,
     };
   } else {
     const path = getImport(output, mutator);
 
     if (!cached) {
       createLogger().warn(
-        chalk.yellow(
-          `Your mutator cannot be loaded so default setup has been applied => ${importPath}`,
-        ),
+        chalk.yellow(`Failed to parse provided mutator function`),
       );
     }
 
@@ -97,9 +94,119 @@ export const generateMutator = async ({
       name: importName,
       path,
       default: isDefault,
-      mutatorFn: () => undefined,
+      hasSecondArg: false,
+      hasThirdArg: false,
+      isHook: false,
       hasErrorType,
       errorTypeName,
     };
   }
+};
+
+const parseFile = (
+  file: string,
+  name: string,
+): GeneratorMutatorParsingInfo | undefined => {
+  const ast = Parser.parse(file, { ecmaVersion: 6 }) as any;
+
+  const node = ast?.body?.find((childNode: any) => {
+    if (childNode.type === 'ExpressionStatement') {
+      if (
+        childNode.expression.arguments?.[1]?.properties?.some(
+          (p: any) => p.key?.name === name,
+        )
+      ) {
+        return true;
+      }
+
+      if (childNode.expression.left?.property?.name === name) {
+        return true;
+      }
+
+      return childNode.expression.right?.properties?.some(
+        (p: any) => p.key.name === name,
+      );
+    }
+  });
+
+  if (!node) {
+    return;
+  }
+
+  if (node.expression.type === 'AssignmentExpression') {
+    if (
+      node.expression.right.type === 'FunctionExpression' ||
+      node.expression.right.type === 'ArrowFunctionExpression'
+    ) {
+      return {
+        numberOfParams: node.expression.right.params.length,
+      };
+    }
+
+    if (node.expression.right.name) {
+      return parseFunction(ast, node.expression.right.name);
+    }
+
+    const property = node.expression.right?.properties.find(
+      (p: any) => p.key.name === name,
+    );
+
+    if (property.value.name) {
+      return parseFunction(ast, property.value.name);
+    }
+
+    if (
+      property.value.type === 'FunctionExpression' ||
+      property.value.type === 'ArrowFunctionExpression'
+    ) {
+      return {
+        numberOfParams: property.value.params.length,
+      };
+    }
+
+    return;
+  }
+
+  const property = node.expression.arguments[1].properties.find(
+    (p: any) => p.key?.name === name,
+  );
+
+  return parseFunction(ast, property.value.body.name);
+};
+
+const parseFunction = (
+  ast: any,
+  name: string,
+): GeneratorMutatorParsingInfo | undefined => {
+  const node = ast?.body?.find((childNode: any) => {
+    if (childNode.type === 'VariableDeclaration') {
+      return childNode.declarations.find((d: any) => d.id.name === name);
+    }
+    if (
+      childNode.type === 'FunctionDeclaration' &&
+      childNode.id.name === name
+    ) {
+      return childNode;
+    }
+  });
+
+  if (!node) {
+    return;
+  }
+
+  if (node.type === 'FunctionDeclaration') {
+    return {
+      numberOfParams: node.params.length,
+    };
+  }
+
+  const declaration = node.declarations.find((d: any) => d.id.name === name);
+
+  if (declaration.init.name) {
+    return parseFunction(ast, declaration.init.name);
+  }
+
+  return {
+    numberOfParams: declaration.init.params.length,
+  };
 };
