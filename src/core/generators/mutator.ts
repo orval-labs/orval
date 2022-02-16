@@ -107,71 +107,75 @@ const parseFile = (
   file: string,
   name: string,
 ): GeneratorMutatorParsingInfo | undefined => {
-  const ast = Parser.parse(file, { ecmaVersion: 6 }) as any;
+  try {
+    const ast = Parser.parse(file, { ecmaVersion: 6 }) as any;
 
-  const node = ast?.body?.find((childNode: any) => {
-    if (childNode.type === 'ExpressionStatement') {
+    const node = ast?.body?.find((childNode: any) => {
+      if (childNode.type === 'ExpressionStatement') {
+        if (
+          childNode.expression.arguments?.[1]?.properties?.some(
+            (p: any) => p.key?.name === name,
+          )
+        ) {
+          return true;
+        }
+
+        if (childNode.expression.left?.property?.name === name) {
+          return true;
+        }
+
+        return childNode.expression.right?.properties?.some(
+          (p: any) => p.key.name === name,
+        );
+      }
+    });
+
+    if (!node) {
+      return;
+    }
+
+    if (node.expression.type === 'AssignmentExpression') {
       if (
-        childNode.expression.arguments?.[1]?.properties?.some(
-          (p: any) => p.key?.name === name,
-        )
+        node.expression.right.type === 'FunctionExpression' ||
+        node.expression.right.type === 'ArrowFunctionExpression'
       ) {
-        return true;
+        return {
+          numberOfParams: node.expression.right.params.length,
+        };
       }
 
-      if (childNode.expression.left?.property?.name === name) {
-        return true;
+      if (node.expression.right.name) {
+        return parseFunction(ast, node.expression.right.name);
       }
 
-      return childNode.expression.right?.properties?.some(
+      const property = node.expression.right?.properties.find(
         (p: any) => p.key.name === name,
       );
-    }
-  });
 
-  if (!node) {
-    return;
-  }
+      if (property.value.name) {
+        return parseFunction(ast, property.value.name);
+      }
 
-  if (node.expression.type === 'AssignmentExpression') {
-    if (
-      node.expression.right.type === 'FunctionExpression' ||
-      node.expression.right.type === 'ArrowFunctionExpression'
-    ) {
-      return {
-        numberOfParams: node.expression.right.params.length,
-      };
-    }
+      if (
+        property.value.type === 'FunctionExpression' ||
+        property.value.type === 'ArrowFunctionExpression'
+      ) {
+        return {
+          numberOfParams: property.value.params.length,
+        };
+      }
 
-    if (node.expression.right.name) {
-      return parseFunction(ast, node.expression.right.name);
+      return;
     }
 
-    const property = node.expression.right?.properties.find(
-      (p: any) => p.key.name === name,
+    const property = node.expression.arguments[1].properties.find(
+      (p: any) => p.key?.name === name,
     );
 
-    if (property.value.name) {
-      return parseFunction(ast, property.value.name);
-    }
-
-    if (
-      property.value.type === 'FunctionExpression' ||
-      property.value.type === 'ArrowFunctionExpression'
-    ) {
-      return {
-        numberOfParams: property.value.params.length,
-      };
-    }
-
+    return parseFunction(ast, property.value.body.name);
+  } catch (e) {
     return;
   }
-
-  const property = node.expression.arguments[1].properties.find(
-    (p: any) => p.key?.name === name,
-  );
-
-  return parseFunction(ast, property.value.body.name);
 };
 
 const parseFunction = (
