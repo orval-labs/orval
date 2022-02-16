@@ -42,7 +42,7 @@ export const generateTarget = (
 
       if (index === arr.length - 1) {
         const isMutator = acc.mutators.some(
-          (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
+          (mutator) => mutator.numberOfParams > (isAngularClient ? 2 : 1),
         );
         const header = generateClientHeader({
           outputClient: options.client,

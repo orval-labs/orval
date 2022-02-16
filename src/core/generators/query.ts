@@ -162,25 +162,21 @@ const generateQueryRequestFunction = (
       isFormUrlEncoded,
     });
 
-    const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
-          isMutatorHasSecondArg,
+          mutator.hasSecondArg,
         )
       : '';
 
-    const isMutatorHook =
-      mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
-
-    if (isMutatorHook) {
+    if (mutator.isHook) {
       return `export const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
         response.definition.success || 'unknown'
       }>();
 
         return (\n    ${toObjectString(props, 'implementation')}\n ${
-        isRequestOptions && isMutatorHasSecondArg
+        isRequestOptions && mutator.hasSecondArg
           ? `options?: SecondParameter<typeof ${mutator.name}>`
           : ''
       }) => {${bodyForm}
@@ -196,7 +192,7 @@ const generateQueryRequestFunction = (
       props,
       'implementation',
     )}\n ${
-      isRequestOptions && isMutatorHasSecondArg
+      isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}
@@ -289,7 +285,6 @@ const generateQueryArguments = ({
   definitions,
   mutator,
   isRequestOptions,
-  isMutatorHasSecondArg,
   type,
 }: {
   operationName: string;
@@ -297,10 +292,8 @@ const generateQueryArguments = ({
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
   type?: QueryType;
-  isMutatorHasSecondArg: boolean;
 }) => {
-  const isMutatorHook =
-    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
+  const isMutatorHook = mutator?.isHook;
   const definition = type
     ? `Use${pascal(type)}Options<AsyncReturnType<${
         isMutatorHook
@@ -320,7 +313,7 @@ const generateQueryArguments = ({
   return `options?: { ${type ? 'query' : 'mutation'}?:${definition}, ${
     !mutator
       ? `axios?: AxiosRequestConfig`
-      : isMutatorHasSecondArg
+      : mutator?.hasSecondArg
       ? `request?: SecondParameter<typeof ${mutator.name}>`
       : ''
   }}\n`;
@@ -356,8 +349,6 @@ const generateQueryImplementation = ({
   mutator?: GeneratorMutator;
   outputClient: OutputClient | OutputClientFunc;
 }) => {
-  const isMutatorHook =
-    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
@@ -366,13 +357,11 @@ const generateQueryImplementation = ({
         .join(',')
     : properties;
 
-  const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
-
   const returnType =
     outputClient !== OutputClient.SVELTE_QUERY
       ? ` Use${pascal(type)}Result<TData, TError>`
       : `Use${pascal(type)}StoreResult<AsyncReturnType<${
-          isMutatorHook
+          mutator?.isHook
             ? `ReturnType<typeof use${pascal(operationName)}Hook>`
             : `typeof ${operationName}`
         }>, TError, TData, QueryKey>`;
@@ -389,7 +378,7 @@ const generateQueryImplementation = ({
 
   return `
 export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
-    isMutatorHook
+    mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
   }>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments({
@@ -397,7 +386,6 @@ export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
     definitions: '',
     mutator,
     isRequestOptions,
-    isMutatorHasSecondArg,
     type,
   })}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
@@ -406,7 +394,7 @@ export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
       ? `const {query: queryOptions${
           !mutator
             ? `, axios: axiosOptions`
-            : isMutatorHasSecondArg
+            : mutator.hasSecondArg
             ? ', request: requestOptions'
             : ''
         }} = options || {}`
@@ -416,13 +404,13 @@ export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
 
   ${
-    isMutatorHook
+    mutator?.isHook
       ? `const ${operationName} =  use${pascal(operationName)}Hook()`
       : ''
   }
 
   const queryFn: QueryFunction<AsyncReturnType<${
-    isMutatorHook
+    mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
   }>> = (${
@@ -433,14 +421,14 @@ export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
     isRequestOptions
       ? !mutator
         ? `axiosOptions`
-        : isMutatorHasSecondArg
+        : mutator.hasSecondArg
         ? 'requestOptions'
         : ''
       : ''
   });
 
   const query = ${camel(`use-${type}`)}<AsyncReturnType<${
-    isMutatorHook
+    mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
   }>, TError, TData>(queryKey, queryFn, ${generateQueryOptions({
@@ -543,10 +531,6 @@ const generateQueryHook = (
     )
     .join(';');
 
-  const isMutatorHook =
-    mutator?.name.startsWith('use') && !mutator.mutatorFn.length;
-  const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
-
   const properties = props
     .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
     .join(',');
@@ -566,7 +550,6 @@ const generateQueryHook = (
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
       operationName,
-      isMutatorHasSecondArg,
       definitions,
       mutator,
       isRequestOptions,
@@ -576,7 +559,7 @@ const generateQueryHook = (
           ? `const {mutation: mutationOptions${
               !mutator
                 ? `, axios: axiosOptions`
-                : isMutatorHasSecondArg
+                : mutator?.hasSecondArg
                 ? ', request: requestOptions'
                 : ''
             }} = options || {}`
@@ -584,14 +567,14 @@ const generateQueryHook = (
       }
 
       ${
-        isMutatorHook
+        mutator?.isHook
           ? `const ${operationName} =  use${pascal(operationName)}Hook()`
           : ''
       }
 
 
       const mutationFn: MutationFunction<AsyncReturnType<${
-        isMutatorHook
+        mutator?.isHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
       }>, ${definitions ? `{${definitions}}` : 'TVariables'}> = (${
@@ -603,7 +586,7 @@ const generateQueryHook = (
     isRequestOptions
       ? !mutator
         ? `axiosOptions`
-        : isMutatorHasSecondArg
+        : mutator?.hasSecondArg
         ? 'requestOptions'
         : ''
       : ''

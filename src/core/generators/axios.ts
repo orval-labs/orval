@@ -77,11 +77,10 @@ const generateAxiosImplementation = (
       isFormUrlEncoded,
     });
 
-    const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
-          isMutatorHasSecondArg,
+          mutator.hasSecondArg,
         )
       : '';
 
@@ -89,7 +88,7 @@ const generateAxiosImplementation = (
       props,
       'implementation',
     )}\n ${
-      isRequestOptions && isMutatorHasSecondArg
+      isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}

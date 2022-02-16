@@ -48,7 +48,7 @@ const debug = createDebugger('orval:file-load');
 
 const cache = new Map<string, { file?: any; error?: any }>();
 
-export async function loadFile<File = unknown>(
+export async function loadFile<File = any>(
   filePath?: string,
   options?: {
     root?: string;
@@ -57,6 +57,7 @@ export async function loadFile<File = unknown>(
     isDefault?: boolean;
     alias?: Record<string, string>;
     tsconfig?: Tsconfig;
+    load?: boolean;
   },
 ): Promise<{
   path: string;
@@ -71,6 +72,7 @@ export async function loadFile<File = unknown>(
     logLevel,
     alias,
     tsconfig,
+    load = true,
   } = options || {};
   const start = Date.now();
 
@@ -172,7 +174,12 @@ export async function loadFile<File = unknown>(
         alias,
         tsconfig?.compilerOptions,
       );
-      file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
+
+      if (load) {
+        file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
+      } else {
+        file = code as any;
+      }
 
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
