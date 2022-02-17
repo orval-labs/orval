@@ -119,14 +119,14 @@ export const getObject = async ({
 
         if (item.additionalProperties) {
           if (isBoolean(item.additionalProperties)) {
-            acc.value += ` & { [key: string]: any }`
+            acc.value += ` & { [key: string]: any }`;
           } else {
             const resolvedValue = await resolveValue({
               schema: item.additionalProperties,
               name,
               context,
             });
-            acc.value += ` & {[key: string]: ${resolvedValue.value}}`
+            acc.value += ` & {[key: string]: ${resolvedValue.value}}`;
           }
         }
 
@@ -171,7 +171,7 @@ export const getObject = async ({
   }
 
   return {
-    value: item.type === 'object' ? '{}' : 'unknown',
+    value: item.type === 'object' ? '{ [key: string]: any }' : 'unknown',
     imports: [],
     schemas: [],
     isEnum: false,
