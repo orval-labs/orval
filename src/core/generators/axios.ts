@@ -84,7 +84,12 @@ const generateAxiosImplementation = (
         )
       : '';
 
-    return `const ${operationName} = (\n    ${toObjectString(
+    return `
+    export type ${pascal(
+      operationName,
+    )}Result = NonNullable<AsyncReturnType<typeof ${operationName}>>
+
+    const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
     )}\n ${
@@ -110,7 +115,12 @@ const generateAxiosImplementation = (
     isFormUrlEncoded,
   });
 
-  return `const ${operationName} = <TData = AxiosResponse<${
+  return `
+  export type ${pascal(
+    operationName,
+  )}Result = AsyncReturnType<typeof ${operationName}>
+
+  const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
@@ -137,7 +147,12 @@ export const generateAxiosHeader = ({
   isRequestOptions: boolean;
   isMutator: boolean;
   noFunction?: boolean;
-}) => `${
+}) => `
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AsyncReturnType<
+T extends (...args: any) => Promise<any>
+> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
+${
   isRequestOptions && isMutator
     ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
   type SecondParameter<T extends (...args: any) => any> = T extends (
