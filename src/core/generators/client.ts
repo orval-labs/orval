@@ -69,7 +69,8 @@ export const GENERATOR_CLIENT: GeneratorClients = {
       isRequestOptions: boolean;
     }) => generateAxiosHeader({ ...options, noFunction: true }),
     dependencies: getAxiosDependencies,
-    footer: () => '',
+    footer: ({operationNames, title }) =>
+      generateAxiosFooter({ operationNames, title, noFunction: true }),
     title: generateAxiosTitle,
   },
   angular: {
@@ -177,13 +178,21 @@ export const generateClientHeader = ({
   };
 };
 
-export const generateClientFooter = (
-  outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
-  operationNames: string[],
-): GeneratorClientExtra => {
+export const generateClientFooter = ({
+  outputClient = DEFAULT_CLIENT,
+  operationNames,
+  title,
+  customTitleFunc,
+}: {
+  outputClient: OutputClient | OutputClientFunc;
+  operationNames: string[];
+  title: string;
+  customTitleFunc?: (title: string) => string;
+}): GeneratorClientExtra => {
+  const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { footer } = getGeneratorClient(outputClient);
   return {
-    implementation: footer(operationNames),
+    implementation: footer({ operationNames, title: titles.implementation }),
     implementationMSW: `]\n`,
   };
 };

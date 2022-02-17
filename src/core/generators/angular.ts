@@ -101,7 +101,7 @@ export class ${title} {
   ) {}`;
 
 export const generateAngularFooter = () =>
-  `};\n${returnTypesToWrite.join('\n')}`;
+  `};\n\n${returnTypesToWrite.join('\n')}`;
 
 const generateImplementation = (
   {
