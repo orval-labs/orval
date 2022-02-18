@@ -249,14 +249,14 @@
   resolved "https://registry.yarnpkg.com/@iarna/toml/-/toml-2.2.5.tgz#b32366c89b43c6f8cefbdefac778b9c828e3ba8c"
   integrity sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==
 
-"@ibm-cloud/openapi-ruleset@0.3.0":
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/@ibm-cloud/openapi-ruleset/-/openapi-ruleset-0.3.0.tgz#ab8344886164242d00da4d9c9a34dbb3d3a8a6d1"
-  integrity sha512-iLM4vCSmOhTcjS+jGqmtkGQdU2Z+9mXy+l+KuSu3P/P1KsOSjVUDOJj7k9bLszJljB64CXSVyzGzoeeW0i1dVA==
+"@ibm-cloud/openapi-ruleset@0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@ibm-cloud/openapi-ruleset/-/openapi-ruleset-0.6.0.tgz#ec72cadede97687f88a22285d38adf5866e2f7e3"
+  integrity sha512-fY4XLsAPHsVd5Jq79YQRsh87mmBJYyO/bIMaTAyPN2ILiBj3Ita65eoyuLXPwFfA3a3PnVEtUbEqAisB1TCvFA==
   dependencies:
-    "@stoplight/spectral-formats" "^1.0.1"
-    "@stoplight/spectral-functions" "^1.4.0"
-    "@stoplight/spectral-rulesets" "^1.3.0"
+    "@stoplight/spectral-formats" "1.0.2"
+    "@stoplight/spectral-functions" "1.5.1"
+    "@stoplight/spectral-rulesets" "1.4.3"
 
 "@jsdevtools/ono@^7.1.3":
   version "7.1.3"
@@ -509,7 +509,7 @@
   resolved "https://registry.npmjs.org/@stoplight/path/-/path-1.3.2.tgz"
   integrity sha512-lyIc6JUlUA8Ve5ELywPC8I2Sdnh1zc1zmbYgVarhXIp9YeAB0ReeqmGEOWNtlHkbP2DAA1AL65Wfn2ncjK/jtQ==
 
-"@stoplight/spectral-cli@^6.2.1":
+"@stoplight/spectral-cli@6.2.1":
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/@stoplight/spectral-cli/-/spectral-cli-6.2.1.tgz#02dcfc386e06f1fb580360c350826a73c61516e6"
   integrity sha512-Omi/vFk8u+UyM36HbFIuH33oPpOUhDF26xD1N0HoefJstMDUot+L0xVGJWslbVYubuJ7U+JLVLUFLKFU39NfcQ==
@@ -537,7 +537,7 @@
     tslib "^2.3.0"
     yargs "17.3.1"
 
-"@stoplight/spectral-core@>=1", "@stoplight/spectral-core@^1.10.0", "@stoplight/spectral-core@^1.5.1", "@stoplight/spectral-core@^1.7.0", "@stoplight/spectral-core@^1.8.0", "@stoplight/spectral-core@^1.8.1":
+"@stoplight/spectral-core@1.10.1", "@stoplight/spectral-core@>=1", "@stoplight/spectral-core@^1.5.1", "@stoplight/spectral-core@^1.7.0", "@stoplight/spectral-core@^1.8.0", "@stoplight/spectral-core@^1.8.1":
   version "1.10.1"
   resolved "https://registry.yarnpkg.com/@stoplight/spectral-core/-/spectral-core-1.10.1.tgz#556ebd897b96fbd7db9457e1c8d1e694e4a3eddb"
   integrity sha512-eJ6KGWMzzvTfcunoDSEHddRB8is34u+h29wnPzs97V5gFzADkLV3eMPkjFnDmBaiD6kuaRvWV3ZLPbJtpuNg8w==
@@ -563,7 +563,7 @@
     simple-eval "1.0.0"
     tslib "^2.3.0"
 
-"@stoplight/spectral-formats@>=1", "@stoplight/spectral-formats@^1.0.0", "@stoplight/spectral-formats@^1.0.1", "@stoplight/spectral-formats@^1.0.2":
+"@stoplight/spectral-formats@1.0.2", "@stoplight/spectral-formats@>=1", "@stoplight/spectral-formats@^1.0.0", "@stoplight/spectral-formats@^1.0.2":
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/@stoplight/spectral-formats/-/spectral-formats-1.0.2.tgz#86ea3768fbbfbffb82ae5e43df7cce9beac86afc"
   integrity sha512-jMIlMTSCJzFKq3kXnHv+YC0TTnwli/DuZY4JxObyaBwdiG1LnSAJLL7R857PpJpQ1uoiZULov8clxudSMeKL+Q==
@@ -573,7 +573,7 @@
     "@types/json-schema" "^7.0.7"
     tslib "^2.3.1"
 
-"@stoplight/spectral-functions@>=1", "@stoplight/spectral-functions@^1.0.0", "@stoplight/spectral-functions@^1.4.0", "@stoplight/spectral-functions@^1.5.1":
+"@stoplight/spectral-functions@1.5.1", "@stoplight/spectral-functions@>=1", "@stoplight/spectral-functions@^1.0.0", "@stoplight/spectral-functions@^1.5.1":
   version "1.5.1"
   resolved "https://registry.yarnpkg.com/@stoplight/spectral-functions/-/spectral-functions-1.5.1.tgz#4a15c9973d2166d1d83fd6bceb5e7f940e86ab13"
   integrity sha512-KHMprX4OwjgVtzUulVPfqkZTNCAP4JbZqTQ5/UTCfrQ1nO4vcr+3CJgU74ggSP6rH3UuJIIFVZN+9wU7HP1bEA==
@@ -591,7 +591,7 @@
     lodash "~4.17.21"
     tslib "^2.3.0"
 
-"@stoplight/spectral-parsers@>=1", "@stoplight/spectral-parsers@^1.0.0", "@stoplight/spectral-parsers@^1.0.1":
+"@stoplight/spectral-parsers@1.0.1", "@stoplight/spectral-parsers@>=1", "@stoplight/spectral-parsers@^1.0.0", "@stoplight/spectral-parsers@^1.0.1":
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/@stoplight/spectral-parsers/-/spectral-parsers-1.0.1.tgz#e4b16707efc2de9387ef00b8bbecd3cfb80a469c"
   integrity sha512-JGKlrTxhjUzIGo2FOCf8Qp0WKTWXedoRNPovqYPE8pAp08epqU8DzHwl/i46BGH5yfTmouKMZgBN/PV2+Cr5jw==
@@ -653,7 +653,7 @@
     tslib "^2.3.1"
     validate-npm-package-name "3.0.0"
 
-"@stoplight/spectral-rulesets@>=1", "@stoplight/spectral-rulesets@^1.3.0":
+"@stoplight/spectral-rulesets@1.4.3", "@stoplight/spectral-rulesets@>=1":
   version "1.4.3"
   resolved "https://registry.yarnpkg.com/@stoplight/spectral-rulesets/-/spectral-rulesets-1.4.3.tgz#907c58c90333c7a7a16fe10cb3e7a92f70aa7523"
   integrity sha512-kiUKcPvvvgg0U9p1KtsaRglW4xKCqXwTu2lL6Ci6elwsqK7P7CQAxJbcbhl30tqJ+m2oXTLTWJhZFa/xGk01FA==
@@ -3215,15 +3215,15 @@ husky@^7.0.2:
   resolved "https://registry.yarnpkg.com/husky/-/husky-7.0.4.tgz#242048245dc49c8fb1bf0cc7cfb98dd722531535"
   integrity sha512-vbaCKN2QLtP/vD4yvs6iz6hBEo6wkSzs8HpRah1Z6aGmF2KW5PdYuAd7uX5a+OyBZHBhd+TFLqgjUgytQr4RvQ==
 
-ibm-openapi-validator@^0.55.0:
-  version "0.55.0"
-  resolved "https://registry.yarnpkg.com/ibm-openapi-validator/-/ibm-openapi-validator-0.55.0.tgz#7316364fc69ba5dfb6df04fa30a19bbb0254fd76"
-  integrity sha512-d2vADqj6bImCisxeSDh8Hp6dQtGoUXSXl1u9JU1XS22QeNxpvAaBwP6EMzC8ZKzPprbtcI0K0/RzQbjRe23jIA==
+ibm-openapi-validator@^0.57.0:
+  version "0.57.0"
+  resolved "https://registry.yarnpkg.com/ibm-openapi-validator/-/ibm-openapi-validator-0.57.0.tgz#1c822cabf0ff176894fe61d25180b804cd040df3"
+  integrity sha512-s28ZE21FEBkHDJti+ofiBXZGVZIm7QdhX+uvoH57CrKNTcOx9lm9NgQDDyrxge14wnPEqbe3opgwhIAO14Ah2A==
   dependencies:
-    "@ibm-cloud/openapi-ruleset" "0.3.0"
-    "@stoplight/spectral-cli" "^6.2.1"
-    "@stoplight/spectral-core" "^1.10.0"
-    "@stoplight/spectral-parsers" "^1.0.1"
+    "@ibm-cloud/openapi-ruleset" "0.6.0"
+    "@stoplight/spectral-cli" "6.2.1"
+    "@stoplight/spectral-core" "1.10.1"
+    "@stoplight/spectral-parsers" "1.0.1"
     chalk "^4.1.1"
     commander "^2.20.3"
     deepmerge "^2.2.1"
@@ -4433,12 +4433,12 @@ open@7.4.2:
     is-docker "^2.0.0"
     is-wsl "^2.1.1"
 
-openapi3-ts@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.npmjs.org/openapi3-ts/-/openapi3-ts-2.0.1.tgz"
-  integrity sha512-v6X3iwddhi276siej96jHGIqTx3wzVfMTmpGJEQDt7GPI7pI6sywItURLzpEci21SBRpPN/aOWSF5mVfFVNmcg==
+openapi3-ts@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/openapi3-ts/-/openapi3-ts-2.0.2.tgz#a200dd838bf24c9086c8eedcfeb380b7eb31e82a"
+  integrity sha512-TxhYBMoqx9frXyOgnRHufjQfPXomTIHYKhSKJ6jHfj13kS8OEIhvmE8CTuQyKtjjWttAjX5DPxM1vmalEpo8Qw==
   dependencies:
-    yaml "^1.10.0"
+    yaml "^1.10.2"
 
 optionator@^0.8.1:
   version "0.8.3"
