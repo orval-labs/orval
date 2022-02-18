@@ -75,7 +75,7 @@ export const normalizeOptions = async (
 
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: normalizePath(inputOptions.target, workspace),
+      target: normalizePathOrUrl(inputOptions.target, workspace),
       validation: inputOptions.validation || false,
       override: {
         transformer: normalizePath(
@@ -215,12 +215,16 @@ const normalizeMutator = <T>(
   return mutator;
 };
 
-export const normalizePath = <T>(path: T, workspace: string) => {
+const normalizePathOrUrl = <T>(path: T, workspace: string) => {
   if (isString(path) && !isUrl(path)) {
-    return resolve(workspace, path);
+    return normalizePath(path, workspace);
   }
 
   return path;
+};
+
+export const normalizePath = <T>(path: T, workspace: string) => {
+  return resolve(workspace, path);
 };
 
 const normalizeOperationsAndTags = (
