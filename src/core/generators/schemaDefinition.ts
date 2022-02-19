@@ -33,6 +33,7 @@ export const generateSchemasDefinition = async (
         (!schema.type || schema.type === 'object') &&
         !schema.allOf &&
         !schema.oneOf &&
+        !schema.anyOf &&
         !isReference(schema) &&
         !schema.nullable
       ) {
