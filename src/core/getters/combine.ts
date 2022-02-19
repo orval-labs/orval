@@ -8,6 +8,16 @@ import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
 import { getEnumImplementation } from './enum';
 
+type CombinedData = Omit<
+  ResolverValue,
+  'isRef' | 'isEnum' | 'value' | 'type'
+> & {
+  values: string[];
+  isRef: boolean[];
+  isEnum: boolean[];
+  types: string[];
+};
+
 const SEPARATOR = {
   allOf: '&',
   oneOf: '|',
@@ -19,11 +29,13 @@ export const combineSchemas = async ({
   items,
   separator,
   context,
+  nullable,
 }: {
   name?: string;
   items: (SchemaObject | ReferenceObject)[];
   separator: keyof typeof SEPARATOR;
   context: ContextSpecs;
+  nullable: string;
 }) => {
   const resolvedData = await asyncReduce(
     items,
@@ -57,12 +69,7 @@ export const combineSchemas = async ({
       isEnum: [], // check if only enums
       isRef: [],
       types: [],
-    } as Omit<ResolverValue, 'isRef' | 'isEnum' | 'value' | 'type'> & {
-      values: string[];
-      isRef: boolean[];
-      isEnum: boolean[];
-      types: string[];
-    },
+    } as CombinedData,
   );
 
   const isAllEnums = resolvedData.isEnum.every((v) => v);
@@ -72,22 +79,12 @@ export const combineSchemas = async ({
   );
 
   if (isAllEnums && name) {
-    const enums = resolvedData.values
-      .map((e, i) => {
-        if (resolvedData.isRef[i]) {
-          return `...${e}`;
-        }
-
-        return getEnumImplementation(e, resolvedData.types[i], pascal(name));
-      })
-      .join(',');
-
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
       name,
-    )} = {${enums}}`;
+    )} = ${getCombineEnumValue(resolvedData, name)}`;
 
     return {
-      value: value + newEnum,
+      value: `${value + nullable};` + newEnum,
       imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
         ...toImport,
         values: true,
@@ -100,11 +97,36 @@ export const combineSchemas = async ({
   }
 
   return {
-    value,
+    value: value + nullable,
     imports: resolvedData.imports,
     schemas: resolvedData.schemas,
     isEnum: isAllEnums,
     type: 'object',
     isRef: false,
   };
+};
+
+const getCombineEnumValue = (
+  { values, isRef, types }: CombinedData,
+  name: string,
+) => {
+  if (values.length === 1) {
+    if (isRef[0]) {
+      return values[0];
+    }
+
+    return `{${getEnumImplementation(values[0], types[0], pascal(name))}}`;
+  }
+
+  const enums = values
+    .map((e, i) => {
+      if (isRef[i]) {
+        return `...${e}`;
+      }
+
+      return getEnumImplementation(e, types[i], pascal(name));
+    })
+    .join(',');
+
+  return `{${enums}}`;
 };
