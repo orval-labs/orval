@@ -21,15 +21,17 @@ export const getObject = async ({
   item,
   name,
   context,
+  nullable,
 }: {
   item: SchemaObject;
   name?: string;
   context: ContextSpecs;
+  nullable: string;
 }): Promise<ResolverValue> => {
   if (isReference(item)) {
     const { name, specKey } = await getRefInfo(item.$ref, context);
     return {
-      value: name,
+      value: name + nullable,
       imports: [{ name, specKey }],
       schemas: [],
       isEnum: false,
@@ -46,6 +48,7 @@ export const getObject = async ({
       name,
       separator: 'allOf',
       context,
+      nullable,
     });
   }
 
@@ -57,6 +60,7 @@ export const getObject = async ({
       name,
       separator: 'oneOf',
       context,
+      nullable,
     });
   }
 
@@ -68,6 +72,7 @@ export const getObject = async ({
       name,
       separator: 'anyOf',
       context,
+      nullable,
     });
   }
 
@@ -128,6 +133,8 @@ export const getObject = async ({
           } else {
             acc.value += '\n}';
           }
+
+          acc.value += nullable;
         }
 
         return acc;
@@ -147,7 +154,7 @@ export const getObject = async ({
   if (item.additionalProperties) {
     if (isBoolean(item.additionalProperties)) {
       return {
-        value: `{ [key: string]: any }`,
+        value: `{ [key: string]: any }` + nullable,
         imports: [],
         schemas: [],
         isEnum: false,
@@ -161,7 +168,7 @@ export const getObject = async ({
       context,
     });
     return {
-      value: `{[key: string]: ${resolvedValue.value}}`,
+      value: `{[key: string]: ${resolvedValue.value}}` + nullable,
       imports: resolvedValue.imports || [],
       schemas: resolvedValue.schemas || [],
       isEnum: false,
@@ -171,7 +178,8 @@ export const getObject = async ({
   }
 
   return {
-    value: item.type === 'object' ? '{ [key: string]: any }' : 'unknown',
+    value:
+      item.type === 'object' ? '{ [key: string]: any }' : 'unknown' + nullable,
     imports: [],
     schemas: [],
     isEnum: false,
