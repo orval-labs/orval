@@ -224,6 +224,9 @@ const normalizePathOrUrl = <T>(path: T, workspace: string) => {
 };
 
 export const normalizePath = <T>(path: T, workspace: string) => {
+  if (!isString(path)) {
+    return path;
+  }
   return resolve(workspace, path);
 };
 
