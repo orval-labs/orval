@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import { generateConfig, generateSpec } from './generate';
-import { Options, OptionsExport } from './types';
+import { GlobalOptions, Options, OptionsExport } from './types';
 import { isString } from './utils/is';
 import { log } from './utils/messages/logs';
 import { defineConfig, normalizeOptions } from './utils/options';
@@ -9,13 +9,7 @@ import { startWatcher } from './utils/watcher';
 const generate = async (
   optionsExport?: string | OptionsExport,
   workspace = process.cwd(),
-  options?: {
-    projectName?: string;
-    watch?: boolean | string | (string | boolean)[];
-    clean?: boolean | string[];
-    prettier?: boolean;
-    tslint?: boolean;
-  },
+  options?: GlobalOptions,
 ) => {
   if (!optionsExport || isString(optionsExport)) {
     return generateConfig(optionsExport, options);
