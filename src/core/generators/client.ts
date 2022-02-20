@@ -185,7 +185,7 @@ export const generateClientImports = (
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
   hasGlobalMutator: boolean,
-  packageJson: PackageJson,
+  packageJson?: PackageJson,
 ): string => {
   const { dependencies } = getGeneratorClient(client, packageJson);
   return generateDependencyImports(

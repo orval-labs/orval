@@ -91,7 +91,11 @@ export const generateTargetForTags = (
           const operationNames = Object.values(operations)
             .filter(({ tags }) => tags.includes(tag))
             .map(({ operationName }) => operationName);
-          const footer = generateClientFooter(options?.client, operationNames);
+          const footer = generateClientFooter(
+            options?.client,
+            operationNames,
+            options.packageJson,
+          );
           const header = generateClientHeader({
             outputClient: options.client,
             isRequestOptions: options.override.requestOptions !== false,
@@ -101,6 +105,7 @@ export const generateTargetForTags = (
             customTitleFunc: options.override.title,
             provideInRoot: !!options.override.angular.provideIn,
             provideIn: options.override.angular.provideIn,
+            packageJson: options.packageJson,
           });
 
           acc[tag] = {

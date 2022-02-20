@@ -51,6 +51,7 @@ export const writeSingleMode = async ({
       !!output.schemas,
       isSyntheticDefaultImportsAllowed,
       !!output.override.mutator,
+      output.packageJson
     );
 
     if (output.mock) {

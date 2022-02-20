@@ -54,6 +54,7 @@ export const writeSplitMode = async ({
       !!output.schemas,
       isSyntheticDefaultImportsAllowed,
       !!output.override.mutator,
+      output.packageJson
     );
     mswData += generateMSWImports(
       implementationMSW,

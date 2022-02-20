@@ -56,6 +56,7 @@ export const writeTagsMode = async ({
           !!output.schemas,
           isSyntheticDefaultImportsAllowed,
           !!output.override.mutator,
+          output.packageJson
         );
 
         if (output.mock) {

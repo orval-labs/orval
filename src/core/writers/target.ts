@@ -53,12 +53,17 @@ export const generateTarget = (
           customTitleFunc: options.override.title,
           provideInRoot: !!options.override.angular.provideIn,
           provideIn: options.override.angular.provideIn,
+          packageJson: options.packageJson,
         });
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMSW.handler =
           header.implementationMSW + acc.implementationMSW.handler;
 
-        const footer = generateClientFooter(options?.client, operationNames);
+        const footer = generateClientFooter(
+          options?.client,
+          operationNames,
+          options.packageJson,
+        );
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;
       }
