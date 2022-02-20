@@ -19,6 +19,7 @@ import { isBoolean, isFunction, isObject, isString } from './is';
 import { mergeDeep } from './mergeDeep';
 import { getFilesHeader } from './messages/inline';
 import { createLogger } from './messages/logs';
+import { loadPackageJson } from './packageJson';
 import { loadTsconfig } from './tsconfig';
 import { isUrl } from './url';
 
@@ -73,6 +74,11 @@ export const normalizeOptions = async (
     workspace,
   );
 
+  const packageJson = await loadPackageJson(
+    outputOptions.packageJson || globalOptions.packageJson,
+    workspace,
+  );
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: normalizePathOrUrl(inputOptions.target, workspace),
@@ -100,6 +106,7 @@ export const normalizeOptions = async (
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,
       tsconfig,
+      packageJson,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(

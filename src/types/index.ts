@@ -44,6 +44,7 @@ export type NormalizedOutputOptions = {
   prettier: boolean;
   tslint: boolean;
   tsconfig?: Tsconfig;
+  packageJson?: PackageJson;
 };
 
 export type NormalizedOverrideOutput = {
@@ -134,6 +135,7 @@ export type OutputOptions = {
   prettier?: boolean;
   tslint?: boolean;
   tsconfig?: string | Tsconfig;
+  packageJson?: string;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -315,6 +317,7 @@ export interface GlobalOptions {
   client?: OutputClient;
   mode?: OutputMode;
   tsconfig?: Tsconfig;
+  packageJson?: string;
 }
 
 export interface Tsconfig {
@@ -324,4 +327,8 @@ export interface Tsconfig {
     allowSyntheticDefaultImports?: boolean;
     paths?: Record<string, string[]>;
   };
+}
+
+export interface PackageJson {
+  dependencies?: Record<string, string>;
 }

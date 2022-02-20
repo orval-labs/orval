@@ -65,6 +65,7 @@ export const generateApi = async ({
         override: output.override,
         context: resolvedContext,
         mock: !!output.mock,
+        packageJson: output.packageJson,
       });
 
       acc.schemas.push(...schemas);

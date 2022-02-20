@@ -41,6 +41,7 @@ cli
   .option('--prettier [path]', 'Prettier generated files')
   .option('--tslint [path]', 'tslint generated files')
   .option('--tsconfig [path]', 'path to your tsconfig file')
+  .option('--package-json [path]', 'path to your package json file')
   .action(async (paths, cmd) => {
     if (isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
@@ -53,6 +54,8 @@ cli
           mock: cmd.mock,
           client: cmd.client,
           mode: cmd.mode,
+          tsconfig: cmd.tsconfig,
+          packageJson: cmd['package-json'],
         },
       });
 
@@ -85,6 +88,8 @@ cli
         mock: cmd.mock,
         client: cmd.client,
         mode: cmd.mode,
+        tsconfig: cmd.tsconfig,
+        packageJson: cmd['package-json'],
       });
     }
   });

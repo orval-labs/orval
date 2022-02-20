@@ -1,4 +1,5 @@
-import { OutputClient, OutputClientFunc } from '../../types';
+import { compare } from 'compare-versions';
+import { OutputClient, OutputClientFunc, PackageJson } from '../../types';
 import {
   GeneratorClientExtra,
   GeneratorClients,
@@ -17,16 +18,14 @@ import {
   generateAngularHeader,
   generateAngularTitle,
   getAngularDependencies,
-} from './angular';
+} from './clients/angular';
 import {
   generateAxios,
   generateAxiosFooter,
   generateAxiosHeader,
   generateAxiosTitle,
   getAxiosDependencies,
-} from './axios';
-import { generateDependencyImports } from './imports';
-import { generateMSW } from './msw';
+} from './clients/axios';
 import {
   generateQuery,
   generateQueryFooter,
@@ -35,90 +34,143 @@ import {
   getReactQueryDependencies,
   getSvelteQueryDependencies,
   getVueQueryDependencies,
-} from './query';
+} from './clients/query';
 import {
   generateSwr,
   generateSwrFooter,
   generateSwrHeader,
   generateSwrTitle,
   getSwrDependencies,
-} from './swr';
+} from './clients/swr';
+import { generateDependencyImports } from './imports';
+import { generateMSW } from './msw';
+
+const PACKAGE_BY_CLIENT: Record<OutputClient, string> = {
+  axios: 'axios',
+  'axios-functions': 'axios',
+  'react-query': 'react-query',
+  'vue-query': 'vue-query',
+  'svelte-query': 'svelte-query',
+  swr: 'swr',
+  angular: 'angular',
+};
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
 export const GENERATOR_CLIENT: GeneratorClients = {
   axios: {
-    client: generateAxios,
-    header: generateAxiosHeader,
-    dependencies: getAxiosDependencies,
-    footer: generateAxiosFooter,
-    title: generateAxiosTitle,
+    latest: {
+      client: generateAxios,
+      header: generateAxiosHeader,
+      dependencies: getAxiosDependencies,
+      footer: generateAxiosFooter,
+      title: generateAxiosTitle,
+    },
   },
   'axios-functions': {
-    client: (verbOptions: GeneratorVerbOptions, options: GeneratorOptions) => {
-      const { implementation, imports } = generateAxios(verbOptions, options);
+    latest: {
+      client: (
+        verbOptions: GeneratorVerbOptions,
+        options: GeneratorOptions,
+      ) => {
+        const { implementation, imports } = generateAxios(verbOptions, options);
 
-      return {
-        implementation: 'export ' + implementation,
-        imports,
-      };
+        return {
+          implementation: 'export ' + implementation,
+          imports,
+        };
+      },
+      header: (options: {
+        title: string;
+        isMutator: boolean;
+        isRequestOptions: boolean;
+      }) => generateAxiosHeader({ ...options, noFunction: true }),
+      dependencies: getAxiosDependencies,
+      footer: () => '',
+      title: generateAxiosTitle,
     },
-    header: (options: {
-      title: string;
-      isMutator: boolean;
-      isRequestOptions: boolean;
-    }) => generateAxiosHeader({ ...options, noFunction: true }),
-    dependencies: getAxiosDependencies,
-    footer: () => '',
-    title: generateAxiosTitle,
   },
   angular: {
-    client: generateAngular,
-    header: generateAngularHeader,
-    dependencies: getAngularDependencies,
-    footer: generateAngularFooter,
-    title: generateAngularTitle,
+    latest: {
+      client: generateAngular,
+      header: generateAngularHeader,
+      dependencies: getAngularDependencies,
+      footer: generateAngularFooter,
+      title: generateAngularTitle,
+    },
   },
   'react-query': {
-    client: generateQuery,
-    header: generateQueryHeader,
-    dependencies: getReactQueryDependencies,
-    footer: generateQueryFooter,
-    title: generateQueryTitle,
+    versions: {
+      '3.30.0': {
+        // Before that no AbortSignal provided to queryFn
+        client: generateQuery,
+        header: generateQueryHeader,
+        dependencies: getReactQueryDependencies,
+        footer: generateQueryFooter,
+        title: generateQueryTitle,
+      },
+    },
+    latest: {
+      client: generateQuery,
+      header: generateQueryHeader,
+      dependencies: getReactQueryDependencies,
+      footer: generateQueryFooter,
+      title: generateQueryTitle,
+    },
   },
   'svelte-query': {
-    client: generateQuery,
-    header: generateQueryHeader,
-    dependencies: getSvelteQueryDependencies,
-    footer: generateQueryFooter,
-    title: generateQueryTitle,
+    latest: {
+      client: generateQuery,
+      header: generateQueryHeader,
+      dependencies: getSvelteQueryDependencies,
+      footer: generateQueryFooter,
+      title: generateQueryTitle,
+    },
   },
   'vue-query': {
-    client: generateQuery,
-    header: generateQueryHeader,
-    dependencies: getVueQueryDependencies,
-    footer: generateQueryFooter,
-    title: generateQueryTitle,
+    latest: {
+      client: generateQuery,
+      header: generateQueryHeader,
+      dependencies: getVueQueryDependencies,
+      footer: generateQueryFooter,
+      title: generateQueryTitle,
+    },
   },
   swr: {
-    client: generateSwr,
-    header: generateSwrHeader,
-    dependencies: getSwrDependencies,
-    footer: generateSwrFooter,
-    title: generateSwrTitle,
+    latest: {
+      client: generateSwr,
+      header: generateSwrHeader,
+      dependencies: getSwrDependencies,
+      footer: generateSwrFooter,
+      title: generateSwrTitle,
+    },
   },
 };
 
-const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
-  const generator = isFunction(outputClient)
-    ? outputClient(GENERATOR_CLIENT)
-    : GENERATOR_CLIENT[outputClient];
-
-  if (!generator) {
-    throw `Oups... 🍻. Client not found: ${outputClient}`;
+export const getGeneratorClient = (
+  outputClient: OutputClient | OutputClientFunc,
+  packageJson?: PackageJson,
+) => {
+  if (isFunction(outputClient)) {
+    return outputClient(GENERATOR_CLIENT);
   }
 
-  return generator;
+  const packageName = PACKAGE_BY_CLIENT[outputClient];
+
+  const version = packageJson?.dependencies?.[packageName];
+
+  const generators = GENERATOR_CLIENT[outputClient];
+
+  if (version && generators.versions) {
+    const [, generator] =
+      Object.entries(generators.versions).find(([v]) => {
+        return compare(version, v, '<');
+      }) || [];
+
+    return generator ?? generators.latest;
+  }
+
+  return generators.latest;
 };
 
 export const generateClientImports = (
@@ -132,8 +184,9 @@ export const generateClientImports = (
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
   hasGlobalMutator: boolean,
+  packageJson: PackageJson,
 ): string => {
-  const { dependencies } = getGeneratorClient(client);
+  const { dependencies } = getGeneratorClient(client, packageJson);
   return generateDependencyImports(
     implementation,
     [...dependencies(hasGlobalMutator), ...imports],
@@ -152,6 +205,7 @@ export const generateClientHeader = ({
   isMutator,
   provideInRoot,
   provideIn,
+  packageJson,
 }: {
   outputClient?: OutputClient | OutputClientFunc;
   isRequestOptions: boolean;
@@ -161,9 +215,15 @@ export const generateClientHeader = ({
   provideIn: boolean | 'root' | 'any';
   title: string;
   customTitleFunc?: (title: string) => string;
+  packageJson?: PackageJson;
 }): GeneratorClientExtra => {
-  const titles = generateClientTitle(outputClient, title, customTitleFunc);
-  const { header } = getGeneratorClient(outputClient);
+  const titles = generateClientTitle(
+    outputClient,
+    title,
+    customTitleFunc,
+    packageJson,
+  );
+  const { header } = getGeneratorClient(outputClient, packageJson);
   return {
     implementation: header({
       title: titles.implementation,
@@ -180,8 +240,9 @@ export const generateClientHeader = ({
 export const generateClientFooter = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   operationNames: string[],
+  packageJson?: PackageJson,
 ): GeneratorClientExtra => {
-  const { footer } = getGeneratorClient(outputClient);
+  const { footer } = getGeneratorClient(outputClient, packageJson);
   return {
     implementation: footer(operationNames),
     implementationMSW: `]\n`,
@@ -192,8 +253,12 @@ export const generateClientTitle = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   title: string,
   customTitleFunc?: (title: string) => string,
+  packageJson?: PackageJson,
 ) => {
-  const { title: generatorTitle } = getGeneratorClient(outputClient);
+  const { title: generatorTitle } = getGeneratorClient(
+    outputClient,
+    packageJson,
+  );
   if (customTitleFunc) {
     const customTitle = customTitleFunc(title);
     return {
@@ -236,7 +301,10 @@ export const generateClient = (
   return asyncReduce(
     verbsOptions,
     async (acc, verbOption) => {
-      const { client: generatorClient } = getGeneratorClient(outputClient);
+      const { client: generatorClient } = getGeneratorClient(
+        outputClient,
+        options.packageJson,
+      );
       const client = generatorClient(verbOption, options, outputClient);
       const msw = await generateMock(verbOption, options);
 

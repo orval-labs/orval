@@ -11,6 +11,7 @@ import {
   NormalizedOverrideOutput,
   OutputClient,
   OutputClientFunc,
+  PackageJson,
   Verbs,
 } from './index';
 
@@ -105,6 +106,7 @@ export type GeneratorOptions = {
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
   mock: boolean;
+  packageJson?: PackageJson;
 };
 
 export type GeneratorClient = {
@@ -171,4 +173,12 @@ export interface ClientGeneratorsBuilder {
   title: ClientTitleBuilder;
 }
 
-export type GeneratorClients = Record<OutputClient, ClientGeneratorsBuilder>;
+export type GeneratorClients = Record<
+  OutputClient,
+  {
+    latest: ClientGeneratorsBuilder;
+    versions?: {
+      [version: string]: ClientGeneratorsBuilder;
+    };
+  }
+>;

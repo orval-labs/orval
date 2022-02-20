@@ -3,17 +3,17 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
-} from '../../types/generator';
-import { pascal } from '../../utils/case';
-import { sanitize, toObjectString } from '../../utils/string';
-import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
-import { generateVerbImports } from './imports';
+} from '../../../types/generator';
+import { pascal } from '../../../utils/case';
+import { sanitize, toObjectString } from '../../../utils/string';
+import { isSyntheticDefaultImportsAllow } from '../../../utils/tsconfig';
+import { generateVerbImports } from '../imports';
 import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-} from './options';
+} from '../options';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {

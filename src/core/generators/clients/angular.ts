@@ -3,17 +3,17 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
-} from '../../types/generator';
-import { pascal } from '../../utils/case';
-import { isBoolean } from '../../utils/is';
-import { sanitize, toObjectString } from '../../utils/string';
-import { generateVerbImports } from './imports';
+} from '../../../types/generator';
+import { pascal } from '../../../utils/case';
+import { isBoolean } from '../../../utils/is';
+import { sanitize, toObjectString } from '../../../utils/string';
+import { generateVerbImports } from '../imports';
 import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-} from './options';
+} from '../options';
 
 const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   {
