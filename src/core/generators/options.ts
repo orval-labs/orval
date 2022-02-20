@@ -164,6 +164,7 @@ export const generateMutatorConfig = ({
   verb,
   isFormData,
   isFormUrlEncoded,
+  isBodyVerb,
 }: {
   route: string;
   body: GetterBody;
@@ -172,8 +173,8 @@ export const generateMutatorConfig = ({
   verb: Verbs;
   isFormData: boolean;
   isFormUrlEncoded: boolean;
+  isBodyVerb: boolean;
 }) => {
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
     : '';

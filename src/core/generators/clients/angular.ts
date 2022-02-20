@@ -1,3 +1,4 @@
+import { VERBS_WITH_BODY } from '../../../constants';
 import {
   GeneratorClient,
   GeneratorDependency,
@@ -118,6 +119,7 @@ const generateImplementation = (
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -136,6 +138,7 @@ const generateImplementation = (
       verb,
       isFormData,
       isFormUrlEncoded,
+      isBodyVerb
     });
 
     const requestOptions = isRequestOptions

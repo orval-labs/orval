@@ -1,28 +1,29 @@
 import omitBy from 'lodash.omitby';
-import { OutputClient, OutputClientFunc, Verbs } from '../../../types';
+import { VERBS_WITH_BODY } from '../../../../constants';
+import { OutputClient, OutputClientFunc, Verbs } from '../../../../types';
 import {
   GeneratorDependency,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
-} from '../../../types/generator';
+} from '../../../../types/generator';
 import {
   GetterParams,
   GetterProps,
   GetterPropType,
   GetterResponse,
-} from '../../../types/getters';
-import { camel, pascal } from '../../../utils/case';
-import { isObject } from '../../../utils/is';
-import { stringify, toObjectString } from '../../../utils/string';
-import { isSyntheticDefaultImportsAllow } from '../../../utils/tsconfig';
-import { generateVerbImports } from '../imports';
+} from '../../../../types/getters';
+import { camel, pascal } from '../../../../utils/case';
+import { isObject } from '../../../../utils/is';
+import { stringify, toObjectString } from '../../../../utils/string';
+import { isSyntheticDefaultImportsAllow } from '../../../../utils/tsconfig';
+import { generateVerbImports } from '../../imports';
 import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-} from '../options';
+} from '../../options';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -142,6 +143,7 @@ const generateQueryRequestFunction = (
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
   );
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -160,6 +162,7 @@ const generateQueryRequestFunction = (
       verb,
       isFormData,
       isFormUrlEncoded,
+      isBodyVerb,
     });
 
     const requestOptions = isRequestOptions

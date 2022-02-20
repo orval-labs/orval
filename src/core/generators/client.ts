@@ -35,6 +35,7 @@ import {
   getSvelteQueryDependencies,
   getVueQueryDependencies,
 } from './clients/query';
+import * as query3_30_0 from './clients/query/3_30_0_abort_signal';
 import {
   generateSwr,
   generateSwrFooter,
@@ -103,11 +104,11 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     versions: {
       '3.30.0': {
         // Before that no AbortSignal provided to queryFn
-        client: generateQuery,
-        header: generateQueryHeader,
-        dependencies: getReactQueryDependencies,
-        footer: generateQueryFooter,
-        title: generateQueryTitle,
+        client: query3_30_0.generateQuery,
+        header: query3_30_0.generateQueryHeader,
+        dependencies: query3_30_0.getReactQueryDependencies,
+        footer: query3_30_0.generateQueryFooter,
+        title: query3_30_0.generateQueryTitle,
       },
     },
     latest: {
