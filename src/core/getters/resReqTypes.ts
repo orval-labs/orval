@@ -62,7 +62,7 @@ export const getResReqTypes = async (
           );
 
           const [contentType, mediaType] =
-            Object.entries(bodySchema.content || {})[0] || [];
+            Object.entries(bodySchema.content ?? {})[0] ?? [];
 
           const isFormData = formDataContentTypes.includes(contentType);
           const isFormUrlEncoded =

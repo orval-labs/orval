@@ -44,7 +44,7 @@ export const getMockScalar = async ({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags || {}).reduce(
+  const overrideTag = Object.entries(mockOptions?.tags ?? {}).reduce(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
     {} as { properties: Record<string, string> },
@@ -64,7 +64,7 @@ export const getMockScalar = async ({
 
   const ALL_FORMAT: Record<string, string> = {
     ...DEFAULT_FORMAT_MOCK,
-    ...(mockOptions?.format || {}),
+    ...(mockOptions?.format ?? {}),
   };
 
   if (item.format && ALL_FORMAT[item.format]) {

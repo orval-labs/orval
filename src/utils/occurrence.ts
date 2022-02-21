@@ -3,5 +3,5 @@ export const count = (str: string = '', key: string) => {
     return 0;
   }
 
-  return (str.match(new RegExp(key, 'g')) || []).length;
+  return (str.match(new RegExp(key, 'g')) ?? []).length;
 };

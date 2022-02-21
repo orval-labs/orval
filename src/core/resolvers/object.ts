@@ -21,7 +21,7 @@ export const resolveObject = async ({
     name: propName,
     context,
   });
-  const doc = jsDoc(resolvedValue.originalSchema || {});
+  const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
   if (
     propName &&

@@ -83,10 +83,10 @@ export const normalizeOptions = async (
           workspace,
         ),
       },
-      converterOptions: inputOptions.converterOptions || {},
+      converterOptions: inputOptions.converterOptions ?? {},
       parserOptions: mergeDeep(
         parserDefaultOptions,
-        inputOptions.parserOptions || {},
+        inputOptions.parserOptions ?? {},
       ),
     },
     output: {
@@ -103,11 +103,11 @@ export const normalizeOptions = async (
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(
-          outputOptions.override?.operations || {},
+          outputOptions.override?.operations ?? {},
           outputWorkspace,
         ),
         tags: normalizeOperationsAndTags(
-          outputOptions.override?.tags || {},
+          outputOptions.override?.tags ?? {},
           outputWorkspace,
         ),
         mutator: normalizeMutator(
@@ -138,24 +138,24 @@ export const normalizeOptions = async (
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,
-            ...(outputOptions.override?.components?.schemas || {}),
+            ...(outputOptions.override?.components?.schemas ?? {}),
           },
           responses: {
             suffix: RefComponentSuffix.responses,
-            ...(outputOptions.override?.components?.responses || {}),
+            ...(outputOptions.override?.components?.responses ?? {}),
           },
           parameters: {
             suffix: RefComponentSuffix.parameters,
-            ...(outputOptions.override?.components?.parameters || {}),
+            ...(outputOptions.override?.components?.parameters ?? {}),
           },
           requestBodies: {
             suffix: RefComponentSuffix.requestBodies,
-            ...(outputOptions.override?.components?.requestBodies || {}),
+            ...(outputOptions.override?.components?.requestBodies ?? {}),
           },
         },
         query: {
           useQuery: true,
-          ...(outputOptions.override?.query || {}),
+          ...(outputOptions.override?.query ?? {}),
         },
         angular: {
           provideIn:

@@ -46,7 +46,7 @@ export const useGetPets = <TData = AsyncReturnType<typeof getPets>, TError = unk
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getGetPetsQueryKey();
 

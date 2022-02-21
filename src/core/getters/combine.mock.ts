@@ -26,7 +26,7 @@ export const combineSchemasMock = async ({
   imports: GeneratorImport[];
 }) => {
   let combineImports: GeneratorImport[] = [];
-  let properties: string[] = [...(combine?.properties || [])];
+  let properties: string[] = [...(combine?.properties ?? [])];
   const value = await asyncReduce(
     items,
     async (acc, val, index, arr) => {
@@ -50,7 +50,7 @@ export const combineSchemasMock = async ({
       });
 
       combineImports = [...combineImports, ...resolvedValue.imports];
-      properties = [...properties, ...(resolvedValue.properties || [])];
+      properties = [...properties, ...(resolvedValue.properties ?? [])];
 
       if (!index && !combine) {
         if (resolvedValue.enums || isOneOf) {

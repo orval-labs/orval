@@ -50,7 +50,7 @@ export const useShowPetById = <
     axios?: AxiosRequestConfig;
   },
 ) => {
-  const { query: queryOptions, axios: axiosOptions } = options || {};
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
   const queryFn = () => showPetById(petId, axiosOptions);

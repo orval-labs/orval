@@ -54,14 +54,14 @@ const generateTargetTags = (
               operation.implementationMSW.handler,
           },
           mutators: operation.mutator
-            ? [...(currentOperation.mutators || []), operation.mutator]
+            ? [...(currentOperation.mutators ?? []), operation.mutator]
             : currentOperation.mutators,
           formData: operation.formData
-            ? [...(currentOperation.formData || []), operation.formData]
+            ? [...(currentOperation.formData ?? []), operation.formData]
             : currentOperation.formData,
           formUrlEncoded: operation.formUrlEncoded
             ? [
-                ...(currentOperation.formUrlEncoded || []),
+                ...(currentOperation.formUrlEncoded ?? []),
                 operation.formUrlEncoded,
               ]
             : currentOperation.formUrlEncoded,
