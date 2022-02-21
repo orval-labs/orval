@@ -41,8 +41,8 @@ export const generateTarget = (
       }
 
       if (index === arr.length - 1) {
-        const isMutator = acc.mutators.some(
-          (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
+        const isMutator = acc.mutators.some((mutator) =>
+          isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
         );
         const header = generateClientHeader({
           outputClient: options.client,

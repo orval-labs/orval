@@ -16,4 +16,19 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/axios/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/axios/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer,
+      },
+    },
+  },
 });

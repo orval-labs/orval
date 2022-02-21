@@ -37,6 +37,31 @@ export default defineConfig({
       },
     },
   },
+  mutatorMultiArguments: {
+    output: {
+      target: '../generated/react-query/mutator-multi-arguments/endpoints.ts',
+      schemas: '../generated/react-query/mutator-multi-arguments/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/multi-arguments.ts',
+          name: 'customInstance',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
   errorType: {
     output: {
       target: '../generated/react-query/error-type/endpoints.ts',
@@ -97,8 +122,8 @@ export default defineConfig({
   },
   formDataWithHook: {
     output: {
-      target: '../generated/react-query/formDataWithHook/endpoints.ts',
-      schemas: '../generated/react-query/formDataWithHook/model',
+      target: '../generated/react-query/form-data-with-hook/endpoints.ts',
+      schemas: '../generated/react-query/form-data-with-hook/model',
       client: 'react-query',
       mock: true,
       override: {

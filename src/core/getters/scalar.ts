@@ -79,6 +79,7 @@ export const getScalar = async ({
           .map((enumItem: string) =>
             isString(enumItem) ? escape(enumItem) : enumItem,
           )
+          .filter(Boolean)
           .join(`' | '`)}'`;
         isEnum = true;
       }
@@ -87,8 +88,14 @@ export const getScalar = async ({
         value = 'Blob';
       }
 
+      if (context.override.useDates) {
+        if (item.format === 'date' || item.format === 'date-time') {
+          value = 'Date';
+        }
+      }
+
       return {
-        value: isEnum ? value : value + nullable,
+        value: value + nullable,
         isEnum,
         type: 'string',
         imports: [],
@@ -103,8 +110,9 @@ export const getScalar = async ({
         item,
         name,
         context,
+        nullable
       });
-      return { value: value + nullable, ...rest };
+      return { value: value, ...rest };
     }
   }
 };

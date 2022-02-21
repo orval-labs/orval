@@ -1,17 +1,19 @@
+import { camel } from '../../utils/case';
 import { sanitize } from '../../utils/string';
 
+const hasParam = (path: string) => /[^{]*{[\w_-]*}.*/.test(path)
+
 const getRoutePath = (path: string) => {
-  return path.split('').reduce((acc, letter) => {
-    if (letter === '{') {
-      return acc + '${';
-    }
-
-    if (letter === '}') {
-      return acc + '}';
-    }
-
-    return acc + sanitize(letter, { dot: true });
-  }, '');
+  const matches = path.match(/([^{]*){?([\w_-]*)}?(.*)/)
+  if (!matches?.length) return path // impossible due to regexp grouping here, but for TS
+  const prev = matches[1]
+  const param = camel(sanitize(matches[2], { underscore: true, dash: true, dot: true }))
+  const next: string = hasParam(matches[3]) ? getRoutePath(matches[3]) : matches[3]
+  if (hasParam(path)) {
+    return `${prev}\${${param}}${next}`
+  } else {
+    return `${prev}${param}${next}`
+  }
 };
 
 export const getRoute = (route: string) => {

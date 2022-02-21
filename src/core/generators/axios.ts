@@ -31,7 +31,9 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getAxiosDependencies = () => AXIOS_DEPENDENCIES;
+export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+];
 
 const generateAxiosImplementation = (
   {
@@ -75,11 +77,10 @@ const generateAxiosImplementation = (
       isFormUrlEncoded,
     });
 
-    const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
-          isMutatorHasSecondArg,
+          mutator.hasSecondArg,
         )
       : '';
 
@@ -87,7 +88,7 @@ const generateAxiosImplementation = (
       props,
       'implementation',
     )}\n ${
-      isRequestOptions && isMutatorHasSecondArg
+      isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}

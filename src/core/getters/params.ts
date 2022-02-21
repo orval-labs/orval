@@ -1,5 +1,6 @@
 import { ContextSpecs } from '../../types';
 import { GetterParameters, GetterParams } from '../../types/getters';
+import { camel } from '../../utils/case';
 import { sanitize, stringify } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
 
@@ -40,7 +41,9 @@ export const getParams = ({
   return Promise.all(
     params.map(async (p) => {
       const pathParam = pathParams.find(
-        ({ parameter }) => sanitize(parameter.name) === p,
+        ({ parameter }) =>
+          camel(sanitize(parameter.name, { underscore: true, dash: true })) ===
+          p,
       );
 
       if (!pathParam) {
@@ -55,7 +58,7 @@ export const getParams = ({
         schema,
       } = pathParam.parameter;
 
-      const name = sanitize(nameWithoutSanitize);
+      const name = sanitize(camel(nameWithoutSanitize));
 
       if (!schema) {
         return {

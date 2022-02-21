@@ -2,7 +2,6 @@ import '@docsearch/react/dist/style.css';
 import * as Sentry from '@sentry/node';
 import { SearchProvider } from 'components/useSearch';
 import Head from 'next/head';
-import React from 'react';
 import '../styles/index.css';
 
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -36,12 +35,6 @@ function MyApp({ Component, pageProps, err }) {
           `,
           }}
         />
-        <script async src="https://unpkg.com/thesemetrics@latest"></script>
-        <script
-          defer
-          src="https://static.cloudflareinsights.com/beacon.min.js"
-          data-cf-beacon='{"token": "dd90dfbdd41e40c4be71ba78f997aa54"}'
-        ></script>
       </Head>
       <SearchProvider>
         <Component {...pageProps} err={err} />

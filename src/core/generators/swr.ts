@@ -40,7 +40,6 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 const SWR_DEPENDENCIES: GeneratorDependency[] = [
-  ...AXIOS_DEPENDENCIES,
   {
     exports: [
       { name: 'useSwr', values: true, default: true },
@@ -51,7 +50,10 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getSwrDependencies = () => SWR_DEPENDENCIES;
+export const getSwrDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...SWR_DEPENDENCIES,
+];
 
 const generateSwrRequestFunction = (
   {
@@ -95,11 +97,10 @@ const generateSwrRequestFunction = (
       isFormUrlEncoded,
     });
 
-    const isMutatorHasSecondArg = mutator.mutatorFn.length > 1;
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
-          isMutatorHasSecondArg,
+          mutator.hasSecondArg,
         )
       : '';
 
@@ -107,7 +108,7 @@ const generateSwrRequestFunction = (
       props,
       'implementation',
     )}\n ${
-      isRequestOptions && isMutatorHasSecondArg
+      isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}
@@ -148,12 +149,10 @@ const generateSwrArguments = ({
   operationName,
   mutator,
   isRequestOptions,
-  isMutatorHasSecondArg,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
-  isMutatorHasSecondArg: boolean;
 }) => {
   const definition = `SWRConfiguration<AsyncReturnType<typeof ${operationName}>, TError> & {swrKey: Key}`;
 
@@ -164,10 +163,10 @@ const generateSwrArguments = ({
   return `options?: { swr?:${definition}, ${
     !mutator
       ? `axios?: AxiosRequestConfig`
-      : isMutatorHasSecondArg
+      : mutator?.hasSecondArg
       ? `request?: SecondParameter<typeof ${mutator.name}>`
       : ''
-  }}\n`;
+  } }\n`;
 };
 
 const generateSwrImplementation = ({
@@ -192,7 +191,6 @@ const generateSwrImplementation = ({
 }) => {
   const httpFunctionProps = properties;
 
-  const isMutatorHasSecondArg = !!mutator && mutator.mutatorFn.length > 1;
   const swrKeyImplementation = params.length
     ? `const isEnable = !!(${params.map(({ name }) => name).join(' && ')})
   const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${properties}) : null);`
@@ -213,7 +211,6 @@ export const ${camel(
     operationName,
     mutator,
     isRequestOptions,
-    isMutatorHasSecondArg,
   })}\n  ) => {
 
   ${
@@ -221,7 +218,7 @@ export const ${camel(
       ? `const {swr: swrOptions${
           !mutator
             ? `, axios: axiosOptions`
-            : isMutatorHasSecondArg
+            : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
         }} = options || {}`
@@ -235,7 +232,7 @@ export const ${camel(
     isRequestOptions
       ? !mutator
         ? `axiosOptions`
-        : isMutatorHasSecondArg
+        : mutator?.hasSecondArg
         ? 'requestOptions'
         : ''
       : ''

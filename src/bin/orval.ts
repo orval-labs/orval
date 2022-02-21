@@ -53,6 +53,7 @@ cli
           mock: cmd.mock,
           client: cmd.client,
           mode: cmd.mode,
+          tsconfig: cmd.tsconfig,
         },
       });
 
@@ -85,6 +86,7 @@ cli
         mock: cmd.mock,
         client: cmd.client,
         mode: cmd.mode,
+        tsconfig: cmd.tsconfig,
       });
     }
   });

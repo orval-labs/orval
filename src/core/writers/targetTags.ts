@@ -74,9 +74,6 @@ export const generateTargetForTags = (
   operations: GeneratorOperations,
   options: NormalizedOutputOptions,
 ) => {
-  const operationNames = Object.values(operations).map(
-    ({ operationName }) => operationName,
-  );
   const isAngularClient = options.client === OutputClient.ANGULAR;
 
   const allTargetTags = Object.values(operations)
@@ -85,14 +82,16 @@ export const generateTargetForTags = (
       const targetTags = generateTargetTags(acc, operation);
 
       if (index === arr.length - 1) {
-        const footer = generateClientFooter(options?.client, operationNames);
-
         return Object.entries(targetTags).reduce<
           Record<string, GeneratorTargetFull>
         >((acc, [tag, target]) => {
-          const isMutator = !!target.mutators?.some(
-            (mutator) => mutator.mutatorFn.length > (isAngularClient ? 2 : 1),
+          const isMutator = !!target.mutators?.some((mutator) =>
+            isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
           );
+          const operationNames = Object.values(operations)
+            .filter(({ tags }) => tags.includes(tag))
+            .map(({ operationName }) => operationName);
+          const footer = generateClientFooter(options?.client, operationNames);
           const header = generateClientHeader({
             outputClient: options.client,
             isRequestOptions: options.override.requestOptions !== false,

@@ -138,18 +138,17 @@ const generateImplementation = (
       isFormUrlEncoded,
     });
 
-    const isMutatorHasThirdArg = mutator.mutatorFn.length > 2;
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
-          isMutatorHasThirdArg,
+          mutator.hasThirdArg,
         )
       : '';
 
     return ` ${operationName}<TData = ${
       response.definition.success || 'unknown'
     }>(\n    ${toObjectString(props, 'implementation')}\n ${
-      isRequestOptions && isMutatorHasThirdArg
+      isRequestOptions && mutator.hasThirdArg
         ? `options?: ThirdParameter<typeof ${mutator.name}>`
         : ''
     }) {${bodyForm}

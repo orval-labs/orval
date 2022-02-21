@@ -117,13 +117,18 @@ export type GeneratorClientExtra = {
   implementationMSW: string;
 };
 
+export type GeneratorMutatorParsingInfo = {
+  numberOfParams: number;
+};
 export type GeneratorMutator = {
   name: string;
   path: string;
   default: boolean;
-  mutatorFn: Function;
   hasErrorType: boolean;
   errorTypeName: string;
+  hasSecondArg: boolean;
+  hasThirdArg: boolean;
+  isHook: boolean;
 };
 
 export type ClientBuilder = (
@@ -146,7 +151,9 @@ export type ClientFooterBuilder = (operationIds?: string[]) => string;
 
 export type ClientTitleBuilder = (title: string) => string;
 
-export type ClientDependenciesBuilder = () => GeneratorDependency[];
+export type ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+) => GeneratorDependency[];
 
 export type ClientMSWBuilder = (
   verbOptions: GeneratorVerbOptions,

@@ -11,6 +11,7 @@ import {
   OperationOptions,
   OptionsExport,
   OutputClient,
+  OutputMode,
   SwaggerParserOptions,
 } from '../types';
 import { githubResolver } from './github';
@@ -74,7 +75,7 @@ export const normalizeOptions = async (
 
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: normalizePath(inputOptions.target, workspace),
+      target: normalizePathOrUrl(inputOptions.target, workspace),
       validation: inputOptions.validation || false,
       override: {
         transformer: normalizePath(
@@ -93,7 +94,7 @@ export const normalizeOptions = async (
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
-      mode: outputOptions.mode ?? mode ?? 'single',
+      mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock: outputOptions.mock ?? mock ?? false,
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
@@ -162,6 +163,7 @@ export const normalizeOptions = async (
             outputOptions.override?.angular?.provideInRoot ??
             'root',
         },
+        useDates: outputOptions.override?.useDates || false,
       },
     },
   };
@@ -213,12 +215,19 @@ const normalizeMutator = <T>(
   return mutator;
 };
 
-export const normalizePath = <T>(path: T, workspace: string) => {
+const normalizePathOrUrl = <T>(path: T, workspace: string) => {
   if (isString(path) && !isUrl(path)) {
-    return resolve(workspace, path);
+    return normalizePath(path, workspace);
   }
 
   return path;
+};
+
+export const normalizePath = <T>(path: T, workspace: string) => {
+  if (!isString(path)) {
+    return path;
+  }
+  return resolve(workspace, path);
 };
 
 const normalizeOperationsAndTags = (
@@ -266,4 +275,17 @@ const normalizeOperationsAndTags = (
       },
     ),
   );
+};
+
+const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
+  if (!mode) {
+    return OutputMode.SINGLE;
+  }
+
+  if (!Object.values(OutputMode).includes(mode)) {
+    createLogger().warn(chalk.yellow(`Unknown the provided mode => ${mode}`));
+    return OutputMode.SINGLE;
+  }
+
+  return mode;
 };

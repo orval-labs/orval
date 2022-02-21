@@ -9,7 +9,13 @@ class MyDocument extends Document {
   render() {
     return (
       <Html>
-        <Head />
+        <Head>
+          <script
+            defer
+            data-domain="orval.dev"
+            src="https://anatomy.anymaniax.com/js/script.js"
+          ></script>
+        </Head>
         <body className="font-sans antialiased text-gray-900">
           <Main />
           <NextScript />
