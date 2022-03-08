@@ -54,7 +54,12 @@ export const sanitize = (
     dash?: string | true;
   },
 ) => {
-  const { whitespace = '', underscore = '', dot = '', dash = '' } = options || {};
+  const {
+    whitespace = '',
+    underscore = '',
+    dot = '',
+    dash = '',
+  } = options || {};
   let newValue = value.replace(/[^\w\s.-]/g, '');
 
   if (whitespace !== true) {
