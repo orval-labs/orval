@@ -69,8 +69,7 @@ export const GENERATOR_CLIENT: GeneratorClients = {
       isRequestOptions: boolean;
     }) => generateAxiosHeader({ ...options, noFunction: true }),
     dependencies: getAxiosDependencies,
-    footer: ({operationNames, title }) =>
-      generateAxiosFooter({ operationNames, title, noFunction: true }),
+    footer: (options) => generateAxiosFooter({ ...options, noFunction: true }),
     title: generateAxiosTitle,
   },
   angular: {
@@ -191,8 +190,23 @@ export const generateClientFooter = ({
 }): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { footer } = getGeneratorClient(outputClient);
+  let implementation: string;
+  try {
+    if (isFunction(outputClient)) {
+      implementation = (footer as (operationNames: any) => string)(operationNames);
+      // being here means that the previous call worked
+      console.warn(
+        '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
+      );
+    } else {
+      implementation = footer({ operationNames, title: titles.implementation });
+    }
+  } catch (e) {
+    implementation = footer({ operationNames, title: titles.implementation });
+  }
+
   return {
-    implementation: footer({ operationNames, title: titles.implementation }),
+    implementation,
     implementationMSW: `]\n`,
   };
 };

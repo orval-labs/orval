@@ -147,11 +147,13 @@ export type ClientHeaderBuilder = (params: {
   provideIn: boolean | 'root' | 'any';
 }) => string;
 
-export type ClientFooterBuilder = (options: {
-  operationNames?: string[];
-  noFunction?: boolean;
-  title: string;
-}) => string;
+export type ClientFooterBuilder = (
+  params: {
+    noFunction?: boolean | undefined;
+    operationNames: string[];
+    title?: string;
+  },
+) => string;
 
 export type ClientTitleBuilder = (title: string) => string;
 

@@ -1,4 +1,5 @@
 import {
+  ClientFooterBuilder,
   GeneratorClient,
   GeneratorDependency,
   GeneratorOptions,
@@ -174,20 +175,16 @@ export const generateAxiosHeader = ({
 }
   ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
 
-export const generateAxiosFooter = ({
-  operationNames = [],
-  noFunction,
+export const generateAxiosFooter: ClientFooterBuilder = ({
+  operationNames,
   title,
-}: {
-  operationNames?: string[];
-  noFunction?: boolean;
-  title: string;
+  noFunction,
 }) => {
   const functionFooter = `return {${operationNames.join(',')}}};\n`;
   const returnTypesArr = operationNames
     .map((n) => {
       return returnTypesToWrite.has(n)
-        ? returnTypesToWrite.get(n)?.(noFunction ? undefined : title)
+        ? returnTypesToWrite.get(n)?.(noFunction || !title ? undefined : title)
         : '';
     })
     .filter(Boolean);
