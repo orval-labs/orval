@@ -35,6 +35,8 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const returnTypesToWrite: string[] = [];
+
 export const getAngularDependencies = () => ANGULAR_DEPENDENCIES;
 
 export const generateAngularTitle = (title: string) => {
@@ -98,7 +100,8 @@ export class ${title} {
     private http: HttpClient,
   ) {}`;
 
-export const generateAngularFooter = () => '};\n';
+export const generateAngularFooter = () =>
+  `};\n\n${returnTypesToWrite.join('\n')}`;
 
 const generateImplementation = (
   {
@@ -127,6 +130,14 @@ const generateImplementation = (
     isFormUrlEncoded,
   });
 
+  const dataType = response.definition.success || 'unknown';
+
+  returnTypesToWrite.push(
+    `export type ${pascal(
+      operationName,
+    )}ClientResult = NonNullable<${dataType}>`,
+  );
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -145,9 +156,10 @@ const generateImplementation = (
         )
       : '';
 
-    return ` ${operationName}<TData = ${
-      response.definition.success || 'unknown'
-    }>(\n    ${toObjectString(props, 'implementation')}\n ${
+    return ` ${operationName}<TData = ${dataType}>(\n    ${toObjectString(
+      props,
+      'implementation',
+    )}\n ${
       isRequestOptions && mutator.hasThirdArg
         ? `options?: ThirdParameter<typeof ${mutator.name}>`
         : ''
@@ -172,9 +184,10 @@ const generateImplementation = (
     isAngular: true,
   });
 
-  return ` ${operationName}<TData = ${
-    response.definition.success || 'unknown'
-  }>(\n    ${toObjectString(props, 'implementation')} ${
+  return ` ${operationName}<TData = ${dataType}>(\n    ${toObjectString(
+    props,
+    'implementation',
+  )} ${
     isRequestOptions ? `options?: HttpClientOptions\n` : ''
   }  ): Observable<TData>  {${bodyForm}
     return this.http.${verb}<TData>(${options});
