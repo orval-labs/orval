@@ -96,6 +96,7 @@ export const useCreatePetsHook = () => {
 
 
     export type CreatePetsMutationResult = NonNullable<AsyncReturnType<ReturnType<typeof useCreatePetsHook>>>
+    export type CreatePetsMutationBody = CreatePetsBody
     export type CreatePetsMutationError = Error
 
     export const useCreatePets = <TError = Error,

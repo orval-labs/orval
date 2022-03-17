@@ -4,6 +4,7 @@ await $`cd ./samples/angular-app && yarn && yarn generate-api`;
 await $`cd ./samples/basic && yarn && yarn example`;
 await $`cd ./samples/react-app && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/basic && yarn && yarn generate-api`;
+await $`cd ./samples/react-query/custom-client && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/form-data && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/form-data-mutator && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/form-url-encoded && yarn && yarn generate-api`;
