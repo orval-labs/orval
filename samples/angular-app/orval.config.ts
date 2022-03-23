@@ -1,4 +1,4 @@
-import * as faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.random.number({ min: 1, max: 99999 }),
+                  id: () => faker.datatype.number({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -25,7 +25,7 @@ export default defineConfig({
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.random.number({ min: 1, max: 99 }),
+                id: faker.datatype.number({ min: 1, max: 99 }),
                 name: faker.name.firstName(),
                 tag: faker.helpers.randomize([faker.random.word(), undefined]),
               }),

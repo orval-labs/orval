@@ -12,10 +12,9 @@
   "dependencies": {
     "@emotion/react": "11.1.5",
     "@emotion/styled": "11.1.5",
-    "@types/faker": "^5.5.8",
+    "@faker-js/faker": "^6.0.0",
     "axios": "^0.21.4",
     "core-js": "^3.6.5",
-    "faker": "^5.5.3",
     "fastify": "^3.21.0",
     "fastify-cors": "^6.0.2",
     "fastify-swagger": "^4.11.0",

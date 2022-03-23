@@ -17,7 +17,9 @@ import type {
 import {
   rest
 } from 'msw'
-import faker from 'faker'
+import {
+  faker
+} from '@faker-js/faker'
 import listPetsMutator from '../mutator/response-type'
 
 
@@ -62,10 +64,18 @@ export const showPetById = <TData = AxiosResponse<Pet>>(
   }
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AsyncReturnType<
+T extends (...args: any) => Promise<any>
+> = T extends (...args: any) => Promise<infer R> ? R : any;
+
+export type ListPetsResult = NonNullable<AsyncReturnType<typeof listPets>>
+export type CreatePetsResult = AsyncReturnType<typeof createPets>
+export type ShowPetByIdResult = AsyncReturnType<typeof showPetById>
 
 export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({id: faker.datatype.number(), name: 'jon', tag: 'jon'})))
 
-export const getShowPetByIdMock = () => ((()=>({id:faker.random.number({min:1,max:99}),name:faker.name.firstName(),tag:faker.helpers.randomize([faker.random.word(),void 0])}))())
+export const getShowPetByIdMock = () => ((()=>({id:import_faker.faker.datatype.number({min:1,max:99}),name:import_faker.faker.name.firstName(),tag:import_faker.faker.helpers.randomize([import_faker.faker.random.word(),void 0])}))())
 
 export const getSwaggerPetstoreMSW = () => [
 rest.get('*/v:version/pets', (_req, res, ctx) => {

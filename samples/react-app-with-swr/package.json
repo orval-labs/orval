@@ -3,12 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@types/faker": "^5.5.6",
+    "@faker-js/faker": "^6.0.0",
     "@types/node": "^14.14.13",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
     "axios": "^0.21.0",
-    "faker": "^5.5.3",
     "msw": "^0.24.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",

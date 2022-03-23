@@ -83,3 +83,7 @@ export class PetsService {
     );
   }
 };
+
+export type ListPetsClientResult = NonNullable<Pets>
+export type CreatePetsClientResult = NonNullable<void>
+export type ShowPetByIdClientResult = NonNullable<Pet>

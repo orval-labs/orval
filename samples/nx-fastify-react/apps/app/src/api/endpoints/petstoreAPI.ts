@@ -37,6 +37,9 @@ export const getPets = (
 export const getGetPetsQueryKey = () => [`/pets`];
 
     
+export type GetPetsQueryResult = NonNullable<AsyncReturnType<typeof getPets>>
+export type GetPetsQueryError = unknown
+
 export const useGetPets = <TData = AsyncReturnType<typeof getPets>, TError = unknown>(
   options?: { query?:UseQueryOptions<AsyncReturnType<typeof getPets>, TError, TData>, }
 
