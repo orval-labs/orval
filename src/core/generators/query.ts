@@ -163,10 +163,15 @@ const generateQueryRequestFunction = (
     });
 
     const propsImplementation = mutator?.bodyTypeName
-      ? toObjectString(props, 'implementation').replace(
-          new RegExp(`(${verb}\\w*):\\s?(\\w*)`),
-          `$1: ${mutator.bodyTypeName}<$2>`,
-        )
+      ? toObjectString(props, 'implementation')
+          .replace(
+            new RegExp(`(${verb}\\w*):\\s?(\\w*)`),
+            `$1: ${mutator.bodyTypeName}<$2>`,
+          )
+          .replace(
+            new RegExp(`(\\w*Body):\\s?(\\w*)`),
+            `$1: ${mutator.bodyTypeName}<$2>`,
+          )
       : toObjectString(props, 'implementation');
 
     const requestOptions = isRequestOptions
@@ -385,7 +390,9 @@ const generateQueryImplementation = ({
     : `typeof ${operationName}`;
 
   return `
-export type ${pascal(name)}QueryResult = NonNullable<AsyncReturnType<${dataType}>>
+export type ${pascal(
+    name,
+  )}QueryResult = NonNullable<AsyncReturnType<${dataType}>>
 export type ${pascal(name)}QueryError = ${errorType}
 
 export const ${camel(

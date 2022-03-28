@@ -24,7 +24,7 @@ import type {
   Pet,
   CreatePetsBody
 } from '../model'
-import { customInstance, ErrorType } from '../mutator/custom-instance'
+import { customClient, ErrorType, BodyType } from '../mutator/custom-client'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncReturnType<
@@ -39,7 +39,7 @@ export const listPets = (
     params?: ListPetsParams,
     version= 1,
  ) => {
-      return customInstance<Pets>(
+      return customClient<Pets>(
       {url: `/v${version}/pets`, method: 'get',
         params,
     },
@@ -106,10 +106,10 @@ export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = E
  * @summary Create a pet
  */
 export const createPets = (
-    createPetsBody: CreatePetsBody,
+    createPetsBody: BodyType<CreatePetsBody>,
     version= 1,
  ) => {
-      return customInstance<Pet>(
+      return customClient<Pet>(
       {url: `/v${version}/pets`, method: 'post',
       data: createPetsBody
     },
@@ -119,25 +119,25 @@ export const createPets = (
 
 
     export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
-    export type CreatePetsMutationBody = CreatePetsBody
+    export type CreatePetsMutationBody = BodyType<CreatePetsBody>
     export type CreatePetsMutationError = ErrorType<Error>
 
     export const useCreatePets = <TError = ErrorType<Error>,
     
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody;version?: number}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: BodyType<CreatePetsBody>;version?: number}, TContext>, }
 ) => {
       const {mutation: mutationOptions} = options || {}
 
       
 
 
-      const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: CreatePetsBody;version?: number}> = (props) => {
+      const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: BodyType<CreatePetsBody>;version?: number}> = (props) => {
           const {data,version} = props || {};
 
           return  createPets(data,version,)
         }
 
-      return useMutation<AsyncReturnType<typeof createPets>, TError, {data: CreatePetsBody;version?: number}, TContext>(mutationFn, mutationOptions)
+      return useMutation<AsyncReturnType<typeof createPets>, TError, {data: BodyType<CreatePetsBody>;version?: number}, TContext>(mutationFn, mutationOptions)
     }
     
 /**
@@ -147,7 +147,7 @@ export const showPetById = (
     petId: string,
     version= 1,
  ) => {
-      return customInstance<Pet>(
+      return customClient<Pet>(
       {url: `/v${version}/pets/${petId}`, method: 'get'
     },
       );

@@ -7,7 +7,9 @@
 import {
   rest
 } from 'msw'
-import faker from 'faker'
+import {
+  faker
+} from '@faker-js/faker'
 
 export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({'@id': faker.helpers.randomize([faker.random.word(), undefined]), id: (()=>faker.random.number({min:1,max:99999}))(), name: (()=>faker.name.lastName())(), tag: (()=>faker.name.lastName())(), email: faker.helpers.randomize([faker.internet.email(), undefined]), callingCode: faker.helpers.randomize([faker.helpers.randomize(['+33','+420','+33']), undefined]), country: faker.helpers.randomize([faker.helpers.randomize(['People\'s Republic of China','Uruguay']), undefined])})))
 
