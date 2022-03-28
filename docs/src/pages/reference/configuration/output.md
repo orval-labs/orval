@@ -231,7 +231,7 @@ Type: `Boolean | Function`.
 
 Default Value: `false`.
 
-Will generate your mock using <a href="https://github.com/marak/Faker.js/" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a>
+Will generate your mock using <a href="https://github.com/faker-js/faker" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a>
 
 ```js
 module.exports = {

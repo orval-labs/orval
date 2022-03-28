@@ -4,7 +4,7 @@ title: Full example
 ---
 
 ```js
-const faker = require('faker');
+const { faker } = require('@faker-js/faker');
 
 module.exports = {
   petstore: {
