@@ -65,8 +65,12 @@ export const generateMutatorImports = (
         ? `${mutator.name}${
             mutator.hasErrorType
               ? `, { ErrorType as ${mutator.errorTypeName}${
-                  mutator.bodyTypeName ? `, ${BODY_TYPE_NAME} as ${mutator.bodyTypeName}` : ''
+                  mutator.bodyTypeName
+                    ? `, ${BODY_TYPE_NAME} as ${mutator.bodyTypeName}`
+                    : ''
                 } }`
+              : mutator.bodyTypeName
+              ? `{ ${BODY_TYPE_NAME} as ${mutator.bodyTypeName} }`
               : ''
           }`
         : `{ ${mutator.name}${
