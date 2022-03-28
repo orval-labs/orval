@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 // Require the framework and instantiate it
-import * as faker from 'faker';
+import { faker } from '@faker-js/faker';
 import fastify from 'fastify';
 import orval from 'orval';
 
