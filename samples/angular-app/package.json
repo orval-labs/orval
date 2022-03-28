@@ -18,7 +18,6 @@
     "@angular/platform-browser": "~12.2.15",
     "@angular/platform-browser-dynamic": "~12.2.15",
     "@angular/router": "~12.2.15",
-    "@faker-js/faker": "^6.0.0",
     "rxjs": "~6.5.4",
     "tslib": "^2.0.0",
     "zone.js": "~0.11.4"
@@ -27,6 +26,7 @@
     "@angular-devkit/build-angular": "~12.2.14",
     "@angular/cli": "~12.2.14",
     "@angular/compiler-cli": "~12.2.15",
+    "@faker-js/faker": "^6.0.0",
     "@types/node": "^12.11.1",
     "codelyzer": "^6.0.0",
     "msw": "^0.21.2",
