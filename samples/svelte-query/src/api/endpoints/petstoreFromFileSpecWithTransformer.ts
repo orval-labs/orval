@@ -48,6 +48,9 @@ export const getListPetsQueryKey = (params?: ListPetsParams,
     version= 1,) => [`/v${version}/pets`, ...(params ? [params]: [])];
 
     
+export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
+export type ListPetsQueryError = Error
+
 export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
  params?: ListPetsParams,
     version= 1, options?: { query?:UseQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>, }
@@ -87,6 +90,9 @@ export const createPets = (
   
 
 
+    export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
+    export type CreatePetsMutationError = Error
+
     export const useCreatePets = <TError = Error,
     
     TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody;version?: number}, TContext>, }
@@ -123,6 +129,9 @@ export const getShowPetByIdQueryKey = (petId: string,
     version= 1,) => [`/v${version}/pets/${petId}`];
 
     
+export type ShowPetByIdQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
+export type ShowPetByIdQueryError = Error
+
 export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
  petId: string,
     version= 1, options?: { query?:UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>, }

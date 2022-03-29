@@ -45,15 +45,8 @@ const MSW_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'msw',
   },
   {
-    exports: [
-      {
-        name: 'faker',
-        default: true,
-        values: true,
-        syntheticDefaultImport: true,
-      },
-    ],
-    dependency: 'faker',
+    exports: [{ name: 'faker', values: true }],
+    dependency: '@faker-js/faker',
   },
 ];
 

@@ -53,6 +53,9 @@ export const getListPetsQueryKey = (params?: ListPetsParams,
     version= 1,) => [`/v${version}/pets`, ...(params ? [params]: [])];
 
     
+export type ListPetsInfiniteQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
+export type ListPetsInfiniteQueryError = Error
+
 export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
  params?: ListPetsParams,
     version= 1, options?: { query?:UseInfiniteQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>, }
@@ -74,6 +77,9 @@ export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TE
     ...query
   }
 }
+
+export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
+export type ListPetsQueryError = Error
 
 export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
  params?: ListPetsParams,
@@ -114,6 +120,9 @@ export const createPets = (
   
 
 
+    export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
+    export type CreatePetsMutationError = Error
+
     export const useCreatePets = <TError = Error,
     
     TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody;version?: number}, TContext>, }
@@ -150,6 +159,9 @@ export const getShowPetByIdQueryKey = (petId: string,
     version= 1,) => [`/v${version}/pets/${petId}`];
 
     
+export type ShowPetByIdInfiniteQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
+export type ShowPetByIdInfiniteQueryError = Error
+
 export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
  petId: string,
     version= 1, options?: { query?:UseInfiniteQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>, }
@@ -171,6 +183,9 @@ export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetByI
     ...query
   }
 }
+
+export type ShowPetByIdQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
+export type ShowPetByIdQueryError = Error
 
 export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
  petId: string,

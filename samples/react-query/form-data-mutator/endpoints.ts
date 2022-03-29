@@ -39,6 +39,9 @@ export const createPets = (
   
 
 
+    export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
+    export type CreatePetsMutationError = Error
+
     export const useCreatePets = <TError = Error,
     
     TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody}, TContext>, }
