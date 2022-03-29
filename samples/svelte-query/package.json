@@ -10,7 +10,7 @@
 		"generate-api": "node ../../dist/bin/orval.js"
 	},
 	"devDependencies": {
-		"@faker-js/faker": "^6.0.0",
+		"@faker-js/faker": "^6.1.1",
 		"@sveltejs/adapter-node": "next",
 		"@sveltejs/kit": "next",
 		"@typescript-eslint/eslint-plugin": "^4.19.0",
