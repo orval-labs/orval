@@ -78,7 +78,7 @@ export const combineSchemas = async ({
     ` ${!isAllEnums ? SEPARATOR[separator] : '|'} `,
   );
 
-  if (isAllEnums && name) {
+  if (isAllEnums && name && items.length > 1) {
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
       name,
     )} = ${getCombineEnumValue(resolvedData, name)}`;
@@ -100,7 +100,7 @@ export const combineSchemas = async ({
     value: value + nullable,
     imports: resolvedData.imports,
     schemas: resolvedData.schemas,
-    isEnum: isAllEnums,
+    isEnum: false,
     type: 'object',
     isRef: false,
   };

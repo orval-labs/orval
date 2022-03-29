@@ -1,4 +1,5 @@
 import {
+  ClientFooterBuilder,
   GeneratorClient,
   GeneratorDependency,
   GeneratorOptions,
@@ -30,6 +31,8 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'axios',
   },
 ];
+
+const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
 
 export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
@@ -84,6 +87,18 @@ const generateAxiosImplementation = (
         )
       : '';
 
+    returnTypesToWrite.set(
+      operationName,
+      (title?: string) =>
+        `export type ${pascal(
+          operationName,
+        )}Result = NonNullable<AsyncReturnType<${
+          title
+            ? `ReturnType<typeof ${title}>['${operationName}']`
+            : `typeof ${operationName}`
+        }>>`,
+    );
+
     return `const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
@@ -109,6 +124,16 @@ const generateAxiosImplementation = (
     isFormData,
     isFormUrlEncoded,
   });
+
+  returnTypesToWrite.set(
+    operationName,
+    (title?: string) =>
+      `export type ${pascal(operationName)}Result = AsyncReturnType<${
+        title
+          ? `ReturnType<typeof ${title}>['${operationName}']`
+          : `typeof ${operationName}`
+      }>`,
+  );
 
   return `const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
@@ -150,8 +175,29 @@ export const generateAxiosHeader = ({
 }
   ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
 
-export const generateAxiosFooter = (operationNames: string[] = []) =>
-  `return {${operationNames.join(',')}}};\n`;
+export const generateAxiosFooter: ClientFooterBuilder = ({
+  operationNames,
+  title,
+  noFunction,
+}) => {
+  const functionFooter = `return {${operationNames.join(',')}}};\n`;
+  const returnTypesArr = operationNames
+    .map((n) => {
+      return returnTypesToWrite.has(n)
+        ? returnTypesToWrite.get(n)?.(noFunction || !title ? undefined : title)
+        : '';
+    })
+    .filter(Boolean);
+  const returnTypes = returnTypesArr.length
+    ? `\n// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AsyncReturnType<
+T extends (...args: any) => Promise<any>
+> = T extends (...args: any) => Promise<infer R> ? R : any;
+\n${returnTypesArr.join('\n')}`
+    : '';
+
+  return noFunction ? returnTypes : functionFooter + returnTypes;
+};
 
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,

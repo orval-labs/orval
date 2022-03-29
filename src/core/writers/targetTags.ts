@@ -91,7 +91,11 @@ export const generateTargetForTags = (
           const operationNames = Object.values(operations)
             .filter(({ tags }) => tags.includes(tag))
             .map(({ operationName }) => operationName);
-          const footer = generateClientFooter(options?.client, operationNames);
+          const footer = generateClientFooter({
+            outputClient: options?.client,
+            operationNames,
+            title: pascal(tag),
+          });
           const header = generateClientHeader({
             outputClient: options.client,
             isRequestOptions: options.override.requestOptions !== false,

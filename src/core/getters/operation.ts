@@ -12,5 +12,19 @@ export const getOperationId = (
     return operation.operationId;
   }
 
-  return pascal([verb, ...route.split('/').map((p) => sanitize(p))].join('-'));
+  return pascal(
+    [
+      verb,
+      ...route
+        .split('/')
+        .map((p) =>
+          sanitize(p, {
+            dash: true,
+            underscore: '-',
+            dot: '-',
+            whitespace: '-',
+          }),
+        ),
+    ].join('-'),
+  );
 };
