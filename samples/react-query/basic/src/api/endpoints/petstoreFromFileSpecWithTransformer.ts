@@ -119,6 +119,7 @@ export const createPets = (
 
 
     export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
+    export type CreatePetsMutationBody = CreatePetsBody
     export type CreatePetsMutationError = ErrorType<Error>
 
     export const useCreatePets = <TError = ErrorType<Error>,

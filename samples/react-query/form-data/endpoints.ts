@@ -42,6 +42,7 @@ formData.append('tag', createPetsBody.tag)
 
 
     export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
+    export type CreatePetsMutationBody = CreatePetsBody
     export type CreatePetsMutationError = Error
 
     export const useCreatePets = <TError = Error,

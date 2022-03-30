@@ -7,9 +7,7 @@
 import {
   useQuery,
   useInfiniteQuery,
-  useMutation
-} from 'vue-query'
-import type {
+  useMutation,
   UseQueryOptions,
   UseInfiniteQueryOptions,
   UseMutationOptions,
@@ -18,7 +16,7 @@ import type {
   UseQueryResult,
   UseInfiniteQueryResult,
   QueryKey
-} from 'vue-query/types'
+} from 'react-query'
 import type {
   Pets,
   Error,
@@ -26,7 +24,7 @@ import type {
   Pet,
   CreatePetsBody
 } from '../model'
-import { customInstance } from '../mutator/custom-instance'
+import { customClient, ErrorType, BodyType } from '../mutator/custom-client'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncReturnType<
@@ -41,7 +39,7 @@ export const listPets = (
     params?: ListPetsParams,
     version= 1,
  ) => {
-      return customInstance<Pets>(
+      return customClient<Pets>(
       {url: `/v${version}/pets`, method: 'get',
         params,
     },
@@ -54,9 +52,9 @@ export const getListPetsQueryKey = (params?: ListPetsParams,
 
     
 export type ListPetsInfiniteQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
-export type ListPetsInfiniteQueryError = Error
+export type ListPetsInfiniteQueryError = ErrorType<Error>
 
-export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
+export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TError = ErrorType<Error>>(
  params?: ListPetsParams,
     version= 1, options?: { query?:UseInfiniteQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>, }
 
@@ -79,9 +77,9 @@ export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TE
 }
 
 export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
-export type ListPetsQueryError = Error
+export type ListPetsQueryError = ErrorType<Error>
 
-export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
+export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = ErrorType<Error>>(
  params?: ListPetsParams,
     version= 1, options?: { query?:UseQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>, }
 
@@ -108,10 +106,10 @@ export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = E
  * @summary Create a pet
  */
 export const createPets = (
-    createPetsBody: CreatePetsBody,
+    createPetsBody: BodyType<CreatePetsBody>,
     version= 1,
  ) => {
-      return customInstance<Pet>(
+      return customClient<Pet>(
       {url: `/v${version}/pets`, method: 'post',
       data: createPetsBody
     },
@@ -121,25 +119,25 @@ export const createPets = (
 
 
     export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
-    export type CreatePetsMutationBody = CreatePetsBody
-    export type CreatePetsMutationError = Error
+    export type CreatePetsMutationBody = BodyType<CreatePetsBody>
+    export type CreatePetsMutationError = ErrorType<Error>
 
-    export const useCreatePets = <TError = Error,
+    export const useCreatePets = <TError = ErrorType<Error>,
     
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody;version?: number}, TContext>, }
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: BodyType<CreatePetsBody>;version?: number}, TContext>, }
 ) => {
       const {mutation: mutationOptions} = options || {}
 
       
 
 
-      const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: CreatePetsBody;version?: number}> = (props) => {
+      const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: BodyType<CreatePetsBody>;version?: number}> = (props) => {
           const {data,version} = props || {};
 
           return  createPets(data,version,)
         }
 
-      return useMutation<AsyncReturnType<typeof createPets>, TError, {data: CreatePetsBody;version?: number}, TContext>(mutationFn, mutationOptions)
+      return useMutation<AsyncReturnType<typeof createPets>, TError, {data: BodyType<CreatePetsBody>;version?: number}, TContext>(mutationFn, mutationOptions)
     }
     
 /**
@@ -149,7 +147,7 @@ export const showPetById = (
     petId: string,
     version= 1,
  ) => {
-      return customInstance<Pet>(
+      return customClient<Pet>(
       {url: `/v${version}/pets/${petId}`, method: 'get'
     },
       );
@@ -161,9 +159,9 @@ export const getShowPetByIdQueryKey = (petId: string,
 
     
 export type ShowPetByIdInfiniteQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
-export type ShowPetByIdInfiniteQueryError = Error
+export type ShowPetByIdInfiniteQueryError = ErrorType<Error>
 
-export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
+export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetById>, TError = ErrorType<Error>>(
  petId: string,
     version= 1, options?: { query?:UseInfiniteQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>, }
 
@@ -186,9 +184,9 @@ export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetByI
 }
 
 export type ShowPetByIdQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
-export type ShowPetByIdQueryError = Error
+export type ShowPetByIdQueryError = ErrorType<Error>
 
-export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
+export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TError = ErrorType<Error>>(
  petId: string,
     version= 1, options?: { query?:UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>, }
 

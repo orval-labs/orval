@@ -42,8 +42,8 @@ export const getListPetsKey = (params?: ListPetsParams,
     version= 1,) => [`/v${version}/pets`, ...(params ? [params]: [])];
 
     
-  export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
-  export type ListPetsQueryError = Error
+export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
+export type ListPetsQueryError = Error
 
 export const useListPets = <TError = Error>(
  params?: ListPetsParams,
@@ -100,8 +100,8 @@ export const getShowPetByIdKey = (petId: string,
     version= 1,) => [`/v${version}/pets/${petId}`];
 
     
-  export type ShowPetByIdQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
-  export type ShowPetByIdQueryError = Error
+export type ShowPetByIdQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
+export type ShowPetByIdQueryError = Error
 
 export const useShowPetById = <TError = Error>(
  petId: string,

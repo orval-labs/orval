@@ -205,10 +205,10 @@ const generateSwrImplementation = ({
   }
 
   return `
-  export type ${pascal(
+export type ${pascal(
     operationName,
   )}QueryResult = NonNullable<AsyncReturnType<typeof ${operationName}>>
-  export type ${pascal(operationName)}QueryError = ${errorType}
+export type ${pascal(operationName)}QueryError = ${errorType}
 
 export const ${camel(
     `use-${operationName}`,

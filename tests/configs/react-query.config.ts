@@ -37,6 +37,31 @@ export default defineConfig({
       },
     },
   },
+  customClient: {
+    output: {
+      target: '../generated/react-query/mutator-client/endpoints.ts',
+      schemas: '../generated/react-query/mutator-client/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-client.ts',
+          name: 'customClient',
+        },
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
   mutatorMultiArguments: {
     output: {
       target: '../generated/react-query/mutator-multi-arguments/endpoints.ts',
