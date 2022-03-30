@@ -63,14 +63,16 @@ export const generateMutatorImports = (
     .map((mutator) => {
       const importDefault = mutator.default
         ? `${mutator.name}${
-            mutator.hasErrorType
-              ? `, { ErrorType as ${mutator.errorTypeName}${
+            mutator.hasErrorType || mutator.bodyTypeName
+              ? `, { ${
+                  mutator.hasErrorType
+                    ? `ErrorType as ${mutator.errorTypeName}`
+                    : ''
+                }${mutator.hasErrorType && mutator.bodyTypeName ? ',' : ''} ${
                   mutator.bodyTypeName
-                    ? `, ${BODY_TYPE_NAME} as ${mutator.bodyTypeName}`
+                    ? `${BODY_TYPE_NAME} as ${mutator.bodyTypeName}`
                     : ''
                 } }`
-              : mutator.bodyTypeName
-              ? `{ ${BODY_TYPE_NAME} as ${mutator.bodyTypeName} }`
               : ''
           }`
         : `{ ${mutator.name}${
