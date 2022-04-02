@@ -575,10 +575,13 @@ const generateQueryHook = (
     export type ${pascal(
       operationName,
     )}MutationResult = NonNullable<AsyncReturnType<${dataType}>>
-    export type ${pascal(operationName)}MutationBody = ${definitions.replace(
-    /^.*data:\s?([\w<>]*),?.*$/,
-    '$1',
-  )}
+    ${
+      body.definition
+        ? `export type ${pascal(operationName)}MutationBody = ${
+            body.definition
+          }`
+        : ''
+    }
     export type ${pascal(operationName)}MutationError = ${errorType}
 
     export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
