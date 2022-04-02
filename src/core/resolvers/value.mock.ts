@@ -1,5 +1,6 @@
 import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs, MockOptions } from '../../types';
+import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { isReference } from '../../utils/is';
 import { getRefInfo } from '../getters/ref';
@@ -49,6 +50,7 @@ export const resolveMockValue = async ({
   tags,
   combine,
   context,
+  imports,
 }: {
   schema: SchemaObject & { name: string; path?: string; specKey?: string };
   operationId: string;
@@ -56,6 +58,7 @@ export const resolveMockValue = async ({
   tags: string[];
   combine?: { properties: string[] };
   context: ContextSpecs;
+  imports: GeneratorImport[];
 }): Promise<MockDefinition> => {
   if (isReference(schema)) {
     const { name, specKey } = await getRefInfo(schema.$ref, {
@@ -78,6 +81,7 @@ export const resolveMockValue = async ({
       tags,
       combine,
       context,
+      imports,
     });
   }
 
@@ -88,5 +92,6 @@ export const resolveMockValue = async ({
     tags,
     combine,
     context,
+    imports,
   });
 };

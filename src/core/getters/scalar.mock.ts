@@ -14,6 +14,7 @@ import { getMockObject } from './object.mock';
 
 export const getMockScalar = async ({
   item,
+  imports,
   mockOptions,
   operationId,
   tags,
@@ -26,6 +27,7 @@ export const getMockScalar = async ({
     isRef?: boolean;
     specKey?: string;
   };
+  imports: GeneratorImport[];
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
@@ -97,7 +99,12 @@ export const getMockScalar = async ({
         return { value: [], imports: [], name: item.name };
       }
 
-      const { value, enums, imports, name } = await resolveMockValue({
+      const {
+        value,
+        enums,
+        imports: resolvedImports,
+        name,
+      } = await resolveMockValue({
         schema: {
           ...item.items,
           name: item.name,
@@ -109,25 +116,32 @@ export const getMockScalar = async ({
         operationId,
         tags,
         context,
+        imports,
       });
 
       if (enums) {
+        const enumImp = imports.find(
+          (imp) => name.replace('[]', '') === imp.name,
+        );
+        const enumValue = enumImp?.name || name;
         return {
           value: `[...Array(faker.datatype.number({min:1, max: ${enums.length}}))].reduce(({values, enums}) => {
-            const newValue = enums[faker.datatype.number({min:1, max: enums.length})];
+            const newValue = enums[faker.datatype.number({min:0, max: enums.length - 1})];
             return {
               values: [...values, newValue],
-              enums: enums.filter((v: ${name}) => newValue !== v)
+              enums: enums.filter((v: ${enumValue}) => newValue !== v)
             }
-          },{ values: [], enums: Object.values(${name})})`,
-          imports,
+          },{ values: [], enums: Object.values(${enumValue})}).values`,
+          imports: enumImp
+            ? [...resolvedImports, { ...enumImp, values: true }]
+            : resolvedImports,
           name: item.name,
         };
       }
 
       return {
         value: `[...Array(faker.datatype.number({min: 1, max: 10}))].map(() => (${value}))`,
-        imports,
+        imports: resolvedImports,
         name: item.name,
       };
     }
@@ -165,6 +179,7 @@ export const getMockScalar = async ({
         tags,
         combine,
         context,
+        imports,
       });
     }
   }

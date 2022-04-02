@@ -46,7 +46,16 @@ export const writeSingleMode = async ({
     data += generateClientImports(
       output.client,
       implementation,
-      schemasPath ? [{ exports: imports, dependency: schemasPath }] : [],
+      schemasPath
+        ? [
+            {
+              exports: imports.filter(
+                (imp) => !importsMSW.some((impMSW) => imp.name === impMSW.name),
+              ),
+              dependency: schemasPath,
+            },
+          ]
+        : [],
       specsName,
       !!output.schemas,
       isSyntheticDefaultImportsAllowed,

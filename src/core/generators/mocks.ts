@@ -119,7 +119,7 @@ export const getResponsesMockDefinition = ({
 }) => {
   return asyncReduce(
     response.types.success,
-    async (acc, { value: definition, originalSchema }) => {
+    async (acc, { value: definition, originalSchema, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
@@ -149,6 +149,7 @@ export const getResponsesMockDefinition = ({
               }
             : {}),
         },
+        imports,
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,
