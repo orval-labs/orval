@@ -58,7 +58,7 @@ export type NormalizedOverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
-  header: false | ((info: InfoObject) => string[]);
+  header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
   formUrlEncoded: boolean | NormalizedMutator;
   components: {
@@ -210,7 +210,7 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
-  header?: boolean | ((info: InfoObject) => string[]);
+  header?: boolean | ((info: InfoObject) => string[] | string);
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
   components?: {

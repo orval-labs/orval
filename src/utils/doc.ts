@@ -17,7 +17,9 @@ export function jsDoc(
 ): string {
   // Ensure there aren't any comment terminations in doc
   const lines = (
-    Array.isArray(description) ? description : [description || '']
+    Array.isArray(description)
+      ? description.filter((d) => !d.includes('eslint-disable'))
+      : [description || '']
   ).map((line) => line.replace(regex, replacement));
 
   const count = [description, deprecated, summary].reduce(
@@ -30,7 +32,12 @@ export function jsDoc(
   }
 
   const oneLine = count === 1 && tryOneLine;
-  let doc = '/**';
+  const eslintDisable = Array.isArray(description)
+    ? description
+        .find((d) => d.includes('eslint-disable'))
+        ?.replace(regex, replacement)
+    : undefined;
+  let doc = `${eslintDisable ? `/* ${eslintDisable} */\n` : ''}/**`;
 
   if (description) {
     if (!oneLine) {
