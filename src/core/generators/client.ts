@@ -193,7 +193,9 @@ export const generateClientFooter = ({
   let implementation: string;
   try {
     if (isFunction(outputClient)) {
-      implementation = (footer as (operationNames: any) => string)(operationNames);
+      implementation = (footer as (operationNames: any) => string)(
+        operationNames,
+      );
       // being here means that the previous call worked
       console.warn(
         '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',

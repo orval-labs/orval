@@ -95,6 +95,7 @@ export const generateTargetForTags = (
             outputClient: options?.client,
             operationNames,
             title: pascal(tag),
+            customTitleFunc: options.override.title,
           });
           const header = generateClientHeader({
             outputClient: options.client,
