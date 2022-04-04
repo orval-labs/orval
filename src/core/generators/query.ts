@@ -162,6 +162,18 @@ const generateQueryRequestFunction = (
       isFormUrlEncoded,
     });
 
+    const propsImplementation = mutator?.bodyTypeName
+      ? toObjectString(props, 'implementation')
+          .replace(
+            new RegExp(`(${verb}\\w*):\\s?(\\w*)`),
+            `$1: ${mutator.bodyTypeName}<$2>`,
+          )
+          .replace(
+            new RegExp(`(\\w*Body):\\s?(\\w*)`),
+            `$1: ${mutator.bodyTypeName}<$2>`,
+          )
+      : toObjectString(props, 'implementation');
+
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
@@ -175,7 +187,7 @@ const generateQueryRequestFunction = (
         response.definition.success || 'unknown'
       }>();
 
-        return (\n    ${toObjectString(props, 'implementation')}\n ${
+        return (\n    ${propsImplementation}\n ${
         isRequestOptions && mutator.hasSecondArg
           ? `options?: SecondParameter<typeof ${mutator.name}>`
           : ''
@@ -188,10 +200,7 @@ const generateQueryRequestFunction = (
     `;
     }
 
-    return `export const ${operationName} = (\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    return `export const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
@@ -376,18 +385,27 @@ const generateQueryImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
+  const dataType = mutator?.isHook
+    ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+    : `typeof ${operationName}`;
+
   return `
-export const ${camel(`use-${name}`)} = <TData = AsyncReturnType<${
-    mutator?.isHook
-      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-      : `typeof ${operationName}`
-  }>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments({
-    operationName,
-    definitions: '',
-    mutator,
-    isRequestOptions,
-    type,
-  })}\n  ): ${returnType} & { queryKey: QueryKey } => {
+export type ${pascal(
+    name,
+  )}QueryResult = NonNullable<AsyncReturnType<${dataType}>>
+export type ${pascal(name)}QueryError = ${errorType}
+
+export const ${camel(
+    `use-${name}`,
+  )} = <TData = AsyncReturnType<${dataType}>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments(
+    {
+      operationName,
+      definitions: '',
+      mutator,
+      isRequestOptions,
+      type,
+    },
+  )}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
   ${
     isRequestOptions
@@ -527,7 +545,11 @@ const generateQueryHook = (
 
   const definitions = props
     .map(({ definition, type }) =>
-      type === GetterPropType.BODY ? `data: ${body.definition}` : definition,
+      type === GetterPropType.BODY
+        ? mutator?.bodyTypeName
+          ? `data: ${mutator.bodyTypeName}<${body.definition}>`
+          : `data: ${body.definition}`
+        : definition,
     )
     .join(';');
 
@@ -545,7 +567,23 @@ const generateQueryHook = (
       : response.definition.errors || 'unknown';
   }
 
+  const dataType = mutator?.isHook
+    ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+    : `typeof ${operationName}`;
+
   return `
+    export type ${pascal(
+      operationName,
+    )}MutationResult = NonNullable<AsyncReturnType<${dataType}>>
+    ${
+      body.definition
+        ? `export type ${pascal(operationName)}MutationBody = ${
+            body.definition
+          }`
+        : ''
+    }
+    export type ${pascal(operationName)}MutationError = ${errorType}
+
     export const ${camel(`use-${operationName}`)} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${generateQueryArguments({
@@ -573,13 +611,9 @@ const generateQueryHook = (
       }
 
 
-      const mutationFn: MutationFunction<AsyncReturnType<${
-        mutator?.isHook
-          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-          : `typeof ${operationName}`
-      }>, ${definitions ? `{${definitions}}` : 'TVariables'}> = (${
-    properties ? 'props' : ''
-  }) => {
+      const mutationFn: MutationFunction<AsyncReturnType<${dataType}>, ${
+    definitions ? `{${definitions}}` : 'TVariables'
+  }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props || {}` : ''};
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${

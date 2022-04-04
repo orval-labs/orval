@@ -8,6 +8,8 @@ import { getFileInfo, loadFile } from '../../utils/file';
 import { createLogger } from '../../utils/messages/logs';
 import { relativeSafe } from '../../utils/path';
 
+export const BODY_TYPE_NAME = 'BodyType';
+
 const getImport = (output: string, mutator: NormalizedMutator) => {
   const outputFileInfo = getFileInfo(output);
   const mutatorFileInfo = getFileInfo(mutator.path);
@@ -44,9 +46,17 @@ export const generateMutator = async ({
     rawFile.includes('export type ErrorType') ||
     rawFile.includes('export interface ErrorType');
 
+  const hasBodyType =
+    rawFile.includes(`export type ${BODY_TYPE_NAME}`) ||
+    rawFile.includes(`export interface ${BODY_TYPE_NAME}`);
+
   const errorTypeName = !mutator.default
     ? 'ErrorType'
     : `${pascal(name)}ErrorType`;
+
+  const bodyTypeName = !mutator.default
+    ? BODY_TYPE_NAME
+    : `${pascal(name)}${BODY_TYPE_NAME}`;
 
   const { file, cached } = await loadFile<string>(importPath, {
     isDefault: false,
@@ -80,6 +90,7 @@ export const generateMutator = async ({
       hasSecondArg: mutatorInfo.numberOfParams > 1,
       hasThirdArg: mutatorInfo.numberOfParams > 2,
       isHook: !!mutator?.name?.startsWith('use') && !mutatorInfo.numberOfParams,
+      ...(hasBodyType ? { bodyTypeName } : {}),
     };
   } else {
     const path = getImport(output, mutator);
@@ -99,6 +110,7 @@ export const generateMutator = async ({
       isHook: false,
       hasErrorType,
       errorTypeName,
+      ...(hasBodyType ? { bodyTypeName } : {}),
     };
   }
 };

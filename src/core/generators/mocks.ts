@@ -17,8 +17,14 @@ const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
   Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<
     Record<string, string>
   >((acc, [key, value]) => {
-    acc[key] = isFunction(value) ? `(${value})()` : stringify(value as string)!;
+    const implementation = isFunction(value)
+      ? `(${value})()`
+      : stringify(value as string)!;
 
+    acc[key] = implementation?.replace(
+      /import_faker.defaults|import_faker.faker/g,
+      'faker',
+    );
     return acc;
   }, {});
 
@@ -113,7 +119,7 @@ export const getResponsesMockDefinition = ({
 }) => {
   return asyncReduce(
     response.types.success,
-    async (acc, { value: definition, originalSchema }) => {
+    async (acc, { value: definition, originalSchema, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
@@ -143,6 +149,7 @@ export const getResponsesMockDefinition = ({
               }
             : {}),
         },
+        imports,
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,
@@ -206,7 +213,12 @@ export const getMockOptionsDataOverride = (
   override: NormalizedOverrideOutput,
 ) => {
   const responseOverride = override?.operations?.[operationId]?.mock?.data;
-  return isFunction(responseOverride)
+  const implementation = isFunction(responseOverride)
     ? `(${responseOverride})()`
     : stringify(responseOverride);
+
+  return implementation?.replace(
+    /import_faker.defaults|import_faker.faker/g,
+    'faker',
+  );
 };

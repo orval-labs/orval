@@ -58,7 +58,11 @@ export const generateTarget = (
         acc.implementationMSW.handler =
           header.implementationMSW + acc.implementationMSW.handler;
 
-        const footer = generateClientFooter(options?.client, operationNames);
+        const footer = generateClientFooter({
+          outputClient: options?.client,
+          operationNames,
+          title: pascal(info.title),
+        });
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;
       }

@@ -16,6 +16,7 @@ export const getMockObject = async ({
   tags,
   combine,
   context,
+  imports,
 }: {
   item: SchemaObject & { name: string; path?: string; specKey?: string };
   operationId: string;
@@ -23,6 +24,7 @@ export const getMockObject = async ({
   tags: string[];
   combine?: { properties: string[] };
   context: ContextSpecs;
+  imports: GeneratorImport[];
 }): Promise<MockDefinition> => {
   if (isReference(item)) {
     return resolveMockValue({
@@ -36,6 +38,7 @@ export const getMockObject = async ({
       operationId,
       tags,
       context,
+      imports,
     });
   }
 
@@ -83,6 +86,7 @@ export const getMockObject = async ({
               operationId,
               tags,
               context,
+              imports,
             });
 
             imports = [...imports, ...resolvedValue.imports];
@@ -125,6 +129,7 @@ export const getMockObject = async ({
       operationId,
       tags,
       context,
+      imports,
     });
 
     return {

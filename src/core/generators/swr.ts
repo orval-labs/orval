@@ -11,7 +11,7 @@ import {
   GetterPropType,
   GetterResponse,
 } from '../../types/getters';
-import { camel } from '../../utils/case';
+import { camel, pascal } from '../../utils/case';
 import { toObjectString } from '../../utils/string';
 import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateVerbImports } from './imports';
@@ -205,6 +205,11 @@ const generateSwrImplementation = ({
   }
 
   return `
+export type ${pascal(
+    operationName,
+  )}QueryResult = NonNullable<AsyncReturnType<typeof ${operationName}>>
+export type ${pascal(operationName)}QueryError = ${errorType}
+
 export const ${camel(
     `use-${operationName}`,
   )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
