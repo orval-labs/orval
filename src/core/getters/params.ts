@@ -42,7 +42,7 @@ export const getParams = ({
     params.map(async (p) => {
       const pathParam = pathParams.find(
         ({ parameter }) =>
-          camel(sanitize(parameter.name, { underscore: true, dash: true })) ===
+          sanitize(camel(parameter.name), { es5keyword: true, underscore: true, dash: true }) ===
           p,
       );
 
@@ -58,7 +58,7 @@ export const getParams = ({
         schema,
       } = pathParam.parameter;
 
-      const name = sanitize(camel(nameWithoutSanitize));
+      const name = sanitize(camel(nameWithoutSanitize), { es5keyword:true });
 
       if (!schema) {
         return {
