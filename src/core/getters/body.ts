@@ -17,7 +17,7 @@ export const getBody = async (
   );
 
   const imports = allBodyTypes.flatMap(({ imports }) => imports);
-  const schemas = allBodyTypes.flatMap(({ schemas }) => schemas)
+  const schemas = allBodyTypes.flatMap(({ schemas }) => schemas);
 
   const definition = allBodyTypes.map(({ value }) => value).join(' | ');
 
@@ -32,6 +32,9 @@ export const getBody = async (
   const formUrlEncoded =
     allBodyTypes.length === 1 ? allBodyTypes[0].formUrlEncoded : undefined;
 
+  const contentType =
+    allBodyTypes.length === 1 ? allBodyTypes[0].contentType : undefined;
+
   return {
     definition,
     implementation,
@@ -39,5 +42,6 @@ export const getBody = async (
     schemas,
     formData: formData || '',
     formUrlEncoded: formUrlEncoded || '',
+    contentType: contentType || '',
   };
 };
