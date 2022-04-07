@@ -125,13 +125,7 @@ export const getMockScalar = async ({
         );
         const enumValue = enumImp?.name || name;
         return {
-          value: `[...Array(faker.datatype.number({min:1, max: ${enums.length}}))].reduce(({values, enums}) => {
-            const newValue = enums[faker.datatype.number({min:0, max: enums.length - 1})];
-            return {
-              values: [...values, newValue],
-              enums: enums.filter((v: ${enumValue}) => newValue !== v)
-            }
-          },{ values: [], enums: Object.values(${enumValue})}).values`,
+          value: `faker.random.arrayElements(Object.values(${enumValue}))`,
           imports: enumImp
             ? [...resolvedImports, { ...enumImp, values: true }]
             : resolvedImports,
