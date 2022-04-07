@@ -159,7 +159,7 @@ export const getMockScalar = async ({
           imports = [{ name: item.name, values: true }];
         }
 
-        value = `faker.helpers.randomize(${enumValue})`;
+        value = `faker.random.arrayElement(${enumValue})`;
       }
 
       return {

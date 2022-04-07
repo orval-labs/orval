@@ -89,7 +89,7 @@ export const generateMSW = async (
   if (mockData) {
     value = mockData;
   } else if (definitions.length > 1) {
-    value = `faker.helpers.randomize(${definition})`;
+    value = `faker.random.arrayElement(${definition})`;
   } else if (definitions[0]) {
     value = definitions[0];
   }
