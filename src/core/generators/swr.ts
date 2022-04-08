@@ -1,3 +1,4 @@
+import { VERBS_WITH_BODY } from '../../constants';
 import { Verbs } from '../../types';
 import {
   GeneratorDependency,
@@ -73,7 +74,7 @@ const generateSwrRequestFunction = (
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
-
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
   );
@@ -95,6 +96,8 @@ const generateSwrRequestFunction = (
       verb,
       isFormData,
       isFormUrlEncoded,
+      hasSignal: false,
+      isBodyVerb,
     });
 
     const requestOptions = isRequestOptions

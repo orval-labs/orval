@@ -28,7 +28,8 @@ T extends (...args: any) => Promise<any>
  */
 export const createPets = (
     createPetsBody: CreatePetsBody,
- ) => {const formUrlEncoded = new URLSearchParams();
+ 
+) => {const formUrlEncoded = new URLSearchParams();
 formUrlEncoded.append('name', createPetsBody.name)
 formUrlEncoded.append('tag', createPetsBody.tag)
 

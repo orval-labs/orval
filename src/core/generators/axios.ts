@@ -1,3 +1,4 @@
+import { VERBS_WITH_BODY } from '../../constants';
 import {
   ClientFooterBuilder,
   GeneratorClient,
@@ -68,6 +69,7 @@ const generateAxiosImplementation = (
     isFormData,
     isFormUrlEncoded,
   });
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -78,6 +80,8 @@ const generateAxiosImplementation = (
       verb,
       isFormData,
       isFormUrlEncoded,
+      isBodyVerb,
+      hasSignal: true,
     });
 
     const requestOptions = isRequestOptions
@@ -106,7 +110,7 @@ const generateAxiosImplementation = (
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${bodyForm}
+    }${!isBodyVerb ? 'signal?: AbortSignal\n' : '\n'}) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});

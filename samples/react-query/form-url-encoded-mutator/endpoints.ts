@@ -29,7 +29,8 @@ T extends (...args: any) => Promise<any>
  */
 export const createPets = (
     createPetsBody: CreatePetsBody,
- ) => {const formUrlEncoded = customFormUrlEncoded(createPetsBody)
+ 
+) => {const formUrlEncoded = customFormUrlEncoded(createPetsBody)
       return customInstance<Pet>(
       {url: `/pets`, method: 'post',
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},

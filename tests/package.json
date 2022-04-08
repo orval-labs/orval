@@ -25,11 +25,11 @@
   "dependencies": {
     "@angular/common": "^12.2.9",
     "@angular/core": "^12.2.9",
-    "@sveltestack/svelte-query": "^1.4.1",
-    "axios": "^0.22.0",
+    "@sveltestack/svelte-query": "^1.6.0",
+    "axios": "^0.26.1",
     "msw": "^0.35.0",
-    "react-query": "^3.25.1",
+    "react-query": "^3.34.19",
     "swr": "^1.0.1",
-    "vue-query": "^1.11.2"
+    "vue-query": "^1.22.2"
   }
 }

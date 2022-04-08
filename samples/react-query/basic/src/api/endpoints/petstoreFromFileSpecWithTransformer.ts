@@ -38,9 +38,10 @@ T extends (...args: any) => Promise<any>
 export const listPets = (
     params?: ListPetsParams,
     version= 1,
- ) => {
+ signal?: AbortSignal
+) => {
       return customInstance<Pets>(
-      {url: `/v${version}/pets`, method: 'get',
+      {url: `/v${version}/pets`, method: 'get', signal,
         params,
     },
       );
@@ -66,7 +67,7 @@ export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TE
 
   
 
-  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({ pageParam }) => listPets({ limit: pageParam, ...params },version, );
+  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({ signal, pageParam }) => listPets({ limit: pageParam, ...params },version, signal);
 
   const query = useInfiniteQuery<AsyncReturnType<typeof listPets>, TError, TData>(queryKey, queryFn, {enabled: !!(version), ...queryOptions})
 
@@ -91,7 +92,7 @@ export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = E
 
   
 
-  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = () => listPets(params,version, );
+  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({ signal }) => listPets(params,version, signal);
 
   const query = useQuery<AsyncReturnType<typeof listPets>, TError, TData>(queryKey, queryFn, {enabled: !!(version), ...queryOptions})
 
@@ -108,7 +109,8 @@ export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = E
 export const createPets = (
     createPetsBody: CreatePetsBody,
     version= 1,
- ) => {
+ 
+) => {
       return customInstance<Pet>(
       {url: `/v${version}/pets`, method: 'post',
       headers: {'Content-Type': 'application/json'},
@@ -147,9 +149,10 @@ export const createPets = (
 export const showPetById = (
     petId: string,
     version= 1,
- ) => {
+ signal?: AbortSignal
+) => {
       return customInstance<Pet>(
-      {url: `/v${version}/pets/${petId}`, method: 'get'
+      {url: `/v${version}/pets/${petId}`, method: 'get', signal
     },
       );
     }
@@ -174,7 +177,7 @@ export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetByI
 
   
 
-  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = () => showPetById(petId,version, );
+  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = ({ signal }) => showPetById(petId,version, signal);
 
   const query = useInfiniteQuery<AsyncReturnType<typeof showPetById>, TError, TData>(queryKey, queryFn, {enabled: !!(version && petId), ...queryOptions})
 
@@ -199,7 +202,7 @@ export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TErr
 
   
 
-  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = () => showPetById(petId,version, );
+  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = ({ signal }) => showPetById(petId,version, signal);
 
   const query = useQuery<AsyncReturnType<typeof showPetById>, TError, TData>(queryKey, queryFn, {enabled: !!(version && petId), ...queryOptions})
 
