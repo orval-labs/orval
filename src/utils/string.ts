@@ -1,3 +1,4 @@
+import { keyword } from 'esutils';
 import get from 'lodash.get';
 import {
   isBoolean,
@@ -52,6 +53,7 @@ export const sanitize = (
     underscore?: string | true;
     dot?: string | true;
     dash?: string | true;
+    es5keyword?: boolean
   },
 ) => {
   const {
@@ -59,6 +61,7 @@ export const sanitize = (
     underscore = '',
     dot = '',
     dash = '',
+    es5keyword = false
   } = options || {};
   let newValue = value.replace(/[^\w\s.-]/g, '');
 
@@ -76,6 +79,10 @@ export const sanitize = (
 
   if (dash !== true) {
     newValue = newValue.replace(/[-]/g, dash);
+  }
+
+  if (es5keyword) {
+    newValue = keyword.isKeywordES5(newValue, true) ? `_${newValue}` : newValue
   }
 
   return newValue;

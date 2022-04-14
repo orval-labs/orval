@@ -162,16 +162,11 @@ const generateQueryRequestFunction = (
       isFormUrlEncoded,
     });
 
-    const propsImplementation = mutator?.bodyTypeName
-      ? toObjectString(props, 'implementation')
-          .replace(
-            new RegExp(`(${verb}\\w*):\\s?(\\w*)`),
-            `$1: ${mutator.bodyTypeName}<$2>`,
-          )
-          .replace(
-            new RegExp(`(\\w*Body):\\s?(\\w*)`),
-            `$1: ${mutator.bodyTypeName}<$2>`,
-          )
+    const propsImplementation = mutator?.bodyTypeName && body.definition
+      ? toObjectString(props, 'implementation').replace(
+          new RegExp(`(\\w*):\\s?${body.definition}`),
+          `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+        )
       : toObjectString(props, 'implementation');
 
     const requestOptions = isRequestOptions
@@ -575,10 +570,15 @@ const generateQueryHook = (
     export type ${pascal(
       operationName,
     )}MutationResult = NonNullable<AsyncReturnType<${dataType}>>
-    export type ${pascal(operationName)}MutationBody = ${definitions.replace(
-    /^.*data:\s?([\w<>]*),?.*$/,
-    '$1',
-  )}
+    ${
+      body.definition
+        ? `export type ${pascal(operationName)}MutationBody = ${
+            mutator?.bodyTypeName
+              ? `${mutator.bodyTypeName}<${body.definition}>`
+              : body.definition
+          }`
+        : ''
+    }
     export type ${pascal(operationName)}MutationError = ${errorType}
 
     export const ${camel(`use-${operationName}`)} = <TError = ${errorType},

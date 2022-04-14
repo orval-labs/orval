@@ -127,11 +127,9 @@ const generateAxiosImplementation = (
 
   returnTypesToWrite.set(
     operationName,
-    (title?: string) =>
-      `export type ${pascal(operationName)}Result = AsyncReturnType<${
-        title
-          ? `ReturnType<typeof ${title}>['${operationName}']`
-          : `typeof ${operationName}`
+    () =>
+      `export type ${pascal(operationName)}Result = AxiosResponse<${
+        response.definition.success || 'unknown'
       }>`,
   );
 
@@ -179,6 +177,7 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
   title,
   noFunction,
+  hasMutator,
 }) => {
   const functionFooter = `return {${operationNames.join(',')}}};\n`;
   const returnTypesArr = operationNames
@@ -188,13 +187,17 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
         : '';
     })
     .filter(Boolean);
-  const returnTypes = returnTypesArr.length
+  let returnTypes = hasMutator
     ? `\n// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncReturnType<
 T extends (...args: any) => Promise<any>
 > = T extends (...args: any) => Promise<infer R> ? R : any;
-\n${returnTypesArr.join('\n')}`
+\n`
     : '';
+
+  if (returnTypesArr.length) {
+    returnTypes += returnTypesArr.join('\n');
+  }
 
   return noFunction ? returnTypes : functionFooter + returnTypes;
 };

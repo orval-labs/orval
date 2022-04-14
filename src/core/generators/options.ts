@@ -183,7 +183,11 @@ export const generateMutatorConfig = ({
     queryParams?.schema,
   );
 
-  return `{url: \`${route}\`, method: '${verb}'${bodyOptions}${queryParamsOptions}\n    }`;
+  const headerOptions = body.contentType
+    ? `,\n      headers: {'Content-Type': '${body.contentType}'}`
+    : '';
+
+  return `{url: \`${route}\`, method: '${verb}'${headerOptions}${bodyOptions}${queryParamsOptions}\n    }`;
 };
 
 export const generateMutatorRequestOptions = (

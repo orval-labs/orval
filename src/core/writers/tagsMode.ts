@@ -51,7 +51,14 @@ export const writeTagsMode = async ({
         data += generateClientImports(
           output.client,
           implementation,
-          [{ exports: imports, dependency: schemasPathRelative }],
+          [
+            {
+              exports: imports.filter(
+                (imp) => !importsMSW.some((impMSW) => imp.name === impMSW.name),
+              ),
+              dependency: schemasPathRelative,
+            },
+          ],
           specsName,
           !!output.schemas,
           isSyntheticDefaultImportsAllowed,

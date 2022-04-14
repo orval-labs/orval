@@ -129,7 +129,7 @@ export type GeneratorMutator = {
   hasSecondArg: boolean;
   hasThirdArg: boolean;
   isHook: boolean;
-  bodyTypeName?: string
+  bodyTypeName?: string;
 };
 
 export type ClientBuilder = (
@@ -148,13 +148,12 @@ export type ClientHeaderBuilder = (params: {
   provideIn: boolean | 'root' | 'any';
 }) => string;
 
-export type ClientFooterBuilder = (
-  params: {
-    noFunction?: boolean | undefined;
-    operationNames: string[];
-    title?: string;
-  },
-) => string;
+export type ClientFooterBuilder = (params: {
+  noFunction?: boolean | undefined;
+  operationNames: string[];
+  title?: string;
+  hasMutator: boolean;
+}) => string;
 
 export type ClientTitleBuilder = (title: string) => string;
 

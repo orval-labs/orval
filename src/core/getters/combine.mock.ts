@@ -13,6 +13,7 @@ export const combineSchemasMock = async ({
   tags,
   combine,
   context,
+  imports,
 }: {
   item: SchemaObject & { name: string; path?: string; specKey?: string };
   items: (SchemaObject | ReferenceObject)[];
@@ -22,8 +23,9 @@ export const combineSchemasMock = async ({
   tags: string[];
   combine?: { properties: string[] };
   context: ContextSpecs;
+  imports: GeneratorImport[];
 }) => {
-  let imports: GeneratorImport[] = [];
+  let combineImports: GeneratorImport[] = [];
   let properties: string[] = [...(combine?.properties || [])];
   const value = await asyncReduce(
     items,
@@ -44,9 +46,10 @@ export const combineSchemasMock = async ({
         operationId,
         tags,
         context,
+        imports,
       });
 
-      imports = [...imports, ...resolvedValue.imports];
+      combineImports = [...combineImports, ...resolvedValue.imports];
       properties = [...properties, ...(resolvedValue.properties || [])];
 
       if (!index && !combine) {
@@ -77,7 +80,7 @@ export const combineSchemasMock = async ({
 
   return {
     value,
-    imports,
+    imports: combineImports,
     name: item.name,
     properties,
   };

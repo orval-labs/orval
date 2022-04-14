@@ -3,6 +3,7 @@ import { log } from 'console';
 import execa from 'execa';
 import { appendFile, outputFile, pathExists, readFile } from 'fs-extra';
 import uniq from 'lodash.uniq';
+import { InfoObject } from 'openapi3-ts';
 import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
@@ -15,6 +16,19 @@ import { writeSingleMode } from './singleMode';
 import { writeSplitMode } from './splitMode';
 import { writeSplitTagsMode } from './splitTagsMode';
 import { writeTagsMode } from './tagsMode';
+
+const getHeader = (
+  option: false | ((info: InfoObject) => string | string[]),
+  info: InfoObject,
+): string => {
+  if (!option) {
+    return '';
+  }
+
+  const header = option(info);
+
+  return Array.isArray(header) ? jsDoc({ description: header }) : header;
+};
 
 export const writeSpecs = async (
   { operations, schemas, target, info }: WriteSpecsProps,
@@ -34,11 +48,7 @@ export const writeSpecs = async (
     return acc;
   }, {} as Record<keyof typeof schemas, string>);
 
-  const header = output.override.header
-    ? jsDoc({
-        description: output.override.header(info),
-      })
-    : '';
+  const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
     const rootSchemaPath = output.schemas;

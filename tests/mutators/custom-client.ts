@@ -8,6 +8,7 @@ export const customClient = async <ResponseType>({
   method: 'get' | 'post' | 'put' | 'delete' | 'patch';
   params?: Record<string, string>;
   data?: BodyType<unknown>;
+  headers?: Record<string, string>;
 }) => {
   const response = await fetch(url + new URLSearchParams(params), {
     method,
