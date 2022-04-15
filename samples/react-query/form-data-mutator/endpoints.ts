@@ -29,7 +29,8 @@ T extends (...args: any) => Promise<any>
  */
 export const createPets = (
     createPetsBody: CreatePetsBody,
- ) => {const formData = customFormData(createPetsBody)
+ 
+) => {const formData = customFormData(createPetsBody)
       return customInstance<Pet>(
       {url: `/pets`, method: 'post',
       headers: {'Content-Type': 'multipart/form-data'},

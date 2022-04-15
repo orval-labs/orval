@@ -28,8 +28,8 @@
 		"vite": "^2.1.0"
 	},
 	"dependencies": {
-		"@sveltestack/svelte-query": "^1.3.0",
-		"axios": "^0.21.1",
+		"@sveltestack/svelte-query": "^1.6.0",
+		"axios": "^0.26.1",
 		"orval": "link:../../dist"
 	},
 	"type": "module",

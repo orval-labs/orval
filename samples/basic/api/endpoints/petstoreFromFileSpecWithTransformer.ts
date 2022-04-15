@@ -30,9 +30,10 @@ import listPetsMutator from '../mutator/response-type'
 export const listPets = (
     params?: ListPetsParams,
     version= 1,
- ) => {
+ signal?: AbortSignal
+) => {
       return listPetsMutator<Pets>(
-      {url: `/v${version}/pets`, method: 'get',
+      {url: `/v${version}/pets`, method: 'get', signal,
         params,
     },
       );

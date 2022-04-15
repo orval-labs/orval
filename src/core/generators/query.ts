@@ -1,4 +1,5 @@
 import omitBy from 'lodash.omitby';
+import { VERBS_WITH_BODY } from '../../constants';
 import { OutputClient, OutputClientFunc, Verbs } from '../../types';
 import {
   GeneratorDependency,
@@ -113,6 +114,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: 'vue-query/types',
   },
+  {
+    exports: [{ name: 'UseQueryReturnType' }],
+    dependency: 'vue-query/lib/vue/useBaseQuery',
+  },
 ];
 
 export const getVueQueryDependencies = (hasGlobalMutator: boolean) => [
@@ -142,6 +147,7 @@ const generateQueryRequestFunction = (
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
   );
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -160,14 +166,17 @@ const generateQueryRequestFunction = (
       verb,
       isFormData,
       isFormUrlEncoded,
+      isBodyVerb,
+      hasSignal: true,
     });
 
-    const propsImplementation = mutator?.bodyTypeName && body.definition
-      ? toObjectString(props, 'implementation').replace(
-          new RegExp(`(\\w*):\\s?${body.definition}`),
-          `$1: ${mutator.bodyTypeName}<${body.definition}>`,
-        )
-      : toObjectString(props, 'implementation');
+    const propsImplementation =
+      mutator?.bodyTypeName && body.definition
+        ? toObjectString(props, 'implementation').replace(
+            new RegExp(`(\\w*):\\s?${body.definition}`),
+            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+          )
+        : toObjectString(props, 'implementation');
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
@@ -182,7 +191,9 @@ const generateQueryRequestFunction = (
         response.definition.success || 'unknown'
       }>();
 
-        return (\n    ${propsImplementation}\n ${
+        return (\n    ${propsImplementation}\n${
+        !isBodyVerb ? 'signal?: AbortSignal,\n' : ''
+      } ${
         isRequestOptions && mutator.hasSecondArg
           ? `options?: SecondParameter<typeof ${mutator.name}>`
           : ''
@@ -197,9 +208,9 @@ const generateQueryRequestFunction = (
 
     return `export const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options?: SecondParameter<typeof ${mutator.name}>`
+        ? `options?: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }) => {${bodyForm}
+    }${!isBodyVerb ? 'signal?: AbortSignal\n' : '\n'}) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -323,6 +334,34 @@ const generateQueryArguments = ({
   }}\n`;
 };
 
+const generateQueryReturnType = ({
+  outputClient,
+  type,
+  isMutatorHook,
+  operationName,
+}: {
+  outputClient: OutputClient | OutputClientFunc;
+  type: QueryType;
+  isMutatorHook?: boolean;
+  operationName: string;
+}) => {
+  switch (outputClient) {
+    case OutputClient.SVELTE_QUERY:
+      return `Use${pascal(type)}StoreResult<AsyncReturnType<${
+        isMutatorHook
+          ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+          : `typeof ${operationName}`
+      }>, TError, TData, QueryKey>`;
+    case OutputClient.VUE_QUERY:
+      return ` UseQueryReturnType<TData, TError, Use${pascal(
+        type,
+      )}Result<TData, TError>>`;
+    case OutputClient.REACT_QUERY:
+    default:
+      return ` Use${pascal(type)}Result<TData, TError>`;
+  }
+};
+
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type },
   operationName,
@@ -361,14 +400,12 @@ const generateQueryImplementation = ({
         .join(',')
     : properties;
 
-  const returnType =
-    outputClient !== OutputClient.SVELTE_QUERY
-      ? ` Use${pascal(type)}Result<TData, TError>`
-      : `Use${pascal(type)}StoreResult<AsyncReturnType<${
-          mutator?.isHook
-            ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-            : `typeof ${operationName}`
-        }>, TError, TData, QueryKey>`;
+  const returnType = generateQueryReturnType({
+    outputClient,
+    type,
+    isMutatorHook: mutator?.isHook,
+    operationName,
+  });
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
@@ -428,15 +465,15 @@ export const ${camel(
       : `typeof ${operationName}`
   }>> = (${
     queryParam && props.some(({ type }) => type === 'queryParam')
-      ? `{ pageParam }`
-      : ''
+      ? `{ signal, pageParam }`
+      : '{ signal }'
   }) => ${operationName}(${httpFunctionProps}${httpFunctionProps ? ', ' : ''}${
     isRequestOptions
       ? !mutator
-        ? `axiosOptions`
+        ? `{ signal, ...axiosOptions }`
         : mutator.hasSecondArg
-        ? 'requestOptions'
-        : ''
+        ? 'requestOptions, signal'
+        : 'signal'
       : ''
   });
 

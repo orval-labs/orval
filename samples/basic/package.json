@@ -15,6 +15,6 @@
     "orval": "link:../../dist"
   },
   "dependencies": {
-    "axios": "^0.20.0"
+    "axios": "^0.26.1"
   }
 }

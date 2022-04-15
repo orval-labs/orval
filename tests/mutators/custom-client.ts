@@ -9,6 +9,7 @@ export const customClient = async <ResponseType>({
   params?: Record<string, string>;
   data?: BodyType<unknown>;
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }) => {
   const response = await fetch(url + new URLSearchParams(params), {
     method,

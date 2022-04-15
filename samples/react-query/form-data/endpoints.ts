@@ -28,7 +28,8 @@ T extends (...args: any) => Promise<any>
  */
 export const createPets = (
     createPetsBody: CreatePetsBody,
- ) => {const formData = new FormData();
+ 
+) => {const formData = new FormData();
 formData.append('name', createPetsBody.name)
 formData.append('tag', createPetsBody.tag)
 

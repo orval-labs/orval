@@ -19,9 +19,10 @@ import { customInstance } from '../mutator/custom-instance'
 export const listPets = (
     params?: ListPetsParams,
     version= 1,
- ) => {
+ signal?: AbortSignal
+) => {
       return customInstance<Pets>(
-      {url: `/v${version}/pets`, method: 'get',
+      {url: `/v${version}/pets`, method: 'get', signal,
         params,
     },
       );
@@ -33,7 +34,8 @@ export const listPets = (
 export const createPets = (
     createPetsBody: CreatePetsBody,
     version= 1,
- ) => {
+ 
+) => {
       return customInstance<void>(
       {url: `/v${version}/pets`, method: 'post',
       headers: {'Content-Type': 'application/json'},
@@ -48,9 +50,10 @@ export const createPets = (
 export const showPetById = (
     petId: string,
     version= 1,
- ) => {
+ signal?: AbortSignal
+) => {
       return customInstance<Pet>(
-      {url: `/v${version}/pets/${petId}`, method: 'get'
+      {url: `/v${version}/pets/${petId}`, method: 'get', signal
     },
       );
     }

@@ -38,9 +38,10 @@ export const useListPetsHook = () => {
 
         return (
     params?: ListPetsParams,
+signal?: AbortSignal,
  ) => {
         return listPets(
-          {url: `/pets`, method: 'get',
+          {url: `/pets`, method: 'get', signal,
         params,
     },
           );
@@ -65,7 +66,7 @@ export const useListPets = <TData = AsyncReturnType<ReturnType<typeof useListPet
 
   const listPets =  useListPetsHook()
 
-  const queryFn: QueryFunction<AsyncReturnType<ReturnType<typeof useListPetsHook>>> = () => listPets(params, );
+  const queryFn: QueryFunction<AsyncReturnType<ReturnType<typeof useListPetsHook>>> = ({ signal }) => listPets(params, signal);
 
   const query = useQuery<AsyncReturnType<ReturnType<typeof useListPetsHook>>, TError, TData>(queryKey, queryFn, queryOptions)
 
@@ -126,9 +127,10 @@ export const useShowPetByIdHook = () => {
 
         return (
     petId: string,
+signal?: AbortSignal,
  ) => {
         return showPetById(
-          {url: `/pets/${petId}`, method: 'get'
+          {url: `/pets/${petId}`, method: 'get', signal
     },
           );
         }
@@ -152,7 +154,7 @@ export const useShowPetById = <TData = AsyncReturnType<ReturnType<typeof useShow
 
   const showPetById =  useShowPetByIdHook()
 
-  const queryFn: QueryFunction<AsyncReturnType<ReturnType<typeof useShowPetByIdHook>>> = () => showPetById(petId, );
+  const queryFn: QueryFunction<AsyncReturnType<ReturnType<typeof useShowPetByIdHook>>> = ({ signal }) => showPetById(petId, signal);
 
   const query = useQuery<AsyncReturnType<ReturnType<typeof useShowPetByIdHook>>, TError, TData>(queryKey, queryFn, {enabled: !!(petId), ...queryOptions})
 
