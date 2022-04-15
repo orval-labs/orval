@@ -182,13 +182,11 @@ export const generateClientFooter = ({
   operationNames,
   title,
   customTitleFunc,
-  hasMutator,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   operationNames: string[];
   title: string;
   customTitleFunc?: (title: string) => string;
-  hasMutator: boolean;
 }): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { footer } = getGeneratorClient(outputClient);
@@ -203,10 +201,10 @@ export const generateClientFooter = ({
         '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
       );
     } else {
-      implementation = footer({ operationNames, title: titles.implementation, hasMutator });
+      implementation = footer({ operationNames, title: titles.implementation });
     }
   } catch (e) {
-    implementation = footer({ operationNames, title: titles.implementation, hasMutator });
+    implementation = footer({ operationNames, title: titles.implementation });
   }
 
   return {
