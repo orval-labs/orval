@@ -569,7 +569,7 @@ module.exports = {
       ...
       override: {
         angular: {
-          provideInRoot: false,
+          provideIn: 'any',
         },
       },
     },
@@ -578,13 +578,15 @@ module.exports = {
 };
 ```
 
-##### provideInRoot
+##### provideIn
 
-Type: `Boolean`.
+Type: `Boolean` or `String`.
 
-Default Value: `true`.
+Valid values: `true`, `false`, `'root'`, `'any'`, `''`.
 
-Use to remove the provide in root in the generated angular services
+Default Value: `'root'`.
+
+Can be used to set the value of `providedIn` on the generated Angular services. If `false`, no `providedIn` will be set. If `true` or not specified, it will fall back to the default value: `root`.
 
 #### mock
 

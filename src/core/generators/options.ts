@@ -164,6 +164,8 @@ export const generateMutatorConfig = ({
   verb,
   isFormData,
   isFormUrlEncoded,
+  isBodyVerb,
+  hasSignal,
 }: {
   route: string;
   body: GetterBody;
@@ -172,8 +174,9 @@ export const generateMutatorConfig = ({
   verb: Verbs;
   isFormData: boolean;
   isFormUrlEncoded: boolean;
+  isBodyVerb: boolean;
+  hasSignal: boolean;
 }) => {
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
     : '';
@@ -183,7 +186,13 @@ export const generateMutatorConfig = ({
     queryParams?.schema,
   );
 
-  return `{url: \`${route}\`, method: '${verb}'${bodyOptions}${queryParamsOptions}\n    }`;
+  const headerOptions = body.contentType
+    ? `,\n      headers: {'Content-Type': '${body.contentType}'}`
+    : '';
+
+  return `{url: \`${route}\`, method: '${verb}'${
+    !isBodyVerb && hasSignal ? ', signal' : ''
+  }${headerOptions}${bodyOptions}${queryParamsOptions}\n    }`;
 };
 
 export const generateMutatorRequestOptions = (

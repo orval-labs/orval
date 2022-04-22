@@ -163,6 +163,7 @@ export const OutputClient = {
   AXIOS_FUNCTIONS: 'axios-functions' as OutputClient,
   REACT_QUERY: 'react-query' as OutputClient,
   SVELTE_QUERY: 'svelte-query' as OutputClient,
+  VUE_QUERY: 'vue-query' as OutputClient,
 };
 
 export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';

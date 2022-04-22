@@ -12,6 +12,7 @@ const responseType = <Result>(
     method: string;
     params?: any;
     data?: any;
+    headers?: any;
   },
   http: HttpClient,
 ): Observable<Result> =>

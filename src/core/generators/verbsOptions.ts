@@ -30,6 +30,7 @@ import { getProps } from '../getters/props';
 import { getQueryParams } from '../getters/queryParams';
 import { getResponse } from '../getters/response';
 import { generateMutator } from './mutator';
+import { sanitize } from '../../utils/string';
 
 const generateVerbOptions = async ({
   verb,
@@ -79,9 +80,7 @@ const generateVerbOptions = async ({
   const overriddenOperationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
     : camel(operationId);
-  const operationName = keyword.isKeywordES5(overriddenOperationName, true)
-    ? `_${overriddenOperationName}`
-    : overriddenOperationName;
+  const operationName = sanitize(overriddenOperationName, { es5keyword: true })
 
   const response = await getResponse(responses, operationName, context);
 

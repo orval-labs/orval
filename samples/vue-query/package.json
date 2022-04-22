@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "@faker-js/faker": "^6.1.1",
-    "axios": "^0.21.1",
+    "axios": "^0.26.1",
     "vue": "^3.0.5",
-    "vue-query": "^1.8.0"
+    "vue-query": "^1.22.2"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^1.2.5",

@@ -62,6 +62,8 @@ export const generateTarget = (
           outputClient: options?.client,
           operationNames,
           title: pascal(info.title),
+          customTitleFunc: options.override.title,
+          hasMutator: !!acc.mutators.length,
         });
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;

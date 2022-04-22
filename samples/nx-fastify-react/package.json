@@ -13,7 +13,7 @@
     "@emotion/react": "11.1.5",
     "@emotion/styled": "11.1.5",
     "@faker-js/faker": "^6.1.1",
-    "axios": "^0.21.4",
+    "axios": "^0.26.1",
     "core-js": "^3.6.5",
     "fastify": "^3.21.0",
     "fastify-cors": "^6.0.2",
@@ -21,7 +21,7 @@
     "orval": "link:../../dist",
     "react": "17.0.2",
     "react-dom": "17.0.2",
-    "react-query": "^3.23.2",
+    "react-query": "^3.34.19",
     "regenerator-runtime": "0.13.7",
     "tslib": "^2.0.0"
   },

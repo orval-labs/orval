@@ -1,3 +1,4 @@
+import { VERBS_WITH_BODY } from '../../constants';
 import {
   ClientFooterBuilder,
   GeneratorClient,
@@ -68,6 +69,7 @@ const generateAxiosImplementation = (
     isFormData,
     isFormUrlEncoded,
   });
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -78,6 +80,8 @@ const generateAxiosImplementation = (
       verb,
       isFormData,
       isFormUrlEncoded,
+      isBodyVerb,
+      hasSignal: true,
     });
 
     const requestOptions = isRequestOptions
@@ -106,7 +110,7 @@ const generateAxiosImplementation = (
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''
-    }) => {${bodyForm}
+    }${!isBodyVerb ? 'signal?: AbortSignal\n' : '\n'}) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -127,11 +131,9 @@ const generateAxiosImplementation = (
 
   returnTypesToWrite.set(
     operationName,
-    (title?: string) =>
-      `export type ${pascal(operationName)}Result = AsyncReturnType<${
-        title
-          ? `ReturnType<typeof ${title}>['${operationName}']`
-          : `typeof ${operationName}`
+    () =>
+      `export type ${pascal(operationName)}Result = AxiosResponse<${
+        response.definition.success || 'unknown'
       }>`,
   );
 
@@ -179,6 +181,7 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
   title,
   noFunction,
+  hasMutator,
 }) => {
   const functionFooter = `return {${operationNames.join(',')}}};\n`;
   const returnTypesArr = operationNames
@@ -188,13 +191,17 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
         : '';
     })
     .filter(Boolean);
-  const returnTypes = returnTypesArr.length
+  let returnTypes = hasMutator
     ? `\n// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AsyncReturnType<
 T extends (...args: any) => Promise<any>
 > = T extends (...args: any) => Promise<infer R> ? R : any;
-\n${returnTypesArr.join('\n')}`
+\n`
     : '';
+
+  if (returnTypesArr.length) {
+    returnTypes += returnTypesArr.join('\n');
+  }
 
   return noFunction ? returnTypes : functionFooter + returnTypes;
 };

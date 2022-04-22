@@ -7,7 +7,7 @@ const getRoutePath = (path: string) => {
   const matches = path.match(/([^{]*){?([\w_-]*)}?(.*)/)
   if (!matches?.length) return path // impossible due to regexp grouping here, but for TS
   const prev = matches[1]
-  const param = camel(sanitize(matches[2], { underscore: true, dash: true, dot: true }))
+  const param = sanitize(camel(matches[2]), { es5keyword: true, underscore: true, dash: true, dot: true })
   const next: string = hasParam(matches[3]) ? getRoutePath(matches[3]) : matches[3]
   if (hasParam(path)) {
     return `${prev}\${${param}}${next}`
