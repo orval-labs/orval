@@ -96,11 +96,11 @@ const generateAxiosImplementation = (
       (title?: string) =>
         `export type ${pascal(
           operationName,
-        )}Result = NonNullable<AsyncReturnType<${
+        )}Result = NonNullable<Awaited<ReturnType<${
           title
             ? `ReturnType<typeof ${title}>['${operationName}']`
             : `typeof ${operationName}`
-        }>>`,
+        }>>>`,
     );
 
     return `const ${operationName} = (\n    ${toObjectString(
@@ -181,7 +181,6 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
   title,
   noFunction,
-  hasMutator,
 }) => {
   const functionFooter = `return {${operationNames.join(',')}}};\n`;
   const returnTypesArr = operationNames
@@ -191,13 +190,7 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
         : '';
     })
     .filter(Boolean);
-  let returnTypes = hasMutator
-    ? `\n// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;
-\n`
-    : '';
+  let returnTypes = '';
 
   if (returnTypesArr.length) {
     returnTypes += returnTypesArr.join('\n');
