@@ -53,6 +53,11 @@ const generate = async (
 };
 
 export * from './types/generator';
+export * from "./core/generators/imports"
+export * from "./core/generators/options"
+export * from "./utils/tsconfig"
+export * from "./utils/string"
+export * from "./utils/case"
 export { defineConfig };
 export { Options };
 export { generate };
