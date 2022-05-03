@@ -5,6 +5,7 @@ import { GeneratorImport } from '../../types/generator';
 import { MockDefinition } from '../../types/mocks';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { escape } from '../../utils/string';
+import { isReference } from '../../utils/is';
 import {
   getNullable,
   resolveMockOverride,
@@ -120,6 +121,14 @@ export const getMockScalar = async ({
       });
 
       if (enums) {
+        if (!isReference(item.items)) {
+          return {
+            value,
+            imports: resolvedImports,
+            name: item.name,
+          };
+        }
+        
         const enumImp = imports.find(
           (imp) => name.replace('[]', '') === imp.name,
         );
