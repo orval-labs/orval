@@ -84,7 +84,9 @@ export const combineSchemas = async ({
     )} = ${getCombineEnumValue(resolvedData, name)}`;
 
     return {
-      value: `${value + nullable};` + newEnum,
+      value:
+        `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable};` +
+        newEnum,
       imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
         ...toImport,
         values: true,
@@ -115,18 +117,18 @@ const getCombineEnumValue = (
       return values[0];
     }
 
-    return `{${getEnumImplementation(values[0], types[0], pascal(name))}}`;
+    return `{${getEnumImplementation(values[0], types[0])}} as const`;
   }
 
   const enums = values
     .map((e, i) => {
       if (isRef[i]) {
-        return `...${e}`;
+        return `...${e},`;
       }
 
-      return getEnumImplementation(e, types[i], pascal(name));
+      return getEnumImplementation(e, types[i]);
     })
-    .join(',');
+    .join('');
 
-  return `{${enums}}`;
+  return `{${enums}} as const`;
 };

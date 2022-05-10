@@ -2,15 +2,15 @@ import { keyword } from 'esutils';
 import { sanitize } from '../../utils/string';
 
 export const getEnum = (value: string, type: string, enumName: string) => {
-  let enumValue = `export type ${enumName} = ${value};\n`;
+  let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}];\n`;
 
-  const implementation = getEnumImplementation(value, type, enumName);
+  const implementation = getEnumImplementation(value, type);
 
   enumValue += `\n\n`;
 
   enumValue += '// eslint-disable-next-line @typescript-eslint/no-redeclare\n';
 
-  enumValue += `export const ${enumName} = {\n${implementation}};\n`;
+  enumValue += `export const ${enumName} = {\n${implementation}} as const;\n`;
 
   return enumValue;
 };
@@ -18,7 +18,6 @@ export const getEnum = (value: string, type: string, enumName: string) => {
 export const getEnumImplementation = (
   value: string,
   type: string,
-  enumName: string,
 ) => {
   return [...new Set(value.split(' | '))].reduce((acc, val) => {
     // nullable value shouldn't be in the enum implementation
@@ -34,7 +33,7 @@ export const getEnumImplementation = (
       acc +
       `  ${
         keyword.isIdentifierNameES5(key) ? key : `'${key}'`
-      }: ${val} as ${enumName},\n`
+      }: ${val},\n`
     );
   }, '');
 };
