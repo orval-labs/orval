@@ -25,6 +25,22 @@ export const resolveRef = async <
   schema: Schema;
   imports: GeneratorImport[];
 }> => {
+  // the schema is refering to another object
+  if (schema?.schema?.$ref) {
+    const resolvedRef = await resolveRef<Schema>(
+      schema?.schema,
+      context,
+      imports,
+    );
+    return {
+      schema: {
+        ...schema,
+        schema: resolvedRef.schema,
+      } as Schema,
+      imports,
+    };
+  }
+  
   if (!isReference(schema)) {
     return { schema: schema as Schema, imports };
   }
