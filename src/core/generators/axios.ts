@@ -108,7 +108,7 @@ const generateAxiosImplementation = (
       'implementation',
     )}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options?: SecondParameter<typeof ${mutator.name}>`
+        ? `options?: SecondParameter<typeof ${mutator.name}>,`
         : ''
     }${!isBodyVerb ? 'signal?: AbortSignal\n' : '\n'}) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
