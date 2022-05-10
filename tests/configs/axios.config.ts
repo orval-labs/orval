@@ -16,6 +16,40 @@ export default defineConfig({
       },
     },
   },
+  mutator: {
+    output: {
+      target: '../generated/axios/petstore/endpoints.ts',
+      schemas: '../generated/axios/petstore/model',
+      mock: true,
+      client: 'axios',
+      override: {
+        mutator: '../mutators/custom-client.ts',
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer,
+      },
+    },
+  },
+  multiArguments: {
+    output: {
+      target: '../generated/axios/petstore/endpoints.ts',
+      schemas: '../generated/axios/petstore/model',
+      mock: true,
+      client: 'axios',
+      override: {
+        mutator: '../mutators/multi-arguments.ts',
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer,
+      },
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/axios/petstore-tags-split/endpoints.ts',
