@@ -51,13 +51,13 @@ formUrlEncoded.append('tag', createPetsBody.tag)
     
     TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody}, TContext>, }
 ) => {
-      const {mutation: mutationOptions} = options || {}
+      const {mutation: mutationOptions} = options ?? {}
 
       
 
 
       const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: CreatePetsBody}> = (props) => {
-          const {data} = props || {};
+          const {data} = props ?? {};
 
           return  createPets(data,)
         }

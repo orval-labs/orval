@@ -122,7 +122,7 @@ export const addDependency = ({
         (dep.values &&
           (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)) ||
         false,
-      deps: [...(acc[key]?.deps || []), dep],
+      deps: [...(acc[key]?.deps ?? []), dep],
     };
 
     return acc;

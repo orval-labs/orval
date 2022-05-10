@@ -51,7 +51,7 @@ export const useListPets = <TError = Error>(
 
   ) => {
 
-  const {swr: swrOptions} = options || {}
+  const {swr: swrOptions} = options ?? {}
 
   const isEnable = !!(version)
   const swrKey = swrOptions?.swrKey ?? (() => isEnable ? getListPetsKey(params,version) : null);
@@ -110,7 +110,7 @@ export const useShowPetById = <TError = Error>(
 
   ) => {
 
-  const {swr: swrOptions} = options || {}
+  const {swr: swrOptions} = options ?? {}
 
   const isEnable = !!(version && petId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnable ? getShowPetByIdKey(petId,version) : null);

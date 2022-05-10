@@ -49,7 +49,7 @@ export const useShowPetById = <TError = Error>(
     axios?: AxiosRequestConfig;
   },
 ) => {
-  const { swr: swrOptions, axios: axiosOptions } = options || {};
+  const { swr: swrOptions, axios: axiosOptions } = options ?? {};
 
   const isEnable = !!petId;
   const swrKey =

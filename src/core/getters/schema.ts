@@ -8,7 +8,7 @@ export const getSchema = (
   specKey: string,
 ) => {
   const schemas = Object.entries(
-    context.specs[specKey].components?.schemas || [],
+    context.specs[specKey].components?.schemas ?? [],
   ).reduce<Record<string, SchemaObject>>((acc, [name, type]) => {
     acc[name] = type;
 
@@ -16,7 +16,7 @@ export const getSchema = (
   }, {});
 
   const responses = Object.entries(
-    context.specs[specKey].components?.responses || [],
+    context.specs[specKey].components?.responses ?? [],
   ).reduce<Record<string, SchemaObject | undefined>>((acc, [name, type]) => {
     acc[name] = isReference(type)
       ? type

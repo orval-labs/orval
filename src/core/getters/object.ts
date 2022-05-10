@@ -169,8 +169,8 @@ export const getObject = async ({
     });
     return {
       value: `{[key: string]: ${resolvedValue.value}}` + nullable,
-      imports: resolvedValue.imports || [],
-      schemas: resolvedValue.schemas || [],
+      imports: resolvedValue.imports ?? [],
+      schemas: resolvedValue.schemas ?? [],
       isEnum: false,
       type: 'object',
       isRef: false,

@@ -60,7 +60,7 @@ export const useListPets = <TData = AsyncReturnType<ReturnType<typeof useListPet
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params);
 
@@ -105,13 +105,13 @@ export const useCreatePetsHook = () => {
     
     TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<ReturnType<typeof useCreatePetsHook>>, TError,{data: CreatePetsBody}, TContext>, }
 ) => {
-      const {mutation: mutationOptions} = options || {}
+      const {mutation: mutationOptions} = options ?? {}
 
       const createPets =  useCreatePetsHook()
 
 
       const mutationFn: MutationFunction<AsyncReturnType<ReturnType<typeof useCreatePetsHook>>, {data: CreatePetsBody}> = (props) => {
-          const {data} = props || {};
+          const {data} = props ?? {};
 
           return  createPets(data,)
         }
@@ -148,7 +148,7 @@ export const useShowPetById = <TData = AsyncReturnType<ReturnType<typeof useShow
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
 

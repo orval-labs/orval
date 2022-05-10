@@ -62,7 +62,7 @@ export const sanitize = (
     dot = '',
     dash = '',
     es5keyword = false
-  } = options || {};
+  } = options ?? {};
   let newValue = value.replace(/[^\w\s.-]/g, '');
 
   if (whitespace !== true) {

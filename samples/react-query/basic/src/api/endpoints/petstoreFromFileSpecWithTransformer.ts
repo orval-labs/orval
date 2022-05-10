@@ -61,7 +61,7 @@ export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TE
 
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params,version);
 
@@ -86,7 +86,7 @@ export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = E
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params,version);
 
@@ -129,13 +129,13 @@ export const createPets = (
     
     TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody;version?: number}, TContext>, }
 ) => {
-      const {mutation: mutationOptions} = options || {}
+      const {mutation: mutationOptions} = options ?? {}
 
       
 
 
       const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: CreatePetsBody;version?: number}> = (props) => {
-          const {data,version} = props || {};
+          const {data,version} = props ?? {};
 
           return  createPets(data,version,)
         }
@@ -171,7 +171,7 @@ export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetByI
 
   ):  UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId,version);
 
@@ -196,7 +196,7 @@ export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TErr
 
   ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
 
-  const {query: queryOptions} = options || {}
+  const {query: queryOptions} = options ?? {}
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId,version);
 

@@ -73,7 +73,7 @@ export async function loadFile<File = any>(
     alias,
     tsconfig,
     load = true,
-  } = options || {};
+  } = options ?? {};
   const start = Date.now();
 
   let resolvedPath: string | undefined;

@@ -86,7 +86,7 @@ const generateVerbOptions = async ({
 
   const body = await getBody(requestBody!, operationName, context);
   const parameters = await getParameters({
-    parameters: [...verbParameters, ...(operationParameters || [])],
+    parameters: [...verbParameters, ...(operationParameters ?? [])],
     context,
   });
 

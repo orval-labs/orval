@@ -229,7 +229,7 @@ export const ${camel(
             : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
-        }} = options || {}`
+        }} = options ?? {}`
       : ''
   }
 

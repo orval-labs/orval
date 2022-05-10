@@ -84,7 +84,7 @@ export const importOpenApi = async ({
                 'tags',
                 'externalDocs',
               ]),
-              ...(spec.components?.schemas || {}),
+              ...(spec.components?.schemas ?? {}),
             }
           : spec.components?.schemas,
         context,
@@ -144,7 +144,7 @@ export const importOpenApi = async ({
     ...api,
     schemas: {
       ...schemas,
-      [target]: [...(schemas[target] || []), ...api.schemas],
+      [target]: [...(schemas[target] ?? []), ...api.schemas],
     },
     target,
     info: specs[target].info,

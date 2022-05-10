@@ -447,7 +447,7 @@ export const ${camel(
             : mutator.hasSecondArg
             ? ', request: requestOptions'
             : ''
-        }} = options || {}`
+        }} = options ?? {}`
       : ''
   }
 
@@ -634,7 +634,7 @@ const generateQueryHook = (
                 : mutator?.hasSecondArg
                 ? ', request: requestOptions'
                 : ''
-            }} = options || {}`
+            }} = options ?? {}`
           : ''
       }
 
@@ -648,7 +648,7 @@ const generateQueryHook = (
       const mutationFn: MutationFunction<AsyncReturnType<${dataType}>, ${
     definitions ? `{${definitions}}` : 'TVariables'
   }> = (${properties ? 'props' : ''}) => {
-          ${properties ? `const {${properties}} = props || {}` : ''};
+          ${properties ? `const {${properties}} = props ?? {}` : ''};
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
     isRequestOptions
