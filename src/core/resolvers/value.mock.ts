@@ -41,7 +41,7 @@ export const resolveMockOverride = (
 };
 
 export const getNullable = (value: string, nullable?: boolean) =>
-  nullable ? `faker.random.arrayElement([${value}, null])` : value;
+  nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
 
 export const resolveMockValue = async ({
   schema,
