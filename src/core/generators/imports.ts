@@ -35,17 +35,17 @@ export const generateImports = ({
         const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
-          return `import ${!values ? 'type ' : ''}{ ${name}${
+          return `import { ${!values ? 'type ' : ''}${name}${
             alias ? ` as ${alias}` : ''
           } } from \'../${join(path, camel(name))}\';`;
         }
 
-        return `import ${!values ? 'type ' : ''}{ ${name}${
+        return `import { ${!values ? 'type ' : ''}${name}${
           alias ? ` as ${alias}` : ''
         } } from \'./${join(path, camel(name))}\';`;
       }
 
-      return `import ${!values ? 'type ' : ''}{ ${name}${
+      return `import { ${!values ? 'type ' : ''}${name}${
         alias ? ` as ${alias}` : ''
       } } from \'./${camel(name)}\';`;
     })
@@ -66,18 +66,18 @@ export const generateMutatorImports = (
             mutator.hasErrorType || mutator.bodyTypeName
               ? `, { ${
                   mutator.hasErrorType
-                    ? `ErrorType as ${mutator.errorTypeName}`
+                    ? `type ErrorType as ${mutator.errorTypeName}`
                     : ''
                 }${mutator.hasErrorType && mutator.bodyTypeName ? ',' : ''} ${
                   mutator.bodyTypeName
-                    ? `${BODY_TYPE_NAME} as ${mutator.bodyTypeName}`
+                    ? `type ${BODY_TYPE_NAME} as ${mutator.bodyTypeName}`
                     : ''
                 } }`
               : ''
           }`
         : `{ ${mutator.name}${
-            mutator.hasErrorType ? `, ${mutator.errorTypeName}` : ''
-          }${mutator.bodyTypeName ? `, ${mutator.bodyTypeName}` : ''} }`;
+            mutator.hasErrorType ? `, type ${mutator.errorTypeName}` : ''
+          }${mutator.bodyTypeName ? `, type ${mutator.bodyTypeName}` : ''} }`;
 
       return `import ${importDefault} from '${oneMore ? '../' : ''}${
         mutator.path
@@ -142,7 +142,12 @@ export const addDependency = ({
       const depsString = uniq(
         deps
           .filter((e) => !e.default && !e.syntheticDefaultImport)
-          .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
+          .map(
+            ({ name, alias, values }) =>
+              `${!values ? 'type ' : ''}${
+                alias ? `${name} as ${alias}` : name
+              }`,
+          ),
       ).join(',\n  ');
 
       let importString = '';
@@ -158,8 +163,12 @@ export const addDependency = ({
         importString += `${syntheticDefaultImport}\n`;
       }
 
-      importString += `import ${!values ? 'type ' : ''}${
-        defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
+      importString += `import ${
+        defaultDep
+          ? `${!values ? 'type ' : ''} ${defaultDep.name}${
+              depsString ? ',' : ''
+            }`
+          : ''
       }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
         key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
       }'`;
