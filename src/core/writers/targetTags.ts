@@ -1,3 +1,4 @@
+import { compare } from 'compare-versions';
 import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
   GeneratorOperation,
@@ -98,6 +99,10 @@ export const generateTargetForTags = (
             customTitleFunc: options.override.title,
           });
 
+          const typescriptVersion =
+            options.packageJson?.dependencies?.['typescript'] ?? '4.4.0';
+          const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
+
           const header = generateClientHeader({
             outputClient: options.client,
             isRequestOptions: options.override.requestOptions !== false,
@@ -107,6 +112,7 @@ export const generateTargetForTags = (
             customTitleFunc: options.override.title,
             provideInRoot: !!options.override.angular.provideIn,
             provideIn: options.override.angular.provideIn,
+            hasAwaitedType,
           });
 
           acc[tag] = {

@@ -157,7 +157,7 @@ const generateSwrArguments = ({
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
 }) => {
-  const definition = `SWRConfiguration<AsyncReturnType<typeof ${operationName}>, TError> & {swrKey: Key}`;
+  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & {swrKey: Key}`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -210,7 +210,7 @@ const generateSwrImplementation = ({
   return `
 export type ${pascal(
     operationName,
-  )}QueryResult = NonNullable<AsyncReturnType<typeof ${operationName}>>
+  )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
 export type ${pascal(operationName)}QueryError = ${errorType}
 
 export const ${camel(
@@ -246,7 +246,7 @@ export const ${camel(
       : ''
   });
 
-  const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(swrKey, swrFn, swrOptions)
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
   return {
     swrKey,
@@ -307,24 +307,30 @@ export const generateSwrTitle = () => '';
 export const generateSwrHeader = ({
   isRequestOptions,
   isMutator,
+  hasAwaitedType,
 }: {
   isRequestOptions: boolean;
   isMutator: boolean;
-}) => `// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
-${
-  isRequestOptions && isMutator
-    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  hasAwaitedType: boolean;
+}) =>
+  `
+  ${
+    !hasAwaitedType
+      ? `export type AwaitedInput<T> = PromiseLike<T> | T;\n
+      export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
+      : ''
+  }
+  ${
+    isRequestOptions && isMutator
+      ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
   type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
 ) => any
   ? P
   : never;\n\n`
-    : ''
-}`;
+      : ''
+  }`;
 
 export const generateSwrFooter = () => '';
 

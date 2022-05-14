@@ -1,6 +1,6 @@
 import omit from 'lodash.omit';
 import { OpenAPIObject } from 'openapi3-ts';
-import { ImportOpenApi, InputOptions } from '../../types';
+import { ContextSpecs, ImportOpenApi, InputOptions } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { WriteSpecsProps } from '../../types/writers';
 import { asyncReduce } from '../../utils/async-reduce';
@@ -60,7 +60,7 @@ export const importOpenApi = async ({
   const schemas = await asyncReduce(
     Object.entries(specs),
     async (acc, [specKey, spec]) => {
-      const context = {
+      const context: ContextSpecs = {
         specKey,
         target,
         workspace,
@@ -68,6 +68,7 @@ export const importOpenApi = async ({
         override: output.override,
         tslint: output.tslint,
         tsconfig: output.tsconfig,
+        packageJson: output.packageJson,
       };
 
       // First version to try to handle non-openapi files
@@ -137,6 +138,7 @@ export const importOpenApi = async ({
       override: output.override,
       tslint: output.tslint,
       tsconfig: output.tsconfig,
+      packageJson: output.packageJson,
     },
   });
 

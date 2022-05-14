@@ -1,3 +1,4 @@
+import { compare } from 'compare-versions';
 import { InfoObject } from 'openapi3-ts';
 import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
@@ -44,6 +45,11 @@ export const generateTarget = (
         const isMutator = acc.mutators.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
         );
+
+        const typescriptVersion =
+          options.packageJson?.dependencies?.['typescript'] ?? '4.4.0';
+        const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
+
         const header = generateClientHeader({
           outputClient: options.client,
           isRequestOptions: options.override.requestOptions !== false,
@@ -53,6 +59,7 @@ export const generateTarget = (
           customTitleFunc: options.override.title,
           provideInRoot: !!options.override.angular.provideIn,
           provideIn: options.override.angular.provideIn,
+          hasAwaitedType,
         });
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMSW.handler =
