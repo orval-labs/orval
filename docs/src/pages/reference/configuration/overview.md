@@ -3,11 +3,9 @@ id: configuration
 title: Configuration
 ---
 
-import { Tab, Tabs } from 'components/Tabs';
-
 This page is a reference to the different ways of configuring your Orval projects.
 
-Using an `orval.config.(js|mjs|ts)}` configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the Orval generated files.
+Using an `orval.config.(js|mjs|ts)` configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the Orval generated files.
 
 Configuration options for the following are described on this page:
 
@@ -33,28 +31,26 @@ Configuration options for the following are described on this page:
 </table>
 </div>
 
-### `orval.config.(js|mjs|ts)}`
+### orval.config.js
 
-<Tabs>
-    <Tab label="js">
-    ```js
-    module.exports = {
-        petstore: {
-            input: './petstore.yaml',
-            output: './petstore.ts',
-        },
-    };
-    ```
-    <Tab label="ts">
-    ```ts
-    import { defineConfig } from 'orval';
-    
-    export default defineConfig({
-        petstore: {
-            input: './petstore.yaml',
-            output: './petstore.ts',
-        },
-    });
-    ```
-    </Tab>
-</Tabs>
+```js
+module.exports = {
+  petstore: {
+    input: './petstore.yaml',
+    output: './petstore.ts',
+  },
+};
+```
+
+### orval.config.ts
+
+```ts
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: './petstore.ts',
+  },
+});
+```
