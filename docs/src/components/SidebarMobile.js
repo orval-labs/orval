@@ -1,13 +1,15 @@
 import * as React from 'react';
-import { disableBodyScroll, enableBodyScroll, clearAllBodyScrollLocks } from 'body-scroll-lock';
+import {
+  disableBodyScroll,
+  enableBodyScroll,
+  clearAllBodyScrollLocks,
+} from 'body-scroll-lock';
 import cn from 'classnames';
 import { Container } from './Container';
 import { FiChevronRight as ArrowRightSidebar } from 'react-icons/fi';
 import { Search } from './Search';
 import { useRouter } from 'next/router';
-export function SidebarMobile({
-  children
-}) {
+export function SidebarMobile({ children }) {
   const [opened, setOpen] = React.useState(false);
   const menuRef = React.useRef(null);
   const searchRef = React.useRef(null);
@@ -45,15 +47,25 @@ export function SidebarMobile({
       clearAllBodyScrollLocks();
     };
   }, [router.asPath]);
-  return <div className="lg:hidden">
+  return (
+    <div className="lg:hidden">
       <Container>
         <div className="sidebar-search py-2 z-10">
           <Search />
         </div>
-        <label htmlFor="dropdown-input" className={cn('w-full', {
-        opened
-      })}>
-          <input id="dropdown-input" className="hidden" type="checkbox" checked={opened} onChange={toggleOpen} />
+        <label
+          htmlFor="dropdown-input"
+          className={cn('w-full', {
+            opened,
+          })}
+        >
+          <input
+            id="dropdown-input"
+            className="hidden"
+            type="checkbox"
+            checked={opened}
+            onChange={toggleOpen}
+          />
           <div className="docs-select flex w-full items-center">
             <ArrowRightSidebar className="text-gray-600 -ml-1" />
             Menu
@@ -108,5 +120,6 @@ export function SidebarMobile({
           }
         `}</style>
       </Container>
-    </div>;
+    </div>
+  );
 }

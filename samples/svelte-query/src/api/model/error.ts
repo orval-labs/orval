@@ -6,6 +6,6 @@
  */
 
 export interface Error {
-  code: number;
-  message: string;
+	code: number;
+	message: string;
 }

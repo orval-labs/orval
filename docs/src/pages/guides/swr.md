@@ -38,7 +38,8 @@ export const showPetById = (
   return axios.get(`/pets/${petId}`, options);
 };
 
-export const getShowPetByIdKey = (petId: string) => [`/pets/${petId}`];Re
+export const getShowPetByIdKey = (petId: string) => [`/pets/${petId}`];
+Re;
 
 export const useShowPetById = <TError = Error>(
   petId: string,

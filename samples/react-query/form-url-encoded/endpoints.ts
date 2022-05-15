@@ -4,64 +4,62 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  useMutation,
-  UseMutationOptions,
-  MutationFunction
-} from 'react-query'
-import type {
-  Pet,
-  Error,
-  CreatePetsBody
-} from './models'
-import { customInstance } from './custom-instance'
-
+import { useMutation, UseMutationOptions, MutationFunction } from 'react-query';
+import type { Pet, Error, CreatePetsBody } from './models';
+import { customInstance } from './custom-instance';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;
-
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
+  ...args: any
+) => Promise<infer R>
+  ? R
+  : any;
 
 /**
  * @summary Create a pet
  */
-export const createPets = (
-    createPetsBody: CreatePetsBody,
- 
-) => {const formUrlEncoded = new URLSearchParams();
-formUrlEncoded.append('name', createPetsBody.name)
-formUrlEncoded.append('tag', createPetsBody.tag)
+export const createPets = (createPetsBody: CreatePetsBody) => {
+  const formUrlEncoded = new URLSearchParams();
+  formUrlEncoded.append('name', createPetsBody.name);
+  formUrlEncoded.append('tag', createPetsBody.tag);
 
-      return customInstance<Pet>(
-      {url: `/pets`, method: 'post',
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-       data: formUrlEncoded
-    },
-      );
-    }
-  
+  return customInstance<Pet>({
+    url: `/pets`,
+    method: 'post',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    data: formUrlEncoded,
+  });
+};
 
+export type CreatePetsMutationResult = NonNullable<
+  AsyncReturnType<typeof createPets>
+>;
+export type CreatePetsMutationBody = CreatePetsBody;
+export type CreatePetsMutationError = Error;
 
-    export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
-    export type CreatePetsMutationBody = CreatePetsBody
-    export type CreatePetsMutationError = Error
+export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    AsyncReturnType<typeof createPets>,
+    TError,
+    { data: CreatePetsBody },
+    TContext
+  >;
+}) => {
+  const { mutation: mutationOptions } = options ?? {};
 
-    export const useCreatePets = <TError = Error,
-    
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody}, TContext>, }
-) => {
-      const {mutation: mutationOptions} = options ?? {}
+  const mutationFn: MutationFunction<
+    AsyncReturnType<typeof createPets>,
+    { data: CreatePetsBody }
+  > = (props) => {
+    const { data } = props ?? {};
 
-      
+    return createPets(data);
+  };
 
-
-      const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: CreatePetsBody}> = (props) => {
-          const {data} = props ?? {};
-
-          return  createPets(data,)
-        }
-
-      return useMutation<AsyncReturnType<typeof createPets>, TError, {data: CreatePetsBody}, TContext>(mutationFn, mutationOptions)
-    }
-    
+  return useMutation<
+    AsyncReturnType<typeof createPets>,
+    TError,
+    { data: CreatePetsBody },
+    TContext
+  >(mutationFn, mutationOptions);
+};

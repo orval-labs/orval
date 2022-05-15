@@ -4,96 +4,91 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios,{
-  AxiosRequestConfig,
-  AxiosResponse
-} from 'axios'
-import type {
-  Pets,
-  ListPetsParams,
-  CreatePetsBody,
-  Pet
-} from '../model'
-import {
-  rest
-} from 'msw'
-import {
-  faker
-} from '@faker-js/faker'
-import listPetsMutator from '../mutator/response-type'
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { Pets, ListPetsParams, CreatePetsBody, Pet } from '../model';
+import { rest } from 'msw';
+import { faker } from '@faker-js/faker';
+import listPetsMutator from '../mutator/response-type';
 
-
-
-  /**
+/**
  * @summary List all pets
  */
 export const listPets = (
-    params?: ListPetsParams,
-    version= 1,
- signal?: AbortSignal
+  params?: ListPetsParams,
+  version = 1,
+  signal?: AbortSignal,
 ) => {
-      return listPetsMutator<Pets>(
-      {url: `/v${version}/pets`, method: 'get', signal,
-        params,
-    },
-      );
-    }
-  
+  return listPetsMutator<Pets>({
+    url: `/v${version}/pets`,
+    method: 'get',
+    signal,
+    params,
+  });
+};
+
 /**
  * @summary Create a pet
  */
 export const createPets = <TData = AxiosResponse<void>>(
-    createPetsBody: CreatePetsBody,
-    version= 1, options?: AxiosRequestConfig
- ): Promise<TData> => {
-    return axios.post(
-      `/v${version}/pets`,
-      createPetsBody,options
-    );
-  }
+  createPetsBody: CreatePetsBody,
+  version = 1,
+  options?: AxiosRequestConfig,
+): Promise<TData> => {
+  return axios.post(`/v${version}/pets`, createPetsBody, options);
+};
 
 /**
  * @summary Info for a specific pet
  */
 export const showPetById = <TData = AxiosResponse<Pet>>(
-    petId: string,
-    version= 1, options?: AxiosRequestConfig
- ): Promise<TData> => {
-    return axios.get(
-      `/v${version}/pets/${petId}`,options
-    );
-  }
-
+  petId: string,
+  version = 1,
+  options?: AxiosRequestConfig,
+): Promise<TData> => {
+  return axios.get(`/v${version}/pets/${petId}`, options);
+};
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
+  ...args: any
+) => Promise<infer R>
+  ? R
+  : any;
 
-export type ListPetsResult = NonNullable<AsyncReturnType<typeof listPets>>
-export type CreatePetsResult = AxiosResponse<void>
-export type ShowPetByIdResult = AxiosResponse<Pet>
+export type ListPetsResult = NonNullable<AsyncReturnType<typeof listPets>>;
+export type CreatePetsResult = AxiosResponse<void>;
+export type ShowPetByIdResult = AxiosResponse<Pet>;
 
-export const getListPetsMock = () => ([...Array(faker.datatype.number({min: 1, max: 10}))].map(() => ({id: faker.datatype.number(), name: 'jon', tag: 'jon'})))
+export const getListPetsMock = () =>
+  [...Array(faker.datatype.number({ min: 1, max: 10 }))].map(() => ({
+    id: faker.datatype.number(),
+    name: 'jon',
+    tag: 'jon',
+  }));
 
-export const getShowPetByIdMock = () => ((()=>({id:faker.datatype.number({min:1,max:99}),name:faker.name.firstName(),tag:faker.helpers.randomize([faker.random.word(),void 0])}))())
+export const getShowPetByIdMock = () =>
+  (() => ({
+    id: faker.datatype.number({ min: 1, max: 99 }),
+    name: faker.name.firstName(),
+    tag: faker.helpers.randomize([faker.random.word(), void 0]),
+  }))();
 
 export const getSwaggerPetstoreMSW = () => [
-rest.get('*/v:version/pets', (_req, res, ctx) => {
-        return res(
-          ctx.delay(1000),
-          ctx.status(200, 'Mocked status'),
-ctx.json(getListPetsMock()),
-        )
-      }),rest.post('*/v:version/pets', (_req, res, ctx) => {
-        return res(
-          ctx.delay(1000),
-          ctx.status(200, 'Mocked status'),
-        )
-      }),rest.get('*/v:version/pets/:petId', (_req, res, ctx) => {
-        return res(
-          ctx.delay(1000),
-          ctx.status(200, 'Mocked status'),
-ctx.json(getShowPetByIdMock()),
-        )
-      }),]
+  rest.get('*/v:version/pets', (_req, res, ctx) => {
+    return res(
+      ctx.delay(1000),
+      ctx.status(200, 'Mocked status'),
+      ctx.json(getListPetsMock()),
+    );
+  }),
+  rest.post('*/v:version/pets', (_req, res, ctx) => {
+    return res(ctx.delay(1000), ctx.status(200, 'Mocked status'));
+  }),
+  rest.get('*/v:version/pets/:petId', (_req, res, ctx) => {
+    return res(
+      ctx.delay(1000),
+      ctx.status(200, 'Mocked status'),
+      ctx.json(getShowPetByIdMock()),
+    );
+  }),
+];

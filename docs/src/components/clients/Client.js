@@ -1,5 +1,5 @@
-import React from 'react'
-import { LazyImage } from '../LazyImage'
+import React from 'react';
+import { LazyImage } from '../LazyImage';
 export const Client = React.memo(({ name, image, style, ...rest }) => (
   <span title={name} {...rest}>
     <LazyImage
@@ -10,4 +10,4 @@ export const Client = React.memo(({ name, image, style, ...rest }) => (
       className="inline"
     />
   </span>
-))
+));

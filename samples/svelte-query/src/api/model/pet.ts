@@ -6,7 +6,7 @@
  */
 
 export interface Pet {
-  id: number;
-  name: string;
-  tag?: string;
+	id: number;
+	name: string;
+	tag?: string;
 }

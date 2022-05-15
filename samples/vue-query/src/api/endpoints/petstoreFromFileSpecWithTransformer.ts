@@ -4,11 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  useQuery,
-  useInfiniteQuery,
-  useMutation
-} from 'vue-query'
+import { useQuery, useInfiniteQuery, useMutation } from 'vue-query';
 import type {
   UseQueryOptions,
   UseInfiniteQueryOptions,
@@ -17,204 +13,265 @@ import type {
   MutationFunction,
   UseQueryResult,
   UseInfiniteQueryResult,
-  QueryKey
-} from 'vue-query/types'
-import type {
-  UseQueryReturnType
-} from 'vue-query/lib/vue/useBaseQuery'
+  QueryKey,
+} from 'vue-query/types';
+import type { UseQueryReturnType } from 'vue-query/lib/vue/useBaseQuery';
 import type {
   Pets,
   Error,
   ListPetsParams,
   Pet,
-  CreatePetsBody
-} from '../model'
-import { customInstance } from '../mutator/custom-instance'
+  CreatePetsBody,
+} from '../model';
+import { customInstance } from '../mutator/custom-instance';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;
-
+type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
+  ...args: any
+) => Promise<infer R>
+  ? R
+  : any;
 
 /**
  * @summary List all pets
  */
 export const listPets = (
-    params?: ListPetsParams,
-    version= 1,
- signal?: AbortSignal
+  params?: ListPetsParams,
+  version = 1,
+  signal?: AbortSignal,
 ) => {
-      return customInstance<Pets>(
-      {url: `/v${version}/pets`, method: 'get', signal,
-        params,
-    },
-      );
-    }
-  
+  return customInstance<Pets>({
+    url: `/v${version}/pets`,
+    method: 'get',
+    signal,
+    params,
+  });
+};
 
-export const getListPetsQueryKey = (params?: ListPetsParams,
-    version= 1,) => [`/v${version}/pets`, ...(params ? [params]: [])];
+export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) => [
+  `/v${version}/pets`,
+  ...(params ? [params] : []),
+];
 
-    
-export type ListPetsInfiniteQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
-export type ListPetsInfiniteQueryError = Error
+export type ListPetsInfiniteQueryResult = NonNullable<
+  AsyncReturnType<typeof listPets>
+>;
+export type ListPetsInfiniteQueryError = Error;
 
-export const useListPetsInfinite = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
- params?: ListPetsParams,
-    version= 1, options?: { query?:UseInfiniteQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>, }
+export const useListPetsInfinite = <
+  TData = AsyncReturnType<typeof listPets>,
+  TError = Error,
+>(
+  params?: ListPetsParams,
+  version = 1,
+  options?: {
+    query?: UseInfiniteQueryOptions<
+      AsyncReturnType<typeof listPets>,
+      TError,
+      TData
+    >;
+  },
+): UseQueryReturnType<TData, TError, UseInfiniteQueryResult<TData, TError>> & {
+  queryKey: QueryKey;
+} => {
+  const { query: queryOptions } = options ?? {};
 
-  ):  UseQueryReturnType<TData, TError, UseInfiniteQueryResult<TData, TError>> & { queryKey: QueryKey } => {
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
 
-  const {query: queryOptions} = options ?? {}
+  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({
+    signal,
+    pageParam,
+  }) => listPets({ limit: pageParam, ...params }, version, signal);
 
-  const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params,version);
-
-  
-
-  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({ signal, pageParam }) => listPets({ limit: pageParam, ...params },version, signal);
-
-  const query = useInfiniteQuery<AsyncReturnType<typeof listPets>, TError, TData>(queryKey, queryFn, {enabled: !!(version), ...queryOptions})
-
-  return {
-    queryKey,
-    ...query
-  }
-}
-
-export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>
-export type ListPetsQueryError = Error
-
-export const useListPets = <TData = AsyncReturnType<typeof listPets>, TError = Error>(
- params?: ListPetsParams,
-    version= 1, options?: { query?:UseQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>, }
-
-  ):  UseQueryReturnType<TData, TError, UseQueryResult<TData, TError>> & { queryKey: QueryKey } => {
-
-  const {query: queryOptions} = options ?? {}
-
-  const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params,version);
-
-  
-
-  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({ signal }) => listPets(params,version, signal);
-
-  const query = useQuery<AsyncReturnType<typeof listPets>, TError, TData>(queryKey, queryFn, {enabled: !!(version), ...queryOptions})
+  const query = useInfiniteQuery<
+    AsyncReturnType<typeof listPets>,
+    TError,
+    TData
+  >(queryKey, queryFn, { enabled: !!version, ...queryOptions });
 
   return {
     queryKey,
-    ...query
-  }
-}
+    ...query,
+  };
+};
 
+export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>;
+export type ListPetsQueryError = Error;
+
+export const useListPets = <
+  TData = AsyncReturnType<typeof listPets>,
+  TError = Error,
+>(
+  params?: ListPetsParams,
+  version = 1,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof listPets>, TError, TData>;
+  },
+): UseQueryReturnType<TData, TError, UseQueryResult<TData, TError>> & {
+  queryKey: QueryKey;
+} => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
+
+  const queryFn: QueryFunction<AsyncReturnType<typeof listPets>> = ({
+    signal,
+  }) => listPets(params, version, signal);
+
+  const query = useQuery<AsyncReturnType<typeof listPets>, TError, TData>(
+    queryKey,
+    queryFn,
+    { enabled: !!version, ...queryOptions },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
 
 /**
  * @summary Create a pet
  */
-export const createPets = (
-    createPetsBody: CreatePetsBody,
-    version= 1,
- 
-) => {
-      return customInstance<Pet>(
-      {url: `/v${version}/pets`, method: 'post',
-      headers: {'Content-Type': 'application/json'},
-      data: createPetsBody
-    },
-      );
-    }
-  
+export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
+  return customInstance<Pet>({
+    url: `/v${version}/pets`,
+    method: 'post',
+    headers: { 'Content-Type': 'application/json' },
+    data: createPetsBody,
+  });
+};
 
+export type CreatePetsMutationResult = NonNullable<
+  AsyncReturnType<typeof createPets>
+>;
+export type CreatePetsMutationBody = CreatePetsBody;
+export type CreatePetsMutationError = Error;
 
-    export type CreatePetsMutationResult = NonNullable<AsyncReturnType<typeof createPets>>
-    export type CreatePetsMutationBody = CreatePetsBody
-    export type CreatePetsMutationError = Error
+export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    AsyncReturnType<typeof createPets>,
+    TError,
+    { data: CreatePetsBody; version?: number },
+    TContext
+  >;
+}) => {
+  const { mutation: mutationOptions } = options ?? {};
 
-    export const useCreatePets = <TError = Error,
-    
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<AsyncReturnType<typeof createPets>, TError,{data: CreatePetsBody;version?: number}, TContext>, }
-) => {
-      const {mutation: mutationOptions} = options ?? {}
+  const mutationFn: MutationFunction<
+    AsyncReturnType<typeof createPets>,
+    { data: CreatePetsBody; version?: number }
+  > = (props) => {
+    const { data, version } = props ?? {};
 
-      
+    return createPets(data, version);
+  };
 
+  return useMutation<
+    AsyncReturnType<typeof createPets>,
+    TError,
+    { data: CreatePetsBody; version?: number },
+    TContext
+  >(mutationFn, mutationOptions);
+};
 
-      const mutationFn: MutationFunction<AsyncReturnType<typeof createPets>, {data: CreatePetsBody;version?: number}> = (props) => {
-          const {data,version} = props ?? {};
-
-          return  createPets(data,version,)
-        }
-
-      return useMutation<AsyncReturnType<typeof createPets>, TError, {data: CreatePetsBody;version?: number}, TContext>(mutationFn, mutationOptions)
-    }
-    
 /**
  * @summary Info for a specific pet
  */
 export const showPetById = (
-    petId: string,
-    version= 1,
- signal?: AbortSignal
+  petId: string,
+  version = 1,
+  signal?: AbortSignal,
 ) => {
-      return customInstance<Pet>(
-      {url: `/v${version}/pets/${petId}`, method: 'get', signal
-    },
-      );
-    }
-  
+  return customInstance<Pet>({
+    url: `/v${version}/pets/${petId}`,
+    method: 'get',
+    signal,
+  });
+};
 
-export const getShowPetByIdQueryKey = (petId: string,
-    version= 1,) => [`/v${version}/pets/${petId}`];
+export const getShowPetByIdQueryKey = (petId: string, version = 1) => [
+  `/v${version}/pets/${petId}`,
+];
 
-    
-export type ShowPetByIdInfiniteQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
-export type ShowPetByIdInfiniteQueryError = Error
+export type ShowPetByIdInfiniteQueryResult = NonNullable<
+  AsyncReturnType<typeof showPetById>
+>;
+export type ShowPetByIdInfiniteQueryError = Error;
 
-export const useShowPetByIdInfinite = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
- petId: string,
-    version= 1, options?: { query?:UseInfiniteQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>, }
+export const useShowPetByIdInfinite = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  version = 1,
+  options?: {
+    query?: UseInfiniteQueryOptions<
+      AsyncReturnType<typeof showPetById>,
+      TError,
+      TData
+    >;
+  },
+): UseQueryReturnType<TData, TError, UseInfiniteQueryResult<TData, TError>> & {
+  queryKey: QueryKey;
+} => {
+  const { query: queryOptions } = options ?? {};
 
-  ):  UseQueryReturnType<TData, TError, UseInfiniteQueryResult<TData, TError>> & { queryKey: QueryKey } => {
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
 
-  const {query: queryOptions} = options ?? {}
+  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = ({
+    signal,
+  }) => showPetById(petId, version, signal);
 
-  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId,version);
-
-  
-
-  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = ({ signal }) => showPetById(petId,version, signal);
-
-  const query = useInfiniteQuery<AsyncReturnType<typeof showPetById>, TError, TData>(queryKey, queryFn, {enabled: !!(version && petId), ...queryOptions})
-
-  return {
-    queryKey,
-    ...query
-  }
-}
-
-export type ShowPetByIdQueryResult = NonNullable<AsyncReturnType<typeof showPetById>>
-export type ShowPetByIdQueryError = Error
-
-export const useShowPetById = <TData = AsyncReturnType<typeof showPetById>, TError = Error>(
- petId: string,
-    version= 1, options?: { query?:UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>, }
-
-  ):  UseQueryReturnType<TData, TError, UseQueryResult<TData, TError>> & { queryKey: QueryKey } => {
-
-  const {query: queryOptions} = options ?? {}
-
-  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId,version);
-
-  
-
-  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = ({ signal }) => showPetById(petId,version, signal);
-
-  const query = useQuery<AsyncReturnType<typeof showPetById>, TError, TData>(queryKey, queryFn, {enabled: !!(version && petId), ...queryOptions})
+  const query = useInfiniteQuery<
+    AsyncReturnType<typeof showPetById>,
+    TError,
+    TData
+  >(queryKey, queryFn, { enabled: !!(version && petId), ...queryOptions });
 
   return {
     queryKey,
-    ...query
-  }
-}
+    ...query,
+  };
+};
 
+export type ShowPetByIdQueryResult = NonNullable<
+  AsyncReturnType<typeof showPetById>
+>;
+export type ShowPetByIdQueryError = Error;
 
+export const useShowPetById = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  version = 1,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+  },
+): UseQueryReturnType<TData, TError, UseQueryResult<TData, TError>> & {
+  queryKey: QueryKey;
+} => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
+
+  const queryFn: QueryFunction<AsyncReturnType<typeof showPetById>> = ({
+    signal,
+  }) => showPetById(petId, version, signal);
+
+  const query = useQuery<AsyncReturnType<typeof showPetById>, TError, TData>(
+    queryKey,
+    queryFn,
+    { enabled: !!(version && petId), ...queryOptions },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
