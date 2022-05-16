@@ -9,6 +9,5 @@ export default {
   blockquote: 'blockquote',
   a: ExtLink,
   Image: dynamic(() => import('./Image')),
-  Code: dynamic(() => import('../Highlight')) // Counter: dynamic(() => import('./counter')),
-
+  Code: dynamic(() => import('../Highlight')), // Counter: dynamic(() => import('./counter')),
 };

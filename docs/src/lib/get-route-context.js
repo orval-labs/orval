@@ -6,12 +6,8 @@ export function getRouteContext(_route, routes, ctx = {}) {
     return ctx;
   }
 
-  const {
-    path
-  } = _route;
-  const {
-    parent
-  } = ctx;
+  const { path } = _route;
+  const { parent } = ctx;
 
   for (let i = 0; i < routes.length; i += 1) {
     const route = routes[i];
@@ -27,25 +23,30 @@ export function getRouteContext(_route, routes, ctx = {}) {
     if (!route.path) continue;
 
     if (ctx.route) {
-      ctx.nextRoute = parent && i === 0 ? { ...route,
-        title: `${parent.title}: ${route.title}`
-      } : route;
+      ctx.nextRoute =
+        parent && i === 0
+          ? { ...route, title: `${parent.title}: ${route.title}` }
+          : route;
       return ctx;
     }
 
     if (route && route.path === path) {
-      ctx.route = { ..._route,
-        title: parent && !parent.heading ? `${parent.title}: ${_route.title}` : _route.title
+      ctx.route = {
+        ..._route,
+        title:
+          parent && !parent.heading
+            ? `${parent.title}: ${_route.title}`
+            : _route.title,
       }; // Continue the loop until we know the next route
 
       continue;
     }
 
-    ctx.prevRoute = parent && !parent.heading && !routes[i + 1]?.path ? { ...route,
-      title: `${parent.title}: ${route.title}`
-    } : route;
+    ctx.prevRoute =
+      parent && !parent.heading && !routes[i + 1]?.path
+        ? { ...route, title: `${parent.title}: ${route.title}` }
+        : route;
   } // The loop ended and the previous route was found, or nothing
-
 
   return ctx;
 }

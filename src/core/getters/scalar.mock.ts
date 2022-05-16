@@ -128,7 +128,7 @@ export const getMockScalar = async ({
             name: item.name,
           };
         }
-        
+
         const enumImp = imports.find(
           (imp) => name.replace('[]', '') === imp.name,
         );
