@@ -25,7 +25,7 @@ Type: `String | Function`.
 
 Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`, `vue-query`.
 
-Default Value: `axios`.
+Default Value: `axios-functions`.
 
 ```js
 module.exports = {
