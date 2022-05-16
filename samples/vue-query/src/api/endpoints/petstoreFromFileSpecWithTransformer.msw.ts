@@ -12,14 +12,14 @@ export const getListPetsMock = () =>
     id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
     name: (() => faker.name.lastName())(),
     tag: (() => faker.name.lastName())(),
-    email: faker.helpers.randomize([faker.internet.email(), undefined]),
+    email: faker.random.arrayElement([faker.internet.email(), undefined]),
   }));
 
 export const getCreatePetsMock = () => ({
   id: faker.datatype.number(),
   name: (() => faker.name.lastName())(),
   tag: (() => faker.name.lastName())(),
-  email: faker.helpers.randomize([faker.internet.email(), undefined]),
+  email: faker.random.arrayElement([faker.internet.email(), undefined]),
 });
 
 export const getShowPetByIdMock = () =>

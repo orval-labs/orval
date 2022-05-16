@@ -7,6 +7,10 @@
 import type { Pets, ListPetsParams, CreatePetsBody, Pet } from '../model';
 import { customInstance } from '../mutator/custom-instance';
 
+export type AwaitedInput<T> = PromiseLike<T> | T;
+
+export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+
 /**
  * @summary List all pets
  */
@@ -50,15 +54,10 @@ export const showPetById = (
   });
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
-  ...args: any
-) => Promise<infer R>
-  ? R
-  : any;
-
-export type ListPetsResult = NonNullable<AsyncReturnType<typeof listPets>>;
-export type CreatePetsResult = NonNullable<AsyncReturnType<typeof createPets>>;
+export type ListPetsResult = NonNullable<Awaited<ReturnType<typeof listPets>>>;
+export type CreatePetsResult = NonNullable<
+  Awaited<ReturnType<typeof createPets>>
+>;
 export type ShowPetByIdResult = NonNullable<
-  AsyncReturnType<typeof showPetById>
+  Awaited<ReturnType<typeof showPetById>>
 >;

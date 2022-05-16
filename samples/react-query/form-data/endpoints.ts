@@ -8,12 +8,9 @@ import { useMutation, UseMutationOptions, MutationFunction } from 'react-query';
 import type { Pet, Error, CreatePetsBody } from './models';
 import { customInstance } from './custom-instance';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
-  ...args: any
-) => Promise<infer R>
-  ? R
-  : any;
+export type AwaitedInput<T> = PromiseLike<T> | T;
+
+export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 /**
  * @summary Create a pet
@@ -32,14 +29,14 @@ export const createPets = (createPetsBody: CreatePetsBody) => {
 };
 
 export type CreatePetsMutationResult = NonNullable<
-  AsyncReturnType<typeof createPets>
+  Awaited<ReturnType<typeof createPets>>
 >;
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = Error;
 
 export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
-    AsyncReturnType<typeof createPets>,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody },
     TContext
@@ -48,7 +45,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   const { mutation: mutationOptions } = options ?? {};
 
   const mutationFn: MutationFunction<
-    AsyncReturnType<typeof createPets>,
+    Awaited<ReturnType<typeof createPets>>,
     { data: CreatePetsBody }
   > = (props) => {
     const { data } = props ?? {};
@@ -57,7 +54,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   };
 
   return useMutation<
-    AsyncReturnType<typeof createPets>,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody },
     TContext

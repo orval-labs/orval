@@ -10,6 +10,10 @@ import { rest } from 'msw';
 import { faker } from '@faker-js/faker';
 import listPetsMutator from '../mutator/response-type';
 
+export type AwaitedInput<T> = PromiseLike<T> | T;
+
+export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+
 /**
  * @summary List all pets
  */
@@ -48,14 +52,7 @@ export const showPetById = <TData = AxiosResponse<Pet>>(
   return axios.get(`/v${version}/pets/${petId}`, options);
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
-  ...args: any
-) => Promise<infer R>
-  ? R
-  : any;
-
-export type ListPetsResult = NonNullable<AsyncReturnType<typeof listPets>>;
+export type ListPetsResult = NonNullable<Awaited<ReturnType<typeof listPets>>>;
 export type CreatePetsResult = AxiosResponse<void>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 

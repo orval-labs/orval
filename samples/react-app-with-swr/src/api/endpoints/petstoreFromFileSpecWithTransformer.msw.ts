@@ -9,19 +9,19 @@ import { faker } from '@faker-js/faker';
 
 export const getListPetsMock = () =>
   [...Array(faker.datatype.number({ min: 1, max: 10 }))].map(() => ({
-    '@id': faker.helpers.randomize([faker.random.word(), undefined]),
+    '@id': faker.random.arrayElement([faker.random.word(), undefined]),
     id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
     name: (() => faker.name.lastName())(),
     tag: (() => faker.name.lastName())(),
-    email: faker.helpers.randomize([faker.internet.email(), undefined]),
+    email: faker.random.arrayElement([faker.internet.email(), undefined]),
   }));
 
 export const getCreatePetsMock = () => ({
-  '@id': faker.helpers.randomize([faker.random.word(), undefined]),
+  '@id': faker.random.arrayElement([faker.random.word(), undefined]),
   id: faker.datatype.number(),
   name: (() => faker.name.lastName())(),
   tag: (() => faker.name.lastName())(),
-  email: faker.helpers.randomize([faker.internet.email(), undefined]),
+  email: faker.random.arrayElement([faker.internet.email(), undefined]),
 });
 
 export const getShowPetByIdMock = () =>

@@ -14,12 +14,9 @@ import type {
 } from '../model';
 import { customInstance } from '../mutator/custom-instance';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
-  ...args: any
-) => Promise<infer R>
-  ? R
-  : any;
+export type AwaitedInput<T> = PromiseLike<T> | T;
+
+export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 /**
  * @summary List all pets
@@ -37,14 +34,16 @@ export const getListPetsKey = (params?: ListPetsParams, version = 1) => [
   ...(params ? [params] : []),
 ];
 
-export type ListPetsQueryResult = NonNullable<AsyncReturnType<typeof listPets>>;
+export type ListPetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
 export type ListPetsQueryError = Error;
 
 export const useListPets = <TError = Error>(
   params?: ListPetsParams,
   version = 1,
   options?: {
-    swr?: SWRConfiguration<AsyncReturnType<typeof listPets>, TError> & {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof listPets>>, TError> & {
       swrKey: Key;
     };
   },
@@ -57,7 +56,7 @@ export const useListPets = <TError = Error>(
     (() => (isEnable ? getListPetsKey(params, version) : null));
   const swrFn = () => listPets(params, version);
 
-  const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
     swrKey,
     swrFn,
     swrOptions,
@@ -96,7 +95,7 @@ export const getShowPetByIdKey = (petId: string, version = 1) => [
 ];
 
 export type ShowPetByIdQueryResult = NonNullable<
-  AsyncReturnType<typeof showPetById>
+  Awaited<ReturnType<typeof showPetById>>
 >;
 export type ShowPetByIdQueryError = Error;
 
@@ -104,7 +103,7 @@ export const useShowPetById = <TError = Error>(
   petId: string,
   version = 1,
   options?: {
-    swr?: SWRConfiguration<AsyncReturnType<typeof showPetById>, TError> & {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof showPetById>>, TError> & {
       swrKey: Key;
     };
   },
@@ -117,7 +116,7 @@ export const useShowPetById = <TError = Error>(
     (() => (isEnable ? getShowPetByIdKey(petId, version) : null));
   const swrFn = () => showPetById(petId, version);
 
-  const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
     swrKey,
     swrFn,
     swrOptions,

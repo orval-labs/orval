@@ -15,12 +15,9 @@ import {
 import type { GetPets201Item } from '../schemas';
 import { customInstance } from '../mutator/custom-instance';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<T extends (...args: any) => Promise<any>> = T extends (
-  ...args: any
-) => Promise<infer R>
-  ? R
-  : any;
+export type AwaitedInput<T> = PromiseLike<T> | T;
+
+export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 export const getPets = (signal?: AbortSignal) => {
   return customInstance<GetPets201Item[]>({
@@ -32,24 +29,26 @@ export const getPets = (signal?: AbortSignal) => {
 
 export const getGetPetsQueryKey = () => [`/pets`];
 
-export type GetPetsQueryResult = NonNullable<AsyncReturnType<typeof getPets>>;
+export type GetPetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPets>>
+>;
 export type GetPetsQueryError = unknown;
 
 export const useGetPets = <
-  TData = AsyncReturnType<typeof getPets>,
+  TData = Awaited<ReturnType<typeof getPets>>,
   TError = unknown
 >(options?: {
-  query?: UseQueryOptions<AsyncReturnType<typeof getPets>, TError, TData>;
+  query?: UseQueryOptions<Awaited<ReturnType<typeof getPets>>, TError, TData>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = queryOptions?.queryKey ?? getGetPetsQueryKey();
 
-  const queryFn: QueryFunction<AsyncReturnType<typeof getPets>> = ({
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getPets>>> = ({
     signal,
   }) => getPets(signal);
 
-  const query = useQuery<AsyncReturnType<typeof getPets>, TError, TData>(
+  const query = useQuery<Awaited<ReturnType<typeof getPets>>, TError, TData>(
     queryKey,
     queryFn,
     queryOptions
