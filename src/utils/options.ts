@@ -105,6 +105,7 @@ export const normalizeOptions = async (
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,
+      objectParams: outputOptions.objectParams ?? false,
       tsconfig,
       packageJson,
       override: {

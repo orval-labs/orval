@@ -43,6 +43,7 @@ export type NormalizedOutputOptions = {
   clean: boolean | string[];
   prettier: boolean;
   tslint: boolean;
+  objectParams: boolean;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
 };
@@ -85,6 +86,7 @@ export type NormalizedOverrideOutput = {
   ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
+  useInject?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -136,6 +138,7 @@ export type OutputOptions = {
   tslint?: boolean;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
+  objectParams?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -153,6 +156,7 @@ export type InputOptions = {
 export type OutputClient =
   | 'axios'
   | 'axios-functions'
+  | 'axios-injected'
   | 'angular'
   | 'react-query'
   | 'svelte-query'
@@ -166,6 +170,7 @@ export const OutputClient = {
   REACT_QUERY: 'react-query' as OutputClient,
   SVELTE_QUERY: 'svelte-query' as OutputClient,
   VUE_QUERY: 'vue-query' as OutputClient,
+  AXIOS_INJECTED: 'axios-injected' as OutputClient,
 };
 
 export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';

@@ -65,6 +65,8 @@ export const generateApi = async ({
         override: output.override,
         context: resolvedContext,
         mock: !!output.mock,
+        injected: output.client === 'axios-injected',
+        objectParams: output.objectParams,
       });
 
       acc.schemas.push(...schemas);

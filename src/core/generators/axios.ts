@@ -7,7 +7,11 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { sanitize, toObjectString } from '../../utils/string';
+import {
+  sanitize,
+  toObjectString,
+  toOjectStringsWithoutTypes,
+} from '../../utils/string';
 import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateVerbImports } from './imports';
 import {
@@ -33,10 +37,25 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const INJECTED_AXIOS_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'AxiosInstance' },
+      { name: 'AxiosRequestConfig' },
+      { name: 'AxiosResponse' },
+    ],
+    dependency: 'axios',
+  },
+];
+
 const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
 
 export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+];
+
+export const getInjectedAxiosDependencies = (hasGlobalMutator: boolean) => [
+  ...(!hasGlobalMutator ? INJECTED_AXIOS_DEPENDENCIES : []),
 ];
 
 const generateAxiosImplementation = (
@@ -52,7 +71,7 @@ const generateAxiosImplementation = (
     formData,
     formUrlEncoded,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route, context, injected, objectParams }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
@@ -102,7 +121,6 @@ const generateAxiosImplementation = (
             : `typeof ${operationName}`
         }>>>`,
     );
-
     return `const ${operationName} = (\n    ${toObjectString(
       props,
       'implementation',
@@ -137,16 +155,26 @@ const generateAxiosImplementation = (
       }>`,
   );
 
-  return `const ${operationName} = <TData = AxiosResponse<${
-    response.definition.success || 'unknown'
-  }>>(\n    ${toObjectString(props, 'implementation')} ${
-    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ): Promise<TData> => {${bodyForm}
-    return axios${
+  return [
+    `const ${operationName} = <TData = AxiosResponse<${
+      response.definition.success || 'unknown'
+    }>>(`,
+    injected && `   axios: AxiosInstance,`,
+    objectParams && '{',
+    objectParams &&
+      `    ${toOjectStringsWithoutTypes(props, 'implementation')}`,
+    objectParams && '}: {',
+    `    ${toObjectString(props, 'implementation')}`,
+    objectParams && '},',
+    isRequestOptions && '   options?: AxiosRequestConfig,',
+    `): Promise<TData> => {${bodyForm}`,
+    `    return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(${options});
-  }
-`;
+    }.${verb}(${options});`,
+    '}',
+  ]
+    .filter(Boolean)
+    .join('\n');
 };
 
 export const generateAxiosTitle = (title: string) => {

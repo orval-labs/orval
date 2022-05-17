@@ -98,6 +98,19 @@ export const toObjectString = <T>(props: T[], path?: keyof T) => {
   return arrayOfString.join(',\n    ') + ',';
 };
 
+export const toOjectStringsWithoutTypes = <T>(props: T[], path?: keyof T) => {
+  if (!props.length) {
+    return '';
+  }
+
+  const arrayOfString = path ? props.map((prop) => get(prop, path)) : props;
+
+  return (
+    arrayOfString.map((str) => str.replace(/\??: .*/g, '')).join(',\n    ') +
+    ','
+  );
+};
+
 const NUMBERS = {
   '0': 'zero',
   '1': 'one',

@@ -24,6 +24,7 @@ import {
   generateAxiosHeader,
   generateAxiosTitle,
   getAxiosDependencies,
+  getInjectedAxiosDependencies,
 } from './axios';
 import { generateDependencyImports } from './imports';
 import { generateMSW } from './msw';
@@ -52,6 +53,23 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     header: generateAxiosHeader,
     dependencies: getAxiosDependencies,
     footer: generateAxiosFooter,
+    title: generateAxiosTitle,
+  },
+  'axios-injected': {
+    client: (verbOptions: GeneratorVerbOptions, options: GeneratorOptions) => {
+      const { implementation, imports } = generateAxios(verbOptions, {
+        ...options,
+        injected: true,
+      });
+
+      return {
+        implementation: 'export ' + implementation,
+        imports,
+      };
+    },
+    header: (options) => generateAxiosHeader({ ...options, noFunction: true }),
+    dependencies: getInjectedAxiosDependencies,
+    footer: (options) => generateAxiosFooter({ ...options, noFunction: true }),
     title: generateAxiosTitle,
   },
   'axios-functions': {

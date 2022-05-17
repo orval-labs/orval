@@ -105,6 +105,8 @@ export type GeneratorOptions = {
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
   mock: boolean;
+  injected: boolean;
+  objectParams: boolean;
 };
 
 export type GeneratorClient = {
