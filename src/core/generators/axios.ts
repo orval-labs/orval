@@ -169,8 +169,8 @@ export const generateAxiosHeader = ({
 }) => `
 ${
   !hasAwaitedType
-    ? `export type AwaitedInput<T> = PromiseLike<T> | T;\n
-    export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
+    ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
+    type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
     : ''
 }
 ${
