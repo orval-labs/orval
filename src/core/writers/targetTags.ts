@@ -92,16 +92,19 @@ export const generateTargetForTags = (
           const operationNames = Object.values(operations)
             .filter(({ tags }) => tags.includes(tag))
             .map(({ operationName }) => operationName);
+
+          const typescriptVersion =
+            options.packageJson?.dependencies?.['typescript'] ?? '4.4.0';
+          const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
+
           const footer = generateClientFooter({
             outputClient: options?.client,
             operationNames,
             title: pascal(tag),
             customTitleFunc: options.override.title,
+            hasMutator: !!target.mutators?.length,
+            hasAwaitedType,
           });
-
-          const typescriptVersion =
-            options.packageJson?.dependencies?.['typescript'] ?? '4.4.0';
-          const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
 
           const header = generateClientHeader({
             outputClient: options.client,

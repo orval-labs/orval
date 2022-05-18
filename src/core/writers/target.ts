@@ -70,6 +70,8 @@ export const generateTarget = (
           operationNames,
           title: pascal(info.title),
           customTitleFunc: options.override.title,
+          hasMutator: !!acc.mutators.length,
+          hasAwaitedType,
         });
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;

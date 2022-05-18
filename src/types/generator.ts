@@ -153,6 +153,8 @@ export type ClientFooterBuilder = (params: {
   noFunction?: boolean | undefined;
   operationNames: string[];
   title?: string;
+  hasAwaitedType: boolean;
+  hasMutator: boolean;
 }) => string;
 
 export type ClientTitleBuilder = (title: string) => string;

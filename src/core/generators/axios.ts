@@ -159,23 +159,15 @@ export const generateAxiosHeader = ({
   isRequestOptions,
   isMutator,
   noFunction,
-  hasAwaitedType,
 }: {
   title: string;
   isRequestOptions: boolean;
   isMutator: boolean;
   noFunction?: boolean;
-  hasAwaitedType: boolean;
 }) => `
 ${
-  !hasAwaitedType
-    ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
-    type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
-    : ''
-}
-${
   isRequestOptions && isMutator
-    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? `// eslint-disable-next-line
   type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
@@ -190,6 +182,8 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
   title,
   noFunction,
+  hasMutator,
+  hasAwaitedType,
 }) => {
   const functionFooter = `return {${operationNames.join(',')}}};\n`;
   const returnTypesArr = operationNames
@@ -199,7 +193,13 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
         : '';
     })
     .filter(Boolean);
-  let returnTypes = '';
+
+  let returnTypes =
+    hasMutator && !hasAwaitedType
+      ? `\ntype AwaitedInput<T> = PromiseLike<T> | T;\n
+    type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+\n`
+      : '';
 
   if (returnTypesArr.length) {
     returnTypes += returnTypesArr.join('\n');

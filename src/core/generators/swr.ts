@@ -316,13 +316,13 @@ export const generateSwrHeader = ({
   `
   ${
     !hasAwaitedType
-      ? `export type AwaitedInput<T> = PromiseLike<T> | T;\n
-      export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
+      ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
+      type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
       : ''
   }
   ${
     isRequestOptions && isMutator
-      ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? `// eslint-disable-next-line
   type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
