@@ -146,6 +146,7 @@ export type ClientHeaderBuilder = (params: {
   isGlobalMutator: boolean;
   provideInRoot: boolean;
   provideIn: boolean | 'root' | 'any';
+  hasAwaitedType: boolean;
 }) => string;
 
 export type ClientFooterBuilder = (params: {

@@ -39,7 +39,7 @@ export default defineConfig({
     input: '../specifications/translation.yaml',
     output: {
       target: '../generated/default/translation/endpoints.ts',
-      schemas: '../generated/default/translation/model'
+      schemas: '../generated/default/translation/model',
     },
   },
 });

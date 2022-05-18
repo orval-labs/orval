@@ -52,6 +52,7 @@ export const getMockObject = async ({
       tags,
       combine,
       context,
+      imports,
     });
   }
 

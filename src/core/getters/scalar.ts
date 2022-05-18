@@ -110,7 +110,7 @@ export const getScalar = async ({
         item,
         name,
         context,
-        nullable
+        nullable,
       });
       return { value: value, ...rest };
     }

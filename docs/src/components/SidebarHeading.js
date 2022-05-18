@@ -1,9 +1,7 @@
 import * as React from 'react';
-export const SidebarHeading = ({
-  title,
-  children
-}) => {
-  return (// <div>
+export const SidebarHeading = ({ title, children }) => {
+  return (
+    // <div>
     //   <h4 className="font-semibold uppercase text-sm my-4">{title}</h4>
     //   <div>{children}</div>
     // </div>

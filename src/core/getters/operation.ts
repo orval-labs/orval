@@ -15,16 +15,14 @@ export const getOperationId = (
   return pascal(
     [
       verb,
-      ...route
-        .split('/')
-        .map((p) =>
-          sanitize(p, {
-            dash: true,
-            underscore: '-',
-            dot: '-',
-            whitespace: '-',
-          }),
-        ),
+      ...route.split('/').map((p) =>
+        sanitize(p, {
+          dash: true,
+          underscore: '-',
+          dot: '-',
+          whitespace: '-',
+        }),
+      ),
     ].join('-'),
   );
 };

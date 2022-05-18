@@ -40,7 +40,8 @@ const Home = () => {
                     <span>with appropriate type-signatures</span>
                   </h1>
                   <p className="mt-3 text-base text-gray-700 sm:mt-5 sm:text-xl lg:text-lg xl:text-xl">
-                    Generate, valid, cache and mock in your frontend applications all with your OpenAPI specification.
+                    Generate, valid, cache and mock in your frontend
+                    applications all with your OpenAPI specification.
                   </p>
 
                   <div className="mt-5  mx-auto sm:flex sm:justify-center lg:justify-start lg:mx-0 md:mt-8">

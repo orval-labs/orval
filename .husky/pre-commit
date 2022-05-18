@@ -3,3 +3,4 @@
 
 yarn lint
 yarn test --run
+yarn format:staged

@@ -159,12 +159,21 @@ export const generateAxiosHeader = ({
   isRequestOptions,
   isMutator,
   noFunction,
+  hasAwaitedType,
 }: {
   title: string;
   isRequestOptions: boolean;
   isMutator: boolean;
   noFunction?: boolean;
-}) => `${
+  hasAwaitedType: boolean;
+}) => `
+${
+  !hasAwaitedType
+    ? `export type AwaitedInput<T> = PromiseLike<T> | T;\n
+    export type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
+    : ''
+}
+${
   isRequestOptions && isMutator
     ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
   type SecondParameter<T extends (...args: any) => any> = T extends (

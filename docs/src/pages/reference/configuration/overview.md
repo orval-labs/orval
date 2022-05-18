@@ -5,7 +5,7 @@ title: Configuration
 
 This page is a reference to the different ways of configuring your Orval projects.
 
-Using an `orval.config.js` configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the Orval generated files.
+Using an `orval.config.(js|mjs|ts)` configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the Orval generated files.
 
 Configuration options for the following are described on this page:
 
@@ -40,4 +40,17 @@ module.exports = {
     output: './petstore.ts',
   },
 };
+```
+
+### orval.config.ts
+
+```ts
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: './petstore.ts',
+  },
+});
 ```

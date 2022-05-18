@@ -1,9 +1,9 @@
-import React from 'react'
-import { users } from 'users'
+import React from 'react';
+import { users } from 'users';
 
 // const pinnedLogos = users.filter(p => p.pinned)
 
-export const ClientsMarquee = React.memo(props => {
+export const ClientsMarquee = React.memo((props) => {
   return (
     <div className="overflow-x-hidden">
       <div className="relative translate-x-1/2" {...props}>
@@ -39,6 +39,6 @@ export const ClientsMarquee = React.memo(props => {
         `}</style>
       </div>
     </div>
-  )
-})
-ClientsMarquee.displayName = 'ClientsMarquee'
+  );
+});
+ClientsMarquee.displayName = 'ClientsMarquee';

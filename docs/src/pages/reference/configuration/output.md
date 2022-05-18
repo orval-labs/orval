@@ -25,7 +25,7 @@ Type: `String | Function`.
 
 Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`, `vue-query`.
 
-Default Value: `axios`.
+Default Value: `axios-functions`.
 
 ```js
 module.exports = {
@@ -833,7 +833,6 @@ Valid values: true or false. Defaults to false.
 
 Use this property to convert OpenAPI `date` or `datetime` to JavaScript `Date` objects instead of `string`.
 
-
 Example:
 
 ```js
@@ -854,36 +853,37 @@ You can choose to use any Date library you want like Moment, Luxon, or native JS
 ```ts
 // type signature
 const client = axios.create({
-    baseURL: ''
+  baseURL: '',
 });
 
-client.interceptors.response.use(originalResponse => {
-    handleDates(originalResponse.data);
-    return originalResponse;
+client.interceptors.response.use((originalResponse) => {
+  handleDates(originalResponse.data);
+  return originalResponse;
 });
 
 export default client;
 
-const isoDateFormat = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
+const isoDateFormat =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
 
 function isIsoDateString(value: any): boolean {
-    return value && typeof value === "string" && isoDateFormat.test(value);
+  return value && typeof value === 'string' && isoDateFormat.test(value);
 }
 
 export function handleDates(body: any) {
-    if (body === null || body === undefined || typeof body !== "object")
-        return body;
+  if (body === null || body === undefined || typeof body !== 'object')
+    return body;
 
-    for (const key of Object.keys(body)) {
-        const value = body[key];
-        if (isIsoDateString(value)) {
-            body[key] = new Date(value); // default JS conversion
-            // body[key] = parseISO(value); // date-fns conversion
-            // body[key] = luxon.DateTime.fromISO(value); // Luxon conversion
-            // body[key] = moment(value).toDate(); // Moment.js conversion
-        } else if (typeof value === "object") {
-            handleDates(value);
-        }
+  for (const key of Object.keys(body)) {
+    const value = body[key];
+    if (isIsoDateString(value)) {
+      body[key] = new Date(value); // default JS conversion
+      // body[key] = parseISO(value); // date-fns conversion
+      // body[key] = luxon.DateTime.fromISO(value); // Luxon conversion
+      // body[key] = moment(value).toDate(); // Moment.js conversion
+    } else if (typeof value === 'object') {
+      handleDates(value);
     }
+  }
 }
 ```
