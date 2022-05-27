@@ -887,3 +887,25 @@ export function handleDates(body: any) {
   }
 }
 ```
+
+#### useTypeOverInterfaces
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to use TypeScript `type` instead of `interface`.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useTypeOverInterfaces: true,
+      },
+    },
+  },
+};
+```
