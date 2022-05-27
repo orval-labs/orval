@@ -42,7 +42,10 @@ export const generateInterface = async ({
     }
   }
 
-  if (!generalJSTypesWithArray.includes(scalar.value)) {
+  if (
+    !generalJSTypesWithArray.includes(scalar.value) &&
+    !context?.override?.useTypeOverInterfaces
+  ) {
     model += `export interface ${name} ${scalar.value}\n`;
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
