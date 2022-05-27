@@ -24,6 +24,27 @@ const SEPARATOR = {
   anyOf: '|',
 };
 
+const combineValues = ({
+  resolvedData,
+  separator,
+}: {
+  resolvedData: CombinedData;
+  separator: keyof typeof SEPARATOR;
+}) => {
+  const isAllEnums = resolvedData.isEnum.every((v) => v);
+  if (separator === 'oneOf') {
+    const oneOf = resolvedData.values.find((v) => v.endsWith('OneOf'));
+
+    return resolvedData.values
+      .filter((v) => !v.endsWith('OneOf'))
+      .map((v) => (oneOf ? `${v} & ${oneOf}` : v))
+      .join(' | ');
+  }
+  return resolvedData.values.join(
+    ` ${!isAllEnums ? SEPARATOR[separator] : '|'} `,
+  );
+};
+
 export const combineSchemas = async ({
   name,
   items,
@@ -74,9 +95,7 @@ export const combineSchemas = async ({
 
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
-  const value = resolvedData.values.join(
-    ` ${!isAllEnums ? SEPARATOR[separator] : '|'} `,
-  );
+  const value = combineValues({ resolvedData, separator });
 
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(

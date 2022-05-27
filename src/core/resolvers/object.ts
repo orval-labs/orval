@@ -72,5 +72,12 @@ export const resolveObject = async ({
     };
   }
 
+  if (combined && resolvedValue.originalSchema?.oneOf) {
+    return {
+      ...resolvedValue,
+      value: `${resolvedValue.value}OneOf`,
+    };
+  }
+
   return resolvedValue;
 };
