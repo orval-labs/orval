@@ -75,7 +75,9 @@ export const resolveObject = async ({
   if (combined && resolvedValue.originalSchema?.oneOf) {
     return {
       ...resolvedValue,
-      value: `${resolvedValue.value}OneOf`,
+      value: resolvedValue.originalSchema.properties
+        ? `${resolvedValue.value}OneOf`
+        : '',
     };
   }
 
