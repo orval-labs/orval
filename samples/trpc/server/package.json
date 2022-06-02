@@ -1,0 +1,16 @@
+{
+  "name": "server",
+  "version": "0.0.0",
+  "private": true,
+  "dependencies": {
+    "@fastify/cors": "^8.0.0",
+    "@trpc/server": "^9.24.0",
+    "fastify": "^4.0.0-rc.4"
+  },
+  "scripts": {
+    "start": "ts-node main.ts"
+  },
+  "devDependencies": {
+    "ts-node": "^10.8.0"
+  }
+}

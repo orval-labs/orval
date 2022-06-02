@@ -13,6 +13,7 @@
     "generate:svelte-query": "node ../dist/bin/orval.js --config ./configs/svelte-query.config.ts",
     "generate:vue-query": "node ../dist/bin/orval.js --config ./configs/vue-query.config.ts",
     "generate:swr": "node ../dist/bin/orval.js --config ./configs/swr.config.ts",
+    "generate:trpc": "node ../dist/bin/orval.js --config ./configs/trpc.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",

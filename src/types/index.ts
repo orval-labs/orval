@@ -158,7 +158,8 @@ export type OutputClient =
   | 'react-query'
   | 'svelte-query'
   | 'vue-query'
-  | 'swr';
+  | 'swr'
+  | 'trpc';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,
@@ -166,6 +167,7 @@ export const OutputClient = {
   AXIOS_FUNCTIONS: 'axios-functions' as OutputClient,
   REACT_QUERY: 'react-query' as OutputClient,
   SVELTE_QUERY: 'svelte-query' as OutputClient,
+  TRPC: 'trpc' as OutputClient,
   VUE_QUERY: 'vue-query' as OutputClient,
 };
 

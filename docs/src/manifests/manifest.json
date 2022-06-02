@@ -69,6 +69,11 @@
           "title": "SWR",
           "path": "/guides/swr",
           "editUrl": "/guides/swr.md"
+        },
+        {
+          "title": "tRPC",
+          "path": "/guides/trpc",
+          "editUrl": "/guides/trpc.md"
         }
       ]
     },

@@ -1,0 +1,24 @@
+{
+  "name": "app",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "dependencies": {
+    "@trpc/server": "^9.24.0",
+    "@types/node": "^14.14.13",
+    "typescript": "^4.1.3"
+  },
+  "devDependencies": {
+    "orval": "link:../../dist"
+  },
+  "scripts": {
+    "start": "yarn workspace client start & yarn workspace server start",
+    "generate-api": "node ../../dist/bin/orval.js"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  }
+}

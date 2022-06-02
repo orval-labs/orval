@@ -43,6 +43,13 @@ import {
   generateSwrTitle,
   getSwrDependencies,
 } from './swr';
+import {
+  generateTrpc,
+  generateTrpcFooter,
+  generateTrpcHeader,
+  generateTrpcTitle,
+  getTrpcDependencies,
+} from './trpc';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -102,6 +109,13 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     dependencies: getSwrDependencies,
     footer: generateSwrFooter,
     title: generateSwrTitle,
+  },
+  trpc: {
+    client: generateTrpc,
+    header: generateTrpcHeader,
+    dependencies: getTrpcDependencies,
+    footer: generateTrpcFooter,
+    title: generateTrpcTitle,
   },
 };
 

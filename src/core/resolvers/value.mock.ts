@@ -61,7 +61,7 @@ export const resolveMockValue = async ({
   imports: GeneratorImport[];
 }): Promise<MockDefinition & { type?: string }> => {
   if (isReference(schema)) {
-    const { name, specKey } = await getRefInfo(schema.$ref, {
+    const { name, specKey } = getRefInfo(schema.$ref, {
       ...context,
       specKey: schema.specKey || context.specKey,
     });
