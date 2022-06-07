@@ -201,7 +201,7 @@ export const generateMutatorRequestOptions = (
 ) => {
   if (!hasSecondArgument) {
     return isObject(requestOptions)
-      ? stringify(requestOptions)?.slice(1, -1)
+      ? `{${stringify(requestOptions)?.slice(1, -1)}}`
       : '';
   }
 

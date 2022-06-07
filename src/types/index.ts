@@ -86,6 +86,7 @@ export type NormalizedOverrideOutput = {
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
+  trpc?: TrpcOptions;
 };
 
 export type NormalizedMutator = {
@@ -111,6 +112,7 @@ export type NormalizedOperationOptions = {
   formData: boolean | NormalizedMutator;
   formUrlEncoded: boolean | NormalizedMutator;
   requestOptions: object | boolean;
+  trpc?: TrpcOptions;
 };
 export type NormalizedInputOptions = {
   target: string | OpenAPIObject;
@@ -243,6 +245,7 @@ export type OverrideOutput = {
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
+  trpc?: TrpcOptions;
 };
 
 type QueryOptions = {
@@ -255,6 +258,10 @@ type QueryOptions = {
 export type AngularOptions = {
   provideInRoot?: boolean;
   provideIn?: 'root' | 'any' | boolean;
+};
+
+export type TrpcOptions = {
+  passRequestContextToCustomMutator?: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

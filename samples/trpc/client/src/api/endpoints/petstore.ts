@@ -33,7 +33,8 @@ export const listPetsRoute = trpc.router().query('listPets', {
     limit: yup.string().notRequired(),
     version: yup.number().notRequired(),
   }),
-  resolve: ({ input: { version, ...params } }) => listPets(params, version),
+  resolve: ({ input: { version, ...params }, ctx }) =>
+    listPets(params, version),
 });
 /**
  * @summary Create a pet
@@ -56,7 +57,7 @@ export const createPetsRoute = trpc.router().mutation('createPets', {
       })
       .required(),
   }),
-  resolve: ({ input: { createPetsBody, version } }) =>
+  resolve: ({ input: { createPetsBody, version }, ctx }) =>
     createPets(createPetsBody, version),
 });
 /**
@@ -76,7 +77,7 @@ export const showPetByIdRoute = trpc.router().query('showPetById', {
     testId: yup.string().required(),
     version: yup.number().notRequired(),
   }),
-  resolve: ({ input: { petId, version } }) => showPetById(petId, version),
+  resolve: ({ input: { petId, version }, ctx }) => showPetById(petId, version),
 });
 
 const router = trpc

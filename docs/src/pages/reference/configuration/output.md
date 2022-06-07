@@ -909,3 +909,35 @@ module.exports = {
   },
 };
 ```
+
+#### trpc
+
+Type: `Object`.
+
+Give you specific options for the tRPC client
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        trpc: {
+          passRequestContextToCustomMutator: true,
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### passRequestContextToCustomMutator
+
+Type: `Boolean`.
+
+Valid values: `true`, `false`, `undefined`.
+
+Default Value: `undefined`.
+
+If `true` this flag will pass the `ctx` argument from the tRPC `resolve` function, to your specified custom mutator as the last parameter.

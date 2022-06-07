@@ -26,7 +26,7 @@ module.exports = {
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The tRPC model will generate an implementation file with one custom hook per path in your OpenApi Specification.
+The tRPC model will generate an implementation file with one tRPC route query or mutation per path in your OpenApi Specification.
 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/trpc/basic/petstore.yaml" target="_blank">swagger</a>:
 
@@ -38,34 +38,14 @@ export const showPetById = (
   return axios.get(`/pets/${petId}`, options);
 };
 
-export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
-
-export const useShowPetById = <
-  TData = AsyncReturnType<typeof showPetById>,
-  TError = Error,
->(
-  petId: string,
-  options?: {
-    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
-    axios?: AxiosRequestConfig;
-  },
-) => {
-  const { query: queryOptions, axios: axiosOptions } = options ?? {};
-
-  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
-  const queryFn = () => showPetById(petId, axiosOptions);
-
-  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
-    queryKey,
-    queryFn,
-    { enabled: !!petId, ...queryOptions },
-  );
-
-  return {
-    queryKey,
-    ...query,
-  };
-};
+export const showPetByIdRoute = trpc.router().query('showPetById', {
+  input: yup.object({
+    petId: yup.string().required(),
+    testId: yup.string().required(),
+    version: yup.number().notRequired(),
+  }),
+  resolve: ({ input: { petId, version }, ctx }) => showPetById(petId, version),
+});
 ```
 
 Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/trpc/basic" target="_blank">here</a> the full example

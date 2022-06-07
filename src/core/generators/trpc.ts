@@ -88,6 +88,8 @@ const generateTrpcRequestFunction = (
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const withRequestContext =
+    override?.trpc?.passRequestContextToCustomMutator !== false;
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
@@ -112,7 +114,7 @@ const generateTrpcRequestFunction = (
       isFormData,
       isFormUrlEncoded,
       isBodyVerb,
-      hasSignal: true,
+      hasSignal: false,
     });
 
     const propsImplementation =
@@ -132,12 +134,16 @@ const generateTrpcRequestFunction = (
 
     return `export const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options?: SecondParameter<typeof ${mutator.name}>,`
+        ? `options?: Parameters<typeof ${mutator.name}>[1],`
         : ''
-    }${!isBodyVerb ? 'signal?: AbortSignal\n' : '\n'}) => {${bodyForm}
+    }${!isBodyVerb ? 'signal?: AbortSignal,\n' : '\n'}${
+      withRequestContext ? 'ctx?: any\n' : '\n'
+    }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
-      ${requestOptions});
+      ${requestOptions},
+      ${withRequestContext ? 'ctx' : ''}
+      );
     }
   `;
   }
@@ -267,10 +273,11 @@ const extractFileNameFromFilePath = (filePath: string) =>
   filePath.split('/').pop()?.split('.')[0] ?? '';
 
 const generateTrpcRoute = (
-  verbOptions: GeneratorVerbOptions,
-  { pathRoute, context }: GeneratorOptions,
+  { operationName, body, props, verb, mutator }: GeneratorVerbOptions,
+  { pathRoute, context, override }: GeneratorOptions,
 ) => {
-  const { operationName, body, props, verb } = verbOptions;
+  const withRequestContext =
+    override?.trpc?.passRequestContextToCustomMutator !== false;
 
   fileName = extractFileNameFromFilePath(context.specKey);
   const spec = context.specs[context.specKey].paths[pathRoute] as
@@ -337,14 +344,24 @@ const generateTrpcRoute = (
 
   const input = parseYupValidationSchemaDefinition(yupDefinitions);
 
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
+
   return `
 export const ${operationName}Route = trpc.router().${
     verb === Verbs.GET ? 'query' : 'mutation'
   }('${operationName}', {
   ${input ? `input: ${input},` : ''}
-  resolve: (${
-    input ? `{input: {${inputDestructor}}}` : ''
-  }) => ${operationName}(${properties})
+  resolve: (
+    {${input ? `input: {${inputDestructor}}` : ''}${
+    withRequestContext ? `${input ? ', ' : ''}ctx` : ''
+  }}
+  ) => ${operationName}(${properties}${
+    withRequestContext && mutator
+      ? `${properties ? ', ' : ''}${
+          !isBodyVerb ? 'undefined, ' : ''
+        }undefined, ctx`
+      : ''
+  })
 });`;
 };
 
