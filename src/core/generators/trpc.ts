@@ -223,12 +223,15 @@ const generateYupValidationSchemaDefinition = (
         ]
       : [
           schema?.enum
-            ? `mixed<${schema?.enum.map((value) => `'${value}'`).join(' | ')}>`
+            ? `string<${schema?.enum.map((value) => `'${value}'`).join(' | ')}>`
             : type,
           undefined,
         ],
   );
-  validationFunctions.push([required ? 'required' : 'notRequired', undefined]);
+
+  if (required) {
+    validationFunctions.push(['required', undefined]);
+  }
   if (min !== undefined) {
     validationFunctions.push(['min', min]);
   }
