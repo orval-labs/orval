@@ -36,7 +36,19 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   }
 
   if (!isReference(schema)) {
-    return { schema: schema as Schema, imports };
+    const properties = schema.properties
+      ? Object.keys(schema.properties)
+          .map((property) => ({
+            [property]:
+              '$ref' in schema.properties[property]
+                ? resolveRef(schema.properties[property], context, imports)
+                    .schema
+                : schema.properties[property],
+          }))
+          .reduce((acc, curr) => ({ ...acc, ...curr }), {})
+      : undefined;
+
+    return { schema: { ...schema, properties } as Schema, imports };
   }
 
   const { name, originalName, specKey, refPaths } = getRefInfo(
