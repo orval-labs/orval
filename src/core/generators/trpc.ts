@@ -208,26 +208,37 @@ const generateYupValidationSchemaDefinition = (
     schema?.maxLength ??
     undefined;
   const matches = schema?.pattern ?? undefined;
-  validationFunctions.push(
-    type === 'object'
-      ? [
-          'object',
-          Object.keys(schema?.properties ?? {})
-            .map((key) => ({
-              [key]: generateYupValidationSchemaDefinition(
-                schema?.properties?.[key],
-                schema?.required?.includes(key),
-              ),
-            }))
-            .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
-        ]
-      : [
-          schema?.enum
-            ? `string<${schema?.enum.map((value) => `'${value}'`).join(' | ')}>`
-            : type,
-          undefined,
-        ],
-  );
+
+  switch (type) {
+    case 'object':
+      validationFunctions.push([
+        'object',
+        Object.keys(schema?.properties ?? {})
+          .map((key) => ({
+            [key]: generateYupValidationSchemaDefinition(
+              schema?.properties?.[key],
+              schema?.required?.includes(key),
+            ),
+          }))
+          .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
+      ]);
+      break;
+    case 'array':
+      const items = schema?.items as SchemaObject | undefined;
+      validationFunctions.push([
+        'array',
+        generateYupValidationSchemaDefinition(items, true),
+      ]);
+      break;
+    default:
+      validationFunctions.push([
+        schema?.enum
+          ? `string<${schema?.enum.map((value) => `'${value}'`).join(' | ')}>`
+          : type,
+        undefined,
+      ]);
+      break;
+  }
 
   if (required) {
     validationFunctions.push(['required', undefined]);
@@ -253,24 +264,31 @@ const generateYupValidationSchemaDefinition = (
 
 const parseYupValidationSchemaDefinition = (
   input: Record<string, [string, any][]>,
-): string =>
-  !Object.keys(input).length
+): string => {
+  const parseProperty = ([fn, args = '']: [string, any]): string => {
+    if (fn === 'object') return ` ${parseYupValidationSchemaDefinition(args)}`;
+    if (fn === 'array')
+      return `.array(${
+        Array.isArray(args)
+          ? `yup${args.map(parseProperty).join('')}`
+          : parseProperty(args)
+      })`;
+
+    return `.${fn}(${args})`;
+  };
+
+  return !Object.keys(input).length
     ? ''
     : `yup.object({
   ${Object.entries(input)
     .map(
       ([key, schema]) => `
     ${key}: ${schema[0][0] !== 'object' ? 'yup' : ''}
-      ${schema
-        .map(([fn, args = '']) =>
-          fn === 'object'
-            ? ` ${parseYupValidationSchemaDefinition(args)}`
-            : `.${fn}(${args})`,
-        )
-        .join('')}`,
+      ${schema.map(parseProperty).join('')}`,
     )
     .join(',')}
 })`;
+};
 
 const extractFileNameFromFilePath = (filePath: string) =>
   filePath.split('/').pop()?.split('.')[0] ?? '';
