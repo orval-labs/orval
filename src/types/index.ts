@@ -262,6 +262,7 @@ export type AngularOptions = {
 
 export type TrpcOptions = {
   passRequestContextToCustomMutator?: boolean;
+  routerNamePrefix?: string;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

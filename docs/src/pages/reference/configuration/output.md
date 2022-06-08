@@ -924,6 +924,7 @@ module.exports = {
       override: {
         trpc: {
           passRequestContextToCustomMutator: true,
+          routerNamePrefix: 'pet'
         },
       },
     },
@@ -941,3 +942,17 @@ Valid values: `true`, `false`, `undefined`.
 Default Value: `undefined`.
 
 If `true` this flag will pass the `ctx` argument from the tRPC `resolve` function, to your specified custom mutator as the last parameter.
+
+##### routerNamePrefix
+
+Type: `String`.
+
+Valid values: any `string`, `undefined`.
+
+Default Value: `undefined`.
+
+When a value is passed, the tRPC router variable containing all of the routes will be exported with this name, suffixed with `'Router'`.
+
+For example, when `routerNamePrefix` is `"pet"`, your exported tRPC router would be `petRouter`.
+
+When no value is passed, the filename of your input is used as the routerNamePrefix.

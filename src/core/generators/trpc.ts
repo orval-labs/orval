@@ -300,7 +300,10 @@ const generateTrpcRoute = (
   const withRequestContext =
     override?.trpc?.passRequestContextToCustomMutator !== false;
 
-  fileName = extractFileNameFromFilePath(context.specKey);
+  fileName =
+    override?.trpc?.routerNamePrefix ??
+    extractFileNameFromFilePath(context.specKey);
+
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
     | undefined;
