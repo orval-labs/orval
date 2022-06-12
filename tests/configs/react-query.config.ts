@@ -221,4 +221,14 @@ export default defineConfig({
       target: '../specifications/form-url-encoded.yaml',
     },
   },
+  importFromSubdirectory: {
+    output: {
+      target: '../generated/react-query/importFromSubdirectory/endpoints.ts',
+      schemas: '../generated/react-query/importFromSubdirectory/model',
+      client: 'react-query',
+      mode: 'split',
+      mock: true,
+    },
+    input: '../specifications/import-from-subdirectory/petstore.yaml',
+  },
 });
