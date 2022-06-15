@@ -71,7 +71,7 @@ export const generateMSWImports = (
 
 export const generateMSW = async (
   { operationId, response, verb, tags }: GeneratorVerbOptions,
-  { pathRoute, override, context, delay }: GeneratorOptions,
+  { pathRoute, override, context }: GeneratorOptions,
 ) => {
   const { definitions, definition, imports } = await getMockDefinition({
     operationId,
@@ -106,7 +106,7 @@ export const generateMSW = async (
           : '',
       handler: `rest.${verb}('${route}', (_req, res, ctx) => {
         return res(
-          ctx.delay(${delay || 1000}),
+          ctx.delay(${override?.mock?.delay || 1000}),
           ctx.status(200, 'Mocked status'),${
             value && value !== 'undefined'
               ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`

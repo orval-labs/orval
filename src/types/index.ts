@@ -57,6 +57,7 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
+    delay?: number;
   };
   header: false | ((info: InfoObject) => string[]);
   formData: boolean | NormalizedMutator;

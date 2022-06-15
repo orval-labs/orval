@@ -105,7 +105,6 @@ export type GeneratorOptions = {
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
   mock: boolean;
-  delay?: number;
 };
 
 export type GeneratorClient = {
