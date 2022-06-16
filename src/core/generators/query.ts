@@ -341,11 +341,15 @@ const generateQueryReturnType = ({
   type,
   isMutatorHook,
   operationName,
+  dataType,
+  errorType,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   type: QueryType;
   isMutatorHook?: boolean;
   operationName: string;
+  dataType: string;
+  errorType: string;
 }) => {
   switch (outputClient) {
     case OutputClient.SVELTE_QUERY:
@@ -359,6 +363,7 @@ const generateQueryReturnType = ({
         type,
       )}Result<TData, TError>>`;
     case OutputClient.REACT_QUERY:
+      return ` UseQueryResult<Awaited<ReturnType<${dataType}>, ${errorType}>`
     default:
       return ` Use${pascal(type)}Result<TData, TError>`;
   }
@@ -402,13 +407,6 @@ const generateQueryImplementation = ({
         .join(',')
     : properties;
 
-  const returnType = generateQueryReturnType({
-    outputClient,
-    type,
-    isMutatorHook: mutator?.isHook,
-    operationName,
-  });
-
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
   if (mutator) {
@@ -422,6 +420,15 @@ const generateQueryImplementation = ({
   const dataType = mutator?.isHook
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
+
+  const returnType = generateQueryReturnType({
+    outputClient,
+    type,
+    isMutatorHook: mutator?.isHook,
+    operationName,
+    dataType,
+    errorType,
+  });
 
   return `
 export type ${pascal(
