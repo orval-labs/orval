@@ -89,7 +89,7 @@ export const generateMSW = async (
   if (mockData) {
     value = mockData;
   } else if (definitions.length > 1) {
-    value = `faker.random.arrayElement(${definition})`;
+    value = `faker.helpers.arrayElement(${definition})`;
   } else if (definitions[0]) {
     value = definitions[0];
   }
@@ -106,7 +106,7 @@ export const generateMSW = async (
           : '',
       handler: `rest.${verb}('${route}', (_req, res, ctx) => {
         return res(
-          ctx.delay(1000),
+          ctx.delay(${override?.mock?.delay || 1000}),
           ctx.status(200, 'Mocked status'),${
             value && value !== 'undefined'
               ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`

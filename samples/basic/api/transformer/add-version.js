@@ -1,7 +1,7 @@
 /**
  * Transformer function for orval.
  *
- * @param {OpenAPIObject} schema
+ * @param {OpenAPIObject} inputSchema
  * @return {OpenAPIObject}
  */
 module.exports = (inputSchema) => ({
