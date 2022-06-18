@@ -105,7 +105,7 @@
     "esbuild": "^0.14.25",
     "esutils": "2.0.3",
     "execa": "^5.1.1",
-    "find-up": "5.0.0",
+    "find-up": "6.3.0",
     "fs-extra": "^10.0.1",
     "globby": "11.0.4",
     "ibm-openapi-validator": "^0.57.4",
