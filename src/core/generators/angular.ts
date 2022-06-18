@@ -80,7 +80,7 @@ ${
 
 ${
   isRequestOptions && isMutator
-    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? `// eslint-disable-next-line
     type ThirdParameter<T extends (...args: any) => any> = T extends (
   config: any,
   httpClient: any,

@@ -53,5 +53,5 @@ export default customInstance;
 export type ErrorType<Error> = AxiosError<Error>;
 // In case you want to wrap the body type (optional)
 // (if the custom instance is processing data before sending it, like changing the case for example)
-export type BodyType<BodyData> = CamelCase<BodyType>
+export type BodyType<BodyData> = CamelCase<BodyType>;
 ```

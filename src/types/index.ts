@@ -44,6 +44,7 @@ export type NormalizedOutputOptions = {
   prettier: boolean;
   tslint: boolean;
   tsconfig?: Tsconfig;
+  packageJson?: PackageJson;
 };
 
 export type NormalizedOverrideOutput = {
@@ -57,6 +58,7 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
+    delay?: number;
   };
   header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
@@ -84,6 +86,7 @@ export type NormalizedOverrideOutput = {
   ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
+  useTypeOverInterfaces?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -134,6 +137,7 @@ export type OutputOptions = {
   prettier?: boolean;
   tslint?: boolean;
   tsconfig?: string | Tsconfig;
+  packageJson?: string;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -237,6 +241,7 @@ export type OverrideOutput = {
   ) => string;
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
+  useTypeOverInterfaces?: boolean;
 };
 
 type QueryOptions = {
@@ -304,6 +309,7 @@ export interface ContextSpecs {
   specs: Record<string, OpenAPIObject>;
   override: NormalizedOverrideOutput;
   tsconfig?: Tsconfig;
+  packageJson?: PackageJson;
 }
 
 export interface GlobalOptions {
@@ -315,7 +321,8 @@ export interface GlobalOptions {
   mock?: boolean;
   client?: OutputClient;
   mode?: OutputMode;
-  tsconfig?: Tsconfig;
+  tsconfig?: string | Tsconfig;
+  packageJson?: string;
 }
 
 export interface Tsconfig {
@@ -325,4 +332,8 @@ export interface Tsconfig {
     allowSyntheticDefaultImports?: boolean;
     paths?: Record<string, string[]>;
   };
+}
+
+export interface PackageJson {
+  dependencies?: Record<string, string>;
 }

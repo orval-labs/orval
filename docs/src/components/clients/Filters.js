@@ -1,4 +1,4 @@
-import React from 'react'
+import React from 'react';
 export const Filters = () => (
   <>
     <svg width={0} height={0}>
@@ -38,4 +38,4 @@ export const Filters = () => (
       </defs>
     </svg>
   </>
-)
+);

@@ -1,19 +1,19 @@
-import * as React from 'react'
-import NextLink from 'next/link'
-import { removeFromLast } from '../lib/docs/utils'
-import { siteConfig } from 'siteConfig'
-import { FiThumbsDown, FiThumbsUp } from 'react-icons/fi'
-import { TWButton } from './TWButton'
+import * as React from 'react';
+import NextLink from 'next/link';
+import { removeFromLast } from '../lib/docs/utils';
+import { siteConfig } from 'siteConfig';
+import { FiThumbsDown, FiThumbsUp } from 'react-icons/fi';
+import { TWButton } from './TWButton';
 
 function areEqual(prevProps, props) {
-  return prevProps.route?.path === props.route?.path
+  return prevProps.route?.path === props.route?.path;
 }
 
 export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
   const editUrl =
     route?.editUrl || route?.path
       ? `${siteConfig.editUrl}${route?.editUrl || route?.path}`
-      : null
+      : null;
 
   return (
     <>
@@ -71,6 +71,6 @@ export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
         </div>
       </div>
     </>
-  )
-}, areEqual)
-DocsPageFooter.displayName = 'DocsPageFooter'
+  );
+}, areEqual);
+DocsPageFooter.displayName = 'DocsPageFooter';

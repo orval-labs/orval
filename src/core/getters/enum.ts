@@ -15,13 +15,10 @@ export const getEnum = (value: string, type: string, enumName: string) => {
   return enumValue;
 };
 
-export const getEnumImplementation = (
-  value: string,
-  type: string,
-) => {
+export const getEnumImplementation = (value: string, type: string) => {
   return [...new Set(value.split(' | '))].reduce((acc, val) => {
     // nullable value shouldn't be in the enum implementation
-    if (val === 'null') return acc
+    if (val === 'null') return acc;
     const isTypeNumber = type === 'number';
     const isNumber = !Number.isNaN(Number(val.slice(1, -1)));
     const key =
@@ -31,9 +28,7 @@ export const getEnumImplementation = (
 
     return (
       acc +
-      `  ${
-        keyword.isIdentifierNameES5(key) ? key : `'${key}'`
-      }: ${val},\n`
+      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`
     );
   }, '');
 };

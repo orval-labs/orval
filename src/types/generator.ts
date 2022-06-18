@@ -146,12 +146,15 @@ export type ClientHeaderBuilder = (params: {
   isGlobalMutator: boolean;
   provideInRoot: boolean;
   provideIn: boolean | 'root' | 'any';
+  hasAwaitedType: boolean;
 }) => string;
 
 export type ClientFooterBuilder = (params: {
   noFunction?: boolean | undefined;
   operationNames: string[];
   title?: string;
+  hasAwaitedType: boolean;
+  hasMutator: boolean;
 }) => string;
 
 export type ClientTitleBuilder = (title: string) => string;

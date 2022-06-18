@@ -40,7 +40,7 @@ export const resolveRef = async <
       imports,
     };
   }
-  
+
   if (!isReference(schema)) {
     return { schema: schema as Schema, imports };
   }

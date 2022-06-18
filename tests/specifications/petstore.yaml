@@ -104,11 +104,11 @@ paths:
             type: string
       requestBody:
         description: Expected content to be different
-        content: 
+        content:
           application/json:
             schema:
               $ref: '#/components/schemas/Insect'
-        
+
       responses:
         '200':
           description: Expected response to a valid request

@@ -63,11 +63,7 @@ export const GENERATOR_CLIENT: GeneratorClients = {
         imports,
       };
     },
-    header: (options: {
-      title: string;
-      isMutator: boolean;
-      isRequestOptions: boolean;
-    }) => generateAxiosHeader({ ...options, noFunction: true }),
+    header: (options) => generateAxiosHeader({ ...options, noFunction: true }),
     dependencies: getAxiosDependencies,
     footer: (options) => generateAxiosFooter({ ...options, noFunction: true }),
     title: generateAxiosTitle,
@@ -152,6 +148,7 @@ export const generateClientHeader = ({
   isMutator,
   provideInRoot,
   provideIn,
+  hasAwaitedType,
 }: {
   outputClient?: OutputClient | OutputClientFunc;
   isRequestOptions: boolean;
@@ -161,6 +158,7 @@ export const generateClientHeader = ({
   provideIn: boolean | 'root' | 'any';
   title: string;
   customTitleFunc?: (title: string) => string;
+  hasAwaitedType: boolean;
 }): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { header } = getGeneratorClient(outputClient);
@@ -172,6 +170,7 @@ export const generateClientHeader = ({
       isMutator,
       provideInRoot,
       provideIn,
+      hasAwaitedType,
     }),
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };
@@ -182,11 +181,15 @@ export const generateClientFooter = ({
   operationNames,
   title,
   customTitleFunc,
+  hasMutator,
+  hasAwaitedType,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   operationNames: string[];
   title: string;
   customTitleFunc?: (title: string) => string;
+  hasMutator: boolean;
+  hasAwaitedType: boolean;
 }): GeneratorClientExtra => {
   const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { footer } = getGeneratorClient(outputClient);
@@ -201,10 +204,20 @@ export const generateClientFooter = ({
         '[WARN] Passing an array of strings for operations names to the footer function is deprecated and will be removed in a future major release. Please pass them in an object instead: { operationNames: string[] }.',
       );
     } else {
-      implementation = footer({ operationNames, title: titles.implementation });
+      implementation = footer({
+        operationNames,
+        title: titles.implementation,
+        hasMutator,
+        hasAwaitedType,
+      });
     }
   } catch (e) {
-    implementation = footer({ operationNames, title: titles.implementation });
+    implementation = footer({
+      operationNames,
+      title: titles.implementation,
+      hasMutator,
+      hasAwaitedType,
+    });
   }
 
   return {

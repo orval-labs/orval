@@ -59,7 +59,7 @@ export const resolveMockValue = async ({
   combine?: { properties: string[] };
   context: ContextSpecs;
   imports: GeneratorImport[];
-}): Promise<MockDefinition> => {
+}): Promise<MockDefinition & { type?: string }> => {
   if (isReference(schema)) {
     const { name, specKey } = await getRefInfo(schema.$ref, {
       ...context,
@@ -74,7 +74,7 @@ export const resolveMockValue = async ({
       specKey: specKey || schema.specKey,
     };
 
-    return getMockScalar({
+    const scalar = await getMockScalar({
       item: newSchema,
       mockOptions,
       operationId,
@@ -83,9 +83,14 @@ export const resolveMockValue = async ({
       context,
       imports,
     });
+
+    return {
+      ...scalar,
+      type: newSchema.type,
+    };
   }
 
-  return getMockScalar({
+  const scalar = await getMockScalar({
     item: schema,
     mockOptions,
     operationId,
@@ -94,4 +99,9 @@ export const resolveMockValue = async ({
     context,
     imports,
   });
+
+  return {
+    ...scalar,
+    type: schema.type,
+  };
 };

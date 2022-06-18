@@ -6,7 +6,8 @@ export const generateModelInline = (acc: string, model: string): string =>
 export const generateModelsInline = (
   obj: Record<string, GeneratorSchema[]>,
 ): string => {
-  const schemas = Object.values(obj).flatMap((it) => it)
+  const schemas = Object.values(obj)
+    .flatMap((it) => it)
     .sort((a, b) => (a.imports.some((i) => i.name === b.name) ? 1 : -1));
 
   return schemas.reduce(

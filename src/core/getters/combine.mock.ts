@@ -60,6 +60,9 @@ export const combineSchemasMock = async ({
           return `faker.helpers.arrayElement([${resolvedValue.value},`;
         }
         if (arr.length === 1) {
+          if (resolvedValue.type !== 'object') {
+            return `${resolvedValue.value}`;
+          }
           return `{${resolvedValue.value}}`;
         }
         return `{${resolvedValue.value},`;

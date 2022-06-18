@@ -310,16 +310,18 @@ const generateQueryArguments = ({
 }) => {
   const isMutatorHook = mutator?.isHook;
   const definition = type
-    ? `Use${pascal(type)}Options<AsyncReturnType<${
+    ? `Use${pascal(type)}Options<Awaited<ReturnType<${
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>, TError, TData>`
-    : `UseMutationOptions<AsyncReturnType<${
+      }>>, TError, TData>`
+    : `UseMutationOptions<Awaited<ReturnType<${
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>, TError,${definitions ? `{${definitions}}` : 'TVariables'}, TContext>`;
+      }>>, TError,${
+        definitions ? `{${definitions}}` : 'TVariables'
+      }, TContext>`;
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
@@ -347,11 +349,11 @@ const generateQueryReturnType = ({
 }) => {
   switch (outputClient) {
     case OutputClient.SVELTE_QUERY:
-      return `Use${pascal(type)}StoreResult<AsyncReturnType<${
+      return `Use${pascal(type)}StoreResult<Awaited<ReturnType<${
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>, TError, TData, QueryKey>`;
+      }>>, TError, TData, QueryKey>`;
     case OutputClient.VUE_QUERY:
       return ` UseQueryReturnType<TData, TError, Use${pascal(
         type,
@@ -424,12 +426,12 @@ const generateQueryImplementation = ({
   return `
 export type ${pascal(
     name,
-  )}QueryResult = NonNullable<AsyncReturnType<${dataType}>>
+  )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
 export const ${camel(
     `use-${name}`,
-  )} = <TData = AsyncReturnType<${dataType}>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments(
+  )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments(
     {
       operationName,
       definitions: '',
@@ -459,11 +461,11 @@ export const ${camel(
       : ''
   }
 
-  const queryFn: QueryFunction<AsyncReturnType<${
+  const queryFn: QueryFunction<Awaited<ReturnType<${
     mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>> = (${
+  }>>> = (${
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ signal, pageParam }`
       : '{ signal }'
@@ -477,11 +479,11 @@ export const ${camel(
       : ''
   });
 
-  const query = ${camel(`use-${type}`)}<AsyncReturnType<${
+  const query = ${camel(`use-${type}`)}<Awaited<ReturnType<${
     mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>, TError, TData>(queryKey, queryFn, ${generateQueryOptions({
+  }>>, TError, TData>(queryKey, queryFn, ${generateQueryOptions({
     params,
     options,
     type,
@@ -507,7 +509,7 @@ const generateQueryHook = (
     response,
     operationId,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} } }: GeneratorOptions,
+  { route, override: { operations = {} }, context }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   const query = override?.query;
@@ -606,7 +608,7 @@ const generateQueryHook = (
   return `
     export type ${pascal(
       operationName,
-    )}MutationResult = NonNullable<AsyncReturnType<${dataType}>>
+    )}MutationResult = NonNullable<Awaited<ReturnType<${dataType}>>>
     ${
       body.definition
         ? `export type ${pascal(operationName)}MutationBody = ${
@@ -645,7 +647,7 @@ const generateQueryHook = (
       }
 
 
-      const mutationFn: MutationFunction<AsyncReturnType<${dataType}>, ${
+      const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
     definitions ? `{${definitions}}` : 'TVariables'
   }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {}` : ''};
@@ -661,7 +663,7 @@ const generateQueryHook = (
   })
         }
 
-      return useMutation<AsyncReturnType<typeof ${operationName}>, TError, ${
+      return useMutation<Awaited<ReturnType<typeof ${operationName}>>, TError, ${
     definitions ? `{${definitions}}` : 'TVariables'
   }, TContext>(mutationFn, mutationOptions)
     }
@@ -673,16 +675,21 @@ export const generateQueryTitle = () => '';
 export const generateQueryHeader = ({
   isRequestOptions,
   isMutator,
+  hasAwaitedType,
 }: {
   isRequestOptions: boolean;
   isMutator: boolean;
-}) => `// eslint-disable-next-line @typescript-eslint/no-explicit-any
-type AsyncReturnType<
-T extends (...args: any) => Promise<any>
-> = T extends (...args: any) => Promise<infer R> ? R : any;\n\n
+  hasAwaitedType: boolean;
+}) => {
+  return `${
+    !hasAwaitedType
+      ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
+      type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
+      : ''
+  }
 ${
   isRequestOptions && isMutator
-    ? `// eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? `// eslint-disable-next-line
   type SecondParameter<T extends (...args: any) => any> = T extends (
   config: any,
   args: infer P,
@@ -691,6 +698,7 @@ ${
   : never;\n\n`
     : ''
 }`;
+};
 
 export const generateQueryFooter = () => '';
 
