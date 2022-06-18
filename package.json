@@ -119,7 +119,7 @@
     "micromatch": "^4.0.4",
     "openapi3-ts": "^2.0.2",
     "swagger2openapi": "^7.0.8",
-    "tsconfck": "^1.2.0",
+    "tsconfck": "^2.0.1",
     "upath": "^2.0.1",
     "url": "^0.11.0",
     "validator": "^13.7.0"
