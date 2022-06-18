@@ -55,9 +55,9 @@ export const combineSchemasMock = async ({
       if (!index && !combine) {
         if (resolvedValue.enums || isOneOf) {
           if (arr.length === 1) {
-            return `faker.random.arrayElement([${resolvedValue.value}])`;
+            return `faker.helpers.arrayElement([${resolvedValue.value}])`;
           }
-          return `faker.random.arrayElement([${resolvedValue.value},`;
+          return `faker.helpers.arrayElement([${resolvedValue.value},`;
         }
         if (arr.length === 1) {
           if (resolvedValue.type !== 'object') {

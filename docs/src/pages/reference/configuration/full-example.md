@@ -40,7 +40,7 @@ module.exports = {
           properties: {
             '/tag|name/': () => faker.name.lastName(),
           },
-          delay: 500
+          delay: 500,
         },
       },
     },

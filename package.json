@@ -58,7 +58,7 @@
   "devDependencies": {
     "@commitlint/cli": "^16.2.1",
     "@commitlint/config-conventional": "^16.2.1",
-    "@faker-js/faker": "^6.1.1",
+    "@faker-js/faker": "^6.3.0",
     "@release-it/conventional-changelog": "^4.2.0",
     "@types/chalk": "^2.2.0",
     "@types/commander": "^2.12.2",
