@@ -7,7 +7,7 @@
 </p>
 <h1 align="center">
   Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!
-</h3>
+</h1>
 
 ### Code Generation
 
