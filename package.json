@@ -57,7 +57,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^17.0.2",
-    "@commitlint/config-conventional": "^16.2.1",
+    "@commitlint/config-conventional": "^17.0.2",
     "@faker-js/faker": "^6.3.0",
     "@release-it/conventional-changelog": "^4.2.0",
     "@types/chalk": "^2.2.0",
@@ -77,7 +77,7 @@
     "@types/validator": "^13.7.1",
     "@typescript-eslint/eslint-plugin": "^5.14.0",
     "@typescript-eslint/parser": "^5.14.0",
-    "dotenv-cli": "^4.0.0",
+    "dotenv-cli": "^5.1.0",
     "eslint": "^8.10.0",
     "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-prettier": "^4.0.0",
