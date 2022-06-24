@@ -141,5 +141,5 @@ export const getMockObject = async ({
     };
   }
 
-  return { value: '{}', imports: [], name: item.name };
+  return { value: '', imports: [], name: item.name };
 };
