@@ -143,7 +143,7 @@ export const getMockScalar = async ({
       }
 
       return {
-        value: `[...Array(faker.datatype.number({min: 1, max: 10}))].fill(undefined).map(() => (${value}))`,
+        value: `Array.from({ length: faker.datatype.number({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (${value}))`,
         imports: resolvedImports,
         name: item.name,
       };
