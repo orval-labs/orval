@@ -1,7 +1,7 @@
 import { ContentObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
-import { GetterParameters } from '../../types/getters';
+import { GetterParameters, GetterQueryParam } from '../../types/getters';
 import { pascal } from '../../utils/case';
 import { resolveValue } from '../resolvers/value';
 import { getEnum } from './enum';
@@ -80,9 +80,7 @@ export const getQueryParams = async ({
   queryParams: GetterParameters['query'];
   operationName: string;
   context: ContextSpecs;
-}): Promise<
-  { schema: GeneratorSchema; deps: GeneratorSchema[] } | undefined
-> => {
+}): Promise<GetterQueryParam | undefined> => {
   if (!queryParams.length) {
     return;
   }
@@ -92,6 +90,7 @@ export const getQueryParams = async ({
   const name = `${pascal(operationName)}Params`;
 
   const type = types.map(({ definition }) => definition).join('; ');
+  const allOptional = queryParams.every(({ parameter }) => !parameter.required);
 
   const schema = {
     name,
@@ -102,5 +101,6 @@ export const getQueryParams = async ({
   return {
     schema,
     deps: schemas,
+    isOptional: allOptional,
   };
 };

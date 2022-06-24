@@ -25,7 +25,7 @@ paths:
           description: |
             Which property to sort by?
             Example: name sorts ASC while -name sorts DESC.
-          required: false
+          required: true
           schema:
             type: string
             enum:
@@ -102,13 +102,6 @@ paths:
           description: The id of the pet to retrieve
           schema:
             type: string
-      requestBody:
-        description: Expected content to be different
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Insect'
-
       responses:
         '200':
           description: Expected response to a valid request
@@ -148,6 +141,9 @@ components:
       required:
         - id
         - name
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       properties:
         '@id':
           type: string
@@ -168,12 +164,30 @@ components:
         country:
           type: string
           enum: ["People's Republic of China", 'Uruguay']
+    Dog:
+      type: object
+      required: ['type']
+      properties:
+        barksPerMinute:
+          type: integer
+        type:
+          type: string
+          enum:
+            - dog
+    Cat:
+      type: object
+      required: ['type']
+      properties:
+        petsRequested:
+          type: integer
+        type:
+          type: string
+          enum:
+            - cat
     Pets:
       type: array
       items:
         $ref: '#/components/schemas/Pet'
-    Insect:
-      type: object
     Error:
       type: object
       required:

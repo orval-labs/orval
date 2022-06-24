@@ -45,6 +45,7 @@ export type GetterParams = GetterParam[];
 export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
+  isOptional: boolean;
 };
 
 export type GetterPropType = 'param' | 'body' | 'queryParam';
