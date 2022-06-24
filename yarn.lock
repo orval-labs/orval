@@ -5904,10 +5904,10 @@ ts-node@^10.7.0:
     v8-compile-cache-lib "^3.0.0"
     yn "3.1.1"
 
-tsconfck@^1.2.0:
-  version "1.2.2"
-  resolved "https://registry.yarnpkg.com/tsconfck/-/tsconfck-1.2.2.tgz#3f7ac55bcd16b8d89ff05ba8e27057f3375828c8"
-  integrity sha512-x5YpjOqjJnMs1EsJvQBQbrysrY32eGoZRRr5YvbN1hwlrXKc7jiphCOUrT7xbFdOWk8sh+EtMYbGPbTO8rDmcw==
+tsconfck@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/tsconfck/-/tsconfck-2.0.1.tgz#a7e951ad0ce220e3d3fb8f7bcdd9c5ee988847e9"
+  integrity sha512-/ipap2eecmVBmBlsQLBRbUmUNFwNJV/z2E+X0FPtHNjPwroMZQ7m39RMaCywlCulBheYXgMdUlWDd9rzxwMA0Q==
 
 tslib@^1.14.1, tslib@^1.8.1:
   version "1.14.1"

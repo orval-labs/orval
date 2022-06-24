@@ -254,6 +254,22 @@ my-app
             </div>
           </div>
         </section>
+        <div className="bg-gray-100 border-b border-gray-300">
+          <div className="container mx-auto py-12 text-center">
+            <h3 className="text-2xl md:text-5xl mx-auto leading-tight font-extrabold tracking-tight   lg:leading-none mt-2">
+              You want to support open-source?
+            </h3>
+            <div className="inline-flex rounded-md shadow mt-12">
+              <a
+                href="https://github.com/sponsors/anymaniax"
+                target="_blank"
+                className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+              >
+                Become a sponsor
+              </a>
+            </div>
+          </div>
+        </div>
         <div className="bg-gray-50 border-b border-gray-100">
           <div className="container mx-auto py-24 px-4 flex flex-wrap md:flex-no-wrap items-center justify-between md:space-x-8">
             <h2 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10">

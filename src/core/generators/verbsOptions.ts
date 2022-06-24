@@ -5,7 +5,6 @@ import {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts';
-import { keyword } from 'esutils';
 import {
   ContextSpecs,
   NormalizedOperationOptions,
@@ -22,6 +21,7 @@ import { jsDoc } from '../../utils/doc';
 import { dynamicImport } from '../../utils/imports';
 import { isObject, isString, isVerb } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
+import { sanitize } from '../../utils/string';
 import { getBody } from '../getters/body';
 import { getOperationId } from '../getters/operation';
 import { getParameters } from '../getters/parameters';
@@ -30,7 +30,6 @@ import { getProps } from '../getters/props';
 import { getQueryParams } from '../getters/queryParams';
 import { getResponse } from '../getters/response';
 import { generateMutator } from './mutator';
-import { sanitize } from '../../utils/string';
 
 const generateVerbOptions = async ({
   verb,
@@ -103,7 +102,7 @@ const generateVerbOptions = async ({
     context,
   });
 
-  const props = getProps({ body, queryParams: queryParams?.schema, params });
+  const props = getProps({ body, queryParams, params });
 
   const mutator = await generateMutator({
     output: output.target,

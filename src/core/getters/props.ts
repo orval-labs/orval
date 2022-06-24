@@ -1,9 +1,9 @@
-import { GeneratorSchema } from '../../types/generator';
 import {
   GetterBody,
   GetterParams,
   GetterProps,
   GetterPropType,
+  GetterQueryParam,
 } from '../../types/getters';
 import { sortByPriority } from '../../utils/sort';
 
@@ -13,7 +13,7 @@ export const getProps = ({
   params,
 }: {
   body: GetterBody;
-  queryParams?: GeneratorSchema;
+  queryParams?: GetterQueryParam;
   params: GetterParams;
 }): GetterProps => {
   const bodyProp = {
@@ -27,8 +27,12 @@ export const getProps = ({
 
   const queryParamsProp = {
     name: 'params',
-    definition: `params?: ${queryParams?.name}`,
-    implementation: `params?: ${queryParams?.name}`,
+    definition: `params${queryParams?.isOptional ? '?' : ''}: ${
+      queryParams?.schema.name
+    }`,
+    implementation: `params${queryParams?.isOptional ? '?' : ''}: ${
+      queryParams?.schema.name
+    }`,
     default: false,
     required: false,
     type: GetterPropType.QUERY_PARAM,
