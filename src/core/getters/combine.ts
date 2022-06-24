@@ -1,4 +1,5 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import omit from 'lodash.omit';
+import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { ResolverValue } from '../../types/resolvers';
@@ -6,6 +7,7 @@ import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
+import { resolveValue } from '../resolvers/value';
 import { getEnumImplementation } from './enum';
 
 type CombinedData = Omit<
@@ -18,57 +20,65 @@ type CombinedData = Omit<
   types: string[];
 };
 
-const SEPARATOR = {
-  allOf: '&',
-  oneOf: '|',
-  anyOf: '|',
-};
+type Separator = 'allOf' | 'anyOf' | 'oneOf';
 
 const combineValues = ({
   resolvedData,
+  resolvedValue,
   separator,
 }: {
   resolvedData: CombinedData;
-  separator: keyof typeof SEPARATOR;
+  resolvedValue?: ResolverValue;
+  separator: Separator;
 }) => {
   const isAllEnums = resolvedData.isEnum.every((v) => v);
-  if (separator === 'oneOf') {
-    const oneOf = resolvedData.values.find((v) => v.endsWith('OneOf'));
 
-    return resolvedData.values
-      .filter((v) => !v.endsWith('OneOf'))
-      .map((v) => (oneOf ? `${v} & ${oneOf}` : v))
-      .join(' | ');
+  if (isAllEnums) {
+    return `${resolvedData.values.join(` | `)}${
+      resolvedValue ? ` | ${resolvedValue.value}` : ''
+    }`;
   }
-  return resolvedData.values.join(
-    ` ${!isAllEnums ? SEPARATOR[separator] : '|'} `,
-  );
+
+  if (separator === 'allOf') {
+    return `${resolvedData.values.join(` & `)}${
+      resolvedValue ? ` & ${resolvedValue.value}` : ''
+    }`;
+  }
+
+  if (resolvedValue) {
+    return `(${resolvedData.values.join(` & ${resolvedValue.value}) | (`)} & ${
+      resolvedValue.value
+    })`;
+  }
+
+  return resolvedData.values.join(' | ');
 };
 
 export const combineSchemas = async ({
   name,
-  items,
+  schema,
   separator,
   context,
   nullable,
 }: {
   name?: string;
-  items: (SchemaObject | ReferenceObject)[];
-  separator: keyof typeof SEPARATOR;
+  schema: SchemaObject;
+  separator: Separator;
   context: ContextSpecs;
   nullable: string;
 }) => {
+  const items = schema[separator] ?? [];
+
   const resolvedData = await asyncReduce(
     items,
-    async (acc, schema) => {
+    async (acc, subSchema) => {
       let propName = name ? name + pascal(separator) : undefined;
-
       if (propName && acc.schemas.length) {
         propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
       }
 
       const resolvedValue = await resolveObject({
-        schema,
+        schema: subSchema,
         propName,
         combined: true,
         context,
@@ -95,7 +105,16 @@ export const combineSchemas = async ({
 
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
-  const value = combineValues({ resolvedData, separator });
+  let resolvedValue;
+
+  if (schema.properties) {
+    resolvedValue = await resolveValue({
+      schema: omit(schema, separator),
+      context,
+    });
+  }
+
+  const value = combineValues({ resolvedData, separator, resolvedValue });
 
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(

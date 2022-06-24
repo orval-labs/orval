@@ -1,4 +1,3 @@
-import omit from 'lodash.omit';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
@@ -40,37 +39,13 @@ export const getObject = async ({
     };
   }
 
-  if (item.allOf) {
-    return combineSchemas({
-      items: item.properties
-        ? [...item.allOf, omit(item, 'allOf')]
-        : item.allOf,
-      name,
-      separator: 'allOf',
-      context,
-      nullable,
-    });
-  }
+  if (item.allOf || item.oneOf || item.anyOf) {
+    const separator = item.allOf ? 'allOf' : item.oneOf ? 'oneOf' : 'anyOf';
 
-  if (item.oneOf) {
     return combineSchemas({
-      items: item.properties
-        ? [...item.oneOf, omit(item, 'oneOf')]
-        : item.oneOf,
+      schema: item,
       name,
-      separator: 'oneOf',
-      context,
-      nullable,
-    });
-  }
-
-  if (item.anyOf) {
-    return combineSchemas({
-      items: item.properties
-        ? [...item.anyOf, omit(item, 'anyOf')]
-        : item.anyOf,
-      name,
-      separator: 'anyOf',
+      separator,
       context,
       nullable,
     });

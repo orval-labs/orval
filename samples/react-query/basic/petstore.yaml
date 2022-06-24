@@ -109,6 +109,9 @@ components:
       required:
         - id
         - name
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
       properties:
         '@id':
           type: string
@@ -129,6 +132,26 @@ components:
         country:
           type: string
           enum: ["People's Republic of China", 'Uruguay']
+    Dog:
+      type: object
+      required: ['type']
+      properties:
+        barksPerMinute:
+          type: integer
+        type:
+          type: string
+          enum:
+            - dog
+    Cat:
+      type: object
+      required: ['type']
+      properties:
+        petsRequested:
+          type: integer
+        type:
+          type: string
+          enum:
+            - cat
     Pets:
       type: array
       items:
