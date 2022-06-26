@@ -13,7 +13,7 @@ import {
   GetterResponse,
 } from '../../types/getters';
 import { camel, pascal } from '../../utils/case';
-import { toObjectString } from '../../utils/string';
+import { stringify, toObjectString } from '../../utils/string';
 import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { generateVerbImports } from './imports';
 import {
@@ -181,6 +181,7 @@ const generateSwrImplementation = ({
   mutator,
   isRequestOptions,
   response,
+  swrOptions,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -191,6 +192,7 @@ const generateSwrImplementation = ({
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
+  swrOptions: { options?: any };
 }) => {
   const httpFunctionProps = properties;
 
@@ -206,6 +208,8 @@ const generateSwrImplementation = ({
       ? `ErrorType<${response.definition.errors || 'unknown'}>`
       : response.definition.errors || 'unknown';
   }
+
+  console.log('allo', isRequestOptions, swrOptions);
 
   return `
 export type ${pascal(
@@ -246,7 +250,14 @@ export const ${camel(
       : ''
   });
 
-  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
+    swrOptions.options
+      ? `{
+    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ...swrOptions
+  }`
+      : 'swrOptions'
+  })
 
   return {
     swrKey,
@@ -298,6 +309,7 @@ const generateSwrHook = (
       mutator,
       isRequestOptions,
       response,
+      swrOptions: override.swr,
     })}
 `;
 };

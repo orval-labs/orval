@@ -7,7 +7,6 @@ import {
 } from './getters';
 import {
   ContextSpecs,
-  NormalizedOperationOptions,
   NormalizedOverrideOutput,
   OutputClient,
   OutputClientFunc,
@@ -94,7 +93,7 @@ export type GeneratorVerbOptions = {
   mutator?: GeneratorMutator;
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
-  override: NormalizedOperationOptions;
+  override: NormalizedOverrideOutput;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];

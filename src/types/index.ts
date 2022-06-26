@@ -79,6 +79,9 @@ export type NormalizedOverrideOutput = {
   };
   query: QueryOptions;
   angular: Omit<Required<AngularOptions>, 'provideInRoot'>;
+  swr: {
+    options?: any;
+  };
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -104,6 +107,10 @@ export type NormalizedOperationOptions = {
     properties?: MockProperties;
   };
   query?: QueryOptions;
+  angular?: Omit<Required<AngularOptions>, 'provideInRoot'>;
+  swr?: {
+    options?: any;
+  };
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -233,6 +240,9 @@ export type OverrideOutput = {
     };
   };
   query?: QueryOptions;
+  swr?: {
+    options?: any;
+  };
   angular?: AngularOptions;
   operationName?: (
     operation: OperationObject,
@@ -272,6 +282,10 @@ export type OperationOptions = {
     properties?: MockProperties;
   };
   query?: QueryOptions;
+  angular?: Omit<Required<AngularOptions>, 'provideInRoot'>;
+  swr?: {
+    options?: any;
+  };
   operationName?: (
     operation: OperationObject,
     route: string,

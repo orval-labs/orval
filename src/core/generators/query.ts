@@ -509,7 +509,7 @@ const generateQueryHook = (
     response,
     operationId,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} }, context }: GeneratorOptions,
+  { route, override: { operations = {} } }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   const query = override?.query;

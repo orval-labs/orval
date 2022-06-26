@@ -9,6 +9,7 @@ import {
   ContextSpecs,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
+  NormalizedOverrideOutput,
   Verbs,
 } from '../../types';
 import {
@@ -60,15 +61,13 @@ const generateVerbOptions = async ({
   const operationId = getOperationId(operation, route, verb);
 
   const overrideOperation = output.override.operations[operation.operationId!];
-  const overrideTag = Object.entries(
-    output.override.tags,
-  ).reduce<NormalizedOperationOptions>(
+  const overrideTag = Object.entries(output.override.tags).reduce(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
     {} as NormalizedOperationOptions,
   );
 
-  const override: NormalizedOperationOptions = {
+  const override: NormalizedOverrideOutput = {
     ...output.override,
     ...overrideTag,
     ...overrideOperation,

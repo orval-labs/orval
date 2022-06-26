@@ -164,6 +164,9 @@ export const normalizeOptions = async (
           useQuery: true,
           ...(outputOptions.override?.query ?? {}),
         },
+        swr: {
+          ...(outputOptions.override?.swr ?? {}),
+        },
         angular: {
           provideIn:
             outputOptions.override?.angular?.provideIn ??
