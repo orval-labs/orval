@@ -209,8 +209,6 @@ const generateSwrImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
-  console.log('allo', isRequestOptions, swrOptions);
-
   return `
 export type ${pascal(
     operationName,
