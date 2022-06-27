@@ -487,12 +487,11 @@ export const ${camel(
     params,
     options,
     type,
-  })})
+  })}) as ${returnType} & { queryKey: QueryKey };
+  
+  query.queryKey = queryKey;
 
-  return {
-    queryKey,
-    ...query
-  }
+  return query;
 }\n`;
 };
 
