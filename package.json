@@ -71,7 +71,7 @@
     "@types/lodash.uniqby": "^4.7.6",
     "@types/lodash.uniqwith": "^4.5.6",
     "@types/micromatch": "^4.0.2",
-    "@types/node": "^17.0.21",
+    "@types/node": "^18.0.0",
     "@types/prettier": "^2.4.4",
     "@types/request": "^2.48.8",
     "@types/validator": "^13.7.1",
