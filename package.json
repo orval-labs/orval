@@ -94,7 +94,7 @@
     "zx": "^7.0.2"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.0.3",
+    "@apidevtools/swagger-parser": "^10.1.0",
     "acorn": "^8.7.0",
     "cac": "^6.7.12",
     "chalk": "^4.1.2",
