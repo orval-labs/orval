@@ -11,6 +11,7 @@ import {
 export interface Options {
   output?: string | OutputOptions;
   input?: string | InputOptions;
+  hooks?: Partial<HooksOptions>;
 }
 
 export type OptionsFn = () => Options | Promise<Options>;
@@ -30,6 +31,7 @@ export type NormizaledConfig = {
 export interface NormalizedOptions {
   output: NormalizedOutputOptions;
   input: NormalizedInputOptions;
+  hooks: NormalizedHookOptions;
 }
 
 export type NormalizedOutputOptions = {
@@ -295,6 +297,20 @@ export type OperationOptions = {
   formUrlEncoded?: boolean | Mutator;
   requestOptions?: object | boolean;
 };
+
+export type Hook = 'afterAllFilesWrite';
+
+export type HookFunction = (...args: any[]) => void | Promise<void>;
+
+export type HookCommand = string | HookFunction | (string | HookFunction)[];
+
+export type NormalizedHookCommand = HookCommand[];
+
+export type HooksOptions<T = HookCommand | NormalizedHookCommand> = Partial<
+  Record<Hook, T>
+>;
+
+export type NormalizedHookOptions = HooksOptions<NormalizedHookCommand>;
 
 export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete' | 'head';
 

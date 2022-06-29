@@ -8,6 +8,7 @@ import { join } from 'upath';
 import { NormalizedOptions, OutputMode } from '../../types';
 import { WriteSpecsProps } from '../../types/writers';
 import { jsDoc } from '../../utils/doc';
+import { executeHook } from '../../utils/executeHook';
 import { getFileInfo } from '../../utils/file';
 import { createSuccessMessage } from '../../utils/messages/logs';
 import { getSpecName, relativeSafe } from '../../utils/path';
@@ -161,13 +162,20 @@ export const writeSpecs = async (
     implementationPaths = [indexFile, ...implementationPaths];
   }
 
+  const paths = [
+    ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
+    ...implementationPaths,
+  ];
+
+  await executeHook(
+    'afterAllFilesWrite',
+    options.hooks.afterAllFilesWrite,
+    paths,
+  );
+
   if (output.prettier) {
     try {
-      await execa('prettier', [
-        '--write',
-        ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
-        ...implementationPaths,
-      ]);
+      await execa('prettier', ['--write', ...paths]);
     } catch (e) {
       log(
         chalk.yellow(

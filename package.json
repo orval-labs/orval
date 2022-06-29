@@ -118,6 +118,7 @@
     "lodash.uniqwith": "^4.5.0",
     "micromatch": "^4.0.4",
     "openapi3-ts": "^2.0.2",
+    "string-argv": "^0.3.1",
     "swagger2openapi": "^7.0.8",
     "tsconfck": "^2.0.1",
     "upath": "^2.0.1",
