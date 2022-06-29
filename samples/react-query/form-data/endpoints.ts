@@ -4,9 +4,9 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { useMutation, UseMutationOptions, MutationFunction } from 'react-query';
-import type { Pet, Error, CreatePetsBody } from './models';
+import { MutationFunction, useMutation, UseMutationOptions } from 'react-query';
 import { customInstance } from './custom-instance';
+import type { CreatePetsBody, Error, Pet } from './models';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 

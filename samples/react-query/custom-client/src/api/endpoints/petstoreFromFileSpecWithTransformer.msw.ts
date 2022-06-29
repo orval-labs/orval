@@ -4,47 +4,50 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { rest } from 'msw';
 import { faker } from '@faker-js/faker';
+import { rest } from 'msw';
 
 export const getListPetsMock = () =>
-  [...Array(faker.datatype.number({ min: 1, max: 10 }))].map(() => ({
-    '@id': faker.random.arrayElement([faker.random.word(), undefined]),
-    id: (() => faker.random.number({ min: 1, max: 99999 }))(),
+  Array.from(
+    { length: faker.datatype.number({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
+    id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
     name: (() => faker.name.lastName())(),
     tag: (() => faker.name.lastName())(),
-    email: faker.random.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.random.arrayElement([
-      faker.random.arrayElement(['+33', '+420', '+33']),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33']),
       undefined,
     ]),
-    country: faker.random.arrayElement([
-      faker.random.arrayElement(["People's Republic of China", 'Uruguay']),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(["People's Republic of China", 'Uruguay']),
       undefined,
     ]),
   }));
 
 export const getCreatePetsMock = () => ({
-  '@id': faker.random.arrayElement([faker.random.word(), undefined]),
+  '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
   id: faker.datatype.number(),
   name: (() => faker.name.lastName())(),
   tag: (() => faker.name.lastName())(),
-  email: faker.random.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.random.arrayElement([
-    faker.random.arrayElement(['+33', '+420', '+33']),
+  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+  callingCode: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(['+33', '+420', '+33']),
     undefined,
   ]),
-  country: faker.random.arrayElement([
-    faker.random.arrayElement(["People's Republic of China", 'Uruguay']),
+  country: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(["People's Republic of China", 'Uruguay']),
     undefined,
   ]),
 });
 
 export const getShowPetByIdMock = () =>
   (() => ({
-    id: faker.random.number({ min: 1, max: 99 }),
+    id: faker.datatype.number({ min: 1, max: 99 }),
     name: faker.name.firstName(),
-    tag: faker.helpers.randomize([faker.random.word(), void 0]),
+    tag: faker.helpers.arrayElement([faker.random.word(), void 0]),
   }))();
 
 export const getSwaggerPetstoreMSW = () => [

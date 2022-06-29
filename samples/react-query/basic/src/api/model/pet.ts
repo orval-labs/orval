@@ -4,15 +4,25 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { PetCallingCode } from './petCallingCode';
-import type { PetCountry } from './petCountry';
+import type { Dog } from './dog';
+import type { Cat } from './cat';
 
-export interface Pet {
-  '@id'?: string;
-  id: number;
-  name: string;
-  tag?: string;
-  email?: string;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-}
+export type Pet =
+  | (Dog & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: '+33' | '+420' | '+33';
+      country?: "People's Republic of China" | 'Uruguay';
+    })
+  | (Cat & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: '+33' | '+420' | '+33';
+      country?: "People's Republic of China" | 'Uruguay';
+    });

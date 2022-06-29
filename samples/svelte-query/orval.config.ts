@@ -29,7 +29,7 @@ export default defineConfig({
 							data: () => ({
 								id: faker.datatype.number({ min: 1, max: 99 }),
 								name: faker.name.firstName(),
-								tag: faker.helpers.randomize([faker.datatype.string(), undefined])
+								tag: faker.helpers.arrayElement([faker.datatype.string(), undefined])
 							})
 						}
 					}

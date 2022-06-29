@@ -53,12 +53,13 @@ export const useListPets = <TData = Awaited<ReturnType<typeof listPets>>, TError
 	const query = useQuery<Awaited<ReturnType<typeof listPets>>, TError, TData>(queryKey, queryFn, {
 		enabled: !!version,
 		...queryOptions
-	});
-
-	return {
-		queryKey,
-		...query
+	}) as UseQueryStoreResult<Awaited<ReturnType<typeof listPets>>, TError, TData, QueryKey> & {
+		queryKey: QueryKey;
 	};
+
+	query.queryKey = queryKey;
+
+	return query;
 };
 
 /**
@@ -136,10 +137,11 @@ export const useShowPetById = <TData = Awaited<ReturnType<typeof showPetById>>, 
 		queryKey,
 		queryFn,
 		{ enabled: !!(version && petId), ...queryOptions }
-	);
-
-	return {
-		queryKey,
-		...query
+	) as UseQueryStoreResult<Awaited<ReturnType<typeof showPetById>>, TError, TData, QueryKey> & {
+		queryKey: QueryKey;
 	};
+
+	query.queryKey = queryKey;
+
+	return query;
 };

@@ -52,10 +52,9 @@ export const useGetPets = <
     queryKey,
     queryFn,
     queryOptions
-  );
+  ) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };

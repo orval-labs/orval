@@ -85,12 +85,18 @@ export const useListPetsInfinite = <
     Awaited<ReturnType<typeof listPets>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!version, ...queryOptions });
+  >(queryKey, queryFn, {
+    enabled: !!version,
+    ...queryOptions,
+  }) as UseQueryReturnType<
+    TData,
+    TError,
+    UseInfiniteQueryResult<TData, TError>
+  > & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -127,12 +133,13 @@ export const useListPets = <
     queryKey,
     queryFn,
     { enabled: !!version, ...queryOptions },
-  );
-
-  return {
-    queryKey,
-    ...query,
+  ) as UseQueryReturnType<TData, TError, UseQueryResult<TData, TError>> & {
+    queryKey: QueryKey;
   };
+
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 /**
@@ -233,12 +240,18 @@ export const useShowPetByIdInfinite = <
     Awaited<ReturnType<typeof showPetById>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!(version && petId), ...queryOptions });
+  >(queryKey, queryFn, {
+    enabled: !!(version && petId),
+    ...queryOptions,
+  }) as UseQueryReturnType<
+    TData,
+    TError,
+    UseInfiniteQueryResult<TData, TError>
+  > & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -275,10 +288,14 @@ export const useShowPetById = <
     Awaited<ReturnType<typeof showPetById>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!(version && petId), ...queryOptions });
-
-  return {
-    queryKey,
-    ...query,
+  >(queryKey, queryFn, {
+    enabled: !!(version && petId),
+    ...queryOptions,
+  }) as UseQueryReturnType<TData, TError, UseQueryResult<TData, TError>> & {
+    queryKey: QueryKey;
   };
+
+  query.queryKey = queryKey;
+
+  return query;
 };

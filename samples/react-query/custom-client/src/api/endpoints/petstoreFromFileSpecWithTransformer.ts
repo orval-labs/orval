@@ -5,26 +5,26 @@
  * OpenAPI spec version: 1.0.0
  */
 import {
-  useQuery,
-  useInfiniteQuery,
-  useMutation,
-  UseQueryOptions,
-  UseInfiniteQueryOptions,
-  UseMutationOptions,
-  QueryFunction,
   MutationFunction,
-  UseQueryResult,
-  UseInfiniteQueryResult,
+  QueryFunction,
   QueryKey,
+  useInfiniteQuery,
+  UseInfiniteQueryOptions,
+  UseInfiniteQueryResult,
+  useMutation,
+  UseMutationOptions,
+  useQuery,
+  UseQueryOptions,
+  UseQueryResult,
 } from 'react-query';
 import type {
-  Pets,
+  CreatePetsBody,
   Error,
   ListPetsParams,
   Pet,
-  CreatePetsBody,
+  Pets,
 } from '../model';
-import { customClient, ErrorType, BodyType } from '../mutator/custom-client';
+import { BodyType, customClient, ErrorType } from '../mutator/custom-client';
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -84,12 +84,14 @@ export const useListPetsInfinite = <
     Awaited<ReturnType<typeof listPets>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!version, ...queryOptions });
+  >(queryKey, queryFn, {
+    enabled: !!version,
+    ...queryOptions,
+  }) as UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -124,12 +126,11 @@ export const useListPets = <
     queryKey,
     queryFn,
     { enabled: !!version, ...queryOptions },
-  );
+  ) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 /**
@@ -234,12 +235,14 @@ export const useShowPetByIdInfinite = <
     Awaited<ReturnType<typeof showPetById>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!(version && petId), ...queryOptions });
+  >(queryKey, queryFn, {
+    enabled: !!(version && petId),
+    ...queryOptions,
+  }) as UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -274,10 +277,12 @@ export const useShowPetById = <
     Awaited<ReturnType<typeof showPetById>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!(version && petId), ...queryOptions });
+  >(queryKey, queryFn, {
+    enabled: !!(version && petId),
+    ...queryOptions,
+  }) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };

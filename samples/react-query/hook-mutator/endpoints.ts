@@ -75,12 +75,13 @@ export const useListPets = <
     Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
     TError,
     TData
-  >(queryKey, queryFn, queryOptions);
-
-  return {
-    queryKey,
-    ...query,
+  >(queryKey, queryFn, queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
   };
+
+  query.queryKey = queryKey;
+
+  return query;
 };
 
 /**
@@ -179,10 +180,12 @@ export const useShowPetById = <
     Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
     TError,
     TData
-  >(queryKey, queryFn, { enabled: !!petId, ...queryOptions });
+  >(queryKey, queryFn, { enabled: !!petId, ...queryOptions }) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
 
-  return {
-    queryKey,
-    ...query,
-  };
+  query.queryKey = queryKey;
+
+  return query;
 };

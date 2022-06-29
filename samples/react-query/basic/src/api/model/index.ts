@@ -5,3 +5,7 @@ export * from './pet';
 export * from './petCallingCode';
 export * from './petCountry';
 export * from './pets';
+export * from './dog';
+export * from './cat';
+export * from './dogType';
+export * from './catType';

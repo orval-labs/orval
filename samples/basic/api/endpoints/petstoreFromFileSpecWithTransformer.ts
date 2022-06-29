@@ -57,17 +57,16 @@ export type CreatePetsResult = AxiosResponse<void>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 
 export const getListPetsMock = () =>
-  [...Array(faker.datatype.number({ min: 1, max: 10 }))].map(() => ({
-    id: faker.datatype.number(),
-    name: 'jon',
-    tag: 'jon',
-  }));
+  Array.from(
+    { length: faker.datatype.number({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({ id: faker.datatype.number(), name: 'jon', tag: 'jon' }));
 
 export const getShowPetByIdMock = () =>
   (() => ({
     id: faker.datatype.number({ min: 1, max: 99 }),
     name: faker.name.firstName(),
-    tag: faker.helpers.randomize([faker.random.word(), void 0]),
+    tag: faker.helpers.arrayElement([faker.random.word(), void 0]),
   }))();
 
 export const getSwaggerPetstoreMSW = () => [
