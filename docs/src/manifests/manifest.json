@@ -95,6 +95,11 @@
               "editUrl": "/reference/configuration/output.md"
             },
             {
+              "title": "Hooks",
+              "path": "/reference/configuration/hooks",
+              "editUrl": "/reference/configuration/hooks.md"
+            },
+            {
               "title": "Full example",
               "path": "/reference/configuration/full-example",
               "editUrl": "/reference/configuration/full-example.md"
