@@ -137,20 +137,20 @@ export const generateBodyMutatorConfig = (
 
 export const generateQueryParamsAxiosConfig = (
   response: GetterResponse,
-  queryParams?: GeneratorSchema,
+  queryParams?: GetterQueryParam,
 ) => {
   if (!queryParams && !response.isBlob) {
     return '';
   }
 
-  let value = ',';
+  let value = '';
 
   if (queryParams) {
-    value += '\n        params,';
+    value += ',\n        params';
   }
 
   if (response.isBlob) {
-    value += `\n        responseType: 'blob',`;
+    value += `,\n        responseType: 'blob'`;
   }
 
   return value;
@@ -166,6 +166,7 @@ export const generateMutatorConfig = ({
   isFormUrlEncoded,
   isBodyVerb,
   hasSignal,
+  isExactOptionalPropertyTypes,
 }: {
   route: string;
   body: GetterBody;
@@ -176,6 +177,7 @@ export const generateMutatorConfig = ({
   isFormUrlEncoded: boolean;
   isBodyVerb: boolean;
   hasSignal: boolean;
+  isExactOptionalPropertyTypes: boolean;
 }) => {
   const bodyOptions = isBodyVerb
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -183,16 +185,22 @@ export const generateMutatorConfig = ({
 
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
-    queryParams?.schema,
+    queryParams,
   );
 
   const headerOptions = body.contentType
     ? `,\n      headers: {'Content-Type': '${body.contentType}'}`
     : '';
 
-  return `{url: \`${route}\`, method: '${verb}'${
-    !isBodyVerb && hasSignal ? ', signal' : ''
-  }${headerOptions}${bodyOptions}${queryParamsOptions}\n    }`;
+  return `{url: \`${route}\`, method: '${verb}'${headerOptions}${bodyOptions}${queryParamsOptions}${
+    !isBodyVerb && hasSignal
+      ? `, ${
+          isExactOptionalPropertyTypes
+            ? '...(signal ? { signal }: {})'
+            : 'signal'
+        }`
+      : ''
+  }\n    }`;
 };
 
 export const generateMutatorRequestOptions = (

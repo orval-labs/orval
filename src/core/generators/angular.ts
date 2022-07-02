@@ -117,7 +117,7 @@ const generateImplementation = (
     formData,
     formUrlEncoded,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
@@ -140,6 +140,9 @@ const generateImplementation = (
   );
 
   if (mutator) {
+    const isExactOptionalPropertyTypes =
+      !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -150,6 +153,7 @@ const generateImplementation = (
       isFormUrlEncoded,
       hasSignal: false,
       isBodyVerb,
+      isExactOptionalPropertyTypes,
     });
 
     const requestOptions = isRequestOptions

@@ -344,6 +344,7 @@ export interface Tsconfig {
   compilerOptions?: {
     esModuleInterop?: boolean;
     allowSyntheticDefaultImports?: boolean;
+    exactOptionalPropertyTypes?: boolean;
     paths?: Record<string, string[]>;
   };
 }

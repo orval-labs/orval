@@ -72,6 +72,9 @@ const generateAxiosImplementation = (
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   if (mutator) {
+    const isExactOptionalPropertyTypes =
+      !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -82,6 +85,7 @@ const generateAxiosImplementation = (
       isFormUrlEncoded,
       isBodyVerb,
       hasSignal: true,
+      isExactOptionalPropertyTypes,
     });
 
     const requestOptions = isRequestOptions

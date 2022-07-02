@@ -147,6 +147,8 @@ const generateQueryRequestFunction = (
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
   );
+  const isExactOptionalPropertyTypes =
+    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -168,6 +170,7 @@ const generateQueryRequestFunction = (
       isFormUrlEncoded,
       isBodyVerb,
       hasSignal: true,
+      isExactOptionalPropertyTypes,
     });
 
     const propsImplementation =
@@ -364,6 +367,58 @@ const generateQueryReturnType = ({
   }
 };
 
+const getQueryOptions = ({
+  isRequestOptions,
+  mutator,
+  isExactOptionalPropertyTypes,
+}: {
+  isRequestOptions: boolean;
+  mutator?: GeneratorMutator;
+  isExactOptionalPropertyTypes: boolean;
+}) => {
+  if (!isRequestOptions) {
+    return '';
+  }
+
+  if (!mutator) {
+    return `{ ${
+      isExactOptionalPropertyTypes ? '...(signal ? { signal } : {})' : 'signal'
+    }, ...axiosOptions }`;
+  }
+
+  if (mutator.hasSecondArg) {
+    return 'requestOptions, signal';
+  }
+
+  return 'signal';
+};
+
+const getHookOptions = ({
+  isRequestOptions,
+  mutator,
+}: {
+  isRequestOptions: boolean;
+  mutator?: GeneratorMutator;
+}) => {
+  if (!isRequestOptions) {
+    return '';
+  }
+
+  let value = 'const {query: queryOptions';
+
+  if (!mutator) {
+    value += ', axios: axiosOptions';
+  }
+
+  if (mutator?.hasSecondArg) {
+    value += ', request: requestOptions';
+  }
+
+  value += '} = options ?? {}';
+
+  return value;
+};
+
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type },
   operationName,
@@ -376,6 +431,7 @@ const generateQueryImplementation = ({
   isRequestOptions,
   response,
   outputClient,
+  isExactOptionalPropertyTypes,
 }: {
   queryOption: {
     name: string;
@@ -393,6 +449,7 @@ const generateQueryImplementation = ({
   response: GetterResponse;
   mutator?: GeneratorMutator;
   outputClient: OutputClient | OutputClientFunc;
+  isExactOptionalPropertyTypes: boolean;
 }) => {
   const httpFunctionProps = queryParam
     ? props
@@ -423,6 +480,17 @@ const generateQueryImplementation = ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
+  const queryOptions = getQueryOptions({
+    isRequestOptions,
+    isExactOptionalPropertyTypes,
+    mutator,
+  });
+
+  const hookOptions = getHookOptions({
+    isRequestOptions,
+    mutator,
+  });
+
   return `
 export type ${pascal(
     name,
@@ -441,17 +509,7 @@ export const ${camel(
     },
   )}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
-  ${
-    isRequestOptions
-      ? `const {query: queryOptions${
-          !mutator
-            ? `, axios: axiosOptions`
-            : mutator.hasSecondArg
-            ? ', request: requestOptions'
-            : ''
-        }} = options ?? {}`
-      : ''
-  }
+  ${hookOptions}
 
   const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
 
@@ -469,15 +527,9 @@ export const ${camel(
     queryParam && props.some(({ type }) => type === 'queryParam')
       ? `{ signal, pageParam }`
       : '{ signal }'
-  }) => ${operationName}(${httpFunctionProps}${httpFunctionProps ? ', ' : ''}${
-    isRequestOptions
-      ? !mutator
-        ? `{ signal, ...axiosOptions }`
-        : mutator.hasSecondArg
-        ? 'requestOptions, signal'
-        : 'signal'
-      : ''
-  });
+  }) => ${operationName}(${httpFunctionProps}${
+    httpFunctionProps ? ', ' : ''
+  }${queryOptions});
 
   const query = ${camel(`use-${type}`)}<Awaited<ReturnType<${
     mutator?.isHook
@@ -488,7 +540,7 @@ export const ${camel(
     options,
     type,
   })}) as ${returnType} & { queryKey: QueryKey };
-  
+
   query.queryKey = queryKey;
 
   return query;
@@ -508,12 +560,14 @@ const generateQueryHook = (
     response,
     operationId,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} } }: GeneratorOptions,
+  { route, override: { operations = {} }, context }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
+  const isExactOptionalPropertyTypes =
+    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
   if (
     verb === Verbs.GET ||
@@ -570,6 +624,7 @@ const generateQueryHook = (
           isRequestOptions,
           response,
           outputClient,
+          isExactOptionalPropertyTypes,
         }),
       '',
     )}

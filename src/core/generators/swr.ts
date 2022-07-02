@@ -88,6 +88,9 @@ const generateSwrRequestFunction = (
   });
 
   if (mutator) {
+    const isExactOptionalPropertyTypes =
+      !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -98,6 +101,7 @@ const generateSwrRequestFunction = (
       isFormUrlEncoded,
       hasSignal: false,
       isBodyVerb,
+      isExactOptionalPropertyTypes,
     });
 
     const requestOptions = isRequestOptions
