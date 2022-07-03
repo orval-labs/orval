@@ -7,7 +7,6 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { camel } from '../../utils/case';
-import { BODY_TYPE_NAME } from './mutator';
 
 export const generateImports = ({
   imports = [],
@@ -61,31 +60,79 @@ export const generateMutatorImports = (
     (a, b) => a.name === b.name && a.default === b.default,
   )
     .map((mutator) => {
+      const path = `${oneMore ? '../' : ''}${mutator.path}`;
       const importDefault = mutator.default
-        ? `${mutator.name}${
-            mutator.hasErrorType || mutator.bodyTypeName
-              ? `, { ${
-                  mutator.hasErrorType
-                    ? `ErrorType as ${mutator.errorTypeName}`
-                    : ''
-                }${mutator.hasErrorType && mutator.bodyTypeName ? ',' : ''} ${
-                  mutator.bodyTypeName
-                    ? `${BODY_TYPE_NAME} as ${mutator.bodyTypeName}`
-                    : ''
-                } }`
-              : ''
-          }`
-        : `{ ${mutator.name}${
-            mutator.hasErrorType ? `, ${mutator.errorTypeName}` : ''
-          }${mutator.bodyTypeName ? `, ${mutator.bodyTypeName}` : ''} }`;
+        ? mutator.name
+        : `{ ${mutator.name} }`;
 
-      return `import ${importDefault} from '${oneMore ? '../' : ''}${
-        mutator.path
-      }'`;
+      let dep = `import ${importDefault} from '${path}'`;
+
+      if (mutator.hasErrorType || mutator.bodyTypeName) {
+        dep += '\n';
+        dep += `import type { ${
+          mutator.hasErrorType ? `${mutator.errorTypeName}` : ''
+        }${mutator.hasErrorType && mutator.bodyTypeName ? ', ' : ''}${
+          mutator.bodyTypeName ? `${mutator.bodyTypeName}` : ''
+        } } from '${path}'`;
+      }
+
+      return dep;
     })
     .join('\n');
 
   return imports ? imports + '\n' : '';
+};
+
+const generateDependency = ({
+  deps,
+  isAllowSyntheticDefaultImports,
+  dependency,
+  specsName,
+  key,
+  onlyTypes,
+}: {
+  key: string;
+  deps: GeneratorImport[];
+  dependency: string;
+  specsName: Record<string, string>;
+  isAllowSyntheticDefaultImports: boolean;
+  onlyTypes: boolean;
+}) => {
+  const defaultDep = deps.find(
+    (e) =>
+      e.default &&
+      (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
+  );
+  const syntheticDefaultImportDep = !isAllowSyntheticDefaultImports
+    ? deps.find((e) => e.syntheticDefaultImport)
+    : undefined;
+
+  const depsString = uniq(
+    deps
+      .filter((e) => !e.default && !e.syntheticDefaultImport)
+      .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
+  ).join(',\n  ');
+
+  let importString = '';
+
+  const syntheticDefaultImport = syntheticDefaultImportDep
+    ? `import * as ${syntheticDefaultImportDep.name} from '${dependency}';`
+    : '';
+
+  if (syntheticDefaultImport) {
+    if (deps.length === 1) {
+      return syntheticDefaultImport;
+    }
+    importString += `${syntheticDefaultImport}\n`;
+  }
+
+  importString += `import ${onlyTypes ? 'type ' : ''}${
+    defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
+  }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
+    key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
+  }'`;
+
+  return importString;
 };
 
 export const addDependency = ({
@@ -112,59 +159,60 @@ export const addDependency = ({
   }
 
   const groupedBySpecKey = toAdds.reduce<
-    Record<string, { deps: GeneratorImport[]; values: boolean }>
+    Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
   >((acc, dep) => {
     const key = hasSchemaDir && dep.specKey ? dep.specKey : 'default';
 
+    if (
+      dep.values &&
+      (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)
+    ) {
+      acc[key] = {
+        ...acc[key],
+        values: [...(acc[key]?.values ?? []), dep],
+      };
+
+      return acc;
+    }
+
     acc[key] = {
-      values:
-        acc[key]?.values ||
-        (dep.values &&
-          (isAllowSyntheticDefaultImports || !dep.syntheticDefaultImport)) ||
-        false,
-      deps: [...(acc[key]?.deps ?? []), dep],
+      ...acc[key],
+      types: [...(acc[key]?.types ?? []), dep],
     };
 
     return acc;
   }, {});
 
   return Object.entries(groupedBySpecKey)
-    .map(([key, { values, deps }]) => {
-      const defaultDep = deps.find(
-        (e) =>
-          e.default &&
-          (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
-      );
-      const syntheticDefaultImportDep = !isAllowSyntheticDefaultImports
-        ? deps.find((e) => e.syntheticDefaultImport)
-        : undefined;
+    .map(([key, { values, types }]) => {
+      let dep = '';
 
-      const depsString = uniq(
-        deps
-          .filter((e) => !e.default && !e.syntheticDefaultImport)
-          .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
-      ).join(',\n  ');
-
-      let importString = '';
-
-      const syntheticDefaultImport = syntheticDefaultImportDep
-        ? `import * as ${syntheticDefaultImportDep.name} from '${dependency}';`
-        : '';
-
-      if (syntheticDefaultImport) {
-        if (deps.length === 1) {
-          return syntheticDefaultImport;
-        }
-        importString += `${syntheticDefaultImport}\n`;
+      if (values) {
+        dep += generateDependency({
+          deps: values,
+          isAllowSyntheticDefaultImports,
+          dependency,
+          specsName,
+          key,
+          onlyTypes: false,
+        });
       }
 
-      importString += `import ${!values ? 'type ' : ''}${
-        defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
-      }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
-        key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
-      }'`;
+      if (types) {
+        if (values) {
+          dep += '\n';
+        }
+        dep += generateDependency({
+          deps: types,
+          isAllowSyntheticDefaultImports,
+          dependency,
+          specsName,
+          key,
+          onlyTypes: true,
+        });
+      }
 
-      return importString;
+      return dep;
     })
     .join('\n');
 };
