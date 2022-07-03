@@ -27,6 +27,11 @@ Configuration options for the following are described on this page:
       <td className="border px-4 py-2">Output</td>
       <td className="border px-4 py-2">Directly the path to where you want to generate your models and HTTP calls or the configuration of what and where you want to write the generated code.</td>
     </tr>
+    <tr>
+      <td className="border px-4 py-2">Hooks</td>
+      <td className="border px-4 py-2">Allows you to run scripts on certain events.
+      </td>
+    </tr>
   </tbody>
 </table>
 </div>
@@ -38,6 +43,9 @@ module.exports = {
   petstore: {
     input: './petstore.yaml',
     output: './petstore.ts',
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
   },
 };
 ```
@@ -51,6 +59,9 @@ export default defineConfig({
   petstore: {
     input: './petstore.yaml',
     output: './petstore.ts',
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
   },
 });
 ```

@@ -53,6 +53,9 @@ module.exports = {
         transformer: 'src/add-version.js',
       },
     },
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
   },
 };
 ```

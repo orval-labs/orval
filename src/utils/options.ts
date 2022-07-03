@@ -4,7 +4,11 @@ import { RefComponentSuffix } from '../core/getters/ref';
 import {
   ConfigExternal,
   GlobalOptions,
+  Hook,
+  HookFunction,
+  HooksOptions,
   Mutator,
+  NormalizedHookOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOptions,
@@ -176,6 +180,7 @@ export const normalizeOptions = async (
         useDates: outputOptions.override?.useDates || false,
       },
     },
+    hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
 
   if (!normalizedOptions.input.target) {
@@ -298,4 +303,29 @@ const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
   }
 
   return mode;
+};
+
+const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
+  const keys = Object.keys(hooks) as unknown as Hook[];
+
+  return keys.reduce((acc, key: Hook) => {
+    if (isString(hooks[key])) {
+      return {
+        ...acc,
+        [key]: [hooks[key]] as string[],
+      };
+    } else if (Array.isArray(hooks[key])) {
+      return {
+        ...acc,
+        [key]: hooks[key] as string[],
+      };
+    } else if (isFunction(hooks[key])) {
+      return {
+        ...acc,
+        [key]: [hooks[key]] as HookFunction[],
+      };
+    }
+
+    return acc;
+  }, {} as NormalizedHookOptions);
 };
