@@ -32,17 +32,24 @@ export const generateBodyOptions = (
 export const generateAxiosOptions = (
   response: GetterResponse,
   queryParams?: GeneratorSchema,
+  headers?: GeneratorSchema,
   requestOptions?: object | boolean,
 ) => {
   const isRequestOptions = requestOptions !== false;
-  if (!queryParams && !response.isBlob) {
+  if (!queryParams && !headers && !response.isBlob) {
     return isRequestOptions ? 'options' : '';
   }
 
   let value = '';
 
-  if (queryParams) {
-    value += '\n        params,';
+  if (!isRequestOptions) {
+    if (queryParams) {
+      value += '\n        params,';
+    }
+
+    if (headers) {
+      value += '\n        headers,';
+    }
   }
 
   if (
@@ -58,7 +65,15 @@ export const generateAxiosOptions = (
   }
 
   if (isRequestOptions) {
-    value += '\n    ...options';
+    value += '\n    ...options,';
+
+    if (queryParams) {
+      value += '\n        params: {...params, ...options?.params},';
+    }
+
+    if (headers) {
+      value += '\n        headers: {...headers, ...options?.headers},';
+    }
   }
 
   return value;
@@ -67,6 +82,7 @@ export const generateAxiosOptions = (
 export const generateOptions = ({
   route,
   body,
+  headers,
   queryParams,
   response,
   verb,
@@ -77,6 +93,7 @@ export const generateOptions = ({
 }: {
   route: string;
   body: GetterBody;
+  headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
   verb: Verbs;
@@ -93,6 +110,7 @@ export const generateOptions = ({
   const axiosOptions = generateAxiosOptions(
     response,
     queryParams?.schema,
+    headers?.schema,
     requestOptions,
   );
 
@@ -159,6 +177,7 @@ export const generateQueryParamsAxiosConfig = (
 export const generateMutatorConfig = ({
   route,
   body,
+  headers,
   queryParams,
   response,
   verb,
@@ -170,6 +189,7 @@ export const generateMutatorConfig = ({
 }: {
   route: string;
   body: GetterBody;
+  headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
   response: GetterResponse;
   verb: Verbs;
@@ -189,7 +209,11 @@ export const generateMutatorConfig = ({
   );
 
   const headerOptions = body.contentType
-    ? `,\n      headers: {'Content-Type': '${body.contentType}'}`
+    ? `,\n      headers: {'Content-Type': '${body.contentType}', ${
+        headers ? '...headers' : ''
+      }}`
+    : headers
+    ? ',\n      headers'
     : '';
 
   return `{url: \`${route}\`, method: '${verb}'${headerOptions}${bodyOptions}${queryParamsOptions}${

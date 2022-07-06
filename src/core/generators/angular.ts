@@ -106,6 +106,7 @@ export const generateAngularFooter = () =>
 
 const generateImplementation = (
   {
+    headers,
     queryParams,
     operationName,
     response,
@@ -146,6 +147,7 @@ const generateImplementation = (
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
+      headers,
       queryParams,
       response,
       verb,
@@ -182,6 +184,7 @@ const generateImplementation = (
   const options = generateOptions({
     route,
     body,
+    headers,
     queryParams,
     response,
     verb,

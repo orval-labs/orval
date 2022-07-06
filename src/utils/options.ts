@@ -111,6 +111,7 @@ export const normalizeOptions = async (
       tslint: outputOptions.tslint ?? tslint ?? false,
       tsconfig,
       packageJson,
+      headers: outputOptions.headers ?? false,
       override: {
         ...outputOptions.override,
         operations: normalizeOperationsAndTags(

@@ -33,6 +33,16 @@ paths:
               - -name
               - email
               - -email
+        - description: Header parameters
+          in: header
+          name: X-EXAMPLE
+          required: true
+          schema:
+            type: string
+            enum:
+              - ONE
+              - TWO
+              - THREE
       responses:
         '200':
           description: A paged array of pets
@@ -56,6 +66,36 @@ paths:
       operationId: createPets
       tags:
         - pets
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: |
+            Which property to sort by?
+            Example: name sorts ASC while -name sorts DESC.
+          required: true
+          schema:
+            type: string
+            enum:
+              - name
+              - -name
+              - email
+              - -email
+        - description: Header parameters
+          in: header
+          name: X-EXAMPLE
+          required: true
+          schema:
+            type: string
+            enum:
+              - ONE
+              - TWO
+              - THREE
       requestBody:
         required: true
         content:

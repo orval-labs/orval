@@ -94,6 +94,15 @@ const generateVerbOptions = async ({
     context,
   });
 
+  const headers = output.headers
+    ? await getQueryParams({
+        queryParams: parameters.header,
+        operationName,
+        context,
+        suffix: 'headers',
+      })
+    : undefined;
+
   const params = await getParams({
     route,
     pathParams: parameters.path,
@@ -101,7 +110,7 @@ const generateVerbOptions = async ({
     context,
   });
 
-  const props = getProps({ body, queryParams, params });
+  const props = getProps({ body, queryParams, params, headers });
 
   const mutator = await generateMutator({
     output: output.target,
@@ -143,6 +152,7 @@ const generateVerbOptions = async ({
     operationName,
     response,
     body,
+    headers,
     queryParams,
     params,
     props,

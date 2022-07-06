@@ -58,6 +58,7 @@ export const getSwrDependencies = (hasGlobalMutator: boolean) => [
 
 const generateSwrRequestFunction = (
   {
+    headers,
     queryParams,
     operationName,
     response,
@@ -94,6 +95,7 @@ const generateSwrRequestFunction = (
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
+      headers,
       queryParams,
       response,
       verb,
@@ -129,6 +131,7 @@ const generateSwrRequestFunction = (
   const options = generateOptions({
     route,
     body,
+    headers,
     queryParams,
     response,
     verb,
@@ -178,32 +181,34 @@ const generateSwrArguments = ({
 
 const generateSwrImplementation = ({
   operationName,
-  swrProps,
   swrKeyFnName,
-  properties,
+  swrProperties,
+  swrKeyProperties,
   params,
   mutator,
   isRequestOptions,
   response,
   swrOptions,
+  props,
 }: {
   isRequestOptions: boolean;
   operationName: string;
-  swrProps: string;
   swrKeyFnName: string;
-  properties: string;
+  swrProperties: string;
+  swrKeyProperties: string;
   params: GetterParams;
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
   swrOptions: { options?: any };
 }) => {
-  const httpFunctionProps = properties;
+  const swrProps = toObjectString(props, 'implementation');
+  const httpFunctionProps = swrProperties;
 
   const swrKeyImplementation = params.length
     ? `const isEnable = !!(${params.map(({ name }) => name).join(' && ')})
-  const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${properties}) : null);`
-    : `const swrKey = swrOptions?.swrKey ?? (() => ${swrKeyFnName}(${properties}))`;
+  const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${swrKeyProperties}) : null);`
+    : `const swrKey = swrOptions?.swrKey ?? (() => ${swrKeyFnName}(${swrKeyProperties}))`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
@@ -288,24 +293,34 @@ const generateSwrHook = (
     return '';
   }
 
-  const properties = props
+  const swrProperties = props
+    .map(({ name, type }) =>
+      type === GetterPropType.BODY ? body.implementation : name,
+    )
+    .join(',');
+
+  const swrKeyProperties = props
+    .filter((prop) => prop.type !== GetterPropType.HEADER)
     .map(({ name, type }) =>
       type === GetterPropType.BODY ? body.implementation : name,
     )
     .join(',');
 
   const swrKeyFnName = camel(`get-${operationName}-key`);
-  const swrProps = toObjectString(props, 'implementation');
+  const queryKeyProps = toObjectString(
+    props.filter((prop) => prop.type !== GetterPropType.HEADER),
+    'implementation',
+  );
 
-  return `export const ${swrKeyFnName} = (${swrProps}) => [\`${route}\`${
+  return `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     queryParams ? ', ...(params ? [params]: [])' : ''
   }${body.implementation ? `, ${body.implementation}` : ''}];
 
     ${generateSwrImplementation({
       operationName,
-      swrProps,
       swrKeyFnName,
-      properties,
+      swrProperties,
+      swrKeyProperties,
       params,
       props,
       mutator,

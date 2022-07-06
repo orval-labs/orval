@@ -87,6 +87,7 @@ export type GeneratorVerbOptions = {
   operationName: string;
   response: GetterResponse;
   body: GetterBody;
+  headers?: GetterQueryParam;
   queryParams?: GetterQueryParam;
   params: GetterParams;
   props: GetterProps;

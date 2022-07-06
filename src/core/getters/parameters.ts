@@ -19,11 +19,15 @@ export const getParameters = async ({
         const { schema: parameter, imports } =
           await resolveRef<ParameterObject>(p, context);
 
-        if (parameter.in === 'path' || parameter.in === 'query') {
+        if (
+          parameter.in === 'path' ||
+          parameter.in === 'query' ||
+          parameter.in === 'header'
+        ) {
           acc[parameter.in].push({ parameter, imports });
         }
       } else {
-        if (p.in === 'query' || p.in === 'path') {
+        if (p.in === 'query' || p.in === 'path' || p.in === 'header') {
           acc[p.in].push({ parameter: p, imports: [] });
         }
       }
@@ -33,6 +37,7 @@ export const getParameters = async ({
     {
       path: [],
       query: [],
+      header: [],
     } as GetterParameters,
   );
 };

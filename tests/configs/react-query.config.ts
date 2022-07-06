@@ -7,6 +7,7 @@ export default defineConfig({
       schemas: '../generated/react-query/basic/model',
       client: 'react-query',
       mock: true,
+      headers: true,
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -43,6 +44,7 @@ export default defineConfig({
       schemas: '../generated/react-query/mutator-client/model',
       client: 'react-query',
       mock: true,
+      headers: true,
       override: {
         mutator: {
           path: '../mutators/custom-client.ts',

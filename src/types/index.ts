@@ -47,6 +47,7 @@ export type NormalizedOutputOptions = {
   tslint: boolean;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
+  headers: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -147,6 +148,7 @@ export type OutputOptions = {
   tslint?: boolean;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
+  headers?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {

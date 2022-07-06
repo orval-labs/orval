@@ -271,11 +271,25 @@ Default Value: `false`.
 
 Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
 
-### tsconfig
+### headers
 
 Type: `Boolean`.
 
-Can be used to specify the path to your `tsconfig`.
+Use to enable the generation of the headers
+
+### tsconfig
+
+Type: `String | Tsconfig`.
+
+Should be automatically found and transparent for you.
+Can be used to specify the path to your `tsconfig` or directly your config.
+
+### packageJson
+
+Type: `String`.
+
+Should be automatically found and transparent for you.
+Can be used to specify the path to your `package.json`.
 
 ### override
 

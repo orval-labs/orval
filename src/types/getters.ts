@@ -30,6 +30,7 @@ export type GetterBody = {
 export type GetterParameters = {
   query: { parameter: ParameterObject; imports: GeneratorImport[] }[];
   path: { parameter: ParameterObject; imports: GeneratorImport[] }[];
+  header: { parameter: ParameterObject; imports: GeneratorImport[] }[];
 };
 
 export type GetterParam = {
@@ -48,12 +49,13 @@ export type GetterQueryParam = {
   isOptional: boolean;
 };
 
-export type GetterPropType = 'param' | 'body' | 'queryParam';
+export type GetterPropType = 'param' | 'body' | 'queryParam' | 'header';
 
 export const GetterPropType = {
   PARAM: 'param' as GetterPropType,
   BODY: 'body' as GetterPropType,
   QUERY_PARAM: 'queryParam' as GetterPropType,
+  HEADER: 'header' as GetterPropType,
 };
 
 export type GetterProp = {
@@ -62,7 +64,7 @@ export type GetterProp = {
   implementation: string;
   default: boolean;
   required: boolean;
-  type: 'param' | 'body' | 'queryParam';
+  type: GetterPropType;
 };
 
 export type GetterProps = GetterProp[];

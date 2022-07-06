@@ -46,9 +46,12 @@ export const generateApi = async ({
       });
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
-        (acc, { queryParams, body, response }) => {
+        (acc, { queryParams, headers, body, response }) => {
           if (queryParams) {
             acc.push(queryParams.schema, ...queryParams.deps);
+          }
+          if (headers) {
+            acc.push(headers.schema, ...headers.deps);
           }
 
           acc.push(...body.schemas);

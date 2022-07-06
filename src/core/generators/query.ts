@@ -127,6 +127,7 @@ export const getVueQueryDependencies = (hasGlobalMutator: boolean) => [
 
 const generateQueryRequestFunction = (
   {
+    headers,
     queryParams,
     operationName,
     response,
@@ -163,6 +164,7 @@ const generateQueryRequestFunction = (
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
+      headers,
       queryParams,
       response,
       verb,
@@ -224,6 +226,7 @@ const generateQueryRequestFunction = (
   const options = generateOptions({
     route,
     body,
+    headers,
     queryParams,
     response,
     verb,
@@ -422,9 +425,9 @@ const getHookOptions = ({
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type },
   operationName,
-  queryProps,
   queryKeyFnName,
-  properties,
+  queryProperties,
+  queryKeyProperties,
   params,
   props,
   mutator,
@@ -441,9 +444,9 @@ const generateQueryImplementation = ({
   };
   isRequestOptions: boolean;
   operationName: string;
-  queryProps: string;
   queryKeyFnName: string;
-  properties: string;
+  queryProperties: string;
+  queryKeyProperties: string;
   params: GetterParams;
   props: GetterProps;
   response: GetterResponse;
@@ -451,13 +454,14 @@ const generateQueryImplementation = ({
   outputClient: OutputClient | OutputClientFunc;
   isExactOptionalPropertyTypes: boolean;
 }) => {
+  const queryProps = toObjectString(props, 'implementation');
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
           name === 'params' ? `{ ${queryParam}: pageParam, ...params }` : name,
         )
         .join(',')
-    : properties;
+    : queryProperties;
 
   const returnType = generateQueryReturnType({
     outputClient,
@@ -511,7 +515,7 @@ export const ${camel(
 
   ${hookOptions}
 
-  const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${properties});
+  const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${queryKeyProperties});
 
   ${
     mutator?.isHook
@@ -574,7 +578,14 @@ const generateQueryHook = (
     operationQueryOptions?.useInfinite ||
     operationQueryOptions?.useQuery
   ) {
-    const properties = props
+    const queryProperties = props
+      .map(({ name, type }) =>
+        type === GetterPropType.BODY ? body.implementation : name,
+      )
+      .join(',');
+
+    const queryKeyProperties = props
+      .filter((prop) => prop.type !== GetterPropType.HEADER)
       .map(({ name, type }) =>
         type === GetterPropType.BODY ? body.implementation : name,
       )
@@ -603,9 +614,12 @@ const generateQueryHook = (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryProps = toObjectString(props, 'implementation');
+    const queryKeyProps = toObjectString(
+      props.filter((prop) => prop.type !== GetterPropType.HEADER),
+      'implementation',
+    );
 
-    return `export const ${queryKeyFnName} = (${queryProps}) => [\`${route}\`${
+    return `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
     }${body.implementation ? `, ${body.implementation}` : ''}];
 
@@ -615,9 +629,9 @@ const generateQueryHook = (
         generateQueryImplementation({
           queryOption,
           operationName,
-          queryProps,
           queryKeyFnName,
-          properties,
+          queryProperties,
+          queryKeyProperties,
           params,
           props,
           mutator,

@@ -247,10 +247,12 @@ export const generateVerbImports = ({
   response,
   body,
   queryParams,
+  headers,
   params,
 }: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
   ...(queryParams ? [{ name: queryParams.schema.name }] : []),
+  ...(headers ? [{ name: headers.schema.name }] : []),
   ...params.flatMap<GeneratorImport>(({ imports }) => imports),
 ];

@@ -41,6 +41,7 @@ export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
 
 const generateAxiosImplementation = (
   {
+    headers,
     queryParams,
     operationName,
     response,
@@ -78,6 +79,7 @@ const generateAxiosImplementation = (
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
+      headers,
       queryParams,
       response,
       verb,
@@ -125,6 +127,7 @@ const generateAxiosImplementation = (
   const options = generateOptions({
     route,
     body,
+    headers,
     queryParams,
     response,
     verb,
