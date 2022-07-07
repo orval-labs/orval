@@ -1,11 +1,12 @@
 import { camel } from '../../utils/case';
 import { sanitize } from '../../utils/string';
 
-const hasParam = (path: string) => /[^{]*{[\w_-]*}.*/.test(path);
+const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
-const getRoutePath = (path: string) => {
-  const matches = path.match(/([^{]*){?([\w_-]*)}?(.*)/);
+const getRoutePath = (path: string): string => {
+  const matches = path.match(/([^{]*){?([\w*_-]*)}?(.*)/);
   if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
+
   const prev = matches[1];
   const param = sanitize(camel(matches[2]), {
     es5keyword: true,
@@ -13,9 +14,8 @@ const getRoutePath = (path: string) => {
     dash: true,
     dot: true,
   });
-  const next: string = hasParam(matches[3])
-    ? getRoutePath(matches[3])
-    : matches[3];
+  const next = hasParam(matches[3]) ? getRoutePath(matches[3]) : matches[3];
+
   if (hasParam(path)) {
     return `${prev}\${${param}}${next}`;
   } else {

@@ -3,6 +3,7 @@ import { getRoute } from './route';
 describe('getRoute getter', () => {
   [
     ['/api/test/{id}', '/api/test/${id}'],
+    ['/api/test/{path*}', '/api/test/${path}'],
     ['/api/test/{user_id}', '/api/test/${userId}'],
     ['/api/test/{locale}.js', '/api/test/${locale}.js'],
     ['/api/test/i18n-{locale}.js', '/api/test/i18n-${locale}.js'],
