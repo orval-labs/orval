@@ -108,7 +108,7 @@
     "find-up": "5.0.0",
     "fs-extra": "^10.0.1",
     "globby": "11.0.4",
-    "ibm-openapi-validator": "^0.57.4",
+    "ibm-openapi-validator": "^0.81.1",
     "inquirer": "^8.2.0",
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
