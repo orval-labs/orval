@@ -81,7 +81,7 @@ export const getMockScalar = async ({
     case 'number':
     case 'integer': {
       return {
-        value: getNullable('faker.datatype.number()', item.nullable),
+        value: getNullable(`faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`, item.nullable),
         imports: [],
         name: item.name,
       };
