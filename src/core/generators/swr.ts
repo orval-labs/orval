@@ -205,7 +205,7 @@ const generateSwrImplementation = ({
   const swrProps = toObjectString(props, 'implementation');
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = `const isEnable = shouldFetch !== false${
+  const swrKeyImplementation = `const isEnable = swrOptions?.shouldFetch !== false${
     params.length
       ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
       : ''
