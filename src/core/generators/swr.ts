@@ -164,7 +164,7 @@ const generateSwrArguments = ({
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
 }) => {
-  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & { swrKey?: Key, isPaused?: boolean }`;
+  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & { swrKey?: Key, shouldFetch?: boolean }`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -205,8 +205,12 @@ const generateSwrImplementation = ({
   const swrProps = toObjectString(props, 'implementation');
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = `const isEnable = !swrOptions?.isPaused${params.length ? ` && !!(${params.map(({ name }) => name).join(' && ')})` : ''}
-    const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${swrKeyProperties}) : null);`
+  const swrKeyImplementation = `const isEnable = shouldFetch !== false${
+    params.length
+      ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
+      : ''
+  }
+    const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
