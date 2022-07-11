@@ -164,7 +164,7 @@ const generateSwrArguments = ({
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
 }) => {
-  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & {swrKey: Key}`;
+  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & { swrKey?: Key }`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
