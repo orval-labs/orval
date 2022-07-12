@@ -1,13 +1,13 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import omit from 'lodash.omit';
 import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
+import { MockSchemaObject } from '../../types/mocks';
 import { asyncReduce } from '../../utils/async-reduce';
 import { resolveMockValue } from '../resolvers/value.mock';
 
 export const combineSchemasMock = async ({
   item,
-  items,
-  isOneOf,
+  separator,
   mockOptions,
   operationId,
   tags,
@@ -15,20 +15,39 @@ export const combineSchemasMock = async ({
   context,
   imports,
 }: {
-  item: SchemaObject & { name: string; path?: string; specKey?: string };
-  items: (SchemaObject | ReferenceObject)[];
-  isOneOf: boolean;
+  item: MockSchemaObject;
+  separator: 'allOf' | 'oneOf' | 'anyOf';
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
-  combine?: { properties: string[] };
+  combine?: {
+    separator: 'allOf' | 'oneOf' | 'anyOf';
+    includedProperties: string[];
+  };
   context: ContextSpecs;
   imports: GeneratorImport[];
 }) => {
   let combineImports: GeneratorImport[] = [];
-  let properties: string[] = [...(combine?.properties ?? [])];
+  let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
+    0,
+  );
+  const itemResolvedValue = await resolveMockValue({
+    schema: omit(item, separator) as MockSchemaObject,
+    combine: {
+      separator: 'allOf',
+      includedProperties: [],
+    },
+    mockOptions,
+    operationId,
+    tags,
+    context,
+    imports,
+  });
+
+  includedProperties.push(...(itemResolvedValue.includedProperties ?? []));
+
   const value = await asyncReduce(
-    items,
+    item[separator] ?? [],
     async (acc, val, index, arr) => {
       const resolvedValue = await resolveMockValue({
         schema: {
@@ -37,11 +56,13 @@ export const combineSchemasMock = async ({
           path: item.path ? item.path : '#',
           specKey: item.specKey,
         },
-        combine: !isOneOf
-          ? {
-              properties,
-            }
-          : undefined,
+        combine: {
+          separator,
+          includedProperties:
+            separator !== 'oneOf'
+              ? includedProperties
+              : itemResolvedValue.includedProperties ?? [],
+        },
         mockOptions,
         operationId,
         tags,
@@ -49,34 +70,41 @@ export const combineSchemasMock = async ({
         imports,
       });
 
-      combineImports = [...combineImports, ...resolvedValue.imports];
-      properties = [...properties, ...(resolvedValue.properties ?? [])];
+      combineImports.push(...resolvedValue.imports);
+      includedProperties.push(...(resolvedValue.includedProperties ?? []));
+
+      const value =
+        itemResolvedValue.value && separator === 'oneOf'
+          ? `${resolvedValue.value.slice(0, -1)},${itemResolvedValue.value}}`
+          : resolvedValue.value;
 
       if (!index && !combine) {
-        if (resolvedValue.enums || isOneOf) {
+        if (resolvedValue.enums || separator === 'oneOf') {
           if (arr.length === 1) {
-            return `faker.helpers.arrayElement([${resolvedValue.value}])`;
+            return `faker.helpers.arrayElement([${value}])`;
           }
-          return `faker.helpers.arrayElement([${resolvedValue.value},`;
+          return `faker.helpers.arrayElement([${value},`;
         }
         if (arr.length === 1) {
           if (resolvedValue.type !== 'object') {
-            return `${resolvedValue.value}`;
+            return `${value}`;
           }
-          return `{${resolvedValue.value}}`;
+          return `{${value}}`;
         }
-        return `{${resolvedValue.value},`;
+        return `{${value},`;
       }
       if (arr.length - 1 === index) {
-        if (resolvedValue.enums || isOneOf) {
-          return acc + resolvedValue.value + (!combine ? '])' : '');
+        if (resolvedValue.enums || separator === 'oneOf') {
+          return `${acc}${value}${!combine ? '])' : ''}`;
         }
-        return acc + resolvedValue.value + (!combine ? '}' : '');
+        return `${acc}${value}${
+          itemResolvedValue.value ? `,${itemResolvedValue.value}` : ''
+        }${!combine ? '}' : ''}`;
       }
-      if (!resolvedValue.value) {
+      if (!value) {
         return acc;
       }
-      return acc + resolvedValue.value + ',';
+      return `${acc}${value},`;
     },
     '',
   );
@@ -85,6 +113,6 @@ export const combineSchemasMock = async ({
     value,
     imports: combineImports,
     name: item.name,
-    properties,
+    includedProperties,
   };
 };
