@@ -7,6 +7,7 @@ import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
 import { isReference } from '../../utils/is';
 import { getSpecName } from '../../utils/path';
+import { resolveDiscriminators } from '../getters/discriminators';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from '../resolvers/value';
 import { generateInterface } from './interface';
@@ -25,8 +26,10 @@ export const generateSchemasDefinition = async (
     return [];
   }
 
+  const transformedSchemas = resolveDiscriminators(schemas);
+
   const models = asyncReduce(
-    Object.entries(schemas),
+    Object.entries(transformedSchemas),
     async (acc, [name, schema]) => {
       const schemaName = pascal(name) + suffix;
       if (

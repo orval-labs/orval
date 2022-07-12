@@ -134,6 +134,9 @@ components:
           enum: ["People's Republic of China", 'Uruguay']
     Dog:
       type: object
+      oneOf:
+        - $ref: '#/components/schemas/Labradoodle'
+        - $ref: '#/components/schemas/Dachshund'
       required: ['type']
       properties:
         barksPerMinute:
@@ -142,6 +145,23 @@ components:
           type: string
           enum:
             - dog
+      discriminator:
+        propertyName: breed
+        mapping:
+          Labradoodle: '#/components/schemas/Labradoodle'
+          Dachshund: '#/components/schemas/Dachshund'
+    Labradoodle:
+      type: object
+      required: ['cuteness']
+      properties:
+        cuteness:
+          type: integer
+    Dachshund:
+      type: object
+      required: ['length']
+      properties:
+        length:
+          type: integer
     Cat:
       type: object
       required: ['type']
