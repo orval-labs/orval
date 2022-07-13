@@ -2,7 +2,7 @@ import cuid from 'cuid';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
-import { MockDefinition } from '../../types/mocks';
+import { MockDefinition, MockSchemaObject } from '../../types/mocks';
 import { isBoolean, isReference } from '../../utils/is';
 import { count } from '../../utils/occurrence';
 import { resolveMockValue } from '../resolvers/value.mock';
@@ -18,11 +18,14 @@ export const getMockObject = async ({
   context,
   imports,
 }: {
-  item: SchemaObject & { name: string; path?: string; specKey?: string };
+  item: MockSchemaObject;
   operationId: string;
   mockOptions?: MockOptions;
   tags: string[];
-  combine?: { properties: string[] };
+  combine?: {
+    separator: 'allOf' | 'oneOf' | 'anyOf';
+    includedProperties: string[];
+  };
   context: ContextSpecs;
   imports: GeneratorImport[];
 }): Promise<MockDefinition> => {
@@ -43,10 +46,10 @@ export const getMockObject = async ({
   }
 
   if (item.allOf || item.oneOf || item.anyOf) {
+    const separator = item.allOf ? 'allOf' : item.oneOf ? 'oneOf' : 'anyOf';
     return combineSchemasMock({
       item,
-      items: (item.allOf || item.oneOf || item.anyOf)!,
-      isOneOf: !!(item.oneOf || item.anyOf),
+      separator,
       mockOptions,
       operationId,
       tags,
@@ -57,14 +60,14 @@ export const getMockObject = async ({
   }
 
   if (item.properties) {
-    let value = !combine ? '{' : '';
+    let value = !combine || combine?.separator === 'oneOf' ? '{' : '';
     let imports: GeneratorImport[] = [];
-    let properties: string[] = [];
+    let includedProperties: string[] = [];
     value += (
       await Promise.all(
         Object.entries(item.properties).map(
           async ([key, prop]: [string, ReferenceObject | SchemaObject]) => {
-            if (combine?.properties.includes(key)) {
+            if (combine?.includedProperties.includes(key)) {
               return undefined;
             }
 
@@ -90,8 +93,8 @@ export const getMockObject = async ({
               imports,
             });
 
-            imports = [...imports, ...resolvedValue.imports];
-            properties = [...properties, key];
+            imports.push(...resolvedValue.imports);
+            includedProperties.push(key);
 
             const keyDefinition = getKey(key);
             if (!isRequired && !resolvedValue.overrided) {
@@ -105,12 +108,12 @@ export const getMockObject = async ({
     )
       .filter(Boolean)
       .join(', ');
-    value += !combine ? '}' : '';
+    value += !combine || combine?.separator === 'oneOf' ? '}' : '';
     return {
       value,
       imports,
       name: item.name,
-      properties,
+      includedProperties,
     };
   }
 

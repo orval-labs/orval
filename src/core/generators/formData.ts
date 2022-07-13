@@ -33,10 +33,14 @@ export const generateSchemaFormDataAndUrlEncoded = async (
 
         let formDataValue = '';
 
-        if (property.type === 'object' || property.type === 'array') {
+        if (property.type === 'object') {
           formDataValue = `${variableName}.append('${key}', JSON.stringify(${camel(
             propName,
-          )}${key.includes('-') ? `['${key}']` : `.${key}`}))\n`;
+          )}${key.includes('-') ? `['${key}']` : `.${key}`}));\n`;
+        } else if (property.type === 'array') {
+          formDataValue = `${camel(propName)}${
+            key.includes('-') ? `['${key}']` : `.${key}`
+          }.forEach(value => ${variableName}.append('${key}', value));\n`;
         } else if (
           property.type === 'number' ||
           property.type === 'integer' ||
@@ -69,9 +73,9 @@ export const generateSchemaFormDataAndUrlEncoded = async (
   }
 
   if (schema.type === 'array') {
-    return `${form}${variableName}.append('data', JSON.stringify(${camel(
+    return `${form}${camel(
       propName,
-    )}))\n`;
+    )}.forEach(value => ${variableName}.append('data', value))\n`;
   }
 
   if (schema.type === 'number' || schema.type === 'boolean') {

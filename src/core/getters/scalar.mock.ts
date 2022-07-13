@@ -1,11 +1,10 @@
-import { SchemaObject } from 'openapi3-ts';
 import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
 import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
-import { MockDefinition } from '../../types/mocks';
+import { MockDefinition, MockSchemaObject } from '../../types/mocks';
+import { isReference } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { escape } from '../../utils/string';
-import { isReference } from '../../utils/is';
 import {
   getNullable,
   resolveMockOverride,
@@ -22,18 +21,16 @@ export const getMockScalar = async ({
   combine,
   context,
 }: {
-  item: SchemaObject & {
-    name: string;
-    path?: string;
-    isRef?: boolean;
-    specKey?: string;
-  };
+  item: MockSchemaObject;
   imports: GeneratorImport[];
   mockOptions?: MockOptions;
   operationId: string;
   isRef?: boolean;
   tags: string[];
-  combine?: { properties: string[] };
+  combine?: {
+    separator: 'allOf' | 'oneOf' | 'anyOf';
+    includedProperties: string[];
+  };
   context: ContextSpecs;
 }): Promise<MockDefinition> => {
   const operationProperty = resolveMockOverride(
@@ -97,7 +94,7 @@ export const getMockScalar = async ({
 
     case 'array': {
       if (!item.items) {
-        return { value: [], imports: [], name: item.name };
+        return { value: '[]', imports: [], name: item.name };
       }
 
       const {
