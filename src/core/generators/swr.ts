@@ -164,7 +164,7 @@ const generateSwrArguments = ({
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
 }) => {
-  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & {swrKey: Key}`;
+  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & { swrKey?: Key, enabled?: boolean }`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -205,10 +205,12 @@ const generateSwrImplementation = ({
   const swrProps = toObjectString(props, 'implementation');
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = params.length
-    ? `const isEnable = !!(${params.map(({ name }) => name).join(' && ')})
-  const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${swrKeyProperties}) : null);`
-    : `const swrKey = swrOptions?.swrKey ?? (() => ${swrKeyFnName}(${swrKeyProperties}))`;
+  const swrKeyImplementation = `const isEnabled = swrOptions?.enabled !== false${
+    params.length
+      ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
+      : ''
+  }
+    const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
