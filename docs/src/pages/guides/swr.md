@@ -45,16 +45,17 @@ export const useShowPetById = <TError = Error>(
   petId: string,
   options?: {
     swr?: SWRConfiguration<AsyncReturnType<typeof showPetById>, TError> & {
-      swrKey: Key;
+      swrKey?: Key;
+      enabled?: boolean;
     };
     axios?: AxiosRequestConfig;
   },
 ) => {
   const { swr: swrOptions, axios: axiosOptions } = options ?? {};
 
-  const isEnable = !!petId;
+  const isEnabled = swrOptions?.enabled !== false && !!petId;
   const swrKey =
-    swrOptions?.swrKey ?? (() => (isEnable ? getShowPetByIdKey(petId) : null));
+    swrOptions?.swrKey ?? (() => (isEnabled ? getShowPetByIdKey(petId) : null));
   const swrFn = () => showPetById(petId, axiosOptions);
 
   const query = useSwr<AsyncReturnType<typeof swrFn>, TError>(

@@ -44,16 +44,17 @@ export const useListPets = <TError = Error>(
   version = 1,
   options?: {
     swr?: SWRConfiguration<Awaited<ReturnType<typeof listPets>>, TError> & {
-      swrKey: Key;
+      swrKey?: Key;
+      enabled?: boolean;
     };
   },
 ) => {
   const { swr: swrOptions } = options ?? {};
 
-  const isEnable = !!version;
+  const isEnabled = swrOptions?.enabled !== false && !!version;
   const swrKey =
     swrOptions?.swrKey ??
-    (() => (isEnable ? getListPetsKey(params, version) : null));
+    (() => (isEnabled ? getListPetsKey(params, version) : null));
   const swrFn = () => listPets(params, version);
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
@@ -104,16 +105,17 @@ export const useShowPetById = <TError = Error>(
   version = 1,
   options?: {
     swr?: SWRConfiguration<Awaited<ReturnType<typeof showPetById>>, TError> & {
-      swrKey: Key;
+      swrKey?: Key;
+      enabled?: boolean;
     };
   },
 ) => {
   const { swr: swrOptions } = options ?? {};
 
-  const isEnable = !!(version && petId);
+  const isEnabled = swrOptions?.enabled !== false && !!(version && petId);
   const swrKey =
     swrOptions?.swrKey ??
-    (() => (isEnable ? getShowPetByIdKey(petId, version) : null));
+    (() => (isEnabled ? getShowPetByIdKey(petId, version) : null));
   const swrFn = () => showPetById(petId, version);
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
