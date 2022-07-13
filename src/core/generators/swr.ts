@@ -205,12 +205,12 @@ const generateSwrImplementation = ({
   const swrProps = toObjectString(props, 'implementation');
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = `const isEnable = swrOptions?.enabled !== false${
+  const swrKeyImplementation = `const isEnabled = swrOptions?.enabled !== false${
     params.length
       ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
       : ''
   }
-    const swrKey = swrOptions?.swrKey ?? (() => isEnable ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+    const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
