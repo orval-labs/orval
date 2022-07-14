@@ -15,6 +15,21 @@ export default defineConfig({
       },
     },
   },
+  tagsSplit: {
+    output: {
+      target: '../generated/angular/tags-split/endpoints.ts',
+      schemas: '../generated/angular/tags-split/model',
+      client: 'angular',
+      mode: 'tags-split',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
   customClient: {
     output: {
       target: '../generated/angular/custom-client/endpoints.ts',

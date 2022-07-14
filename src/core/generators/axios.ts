@@ -1,7 +1,10 @@
 import { VERBS_WITH_BODY } from '../../constants';
 import {
+  ClientBuilder,
+  ClientDependenciesBuilder,
   ClientFooterBuilder,
-  GeneratorClient,
+  ClientHeaderBuilder,
+  ClientTitleBuilder,
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -33,11 +36,11 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-let returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
+const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
 
-export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
-];
+export const getAxiosDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator,
+) => [...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : [])];
 
 const generateAxiosImplementation = (
   {
@@ -161,21 +164,16 @@ const generateAxiosImplementation = (
 `;
 };
 
-export const generateAxiosTitle = (title: string) => {
+export const generateAxiosTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
   return `get${pascal(sanTitle)}`;
 };
 
-export const generateAxiosHeader = ({
+export const generateAxiosHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
   isMutator,
   noFunction,
-}: {
-  title: string;
-  isRequestOptions: boolean;
-  isMutator: boolean;
-  noFunction?: boolean;
 }) => `
 ${
   isRequestOptions && isMutator
@@ -197,38 +195,51 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   hasMutator,
   hasAwaitedType,
 }) => {
-  const functionFooter = `return {${operationNames.join(',')}}};\n`;
-  const returnTypesArr = operationNames
-    .map((n) => {
-      return returnTypesToWrite.has(n)
-        ? returnTypesToWrite.get(n)?.(noFunction || !title ? undefined : title)
-        : '';
-    })
-    .filter(Boolean);
+  let footer = '';
 
-  let returnTypes =
-    hasMutator && !hasAwaitedType
-      ? `\ntype AwaitedInput<T> = PromiseLike<T> | T;\n
-    type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-\n`
-      : '';
-
-  if (returnTypesArr.length) {
-    returnTypes += returnTypesArr.join('\n');
+  if (!noFunction) {
+    footer += `return {${operationNames.join(',')}}};\n`;
   }
 
-  // quick fix to clear global state
-  returnTypesToWrite = new Map();
+  if (hasMutator && !hasAwaitedType) {
+    footer += `\ntype AwaitedInput<T> = PromiseLike<T> | T;\n
+    type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
+\n`;
+  }
 
-  return noFunction ? returnTypes : functionFooter + returnTypes;
+  operationNames.forEach((operationName) => {
+    if (returnTypesToWrite.has(operationName)) {
+      const func = returnTypesToWrite.get(operationName)!;
+      footer += func(!noFunction ? title : undefined) + '\n';
+    }
+  });
+
+  return footer;
 };
 
-export const generateAxios = (
+export const generateAxios: ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
-): GeneratorClient => {
+) => {
   const imports = generateVerbImports(verbOptions);
   const implementation = generateAxiosImplementation(verbOptions, options);
 
   return { implementation, imports };
+};
+
+export const generateAxiosFunctions: ClientBuilder = (
+  verbOptions,
+  options,
+  outputClient,
+) => {
+  const { implementation, imports } = generateAxios(
+    verbOptions,
+    options,
+    outputClient,
+  );
+
+  return {
+    implementation: 'export ' + implementation,
+    imports,
+  };
 };

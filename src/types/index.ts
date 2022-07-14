@@ -81,7 +81,7 @@ export type NormalizedOverrideOutput = {
     };
   };
   query: QueryOptions;
-  angular: Omit<Required<AngularOptions>, 'provideInRoot'>;
+  angular: Required<AngularOptions>;
   swr: {
     options?: any;
   };
@@ -110,7 +110,7 @@ export type NormalizedOperationOptions = {
     properties?: MockProperties;
   };
   query?: QueryOptions;
-  angular?: Omit<Required<AngularOptions>, 'provideInRoot'>;
+  angular?: Required<AngularOptions>;
   swr?: {
     options?: any;
   };
@@ -266,7 +266,6 @@ type QueryOptions = {
 };
 
 export type AngularOptions = {
-  provideInRoot?: boolean;
   provideIn?: 'root' | 'any' | boolean;
 };
 
@@ -286,7 +285,7 @@ export type OperationOptions = {
     properties?: MockProperties;
   };
   query?: QueryOptions;
-  angular?: Omit<Required<AngularOptions>, 'provideInRoot'>;
+  angular?: Required<AngularOptions>;
   swr?: {
     options?: any;
   };

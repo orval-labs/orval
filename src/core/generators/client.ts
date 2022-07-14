@@ -21,6 +21,7 @@ import {
 import {
   generateAxios,
   generateAxiosFooter,
+  generateAxiosFunctions,
   generateAxiosHeader,
   generateAxiosTitle,
   getAxiosDependencies,
@@ -55,14 +56,7 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     title: generateAxiosTitle,
   },
   'axios-functions': {
-    client: (verbOptions: GeneratorVerbOptions, options: GeneratorOptions) => {
-      const { implementation, imports } = generateAxios(verbOptions, options);
-
-      return {
-        implementation: 'export ' + implementation,
-        imports,
-      };
-    },
+    client: generateAxiosFunctions,
     header: (options) => generateAxiosHeader({ ...options, noFunction: true }),
     dependencies: getAxiosDependencies,
     footer: (options) => generateAxiosFooter({ ...options, noFunction: true }),
@@ -142,25 +136,20 @@ export const generateClientImports = (
 export const generateClientHeader = ({
   outputClient = DEFAULT_CLIENT,
   isRequestOptions,
-  title,
-  customTitleFunc,
   isGlobalMutator,
   isMutator,
-  provideInRoot,
   provideIn,
   hasAwaitedType,
+  titles,
 }: {
   outputClient?: OutputClient | OutputClientFunc;
   isRequestOptions: boolean;
   isMutator: boolean;
   isGlobalMutator: boolean;
-  provideInRoot: boolean;
   provideIn: boolean | 'root' | 'any';
-  title: string;
-  customTitleFunc?: (title: string) => string;
   hasAwaitedType: boolean;
+  titles: GeneratorClientExtra;
 }): GeneratorClientExtra => {
-  const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { header } = getGeneratorClient(outputClient);
   return {
     implementation: header({
@@ -168,7 +157,6 @@ export const generateClientHeader = ({
       isRequestOptions,
       isGlobalMutator,
       isMutator,
-      provideInRoot,
       provideIn,
       hasAwaitedType,
     }),
@@ -179,19 +167,16 @@ export const generateClientHeader = ({
 export const generateClientFooter = ({
   outputClient = DEFAULT_CLIENT,
   operationNames,
-  title,
-  customTitleFunc,
   hasMutator,
   hasAwaitedType,
+  titles,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   operationNames: string[];
-  title: string;
-  customTitleFunc?: (title: string) => string;
   hasMutator: boolean;
   hasAwaitedType: boolean;
+  titles: GeneratorClientExtra;
 }): GeneratorClientExtra => {
-  const titles = generateClientTitle(outputClient, title, customTitleFunc);
   const { footer } = getGeneratorClient(outputClient);
   let implementation: string;
   try {
@@ -226,11 +211,15 @@ export const generateClientFooter = ({
   };
 };
 
-export const generateClientTitle = (
-  outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
-  title: string,
-  customTitleFunc?: (title: string) => string,
-) => {
+export const generateClientTitle = ({
+  outputClient = DEFAULT_CLIENT,
+  title,
+  customTitleFunc,
+}: {
+  outputClient?: OutputClient | OutputClientFunc;
+  title: string;
+  customTitleFunc?: (title: string) => string;
+}): GeneratorClientExtra => {
   const { title: generatorTitle } = getGeneratorClient(outputClient);
   if (customTitleFunc) {
     const customTitle = customTitleFunc(title);
@@ -288,6 +277,7 @@ export const generateClient = (
         formData: verbOption.formData,
         formUrlEncoded: verbOption.formUrlEncoded,
         operationName: verbOption.operationName,
+        types: client.types,
       };
 
       return acc;

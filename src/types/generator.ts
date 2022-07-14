@@ -76,6 +76,9 @@ export type GeneratorOperation = {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   operationName: string;
+  types?: {
+    result: (title?: string) => string;
+  };
 };
 
 export type GeneratorVerbOptions = {
@@ -110,6 +113,9 @@ export type GeneratorOptions = {
 export type GeneratorClient = {
   implementation: string;
   imports: GeneratorImport[];
+  types?: {
+    result: (title?: string) => string;
+  };
 };
 
 export type GeneratorClientExtra = {
@@ -144,7 +150,6 @@ export type ClientHeaderBuilder = (params: {
   isMutator: boolean;
   noFunction?: boolean;
   isGlobalMutator: boolean;
-  provideInRoot: boolean;
   provideIn: boolean | 'root' | 'any';
   hasAwaitedType: boolean;
 }) => string;

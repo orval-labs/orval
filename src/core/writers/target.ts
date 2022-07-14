@@ -11,6 +11,7 @@ import { pascal } from '../../utils/case';
 import {
   generateClientFooter,
   generateClientHeader,
+  generateClientTitle,
 } from '../generators/client';
 
 export const generateTarget = (
@@ -22,6 +23,12 @@ export const generateTarget = (
     ({ operationName }) => operationName,
   );
   const isAngularClient = options?.client === OutputClient.ANGULAR;
+
+  const titles = generateClientTitle({
+    outputClient: options.client,
+    title: pascal(info.title),
+    customTitleFunc: options.override.title,
+  });
 
   const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
@@ -55,11 +62,9 @@ export const generateTarget = (
           isRequestOptions: options.override.requestOptions !== false,
           isMutator,
           isGlobalMutator: !!options.override.mutator,
-          title: pascal(info.title),
-          customTitleFunc: options.override.title,
-          provideInRoot: !!options.override.angular.provideIn,
           provideIn: options.override.angular.provideIn,
           hasAwaitedType,
+          titles,
         });
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMSW.handler =
@@ -68,10 +73,9 @@ export const generateTarget = (
         const footer = generateClientFooter({
           outputClient: options?.client,
           operationNames,
-          title: pascal(info.title),
-          customTitleFunc: options.override.title,
           hasMutator: !!acc.mutators.length,
           hasAwaitedType,
+          titles,
         });
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;

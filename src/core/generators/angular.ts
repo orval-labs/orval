@@ -1,6 +1,10 @@
 import { VERBS_WITH_BODY } from '../../constants';
 import {
-  GeneratorClient,
+  ClientBuilder,
+  ClientDependenciesBuilder,
+  ClientFooterBuilder,
+  ClientHeaderBuilder,
+  ClientTitleBuilder,
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -36,29 +40,22 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-let returnTypesToWrite: string[] = [];
+const returnTypesToWrite: Map<string, string> = new Map();
 
-export const getAngularDependencies = () => ANGULAR_DEPENDENCIES;
+export const getAngularDependencies: ClientDependenciesBuilder = () =>
+  ANGULAR_DEPENDENCIES;
 
-export const generateAngularTitle = (title: string) => {
+export const generateAngularTitle: ClientTitleBuilder = (title) => {
   const sanTitle = sanitize(title);
   return `${pascal(sanTitle)}Service`;
 };
 
-export const generateAngularHeader = ({
+export const generateAngularHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
   isMutator,
   isGlobalMutator,
-  provideInRoot,
   provideIn,
-}: {
-  title: string;
-  isRequestOptions: boolean;
-  isMutator: boolean;
-  isGlobalMutator?: boolean;
-  provideInRoot: boolean;
-  provideIn: boolean | 'root' | 'any';
 }) => `
 ${
   isRequestOptions && !isGlobalMutator
@@ -101,10 +98,17 @@ export class ${title} {
     private http: HttpClient,
   ) {}`;
 
-export const generateAngularFooter = () => {
-  const footer = `};\n\n${returnTypesToWrite.join('\n')}`;
-  // quick fix to clear global state
-  returnTypesToWrite = [];
+export const generateAngularFooter: ClientFooterBuilder = ({
+  operationNames,
+}) => {
+  let footer = '};\n\n';
+
+  operationNames.forEach((operationName) => {
+    if (returnTypesToWrite.has(operationName)) {
+      footer += returnTypesToWrite.get(operationName) + '\n';
+    }
+  });
+
   return footer;
 };
 
@@ -138,7 +142,8 @@ const generateImplementation = (
 
   const dataType = response.definition.success || 'unknown';
 
-  returnTypesToWrite.push(
+  returnTypesToWrite.set(
+    operationName,
     `export type ${pascal(
       operationName,
     )}ClientResult = NonNullable<${dataType}>`,
@@ -214,10 +219,7 @@ const generateImplementation = (
 `;
 };
 
-export const generateAngular = (
-  verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
-): GeneratorClient => {
+export const generateAngular: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const implementation = generateImplementation(verbOptions, options);
 

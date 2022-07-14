@@ -10,6 +10,7 @@ import { pascal } from '../../utils/case';
 import {
   generateClientFooter,
   generateClientHeader,
+  generateClientTitle,
 } from '../generators/client';
 
 const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
@@ -97,13 +98,18 @@ export const generateTargetForTags = (
             options.packageJson?.dependencies?.['typescript'] ?? '4.4.0';
           const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
 
+          const titles = generateClientTitle({
+            outputClient: options.client,
+            title: pascal(tag),
+            customTitleFunc: options.override.title,
+          });
+
           const footer = generateClientFooter({
             outputClient: options?.client,
             operationNames,
-            title: pascal(tag),
-            customTitleFunc: options.override.title,
             hasMutator: !!target.mutators?.length,
             hasAwaitedType,
+            titles,
           });
 
           const header = generateClientHeader({
@@ -111,11 +117,9 @@ export const generateTargetForTags = (
             isRequestOptions: options.override.requestOptions !== false,
             isMutator,
             isGlobalMutator: !!options.override.mutator,
-            title: pascal(tag),
-            customTitleFunc: options.override.title,
-            provideInRoot: !!options.override.angular.provideIn,
             provideIn: options.override.angular.provideIn,
             hasAwaitedType,
+            titles,
           });
 
           acc[tag] = {

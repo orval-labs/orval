@@ -1,6 +1,11 @@
 import { VERBS_WITH_BODY } from '../../constants';
 import { Verbs } from '../../types';
 import {
+  ClientBuilder,
+  ClientDependenciesBuilder,
+  ClientFooterBuilder,
+  ClientHeaderBuilder,
+  ClientTitleBuilder,
   GeneratorDependency,
   GeneratorMutator,
   GeneratorOptions,
@@ -51,10 +56,9 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getSwrDependencies = (hasGlobalMutator: boolean) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
-  ...SWR_DEPENDENCIES,
-];
+export const getSwrDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+) => [...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []), ...SWR_DEPENDENCIES];
 
 const generateSwrRequestFunction = (
   {
@@ -338,16 +342,12 @@ const generateSwrHook = (
 `;
 };
 
-export const generateSwrTitle = () => '';
+export const generateSwrTitle: ClientTitleBuilder = () => '';
 
-export const generateSwrHeader = ({
+export const generateSwrHeader: ClientHeaderBuilder = ({
   isRequestOptions,
   isMutator,
   hasAwaitedType,
-}: {
-  isRequestOptions: boolean;
-  isMutator: boolean;
-  hasAwaitedType: boolean;
 }) =>
   `
   ${
@@ -368,12 +368,9 @@ export const generateSwrHeader = ({
       : ''
   }`;
 
-export const generateSwrFooter = () => '';
+export const generateSwrFooter: ClientFooterBuilder = () => '';
 
-export const generateSwr = (
-  verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
-) => {
+export const generateSwr: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateSwrRequestFunction(
     verbOptions,

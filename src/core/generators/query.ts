@@ -2,6 +2,11 @@ import omitBy from 'lodash.omitby';
 import { VERBS_WITH_BODY } from '../../constants';
 import { OutputClient, OutputClientFunc, Verbs } from '../../types';
 import {
+  ClientBuilder,
+  ClientDependenciesBuilder,
+  ClientFooterBuilder,
+  ClientHeaderBuilder,
+  ClientTitleBuilder,
   GeneratorDependency,
   GeneratorMutator,
   GeneratorOptions,
@@ -63,7 +68,9 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getSvelteQueryDependencies = (hasGlobalMutator: boolean) => [
+export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+) => [
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...SVELTE_QUERY_DEPENDENCIES,
 ];
@@ -87,7 +94,9 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getReactQueryDependencies = (hasGlobalMutator: boolean) => [
+export const getReactQueryDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+) => [
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...REACT_QUERY_DEPENDENCIES,
 ];
@@ -120,7 +129,9 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getVueQueryDependencies = (hasGlobalMutator: boolean) => [
+export const getVueQueryDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+) => [
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...VUE_QUERY_DEPENDENCIES,
 ];
@@ -738,16 +749,12 @@ const generateQueryHook = (
     `;
 };
 
-export const generateQueryTitle = () => '';
+export const generateQueryTitle: ClientTitleBuilder = () => '';
 
-export const generateQueryHeader = ({
+export const generateQueryHeader: ClientHeaderBuilder = ({
   isRequestOptions,
   isMutator,
   hasAwaitedType,
-}: {
-  isRequestOptions: boolean;
-  isMutator: boolean;
-  hasAwaitedType: boolean;
 }) => {
   return `${
     !hasAwaitedType
@@ -768,12 +775,12 @@ ${
 }`;
 };
 
-export const generateQueryFooter = () => '';
+export const generateQueryFooter: ClientFooterBuilder = () => '';
 
-export const generateQuery = (
-  verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
-  outputClient: OutputClient | OutputClientFunc,
+export const generateQuery: ClientBuilder = (
+  verbOptions,
+  options,
+  outputClient,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
