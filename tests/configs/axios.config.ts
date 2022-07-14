@@ -18,8 +18,8 @@ export default defineConfig({
   },
   mutator: {
     output: {
-      target: '../generated/axios/petstore/endpoints.ts',
-      schemas: '../generated/axios/petstore/model',
+      target: '../generated/axios/mutator/endpoints.ts',
+      schemas: '../generated/axios/mutator/model',
       mock: true,
       client: 'axios',
       override: {
@@ -35,8 +35,8 @@ export default defineConfig({
   },
   multiArguments: {
     output: {
-      target: '../generated/axios/petstore/endpoints.ts',
-      schemas: '../generated/axios/petstore/model',
+      target: '../generated/axios/multi-arguments/endpoints.ts',
+      schemas: '../generated/axios/multi-arguments/model',
       mock: true,
       client: 'axios',
       override: {

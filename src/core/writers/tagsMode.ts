@@ -86,15 +86,15 @@ export const writeTagsMode = async ({
         }
 
         if (mutators) {
-          data += generateMutatorImports(mutators);
+          data += generateMutatorImports({ mutators, implementation });
         }
 
         if (formData) {
-          data += generateMutatorImports(formData);
+          data += generateMutatorImports({ mutators: formData });
         }
 
         if (formUrlEncoded) {
-          data += generateMutatorImports(formUrlEncoded);
+          data += generateMutatorImports({ mutators: formUrlEncoded });
         }
 
         data += '\n\n';

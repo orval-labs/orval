@@ -36,7 +36,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: string[] = [];
+let returnTypesToWrite: string[] = [];
 
 export const getAngularDependencies = () => ANGULAR_DEPENDENCIES;
 
@@ -101,8 +101,12 @@ export class ${title} {
     private http: HttpClient,
   ) {}`;
 
-export const generateAngularFooter = () =>
-  `};\n\n${returnTypesToWrite.join('\n')}`;
+export const generateAngularFooter = () => {
+  const footer = `};\n\n${returnTypesToWrite.join('\n')}`;
+  // quick fix to clear global state
+  returnTypesToWrite = [];
+  return footer;
+};
 
 const generateImplementation = (
   {
@@ -165,10 +169,15 @@ const generateImplementation = (
         )
       : '';
 
-    return ` ${operationName}<TData = ${dataType}>(\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    const propsImplementation =
+      mutator.bodyTypeName && body.definition
+        ? toObjectString(props, 'implementation').replace(
+            new RegExp(`(\\w*):\\s?${body.definition}`),
+            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+          )
+        : toObjectString(props, 'implementation');
+
+    return ` ${operationName}<TData = ${dataType}>(\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasThirdArg
         ? `options?: ThirdParameter<typeof ${mutator.name}>`
         : ''

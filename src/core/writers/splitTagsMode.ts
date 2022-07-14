@@ -83,14 +83,24 @@ export const writeSplitTagsMode = async ({
         }
 
         if (mutators) {
-          implementationData += generateMutatorImports(mutators, true);
+          implementationData += generateMutatorImports({
+            mutators,
+            implementation,
+            oneMore: true,
+          });
         }
 
         if (formData) {
-          implementationData += generateMutatorImports(formData, true);
+          implementationData += generateMutatorImports({
+            mutators: formData,
+            oneMore: true,
+          });
         }
         if (formUrlEncoded) {
-          implementationData += generateMutatorImports(formUrlEncoded);
+          implementationData += generateMutatorImports({
+            mutators: formUrlEncoded,
+            oneMore: true,
+          });
         }
 
         implementationData += `\n${implementation}`;

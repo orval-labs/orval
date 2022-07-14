@@ -51,10 +51,15 @@ export const generateImports = ({
     .join('\n');
 };
 
-export const generateMutatorImports = (
-  mutators: GeneratorMutator[],
-  oneMore?: boolean,
-) => {
+export const generateMutatorImports = ({
+  mutators,
+  implementation,
+  oneMore,
+}: {
+  mutators: GeneratorMutator[];
+  implementation?: string;
+  oneMore?: boolean;
+}) => {
   const imports = uniqWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
@@ -67,13 +72,33 @@ export const generateMutatorImports = (
 
       let dep = `import ${importDefault} from '${path}'`;
 
-      if (mutator.hasErrorType || mutator.bodyTypeName) {
-        dep += '\n';
-        dep += `import type { ${
-          mutator.hasErrorType ? `${mutator.errorTypeName}` : ''
-        }${mutator.hasErrorType && mutator.bodyTypeName ? ', ' : ''}${
-          mutator.bodyTypeName ? `${mutator.bodyTypeName}` : ''
-        } } from '${path}'`;
+      if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
+        let errorImportName = '';
+        if (
+          mutator.hasErrorType &&
+          implementation.includes(mutator.errorTypeName)
+        ) {
+          errorImportName = mutator.default
+            ? `ErrorType as ${mutator.errorTypeName}`
+            : mutator.errorTypeName;
+        }
+
+        let bodyImportName = '';
+        if (
+          mutator.bodyTypeName &&
+          implementation.includes(mutator.bodyTypeName)
+        ) {
+          bodyImportName = mutator.default
+            ? `BodyType as ${mutator.bodyTypeName}`
+            : mutator.bodyTypeName;
+        }
+
+        if (bodyImportName || errorImportName) {
+          dep += '\n';
+          dep += `import type { ${errorImportName}${
+            errorImportName && bodyImportName ? ', ' : ''
+          }${bodyImportName} } from '${path}'`;
+        }
       }
 
       return dep;

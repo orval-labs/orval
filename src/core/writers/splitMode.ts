@@ -82,15 +82,20 @@ export const writeSplitMode = async ({
     }
 
     if (mutators) {
-      implementationData += generateMutatorImports(mutators);
+      implementationData += generateMutatorImports({
+        mutators,
+        implementation,
+      });
     }
 
     if (formData) {
-      implementationData += generateMutatorImports(formData);
+      implementationData += generateMutatorImports({ mutators: formData });
     }
 
     if (formUrlEncoded) {
-      implementationData += generateMutatorImports(formUrlEncoded);
+      implementationData += generateMutatorImports({
+        mutators: formUrlEncoded,
+      });
     }
 
     implementationData += `\n${implementation}`;

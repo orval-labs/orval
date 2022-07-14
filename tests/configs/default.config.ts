@@ -30,8 +30,8 @@ export default defineConfig({
   endpointParameters: {
     input: '../specifications/parameters.yaml',
     output: {
-      target: '../generated/default/endpointParameters/endpoints.ts',
-      schemas: '../generated/default/endpointParameters/model',
+      target: '../generated/default/endpoint-parameters/endpoints.ts',
+      schemas: '../generated/default/endpoint-parameters/model',
       mock: true,
     },
   },

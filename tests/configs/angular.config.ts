@@ -15,4 +15,21 @@ export default defineConfig({
       },
     },
   },
+  customClient: {
+    output: {
+      target: '../generated/angular/custom-client/endpoints.ts',
+      schemas: '../generated/angular/custom-client/model',
+      client: 'angular',
+      mock: true,
+      override: {
+        mutator: '../mutators/custom-client-angular.ts',
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });

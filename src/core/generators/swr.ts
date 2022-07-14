@@ -106,6 +106,14 @@ const generateSwrRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
+    const propsImplementation =
+      mutator?.bodyTypeName && body.definition
+        ? toObjectString(props, 'implementation').replace(
+            new RegExp(`(\\w*):\\s?${body.definition}`),
+            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+          )
+        : toObjectString(props, 'implementation');
+
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override?.requestOptions,
@@ -113,10 +121,7 @@ const generateSwrRequestFunction = (
         )
       : '';
 
-    return `export const ${operationName} = (\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    return `export const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>`
         : ''

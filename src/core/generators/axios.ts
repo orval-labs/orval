@@ -33,7 +33,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
+let returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
 
 export const getAxiosDependencies = (hasGlobalMutator: boolean) => [
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
@@ -109,10 +109,15 @@ const generateAxiosImplementation = (
         }>>>`,
     );
 
-    return `const ${operationName} = (\n    ${toObjectString(
-      props,
-      'implementation',
-    )}\n ${
+    const propsImplementation =
+      mutator.bodyTypeName && body.definition
+        ? toObjectString(props, 'implementation').replace(
+            new RegExp(`(\\w*):\\s?${body.definition}`),
+            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+          )
+        : toObjectString(props, 'implementation');
+
+    return `const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>,`
         : ''
@@ -211,6 +216,9 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   if (returnTypesArr.length) {
     returnTypes += returnTypesArr.join('\n');
   }
+
+  // quick fix to clear global state
+  returnTypesToWrite = new Map();
 
   return noFunction ? returnTypes : functionFooter + returnTypes;
 };

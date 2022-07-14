@@ -15,4 +15,44 @@ export default defineConfig({
       },
     },
   },
+  mutator: {
+    output: {
+      target: '../generated/swr/mutator/endpoints.ts',
+      schemas: '../generated/swr/mutator/model',
+      client: 'swr',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  customClient: {
+    output: {
+      target: '../generated/swr/mutator/endpoints.ts',
+      schemas: '../generated/swr/mutator/model',
+      client: 'swr',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-client.ts',
+          name: 'customClient',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });
