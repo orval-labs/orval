@@ -538,6 +538,7 @@ module.exports = {
           options: {
             staleTime: 10000,
           },
+          signal: true
         },
       },
     },
@@ -569,6 +570,12 @@ Use to automatically add to the request the query param provided by the useInfin
 Type: `Object`.
 
 Use to override the query config. Check available options <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">here</a>
+
+##### signal
+
+Type: `Boolean`.
+
+Use to remove the generation of the abort signal provided by <a href="https://react-query.tanstack.com/" target="_blank">query</a>
 
 #### angular
 
