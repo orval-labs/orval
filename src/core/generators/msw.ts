@@ -5,39 +5,9 @@ import {
   GeneratorVerbOptions,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
-import { sanitize } from '../../utils/string';
+import { getRouteMSW } from '../getters/route.msw';
 import { generateDependencyImports } from './imports';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
-
-const getRoutePath = (path: string) => {
-  return path.split('').reduce((acc, letter) => {
-    if (letter === '{') {
-      return acc + ':';
-    }
-
-    if (letter === '}') {
-      return acc + '';
-    }
-
-    return acc + sanitize(letter);
-  }, '');
-};
-
-export const getRoute = (route: string, baseUrl = '*') => {
-  const splittedRoute = route.split('/');
-
-  return splittedRoute.reduce((acc, path) => {
-    if (!path) {
-      return acc;
-    }
-
-    if (!path.includes('{')) {
-      return `${acc}/${path}`;
-    }
-
-    return `${acc}/${getRoutePath(path)}`;
-  }, baseUrl);
-};
 
 const MSW_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -81,7 +51,7 @@ export const generateMSW = async (
     context,
   });
 
-  const route = getRoute(pathRoute, override?.mock?.baseUrl);
+  const route = getRouteMSW(pathRoute, override?.mock?.baseUrl);
   const mockData = getMockOptionsDataOverride(operationId, override);
 
   let value = '';
