@@ -63,6 +63,7 @@ export type NormalizedOverrideOutput = {
     baseUrl?: string;
     delay?: number;
   };
+  contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
   formUrlEncoded: boolean | NormalizedMutator;
@@ -109,6 +110,7 @@ export type NormalizedOperationOptions = {
     data?: MockProperties;
     properties?: MockProperties;
   };
+  contentType?: OverrideOutputContentType;
   query?: QueryOptions;
   angular?: Required<AngularOptions>;
   swr?: {
@@ -226,6 +228,7 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
   };
+  contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
@@ -256,6 +259,11 @@ export type OverrideOutput = {
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
+};
+
+export type OverrideOutputContentType = {
+  include?: string[];
+  exclude?: string[];
 };
 
 type QueryOptions = {

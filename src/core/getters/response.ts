@@ -1,14 +1,20 @@
 import { ResponsesObject } from 'openapi3-ts';
-import { ContextSpecs } from '../../types';
+import { ContextSpecs, OverrideOutputContentType } from '../../types';
 import { GetterResponse } from '../../types/getters';
 import { ResReqTypesValue } from '../../types/resolvers';
 import { getResReqTypes } from './resReqTypes';
 
-export const getResponse = async (
-  responses: ResponsesObject,
-  operationName: string,
-  context: ContextSpecs,
-): Promise<GetterResponse> => {
+export const getResponse = async ({
+  responses,
+  operationName,
+  context,
+  contentType,
+}: {
+  responses: ResponsesObject;
+  operationName: string;
+  context: ContextSpecs;
+  contentType?: OverrideOutputContentType;
+}): Promise<GetterResponse> => {
   if (!responses) {
     return {
       imports: [],
@@ -30,7 +36,24 @@ export const getResponse = async (
     'void',
   );
 
-  const groupedByStatus = types.reduce<{
+  const filteredTypes = contentType
+    ? types.filter((type) => {
+        let include = true;
+        let exclude = false;
+
+        if (contentType.include) {
+          include = contentType.include.includes(type.contentType);
+        }
+
+        if (contentType.exclude) {
+          exclude = contentType.exclude.includes(type.contentType);
+        }
+
+        return include && !exclude;
+      })
+    : types;
+
+  const groupedByStatus = filteredTypes.reduce<{
     success: ResReqTypesValue[];
     errors: ResReqTypesValue[];
   }>(
@@ -45,11 +68,11 @@ export const getResponse = async (
     { success: [], errors: [] },
   );
 
-  const imports = types.flatMap(({ imports }) => imports);
-  const schemas = types.flatMap(({ schemas }) => schemas);
+  const imports = filteredTypes.flatMap(({ imports }) => imports);
+  const schemas = filteredTypes.flatMap(({ schemas }) => schemas);
 
   const contentTypes = [
-    ...new Set(types.map(({ contentType }) => contentType)),
+    ...new Set(filteredTypes.map(({ contentType }) => contentType)),
   ];
 
   const success = groupedByStatus.success
