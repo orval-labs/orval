@@ -131,6 +131,8 @@ const generateImplementation = (
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isExactOptionalPropertyTypes =
+    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -150,9 +152,6 @@ const generateImplementation = (
   );
 
   if (mutator) {
-    const isExactOptionalPropertyTypes =
-      !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -206,6 +205,8 @@ const generateImplementation = (
     isFormData,
     isFormUrlEncoded,
     isAngular: true,
+    isExactOptionalPropertyTypes,
+    hasSignal: false,
   });
 
   return ` ${operationName}<TData = ${dataType}>(\n    ${toObjectString(

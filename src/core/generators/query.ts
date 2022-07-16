@@ -136,6 +136,20 @@ export const getVueQueryDependencies: ClientDependenciesBuilder = (
   ...VUE_QUERY_DEPENDENCIES,
 ];
 
+const generateRequestOptionsArguments = ({
+  isRequestOptions,
+  hasSignal,
+}: {
+  isRequestOptions: boolean;
+  hasSignal: boolean;
+}) => {
+  if (isRequestOptions) {
+    return 'options?: AxiosRequestConfig\n';
+  }
+
+  return hasSignal ? 'signal?: AbortSignal\n' : '';
+};
+
 const generateQueryRequestFunction = (
   {
     headers,
@@ -152,9 +166,10 @@ const generateQueryRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData !== false;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = override.formData !== false;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
+  const hasSignal = !!override.query.signal;
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
@@ -182,7 +197,7 @@ const generateQueryRequestFunction = (
       isFormData,
       isFormUrlEncoded,
       isBodyVerb,
-      hasSignal: true,
+      hasSignal,
       isExactOptionalPropertyTypes,
     });
 
@@ -196,7 +211,7 @@ const generateQueryRequestFunction = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasSecondArg,
         )
       : '';
@@ -208,7 +223,7 @@ const generateQueryRequestFunction = (
       }>();
 
         return (\n    ${propsImplementation}\n${
-        !isBodyVerb ? 'signal?: AbortSignal,\n' : ''
+        !isBodyVerb && hasSignal ? 'signal?: AbortSignal,\n' : ''
       } ${
         isRequestOptions && mutator.hasSecondArg
           ? `options?: SecondParameter<typeof ${mutator.name}>`
@@ -226,7 +241,9 @@ const generateQueryRequestFunction = (
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${!isBodyVerb ? 'signal?: AbortSignal\n' : '\n'}) => {${bodyForm}
+    }${
+      !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
+    }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -244,14 +261,19 @@ const generateQueryRequestFunction = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    isExactOptionalPropertyTypes,
+    hasSignal,
+  });
+
+  const optionsArgs = generateRequestOptionsArguments({
+    isRequestOptions,
+    hasSignal,
   });
 
   return `export const ${operationName} = (\n    ${toObjectString(
     props,
     'implementation',
-  )} ${
-    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-  } ): Promise<AxiosResponse<${
+  )} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
@@ -385,26 +407,35 @@ const getQueryOptions = ({
   isRequestOptions,
   mutator,
   isExactOptionalPropertyTypes,
+  hasSignal,
 }: {
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
   isExactOptionalPropertyTypes: boolean;
+  hasSignal: boolean;
 }) => {
-  if (!isRequestOptions) {
-    return '';
-  }
-
-  if (!mutator) {
+  if (!mutator && isRequestOptions) {
+    if (!hasSignal) {
+      return 'axiosOptions';
+    }
     return `{ ${
       isExactOptionalPropertyTypes ? '...(signal ? { signal } : {})' : 'signal'
     }, ...axiosOptions }`;
   }
 
-  if (mutator.hasSecondArg) {
+  if (mutator?.hasSecondArg && isRequestOptions) {
+    if (!hasSignal) {
+      return 'requestOptions';
+    }
+
     return 'requestOptions, signal';
   }
 
-  return 'signal';
+  if (hasSignal) {
+    return 'signal';
+  }
+
+  return '';
 };
 
 const getHookOptions = ({
@@ -433,6 +464,28 @@ const getHookOptions = ({
   return value;
 };
 
+const getQueryFnArguments = ({
+  hasQueryParam,
+  hasSignal,
+}: {
+  hasQueryParam: boolean;
+  hasSignal: boolean;
+}) => {
+  if (!hasQueryParam && !hasSignal) {
+    return '';
+  }
+
+  if (hasQueryParam) {
+    if (hasSignal) {
+      return '{ signal, pageParam }';
+    }
+
+    return '{ pageParam }';
+  }
+
+  return '{ signal }';
+};
+
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type },
   operationName,
@@ -446,6 +499,7 @@ const generateQueryImplementation = ({
   response,
   outputClient,
   isExactOptionalPropertyTypes,
+  hasSignal,
 }: {
   queryOption: {
     name: string;
@@ -464,6 +518,7 @@ const generateQueryImplementation = ({
   mutator?: GeneratorMutator;
   outputClient: OutputClient | OutputClientFunc;
   isExactOptionalPropertyTypes: boolean;
+  hasSignal: boolean;
 }) => {
   const queryProps = toObjectString(props, 'implementation');
   const httpFunctionProps = queryParam
@@ -495,15 +550,30 @@ const generateQueryImplementation = ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
+  const queryArguments = generateQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
+    type,
+  });
+
   const queryOptions = getQueryOptions({
     isRequestOptions,
     isExactOptionalPropertyTypes,
     mutator,
+    hasSignal,
   });
 
   const hookOptions = getHookOptions({
     isRequestOptions,
     mutator,
+  });
+
+  const queryFnArguments = getQueryFnArguments({
+    hasQueryParam:
+      !!queryParam && props.some(({ type }) => type === 'queryParam'),
+    hasSignal,
   });
 
   return `
@@ -514,15 +584,7 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 export const ${camel(
     `use-${name}`,
-  )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${generateQueryArguments(
-    {
-      operationName,
-      definitions: '',
-      mutator,
-      isRequestOptions,
-      type,
-    },
-  )}\n  ): ${returnType} & { queryKey: QueryKey } => {
+  )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} & { queryKey: QueryKey } => {
 
   ${hookOptions}
 
@@ -538,11 +600,7 @@ export const ${camel(
     mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>>> = (${
-    queryParam && props.some(({ type }) => type === 'queryParam')
-      ? `{ signal, pageParam }`
-      : '{ signal }'
-  }) => ${operationName}(${httpFunctionProps}${
+  }>>> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
   }${queryOptions});
 
@@ -650,6 +708,7 @@ const generateQueryHook = (
           response,
           outputClient,
           isExactOptionalPropertyTypes,
+          hasSignal: !!query.signal,
         }),
       '',
     )}

@@ -61,6 +61,8 @@ const generateAxiosImplementation = (
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isExactOptionalPropertyTypes =
+    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
@@ -76,9 +78,6 @@ const generateAxiosImplementation = (
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   if (mutator) {
-    const isExactOptionalPropertyTypes =
-      !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -89,7 +88,7 @@ const generateAxiosImplementation = (
       isFormData,
       isFormUrlEncoded,
       isBodyVerb,
-      hasSignal: true,
+      hasSignal: false,
       isExactOptionalPropertyTypes,
     });
 
@@ -142,6 +141,8 @@ const generateAxiosImplementation = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    isExactOptionalPropertyTypes,
+    hasSignal: false,
   });
 
   returnTypesToWrite.set(

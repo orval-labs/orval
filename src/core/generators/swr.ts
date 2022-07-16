@@ -79,6 +79,8 @@ const generateSwrRequestFunction = (
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isExactOptionalPropertyTypes =
+    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.tsconfig,
@@ -93,9 +95,6 @@ const generateSwrRequestFunction = (
   });
 
   if (mutator) {
-    const isExactOptionalPropertyTypes =
-      !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-
     const mutatorConfig = generateMutatorConfig({
       route,
       body,
@@ -147,6 +146,8 @@ const generateSwrRequestFunction = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    isExactOptionalPropertyTypes,
+    hasSignal: false,
   });
 
   return `export const ${operationName} = (\n    ${toObjectString(

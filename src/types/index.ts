@@ -119,9 +119,9 @@ export type NormalizedOperationOptions = {
     route: string,
     verb: Verbs,
   ) => string;
-  formData: boolean | NormalizedMutator;
-  formUrlEncoded: boolean | NormalizedMutator;
-  requestOptions: object | boolean;
+  formData?: boolean | NormalizedMutator;
+  formUrlEncoded?: boolean | NormalizedMutator;
+  requestOptions?: object | boolean;
 };
 export type NormalizedInputOptions = {
   target: string | OpenAPIObject;
@@ -263,6 +263,7 @@ type QueryOptions = {
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
+  signal?: boolean;
 };
 
 export type AngularOptions = {

@@ -163,6 +163,7 @@ export const normalizeOptions = async (
         },
         query: {
           useQuery: true,
+          signal: true,
           ...(outputOptions.override?.query ?? {}),
         },
         swr: {
@@ -270,15 +271,20 @@ const normalizeOperationsAndTags = (
             ...(mutator
               ? { mutator: normalizeMutator(workspace, mutator) }
               : {}),
-            formData:
-              (!isBoolean(formData)
-                ? normalizeMutator(workspace, formData)
-                : formData) ?? true,
-            formUrlEncoded:
-              (!isBoolean(formUrlEncoded)
-                ? normalizeMutator(workspace, formUrlEncoded)
-                : formUrlEncoded) ?? true,
-            requestOptions: requestOptions ?? true,
+            ...(formData
+              ? {
+                  formData: !isBoolean(formData)
+                    ? normalizeMutator(workspace, formData)
+                    : formData,
+                }
+              : {}),
+            ...(formUrlEncoded
+              ? {
+                  formUrlEncoded: !isBoolean(formUrlEncoded)
+                    ? normalizeMutator(workspace, formUrlEncoded)
+                    : formUrlEncoded,
+                }
+              : {}),
           },
         ];
       },

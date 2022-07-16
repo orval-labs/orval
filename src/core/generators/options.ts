@@ -29,15 +29,32 @@ export const generateBodyOptions = (
   return '';
 };
 
-export const generateAxiosOptions = (
-  response: GetterResponse,
-  queryParams?: GeneratorSchema,
-  headers?: GeneratorSchema,
-  requestOptions?: object | boolean,
-) => {
+export const generateAxiosOptions = ({
+  response,
+  isExactOptionalPropertyTypes,
+  queryParams,
+  headers,
+  requestOptions,
+  hasSignal,
+}: {
+  response: GetterResponse;
+  isExactOptionalPropertyTypes: boolean;
+  queryParams?: GeneratorSchema;
+  headers?: GeneratorSchema;
+  requestOptions?: object | boolean;
+  hasSignal: boolean;
+}) => {
   const isRequestOptions = requestOptions !== false;
   if (!queryParams && !headers && !response.isBlob) {
-    return isRequestOptions ? 'options' : '';
+    if (isRequestOptions) {
+      return 'options';
+    }
+    if (hasSignal) {
+      return !isExactOptionalPropertyTypes
+        ? 'signal'
+        : '...(signal ? { signal } : {})';
+    }
+    return '';
   }
 
   let value = '';
@@ -49,6 +66,12 @@ export const generateAxiosOptions = (
 
     if (headers) {
       value += '\n        headers,';
+    }
+
+    if (hasSignal) {
+      value += !isExactOptionalPropertyTypes
+        ? '\n        signal,'
+        : '\n        ...(signal ? { signal } : {}),';
     }
   }
 
@@ -90,6 +113,8 @@ export const generateOptions = ({
   isFormData,
   isFormUrlEncoded,
   isAngular,
+  isExactOptionalPropertyTypes,
+  hasSignal,
 }: {
   route: string;
   body: GetterBody;
@@ -101,23 +126,29 @@ export const generateOptions = ({
   isFormData: boolean;
   isFormUrlEncoded: boolean;
   isAngular?: boolean;
+  isExactOptionalPropertyTypes: boolean;
+  hasSignal: boolean;
 }) => {
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
     : '';
 
-  const axiosOptions = generateAxiosOptions(
+  const axiosOptions = generateAxiosOptions({
     response,
-    queryParams?.schema,
-    headers?.schema,
+    queryParams: queryParams?.schema,
+    headers: headers?.schema,
     requestOptions,
-  );
+    isExactOptionalPropertyTypes,
+    hasSignal,
+  });
+
+  const options = axiosOptions ? `{${axiosOptions}}` : '';
 
   if (verb === Verbs.DELETE) {
     if (!bodyOptions) {
       return `\n      \`${route}\`,${
-        axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`
+        axiosOptions === 'options' ? axiosOptions : options
       }\n    `;
     }
 
@@ -130,7 +161,7 @@ export const generateOptions = ({
 
   return `\n      \`${route}\`,${
     isBodyVerb ? bodyOptions || 'undefined,' : ''
-  }${axiosOptions === 'options' ? axiosOptions : `{${axiosOptions}}`}\n    `;
+  }${axiosOptions === 'options' ? axiosOptions : options}\n    `;
 };
 
 export const generateBodyMutatorConfig = (
