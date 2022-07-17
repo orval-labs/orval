@@ -8,6 +8,7 @@ import {
   isString,
   isUndefined,
 } from './is';
+import { transliterate } from 'transliteration';
 
 export const stringify = (
   data?: string | any[] | { [key: string]: any },
@@ -63,7 +64,9 @@ export const sanitize = (
     dash = '',
     es5keyword = false,
   } = options ?? {};
-  let newValue = value.replace(/[^\w\s.-]/g, '');
+  let newValue = transliterate(value);
+
+  newValue = newValue.replace(/[^\w\s.-]/g, '');
 
   if (whitespace !== true) {
     newValue = newValue.replace(/[\s]/g, whitespace);

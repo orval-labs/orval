@@ -5,8 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CatType } from './catType';
+import type { CatColors } from './catColors';
 
 export interface Cat {
   petsRequested?: number;
   type: CatType;
+  colors?: CatColors;
 }
