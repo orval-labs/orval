@@ -933,3 +933,26 @@ module.exports = {
   },
 };
 ```
+
+#### contentType
+
+Type: `Object`
+
+Use this property to include or excluse some content types
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        contentType: {
+          include: ['application/json'],
+          exclude: ['application/xml'],
+        },
+      },
+    },
+  },
+};
+```
