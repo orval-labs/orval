@@ -9,3 +9,7 @@ export * from './dog';
 export * from './cat';
 export * from './dogType';
 export * from './catType';
+export * from './labradoodleBreed';
+export * from './dachshund';
+export * from './dachshundBreed';
+export * from './labradoodle';
