@@ -54,6 +54,10 @@ export const getListPetsMock = () =>
           faker.helpers.arrayElement(['Желтый', '青い', 'ლურჯი']),
           undefined,
         ]),
+        reaction: faker.helpers.arrayElement([
+          faker.helpers.arrayElement(['😁', '😂']),
+          undefined,
+        ]),
         '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
         id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
         name: (() => faker.name.lastName())(),
@@ -112,6 +116,10 @@ export const getCreatePetsMock = () =>
       type: faker.helpers.arrayElement(['cat']),
       colors: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['Желтый', '青い', 'ლურჯი']),
+        undefined,
+      ]),
+      reaction: faker.helpers.arrayElement([
+        faker.helpers.arrayElement(['😁', '😂']),
         undefined,
       ]),
       '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),

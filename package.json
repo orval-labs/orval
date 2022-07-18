@@ -120,7 +120,6 @@
     "openapi3-ts": "^2.0.2",
     "string-argv": "^0.3.1",
     "swagger2openapi": "^7.0.8",
-    "transliteration": "^2.3.5",
     "tsconfck": "^2.0.1",
     "upath": "^2.0.1",
     "url": "^0.11.0",

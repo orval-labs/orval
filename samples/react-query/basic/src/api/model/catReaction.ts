@@ -5,11 +5,10 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type CatColors = typeof CatColors[keyof typeof CatColors];
+export type CatReaction = typeof CatReaction[keyof typeof CatReaction];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
-export const CatColors = {
-  Желтый: 'Желтый',
-  青い: '青い',
-  ლურჯი: 'ლურჯი',
+export const CatReaction = {
+  '😁': '😁',
+  '😂': '😂',
 } as const;

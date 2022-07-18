@@ -14,3 +14,4 @@ export * from './dachshund';
 export * from './dachshundBreed';
 export * from './labradoodle';
 export * from './catColors';
+export * from './catReaction';

@@ -20,16 +20,7 @@ export const getEnumImplementation = (value: string, type: string) => {
     // nullable value shouldn't be in the enum implementation
     if (val === 'null') return acc;
     const isTypeNumber = type === 'number';
-    const isNumber = !Number.isNaN(Number(val.slice(1, -1)));
-    const key =
-      isNumber || isTypeNumber
-        ? toNumberKey(isTypeNumber ? val.toString() : val.slice(1, -1))
-        : sanitize(val, { underscore: '_', whitespace: '_', dash: '-' });
-
-    return (
-      acc +
-      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`
-    );
+    return acc + ` ${isTypeNumber ? toNumberKey(val) : val}: ${val},\n`;
   }, '');
 };
 

@@ -6,9 +6,11 @@
  */
 import type { CatType } from './catType';
 import type { CatColors } from './catColors';
+import type { CatReaction } from './catReaction';
 
 export interface Cat {
   petsRequested?: number;
   type: CatType;
   colors?: CatColors;
+  reaction?: CatReaction;
 }

@@ -244,6 +244,12 @@ components:
           type: string
           enum:
             - cat
+        colors:
+          type: string
+          enum: ['Желтый', '青い', 'ლურჯი']
+        reaction:
+          type: string
+          enum: ['😁', '😂']
     Pets:
       type: array
       items:
