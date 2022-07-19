@@ -20,7 +20,37 @@ export const getEnumImplementation = (value: string, type: string) => {
     // nullable value shouldn't be in the enum implementation
     if (val === 'null') return acc;
     const isTypeNumber = type === 'number';
-    return acc + ` ${isTypeNumber ? toNumberKey(val) : val}: ${val},\n`;
+
+    const valueWithoutQuotes = isTypeNumber ? val.toString() : val.slice(1, -1);
+    const isNumber = isTypeNumber || !Number.isNaN(Number(valueWithoutQuotes));
+
+    let key: string;
+    if (isNumber) {
+      key = toNumberKey(valueWithoutQuotes);
+    } else {
+      key = sanitize(valueWithoutQuotes, {
+        underscore: '_',
+        whitespace: '_',
+        dash: '-',
+      });
+
+      /*
+        Potentially sanitize can strip to much from a value
+        For example:
+        sanitize("привет, мир!") -> "_"
+        sanitize("❤") -> ""
+        In that case it's more reasonable to return a full unchanged value
+        which will be later surrounded with quotes
+       */
+      if (key.length < valueWithoutQuotes.length) {
+        key = valueWithoutQuotes;
+      }
+    }
+
+    return (
+      acc +
+      `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`
+    );
   }, '');
 };
 
