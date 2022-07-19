@@ -96,15 +96,15 @@ const getMockScalarJsTypes = (
     case 'number':
       return isArray
         ? `Array.from({length: faker.datatype.number({` +
-            `min: ${mockOptionsWithoutFunc?.arrayMin ?? 1}, ` +
-            `max: ${mockOptionsWithoutFunc?.arrayMax ?? 10}}` +
+            `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
+            `max: ${mockOptionsWithoutFunc.arrayMax}}` +
             `)}, () => faker.datatype.number())`
         : 'faker.datatype.number().toString()';
     case 'string':
       return isArray
         ? `Array.from({length: faker.datatype.number({` +
-            `min: ${mockOptionsWithoutFunc?.arrayMin ?? 1},` +
-            `max: ${mockOptionsWithoutFunc?.arrayMax ?? 10}}` +
+            `min: ${mockOptionsWithoutFunc?.arrayMin},` +
+            `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
             `)}, () => faker.random.word())`
         : 'faker.random.word()';
     default:
