@@ -145,7 +145,11 @@ export const getMockScalar = ({
       }
 
       return {
-        value: `Array.from({ length: faker.datatype.number({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => (${value}))`,
+        value:
+          `Array.from({ length: faker.datatype.number({ ` +
+          `min: ${mockOptions?.arrayMin ?? 1}, ` +
+          `max: ${mockOptions?.arrayMax ?? 10} }) ` +
+          `}, (_, i) => i + 1).map(() => (${value}))`,
         imports: resolvedImports,
         name: item.name,
       };

@@ -36,6 +36,8 @@ export default defineConfig({
           },
         },
         mock: {
+          arrayMin: 5,
+          arrayMax: 15,
           properties: {
             '/tag|name/': () => faker.name.lastName(),
           },
