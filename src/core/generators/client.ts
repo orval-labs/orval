@@ -1,4 +1,4 @@
-import { OutputClient, OutputClientFunc } from '../../types';
+import { OutputClient, OutputClientFunc, PackageJson } from '../../types';
 import {
   GeneratorClientExtra,
   GeneratorClients,
@@ -110,22 +110,32 @@ const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
   return generator;
 };
 
-export const generateClientImports = (
-  client: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
-  implementation: string,
+export const generateClientImports = ({
+  client = DEFAULT_CLIENT,
+  implementation,
+  imports,
+  specsName,
+  hasSchemaDir,
+  isAllowSyntheticDefaultImports,
+  hasGlobalMutator,
+  packageJson,
+}: {
+  client: OutputClient | OutputClientFunc;
+  implementation: string;
   imports: {
     exports: GeneratorImport[];
     dependency: string;
-  }[],
-  specsName: Record<string, string>,
-  hasSchemaDir: boolean,
-  isAllowSyntheticDefaultImports: boolean,
-  hasGlobalMutator: boolean,
-): string => {
+  }[];
+  specsName: Record<string, string>;
+  hasSchemaDir: boolean;
+  isAllowSyntheticDefaultImports: boolean;
+  hasGlobalMutator: boolean;
+  packageJson?: PackageJson;
+}): string => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
-    [...dependencies(hasGlobalMutator), ...imports],
+    [...dependencies(hasGlobalMutator, packageJson), ...imports],
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,

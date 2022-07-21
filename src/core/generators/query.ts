@@ -93,13 +93,43 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'react-query',
   },
 ];
+const REACT_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+      { name: 'UseQueryOptions' },
+      { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
+    ],
+    dependency: '@tanstack/react-query',
+  },
+];
 
 export const getReactQueryDependencies: ClientDependenciesBuilder = (
-  hasGlobalMutator: boolean,
-) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
-  ...REACT_QUERY_DEPENDENCIES,
-];
+  hasGlobalMutator,
+  packageJson,
+) => {
+  const hasReactQuery =
+    packageJson?.dependencies?.['react-query'] ??
+    packageJson?.devDependencies?.['react-query'];
+  const hasReactQueryV4 =
+    packageJson?.dependencies?.['@tanstack/react-query'] ??
+    packageJson?.devDependencies?.['@tanstack/react-query'];
+
+  return [
+    ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasReactQuery && !hasReactQueryV4
+      ? REACT_QUERY_DEPENDENCIES
+      : REACT_QUERY_V4_DEPENDENCIES),
+  ];
+};
 
 const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {

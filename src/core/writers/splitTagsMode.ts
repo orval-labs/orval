@@ -26,7 +26,7 @@ export const writeSplitTagsMode = async ({
 
   const target = generateTargetForTags(operations, output);
 
-  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+  const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
     output.tsconfig,
   );
 
@@ -50,27 +50,28 @@ export const writeSplitTagsMode = async ({
           ? '../' + relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : '../' + filename + '.schemas';
 
-        implementationData += generateClientImports(
-          output.client,
+        implementationData += generateClientImports({
+          client: output.client,
           implementation,
-          [{ exports: imports, dependency: relativeSchemasPath }],
+          imports: [{ exports: imports, dependency: relativeSchemasPath }],
           specsName,
-          !!output.schemas,
-          isSyntheticDefaultImportsAllowed,
-          !!output.override.mutator,
-        );
-        mswData += generateMSWImports(
-          implementationMSW,
-          [
+          hasSchemaDir: !!output.schemas,
+          isAllowSyntheticDefaultImports,
+          hasGlobalMutator: !!output.override.mutator,
+          packageJson: output.packageJson,
+        });
+        mswData += generateMSWImports({
+          implementation: implementationMSW,
+          imports: [
             {
               exports: importsMSW,
               dependency: relativeSchemasPath,
             },
           ],
           specsName,
-          !!output.schemas,
-          isSyntheticDefaultImportsAllowed,
-        );
+          hasSchemaDir: !!output.schemas,
+          isAllowSyntheticDefaultImports,
+        });
 
         const schemasPath = !output.schemas
           ? join(dirname, filename + '.schemas' + extension)
