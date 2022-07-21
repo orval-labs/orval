@@ -5,7 +5,7 @@ import { jsDoc } from '../../utils/doc';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from './value';
 
-export const resolveObject = async ({
+export const resolveObject = ({
   schema,
   propName,
   combined = false,
@@ -15,8 +15,8 @@ export const resolveObject = async ({
   propName?: string;
   combined?: boolean;
   context: ContextSpecs;
-}): Promise<ResolverValue> => {
-  const resolvedValue = await resolveValue({
+}): ResolverValue => {
+  const resolvedValue = resolveValue({
     schema,
     name: propName,
     context,

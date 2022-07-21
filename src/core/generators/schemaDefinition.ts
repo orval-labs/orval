@@ -2,7 +2,6 @@ import isEmpty from 'lodash/isEmpty';
 import { SchemasObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
-import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
 import { isReference } from '../../utils/is';
@@ -17,20 +16,19 @@ import { generateInterface } from './interface';
  *
  * @param schemas
  */
-export const generateSchemasDefinition = async (
+export const generateSchemasDefinition = (
   schemas: SchemasObject = {},
   context: ContextSpecs,
   suffix: string,
-): Promise<GeneratorSchema[]> => {
+): GeneratorSchema[] => {
   if (isEmpty(schemas)) {
     return [];
   }
 
-  const transformedSchemas = resolveDiscriminators(schemas);
+  const transformedSchemas = resolveDiscriminators(schemas, context);
 
-  const models = asyncReduce(
-    Object.entries(transformedSchemas),
-    async (acc, [name, schema]) => {
+  const models = Object.entries(transformedSchemas).reduce(
+    (acc, [name, schema]) => {
       const schemaName = pascal(name) + suffix;
       if (
         (!schema.type || schema.type === 'object') &&
@@ -41,17 +39,17 @@ export const generateSchemasDefinition = async (
         !schema.nullable
       ) {
         acc.push(
-          ...(await generateInterface({
+          ...generateInterface({
             name: schemaName,
             schema,
             context,
             suffix,
-          })),
+          }),
         );
 
         return acc;
       } else {
-        const resolvedValue = await resolveValue({
+        const resolvedValue = resolveValue({
           schema,
           name: schemaName,
           context,

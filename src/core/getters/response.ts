@@ -4,7 +4,7 @@ import { GetterResponse } from '../../types/getters';
 import { ResReqTypesValue } from '../../types/resolvers';
 import { getResReqTypes } from './resReqTypes';
 
-export const getResponse = async ({
+export const getResponse = ({
   responses,
   operationName,
   context,
@@ -14,7 +14,7 @@ export const getResponse = async ({
   operationName: string;
   context: ContextSpecs;
   contentType?: OverrideOutputContentType;
-}): Promise<GetterResponse> => {
+}): GetterResponse => {
   if (!responses) {
     return {
       imports: [],
@@ -29,7 +29,7 @@ export const getResponse = async ({
     };
   }
 
-  const types = await getResReqTypes(
+  const types = getResReqTypes(
     Object.entries(responses),
     operationName,
     context,

@@ -2,10 +2,9 @@ import { compare } from 'compare-versions';
 import { InfoObject } from 'openapi3-ts';
 import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
-  GeneratorImport,
-  GeneratorMutator,
   GeneratorOperations,
   GeneratorTarget,
+  GeneratorTargetFull,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import {
@@ -83,17 +82,17 @@ export const generateTarget = (
       return acc;
     },
     {
-      imports: [] as GeneratorImport[],
+      imports: [],
       implementation: '',
       implementationMSW: {
         function: '',
         handler: '',
       },
-      importsMSW: [] as GeneratorImport[],
-      mutators: [] as GeneratorMutator[],
-      formData: [] as GeneratorMutator[],
-      formUrlEncoded: [] as GeneratorMutator[],
-    },
+      importsMSW: [],
+      mutators: [],
+      formData: [],
+      formUrlEncoded: [],
+    } as Required<GeneratorTargetFull>,
   );
 
   return {

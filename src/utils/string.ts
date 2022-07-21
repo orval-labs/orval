@@ -54,6 +54,7 @@ export const sanitize = (
     dot?: string | true;
     dash?: string | true;
     es5keyword?: boolean;
+    special?: boolean;
   },
 ) => {
   const {
@@ -62,8 +63,13 @@ export const sanitize = (
     dot = '',
     dash = '',
     es5keyword = false,
+    special = false,
   } = options ?? {};
-  let newValue = value.replace(/[^\w\s.-]/g, '');
+  let newValue = value;
+
+  if (special !== true) {
+    newValue = newValue.replace(/[^\w\s.-]/g, '');
+  }
 
   if (whitespace !== true) {
     newValue = newValue.replace(/[\s]/g, whitespace);

@@ -57,76 +57,72 @@ export const importOpenApi = async ({
 }: ImportOpenApi): Promise<WriteSpecsProps> => {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
 
-  const schemas = await asyncReduce(
-    Object.entries(specs),
-    async (acc, [specKey, spec]) => {
-      const context: ContextSpecs = {
-        specKey,
-        target,
-        workspace,
-        specs,
-        override: output.override,
-        tslint: output.tslint,
-        tsconfig: output.tsconfig,
-        packageJson: output.packageJson,
-      };
+  const schemas = Object.entries(specs).reduce((acc, [specKey, spec]) => {
+    const context: ContextSpecs = {
+      specKey,
+      target,
+      workspace,
+      specs,
+      override: output.override,
+      tslint: output.tslint,
+      tsconfig: output.tsconfig,
+      packageJson: output.packageJson,
+    };
 
-      // First version to try to handle non-openapi files
-      const schemaDefinition = await generateSchemasDefinition(
-        !spec.openapi
-          ? {
-              ...omit(spec, [
-                'openapi',
-                'info',
-                'servers',
-                'paths',
-                'components',
-                'security',
-                'tags',
-                'externalDocs',
-              ]),
-              ...(spec.components?.schemas ?? {}),
-            }
-          : spec.components?.schemas,
-        context,
-        output.override.components.schemas.suffix,
-      );
+    // First version to try to handle non-openapi files
+    const schemaDefinition = generateSchemasDefinition(
+      !spec.openapi
+        ? {
+            ...omit(spec, [
+              'openapi',
+              'info',
+              'servers',
+              'paths',
+              'components',
+              'security',
+              'tags',
+              'externalDocs',
+            ]),
+            ...(spec.components?.schemas ?? {}),
+          }
+        : spec.components?.schemas,
+      context,
+      output.override.components.schemas.suffix,
+    );
 
-      const responseDefinition = await generateComponentDefinition(
-        spec.components?.responses,
-        context,
-        output.override.components.responses.suffix,
-      );
+    const responseDefinition = generateComponentDefinition(
+      spec.components?.responses,
+      context,
+      output.override.components.responses.suffix,
+    );
 
-      const bodyDefinition = await generateComponentDefinition(
-        spec.components?.requestBodies,
-        context,
-        output.override.components.requestBodies.suffix,
-      );
+    const bodyDefinition = generateComponentDefinition(
+      spec.components?.requestBodies,
+      context,
+      output.override.components.requestBodies.suffix,
+    );
 
-      const parameters = await generateParameterDefinition(
-        spec.components?.parameters,
-        context,
-        output.override.components.parameters.suffix,
-      );
+    const parameters = generateParameterDefinition(
+      spec.components?.parameters,
+      context,
+      output.override.components.parameters.suffix,
+    );
 
-      const schemas = [
-        ...schemaDefinition,
-        ...responseDefinition,
-        ...bodyDefinition,
-        ...parameters,
-      ];
+    const schemas = [
+      ...schemaDefinition,
+      ...responseDefinition,
+      ...bodyDefinition,
+      ...parameters,
+    ];
 
-      if (!schemas.length) {
-        return acc;
-      }
-
-      acc[specKey] = schemas;
-
+    if (!schemas.length) {
       return acc;
-    },
-    {} as Record<string, GeneratorSchema[]>,
-  );
+    }
+
+    acc[specKey] = schemas;
+
+    return acc;
+  }, {} as Record<string, GeneratorSchema[]>);
 
   const api = await generateApi({
     output,

@@ -9,7 +9,7 @@ import { resolveMockValue } from '../resolvers/value.mock';
 import { combineSchemasMock } from './combine.mock';
 import { getKey } from './keys';
 
-export const getMockObject = async ({
+export const getMockObject = ({
   item,
   mockOptions,
   operationId,
@@ -28,7 +28,7 @@ export const getMockObject = async ({
   };
   context: ContextSpecs;
   imports: GeneratorImport[];
-}): Promise<MockDefinition> => {
+}): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
       schema: {
@@ -63,49 +63,44 @@ export const getMockObject = async ({
     let value = !combine || combine?.separator === 'oneOf' ? '{' : '';
     let imports: GeneratorImport[] = [];
     let includedProperties: string[] = [];
-    value += (
-      await Promise.all(
-        Object.entries(item.properties).map(
-          async ([key, prop]: [string, ReferenceObject | SchemaObject]) => {
-            if (combine?.includedProperties.includes(key)) {
-              return undefined;
-            }
+    value += Object.entries(item.properties)
+      .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
+        if (combine?.includedProperties.includes(key)) {
+          return undefined;
+        }
 
-            const isRequired =
-              mockOptions?.required ||
-              (Array.isArray(item.required) ? item.required : []).includes(key);
+        const isRequired =
+          mockOptions?.required ||
+          (Array.isArray(item.required) ? item.required : []).includes(key);
 
-            if (count(item.path, `\\.${key}\\.`) >= 1) {
-              return undefined;
-            }
+        if (count(item.path, `\\.${key}\\.`) >= 1) {
+          return undefined;
+        }
 
-            const resolvedValue = await resolveMockValue({
-              schema: {
-                ...prop,
-                name: key,
-                path: item.path ? `${item.path}.${key}` : `#.${key}`,
-                specKey: item.specKey,
-              },
-              mockOptions,
-              operationId,
-              tags,
-              context,
-              imports,
-            });
-
-            imports.push(...resolvedValue.imports);
-            includedProperties.push(key);
-
-            const keyDefinition = getKey(key);
-            if (!isRequired && !resolvedValue.overrided) {
-              return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
-            }
-
-            return `${keyDefinition}: ${resolvedValue.value}`;
+        const resolvedValue = resolveMockValue({
+          schema: {
+            ...prop,
+            name: key,
+            path: item.path ? `${item.path}.${key}` : `#.${key}`,
+            specKey: item.specKey,
           },
-        ),
-      )
-    )
+          mockOptions,
+          operationId,
+          tags,
+          context,
+          imports,
+        });
+
+        imports.push(...resolvedValue.imports);
+        includedProperties.push(key);
+
+        const keyDefinition = getKey(key);
+        if (!isRequired && !resolvedValue.overrided) {
+          return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
+        }
+
+        return `${keyDefinition}: ${resolvedValue.value}`;
+      })
       .filter(Boolean)
       .join(', ');
     value += !combine || combine?.separator === 'oneOf' ? '}' : '';
@@ -122,7 +117,7 @@ export const getMockObject = async ({
       return { value: `{}`, imports: [], name: item.name };
     }
 
-    const resolvedValue = await resolveMockValue({
+    const resolvedValue = resolveMockValue({
       schema: {
         ...item.additionalProperties,
         name: item.name,
@@ -144,5 +139,5 @@ export const getMockObject = async ({
     };
   }
 
-  return { value: '', imports: [], name: item.name };
+  return { value: '{}', imports: [], name: item.name };
 };

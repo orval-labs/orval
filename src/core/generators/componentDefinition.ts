@@ -6,8 +6,7 @@ import {
   ResponseObject,
 } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
-import { GeneratorImport, GeneratorSchema } from '../../types/generator';
-import { asyncReduce } from '../../utils/async-reduce';
+import { GeneratorSchema } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
 import { getResReqTypes } from '../getters/resReqTypes';
@@ -18,21 +17,20 @@ export const generateComponentDefinition = (
     | ComponentsObject['requestBodies'] = {},
   context: ContextSpecs,
   suffix: string,
-): Promise<GeneratorSchema[]> => {
+): GeneratorSchema[] => {
   if (isEmpty(responses)) {
-    return Promise.resolve([]);
+    return [];
   }
 
-  return asyncReduce(
-    Object.entries(responses),
-    async (
+  return Object.entries(responses).reduce(
+    (
       acc,
       [name, response]: [
         string,
         ReferenceObject | RequestBodyObject | ResponseObject,
       ],
     ) => {
-      const allResponseTypes = await getResReqTypes(
+      const allResponseTypes = getResReqTypes(
         [[suffix, response]],
         name,
         context,

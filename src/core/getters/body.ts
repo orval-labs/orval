@@ -5,7 +5,7 @@ import { GetterBody } from '../../types/getters';
 import { camel } from '../../utils/case';
 import { getResReqTypes } from './resReqTypes';
 
-export const getBody = async ({
+export const getBody = ({
   requestBody,
   operationName,
   context,
@@ -15,8 +15,8 @@ export const getBody = async ({
   operationName: string;
   context: ContextSpecs;
   contentType?: OverrideOutputContentType;
-}): Promise<GetterBody> => {
-  const allBodyTypes = await getResReqTypes(
+}): GetterBody => {
+  const allBodyTypes = getResReqTypes(
     [[context.override.components.requestBodies.suffix, requestBody]],
     operationName,
     context,

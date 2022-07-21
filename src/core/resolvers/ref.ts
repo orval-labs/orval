@@ -15,23 +15,17 @@ type ComponentObject =
   | ResponseObject
   | ParameterObject
   | RequestBodyObject;
-export const resolveRef = async <
-  Schema extends ComponentObject = ComponentObject,
->(
+export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   schema: ComponentObject,
   context: ContextSpecs,
   imports: GeneratorImport[] = [],
-): Promise<{
+): {
   schema: Schema;
   imports: GeneratorImport[];
-}> => {
+} => {
   // the schema is refering to another object
   if (schema?.schema?.$ref) {
-    const resolvedRef = await resolveRef<Schema>(
-      schema?.schema,
-      context,
-      imports,
-    );
+    const resolvedRef = resolveRef<Schema>(schema?.schema, context, imports);
     return {
       schema: {
         ...schema,
@@ -45,7 +39,7 @@ export const resolveRef = async <
     return { schema: schema as Schema, imports };
   }
 
-  const { name, originalName, specKey, refPaths } = await getRefInfo(
+  const { name, originalName, specKey, refPaths } = getRefInfo(
     schema.$ref,
     context,
   );

@@ -8,7 +8,6 @@ import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
-import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { isFunction } from '../../utils/is';
 import {
@@ -234,7 +233,7 @@ export const generateClientTitle = ({
   };
 };
 
-const generateMock = async (
+const generateMock = (
   verbOption: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
@@ -259,29 +258,25 @@ export const generateClient = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
-): Promise<GeneratorOperations> => {
-  return asyncReduce(
-    verbsOptions,
-    async (acc, verbOption) => {
-      const { client: generatorClient } = getGeneratorClient(outputClient);
-      const client = generatorClient(verbOption, options, outputClient);
-      const msw = await generateMock(verbOption, options);
+): GeneratorOperations => {
+  return verbsOptions.reduce((acc, verbOption) => {
+    const { client: generatorClient } = getGeneratorClient(outputClient);
+    const client = generatorClient(verbOption, options, outputClient);
+    const msw = generateMock(verbOption, options);
 
-      acc[verbOption.operationId] = {
-        implementation: verbOption.doc + client.implementation,
-        imports: client.imports,
-        implementationMSW: msw.implementation,
-        importsMSW: msw.imports,
-        tags: verbOption.tags,
-        mutator: verbOption.mutator,
-        formData: verbOption.formData,
-        formUrlEncoded: verbOption.formUrlEncoded,
-        operationName: verbOption.operationName,
-        types: client.types,
-      };
+    acc[verbOption.operationId] = {
+      implementation: verbOption.doc + client.implementation,
+      imports: client.imports,
+      implementationMSW: msw.implementation,
+      importsMSW: msw.imports,
+      tags: verbOption.tags,
+      mutator: verbOption.mutator,
+      formData: verbOption.formData,
+      formUrlEncoded: verbOption.formUrlEncoded,
+      operationName: verbOption.operationName,
+      types: client.types,
+    };
 
-      return acc;
-    },
-    {} as GeneratorOperations,
-  );
+    return acc;
+  }, {} as GeneratorOperations);
 };

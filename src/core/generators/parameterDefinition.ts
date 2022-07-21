@@ -1,7 +1,6 @@
 import { ComponentsObject, ParameterObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
-import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
 import { resolveObject } from '../resolvers/object';
@@ -11,12 +10,11 @@ export const generateParameterDefinition = (
   parameters: ComponentsObject['parameters'] = {},
   context: ContextSpecs,
   suffix: string,
-): Promise<GeneratorSchema[]> => {
-  return asyncReduce(
-    Object.entries(parameters),
-    async (acc, [parameterName, parameter]) => {
+): GeneratorSchema[] => {
+  return Object.entries(parameters).reduce(
+    (acc, [parameterName, parameter]) => {
       const modelName = `${pascal(parameterName)}${suffix}`;
-      const { schema, imports } = await resolveRef<ParameterObject>(
+      const { schema, imports } = resolveRef<ParameterObject>(
         parameter,
         context,
       );
@@ -45,7 +43,7 @@ export const generateParameterDefinition = (
         return acc;
       }
 
-      const resolvedObject = await resolveObject({
+      const resolvedObject = resolveObject({
         schema: schema.schema,
         propName: modelName,
         context,
