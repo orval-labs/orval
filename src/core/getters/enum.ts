@@ -28,9 +28,11 @@ export const getEnumImplementation = (value: string, type: string) => {
     if (isNumber) {
       key = toNumberKey(valueWithoutQuotes);
     } else {
+      const whitespace = '_';
+
       key = sanitize(valueWithoutQuotes, {
         underscore: '_',
-        whitespace: '_',
+        whitespace,
         dash: '-',
       });
 
@@ -43,7 +45,7 @@ export const getEnumImplementation = (value: string, type: string) => {
         which will be later surrounded with quotes
        */
       if (key.length < valueWithoutQuotes.length) {
-        key = valueWithoutQuotes;
+        key = valueWithoutQuotes.replace(/[\s]/g, whitespace);
       }
     }
 
