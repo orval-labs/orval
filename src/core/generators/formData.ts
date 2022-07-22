@@ -1,20 +1,16 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
-import { asyncReduce } from '../../utils/async-reduce';
 import { camel } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { resolveRef } from '../resolvers/ref';
 
-export const generateSchemaFormDataAndUrlEncoded = async (
+export const generateSchemaFormDataAndUrlEncoded = (
   name: string,
   schemaObject: SchemaObject | ReferenceObject,
   context: ContextSpecs,
   isUrlEncoded?: boolean,
 ) => {
-  const { schema, imports } = await resolveRef<SchemaObject>(
-    schemaObject,
-    context,
-  );
+  const { schema, imports } = resolveRef<SchemaObject>(schemaObject, context);
   const propName = isReference(schemaObject) ? imports[0].name : name;
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
@@ -23,13 +19,9 @@ export const generateSchemaFormDataAndUrlEncoded = async (
     : `const ${variableName} = new FormData();\n`;
 
   if (schema.type === 'object' && schema.properties) {
-    const formDataValues = await asyncReduce(
-      Object.entries(schema.properties),
-      async (acc, [key, value]) => {
-        const { schema: property } = await resolveRef<SchemaObject>(
-          value,
-          context,
-        );
+    const formDataValues = Object.entries(schema.properties).reduce(
+      (acc, [key, value]) => {
+        const { schema: property } = resolveRef<SchemaObject>(value, context);
 
         let formDataValue = '';
 

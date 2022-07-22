@@ -5,7 +5,7 @@ import { isReference } from '../../utils/is';
 import { getScalar } from '../getters/scalar';
 import { resolveRef } from './ref';
 
-export const resolveValue = async ({
+export const resolveValue = ({
   schema,
   name,
   context,
@@ -13,9 +13,9 @@ export const resolveValue = async ({
   schema: SchemaObject;
   name?: string;
   context: ContextSpecs;
-}): Promise<ResolverValue> => {
+}): ResolverValue => {
   if (isReference(schema)) {
-    const { schema: schemaObject, imports } = await resolveRef<SchemaObject>(
+    const { schema: schemaObject, imports } = resolveRef<SchemaObject>(
       schema,
       context,
     );
@@ -36,7 +36,7 @@ export const resolveValue = async ({
     };
   }
 
-  const scalar = await getScalar({ item: schema, name, context });
+  const scalar = getScalar({ item: schema, name, context });
 
   return {
     ...scalar,

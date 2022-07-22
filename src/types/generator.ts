@@ -10,6 +10,7 @@ import {
   NormalizedOverrideOutput,
   OutputClient,
   OutputClientFunc,
+  PackageJson,
   Verbs,
 } from './index';
 
@@ -166,6 +167,7 @@ export type ClientTitleBuilder = (title: string) => string;
 
 export type ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
+  packageJson?: PackageJson,
 ) => GeneratorDependency[];
 
 export type ClientMSWBuilder = (

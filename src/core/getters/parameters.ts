@@ -1,23 +1,23 @@
 import { ParameterObject, ReferenceObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GetterParameters } from '../../types/getters';
-import { asyncReduce } from '../../utils/async-reduce';
 import { isReference } from '../../utils/is';
 import { resolveRef } from '../resolvers/ref';
 
-export const getParameters = async ({
+export const getParameters = ({
   parameters = [],
   context,
 }: {
   parameters: (ReferenceObject | ParameterObject)[];
   context: ContextSpecs;
-}): Promise<GetterParameters> => {
-  return asyncReduce(
-    parameters,
-    async (acc, p) => {
+}): GetterParameters => {
+  return parameters.reduce(
+    (acc, p) => {
       if (isReference(p)) {
-        const { schema: parameter, imports } =
-          await resolveRef<ParameterObject>(p, context);
+        const { schema: parameter, imports } = resolveRef<ParameterObject>(
+          p,
+          context,
+        );
 
         if (
           parameter.in === 'path' ||

@@ -1,4 +1,4 @@
-import { OutputClient, OutputClientFunc } from '../../types';
+import { OutputClient, OutputClientFunc, PackageJson } from '../../types';
 import {
   GeneratorClientExtra,
   GeneratorClients,
@@ -8,7 +8,6 @@ import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
 } from '../../types/generator';
-import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { isFunction } from '../../utils/is';
 import {
@@ -111,22 +110,32 @@ const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
   return generator;
 };
 
-export const generateClientImports = (
-  client: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
-  implementation: string,
+export const generateClientImports = ({
+  client = DEFAULT_CLIENT,
+  implementation,
+  imports,
+  specsName,
+  hasSchemaDir,
+  isAllowSyntheticDefaultImports,
+  hasGlobalMutator,
+  packageJson,
+}: {
+  client: OutputClient | OutputClientFunc;
+  implementation: string;
   imports: {
     exports: GeneratorImport[];
     dependency: string;
-  }[],
-  specsName: Record<string, string>,
-  hasSchemaDir: boolean,
-  isAllowSyntheticDefaultImports: boolean,
-  hasGlobalMutator: boolean,
-): string => {
+  }[];
+  specsName: Record<string, string>;
+  hasSchemaDir: boolean;
+  isAllowSyntheticDefaultImports: boolean;
+  hasGlobalMutator: boolean;
+  packageJson?: PackageJson;
+}): string => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
-    [...dependencies(hasGlobalMutator), ...imports],
+    [...dependencies(hasGlobalMutator, packageJson), ...imports],
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
@@ -234,7 +243,7 @@ export const generateClientTitle = ({
   };
 };
 
-const generateMock = async (
+const generateMock = (
   verbOption: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
@@ -259,29 +268,25 @@ export const generateClient = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
-): Promise<GeneratorOperations> => {
-  return asyncReduce(
-    verbsOptions,
-    async (acc, verbOption) => {
-      const { client: generatorClient } = getGeneratorClient(outputClient);
-      const client = generatorClient(verbOption, options, outputClient);
-      const msw = await generateMock(verbOption, options);
+): GeneratorOperations => {
+  return verbsOptions.reduce((acc, verbOption) => {
+    const { client: generatorClient } = getGeneratorClient(outputClient);
+    const client = generatorClient(verbOption, options, outputClient);
+    const msw = generateMock(verbOption, options);
 
-      acc[verbOption.operationId] = {
-        implementation: verbOption.doc + client.implementation,
-        imports: client.imports,
-        implementationMSW: msw.implementation,
-        importsMSW: msw.imports,
-        tags: verbOption.tags,
-        mutator: verbOption.mutator,
-        formData: verbOption.formData,
-        formUrlEncoded: verbOption.formUrlEncoded,
-        operationName: verbOption.operationName,
-        types: client.types,
-      };
+    acc[verbOption.operationId] = {
+      implementation: verbOption.doc + client.implementation,
+      imports: client.imports,
+      implementationMSW: msw.implementation,
+      importsMSW: msw.imports,
+      tags: verbOption.tags,
+      mutator: verbOption.mutator,
+      formData: verbOption.formData,
+      formUrlEncoded: verbOption.formUrlEncoded,
+      operationName: verbOption.operationName,
+      types: client.types,
+    };
 
-      return acc;
-    },
-    {} as GeneratorOperations,
-  );
+    return acc;
+  }, {} as GeneratorOperations);
 };

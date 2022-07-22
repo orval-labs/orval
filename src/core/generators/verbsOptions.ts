@@ -80,26 +80,26 @@ const generateVerbOptions = async ({
     : camel(operationId);
   const operationName = sanitize(overriddenOperationName, { es5keyword: true });
 
-  const response = await getResponse({
+  const response = getResponse({
     responses,
     operationName,
     context,
     contentType: override.contentType,
   });
 
-  const body = await getBody({
+  const body = getBody({
     requestBody: requestBody!,
     operationName,
     context,
     contentType: override.contentType,
   });
 
-  const parameters = await getParameters({
+  const parameters = getParameters({
     parameters: [...verbParameters, ...(operationParameters ?? [])],
     context,
   });
 
-  const queryParams = await getQueryParams({
+  const queryParams = getQueryParams({
     queryParams: parameters.query,
     operationName,
     context,
@@ -114,7 +114,7 @@ const generateVerbOptions = async ({
       })
     : undefined;
 
-  const params = await getParams({
+  const params = getParams({
     route,
     pathParams: parameters.path,
     operationId: operationId!,

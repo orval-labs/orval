@@ -12,7 +12,7 @@ import {
 } from '../resolvers/value.mock';
 import { getMockObject } from './object.mock';
 
-export const getMockScalar = async ({
+export const getMockScalar = ({
   item,
   imports,
   mockOptions,
@@ -32,7 +32,7 @@ export const getMockScalar = async ({
     includedProperties: string[];
   };
   context: ContextSpecs;
-}): Promise<MockDefinition> => {
+}): MockDefinition => {
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
@@ -42,7 +42,9 @@ export const getMockScalar = async ({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags ?? {}).reduce(
+  const overrideTag = Object.entries(mockOptions?.tags ?? {}).reduce<{
+    properties: Record<string, string>;
+  }>(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
     {} as { properties: Record<string, string> },
@@ -78,7 +80,10 @@ export const getMockScalar = async ({
     case 'number':
     case 'integer': {
       return {
-        value: getNullable(`faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`, item.nullable),
+        value: getNullable(
+          `faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`,
+          item.nullable,
+        ),
         imports: [],
         name: item.name,
       };
@@ -102,7 +107,7 @@ export const getMockScalar = async ({
         enums,
         imports: resolvedImports,
         name,
-      } = await resolveMockValue({
+      } = resolveMockValue({
         schema: {
           ...item.items,
           name: item.name,

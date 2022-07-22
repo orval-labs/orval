@@ -20,16 +20,22 @@ const MSW_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const generateMSWImports = (
-  implementation: string,
+export const generateMSWImports = ({
+  implementation,
+  imports,
+  specsName,
+  hasSchemaDir,
+  isAllowSyntheticDefaultImports,
+}: {
+  implementation: string;
   imports: {
     exports: GeneratorImport[];
     dependency: string;
-  }[],
-  specsName: Record<string, string>,
-  hasSchemaDir: boolean,
-  isAllowSyntheticDefaultImports: boolean,
-): string => {
+  }[];
+  specsName: Record<string, string>;
+  hasSchemaDir: boolean;
+  isAllowSyntheticDefaultImports: boolean;
+}): string => {
   return generateDependencyImports(
     implementation,
     [...MSW_DEPENDENCIES, ...imports],
@@ -39,11 +45,11 @@ export const generateMSWImports = (
   );
 };
 
-export const generateMSW = async (
+export const generateMSW = (
   { operationId, response, verb, tags }: GeneratorVerbOptions,
   { pathRoute, override, context }: GeneratorOptions,
 ) => {
-  const { definitions, definition, imports } = await getMockDefinition({
+  const { definitions, definition, imports } = getMockDefinition({
     operationId,
     tags,
     response,

@@ -10,7 +10,7 @@ export const generateModelsInline = (
     .flatMap((it) => it)
     .sort((a, b) => (a.imports.some((i) => i.name === b.name) ? 1 : -1));
 
-  return schemas.reduce(
+  return schemas.reduce<string>(
     (acc, { model }) => generateModelInline(acc, model),
     '',
   );

@@ -95,7 +95,9 @@ export const generateTargetForTags = (
             .map(({ operationName }) => operationName);
 
           const typescriptVersion =
-            options.packageJson?.dependencies?.['typescript'] ?? '4.4.0';
+            options.packageJson?.dependencies?.['typescript'] ??
+            options.packageJson?.devDependencies?.['typescript'] ??
+            '4.4.0';
           const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
 
           const titles = generateClientTitle({

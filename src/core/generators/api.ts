@@ -24,7 +24,7 @@ export const generateApi = async ({
       let resolvedContext = context;
 
       if (isReference(verbs)) {
-        const { schema, imports } = await resolveRef(verbs, context);
+        const { schema, imports } = resolveRef(verbs, context);
 
         resolvedVerbs = schema;
 
@@ -62,7 +62,7 @@ export const generateApi = async ({
         [],
       );
 
-      const client = await generateClient(output.client, verbsOptions, {
+      const client = generateClient(output.client, verbsOptions, {
         route,
         pathRoute,
         override: output.override,

@@ -3,7 +3,6 @@ import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { ResolverValue } from '../../types/resolvers';
-import { asyncReduce } from '../../utils/async-reduce';
 import { pascal } from '../../utils/case';
 import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
@@ -54,7 +53,7 @@ const combineValues = ({
   return resolvedData.values.join(' | ');
 };
 
-export const combineSchemas = async ({
+export const combineSchemas = ({
   name,
   schema,
   separator,
@@ -69,15 +68,14 @@ export const combineSchemas = async ({
 }) => {
   const items = schema[separator] ?? [];
 
-  const resolvedData = await asyncReduce(
-    items,
-    async (acc, subSchema) => {
+  const resolvedData = items.reduce(
+    (acc, subSchema) => {
       let propName = name ? name + pascal(separator) : undefined;
       if (propName && acc.schemas.length) {
         propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
       }
 
-      const resolvedValue = await resolveObject({
+      const resolvedValue = resolveObject({
         schema: subSchema,
         propName,
         combined: true,
@@ -108,7 +106,7 @@ export const combineSchemas = async ({
   let resolvedValue;
 
   if (schema.properties) {
-    resolvedValue = await resolveValue({
+    resolvedValue = resolveValue({
       schema: omit(schema, separator),
       context,
     });
@@ -119,7 +117,7 @@ export const combineSchemas = async ({
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
       name,
-    )} = ${getCombineEnumValue(resolvedData, name)}`;
+    )} = ${getCombineEnumValue(resolvedData)}`;
 
     return {
       value:
@@ -146,10 +144,7 @@ export const combineSchemas = async ({
   };
 };
 
-const getCombineEnumValue = (
-  { values, isRef, types }: CombinedData,
-  name: string,
-) => {
+const getCombineEnumValue = ({ values, isRef, types }: CombinedData) => {
   if (values.length === 1) {
     if (isRef[0]) {
       return values[0];

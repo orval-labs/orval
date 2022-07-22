@@ -39,14 +39,14 @@ export const writeSingleMode = async ({
       ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
       : undefined;
 
-    const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
       output.tsconfig,
     );
 
-    data += generateClientImports(
-      output.client,
+    data += generateClientImports({
+      client: output.client,
       implementation,
-      schemasPath
+      imports: schemasPath
         ? [
             {
               exports: imports.filter(
@@ -57,19 +57,22 @@ export const writeSingleMode = async ({
           ]
         : [],
       specsName,
-      !!output.schemas,
-      isSyntheticDefaultImportsAllowed,
-      !!output.override.mutator,
-    );
+      hasSchemaDir: !!output.schemas,
+      isAllowSyntheticDefaultImports,
+      hasGlobalMutator: !!output.override.mutator,
+      packageJson: output.packageJson,
+    });
 
     if (output.mock) {
-      data += generateMSWImports(
-        implementationMSW,
-        schemasPath ? [{ exports: importsMSW, dependency: schemasPath }] : [],
+      data += generateMSWImports({
+        implementation: implementationMSW,
+        imports: schemasPath
+          ? [{ exports: importsMSW, dependency: schemasPath }]
+          : [],
         specsName,
-        !!output.schemas,
-        isSyntheticDefaultImportsAllowed,
-      );
+        hasSchemaDir: !!output.schemas,
+        isAllowSyntheticDefaultImports,
+      });
     }
 
     if (mutators) {

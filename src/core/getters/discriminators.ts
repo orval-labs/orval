@@ -1,7 +1,10 @@
 import { SchemasObject } from 'openapi3-ts';
+import { ContextSpecs } from '../../types';
+import { getRefInfo } from './ref';
 
 export const resolveDiscriminators = (
   schemas: SchemasObject,
+  context: ContextSpecs,
 ): SchemasObject => {
   const transformedSchemas = { ...schemas };
 
@@ -9,8 +12,19 @@ export const resolveDiscriminators = (
     if (schema.discriminator?.mapping) {
       const { mapping, propertyName } = schema.discriminator;
 
-      for (const mappingKey of Object.keys(mapping)) {
-        const subTypeSchema = transformedSchemas[mappingKey];
+      for (const [mappingKey, mappingValue] of Object.entries(mapping)) {
+        let subTypeSchema;
+
+        try {
+          const { name } = getRefInfo(mappingValue, context);
+          subTypeSchema = transformedSchemas[name];
+        } catch (e) {
+          subTypeSchema = transformedSchemas[mappingValue];
+        }
+
+        if (!subTypeSchema) {
+          continue;
+        }
 
         subTypeSchema.properties = {
           ...subTypeSchema.properties,

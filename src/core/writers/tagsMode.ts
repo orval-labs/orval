@@ -25,7 +25,7 @@ export const writeTagsMode = async ({
 
   const target = generateTargetForTags(operations, output);
 
-  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+  const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
     output.tsconfig,
   );
 
@@ -48,10 +48,10 @@ export const writeTagsMode = async ({
           ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : './' + filename + '.schemas';
 
-        data += generateClientImports(
-          output.client,
+        data += generateClientImports({
+          client: output.client,
           implementation,
-          [
+          imports: [
             {
               exports: imports.filter(
                 (imp) => !importsMSW.some((impMSW) => imp.name === impMSW.name),
@@ -60,19 +60,20 @@ export const writeTagsMode = async ({
             },
           ],
           specsName,
-          !!output.schemas,
-          isSyntheticDefaultImportsAllowed,
-          !!output.override.mutator,
-        );
+          hasSchemaDir: !!output.schemas,
+          isAllowSyntheticDefaultImports,
+          hasGlobalMutator: !!output.override.mutator,
+          packageJson: output.packageJson,
+        });
 
         if (output.mock) {
-          data += generateMSWImports(
-            implementationMSW,
-            [{ exports: importsMSW, dependency: schemasPathRelative }],
+          data += generateMSWImports({
+            implementation: implementationMSW,
+            imports: [{ exports: importsMSW, dependency: schemasPathRelative }],
             specsName,
-            !!output.schemas,
-            isSyntheticDefaultImportsAllowed,
-          );
+            hasSchemaDir: !!output.schemas,
+            isAllowSyntheticDefaultImports,
+          });
         }
 
         const schemasPath = !output.schemas

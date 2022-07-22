@@ -43,7 +43,7 @@ export const resolveMockOverride = (
 export const getNullable = (value: string, nullable?: boolean) =>
   nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
 
-export const resolveMockValue = async ({
+export const resolveMockValue = ({
   schema,
   mockOptions,
   operationId,
@@ -62,9 +62,9 @@ export const resolveMockValue = async ({
   };
   context: ContextSpecs;
   imports: GeneratorImport[];
-}): Promise<MockDefinition & { type?: string }> => {
+}): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
-    const { name, specKey } = await getRefInfo(schema.$ref, context);
+    const { name, specKey } = getRefInfo(schema.$ref, context);
 
     const newSchema = {
       ...getSchema(name, context, specKey || schema.specKey || context.specKey),
@@ -74,7 +74,7 @@ export const resolveMockValue = async ({
       specKey: specKey || schema.specKey,
     };
 
-    const scalar = await getMockScalar({
+    const scalar = getMockScalar({
       item: newSchema,
       mockOptions,
       operationId,
@@ -90,7 +90,7 @@ export const resolveMockValue = async ({
     };
   }
 
-  const scalar = await getMockScalar({
+  const scalar = getMockScalar({
     item: schema,
     mockOptions,
     operationId,

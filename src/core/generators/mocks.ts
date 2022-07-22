@@ -7,7 +7,6 @@ import {
 } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { GetterResponse } from '../../types/getters';
-import { asyncReduce } from '../../utils/async-reduce';
 import { isFunction } from '../../utils/is';
 import { stringify } from '../../utils/string';
 import { getMockScalar } from '../getters/scalar.mock';
@@ -117,9 +116,8 @@ export const getResponsesMockDefinition = ({
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
 }) => {
-  return asyncReduce(
-    response.types.success,
-    async (acc, { value: definition, originalSchema, imports }) => {
+  return response.types.success.reduce(
+    (acc, { value: definition, originalSchema, imports }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
@@ -134,12 +132,9 @@ export const getResponsesMockDefinition = ({
         return acc;
       }
 
-      const resolvedRef = await resolveRef<SchemaObject>(
-        originalSchema,
-        context,
-      );
+      const resolvedRef = resolveRef<SchemaObject>(originalSchema, context);
 
-      const scalar = await getMockScalar({
+      const scalar = getMockScalar({
         item: {
           name: definition,
           ...resolvedRef.schema,
@@ -172,7 +167,7 @@ export const getResponsesMockDefinition = ({
   );
 };
 
-export const getMockDefinition = async ({
+export const getMockDefinition = ({
   operationId,
   tags,
   response,
@@ -192,7 +187,7 @@ export const getMockDefinition = async ({
     override,
   );
 
-  const { definitions, imports } = await getResponsesMockDefinition({
+  const { definitions, imports } = getResponsesMockDefinition({
     operationId,
     tags,
     response,

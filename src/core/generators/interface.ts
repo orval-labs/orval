@@ -11,7 +11,7 @@ import { getScalar } from '../getters/scalar';
  * @param name interface name
  * @param schema
  */
-export const generateInterface = async ({
+export const generateInterface = ({
   name,
   schema,
   context,
@@ -22,7 +22,7 @@ export const generateInterface = async ({
   context: ContextSpecs;
   suffix: string;
 }) => {
-  const scalar = await getScalar({
+  const scalar = getScalar({
     item: schema,
     name,
     context,
