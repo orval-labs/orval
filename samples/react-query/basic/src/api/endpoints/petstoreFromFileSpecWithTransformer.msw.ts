@@ -9,7 +9,7 @@ import { faker } from '@faker-js/faker';
 
 export const getListPetsMock = () =>
   Array.from(
-    { length: faker.datatype.number({ min: 5, max: 15 }) },
+    { length: faker.datatype.number({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() =>
     faker.helpers.arrayElement([

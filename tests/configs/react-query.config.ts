@@ -233,4 +233,21 @@ export default defineConfig({
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
+  mockOverride: {
+    output: {
+      target: '../generated/react-query/mockOverride/endpoints.ts',
+      schemas: '../generated/react-query/mockOverride/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        mock: {
+          arrayMin: 5,
+          arrayMax: 15,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
