@@ -1,0 +1,37 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+  license:
+    name: MIT
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  /test:
+    get:
+      responses:
+        200:
+          description: test
+components:
+  schemas:
+    MyAnotherType:
+      type: object
+      properties:
+        children:
+          properties:
+            date:
+              type: string
+    MyType:
+      description: my type description
+      required:
+        - date
+      allOf:
+        - $ref: '#/components/schemas/MyAnotherType'
+        - type: object
+          properties:
+            date:
+              type: string
+    ComponentsAllOf:
+      allOf:
+        - $ref: '#/components/schemas/MyType'
+        - description: override description
