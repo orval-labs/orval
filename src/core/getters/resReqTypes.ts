@@ -4,6 +4,7 @@ import {
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
+  SchemaObject,
 } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResReqTypesValue } from '../../types/resolvers';
@@ -13,6 +14,9 @@ import { getNumberWord } from '../../utils/string';
 import { generateSchemaFormDataAndUrlEncoded } from '../generators/formData';
 import { resolveObject } from '../resolvers/object';
 import { resolveRef } from '../resolvers/ref';
+import { OpenAPIParser } from 'redoc';
+import { OpenAPISchema, OpenAPISpec } from 'redoc/typings/types';
+import { mergeAllOf } from '../resolvers/mergeAllof';
 
 const formDataContentTypes = ['multipart/form-data'];
 
@@ -30,6 +34,14 @@ const getResReqContentTypes = async ({
   if (!mediaType.schema) {
     return undefined;
   }
+
+  const parser = new OpenAPIParser(
+    context.specs[context.specKey] as OpenAPISpec,
+  );
+  mediaType.schema = mergeAllOf(
+    parser,
+    mediaType.schema as OpenAPISchema,
+  ) as SchemaObject;
 
   const resolvedObject = await resolveObject({
     schema: mediaType.schema,

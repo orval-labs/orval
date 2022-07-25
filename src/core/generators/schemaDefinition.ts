@@ -1,5 +1,5 @@
 import isEmpty from 'lodash/isEmpty';
-import { SchemasObject } from 'openapi3-ts';
+import { SchemasObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
@@ -11,6 +11,9 @@ import { resolveDiscriminators } from '../getters/discriminators';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from '../resolvers/value';
 import { generateInterface } from './interface';
+import { OpenAPIParser } from 'redoc';
+import { OpenAPISpec } from 'redoc/typings/types';
+import { mergeAllOf } from '../resolvers/mergeAllof';
 
 /**
  * Extract all types from #/components/schemas
@@ -27,6 +30,17 @@ export const generateSchemasDefinition = async (
   }
 
   const transformedSchemas = resolveDiscriminators(schemas);
+
+  const parser = new OpenAPIParser(
+    context.specs[context.specKey] as OpenAPISpec,
+  );
+
+  Object.keys(transformedSchemas).forEach((key) => {
+    transformedSchemas[key] = mergeAllOf(
+      parser,
+      transformedSchemas[key],
+    ) as SchemaObject;
+  });
 
   const models = asyncReduce(
     Object.entries(transformedSchemas),
