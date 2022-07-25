@@ -68,7 +68,10 @@ export const sanitize = (
   let newValue = value;
 
   if (special !== true) {
-    newValue = newValue.replace(/[^\w\s.-]/g, '');
+    newValue = newValue.replace(
+      /[!"`'#%&,:;<>=@{}~\$\(\)\*\+\/\\\?\[\]\^\|]/g,
+      '',
+    );
   }
 
   if (whitespace !== true) {

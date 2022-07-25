@@ -1,4 +1,5 @@
 import { keyword } from 'esutils';
+import { sanitize } from '../../utils/string';
 
 export const getEnum = (value: string, type: string, enumName: string) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}];\n`;
@@ -14,8 +15,6 @@ export const getEnum = (value: string, type: string, enumName: string) => {
   return enumValue;
 };
 
-const SPACE_REGEX = /[\s]/g;
-
 export const getEnumImplementation = (value: string, type: string) => {
   return [...new Set(value.split(' | '))].reduce((acc, val) => {
     // nullable value shouldn't be in the enum implementation
@@ -27,10 +26,8 @@ export const getEnumImplementation = (value: string, type: string) => {
 
     if (isNumber) {
       key = toNumberKey(key);
-    }
-
-    if (SPACE_REGEX.test(key)) {
-      key = key.replace(SPACE_REGEX, '_');
+    } else {
+      key = sanitize(val, { underscore: '_', whitespace: '_', dash: true });
     }
 
     return (
