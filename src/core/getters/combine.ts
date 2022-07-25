@@ -6,8 +6,8 @@ import { ResolverValue } from '../../types/resolvers';
 import { pascal } from '../../utils/case';
 import { getNumberWord } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
-import { resolveValue } from '../resolvers/value';
 import { getEnumImplementation } from './enum';
+import { getScalar } from './scalar';
 
 type CombinedData = Omit<
   ResolverValue,
@@ -106,10 +106,7 @@ export const combineSchemas = ({
   let resolvedValue;
 
   if (schema.properties) {
-    resolvedValue = resolveValue({
-      schema: omit(schema, separator),
-      context,
-    });
+    resolvedValue = getScalar({ item: omit(schema, separator), name, context });
   }
 
   const value = combineValues({ resolvedData, separator, resolvedValue });
@@ -136,8 +133,12 @@ export const combineSchemas = ({
 
   return {
     value: value + nullable,
-    imports: resolvedData.imports,
-    schemas: resolvedData.schemas,
+    imports: resolvedValue
+      ? [...resolvedData.imports, ...resolvedValue.imports]
+      : resolvedData.imports,
+    schemas: resolvedValue
+      ? [...resolvedData.schemas, ...resolvedValue.schemas]
+      : resolvedData.schemas,
     isEnum: false,
     type: 'object',
     isRef: false,
