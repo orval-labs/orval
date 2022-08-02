@@ -489,7 +489,7 @@ const getHookOptions = ({
     value += ', request: requestOptions';
   }
 
-  value += '} = options ?? {}';
+  value += '} = options ?? {};';
 
   return value;
 };
@@ -622,7 +622,7 @@ export const ${camel(
 
   ${
     mutator?.isHook
-      ? `const ${operationName} =  use${pascal(operationName)}Hook()`
+      ? `const ${operationName} =  use${pascal(operationName)}Hook();`
       : ''
   }
 
@@ -804,7 +804,7 @@ const generateQueryHook = (
                 : mutator?.hasSecondArg
                 ? ', request: requestOptions'
                 : ''
-            }} = options ?? {}`
+            }} = options ?? {};`
           : ''
       }
 
@@ -818,7 +818,7 @@ const generateQueryHook = (
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
     definitions ? `{${definitions}}` : 'TVariables'
   }> = (${properties ? 'props' : ''}) => {
-          ${properties ? `const {${properties}} = props ?? {}` : ''};
+          ${properties ? `const {${properties}} = props ?? {};` : ''}
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
     isRequestOptions
