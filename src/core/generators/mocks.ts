@@ -117,7 +117,7 @@ export const getResponsesMockDefinition = ({
   context: ContextSpecs;
 }) => {
   return response.types.success.reduce(
-    (acc, { value: definition, originalSchema, imports }) => {
+    (acc, { value: definition, originalSchema, imports, isRef }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition);
 
@@ -143,10 +143,12 @@ export const getResponsesMockDefinition = ({
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,
-        context: {
-          ...context,
-          specKey: response.imports[0]?.specKey ?? context.specKey,
-        },
+        context: isRef
+          ? {
+              ...context,
+              specKey: response.imports[0]?.specKey ?? context.specKey,
+            }
+          : context,
       });
 
       acc.imports.push(...scalar.imports);
