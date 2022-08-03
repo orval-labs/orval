@@ -45,3 +45,7 @@ export function isNull(x: any): x is null {
 
 export const isVerb = (verb: string): verb is Verbs =>
   Object.values(Verbs).includes(verb as Verbs);
+
+export const isRootKey = (specKey: string, target: string) => {
+  return specKey === target;
+};

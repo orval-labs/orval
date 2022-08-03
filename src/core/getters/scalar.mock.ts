@@ -2,7 +2,7 @@ import { DEFAULT_FORMAT_MOCK } from '../../constants/format.mock';
 import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
 import { MockDefinition, MockSchemaObject } from '../../types/mocks';
-import { isReference } from '../../utils/is';
+import { isReference, isRootKey } from '../../utils/is';
 import { mergeDeep } from '../../utils/mergeDeep';
 import { escape } from '../../utils/string';
 import {
@@ -137,7 +137,16 @@ export const getMockScalar = ({
         return {
           value: `faker.helpers.arrayElements(Object.values(${enumValue}))`,
           imports: enumImp
-            ? [...resolvedImports, { ...enumImp, values: true }]
+            ? [
+                ...resolvedImports,
+                {
+                  ...enumImp,
+                  values: true,
+                  ...(!isRootKey(context.specKey, context.target)
+                    ? { specKey: context.specKey }
+                    : {}),
+                },
+              ]
             : resolvedImports,
           name: item.name,
         };
@@ -160,7 +169,15 @@ export const getMockScalar = ({
 
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
-          imports = [{ name: item.name, values: true }];
+          imports = [
+            {
+              name: item.name,
+              values: true,
+              ...(!isRootKey(context.specKey, context.target)
+                ? { specKey: context.specKey }
+                : {}),
+            },
+          ];
         }
 
         value = `faker.helpers.arrayElement(${enumValue})`;

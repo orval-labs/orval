@@ -10,6 +10,7 @@ import { WriteSpecsProps } from '../../types/writers';
 import { jsDoc } from '../../utils/doc';
 import { executeHook } from '../../utils/executeHook';
 import { getFileInfo } from '../../utils/file';
+import { isRootKey } from '../../utils/is';
 import { createSuccessMessage } from '../../utils/messages/logs';
 import { getSpecName, relativeSafe } from '../../utils/path';
 import { writeSchemas } from './schemas';
@@ -56,8 +57,7 @@ export const writeSpecs = async (
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
-        const isRootKey = target === specKey;
-        const schemaPath = !isRootKey
+        const schemaPath = !isRootKey(specKey, target)
           ? join(rootSchemaPath, specsName[specKey])
           : rootSchemaPath;
 
@@ -66,7 +66,7 @@ export const writeSpecs = async (
           schemas,
           target,
           specsName,
-          isRootKey,
+          isRootKey: isRootKey(specKey, target),
           header,
         });
       }),
