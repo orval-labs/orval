@@ -64,14 +64,16 @@ export const resolveMockValue = ({
   imports: GeneratorImport[];
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
-    const { name, specKey } = getRefInfo(schema.$ref, context);
+    const { name, specKey = context.specKey } = getRefInfo(
+      schema.$ref,
+      context,
+    );
 
     const newSchema = {
-      ...getSchema(name, context, specKey || schema.specKey || context.specKey),
+      ...getSchema(name, context, specKey),
       name,
       path: schema.path,
       isRef: true,
-      specKey: specKey || schema.specKey,
     };
 
     const scalar = getMockScalar({
@@ -80,7 +82,10 @@ export const resolveMockValue = ({
       operationId,
       tags,
       combine,
-      context,
+      context: {
+        ...context,
+        specKey,
+      },
       imports,
     });
 

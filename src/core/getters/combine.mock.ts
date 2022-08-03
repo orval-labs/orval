@@ -55,7 +55,6 @@ export const combineSchemasMock = ({
         ...val,
         name: item.name,
         path: item.path ? item.path : '#',
-        specKey: item.specKey,
       },
       combine: {
         separator,

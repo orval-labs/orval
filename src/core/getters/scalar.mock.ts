@@ -112,7 +112,6 @@ export const getMockScalar = ({
           ...item.items,
           name: item.name,
           path: item.path ? `${item.path}.[]` : '#.[]',
-          specKey: item.specKey,
         },
         combine,
         mockOptions,

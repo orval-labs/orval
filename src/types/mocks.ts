@@ -13,6 +13,5 @@ export interface MockDefinition {
 export type MockSchemaObject = SchemaObject & {
   name: string;
   path?: string;
-  specKey?: string;
   isRef?: boolean;
 };

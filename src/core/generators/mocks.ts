@@ -138,17 +138,15 @@ export const getResponsesMockDefinition = ({
         item: {
           name: definition,
           ...resolvedRef.schema,
-          ...(response.imports.length
-            ? {
-                specKey: response.imports[0].specKey,
-              }
-            : {}),
         },
         imports,
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,
-        context,
+        context: {
+          ...context,
+          specKey: response.imports[0]?.specKey ?? context.specKey,
+        },
       });
 
       acc.imports.push(...scalar.imports);
