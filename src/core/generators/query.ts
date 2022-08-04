@@ -252,12 +252,12 @@ const generateQueryRequestFunction = (
         response.definition.success || 'unknown'
       }>();
 
-        return (\n    ${propsImplementation}\n${
-        !isBodyVerb && hasSignal ? 'signal?: AbortSignal,\n' : ''
-      } ${
+        return (\n    ${propsImplementation}\n ${
         isRequestOptions && mutator.hasSecondArg
-          ? `options?: SecondParameter<typeof ${mutator.name}>`
+          ? `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
           : ''
+      }${
+        !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
       }) => {${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
@@ -364,6 +364,22 @@ const generateQueryOptions = ({
   }${queryConfig} ...queryOptions}`;
 };
 
+const getQueryArgumentsRequestType = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return `axios?: AxiosRequestConfig`;
+  }
+
+  if (mutator.hasSecondArg && !mutator.isHook) {
+    return `request?: SecondParameter<typeof ${mutator.name}>`;
+  }
+
+  if (mutator.hasSecondArg && mutator.isHook) {
+    return `request?: SecondParameter<ReturnType<typeof ${mutator.name}>>`;
+  }
+
+  return '';
+};
+
 const generateQueryArguments = ({
   operationName,
   definitions,
@@ -396,13 +412,11 @@ const generateQueryArguments = ({
     return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
   }
 
-  return `options?: { ${type ? 'query' : 'mutation'}?:${definition}, ${
-    !mutator
-      ? `axios?: AxiosRequestConfig`
-      : mutator?.hasSecondArg
-      ? `request?: SecondParameter<typeof ${mutator.name}>`
-      : ''
-  }}\n`;
+  const requestType = getQueryArgumentsRequestType(mutator);
+
+  return `options?: { ${
+    type ? 'query' : 'mutation'
+  }?:${definition}, ${requestType}}\n`;
 };
 
 const generateQueryReturnType = ({

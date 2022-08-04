@@ -81,15 +81,21 @@ export const generateMutator = async ({
 
     const path = getImport(output, mutator);
 
+    const isHook = mutator.name
+      ? !!mutator.name.startsWith('use') && !!mutatorInfo.returnNumberOfParams
+      : !!mutatorInfo.returnNumberOfParams;
+
     return {
-      name: importName,
+      name: mutator.name || !isHook ? importName : `use${pascal(importName)}`,
       path,
       default: isDefault,
       hasErrorType,
       errorTypeName,
-      hasSecondArg: mutatorInfo.numberOfParams > 1,
+      hasSecondArg: !isHook
+        ? mutatorInfo.numberOfParams > 1
+        : mutatorInfo.returnNumberOfParams! > 1,
       hasThirdArg: mutatorInfo.numberOfParams > 2,
-      isHook: !!mutator?.name?.startsWith('use') && !mutatorInfo.numberOfParams,
+      isHook,
       ...(hasBodyType ? { bodyTypeName } : {}),
     };
   } else {
@@ -211,6 +217,15 @@ const parseFunction = (
   }
 
   if (node.type === 'FunctionDeclaration') {
+    if (
+      node.body?.body?.[0]?.type === 'ReturnStatement' &&
+      node.body?.body?.[0]?.argument?.params
+    ) {
+      return {
+        numberOfParams: node.params.length,
+        returnNumberOfParams: node.body.body[0].argument.params.length,
+      };
+    }
     return {
       numberOfParams: node.params.length,
     };
@@ -220,6 +235,17 @@ const parseFunction = (
 
   if (declaration.init.name) {
     return parseFunction(ast, declaration.init.name);
+  }
+
+  if (
+    declaration.init.body?.body?.[0]?.type === 'ReturnStatement' &&
+    declaration.init.body?.body?.[0]?.argument?.params
+  ) {
+    return {
+      numberOfParams: declaration.init.params.length,
+      returnNumberOfParams:
+        declaration.init.body.body[0].argument.params.length,
+    };
   }
 
   return {

@@ -126,6 +126,7 @@ export type GeneratorClientExtra = {
 
 export type GeneratorMutatorParsingInfo = {
   numberOfParams: number;
+  returnNumberOfParams?: number;
 };
 export type GeneratorMutator = {
   name: string;
