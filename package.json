@@ -109,7 +109,7 @@
     "fs-extra": "^10.0.1",
     "globby": "11.0.4",
     "ibm-openapi-validator": "^0.83.0",
-    "inquirer": "^8.2.0",
+    "inquirer": "^9.1.0",
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
     "lodash.omitby": "^4.6.0",
