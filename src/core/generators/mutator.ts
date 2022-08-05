@@ -217,13 +217,14 @@ const parseFunction = (
   }
 
   if (node.type === 'FunctionDeclaration') {
-    if (
-      node.body?.body?.[0]?.type === 'ReturnStatement' &&
-      node.body?.body?.[0]?.argument?.params
-    ) {
+    const returnStatement = node.body?.body?.find(
+      (b: any) => b.type === 'ReturnStatement',
+    );
+
+    if (returnStatement?.argument?.params) {
       return {
         numberOfParams: node.params.length,
-        returnNumberOfParams: node.body.body[0].argument.params.length,
+        returnNumberOfParams: returnStatement.argument.params.length,
       };
     }
     return {
@@ -237,14 +238,14 @@ const parseFunction = (
     return parseFunction(ast, declaration.init.name);
   }
 
-  if (
-    declaration.init.body?.body?.[0]?.type === 'ReturnStatement' &&
-    declaration.init.body?.body?.[0]?.argument?.params
-  ) {
+  const returnStatement = declaration.init.body?.body?.find(
+    (b: any) => b.type === 'ReturnStatement',
+  );
+
+  if (returnStatement?.argument?.params) {
     return {
       numberOfParams: declaration.init.params.length,
-      returnNumberOfParams:
-        declaration.init.body.body[0].argument.params.length,
+      returnNumberOfParams: returnStatement.argument.params.length,
     };
   }
 

@@ -130,6 +130,24 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  hookMutatorWithSecondParameter: {
+    output: {
+      target:
+        '../generated/react-query/hook-mutator-with-second-parameter/endpoints.ts',
+      schemas:
+        '../generated/react-query/hook-mutator-with-second-parameter/model',
+      client: 'react-query',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance-with-second-parameter.ts',
+          name: 'useCustomInstance',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/react-query/formData/endpoints.ts',
