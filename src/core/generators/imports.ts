@@ -51,6 +51,19 @@ export const generateImports = ({
     .join('\n');
 };
 
+export const generateModelImports = ({
+  schemas = [],
+}: {
+  schemas: GeneratorImport[];
+}) => {
+  const importStatements = schemas.map(
+    (schema) => `export * from './${camel(schema.name)}';`,
+  );
+  const fileContent = importStatements.sort().join('\n');
+
+  return fileContent;
+};
+
 export const generateMutatorImports = ({
   mutators,
   implementation,
