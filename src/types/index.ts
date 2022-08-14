@@ -227,6 +227,7 @@ export type OverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
+    delay?: number;
   };
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
