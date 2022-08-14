@@ -163,6 +163,8 @@ export const getMockScalar = ({
       let value = 'faker.random.word()';
       let imports: GeneratorImport[] = [];
 
+      if (item.format === 'uuid') value = 'faker.datatype.uuid()';
+
       if (item.enum) {
         let enumValue =
           "['" + item.enum.map((e) => escape(e)).join("','") + "']";
