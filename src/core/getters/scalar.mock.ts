@@ -163,6 +163,11 @@ export const getMockScalar = ({
       let value = 'faker.random.word()';
       let imports: GeneratorImport[] = [];
 
+      if (item.format === 'date')
+        value = "faker.date.past().toISOString().split('T')[0]";
+      if (item.format === 'date-time')
+        value = "`${faker.date.past().toISOString().split('.')[0]}Z`";
+      if (item.format === 'email') value = 'faker.internet.email()';
       if (item.format === 'uuid') value = 'faker.datatype.uuid()';
 
       if (item.enum) {
