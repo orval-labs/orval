@@ -1,4 +1,9 @@
-export const DEFAULT_FORMAT_MOCK = {
+import { SchemaObject } from 'openapi3-ts/src/model/OpenApi';
+
+export const DEFAULT_FORMAT_MOCK: Record<
+  Required<SchemaObject>['format'],
+  string
+> = {
   city: 'faker.address.city()',
   country: 'faker.address.country()',
   date: "faker.date.past().toISOString().split('T')[0]",
