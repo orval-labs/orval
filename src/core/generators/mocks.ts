@@ -31,6 +31,8 @@ const getMockWithoutFunc = (
   spec: OpenAPIObject,
   override?: NormalizedOverrideOutput,
 ): MockOptions => ({
+  arrayMin: override?.mock?.arrayMin,
+  arrayMax: override?.mock?.arrayMax,
   required: override?.mock?.required,
   ...(override?.mock?.properties
     ? {
@@ -83,18 +85,27 @@ const getMockWithoutFunc = (
     : {}),
 });
 
-const getMockScalarJsTypes = (definition: string) => {
+const getMockScalarJsTypes = (
+  definition: string,
+  mockOptionsWithoutFunc: { [key: string]: unknown },
+) => {
   const isArray = definition.endsWith('[]');
   const type = isArray ? definition.slice(0, -2) : definition;
 
   switch (type) {
     case 'number':
       return isArray
-        ? `Array.from({length: faker.datatype.number({min: 1, max: 10})}, () => faker.datatype.number())`
+        ? `Array.from({length: faker.datatype.number({` +
+            `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
+            `max: ${mockOptionsWithoutFunc.arrayMax}}` +
+            `)}, () => faker.datatype.number())`
         : 'faker.datatype.number().toString()';
     case 'string':
       return isArray
-        ? `Array.from({length: faker.datatype.number({min: 1, max: 10})}, () => faker.random.word())`
+        ? `Array.from({length: faker.datatype.number({` +
+            `min: ${mockOptionsWithoutFunc?.arrayMin},` +
+            `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
+            `)}, () => faker.random.word())`
         : 'faker.random.word()';
     default:
       return 'undefined';
@@ -119,7 +130,7 @@ export const getResponsesMockDefinition = ({
   return response.types.success.reduce(
     (acc, { value: definition, originalSchema, imports, isRef }) => {
       if (!definition || generalJSTypesWithArray.includes(definition)) {
-        const value = getMockScalarJsTypes(definition);
+        const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
 
         acc.definitions.push(
           transformer ? transformer(value, response.definition.success) : value,

@@ -110,6 +110,11 @@ export const normalizeOptions = async (
       headers: outputOptions.headers ?? false,
       override: {
         ...outputOptions.override,
+        mock: {
+          arrayMin: outputOptions.override?.mock?.arrayMin ?? 1,
+          arrayMax: outputOptions.override?.mock?.arrayMax ?? 10,
+          ...(outputOptions.override?.mock ?? {}),
+        },
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations ?? {},
           outputWorkspace,
