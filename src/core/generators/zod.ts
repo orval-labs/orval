@@ -1,25 +1,11 @@
 import { ParameterObject, PathItemObject, SchemaObject } from 'openapi3-ts';
-import { VERBS_WITH_BODY } from '../../constants';
-import { OutputClient, OutputClientFunc, Verbs } from '../../types';
+import { OutputClient, OutputClientFunc } from '../../types';
 import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
-import { GetterPropType } from '../../types/getters';
-import { camel } from '../../utils/case';
-import { toObjectString } from '../../utils/string';
-import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
 import { resolveRef } from '../resolvers/ref';
-import { generateVerbImports } from './imports';
-import {
-  generateFormDataAndUrlEncodedFunction,
-  generateMutatorConfig,
-  generateMutatorRequestOptions,
-  generateOptions,
-} from './options';
-
-let fileName: string | null = null;
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -174,8 +160,8 @@ const parseZodValidationSchemaDefinition = (
 };
 
 const generateZodRoute = (
-  { operationName, body, verb, params }: GeneratorVerbOptions,
-  { pathRoute, context, override }: GeneratorOptions,
+  { operationName, body, verb }: GeneratorVerbOptions,
+  { pathRoute, context }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
@@ -238,7 +224,7 @@ const generateZodRoute = (
     zodDefinitionsHeaders,
   );
   const inputBody = parseZodValidationSchemaDefinition(zodDefinitionsBody);
-
+  console.log(inputHeaders);
   return [
     inputParams
       ? `export const ${operationName}Params = ${inputParams}`
@@ -247,16 +233,7 @@ const generateZodRoute = (
     inputHeaders
       ? `export const ${operationName}Header = ${inputHeaders}`
       : undefined,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
-
-  // if (inputParams) {
-
-  //   return `export const ${operationName} = zod.object({ "params": ${inputParams}}).object({"headers": ${inputHeaders}}).extend(${inputBody})`;
-  // }
-
-  // return `export const ${operationName} = zod.object({ "params": ${inputParams}}).object({"headers": ${inputHeaders}})`;
+  ].join('\n\n');
 };
 
 export const generateZodTitle = () => '';
