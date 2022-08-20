@@ -4,7 +4,7 @@ export default defineConfig({
   petstore: {
     output: {
       mode: 'split',
-      target: './petstore.ts',
+      target: './src/petstore.ts',
       client: 'zod',
       mock: true,
     },

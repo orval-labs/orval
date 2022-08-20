@@ -3,9 +3,9 @@ import { defineConfig } from 'orval';
 export default defineConfig({
   petstore: {
     output: {
-      target: '../generated/angular/petstore/endpoints.ts',
-      schemas: '../generated/angular/petstore/model',
-      client: 'angular',
+      target: '../generated/zod/petstore/endpoints.ts',
+      schemas: '../generated/zod/petstore/model',
+      client: 'zod',
       mock: true,
     },
     input: {
@@ -17,9 +17,9 @@ export default defineConfig({
   },
   tagsSplit: {
     output: {
-      target: '../generated/angular/tags-split/endpoints.ts',
-      schemas: '../generated/angular/tags-split/model',
-      client: 'angular',
+      target: '../generated/zod/tags-split/endpoints.ts',
+      schemas: '../generated/zod/tags-split/model',
+      client: 'zod',
       mode: 'tags-split',
       mock: true,
     },
@@ -32,13 +32,10 @@ export default defineConfig({
   },
   customClient: {
     output: {
-      target: '../generated/angular/custom-client/endpoints.ts',
-      schemas: '../generated/angular/custom-client/model',
-      client: 'angular',
+      target: '../generated/zod/custom-client/endpoints.ts',
+      schemas: '../generated/zod/custom-client/model',
+      client: 'zod',
       mock: true,
-      override: {
-        mutator: '../mutators/custom-client-angular.ts',
-      },
     },
     input: {
       target: '../specifications/petstore.yaml',

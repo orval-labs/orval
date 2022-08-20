@@ -115,12 +115,10 @@ const generateZodValidationSchemaDefinition = (
       ]);
       break;
     default:
-      validationFunctions.push([
-        schema?.enum
-          ? `string<${schema?.enum.map((value) => `'${value}'`).join(' | ')}>`
-          : type,
-        undefined,
-      ]);
+      if (schema?.enum && type === 'string') {
+        break;
+      }
+      validationFunctions.push([type, undefined]);
       break;
   }
 
@@ -138,7 +136,7 @@ const generateZodValidationSchemaDefinition = (
   }
   if (schema?.enum) {
     validationFunctions.push([
-      'oneOf',
+      'enum',
       [`[${schema?.enum.map((value) => `'${value}'`).join(', ')}]`],
     ]);
   }
@@ -167,7 +165,7 @@ const parseZodValidationSchemaDefinition = (
   ${Object.entries(input)
     .map(
       ([key, schema]) =>
-        `${key}: ${schema[0][0] !== 'object' ? 'zod' : ''}${schema
+        `"${key}": ${schema[0][0] !== 'object' ? 'zod' : ''}${schema
           .map(parseProperty)
           .join('')}`,
     )
@@ -176,7 +174,7 @@ const parseZodValidationSchemaDefinition = (
 };
 
 const generateZodRoute = (
-  { operationName, body, props, verb, mutator }: GeneratorVerbOptions,
+  { operationName, body, verb, params }: GeneratorVerbOptions,
   { pathRoute, context, override }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
@@ -200,28 +198,65 @@ const generateZodRoute = (
       ).schema
     : resolvedRequestBody?.content['application/json'].schema;
 
-  const zodDefinitions = (parameters ?? [])
+  const zodDefinitionsBodyProperties: any[] =
+    (body.implementation && resolvedRequestBodyJsonSchema?.properties) ?? [];
+  const zodDefinitionsBody = Object.keys(zodDefinitionsBodyProperties)
+    ?.map((key) => ({
+      [key]: generateZodValidationSchemaDefinition(
+        zodDefinitionsBodyProperties[
+          key as keyof typeof zodDefinitionsBodyProperties
+        ] as any,
+        resolvedRequestBodyJsonSchema?.required?.find(
+          (requiredKey: string) => requiredKey === key,
+        ),
+      ),
+    }))
+    .reduce((acc, curr) => ({ ...acc, ...curr }), {});
+
+  const zodDefinitionsHeaders = (parameters ?? [])
+    ?.filter((parameter) => parameter.in === 'header')
     ?.map((parameter) => ({
       [parameter.name]: generateZodValidationSchemaDefinition(
         parameter.schema as any,
         parameter.required,
       ),
     }))
-    .concat(
-      body.implementation && resolvedRequestBodyJsonSchema
-        ? {
-            [body.implementation]: generateZodValidationSchemaDefinition(
-              resolvedRequestBodyJsonSchema,
-              resolvedRequestBody?.required,
-            ),
-          }
-        : {},
-    )
     .reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
-  const input = parseZodValidationSchemaDefinition(zodDefinitions);
+  const zodDefinitionsParams = (parameters ?? [])
+    ?.filter((parameter) => parameter.in !== 'header')
+    ?.map((parameter) => ({
+      [parameter.name]: generateZodValidationSchemaDefinition(
+        parameter.schema as any,
+        parameter.required,
+      ),
+    }))
+    .reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
-  return `export const ${operationName} = ${input}`;
+  const inputParams = parseZodValidationSchemaDefinition(zodDefinitionsParams);
+  const inputHeaders = parseZodValidationSchemaDefinition(
+    zodDefinitionsHeaders,
+  );
+  const inputBody = parseZodValidationSchemaDefinition(zodDefinitionsBody);
+
+  return [
+    inputParams
+      ? `export const ${operationName}Params = ${inputParams}`
+      : undefined,
+    inputBody ? `export const ${operationName}Body = ${inputBody}` : undefined,
+    inputHeaders
+      ? `export const ${operationName}Header = ${inputHeaders}`
+      : undefined,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  // if (inputParams) {
+
+  //   return `export const ${operationName} = zod.object({ "params": ${inputParams}}).object({"headers": ${inputHeaders}}).extend(${inputBody})`;
+  // }
+
+  // return `export const ${operationName} = zod.object({ "params": ${inputParams}}).object({"headers": ${inputHeaders}})`;
 };
 
 export const generateZodTitle = () => '';
@@ -235,11 +270,10 @@ export const generateZod = (
   options: GeneratorOptions,
   _outputClient: OutputClient | OutputClientFunc,
 ) => {
-  const imports = generateVerbImports(verbOptions);
   const routeImplementation = generateZodRoute(verbOptions, options);
 
   return {
     implementation: `${routeImplementation}\n\n`,
-    imports,
+    imports: [],
   };
 };

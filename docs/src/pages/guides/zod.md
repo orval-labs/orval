@@ -26,26 +26,52 @@ module.exports = {
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The tRPC model will generate an implementation file with one tRPC route query or mutation per path in your OpenApi Specification.
+The zod model will generate an implementation file containing the params, headers and body as Zod objects.
 
-Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/zod/basic/petstore.yaml" target="_blank">swagger</a>:
+Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/zod/petstore.yaml" target="_blank">swagger</a>:
 
 ```ts
-export const showPetById = (
-  petId: string,
-  options?: AxiosRequestConfig,
-): Promise<AxiosResponse<Pet>> => {
-  return axios.get(`/pets/${petId}`, options);
-};
+import * as zod from 'zod';
 
-export const showPetByIdRoute = trpc.router().query('showPetById', {
-  input: zod.object({
-    petId: zod.string().required(),
-    testId: zod.string().required(),
-    version: zod.number().notRequired(),
-  }),
-  resolve: ({ input: { petId, version }, ctx }) => showPetById(petId, version),
+/**
+ * @summary List all pets
+ */
+export const listPetsParams = zod.object({
+  limit: zod.string().optional(),
+  sort: zod.enum(['name', '-name', 'email', '-email']),
+  version: zod.number().optional(),
+});
+
+export const listPetsHeader = zod.object({
+  'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']),
+});
+
+/**
+ * @summary Create a pet
+ */
+export const createPetsParams = zod.object({
+  limit: zod.string().optional(),
+  sort: zod.enum(['name', '-name', 'email', '-email']),
+  version: zod.number().optional(),
+});
+
+export const createPetsBody = zod.object({
+  name: zod.string(),
+  tag: zod.string(),
+});
+
+export const createPetsHeader = zod.object({
+  'X-EXAMPLE': zod.enum(['ONE', 'TWO', 'THREE']),
+});
+
+/**
+ * @summary Info for a specific pet
+ */
+export const showPetByIdParams = zod.object({
+  petId: zod.string(),
+  testId: zod.string(),
+  version: zod.number().optional(),
 });
 ```
 
-Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/zod/basic" target="_blank">here</a> the full example
+Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/zod" target="_blank">here</a> the full example
