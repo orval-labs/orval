@@ -44,6 +44,14 @@ import {
   getSwrDependencies,
 } from './swr';
 
+import {
+  generateZod,
+  generateZodFooter,
+  generateZodHeader,
+  generateZodTitle,
+  getZodDependencies,
+} from './zod';
+
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
 export const GENERATOR_CLIENT: GeneratorClients = {
@@ -95,6 +103,13 @@ export const GENERATOR_CLIENT: GeneratorClients = {
     dependencies: getSwrDependencies,
     footer: generateSwrFooter,
     title: generateSwrTitle,
+  },
+  zod: {
+    client: generateZod,
+    header: generateZodHeader,
+    dependencies: getZodDependencies,
+    footer: generateZodFooter,
+    title: generateZodTitle,
   },
 };
 

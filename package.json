@@ -30,7 +30,8 @@
     "axios",
     "vue-query",
     "vue",
-    "swr"
+    "swr",
+    "zod"
   ],
   "author": {
     "name": "Victor Bury",
@@ -50,7 +51,7 @@
     "prerelease": "yarn build && cd ./tests && yarn generate && yarn build",
     "release": "dotenv release-it",
     "postrelease": "yarn build && yarn update-samples",
-    "generate-api": "node ./dist/bin/orval.js --config ./samples/react-query/basic/orval.config.ts --watch",
+    "generate-api": "node ./dist/bin/orval.js --config ./samples/zod/orval.config.ts --watch",
     "prepare": "husky install && cd ./samples/react-query/basic && yarn",
     "commitlint": "commitlint",
     "update-samples": "zx ./scripts/update-samples.mjs"
