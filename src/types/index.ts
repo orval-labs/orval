@@ -57,6 +57,8 @@ export type NormalizedOverrideOutput = {
   operations: { [key: string]: NormalizedOperationOptions };
   tags: { [key: string]: NormalizedOperationOptions };
   mock?: {
+    arrayMin?: number;
+    arrayMax?: number;
     properties?: MockProperties;
     format?: { [key: string]: unknown };
     required?: boolean;
@@ -192,6 +194,8 @@ export const OutputMode = {
 };
 
 export type MockOptions = {
+  arrayMin?: number;
+  arrayMax?: number;
   required?: boolean;
   properties?: Record<string, string>;
   operations?: Record<string, { properties: Record<string, string> }>;
@@ -223,10 +227,13 @@ export type OverrideOutput = {
   operations?: { [key: string]: OperationOptions };
   tags?: { [key: string]: OperationOptions };
   mock?: {
+    arrayMin?: number;
+    arrayMax?: number;
     properties?: MockProperties;
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
+    delay?: number;
   };
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);

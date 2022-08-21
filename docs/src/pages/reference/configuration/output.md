@@ -303,7 +303,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a> and shouled return a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a>
 
 ```js
 module.exports = {
@@ -665,7 +665,61 @@ module.exports = {
 
 Type: `Boolean`.
 
-Give you the possibility to set every property required.
+Give you the possibility to set every property as required.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          required: true,
+        },
+      },
+    },
+  },
+};
+```
+
+#### arrayMin
+
+Type: `Number`.
+
+Set the minimum length of generated arrays for properties that specify multiple items. (Default is `1`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          arrayMin: 5,
+        },
+      },
+    },
+  },
+};
+```
+
+#### arrayMax
+
+Type: `Number`.
+
+Set the maximum length of generated arrays for properties that specify multiple items. (Default is `10`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          arrayMax: 15,
+        },
+      },
+    },
+  },
+};
+```
 
 #### baseUrl
 

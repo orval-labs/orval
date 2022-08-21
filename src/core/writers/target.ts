@@ -56,7 +56,12 @@ export const generateTarget = (
           options.packageJson?.dependencies?.['typescript'] ??
           options.packageJson?.devDependencies?.['typescript'] ??
           '4.4.0';
-        const hasAwaitedType = compare(typescriptVersion, '4.5.0', '>=');
+
+        const hasAwaitedType = compare(
+          typescriptVersion.replace(/(\s(.*))/, ''),
+          '4.5.0',
+          '>=',
+        );
 
         const header = generateClientHeader({
           outputClient: options.client,
