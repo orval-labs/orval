@@ -77,15 +77,17 @@ export const writeSchemas = async ({
   const schemaFilePath = join(schemaPath, '/index.ts');
   await ensureFile(schemaFilePath);
 
-  schemas.map((schema) =>
-    writeSchema({
-      path: schemaPath,
-      schema,
-      target,
-      isRootKey,
-      specsName,
-      header,
-    }),
+  await Promise.all(
+    schemas.map((schema) =>
+      writeSchema({
+        path: schemaPath,
+        schema,
+        target,
+        isRootKey,
+        specsName,
+        header,
+      }),
+    ),
   );
 
   try {
