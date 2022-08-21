@@ -9,6 +9,7 @@ import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
+import { sanitize } from '../../utils/string';
 import { getResReqTypes } from '../getters/resReqTypes';
 
 export const generateComponentDefinition = (
@@ -42,7 +43,7 @@ export const generateComponentDefinition = (
 
       const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-      const modelName = `${pascal(name)}${suffix}`;
+      const modelName = sanitize(`${pascal(name)}${suffix}`);
       const doc = jsDoc(response as ResponseObject | RequestBodyObject);
       const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
 
