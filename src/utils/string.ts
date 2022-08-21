@@ -101,11 +101,6 @@ export const sanitize = (
   return newValue;
 };
 
-export const sanitizeAll = (s: TemplateStringsArray, ...v: string[]) => {
-  const sanitizedStrings = v.map((s) => sanitize(s));
-  return s.raw.reduce((a, c) => a + sanitizedStrings + c);
-};
-
 export const toObjectString = <T>(props: T[], path?: keyof T) => {
   if (!props.length) {
     return '';
