@@ -82,8 +82,8 @@ export const generateMutator = async ({
     const path = getImport(output, mutator);
 
     const isHook = mutator.name
-      ? !!mutator.name.startsWith('use') && !!mutatorInfo.returnNumberOfParams
-      : !!mutatorInfo.returnNumberOfParams;
+      ? !!mutator.name.startsWith('use') && !mutatorInfo.numberOfParams
+      : !mutatorInfo.numberOfParams;
 
     return {
       name: mutator.name || !isHook ? importName : `use${pascal(importName)}`,
