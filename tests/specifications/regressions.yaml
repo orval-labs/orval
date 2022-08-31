@@ -1,0 +1,22 @@
+openapi: '3.0.0'
+info:
+  title: Orval Regression Tests
+  version: 0.0.0
+paths: {}
+components:
+  schemas:
+    ArrayTest:
+      type: object
+      properties:
+        nullable_items:
+          type: array
+          items:
+            type: string
+            nullable: true
+        nested_nullable_items:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              nullable: true
