@@ -988,11 +988,33 @@ module.exports = {
 };
 ```
 
+#### useDeprecatedOperations
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to true.
+
+Use this property to include/exclude generating any operation marked `"deprecated": true` in OpenAPI.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useDeprecatedOperations: false,
+      },
+    },
+  },
+};
+```
+
 #### contentType
 
 Type: `Object`
 
-Use this property to include or excluse some content types
+Use this property to include or exclude some content types
 
 Example:
 

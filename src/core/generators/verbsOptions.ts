@@ -206,7 +206,12 @@ export const generateVerbsOptions = ({
           context,
         });
 
-        acc.push(verbOptions);
+        // GitHub #564 check if we want to exclude deprecated operations
+        const includeOperation = !operation.deprecated || output.override.useDeprecatedOperations === true;
+
+        if (includeOperation) {
+          acc.push(verbOptions);
+        }
       }
 
       return acc;

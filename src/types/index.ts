@@ -96,6 +96,7 @@ export type NormalizedOverrideOutput = {
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
+  useDeprecatedOperations?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -266,6 +267,7 @@ export type OverrideOutput = {
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
+  useDeprecatedOperations?: boolean;
 };
 
 export type OverrideOutputContentType = {
