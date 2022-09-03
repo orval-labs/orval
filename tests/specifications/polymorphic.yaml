@@ -1,0 +1,50 @@
+openapi: 3.0.1
+info:
+  title: API
+  version: V1
+paths:
+  /demo:
+    get:
+      operationId: getPolymorphicResponse
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                oneOf:
+                  - $ref: '#/components/schemas/DescendantOne'
+                  - $ref: '#/components/schemas/DescendantTwo'
+components:
+  schemas:
+    DescendantOne:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/ParentType'
+        - type: object
+          properties:
+            value:
+              type: boolean
+    DescendantTwo:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/ParentType'
+        - type: object
+          properties:
+            value:
+              type: string
+    ParentType:
+      type: object
+      properties:
+        value:
+          type: object
+        key:
+          type: string
+        type:
+          type: string
+          enum:
+            - BOOLEAN
+            - STRING
+      discriminator:
+        propertyName: type

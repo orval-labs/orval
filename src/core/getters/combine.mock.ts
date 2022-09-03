@@ -78,7 +78,9 @@ export const combineSchemasMock = ({
         ? `${resolvedValue.value.slice(0, -1)},${itemResolvedValue.value}}`
         : resolvedValue.value;
 
-    if (!index && !combine) {
+    const isObjectBounds = !combine || combine.separator == 'oneOf';
+
+    if (!index && isObjectBounds) {
       if (resolvedValue.enums || separator === 'oneOf') {
         if (arr.length === 1) {
           return `faker.helpers.arrayElement([${value}])`;
@@ -99,7 +101,7 @@ export const combineSchemasMock = ({
       }
       return `${acc}${value}${
         itemResolvedValue?.value ? `,${itemResolvedValue.value}` : ''
-      }${!combine ? '}' : ''}`;
+      }${isObjectBounds ? '}' : ''}`;
     }
     if (!value) {
       return acc;
