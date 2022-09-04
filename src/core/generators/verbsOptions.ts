@@ -153,7 +153,6 @@ const generateVerbOptions = async ({
       : undefined;
 
   const doc = jsDoc({ description, deprecated, summary });
-  const exclude = deprecated && override.useDeprecatedOperations === false;
 
   const verbOption: GeneratorVerbOptions = {
     verb: verb as Verbs,
@@ -172,7 +171,7 @@ const generateVerbOptions = async ({
     formUrlEncoded,
     override,
     doc,
-    exclude,
+    deprecated,
   };
 
   const transformer = await dynamicImport(

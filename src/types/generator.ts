@@ -99,7 +99,7 @@ export type GeneratorVerbOptions = {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   override: NormalizedOverrideOutput;
-  exclude?: boolean;
+  deprecated?: boolean;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];

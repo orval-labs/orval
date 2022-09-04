@@ -886,9 +886,13 @@ export const generateQuery: ClientBuilder = (
   options,
   outputClient,
 ) => {
-  // GitHub #564 check if we want to exclude deprecated operations
   let imports = [] as GeneratorImport[];
-  if (verbOptions.exclude === true) {
+
+  // GitHub #564 check if we want to exclude deprecated operations
+  if (
+    verbOptions.deprecated &&
+    options.override.useDeprecatedOperations === false
+  ) {
     return {
       implementation: ``,
       imports,
