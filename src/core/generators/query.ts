@@ -886,6 +886,15 @@ export const generateQuery: ClientBuilder = (
   outputClient,
 ) => {
   const imports = generateVerbImports(verbOptions);
+
+  // GitHub #564 check if we want to exclude deprecated operations
+  if (verbOptions.exclude === true) {
+    return {
+      implementation: ``,
+      imports,
+    };
+  }
+
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,

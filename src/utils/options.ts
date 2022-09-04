@@ -178,7 +178,8 @@ export const normalizeOptions = async (
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
         },
         useDates: outputOptions.override?.useDates || false,
-        useDeprecatedOperations: outputOptions.override?.useDeprecatedOperations || true,
+        useDeprecatedOperations:
+          outputOptions.override?.useDeprecatedOperations ?? true,
       },
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},

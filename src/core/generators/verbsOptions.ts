@@ -59,7 +59,6 @@ const generateVerbOptions = async ({
   } = operation;
 
   const operationId = getOperationId(operation, route, verb);
-
   const overrideOperation = output.override.operations[operation.operationId!];
   const overrideTag = Object.entries(output.override.tags).reduce(
     (acc, [tag, options]) =>
@@ -154,6 +153,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const doc = jsDoc({ description, deprecated, summary });
+  const exclude = deprecated && override.useDeprecatedOperations === false;
 
   const verbOption: GeneratorVerbOptions = {
     verb: verb as Verbs,
@@ -172,6 +172,7 @@ const generateVerbOptions = async ({
     formUrlEncoded,
     override,
     doc,
+    exclude,
   };
 
   const transformer = await dynamicImport(
@@ -206,12 +207,7 @@ export const generateVerbsOptions = ({
           context,
         });
 
-        // GitHub #564 check if we want to exclude deprecated operations
-        const includeOperation = !operation.deprecated || output.override.useDeprecatedOperations === true;
-
-        if (includeOperation) {
-          acc.push(verbOptions);
-        }
+        acc.push(verbOptions);
       }
 
       return acc;
