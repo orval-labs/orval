@@ -224,17 +224,17 @@ const generateImplementation = (
 export const generateAngular: ClientBuilder = (verbOptions, options) => {
   let imports = [] as GeneratorImport[];
 
-    // GitHub #564 check if we want to exclude deprecated operations
-    if (
-      verbOptions.deprecated &&
-      options.override.useDeprecatedOperations === false
-    ) {
-      return {
-        implementation: ``,
-        imports,
-      };
-    }
-    imports = generateVerbImports(verbOptions);
+  // GitHub #564 check if we want to exclude deprecated operations
+  if (
+    verbOptions.deprecated &&
+    options.override.useDeprecatedOperations === false
+  ) {
+    return {
+      implementation: ``,
+      imports,
+    };
+  }
+  imports = generateVerbImports(verbOptions);
   const implementation = generateImplementation(verbOptions, options);
 
   return { implementation, imports };
