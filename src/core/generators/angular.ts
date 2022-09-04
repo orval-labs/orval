@@ -6,6 +6,7 @@ import {
   ClientHeaderBuilder,
   ClientTitleBuilder,
   GeneratorDependency,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
 } from '../../types/generator';
@@ -221,7 +222,19 @@ const generateImplementation = (
 };
 
 export const generateAngular: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
+  let imports = [] as GeneratorImport[];
+
+    // GitHub #564 check if we want to exclude deprecated operations
+    if (
+      verbOptions.deprecated &&
+      options.override.useDeprecatedOperations === false
+    ) {
+      return {
+        implementation: ``,
+        imports,
+      };
+    }
+    imports = generateVerbImports(verbOptions);
   const implementation = generateImplementation(verbOptions, options);
 
   return { implementation, imports };

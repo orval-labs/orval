@@ -7,6 +7,7 @@ import {
   ClientHeaderBuilder,
   ClientTitleBuilder,
   GeneratorDependency,
+  GeneratorImport,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -372,7 +373,20 @@ export const generateSwrHeader: ClientHeaderBuilder = ({
 export const generateSwrFooter: ClientFooterBuilder = () => '';
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
-  const imports = generateVerbImports(verbOptions);
+  let imports = [] as GeneratorImport[];
+
+    // GitHub #564 check if we want to exclude deprecated operations
+    if (
+      verbOptions.deprecated &&
+      options.override.useDeprecatedOperations === false
+    ) {
+      return {
+        implementation: ``,
+        imports,
+      };
+    }
+    imports = generateVerbImports(verbOptions);
+
   const functionImplementation = generateSwrRequestFunction(
     verbOptions,
     options,
