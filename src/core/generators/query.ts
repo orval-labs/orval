@@ -8,7 +8,6 @@ import {
   ClientHeaderBuilder,
   ClientTitleBuilder,
   GeneratorDependency,
-  GeneratorImport,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
@@ -886,20 +885,7 @@ export const generateQuery: ClientBuilder = (
   options,
   outputClient,
 ) => {
-  let imports = [] as GeneratorImport[];
-
-  // GitHub #564 check if we want to exclude deprecated operations
-  if (
-    verbOptions.deprecated &&
-    options.override.useDeprecatedOperations === false
-  ) {
-    return {
-      implementation: ``,
-      imports,
-    };
-  }
-
-  imports = generateVerbImports(verbOptions);
+  const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
