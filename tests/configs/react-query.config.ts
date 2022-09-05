@@ -280,4 +280,16 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  polymorphic: {
+    output: {
+      target: '../generated/react-query/polymorphic/endpoints.ts',
+      schemas: '../generated/react-query/polymorphic/model',
+      client: 'react-query',
+      mock: true,
+      headers: true,
+    },
+    input: {
+      target: '../specifications/polymorphic.yaml',
+    },
+  },
 });
