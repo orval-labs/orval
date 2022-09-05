@@ -373,7 +373,6 @@ export const generateSwrFooter: ClientFooterBuilder = () => '';
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
-
   const functionImplementation = generateSwrRequestFunction(
     verbOptions,
     options,
