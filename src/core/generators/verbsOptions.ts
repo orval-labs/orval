@@ -59,7 +59,6 @@ const generateVerbOptions = async ({
   } = operation;
 
   const operationId = getOperationId(operation, route, verb);
-
   const overrideOperation = output.override.operations[operation.operationId!];
   const overrideTag = Object.entries(output.override.tags).reduce(
     (acc, [tag, options]) =>
@@ -172,6 +171,7 @@ const generateVerbOptions = async ({
     formUrlEncoded,
     override,
     doc,
+    deprecated,
   };
 
   const transformer = await dynamicImport(

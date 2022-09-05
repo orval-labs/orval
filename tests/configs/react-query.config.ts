@@ -251,6 +251,18 @@ export default defineConfig({
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
+  deprecated: {
+    output: {
+      target: '../generated/react-query/deprecated/endpoints.ts',
+      schemas: '../generated/react-query/deprecated/model',
+      client: 'react-query',
+      mock: true,
+      override: {
+        useDeprecatedOperations: false,
+      },
+    },
+    input: '../specifications/deprecated.yaml',
+  },
   mockOverride: {
     output: {
       target: '../generated/react-query/mockOverride/endpoints.ts',
