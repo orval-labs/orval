@@ -1,6 +1,10 @@
 import { PathItemObject } from 'openapi3-ts';
 import { ContextSpecs, NormalizedOutputOptions } from '../../types';
-import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
+import {
+  GeneratorApiResponse,
+  GeneratorSchema,
+  GeneratorVerbsOptions,
+} from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { isReference } from '../../utils/is';
 import { getRoute } from '../getters/route';
@@ -38,12 +42,19 @@ export const generateApi = async ({
         };
       }
 
-      const verbsOptions = await generateVerbsOptions({
+      let verbsOptions = await generateVerbsOptions({
         verbs: resolvedVerbs,
         output,
         route,
         context: resolvedContext,
       });
+
+      // GitHub #564 check if we want to exclude deprecated operations
+      if (output.override.useDeprecatedOperations === false) {
+        verbsOptions = verbsOptions.filter((verb) => {
+          return !verb.deprecated;
+        });
+      }
 
       const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, headers, body, response }) => {
