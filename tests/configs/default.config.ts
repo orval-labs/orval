@@ -42,4 +42,11 @@ export default defineConfig({
       schemas: '../generated/default/translation/model',
     },
   },
+  regressions: {
+    input: '../specifications/regressions.yaml',
+    output: {
+      target: '../generated/default/regressions/endpoints.ts',
+      schemas: '../generated/default/regressions/model',
+    },
+  },
 });
