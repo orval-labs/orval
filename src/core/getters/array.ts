@@ -24,7 +24,9 @@ export const getArray = ({
       context,
     });
     return {
-      value: `(${resolvedObject.value})[]`,
+      value: resolvedObject.value.includes('|')
+        ? `(${resolvedObject.value})[]`
+        : `${resolvedObject.value}[]`,
       imports: resolvedObject.imports,
       schemas: resolvedObject.schemas,
       isEnum: false,

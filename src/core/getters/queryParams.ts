@@ -3,6 +3,7 @@ import { ContextSpecs } from '../../types';
 import { GeneratorImport, GeneratorSchema } from '../../types/generator';
 import { GetterParameters, GetterQueryParam } from '../../types/getters';
 import { pascal } from '../../utils/case';
+import { sanitize } from '../../utils/string';
 import { resolveValue } from '../resolvers/value';
 import { getEnum } from './enum';
 import { getKey } from './keys';
@@ -26,10 +27,18 @@ const getQueryParamsTypes = (
       content: ContentObject;
     };
 
+    const queryName = sanitize(`${pascal(operationName)}${pascal(name)}`, {
+      underscore: '_',
+      whitespace: '_',
+      dash: true,
+      es5keyword: true,
+      es5IdentifierName: true,
+    });
+
     const { value, imports, isEnum, type, schemas, isRef } = resolveValue({
       schema: (schema || content['application/json'].schema)!,
       context,
-      name: pascal(operationName) + pascal(name),
+      name: queryName,
     });
 
     const key = getKey(name);
@@ -45,7 +54,7 @@ const getQueryParamsTypes = (
     }
 
     if (isEnum && !isRef) {
-      const enumName = pascal(operationName) + pascal(name);
+      const enumName = queryName;
       const enumValue = getEnum(value, type, enumName);
 
       return {
