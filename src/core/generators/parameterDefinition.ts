@@ -3,6 +3,7 @@ import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
+import { sanitize } from '../../utils/string';
 import { resolveObject } from '../resolvers/object';
 import { resolveRef } from '../resolvers/ref';
 
@@ -13,7 +14,13 @@ export const generateParameterDefinition = (
 ): GeneratorSchema[] => {
   return Object.entries(parameters).reduce(
     (acc, [parameterName, parameter]) => {
-      const modelName = `${pascal(parameterName)}${suffix}`;
+      const modelName = sanitize(`${pascal(parameterName)}${suffix}`, {
+        underscore: '_',
+        whitespace: '_',
+        dash: true,
+        es5keyword: true,
+        es5IdentifierName: true,
+      });
       const { schema, imports } = resolveRef<ParameterObject>(
         parameter,
         context,

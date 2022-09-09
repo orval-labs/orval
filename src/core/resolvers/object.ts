@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { jsDoc } from '../../utils/doc';
@@ -11,7 +11,7 @@ export const resolveObject = ({
   combined = false,
   context,
 }: {
-  schema: SchemaObject;
+  schema: SchemaObject | ReferenceObject;
   propName?: string;
   combined?: boolean;
   context: ContextSpecs;

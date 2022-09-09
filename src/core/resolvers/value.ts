@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResolverValue } from '../../types/resolvers';
 import { isReference } from '../../utils/is';
@@ -10,7 +10,7 @@ export const resolveValue = ({
   name,
   context,
 }: {
-  schema: SchemaObject;
+  schema: SchemaObject | ReferenceObject;
   name?: string;
   context: ContextSpecs;
 }): ResolverValue => {

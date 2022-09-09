@@ -54,6 +54,7 @@ export const sanitize = (
     dot?: string | true;
     dash?: string | true;
     es5keyword?: boolean;
+    es5IdentifierName?: boolean;
     special?: boolean;
   },
 ) => {
@@ -63,6 +64,7 @@ export const sanitize = (
     dot = '',
     dash = '',
     es5keyword = false,
+    es5IdentifierName = false,
     special = false,
   } = options ?? {};
   let newValue = value;
@@ -92,6 +94,16 @@ export const sanitize = (
 
   if (es5keyword) {
     newValue = keyword.isKeywordES5(newValue, true) ? `_${newValue}` : newValue;
+  }
+
+  if (es5IdentifierName) {
+    if (newValue.match(/^[0-9]/)) {
+      newValue = `N${newValue}`;
+    } else {
+      newValue = keyword.isIdentifierNameES5(newValue)
+        ? newValue
+        : `_${newValue}`;
+    }
   }
 
   return newValue;

@@ -1,6 +1,7 @@
 import get from 'lodash.get';
 import {
   ParameterObject,
+  ReferenceObject,
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
@@ -14,7 +15,8 @@ type ComponentObject =
   | SchemaObject
   | ResponseObject
   | ParameterObject
-  | RequestBodyObject;
+  | RequestBodyObject
+  | ReferenceObject;
 export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   schema: ComponentObject,
   context: ContextSpecs,
@@ -24,8 +26,12 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   imports: GeneratorImport[];
 } => {
   // the schema is refering to another object
-  if (schema?.schema?.$ref) {
-    const resolvedRef = resolveRef<Schema>(schema?.schema, context, imports);
+  if ((schema as any)?.schema?.$ref) {
+    const resolvedRef = resolveRef<Schema>(
+      (schema as any)?.schema,
+      context,
+      imports,
+    );
     return {
       schema: {
         ...schema,

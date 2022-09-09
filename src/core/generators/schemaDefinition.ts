@@ -6,6 +6,7 @@ import { pascal } from '../../utils/case';
 import { jsDoc } from '../../utils/doc';
 import { isReference } from '../../utils/is';
 import { getSpecName } from '../../utils/path';
+import { sanitize } from '../../utils/string';
 import { resolveDiscriminators } from '../getters/discriminators';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from '../resolvers/value';
@@ -29,7 +30,13 @@ export const generateSchemasDefinition = (
 
   const models = Object.entries(transformedSchemas).reduce(
     (acc, [name, schema]) => {
-      const schemaName = pascal(name) + suffix;
+      const schemaName = sanitize(`${pascal(name)}${suffix}`, {
+        underscore: '_',
+        whitespace: '_',
+        dash: true,
+        es5keyword: true,
+        es5IdentifierName: true,
+      });
       if (
         (!schema.type || schema.type === 'object') &&
         !schema.allOf &&
