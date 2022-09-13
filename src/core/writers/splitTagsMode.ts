@@ -2,7 +2,7 @@ import { outputFile } from 'fs-extra';
 import { join } from 'upath';
 import { OutputClient } from '../../types';
 import { WriteModeProps } from '../../types/writers';
-import { camel, kebab } from '../../utils/case';
+import { camel } from '../../utils/case';
 import { getFileInfo } from '../../utils/file';
 import { relativeSafe } from '../../utils/path';
 import { isSyntheticDefaultImportsAllow } from '../../utils/tsconfig';
@@ -108,19 +108,15 @@ export const writeSplitTagsMode = async ({
         mswData += `\n${implementationMSW}`;
 
         const implementationFilename =
-          kebab(tag) +
+          tag +
           (OutputClient.ANGULAR === output.client ? '.service' : '') +
           extension;
 
-        const implementationPath = join(
-          dirname,
-          kebab(tag),
-          implementationFilename,
-        );
+        const implementationPath = join(dirname, tag, implementationFilename);
         await outputFile(implementationPath, implementationData);
 
         const mockPath = output.mock
-          ? join(dirname, kebab(tag), kebab(tag) + '.msw' + extension)
+          ? join(dirname, tag, tag + '.msw' + extension)
           : undefined;
 
         if (mockPath) {
