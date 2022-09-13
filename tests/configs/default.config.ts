@@ -47,6 +47,7 @@ export default defineConfig({
     output: {
       target: '../generated/default/regressions/endpoints.ts',
       schemas: '../generated/default/regressions/model',
+      mode: 'tags-split',
     },
   },
 });

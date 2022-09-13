@@ -6,7 +6,7 @@ import {
   GeneratorTarget,
   GeneratorTargetFull,
 } from '../../types/generator';
-import { pascal } from '../../utils/case';
+import { kebab, pascal } from '../../utils/case';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -24,7 +24,7 @@ const generateTargetTags = (
 ): {
   [key: string]: GeneratorTargetFull;
 } =>
-  operation.tags.reduce((acc, tag) => {
+  operation.tags.map(kebab).reduce((acc, tag) => {
     const currentOperation = acc[tag];
 
     acc[tag] = !currentOperation
