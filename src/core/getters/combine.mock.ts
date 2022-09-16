@@ -73,10 +73,21 @@ export const combineSchemasMock = ({
     combineImports.push(...resolvedValue.imports);
     includedProperties.push(...(resolvedValue.includedProperties ?? []));
 
-    const value =
-      itemResolvedValue?.value && separator === 'oneOf'
-        ? `${resolvedValue.value.slice(0, -1)},${itemResolvedValue.value}}`
-        : resolvedValue.value;
+    const isLastElement = index === arr.length - 1;
+
+    let currentValue = resolvedValue.value;
+
+    if (itemResolvedValue?.value && separator === 'oneOf') {
+      currentValue = `${resolvedValue.value.slice(0, -1)},${
+        itemResolvedValue.value
+      }}`;
+    }
+
+    if (itemResolvedValue?.value && separator !== 'oneOf' && isLastElement) {
+      currentValue = `${currentValue}${
+        itemResolvedValue?.value ? `,${itemResolvedValue.value}` : ''
+      }`;
+    }
 
     const isObjectBounds =
       !combine || (combine.separator === 'oneOf' && separator === 'allOf');
@@ -84,30 +95,34 @@ export const combineSchemasMock = ({
     if (!index && isObjectBounds) {
       if (resolvedValue.enums || separator === 'oneOf') {
         if (arr.length === 1) {
-          return `faker.helpers.arrayElement([${value}])`;
+          return `faker.helpers.arrayElement([${currentValue}])`;
         }
-        return `faker.helpers.arrayElement([${value},`;
+        return `faker.helpers.arrayElement([${currentValue},`;
       }
+
       if (arr.length === 1) {
         if (resolvedValue.type !== 'object') {
-          return `${value}`;
+          return currentValue;
         }
-        return `{${value}}`;
+        return `{${currentValue}}`;
       }
-      return `{${value},`;
+
+      return `{${currentValue},`;
     }
-    if (arr.length - 1 === index) {
+
+    if (isLastElement) {
       if (resolvedValue.enums || separator === 'oneOf') {
-        return `${acc}${value}${!combine ? '])' : ''}`;
+        return `${acc}${currentValue}${!combine ? '])' : ''}`;
       }
-      return `${acc}${value}${
-        itemResolvedValue?.value ? `,${itemResolvedValue.value}` : ''
-      }${isObjectBounds ? '}' : ''}`;
+
+      return `${acc}${currentValue}${isObjectBounds ? '}' : ''}`;
     }
-    if (!value) {
+
+    if (!currentValue) {
       return acc;
     }
-    return `${acc}${value},`;
+
+    return `${acc}${currentValue},`;
   }, '');
 
   return {
