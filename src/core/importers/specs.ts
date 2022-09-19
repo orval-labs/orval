@@ -25,6 +25,8 @@ const resolveSpecs = async (
   }
 
   const data = (await SwaggerParser.resolve(path, options)).values();
+  const dereferencedData = await SwaggerParser.dereference(path, options);
+  data[path] = dereferencedData;
 
   if (isUrl) {
     return data;
