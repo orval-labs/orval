@@ -4,6 +4,7 @@ import {
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
+  SchemaObject,
 } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { ResReqTypesValue } from '../../types/resolvers';
@@ -13,6 +14,7 @@ import { getNumberWord } from '../../utils/string';
 import { generateSchemaFormDataAndUrlEncoded } from '../generators/formData';
 import { resolveObject } from '../resolvers/object';
 import { resolveRef } from '../resolvers/ref';
+import { mergeAllOf } from '../resolvers/mergeAllof';
 
 const formDataContentTypes = ['multipart/form-data'];
 
@@ -30,6 +32,8 @@ const getResReqContentTypes = ({
   if (!mediaType.schema) {
     return undefined;
   }
+
+  mediaType.schema = mergeAllOf(mediaType.schema, context) as SchemaObject;
 
   const resolvedObject = resolveObject({
     schema: mediaType.schema,

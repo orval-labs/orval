@@ -1,6 +1,10 @@
 import { PathItemObject } from 'openapi3-ts';
 import { ContextSpecs, NormalizedOutputOptions } from '../../types';
-import { GeneratorApiResponse, GeneratorSchema } from '../../types/generator';
+import {
+  GeneratorApiResponse,
+  GeneratorSchema,
+  GeneratorVerbsOptions,
+} from '../../types/generator';
 import { asyncReduce } from '../../utils/async-reduce';
 import { isReference } from '../../utils/is';
 import { getRoute } from '../getters/route';

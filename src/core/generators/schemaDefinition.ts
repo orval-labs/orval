@@ -1,5 +1,5 @@
 import isEmpty from 'lodash/isEmpty';
-import { SchemasObject } from 'openapi3-ts';
+import { SchemasObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { pascal } from '../../utils/case';
@@ -11,6 +11,7 @@ import { resolveDiscriminators } from '../getters/discriminators';
 import { getEnum } from '../getters/enum';
 import { resolveValue } from '../resolvers/value';
 import { generateInterface } from './interface';
+import { mergeAllOf } from '../resolvers/mergeAllof';
 
 /**
  * Extract all types from #/components/schemas
@@ -27,6 +28,13 @@ export const generateSchemasDefinition = (
   }
 
   const transformedSchemas = resolveDiscriminators(schemas, context);
+
+  Object.keys(transformedSchemas).forEach((key) => {
+    transformedSchemas[key] = mergeAllOf(
+      transformedSchemas[key],
+      context,
+    ) as SchemaObject;
+  });
 
   const models = Object.entries(transformedSchemas).reduce(
     (acc, [name, schema]) => {
