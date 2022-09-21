@@ -1,3 +1,4 @@
+import get from 'lodash.get';
 import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs, MockOptions } from '../../types';
 import { GeneratorImport } from '../../types/generator';
@@ -5,7 +6,6 @@ import { MockDefinition, MockSchemaObject } from '../../types/mocks';
 import { isReference } from '../../utils/is';
 import { getRefInfo } from '../getters/ref';
 import { getMockScalar } from '../getters/scalar.mock';
-import { getSchema } from '../getters/schema';
 
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
@@ -64,13 +64,16 @@ export const resolveMockValue = ({
   imports: GeneratorImport[];
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
-    const { name, specKey = context.specKey } = getRefInfo(
-      schema.$ref,
-      context,
-    );
+    const {
+      name,
+      specKey = context.specKey,
+      refPaths,
+    } = getRefInfo(schema.$ref, context);
+
+    const schemaRef = get(context.specs[specKey], refPaths);
 
     const newSchema = {
-      ...getSchema(name, context, specKey),
+      ...schemaRef,
       name,
       path: schema.path,
       isRef: true,
