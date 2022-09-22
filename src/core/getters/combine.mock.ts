@@ -48,6 +48,7 @@ export const combineSchemasMock = ({
       : undefined;
 
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
+  combineImports.push(...(itemResolvedValue?.imports ?? []));
 
   const value = (item[separator] ?? []).reduce((acc, val, index, arr) => {
     const resolvedValue = resolveMockValue({
