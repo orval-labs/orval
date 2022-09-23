@@ -1,4 +1,3 @@
-import { compare } from 'compare-versions';
 import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
   GeneratorOperation,
@@ -7,6 +6,7 @@ import {
   GeneratorTargetFull,
 } from '../../types/generator';
 import { kebab, pascal } from '../../utils/case';
+import { compareVersions } from '../../utils/compare-version';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -98,11 +98,8 @@ export const generateTargetForTags = (
             options.packageJson?.dependencies?.['typescript'] ??
             options.packageJson?.devDependencies?.['typescript'] ??
             '4.4.0';
-          const hasAwaitedType = compare(
-            typescriptVersion.replace(/(\s(.*))/, ''),
-            '4.5.0',
-            '>=',
-          );
+
+          const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
 
           const titles = generateClientTitle({
             outputClient: options.client,
