@@ -4,14 +4,21 @@ import { camel } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { resolveRef } from '../resolvers/ref';
 
-export const generateSchemaFormDataAndUrlEncoded = (
-  name: string,
-  schemaObject: SchemaObject | ReferenceObject,
-  context: ContextSpecs,
-  isUrlEncoded?: boolean,
-) => {
+export const generateSchemaFormDataAndUrlEncoded = ({
+  name,
+  schemaObject,
+  context,
+  isUrlEncoded,
+  isRef,
+}: {
+  name: string;
+  schemaObject: SchemaObject | ReferenceObject;
+  context: ContextSpecs;
+  isUrlEncoded?: boolean;
+  isRef?: boolean;
+}) => {
   const { schema, imports } = resolveRef<SchemaObject>(schemaObject, context);
-  const propName = isReference(schemaObject) ? imports[0].name : name;
+  const propName = !isRef && isReference(schemaObject) ? imports[0].name : name;
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
   const form = isUrlEncoded

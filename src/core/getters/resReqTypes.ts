@@ -81,22 +81,28 @@ export const getResReqTypes = (
         }
 
         const formData = isFormData
-          ? generateSchemaFormDataAndUrlEncoded(name, mediaType?.schema, {
-              ...context,
-              specKey: specKey || context.specKey,
+          ? generateSchemaFormDataAndUrlEncoded({
+              name,
+              schemaObject: mediaType?.schema,
+              context: {
+                ...context,
+                specKey: specKey || context.specKey,
+              },
+              isRef: true,
             })
           : undefined;
 
         const formUrlEncoded = isFormUrlEncoded
-          ? generateSchemaFormDataAndUrlEncoded(
+          ? generateSchemaFormDataAndUrlEncoded({
               name,
-              mediaType?.schema,
-              {
+              schemaObject: mediaType?.schema,
+              context: {
                 ...context,
                 specKey: specKey || context.specKey,
               },
-              true,
-            )
+              isUrlEncoded: true,
+              isRef: true,
+            })
           : undefined;
 
         return [
@@ -144,20 +150,20 @@ export const getResReqTypes = (
             }
 
             const formData = isFormData
-              ? generateSchemaFormDataAndUrlEncoded(
-                  propName,
-                  mediaType.schema!,
+              ? generateSchemaFormDataAndUrlEncoded({
+                  name: propName,
+                  schemaObject: mediaType.schema!,
                   context,
-                )
+                })
               : undefined;
 
             const formUrlEncoded = isFormUrlEncoded
-              ? generateSchemaFormDataAndUrlEncoded(
-                  propName,
-                  mediaType.schema!,
+              ? generateSchemaFormDataAndUrlEncoded({
+                  name: propName,
+                  schemaObject: mediaType.schema!,
                   context,
-                  true,
-                )
+                  isUrlEncoded: true,
+                })
               : undefined;
 
             return {
