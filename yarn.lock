@@ -284,10 +284,10 @@
   resolved "https://registry.yarnpkg.com/@iarna/toml/-/toml-2.2.5.tgz#b32366c89b43c6f8cefbdefac778b9c828e3ba8c"
   integrity sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==
 
-"@ibm-cloud/openapi-ruleset@0.37.0":
-  version "0.37.0"
-  resolved "https://registry.yarnpkg.com/@ibm-cloud/openapi-ruleset/-/openapi-ruleset-0.37.0.tgz#359334f76bcf1e4aa314b7b2c60fffe2cb7d2f35"
-  integrity sha512-bUEkizWJzUbBVw+MCphmodDcL/x+neQFd0H1znCUwXOg109SDPOQaNk23zoa+6BTYl/x1EJkYnj8LQpRX9zhbw==
+"@ibm-cloud/openapi-ruleset@0.44.0":
+  version "0.44.0"
+  resolved "https://registry.yarnpkg.com/@ibm-cloud/openapi-ruleset/-/openapi-ruleset-0.44.0.tgz#9a1ace2ba5fabc3b130a389e35d1931ad47fba48"
+  integrity sha512-v7FR7WMg6M9511vZElGrzxmCIoSQCwBSfcK27tMg7oP38j7tocto/QUs4QBRAgJLDD3IHL/2NZ7pS1SCQwOHpQ==
   dependencies:
     "@stoplight/spectral-formats" "^1.1.0"
     "@stoplight/spectral-functions" "^1.6.1"
@@ -3531,12 +3531,12 @@ husky@^8.0.1:
   resolved "https://registry.yarnpkg.com/husky/-/husky-8.0.1.tgz#511cb3e57de3e3190514ae49ed50f6bc3f50b3e9"
   integrity sha512-xs7/chUH/CKdOCs7Zy0Aev9e/dKOMZf3K1Az1nar3tzlv0jfqnYtu235bstsWTmXOR0EfINrPa97yy4Lz6RiKw==
 
-ibm-openapi-validator@^0.88.0:
-  version "0.88.0"
-  resolved "https://registry.yarnpkg.com/ibm-openapi-validator/-/ibm-openapi-validator-0.88.0.tgz#9539ff389f20e9408b68dbace56ea60e30dd961e"
-  integrity sha512-rdMfuu9LO3VSnsi8yDnlxjzyyB/D8yq9485vZZiZeXdKySzcj9CtGMa3M+CzC5jzIWd551zkLdvlDfD5y+MtsQ==
+ibm-openapi-validator@^0.95.0:
+  version "0.95.0"
+  resolved "https://registry.yarnpkg.com/ibm-openapi-validator/-/ibm-openapi-validator-0.95.0.tgz#d6b342bc462187f96b9d6d14719adafb55e64b2e"
+  integrity sha512-SqVcg/ZNC9dBhJ3tUdOPsizVvqRtpHHcO/Oz+FtDPl+3q6+ND84Y2gOgM2ZD6ehzJyMgLu1nRGWcxFda5aQNVg==
   dependencies:
-    "@ibm-cloud/openapi-ruleset" "0.37.0"
+    "@ibm-cloud/openapi-ruleset" "0.44.0"
     "@stoplight/spectral-cli" "^6.4.2"
     "@stoplight/spectral-core" "^1.12.4"
     "@stoplight/spectral-parsers" "^1.0.1"
