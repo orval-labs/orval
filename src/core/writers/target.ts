@@ -1,4 +1,3 @@
-import { compare } from 'compare-versions';
 import { InfoObject } from 'openapi3-ts';
 import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
@@ -7,6 +6,7 @@ import {
   GeneratorTargetFull,
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
+import { compareVersions } from '../../utils/compare-version';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -57,11 +57,7 @@ export const generateTarget = (
           options.packageJson?.devDependencies?.['typescript'] ??
           '4.4.0';
 
-        const hasAwaitedType = compare(
-          typescriptVersion.replace(/(\s(.*))/, ''),
-          '4.5.0',
-          '>=',
-        );
+        const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
 
         const header = generateClientHeader({
           outputClient: options.client,

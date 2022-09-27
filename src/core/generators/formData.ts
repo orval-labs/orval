@@ -1,17 +1,25 @@
+import { keyword } from 'esutils';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { ContextSpecs } from '../../types';
 import { camel } from '../../utils/case';
 import { isReference } from '../../utils/is';
 import { resolveRef } from '../resolvers/ref';
 
-export const generateSchemaFormDataAndUrlEncoded = (
-  name: string,
-  schemaObject: SchemaObject | ReferenceObject,
-  context: ContextSpecs,
-  isUrlEncoded?: boolean,
-) => {
+export const generateSchemaFormDataAndUrlEncoded = ({
+  name,
+  schemaObject,
+  context,
+  isUrlEncoded,
+  isRef,
+}: {
+  name: string;
+  schemaObject: SchemaObject | ReferenceObject;
+  context: ContextSpecs;
+  isUrlEncoded?: boolean;
+  isRef?: boolean;
+}) => {
   const { schema, imports } = resolveRef<SchemaObject>(schemaObject, context);
-  const propName = isReference(schemaObject) ? imports[0].name : name;
+  const propName = !isRef && isReference(schemaObject) ? imports[0].name : name;
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
   const form = isUrlEncoded
@@ -25,26 +33,30 @@ export const generateSchemaFormDataAndUrlEncoded = (
 
         let formDataValue = '';
 
+        const formatedKey = !keyword.isIdentifierNameES5(key)
+          ? `['${key}']`
+          : `.${key}`;
+
         if (property.type === 'object') {
           formDataValue = `${variableName}.append('${key}', JSON.stringify(${camel(
             propName,
-          )}${key.includes('-') ? `['${key}']` : `.${key}`}));\n`;
+          )}${formatedKey}));\n`;
         } else if (property.type === 'array') {
-          formDataValue = `${camel(propName)}${
-            key.includes('-') ? `['${key}']` : `.${key}`
-          }.forEach(value => ${variableName}.append('${key}', value));\n`;
+          formDataValue = `${camel(
+            propName,
+          )}${formatedKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
         } else if (
           property.type === 'number' ||
           property.type === 'integer' ||
           property.type === 'boolean'
         ) {
-          formDataValue = `${variableName}.append('${key}', ${camel(propName)}${
-            key.includes('-') ? `['${key}']` : `.${key}`
-          }.toString())\n`;
+          formDataValue = `${variableName}.append('${key}', ${camel(
+            propName,
+          )}${formatedKey}.toString())\n`;
         } else {
-          formDataValue = `${variableName}.append('${key}', ${camel(propName)}${
-            key.includes('-') ? `['${key}']` : `.${key}`
-          })\n`;
+          formDataValue = `${variableName}.append('${key}', ${camel(
+            propName,
+          )}${formatedKey})\n`;
         }
 
         if (schema.required?.includes(key)) {
@@ -53,9 +65,9 @@ export const generateSchemaFormDataAndUrlEncoded = (
 
         return (
           acc +
-          `if(${camel(propName)}${
-            key.includes('-') ? `['${key}']` : `.${key}`
-          } !== undefined) {\n ${formDataValue} }\n`
+          `if(${camel(
+            propName,
+          )}${formatedKey} !== undefined) {\n ${formDataValue} }\n`
         );
       },
       '',
