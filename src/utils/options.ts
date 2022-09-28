@@ -81,7 +81,9 @@ export const normalizeOptions = async (
 
   const normalizedOptions: NormalizedOptions = {
     input: {
-      target: normalizePathOrUrl(inputOptions.target, workspace),
+      target: globalOptions.input
+        ? normalizePathOrUrl(globalOptions.input, process.cwd())
+        : normalizePathOrUrl(inputOptions.target, workspace),
       validation: inputOptions.validation || false,
       override: {
         transformer: normalizePath(
@@ -96,7 +98,9 @@ export const normalizeOptions = async (
       ),
     },
     output: {
-      target: normalizePath(outputOptions.target, outputWorkspace),
+      target: globalOptions.output
+        ? normalizePath(globalOptions.output, process.cwd())
+        : normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,

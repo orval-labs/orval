@@ -42,7 +42,7 @@ cli
   .option('--tslint [path]', 'tslint generated files')
   .option('--tsconfig [path]', 'path to your tsconfig file')
   .action(async (paths, cmd) => {
-    if (isString(cmd.input) && isString(cmd.output)) {
+    if (!cmd.config && isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
         input: cmd.input,
         output: {
@@ -87,6 +87,8 @@ cli
         client: cmd.client,
         mode: cmd.mode,
         tsconfig: cmd.tsconfig,
+        input: cmd.input,
+        output: cmd.output,
       });
     }
   });

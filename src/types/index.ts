@@ -372,6 +372,8 @@ export interface GlobalOptions {
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
+  input?: string;
+  output?: string;
 }
 
 export interface Tsconfig {
