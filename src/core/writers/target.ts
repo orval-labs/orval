@@ -1,3 +1,4 @@
+import { all } from 'micromatch';
 import { InfoObject } from 'openapi3-ts';
 import { NormalizedOutputOptions, OutputClient } from '../../types';
 import {
@@ -7,6 +8,7 @@ import {
 } from '../../types/generator';
 import { pascal } from '../../utils/case';
 import { compareVersions } from '../../utils/compare-version';
+import { rankRoute } from '../../utils/rankRoute';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -29,6 +31,20 @@ export const generateTarget = (
     customTitleFunc: options.override.title,
   });
 
+  // we need to sort mock handlers to be able to match the correct path
+  // see: https://github.com/mswjs/msw/discussions/1426
+  const sortedHandlers = Object.keys(operations)
+    .map((op) => operations[op].implementationMSW.handler)
+    .sort((h1, h2) => {
+      const r = /rest.*\('(.*)'\,/;
+      const matchH1 = h1.match(r);
+      const matchH2 = h2.match(r);
+      if (matchH1 && matchH2) {
+        return rankRoute(matchH2[1]) - rankRoute(matchH1[1]);
+      }
+      return 0;
+    });
+
   const target = Object.values(operations).reduce(
     (acc, operation, index, arr) => {
       acc.imports.push(...operation.imports);
@@ -36,6 +52,7 @@ export const generateTarget = (
       acc.implementation += operation.implementation + '\n';
       acc.implementationMSW.function += operation.implementationMSW.function;
       acc.implementationMSW.handler += operation.implementationMSW.handler;
+
       if (operation.mutator) {
         acc.mutators.push(operation.mutator);
       }
@@ -68,9 +85,9 @@ export const generateTarget = (
           hasAwaitedType,
           titles,
         });
+
         acc.implementation = header.implementation + acc.implementation;
-        acc.implementationMSW.handler =
-          header.implementationMSW + acc.implementationMSW.handler;
+        acc.implementationMSW.handler = header.implementationMSW + '%HANDLERS%';
 
         const footer = generateClientFooter({
           outputClient: options?.client,
@@ -79,6 +96,7 @@ export const generateTarget = (
           hasAwaitedType,
           titles,
         });
+
         acc.implementation += footer.implementation;
         acc.implementationMSW.handler += footer.implementationMSW;
       }
@@ -98,9 +116,12 @@ export const generateTarget = (
     } as Required<GeneratorTargetFull>,
   );
 
-  return {
-    ...target,
-    implementationMSW:
-      target.implementationMSW.function + target.implementationMSW.handler,
-  };
+  const implementationMSW =
+    target.implementationMSW.function +
+    target.implementationMSW.handler.replace(
+      '%HANDLERS%',
+      sortedHandlers.join(' '),
+    );
+
+  return { ...target, implementationMSW };
 };
