@@ -18,7 +18,16 @@ const getSchema = ({
   header: string;
 }): string => {
   let file = header;
-  file += generateImports({ imports, target, isRootKey, specsName });
+  file += generateImports({
+    imports: imports.filter(
+      (imp) =>
+        !model.includes(`type ${imp.alias || imp.name} =`) &&
+        !model.includes(`interface ${imp.alias || imp.name} {`),
+    ),
+    target,
+    isRootKey,
+    specsName,
+  });
   file += imports.length ? '\n\n' : '\n';
   file += model;
   return file;
