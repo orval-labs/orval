@@ -26,8 +26,14 @@ export const getEnumImplementation = (value: string, type: string) => {
 
     if (isNumber) {
       key = toNumberKey(key);
-    } else {
-      key = sanitize(val, { underscore: '_', whitespace: '_', dash: true });
+    }
+
+    if (key.length > 1) {
+      key = sanitize(val, {
+        underscore: '_',
+        whitespace: '_',
+        dash: true,
+      });
     }
 
     return (
