@@ -1,8 +1,8 @@
-import { ensureFile, outputFile, writeFile } from 'fs-extra';
+import { ensureFile, outputFile, readFile, writeFile } from 'fs-extra';
 import { join } from 'upath';
 import { GeneratorSchema } from '../../types/generator';
 import { camel } from '../../utils/case';
-import { generateImports, generateModelImports } from '../generators/imports';
+import { generateImports } from '../generators/imports';
 
 const getSchema = ({
   schema: { imports, model },
@@ -100,7 +100,28 @@ export const writeSchemas = async ({
   );
 
   try {
-    await writeFile(schemaFilePath, generateModelImports({ schemas }));
+    const data = await readFile(schemaFilePath);
+
+    const stringData = data.toString();
+
+    const importStatements = schemas
+      .filter((schema) => {
+        return (
+          !stringData.includes(`export * from './${camel(schema.name)}'`) &&
+          !stringData.includes(`export * from "./${camel(schema.name)}"`)
+        );
+      })
+      .map((schema) => `export * from './${camel(schema.name)}';`);
+
+    const currentFileExports = (stringData
+      .match(/export \* from(.*)('|")/g)
+      ?.map((s) => s + ';') ?? []) as string[];
+
+    const fileContent = [...currentFileExports, ...importStatements]
+      .sort()
+      .join('\n');
+
+    await writeFile(schemaFilePath, fileContent);
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
   }
