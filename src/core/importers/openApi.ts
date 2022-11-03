@@ -1,11 +1,12 @@
 import omit from 'lodash.omit';
-import { OpenAPIObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemasObject } from 'openapi3-ts';
 import { ContextSpecs, ImportOpenApi, InputOptions } from '../../types';
 import { GeneratorSchema } from '../../types/generator';
 import { WriteSpecsProps } from '../../types/writers';
 import { asyncReduce } from '../../utils/async-reduce';
 import { swaggerConverter } from '../../utils/converter';
 import { dynamicImport } from '../../utils/imports';
+import { isObject, isReference } from '../../utils/is';
 import { generateApi } from '../generators/api';
 import { generateComponentDefinition } from '../generators/componentDefinition';
 import { generateParameterDefinition } from '../generators/parameterDefinition';
@@ -69,23 +70,10 @@ export const importOpenApi = async ({
       packageJson: output.packageJson,
     };
 
-    // First version to try to handle non-openapi files
     const schemaDefinition = generateSchemasDefinition(
       !spec.openapi
-        ? {
-            ...omit(spec, [
-              'openapi',
-              'info',
-              'servers',
-              'paths',
-              'components',
-              'security',
-              'tags',
-              'externalDocs',
-            ]),
-            ...(spec.components?.schemas ?? {}),
-          }
-        : spec.components?.schemas,
+        ? getAllSchemas(spec)
+        : (spec.components?.schemas as SchemasObject),
       context,
       output.override.components.schemas.suffix,
     );
@@ -146,5 +134,40 @@ export const importOpenApi = async ({
     },
     target,
     info: specs[target].info,
+  };
+};
+
+const getAllSchemas = (spec: object): SchemasObject => {
+  const cleanedSpec = omit(spec, [
+    'openapi',
+    'info',
+    'servers',
+    'paths',
+    'components',
+    'security',
+    'tags',
+    'externalDocs',
+  ]);
+
+  const schemas = Object.entries(cleanedSpec).reduce<SchemasObject>(
+    (acc, [key, value]) => {
+      if (!isObject(value)) {
+        return acc;
+      }
+
+      if (!value.type && !isReference(value)) {
+        return { ...acc, ...getAllSchemas(value) };
+      }
+
+      acc[key] = value;
+
+      return acc;
+    },
+    {},
+  );
+
+  return {
+    ...schemas,
+    ...((spec as OpenAPIObject)?.components?.schemas as SchemasObject),
   };
 };

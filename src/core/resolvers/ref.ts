@@ -50,9 +50,10 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
     context,
   );
 
-  const currentSchema = get(
-    context.specs[specKey || context.specKey],
-    refPaths,
+  const currentSchema = (
+    refPaths
+      ? get(context.specs[specKey || context.specKey], refPaths)
+      : context.specs[specKey || context.specKey]
   ) as Schema;
 
   if (!currentSchema) {

@@ -4,6 +4,7 @@ import { resolve } from 'upath';
 import url from 'url';
 import { ContextSpecs } from '../../types';
 import { pascal } from '../../utils/case';
+import { getExtension } from '../../utils/extension';
 import { getFileInfo } from '../../utils/file';
 import { isUrl } from '../../utils/url';
 
@@ -36,19 +37,25 @@ export const getRefInfo = (
 ): {
   name: string;
   originalName: string;
-  refPaths: string[];
+  refPaths?: string[];
   specKey?: string;
 } => {
   const [pathname, ref] = $ref.split('#');
 
   const refPaths = ref
-    .slice(1)
+    ?.slice(1)
     .split('/')
     .map((part) => part.replace(regex, '/'));
 
-  const suffix = get(context.override, [...refPaths.slice(0, 2), 'suffix'], '');
+  const suffix = refPaths
+    ? get(context.override, [...refPaths.slice(0, 2), 'suffix'], '')
+    : '';
 
-  const originalName = refPaths[refPaths.length - 1];
+  const originalName = ref
+    ? refPaths[refPaths.length - 1]
+    : pathname
+        .replace(`.${getExtension(pathname)}`, '')
+        .slice(pathname.lastIndexOf('/') + 1);
 
   if (!pathname) {
     return {
