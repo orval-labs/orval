@@ -681,6 +681,28 @@ module.exports = {
 };
 ```
 
+#### delay
+
+Type: `number`.
+
+Give you the possibility to set delay time for mock
+
+Default Value: `1000`
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          delay: 0,
+        },
+      },
+    },
+  },
+};
+```
+
 #### arrayMin
 
 Type: `Number`.
