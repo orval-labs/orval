@@ -50,6 +50,16 @@ export const getObject = ({
     });
   }
 
+  if (item.type instanceof Array) {
+    return combineSchemas({
+      schema: { anyOf: item.type.map((type) => ({ type })) },
+      name,
+      separator: 'anyOf',
+      context,
+      nullable,
+    });
+  }
+
   if (item.properties && Object.entries(item.properties).length > 0) {
     return Object.entries(item.properties).reduce(
       (
