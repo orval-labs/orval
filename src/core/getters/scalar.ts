@@ -104,6 +104,16 @@ export const getScalar = ({
       };
     }
 
+    case 'null':
+      return {
+        value: 'null',
+        isEnum: false,
+        type: 'null',
+        imports: [],
+        schemas: [],
+        isRef: false,
+      };
+
     case 'object':
     default: {
       const { value, ...rest } = getObject({

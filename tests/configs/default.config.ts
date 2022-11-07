@@ -50,4 +50,11 @@ export default defineConfig({
       mode: 'tags-split',
     },
   },
+  'null-type': {
+    input: '../specifications/null-type.yaml',
+    output: {
+      schemas: '../generated/default/null-type/model',
+      target: '../generated/default/null-type/endpoints.ts',
+    },
+  },
 });
