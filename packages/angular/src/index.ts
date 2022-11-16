@@ -235,6 +235,6 @@ const angularClientBuilder: ClientGeneratorsBuilder = {
   title: generateAngularTitle,
 };
 
-export const builder = () => angularClientBuilder;
+export const builder = () => () => angularClientBuilder;
 
 export default builder;

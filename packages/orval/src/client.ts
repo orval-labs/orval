@@ -23,13 +23,13 @@ import swr from '@orval/swr';
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
 export const GENERATOR_CLIENT: GeneratorClients = {
-  axios: axios({ type: 'axios' }),
-  'axios-functions': axios({ type: 'axios-functions' }),
-  angular: angular(),
-  'react-query': query({ type: 'react-query' }),
-  'svelte-query': query({ type: 'svelte-query' }),
-  'vue-query': query({ type: 'vue-query' }),
-  swr: swr(),
+  axios: axios({ type: 'axios' })(),
+  'axios-functions': axios({ type: 'axios-functions' })(),
+  angular: angular()(),
+  'react-query': query({ type: 'react-query' })(),
+  'svelte-query': query({ type: 'svelte-query' })(),
+  'vue-query': query({ type: 'vue-query' })(),
+  swr: swr()(),
 };
 
 const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {

@@ -261,13 +261,14 @@ const axiosFunctionsClientBuilder: ClientGeneratorsBuilder = {
   title: generateAxiosTitle,
 };
 
-export const builder = ({ type }: { type: 'axios' | 'axios-functions' }) => {
-  switch (type) {
-    case 'axios':
-      return axiosClientBuilder;
-    case 'axios-functions':
-      return axiosFunctionsClientBuilder;
-  }
+const builders: Record<'axios' | 'axios-functions', ClientGeneratorsBuilder> = {
+  axios: axiosClientBuilder,
+  'axios-functions': axiosFunctionsClientBuilder,
 };
+
+export const builder =
+  ({ type = 'axios-functions' }: { type?: 'axios' | 'axios-functions' } = {}) =>
+  () =>
+    builders[type];
 
 export default builder;

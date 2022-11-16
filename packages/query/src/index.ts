@@ -927,19 +927,22 @@ const vueQueryClientBuilder: ClientGeneratorsBuilder = {
   title: generateQueryTitle,
 };
 
-export const builder = ({
-  type,
-}: {
-  type: 'react-query' | 'vue-query' | 'svelte-query';
-}) => {
-  switch (type) {
-    case 'react-query':
-      return reactQueryClientBuilder;
-    case 'vue-query':
-      return vueQueryClientBuilder;
-    case 'svelte-query':
-      return svelteQueryClientBuilder;
-  }
+const builders: Record<
+  'react-query' | 'vue-query' | 'svelte-query',
+  ClientGeneratorsBuilder
+> = {
+  'react-query': reactQueryClientBuilder,
+  'vue-query': vueQueryClientBuilder,
+  'svelte-query': svelteQueryClientBuilder,
 };
+
+export const builder =
+  ({
+    type = 'react-query',
+  }: {
+    type?: 'react-query' | 'vue-query' | 'svelte-query';
+  } = {}) =>
+  () =>
+    builders[type];
 
 export default builder;

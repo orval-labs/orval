@@ -392,6 +392,6 @@ const swrClientBuilder: ClientGeneratorsBuilder = {
   title: generateSwrTitle,
 };
 
-export const builder = () => swrClientBuilder;
+export const builder = () => () => swrClientBuilder;
 
 export default builder;
