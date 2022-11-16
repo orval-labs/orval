@@ -5,21 +5,22 @@
   "main": "index.html",
   "scripts": {
     "generate": "run-p generate:*",
-    "generate:cli": "node ../dist/bin/orval.js --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",
-    "generate:default": "node ../dist/bin/orval.js --config ./configs/default.config.ts",
-    "generate:axios": "node ../dist/bin/orval.js --config ./configs/axios.config.ts",
-    "generate:angular": "node ../dist/bin/orval.js --config ./configs/angular.config.ts",
-    "generate:react-query": "node ../dist/bin/orval.js --config ./configs/react-query.config.ts",
-    "generate:svelte-query": "node ../dist/bin/orval.js --config ./configs/svelte-query.config.ts",
-    "generate:vue-query": "node ../dist/bin/orval.js --config ./configs/vue-query.config.ts",
-    "generate:swr": "node ../dist/bin/orval.js --config ./configs/swr.config.ts",
+    "orval": "node ../packages/orval/dist/bin/orval.js",
+    "generate:cli": "yarn orval --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",
+    "generate:default": "yarn orval --config ./configs/default.config.ts",
+    "generate:axios": "yarn orval --config ./configs/axios.config.ts",
+    "generate:angular": "yarn orval --config ./configs/angular.config.ts",
+    "generate:react-query": "yarn orval --config ./configs/react-query.config.ts",
+    "generate:svelte-query": "yarn orval --config ./configs/svelte-query.config.ts",
+    "generate:vue-query": "yarn orval --config ./configs/vue-query.config.ts",
+    "generate:swr": "yarn orval --config ./configs/swr.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
   "license": "ISC",
   "devDependencies": {
     "npm-run-all": "^4.1.5",
-    "orval": "link:../dist",
+    "orval": "link:../packages/orval/dist",
     "typescript": "^4.4.3"
   },
   "dependencies": {
