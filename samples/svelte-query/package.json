@@ -7,7 +7,7 @@
 		"start": "svelte-kit start",
 		"lint": "prettier --check . && eslint --ignore-path .gitignore .",
 		"format": "prettier --write .",
-		"generate-api": "node ../../dist/bin/orval.js"
+		"generate-api": "node ../../packages/orval/dist/bin/orval.js"
 	},
 	"devDependencies": {
 		"@faker-js/faker": "^7.3.0",
@@ -30,7 +30,7 @@
 	"dependencies": {
 		"@sveltestack/svelte-query": "^1.6.0",
 		"axios": "^0.26.1",
-		"orval": "link:../../dist",
+		"orval": "link:../../../packages/orval/dist",
 		"ya": "^0.2.2"
 	},
 	"type": "module",

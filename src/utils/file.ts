@@ -156,6 +156,7 @@ export async function loadFile<File = any>(
             `Unexpected identifier`,
           ].join('|'),
         );
+        // @ts-ignore
         if (!ignored.test(e.message)) {
           throw e;
         }

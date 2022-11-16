@@ -29,10 +29,11 @@ export const getEnumImplementation = (value: string, type: string) => {
     }
 
     if (key.length > 1) {
-      key = sanitize(val, {
-        underscore: '_',
+      key = sanitize(key, {
         whitespace: '_',
+        underscore: true,
         dash: true,
+        special: true,
       });
     }
 

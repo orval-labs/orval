@@ -2,5 +2,5 @@
 . "$(dirname "$0")/_/husky.sh"
 
 yarn lint
-yarn test --run
+yarn test:ci
 yarn format:staged

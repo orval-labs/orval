@@ -1,0 +1,18 @@
+{
+  "name": "@orval/axios",
+  "version": "6.11.0-alpha.1",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup ./src/index.ts --target node12 --minify --clean --dts --splitting",
+    "dev": "tsup ./src/index.ts --target node12 --clean --watch src",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@orval/core": "6.11.0-alpha.1"
+  }
+}

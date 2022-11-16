@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
-    "orval": "link:../../../dist"
+    "orval": "link:../../../packages/orval/dist"
   },
   "scripts": {
-    "generate-api": "node ../../../dist/bin/orval.js"
+    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
   },
   "dependencies": {
     "@faker-js/faker": "^7.3.0",

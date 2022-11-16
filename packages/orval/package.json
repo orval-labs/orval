@@ -1,0 +1,77 @@
+{
+  "name": "orval",
+  "description": "A swagger client generator for typescript",
+  "version": "6.11.0-alpha.1",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "orval": "dist/bin/orval.js"
+  },
+  "type": "commonjs",
+  "main": "dist/index.js",
+  "keywords": [
+    "rest",
+    "client",
+    "swagger",
+    "open-api",
+    "fetch",
+    "data fetching",
+    "code-generation",
+    "angular",
+    "react",
+    "react-query",
+    "svelte",
+    "svelte-query",
+    "vue",
+    "vue-query",
+    "msw",
+    "mock",
+    "axios",
+    "vue-query",
+    "vue",
+    "swr"
+  ],
+  "author": {
+    "name": "Victor Bury",
+    "email": "victor@anymaniax.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/anymaniax/orval"
+  },
+  "scripts": {
+    "build": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --minify --clean --dts --splitting",
+    "dev": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --clean --watch src --onSuccess 'yarn generate-api'",
+    "lint": "eslint src/**/*.ts",
+    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts --watch"
+  },
+  "devDependencies": {
+    "@types/chalk": "^2.2.0",
+    "@types/inquirer": "^8.2.2",
+    "@types/lodash.uniq": "^4.5.7"
+  },
+  "dependencies": {
+    "@orval/core": "6.11.0-alpha.1",
+    "@orval/query": "6.11.0-alpha.1",
+    "@orval/angular": "6.11.0-alpha.1",
+    "@orval/axios": "6.11.0-alpha.1",
+    "@orval/swr": "6.11.0-alpha.1",
+    "@orval/msw": "6.11.0-alpha.1",
+    "@apidevtools/swagger-parser": "^10.1.0",
+    "openapi3-ts": "^3.0.0",
+    "chalk": "^4.1.2",
+    "upath": "^2.0.1",
+    "lodash.uniq": "^4.5.0",
+    "execa": "^5.1.1",
+    "string-argv": "^0.3.1",
+    "fs-extra": "^10.1.0",
+    "inquirer": "^8.2.4",
+    "find-up": "5.0.0",
+    "tsconfck": "^2.0.1",
+    "chokidar": "^3.5.3",
+    "ajv": "^8.11.0",
+    "cac": "^6.7.12"
+  }
+}
