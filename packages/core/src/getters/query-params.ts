@@ -38,7 +38,7 @@ const getQueryParamsTypes = (
       es5IdentifierName: true,
     });
 
-    const { value, imports, isEnum, type, schemas, isRef } = resolveValue({
+    const resolvedeValue = resolveValue({
       schema: (schema || content['application/json'].schema)!,
       context,
       name: queryName,
@@ -56,27 +56,35 @@ const getQueryParamsTypes = (
       };
     }
 
-    if (isEnum && !isRef) {
+    if (resolvedeValue.isEnum && !resolvedeValue.isRef) {
       const enumName = queryName;
-      const enumValue = getEnum(value, enumName);
+
+      const enumValue = getEnum(
+        resolvedeValue.value,
+        enumName,
+        resolvedeValue.originalSchema?.['x-enumNames'],
+      );
 
       return {
         definition: `${key}${
           !required || schema.default ? '?' : ''
         }: ${enumName}`,
         imports: [{ name: enumName }],
-        schemas: [...schemas, { name: enumName, model: enumValue, imports }],
+        schemas: [
+          ...resolvedeValue.schemas,
+          { name: enumName, model: enumValue, imports: resolvedeValue.imports },
+        ],
       };
     }
 
-    const definition = `${key}${
-      !required || schema.default ? '?' : ''
-    }: ${value}`;
+    const definition = `${key}${!required || schema.default ? '?' : ''}: ${
+      resolvedeValue.value
+    }`;
 
     return {
       definition,
-      imports,
-      schemas,
+      imports: resolvedeValue.imports,
+      schemas: resolvedeValue.schemas,
     };
   });
 };

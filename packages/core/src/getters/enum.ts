@@ -1,10 +1,10 @@
 import { keyword } from 'esutils';
-import { sanitize } from '../utils';
+import { isNumeric, sanitize } from '../utils';
 
-export const getEnum = (value: string, enumName: string) => {
+export const getEnum = (value: string, enumName: string, names?: string[]) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}];\n`;
 
-  const implementation = getEnumImplementation(value);
+  const implementation = getEnumImplementation(value, names);
 
   enumValue += `\n\n`;
 
@@ -15,14 +15,22 @@ export const getEnum = (value: string, enumName: string) => {
   return enumValue;
 };
 
-export const getEnumImplementation = (value: string) => {
-  return [...new Set(value.split(' | '))].reduce((acc, val) => {
+export const getEnumImplementation = (value: string, names?: string[]) => {
+  return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
     // nullable value shouldn't be in the enum implementation
     if (val === 'null') return acc;
 
+    const name = names?.[index];
+    if (name) {
+      return (
+        acc +
+        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}: ${val},\n`
+      );
+    }
+
     let key = val.startsWith("'") ? val.slice(1, -1) : val;
 
-    const isNumber = !Number.isNaN(Number(key));
+    const isNumber = isNumeric(key);
 
     if (isNumber) {
       key = toNumberKey(key);

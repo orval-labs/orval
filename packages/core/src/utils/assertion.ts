@@ -28,6 +28,10 @@ export function isNumber(x: any): x is number {
   return typeof x === 'number';
 }
 
+export function isNumeric(x: any): x is number {
+  return /^-?\d+$/.test(x);
+}
+
 export function isBoolean(x: any): x is boolean {
   return typeof x === 'boolean';
 }

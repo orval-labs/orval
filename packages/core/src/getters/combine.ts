@@ -4,6 +4,7 @@ import { resolveObject } from '../resolvers';
 import {
   ContextSpecs,
   GeneratorImport,
+  GeneratorSchema,
   ResolverValue,
   SchemaType,
 } from '../types';
@@ -11,10 +12,10 @@ import { getNumberWord, pascal } from '../utils';
 import { getEnumImplementation } from './enum';
 import { getScalar } from './scalar';
 
-type CombinedData = Omit<
-  ResolverValue,
-  'isRef' | 'isEnum' | 'value' | 'type'
-> & {
+type CombinedData = {
+  imports: GeneratorImport[];
+  schemas: GeneratorSchema[];
+  originalSchema: (SchemaObject | undefined)[];
   values: string[];
   isRef: boolean[];
   isEnum: boolean[];
@@ -67,7 +68,7 @@ export const combineSchemas = ({
   separator: Separator;
   context: ContextSpecs;
   nullable: string;
-}) => {
+}): ResolverValue => {
   const items = schema[separator] ?? [];
 
   const resolvedData = items.reduce<CombinedData>(
@@ -90,6 +91,7 @@ export const combineSchemas = ({
       acc.isEnum.push(resolvedValue.isEnum);
       acc.types.push(resolvedValue.type);
       acc.isRef.push(resolvedValue.isRef);
+      acc.originalSchema.push(resolvedValue.originalSchema);
 
       return acc;
     },
@@ -100,6 +102,7 @@ export const combineSchemas = ({
       isEnum: [], // check if only enums
       isRef: [],
       types: [],
+      originalSchema: [],
     } as CombinedData,
   );
 
@@ -147,7 +150,11 @@ export const combineSchemas = ({
   };
 };
 
-const getCombineEnumValue = ({ values, isRef, types }: CombinedData) => {
+const getCombineEnumValue = ({
+  values,
+  isRef,
+  originalSchema,
+}: CombinedData) => {
   if (values.length === 1) {
     if (isRef[0]) {
       return values[0];
@@ -162,7 +169,9 @@ const getCombineEnumValue = ({ values, isRef, types }: CombinedData) => {
         return `...${e},`;
       }
 
-      return getEnumImplementation(e);
+      const names = originalSchema[i]?.['x-enumNames'] as string[];
+
+      return getEnumImplementation(e, names);
     })
     .join('');
 

@@ -47,7 +47,11 @@ export const resolveObject = ({
   }
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
-    const enumValue = getEnum(resolvedValue.value, propName);
+    const enumValue = getEnum(
+      resolvedValue.value,
+      propName,
+      resolvedValue.originalSchema?.['x-enumNames'],
+    );
 
     return {
       value: propName,

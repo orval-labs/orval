@@ -63,7 +63,11 @@ export const generateSchemasDefinition = (
         output += jsDoc(schema);
 
         if (resolvedValue.isEnum && !resolvedValue.isRef) {
-          output += getEnum(resolvedValue.value, schemaName);
+          output += getEnum(
+            resolvedValue.value,
+            schemaName,
+            resolvedValue.originalSchema?.['x-enumNames'],
+          );
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
           const imp = resolvedValue.imports.find(
             (imp) => imp.name === schemaName,
