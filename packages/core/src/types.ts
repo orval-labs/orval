@@ -83,7 +83,7 @@ export type NormalizedOverrideOutput = {
       suffix: string;
     };
   };
-  query: QueryOptions;
+  query: NormalizedQueryOptions;
   angular: Required<AngularOptions>;
   swr: {
     options?: any;
@@ -114,7 +114,7 @@ export type NormalizedOperationOptions = {
     properties?: MockProperties;
   };
   contentType?: OverrideOutputContentType;
-  query?: QueryOptions;
+  query?: NormalizedQueryOptions;
   angular?: Required<AngularOptions>;
   swr?: {
     options?: any;
@@ -275,11 +275,25 @@ export type OverrideOutputContentType = {
   exclude?: string[];
 };
 
-type QueryOptions = {
+export type NormalizedQueryOptions = {
   useQuery?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
+  queryKey?: NormalizedMutator;
+  queryOptions?: NormalizedMutator;
+  mutationOptions?: NormalizedMutator;
+  signal?: boolean;
+};
+
+export type QueryOptions = {
+  useQuery?: boolean;
+  useInfinite?: boolean;
+  useInfiniteQueryParam?: string;
+  options?: any;
+  queryKey?: Mutator;
+  queryOptions?: Mutator;
+  mutationOptions?: Mutator;
   signal?: boolean;
 };
 
@@ -427,6 +441,7 @@ export type GeneratorTarget = {
   implementationMSW: string;
   importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
+  clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
 };
@@ -440,6 +455,7 @@ export type GeneratorTargetFull = {
   };
   importsMSW: GeneratorImport[];
   mutators?: GeneratorMutator[];
+  clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
 };
@@ -451,6 +467,7 @@ export type GeneratorOperation = {
   importsMSW: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
+  clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   operationName: string;
@@ -487,14 +504,13 @@ export type GeneratorOptions = {
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
   mock: boolean;
+  output: string;
 };
 
 export type GeneratorClient = {
   implementation: string;
   imports: GeneratorImport[];
-  types?: {
-    result: (title?: string) => string;
-  };
+  mutators?: GeneratorMutator[];
 };
 
 export type GeneratorMutatorParsingInfo = {
@@ -517,7 +533,7 @@ export type ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
-) => GeneratorClient;
+) => GeneratorClient | Promise<GeneratorClient>;
 
 export type ClientHeaderBuilder = (params: {
   title: string;

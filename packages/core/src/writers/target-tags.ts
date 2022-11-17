@@ -22,47 +22,54 @@ const generateTargetTags = (
   return operation.tags.map(kebab).reduce((acc, tag) => {
     const currentOperation = acc[tag];
 
-    acc[tag] = !currentOperation
-      ? {
-          imports: operation.imports,
-          importsMSW: operation.importsMSW,
-          mutators: operation.mutator ? [operation.mutator] : [],
-          formData: operation.formData ? [operation.formData] : [],
-          formUrlEncoded: operation.formUrlEncoded
-            ? [operation.formUrlEncoded]
-            : [],
-          implementation: operation.implementation,
-          implementationMSW: {
-            function: operation.implementationMSW.function,
-            handler: operation.implementationMSW.handler,
-          },
-        }
-      : {
-          implementation:
-            currentOperation.implementation + operation.implementation,
-          imports: [...currentOperation.imports, ...operation.imports],
-          importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
-          implementationMSW: {
-            function:
-              currentOperation.implementationMSW.function +
-              operation.implementationMSW.function,
-            handler:
-              currentOperation.implementationMSW.handler +
-              operation.implementationMSW.handler,
-          },
-          mutators: operation.mutator
-            ? [...(currentOperation.mutators ?? []), operation.mutator]
-            : currentOperation.mutators,
-          formData: operation.formData
-            ? [...(currentOperation.formData ?? []), operation.formData]
-            : currentOperation.formData,
-          formUrlEncoded: operation.formUrlEncoded
-            ? [
-                ...(currentOperation.formUrlEncoded ?? []),
-                operation.formUrlEncoded,
-              ]
-            : currentOperation.formUrlEncoded,
-        };
+    if (!currentOperation) {
+      acc[tag] = {
+        imports: operation.imports,
+        importsMSW: operation.importsMSW,
+        mutators: operation.mutator ? [operation.mutator] : [],
+        formData: operation.formData ? [operation.formData] : [],
+        formUrlEncoded: operation.formUrlEncoded
+          ? [operation.formUrlEncoded]
+          : [],
+        implementation: operation.implementation,
+        implementationMSW: {
+          function: operation.implementationMSW.function,
+          handler: operation.implementationMSW.handler,
+        },
+      };
+
+      return acc;
+    }
+
+    acc[tag] = {
+      implementation:
+        currentOperation.implementation + operation.implementation,
+      imports: [...currentOperation.imports, ...operation.imports],
+      importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
+      implementationMSW: {
+        function:
+          currentOperation.implementationMSW.function +
+          operation.implementationMSW.function,
+        handler:
+          currentOperation.implementationMSW.handler +
+          operation.implementationMSW.handler,
+      },
+      mutators: operation.mutator
+        ? [...(currentOperation.mutators ?? []), operation.mutator]
+        : currentOperation.mutators,
+      clientMutators: operation.clientMutators
+        ? [
+            ...(currentOperation.clientMutators ?? []),
+            ...operation.clientMutators,
+          ]
+        : currentOperation.clientMutators,
+      formData: operation.formData
+        ? [...(currentOperation.formData ?? []), operation.formData]
+        : currentOperation.formData,
+      formUrlEncoded: operation.formUrlEncoded
+        ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
+        : currentOperation.formUrlEncoded,
+    };
 
     return acc;
   }, currentAcc);
@@ -136,6 +143,7 @@ export const generateTargetForTags = (
             imports: target.imports,
             importsMSW: target.importsMSW,
             mutators: target.mutators,
+            clientMutators: target.clientMutators,
             formData: target.formData,
             formUrlEncoded: target.formUrlEncoded,
           };

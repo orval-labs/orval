@@ -40,6 +40,10 @@ export const generateTarget = (
         acc.formUrlEncoded.push(operation.formUrlEncoded);
       }
 
+      if (operation.clientMutators) {
+        acc.clientMutators.push(...operation.clientMutators);
+      }
+
       if (index === arr.length - 1) {
         const isMutator = acc.mutators.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
@@ -86,6 +90,7 @@ export const generateTarget = (
       },
       importsMSW: [],
       mutators: [],
+      clientMutators: [],
       formData: [],
       formUrlEncoded: [],
     } as Required<GeneratorTargetFull>,

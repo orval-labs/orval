@@ -26,6 +26,7 @@ export const writeSingleMode = async ({
       implementation,
       implementationMSW,
       mutators,
+      clientMutators,
       formData,
       formUrlEncoded,
     } = generateTarget(builder, output);
@@ -74,6 +75,10 @@ export const writeSingleMode = async ({
 
     if (mutators) {
       data += generateMutatorImports({ mutators, implementation });
+    }
+
+    if (clientMutators) {
+      data += generateMutatorImports({ mutators: clientMutators });
     }
 
     if (formData) {

@@ -218,7 +218,7 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
   return footer;
 };
 
-export const generateAxios: ClientBuilder = (
+export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
@@ -228,16 +228,11 @@ export const generateAxios: ClientBuilder = (
   return { implementation, imports };
 };
 
-export const generateAxiosFunctions: ClientBuilder = (
+export const generateAxiosFunctions: ClientBuilder = async (
   verbOptions,
   options,
-  outputClient,
 ) => {
-  const { implementation, imports } = generateAxios(
-    verbOptions,
-    options,
-    outputClient,
-  );
+  const { implementation, imports } = generateAxios(verbOptions, options);
 
   return {
     implementation: 'export ' + implementation,

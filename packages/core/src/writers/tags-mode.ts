@@ -36,6 +36,7 @@ export const writeTagsMode = async ({
           implementationMSW,
           importsMSW,
           mutators,
+          clientMutators,
           formData,
           formUrlEncoded,
         } = target;
@@ -86,6 +87,12 @@ export const writeTagsMode = async ({
 
         if (mutators) {
           data += generateMutatorImports({ mutators, implementation });
+        }
+
+        if (clientMutators) {
+          data += generateMutatorImports({
+            mutators: clientMutators,
+          });
         }
 
         if (formData) {

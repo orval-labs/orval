@@ -16,10 +16,12 @@ import {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOptions,
+  NormalizedQueryOptions,
   OperationOptions,
   OptionsExport,
   OutputClient,
   OutputMode,
+  QueryOptions,
   RefComponentSuffix,
   SwaggerParserOptions,
 } from '@orval/core';
@@ -177,7 +179,7 @@ export const normalizeOptions = async (
         query: {
           useQuery: true,
           signal: true,
-          ...(outputOptions.override?.query ?? {}),
+          ...normalizeQueryOptions(outputOptions.override?.query, workspace),
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -273,6 +275,7 @@ const normalizeOperationsAndTags = (
           formData,
           formUrlEncoded,
           requestOptions,
+          query,
           ...rest
         },
       ]) => {
@@ -280,6 +283,11 @@ const normalizeOperationsAndTags = (
           key,
           {
             ...rest,
+            ...(query
+              ? {
+                  query: normalizeQueryOptions(query, workspace),
+                }
+              : {}),
             ...(transformer
               ? { transformer: normalizePath(transformer, workspace) }
               : {}),
@@ -343,6 +351,48 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
 
     return acc;
   }, {} as NormalizedHookOptions);
+};
+
+const normalizeQueryOptions = (
+  queryOptions: QueryOptions = {},
+  outputWorkspace: string,
+): NormalizedQueryOptions => {
+  if (queryOptions.options) {
+    console.warn(
+      '[WARN] Using query options is deprecated and will be removed in a future major release. Please use queryOptions or mutationOptions instead.',
+    );
+  }
+
+  return {
+    ...(queryOptions.useQuery ? { useQuery: true } : {}),
+    ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
+    ...(queryOptions.useInfiniteQueryParam
+      ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
+      : {}),
+    ...(queryOptions.options ? { options: queryOptions.options } : {}),
+    ...(queryOptions?.queryKey
+      ? {
+          queryKey: normalizeMutator(outputWorkspace, queryOptions?.queryKey),
+        }
+      : {}),
+    ...(queryOptions?.queryOptions
+      ? {
+          queryOptions: normalizeMutator(
+            outputWorkspace,
+            queryOptions?.queryOptions,
+          ),
+        }
+      : {}),
+    ...(queryOptions?.mutationOptions
+      ? {
+          mutationOptions: normalizeMutator(
+            outputWorkspace,
+            queryOptions?.mutationOptions,
+          ),
+        }
+      : {}),
+    ...(queryOptions.signal ? { signal: true } : {}),
+  };
 };
 
 export const getDefaultFilesHeader = ({

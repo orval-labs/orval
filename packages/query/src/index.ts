@@ -4,6 +4,7 @@ import {
   ClientDependenciesBuilder,
   ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
+  generateMutator,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
@@ -22,13 +23,14 @@ import {
   OutputClient,
   OutputClientFunc,
   pascal,
+  QueryOptions,
   stringify,
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
-import { QueryOptions } from './types';
+import { normalizeQueryOptions } from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -337,15 +339,12 @@ const generateQueryOptions = ({
 
   const queryConfig = isObject(options)
     ? ` ${stringify(
-        omitBy(options, (_, key) => {
-          if (
+        omitBy(
+          options,
+          (_, key) =>
             type !== QueryType.INFINITE &&
-            INFINITE_QUERY_PROPERTIES.includes(key)
-          ) {
-            return true;
-          }
-          return false;
-        }),
+            INFINITE_QUERY_PROPERTIES.includes(key),
+        ),
       )?.slice(1, -1)}`
     : '';
 
@@ -539,11 +538,14 @@ const generateQueryImplementation = ({
   params,
   props,
   mutator,
+  queryOptionsMutator,
+  queryKeyMutator,
   isRequestOptions,
   response,
   outputClient,
   isExactOptionalPropertyTypes,
   hasSignal,
+  route,
 }: {
   queryOption: {
     name: string;
@@ -560,9 +562,12 @@ const generateQueryImplementation = ({
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
+  queryOptionsMutator?: GeneratorMutator;
+  queryKeyMutator?: GeneratorMutator;
   outputClient: OutputClient | OutputClientFunc;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  route: string;
 }) => {
   const queryProps = toObjectString(props, 'implementation');
   const httpFunctionProps = queryParam
@@ -632,13 +637,22 @@ export const ${camel(
 
   ${hookOptions}
 
-  const queryKey = queryOptions?.queryKey ?? ${queryKeyFnName}(${queryKeyProperties});
+  const queryKey =  ${
+    !queryKeyMutator
+      ? `queryOptions?.queryKey ?? ${queryKeyFnName}(${queryKeyProperties});`
+      : `${queryKeyMutator.name}({ ${queryProperties} }${
+          queryKeyMutator.hasSecondArg
+            ? `, { url: \`${route}\`, queryOptions }`
+            : ''
+        });`
+  }
 
   ${
     mutator?.isHook
       ? `const ${operationName} =  use${pascal(operationName)}Hook();`
       : ''
   }
+
 
   const queryFn: QueryFunction<Awaited<ReturnType<${
     mutator?.isHook
@@ -648,23 +662,40 @@ export const ${camel(
     httpFunctionProps ? ', ' : ''
   }${queryOptions});
 
+
+  ${
+    queryOptionsMutator
+      ? `const customOptions = ${
+          queryOptionsMutator.name
+        }({...queryOptions, queryKey, queryFn}${
+          queryOptionsMutator.hasSecondArg ? `, { ${queryProperties} }` : ''
+        }${queryOptionsMutator.hasThirdArg ? `, { url: \`${route}\` }` : ''});`
+      : ''
+  }
+
   const query = ${camel(`use-${type}`)}<Awaited<ReturnType<${
     mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>>, TError, TData>(queryKey, queryFn, ${generateQueryOptions({
-    params,
-    options,
-    type,
-  })}) as ${returnType} & { queryKey: QueryKey };
+  }>>, TError, TData>(${
+    !queryOptionsMutator
+      ? `queryKey, queryFn, ${generateQueryOptions({
+          params,
+          options,
+          type,
+        })}`
+      : 'customOptions'
+  }) as ${returnType} & { queryKey: QueryKey };
 
-  query.queryKey = queryKey;
+  query.queryKey = ${
+    !queryOptionsMutator ? 'queryKey' : 'customOptions.queryKey'
+  };
 
   return query;
 }\n`;
 };
 
-const generateQueryHook = (
+const generateQueryHook = async (
   {
     queryParams,
     operationName,
@@ -677,7 +708,7 @@ const generateQueryHook = (
     response,
     operationId,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} }, context }: GeneratorOptions,
+  { route, override: { operations = {} }, context, output }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   const query = override?.query;
@@ -691,6 +722,26 @@ const generateQueryHook = (
     operationQueryOptions?.useInfinite ||
     operationQueryOptions?.useQuery
   ) {
+    const queryKeyMutator = query.queryKey
+      ? await generateMutator({
+          output,
+          mutator: query.queryKey,
+          name: `${operationName}QueryKey`,
+          workspace: context.workspace,
+          tsconfig: context.tsconfig,
+        })
+      : undefined;
+
+    const queryOptionsMutator = query.queryOptions
+      ? await generateMutator({
+          output,
+          mutator: query.queryOptions,
+          name: `${operationName}QueryOptions`,
+          workspace: context.workspace,
+          tsconfig: context.tsconfig,
+        })
+      : undefined;
+
     const queryProperties = props
       .map(({ name, type }) =>
         type === GetterPropType.BODY ? body.implementation : name,
@@ -732,9 +783,11 @@ const generateQueryHook = (
       'implementation',
     );
 
-    return `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
-    }${body.implementation ? `, ${body.implementation}` : ''}];
+    }${body.implementation ? `, ${body.implementation}` : ''}];`;
+
+    const implementation = `${!queryKeyMutator ? queryKeyFn : ''}
 
     ${queries.reduce(
       (acc, queryOption) =>
@@ -753,11 +806,35 @@ const generateQueryHook = (
           outputClient,
           isExactOptionalPropertyTypes,
           hasSignal: !!query.signal,
+          queryOptionsMutator,
+          queryKeyMutator,
+          route,
         }),
       '',
     )}
 `;
+
+    return {
+      implementation,
+      mutators:
+        queryOptionsMutator || queryKeyMutator
+          ? [
+              ...(queryOptionsMutator ? [queryOptionsMutator] : []),
+              ...(queryKeyMutator ? [queryKeyMutator] : []),
+            ]
+          : undefined,
+    };
   }
+
+  const mutationOptionsMutator = query.mutationOptions
+    ? await generateMutator({
+        output,
+        mutator: query.mutationOptions,
+        name: `${operationName}MutationOptions`,
+        workspace: context.workspace,
+        tsconfig: context.tsconfig,
+      })
+    : undefined;
 
   const definitions = props
     .map(({ definition, type }) =>
@@ -787,7 +864,7 @@ const generateQueryHook = (
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
-  return `
+  const implementation = `
     export type ${pascal(
       operationName,
     )}MutationResult = NonNullable<Awaited<ReturnType<${dataType}>>>
@@ -845,11 +922,30 @@ const generateQueryHook = (
   })
         }
 
+        ${
+          mutationOptionsMutator
+            ? `const customOptions = ${
+                mutationOptionsMutator.name
+              }({...mutationOptions, mutationFn}${
+                mutationOptionsMutator.hasThirdArg
+                  ? `, { url: \`${route}\` }`
+                  : ''
+              });`
+            : ''
+        }
+
       return useMutation<Awaited<ReturnType<typeof ${operationName}>>, TError, ${
     definitions ? `{${definitions}}` : 'TVariables'
-  }, TContext>(mutationFn, mutationOptions)
+  }, TContext>(${
+    !mutationOptionsMutator ? 'mutationFn, mutationOptions' : 'customOptions'
+  });
     }
     `;
+
+  return {
+    implementation,
+    mutators: mutationOptionsMutator ? [mutationOptionsMutator] : undefined,
+  };
 };
 
 export const generateQueryHeader: ClientHeaderBuilder = ({
@@ -876,7 +972,7 @@ ${
 }`;
 };
 
-export const generateQuery: ClientBuilder = (
+export const generateQuery: ClientBuilder = async (
   verbOptions,
   options,
   outputClient,
@@ -886,15 +982,13 @@ export const generateQuery: ClientBuilder = (
     verbOptions,
     options,
   );
-  const hookImplementation = generateQueryHook(
-    verbOptions,
-    options,
-    outputClient,
-  );
+  const { implementation: hookImplementation, mutators } =
+    await generateQueryHook(verbOptions, options, outputClient);
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
     imports,
+    mutators,
   };
 };
 
@@ -918,12 +1012,16 @@ export const builder =
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
       if (queryOptions) {
-        verbOptions.override.query = mergeDeep(
+        const normarlizeQueryOptions = normalizeQueryOptions(
           queryOptions,
+          options.context.workspace,
+        );
+        verbOptions.override.query = mergeDeep(
+          normarlizeQueryOptions,
           verbOptions.override.query,
         );
         options.override.query = mergeDeep(
-          queryOptions,
+          normarlizeQueryOptions,
           verbOptions.override.query,
         );
       }

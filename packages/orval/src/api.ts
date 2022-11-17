@@ -81,13 +81,18 @@ export const getApiBuilder = async ({
         [] as GeneratorSchema[],
       );
 
-      const pathOperations = generateOperations(output.client, verbsOptions, {
-        route,
-        pathRoute,
-        override: output.override,
-        context: resolvedContext,
-        mock: !!output.mock,
-      });
+      const pathOperations = await generateOperations(
+        output.client,
+        verbsOptions,
+        {
+          route,
+          pathRoute,
+          override: output.override,
+          context: resolvedContext,
+          mock: !!output.mock,
+          output: output.target,
+        },
+      );
 
       acc.schemas.push(...schemas);
       acc.operations = { ...acc.operations, ...pathOperations };

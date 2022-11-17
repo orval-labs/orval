@@ -1,6 +1,7 @@
 import angular from '@orval/angular';
 import axios from '@orval/axios';
 import {
+  asyncReduce,
   generateDependencyImports,
   GeneratorClientFooter,
   GeneratorClientHeader,
@@ -192,25 +193,29 @@ export const generateOperations = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
-): GeneratorOperations => {
-  return verbsOptions.reduce((acc, verbOption) => {
-    const { client: generatorClient } = getGeneratorClient(outputClient);
-    const client = generatorClient(verbOption, options, outputClient);
-    const msw = generateMock(verbOption, options);
+): Promise<GeneratorOperations> => {
+  return asyncReduce(
+    verbsOptions,
+    async (acc, verbOption) => {
+      const { client: generatorClient } = getGeneratorClient(outputClient);
+      const client = await generatorClient(verbOption, options, outputClient);
+      const msw = generateMock(verbOption, options);
 
-    acc[verbOption.operationId] = {
-      implementation: verbOption.doc + client.implementation,
-      imports: client.imports,
-      implementationMSW: msw.implementation,
-      importsMSW: msw.imports,
-      tags: verbOption.tags,
-      mutator: verbOption.mutator,
-      formData: verbOption.formData,
-      formUrlEncoded: verbOption.formUrlEncoded,
-      operationName: verbOption.operationName,
-      types: client.types,
-    };
+      acc[verbOption.operationId] = {
+        implementation: verbOption.doc + client.implementation,
+        imports: client.imports,
+        implementationMSW: msw.implementation,
+        importsMSW: msw.imports,
+        tags: verbOption.tags,
+        mutator: verbOption.mutator,
+        clientMutators: client.mutators,
+        formData: verbOption.formData,
+        formUrlEncoded: verbOption.formUrlEncoded,
+        operationName: verbOption.operationName,
+      };
 
-    return acc;
-  }, {} as GeneratorOperations);
+      return acc;
+    },
+    {} as GeneratorOperations,
+  );
 };
