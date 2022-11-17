@@ -20,5 +20,5 @@ export function mergeDeep<T extends Record<string, any>>(
     }
 
     return acc;
-  }, source);
+  }, Object.assign({}, source));
 }

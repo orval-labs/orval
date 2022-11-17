@@ -2,10 +2,8 @@ import {
   camel,
   ClientBuilder,
   ClientDependenciesBuilder,
-  ClientFooterBuilder,
   ClientGeneratorsBuilder,
   ClientHeaderBuilder,
-  ClientTitleBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -342,8 +340,6 @@ const generateSwrHook = (
 `;
 };
 
-export const generateSwrTitle: ClientTitleBuilder = () => '';
-
 export const generateSwrHeader: ClientHeaderBuilder = ({
   isRequestOptions,
   isMutator,
@@ -368,8 +364,6 @@ export const generateSwrHeader: ClientHeaderBuilder = ({
       : ''
   }`;
 
-export const generateSwrFooter: ClientFooterBuilder = () => '';
-
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateSwrRequestFunction(
@@ -388,8 +382,6 @@ const swrClientBuilder: ClientGeneratorsBuilder = {
   client: generateSwr,
   header: generateSwrHeader,
   dependencies: getSwrDependencies,
-  footer: generateSwrFooter,
-  title: generateSwrTitle,
 };
 
 export const builder = () => () => swrClientBuilder;

@@ -13,6 +13,8 @@
     "@release-it/conventional-changelog": {
       "preset": "angular"
     },
-    "@release-it-plugins/workspaces": true
+    "@release-it-plugins/workspaces": {
+      "publish": false
+    }
   }
 }

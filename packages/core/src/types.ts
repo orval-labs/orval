@@ -554,10 +554,10 @@ export type ClientMSWBuilder = (
 
 export interface ClientGeneratorsBuilder {
   client: ClientBuilder;
-  header: ClientHeaderBuilder;
-  dependencies: ClientDependenciesBuilder;
-  footer: ClientFooterBuilder;
-  title: ClientTitleBuilder;
+  header?: ClientHeaderBuilder;
+  dependencies?: ClientDependenciesBuilder;
+  footer?: ClientFooterBuilder;
+  title?: ClientTitleBuilder;
 }
 
 export type GeneratorClients = Record<OutputClient, ClientGeneratorsBuilder>;

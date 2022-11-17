@@ -57,7 +57,9 @@ export const generateClientImports: GeneratorClientImports = ({
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
-    [...dependencies(hasGlobalMutator, packageJson), ...imports],
+    dependencies
+      ? [...dependencies(hasGlobalMutator, packageJson), ...imports]
+      : imports,
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
@@ -75,14 +77,16 @@ export const generateClientHeader: GeneratorClientHeader = ({
 }) => {
   const { header } = getGeneratorClient(outputClient);
   return {
-    implementation: header({
-      title: titles.implementation,
-      isRequestOptions,
-      isGlobalMutator,
-      isMutator,
-      provideIn,
-      hasAwaitedType,
-    }),
+    implementation: header
+      ? header({
+          title: titles.implementation,
+          isRequestOptions,
+          isGlobalMutator,
+          isMutator,
+          provideIn,
+          hasAwaitedType,
+        })
+      : '',
     implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
   };
 };
@@ -95,6 +99,14 @@ export const generateClientFooter: GeneratorClientFooter = ({
   titles,
 }) => {
   const { footer } = getGeneratorClient(outputClient);
+
+  if (!footer) {
+    return {
+      implementation: '',
+      implementationMSW: `]\n`,
+    };
+  }
+
   let implementation: string;
   try {
     if (isFunction(outputClient)) {
@@ -134,6 +146,14 @@ export const generateClientTitle: GeneratorClientTitle = ({
   customTitleFunc,
 }) => {
   const { title: generatorTitle } = getGeneratorClient(outputClient);
+
+  if (!generatorTitle) {
+    return {
+      implementation: '',
+      implementationMSW: `get${pascal(title)}MSW`,
+    };
+  }
+
   if (customTitleFunc) {
     const customTitle = customTitleFunc(title);
     return {

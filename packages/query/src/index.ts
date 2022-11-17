@@ -2,10 +2,7 @@ import {
   camel,
   ClientBuilder,
   ClientDependenciesBuilder,
-  ClientFooterBuilder,
-  ClientGeneratorsBuilder,
   ClientHeaderBuilder,
-  ClientTitleBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -21,6 +18,7 @@ import {
   GetterResponse,
   isObject,
   isSyntheticDefaultImportsAllow,
+  mergeDeep,
   OutputClient,
   OutputClientFunc,
   pascal,
@@ -30,6 +28,7 @@ import {
   VERBS_WITH_BODY,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
+import { QueryOptions } from './types';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -853,8 +852,6 @@ const generateQueryHook = (
     `;
 };
 
-export const generateQueryTitle: ClientTitleBuilder = () => '';
-
 export const generateQueryHeader: ClientHeaderBuilder = ({
   isRequestOptions,
   isMutator,
@@ -879,8 +876,6 @@ ${
 }`;
 };
 
-export const generateQueryFooter: ClientFooterBuilder = () => '';
-
 export const generateQuery: ClientBuilder = (
   verbOptions,
   options,
@@ -903,46 +898,43 @@ export const generateQuery: ClientBuilder = (
   };
 };
 
-const reactQueryClientBuilder: ClientGeneratorsBuilder = {
-  client: generateQuery,
-  header: generateQueryHeader,
-  dependencies: getReactQueryDependencies,
-  footer: generateQueryFooter,
-  title: generateQueryTitle,
-};
-
-const svelteQueryClientBuilder: ClientGeneratorsBuilder = {
-  client: generateQuery,
-  header: generateQueryHeader,
-  dependencies: getSvelteQueryDependencies,
-  footer: generateQueryFooter,
-  title: generateQueryTitle,
-};
-
-const vueQueryClientBuilder: ClientGeneratorsBuilder = {
-  client: generateQuery,
-  header: generateQueryHeader,
-  dependencies: getVueQueryDependencies,
-  footer: generateQueryFooter,
-  title: generateQueryTitle,
-};
-
-const builders: Record<
+const dependenciesBuilder: Record<
   'react-query' | 'vue-query' | 'svelte-query',
-  ClientGeneratorsBuilder
+  ClientDependenciesBuilder
 > = {
-  'react-query': reactQueryClientBuilder,
-  'vue-query': vueQueryClientBuilder,
-  'svelte-query': svelteQueryClientBuilder,
+  'react-query': getReactQueryDependencies,
+  'vue-query': getVueQueryDependencies,
+  'svelte-query': getSvelteQueryDependencies,
 };
 
 export const builder =
   ({
     type = 'react-query',
+    options: queryOptions,
   }: {
     type?: 'react-query' | 'vue-query' | 'svelte-query';
+    options?: QueryOptions;
   } = {}) =>
-  () =>
-    builders[type];
+  () => {
+    const client: ClientBuilder = (verbOptions, options, outputClient) => {
+      if (queryOptions) {
+        verbOptions.override.query = mergeDeep(
+          queryOptions,
+          verbOptions.override.query,
+        );
+        options.override.query = mergeDeep(
+          queryOptions,
+          verbOptions.override.query,
+        );
+      }
+      return generateQuery(verbOptions, options, outputClient);
+    };
+
+    return {
+      client: client,
+      header: generateQueryHeader,
+      dependencies: dependenciesBuilder[type],
+    };
+  };
 
 export default builder;
