@@ -1,9 +1,10 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
-import { outputFile, pathExists, readFile, unlink } from 'fs-extra';
+import { prompt } from 'enquirer';
+import fs from 'fs-extra';
 import https from 'https';
-import inquirer from 'inquirer';
-import { join } from 'upath';
+import { join } from 'path';
 import { request } from './request';
+
 export const getGithubSpecReq = ({
   accessToken,
   repo,
@@ -45,11 +46,17 @@ export const getGithubSpecReq = ({
   ];
 };
 
+let githubToken: string | null = null;
+
 export const getGithubAcessToken = async (githubTokenPath: string) => {
-  if (await pathExists(githubTokenPath)) {
-    return readFile(githubTokenPath, 'utf-8');
+  if (githubToken) {
+    return githubToken;
+  }
+
+  if (await fs.pathExists(githubTokenPath)) {
+    return fs.readFile(githubTokenPath, 'utf-8');
   } else {
-    const answers = await inquirer.prompt<{
+    const answers = await prompt<{
       githubToken: string;
       saveToken: boolean;
     }>([
@@ -66,8 +73,11 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
           'Would you like to store your token for the next time? (stored in your node_modules)',
       },
     ]);
+
+    githubToken = answers.githubToken;
+
     if (answers.saveToken) {
-      await outputFile(githubTokenPath, answers.githubToken);
+      await fs.outputFile(githubTokenPath, answers.githubToken);
     }
     return answers.githubToken;
   }
@@ -92,7 +102,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
       );
 
       if (isErrorRemoveLink) {
-        const answers = await inquirer.prompt<{ removeToken: boolean }>([
+        const answers = await prompt<{ removeToken: boolean }>([
           {
             type: 'confirm',
             name: 'removeToken',
@@ -101,19 +111,19 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
           },
         ]);
         if (answers.removeToken) {
-          await unlink(githubTokenPath);
+          await fs.unlink(githubTokenPath);
         }
       }
     }
 
     return body.data?.repository?.object.text;
-  } catch (e) {
+  } catch (e: any) {
     if (!e.body) {
       throw `Oups... 🍻. ${e}`;
     }
 
     if (e.body.message === 'Bad credentials') {
-      const answers = await inquirer.prompt<{ removeToken: boolean }>([
+      const answers = await prompt<{ removeToken: boolean }>([
         {
           type: 'confirm',
           name: 'removeToken',
@@ -122,7 +132,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
         },
       ]);
       if (answers.removeToken) {
-        await unlink(githubTokenPath);
+        await fs.unlink(githubTokenPath);
       }
     }
     throw e.body.message || `Oups... 🍻. ${e}`;

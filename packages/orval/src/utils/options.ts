@@ -27,7 +27,7 @@ import {
 } from '@orval/core';
 import chalk from 'chalk';
 import { InfoObject } from 'openapi3-ts';
-import { resolve } from 'upath';
+import { resolve } from 'path';
 import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';

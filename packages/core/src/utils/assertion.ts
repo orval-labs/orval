@@ -1,5 +1,5 @@
 import { ReferenceObject } from 'openapi3-ts';
-import { extname } from 'upath';
+import { extname } from 'path';
 import validatorIsUrl from 'validator/lib/isURL';
 import { Verbs } from '../types';
 
@@ -18,6 +18,10 @@ export const isDirectory = (path: string) => {
 
 export function isObject(x: any): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Object]';
+}
+
+export function isModule(x: any): x is Record<string, unknown> {
+  return Object.prototype.toString.call(x) === '[object Module]';
 }
 
 export function isString(x: any): x is string {

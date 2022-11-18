@@ -8,7 +8,7 @@ import {
   WriteSpecsBuilder,
 } from '@orval/core';
 import chalk from 'chalk';
-import { resolve } from 'upath';
+import { resolve } from 'path';
 import { importOpenApi } from './import-open-api';
 
 const resolveSpecs = async (
@@ -18,7 +18,7 @@ const resolveSpecs = async (
 ) => {
   if (validate) {
     try {
-      await SwaggerParser.validate(path);
+      await SwaggerParser.validate(path, options);
     } catch (e: any) {
       if (e?.name === 'ParserError') {
         throw e;

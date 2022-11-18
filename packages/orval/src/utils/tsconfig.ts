@@ -1,6 +1,6 @@
 import { isObject, isString, isUndefined, Tsconfig } from '@orval/core';
 import findUp from 'find-up';
-import { existsSync } from 'fs-extra';
+import fs from 'fs-extra';
 import { parse } from 'tsconfck';
 import { normalizePath } from './options';
 
@@ -21,7 +21,7 @@ export const loadTsconfig = async (
 
   if (isString(tsconfig)) {
     const normalizedPath = normalizePath(tsconfig, workspace);
-    if (existsSync(normalizedPath)) {
+    if (fs.existsSync(normalizedPath)) {
       const config = await parse(normalizedPath);
 
       const tsconfig =

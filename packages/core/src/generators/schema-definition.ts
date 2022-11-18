@@ -1,4 +1,4 @@
-import isEmpty from 'lodash/isEmpty';
+import isEmpty from 'lodash.isempty';
 import { SchemasObject } from 'openapi3-ts';
 import { getEnum, resolveDiscriminators } from '../getters';
 import { resolveValue } from '../resolvers';

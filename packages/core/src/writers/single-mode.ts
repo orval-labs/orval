@@ -1,4 +1,4 @@
-import { outputFile } from 'fs-extra';
+import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { WriteModeProps } from '../types';
 import {
@@ -100,7 +100,7 @@ export const writeSingleMode = async ({
       data += implementationMSW;
     }
 
-    await outputFile(path, data);
+    await fs.outputFile(path, data);
 
     return [path];
   } catch (e) {

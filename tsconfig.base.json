@@ -2,9 +2,8 @@
   "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "target": "es2015",
+    "target": "ESNext",
     "module": "esnext",
-    "lib": ["es2017", "dom"],
     "composite": false,
     "declaration": true,
     "declarationMap": true,

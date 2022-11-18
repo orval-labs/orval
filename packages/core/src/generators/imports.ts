@@ -1,6 +1,6 @@
 import uniq from 'lodash.uniq';
 import uniqWith from 'lodash.uniqwith';
-import { join } from 'upath';
+import { join } from 'path';
 import {
   GeneratorImport,
   GeneratorMutator,

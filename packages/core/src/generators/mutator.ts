@@ -1,6 +1,6 @@
 import { Parser } from 'acorn';
 import chalk from 'chalk';
-import { readFile } from 'fs-extra';
+import fs from 'fs-extra';
 import {
   GeneratorMutator,
   GeneratorMutatorParsingInfo,
@@ -47,7 +47,7 @@ export const generateMutator = async ({
   const importName = mutator.name ? mutator.name : `${name}Mutator`;
   const importPath = mutator.path;
 
-  const rawFile = await readFile(importPath, 'utf8');
+  const rawFile = await fs.readFile(importPath, 'utf8');
 
   const hasErrorType =
     rawFile.includes('export type ErrorType') ||

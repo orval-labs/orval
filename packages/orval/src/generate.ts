@@ -13,7 +13,7 @@ import {
   removeFiles,
 } from '@orval/core';
 import chalk from 'chalk';
-import { dirname } from 'upath';
+import { dirname } from 'path';
 import { importSpecs } from './import-specs';
 import { writeSpecs } from './write-specs';
 

@@ -1,5 +1,5 @@
-import { resolve } from 'upath';
-import { isObject, isString } from './assertion';
+import { resolve } from 'path';
+import { isModule, isObject, isString } from './assertion';
 
 export const dynamicImport = async <T>(
   toImport: T | string,
@@ -14,7 +14,7 @@ export const dynamicImport = async <T>(
     if (isString(toImport)) {
       const path = resolve(from, toImport);
       const data = await import(path);
-      if (takeDefault && isObject(data) && data.default) {
+      if (takeDefault && (isObject(data) || isModule(data)) && data.default) {
         return (data as any).default as T;
       }
 

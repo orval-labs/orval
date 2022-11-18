@@ -1,5 +1,5 @@
-import { outputFile } from 'fs-extra';
-import { join } from 'upath';
+import fs from 'fs-extra';
+import path from 'path';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
@@ -71,13 +71,13 @@ export const writeSplitTagsMode = async ({
         });
 
         const schemasPath = !output.schemas
-          ? join(dirname, filename + '.schemas' + extension)
+          ? path.join(dirname, filename + '.schemas' + extension)
           : undefined;
 
         if (schemasPath) {
           const schemasData = header + generateModelsInline(builder.schemas);
 
-          await outputFile(schemasPath, schemasData);
+          await fs.outputFile(schemasPath, schemasData);
         }
 
         if (mutators) {
@@ -116,15 +116,19 @@ export const writeSplitTagsMode = async ({
           (OutputClient.ANGULAR === output.client ? '.service' : '') +
           extension;
 
-        const implementationPath = join(dirname, tag, implementationFilename);
-        await outputFile(implementationPath, implementationData);
+        const implementationPath = path.join(
+          dirname,
+          tag,
+          implementationFilename,
+        );
+        await fs.outputFile(implementationPath, implementationData);
 
         const mockPath = output.mock
-          ? join(dirname, tag, tag + '.msw' + extension)
+          ? path.join(dirname, tag, tag + '.msw' + extension)
           : undefined;
 
         if (mockPath) {
-          await outputFile(mockPath, mswData);
+          await fs.outputFile(mockPath, mswData);
         }
 
         return [

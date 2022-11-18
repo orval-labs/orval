@@ -1,5 +1,5 @@
-import { outputFile } from 'fs-extra';
-import { join } from 'upath';
+import fs from 'fs-extra';
+import path from 'path';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { WriteModeProps } from '../types';
 import {
@@ -76,13 +76,13 @@ export const writeTagsMode = async ({
         }
 
         const schemasPath = !output.schemas
-          ? join(dirname, filename + '.schemas' + extension)
+          ? path.join(dirname, filename + '.schemas' + extension)
           : undefined;
 
         if (schemasPath) {
           const schemasData = header + generateModelsInline(builder.schemas);
 
-          await outputFile(schemasPath, schemasData);
+          await fs.outputFile(schemasPath, schemasData);
         }
 
         if (mutators) {
@@ -112,8 +112,11 @@ export const writeTagsMode = async ({
           data += implementationMSW;
         }
 
-        const implementationPath = join(dirname, `${kebab(tag)}${extension}`);
-        await outputFile(implementationPath, data);
+        const implementationPath = path.join(
+          dirname,
+          `${kebab(tag)}${extension}`,
+        );
+        await fs.outputFile(implementationPath, data);
 
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
       } catch (e) {

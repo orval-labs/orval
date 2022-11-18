@@ -1,6 +1,6 @@
 import { PackageJson } from '@orval/core';
 import findUp from 'find-up';
-import { existsSync } from 'fs-extra';
+import fs from 'fs-extra';
 import { normalizePath } from './options';
 
 export const loadPackageJson = async (
@@ -19,7 +19,7 @@ export const loadPackageJson = async (
   }
 
   const normalizedPath = normalizePath(packageJson, workspace);
-  if (existsSync(normalizedPath)) {
+  if (fs.existsSync(normalizedPath)) {
     const pkg = await import(normalizedPath);
 
     return pkg;

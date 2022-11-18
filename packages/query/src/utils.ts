@@ -8,7 +8,7 @@ import {
   QueryOptions,
 } from '@orval/core';
 import chalk from 'chalk';
-import { resolve } from 'upath';
+import path from 'path';
 
 export const normalizeQueryOptions = (
   queryOptions: QueryOptions = {},
@@ -59,14 +59,14 @@ const normalizeMutator = <T>(
 
     return {
       ...mutator,
-      path: resolve(workspace, mutator.path),
+      path: path.resolve(workspace, mutator.path),
       default: (mutator.default || !mutator.name) ?? false,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: resolve(workspace, mutator),
+      path: path.resolve(workspace, mutator),
       default: true,
     };
   }

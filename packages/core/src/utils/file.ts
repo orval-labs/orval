@@ -3,20 +3,12 @@ import { build, PluginBuild } from 'esbuild';
 import fs from 'fs';
 import glob from 'globby';
 import mm from 'micromatch';
-import path from 'path';
-import {
-  basename,
-  dirname,
-  extname,
-  join,
-  joinSafe,
-  normalizeSafe,
-  resolve,
-} from 'upath';
+import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
 import { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
 import { createLogger, LogLevel } from './logger';
+import { joinSafe, normalizeSafe } from './path';
 
 export const getFileInfo = (
   target: string = '',
@@ -82,18 +74,18 @@ export async function loadFile<File = any>(
 
   if (filePath) {
     // explicit path is always resolved from cwd
-    resolvedPath = path.resolve(filePath);
+    resolvedPath = resolve(filePath);
     isTS = filePath.endsWith('.ts');
   } else if (defaultFileName) {
     // implicit file loaded from inline root (if present)
     // otherwise from cwd
-    const jsFile = path.resolve(root, `${defaultFileName}.js`);
+    const jsFile = resolve(root, `${defaultFileName}.js`);
     if (fs.existsSync(jsFile)) {
       resolvedPath = jsFile;
     }
 
     if (!resolvedPath) {
-      const mjsFile = path.resolve(root, `${defaultFileName}.mjs`);
+      const mjsFile = resolve(root, `${defaultFileName}.mjs`);
       if (fs.existsSync(mjsFile)) {
         resolvedPath = mjsFile;
         isMjs = true;
@@ -101,7 +93,7 @@ export async function loadFile<File = any>(
     }
 
     if (!resolvedPath) {
-      const tsFile = path.resolve(root, `${defaultFileName}.ts`);
+      const tsFile = resolve(root, `${defaultFileName}.ts`);
       if (fs.existsSync(tsFile)) {
         resolvedPath = tsFile;
         isTS = true;
@@ -301,7 +293,7 @@ async function bundleFile(
         setup(build) {
           build.onResolve({ filter: /.*/ }, (args) => {
             const id = args.path;
-            if (id[0] !== '.' && !path.isAbsolute(id)) {
+            if (id[0] !== '.' && !isAbsolute(id)) {
               return {
                 external: true,
               };
@@ -321,10 +313,7 @@ async function bundleFile(
                   /\bimport\.meta\.url\b/g,
                   JSON.stringify(`file://${args.path}`),
                 )
-                .replace(
-                  /\b__dirname\b/g,
-                  JSON.stringify(path.dirname(args.path)),
-                )
+                .replace(/\b__dirname\b/g, JSON.stringify(dirname(args.path)))
                 .replace(/\b__filename\b/g, JSON.stringify(args.path)),
             };
           });
@@ -348,7 +337,7 @@ async function loadFromBundledFile<File = unknown>(
   bundledCode: string,
   isDefault: boolean,
 ): Promise<File> {
-  const extension = path.extname(fileName);
+  const extension = extname(fileName);
   const defaultLoader = require.extensions[extension]!;
   require.extensions[extension] = (module: NodeModule, filename: string) => {
     if (filename === fileName) {

@@ -17,10 +17,10 @@ import {
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
-import { appendFile, outputFile, pathExists, readFile } from 'fs-extra';
+import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts';
-import { join } from 'upath';
+import path from 'path';
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -63,7 +63,7 @@ export const writeSpecs = async (
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
         const schemaPath = !isRootKey(specKey, target)
-          ? join(rootSchemaPath, specsName[specKey])
+          ? path.join(rootSchemaPath, specsName[specKey])
           : rootSchemaPath;
 
         return writeSchemas({
@@ -105,19 +105,19 @@ export const writeSpecs = async (
       );
     }
 
-    const indexFile = join(workspacePath, '/index.ts');
+    const indexFile = path.join(workspacePath, '/index.ts');
 
-    if (await pathExists(indexFile)) {
-      const data = await readFile(indexFile, 'utf8');
+    if (await fs.pathExists(indexFile)) {
+      const data = await fs.readFile(indexFile, 'utf8');
       const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
-      await appendFile(
+      await fs.appendFile(
         indexFile,
         uniq(importsNotDeclared)
           .map((imp) => `export * from '${imp}';`)
           .join('\n') + '\n',
       );
     } else {
-      await outputFile(
+      await fs.outputFile(
         indexFile,
         uniq(imports)
           .map((imp) => `export * from '${imp}';`)

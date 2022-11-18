@@ -1,5 +1,5 @@
-import { ensureFile, outputFile, readFile, writeFile } from 'fs-extra';
-import { join } from 'upath';
+import fs from 'fs-extra';
+import { join } from 'path';
 import { generateImports } from '../generators';
 import { GeneratorSchema } from '../types';
 import { camel } from '../utils';
@@ -59,7 +59,7 @@ export const writeSchema = async ({
 }) => {
   const name = camel(schema.name);
   try {
-    await outputFile(
+    await fs.outputFile(
       getPath(path, name),
       getSchema({ schema, target, isRootKey, specsName, header }),
     );
@@ -84,7 +84,7 @@ export const writeSchemas = async ({
   header: string;
 }) => {
   const schemaFilePath = join(schemaPath, '/index.ts');
-  await ensureFile(schemaFilePath);
+  await fs.ensureFile(schemaFilePath);
 
   await Promise.all(
     schemas.map((schema) =>
@@ -100,7 +100,7 @@ export const writeSchemas = async ({
   );
 
   try {
-    const data = await readFile(schemaFilePath);
+    const data = await fs.readFile(schemaFilePath);
 
     const stringData = data.toString();
 
@@ -121,7 +121,7 @@ export const writeSchemas = async ({
       .sort()
       .join('\n');
 
-    await writeFile(schemaFilePath, fileContent);
+    await fs.writeFile(schemaFilePath, fileContent);
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
   }

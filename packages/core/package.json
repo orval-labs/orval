@@ -8,8 +8,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --target node12 --minify --clean --dts --splitting",
-    "dev": "tsup ./src/index.ts --target node12 --clean --watch src",
+    "build": "tsup ./src/index.ts --minify --clean --dts --splitting",
+    "dev": "tsup ./src/index.ts --clean --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest --global test.ts"
   },
@@ -19,6 +19,7 @@
     "@types/fs-extra": "^9.0.13",
     "@types/inquirer": "^8.2.2",
     "@types/lodash.get": "^4.4.7",
+    "@types/lodash.isempty": "^4.4.7",
     "@types/lodash.omit": "^4.5.7",
     "@types/lodash.uniq": "^4.5.7",
     "@types/lodash.uniqby": "^4.7.7",
@@ -39,6 +40,7 @@
     "globby": "11.1.0",
     "ibm-openapi-validator": "^0.88.0",
     "lodash.get": "^4.4.2",
+    "lodash.isempty": "^4.4.0",
     "lodash.omit": "^4.5.0",
     "lodash.uniq": "^4.5.0",
     "lodash.uniqby": "^4.7.0",
@@ -46,7 +48,6 @@
     "micromatch": "^4.0.5",
     "openapi3-ts": "^3.0.0",
     "swagger2openapi": "^7.0.8",
-    "upath": "^2.0.1",
     "url": "^0.11.0",
     "validator": "^13.7.0"
   }
