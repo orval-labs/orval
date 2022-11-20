@@ -656,6 +656,18 @@ export type SchemaType =
   | 'enum'
   | 'unknown';
 
+export const SchemaType = {
+  integer: 'integer',
+  number: 'number',
+  string: 'string',
+  boolean: 'boolean',
+  object: 'object',
+  null: 'null',
+  array: 'array',
+  enum: 'enum',
+  unknown: 'unknown',
+};
+
 export type ResolverValue = {
   value: string;
   isEnum: boolean;

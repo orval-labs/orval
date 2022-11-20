@@ -15,10 +15,9 @@ import {
 import chalk from 'chalk';
 import { dirname } from 'path';
 import { importSpecs } from './import-specs';
-import { writeSpecs } from './write-specs';
-
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
+import { writeSpecs } from './write-specs';
 
 export const generateSpec = async (
   workspace: string,
