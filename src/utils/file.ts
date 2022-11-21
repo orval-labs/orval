@@ -207,6 +207,7 @@ async function bundleFile(
   alias?: Record<string, string>,
   compilerOptions?: Tsconfig['compilerOptions'],
 ): Promise<{ code: string; dependencies: string[] }> {
+  console.log('compilerOptions?', compilerOptions);
   const result = await build({
     absWorkingDir: process.cwd(),
     entryPoints: [fileName],
@@ -217,7 +218,7 @@ async function bundleFile(
     format: mjs ? 'esm' : 'cjs',
     sourcemap: 'inline',
     metafile: true,
-    target: 'es6',
+    target: compilerOptions?.target || 'es6',
     minifyWhitespace: true,
     plugins: [
       ...(alias || compilerOptions?.paths
