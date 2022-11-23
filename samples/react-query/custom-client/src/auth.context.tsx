@@ -1,11 +1,4 @@
-import React, {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
-import { AXIOS_INSTANCE } from './api/mutator/custom-instance';
+import { createContext, ReactNode, useContext, useState } from 'react';
 type Dispatch = (Auth: string) => void;
 
 type AuthProviderProps = { children: ReactNode; initialState?: string | null };
@@ -16,22 +9,6 @@ const AuthDispatchContext = createContext<Dispatch | null>(null);
 const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
   // it's a quick demo with useState but you can also have a more complexe state with a useReducer
   const [token, setToken] = useState(initialState);
-
-  useEffect(() => {
-    const interceptorId = AXIOS_INSTANCE.interceptors.request.use((config) => ({
-      ...config,
-      headers: token
-        ? {
-            ...config.headers,
-            Authorization: `Bearer ${token}`,
-          }
-        : config.headers,
-    }));
-
-    return () => {
-      AXIOS_INSTANCE.interceptors.request.eject(interceptorId);
-    };
-  }, [token]);
 
   return (
     <AuthContext.Provider value={token}>

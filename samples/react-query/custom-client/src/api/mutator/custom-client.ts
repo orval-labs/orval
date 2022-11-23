@@ -1,26 +1,32 @@
-export const customClient = async <ResponseType>({
-  url,
-  method,
-  params,
-  data,
-}: {
+import Axios from 'axios';
+import { useAuth } from '../../auth.context';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+type CustomClient<T> = (data: {
   url: string;
   method: 'get' | 'post' | 'put' | 'delete' | 'patch';
-  params?: Record<string, string>;
-  headers?: Record<string, string>;
+  params?: Record<string, any>;
+  headers?: Record<string, any>;
   data?: BodyType<unknown>;
   signal?: AbortSignal;
-}) => {
-  const response = await fetch(url + new URLSearchParams(params), {
-    method,
-    headers: data?.headers,
-    ...(data ? { body: JSON.stringify(data) } : {}),
-  });
+}) => Promise<T>;
 
-  return (await response.json()) as ResponseType;
+export const useCustomClient = <T>(): CustomClient<T> => {
+  const token = useAuth();
+
+  return async ({ url, method, params, data }) => {
+    const response = await fetch(url + new URLSearchParams(params), {
+      method,
+      headers: { ...data?.headers, Authorization: `Bearer ${token}` },
+      ...(data ? { body: JSON.stringify(data) } : {}),
+    });
+
+    return response.json();
+  };
 };
 
-export default customClient;
+export default useCustomClient;
 
 export type ErrorType<ErrorData> = ErrorData;
 

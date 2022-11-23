@@ -12,7 +12,7 @@ export default defineConfig({
       override: {
         mutator: {
           path: './src/api/mutator/custom-client.ts',
-          name: 'customClient',
+          name: 'useCustomClient',
         },
         operations: {
           listPets: {
@@ -39,11 +39,6 @@ export default defineConfig({
           properties: {
             '/tag|name/': () => faker.name.lastName(),
           },
-        },
-        query: {
-          useQuery: true,
-          useInfinite: true,
-          useInfiniteQueryParam: 'limit',
         },
       },
     },
