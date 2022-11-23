@@ -245,6 +245,13 @@ const parseFunction = (
     return parseFunction(ast, declaration.init.name);
   }
 
+  if (declaration.init.body.type === 'ArrowFunctionExpression') {
+    return {
+      numberOfParams: declaration.init.params.length,
+      returnNumberOfParams: declaration.init.body.params.length,
+    };
+  }
+
   const returnStatement = declaration.init.body?.body?.find(
     (b: any) => b.type === 'ReturnStatement',
   );
