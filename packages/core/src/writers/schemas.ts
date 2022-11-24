@@ -10,12 +10,14 @@ const getSchema = ({
   isRootKey,
   specsName,
   header,
+  specKey,
 }: {
   schema: GeneratorSchema;
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
+  specKey: string;
 }): string => {
   let file = header;
   file += generateImports({
@@ -27,6 +29,7 @@ const getSchema = ({
     target,
     isRootKey,
     specsName,
+    specKey,
   });
   file += imports.length ? '\n\n' : '\n';
   file += model;
@@ -46,6 +49,7 @@ export const writeSchema = async ({
   path,
   schema,
   target,
+  specKey,
   isRootKey,
   specsName,
   header,
@@ -53,15 +57,17 @@ export const writeSchema = async ({
   path: string;
   schema: GeneratorSchema;
   target: string;
+  specKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
 }) => {
   const name = camel(schema.name);
+
   try {
     await fs.outputFile(
       getPath(path, name),
-      getSchema({ schema, target, isRootKey, specsName, header }),
+      getSchema({ schema, target, isRootKey, specsName, header, specKey }),
     );
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
@@ -72,6 +78,7 @@ export const writeSchemas = async ({
   schemaPath,
   schemas,
   target,
+  specKey,
   isRootKey,
   specsName,
   header,
@@ -79,6 +86,7 @@ export const writeSchemas = async ({
   schemaPath: string;
   schemas: GeneratorSchema[];
   target: string;
+  specKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
@@ -92,6 +100,7 @@ export const writeSchemas = async ({
         path: schemaPath,
         schema,
         target,
+        specKey,
         isRootKey,
         specsName,
         header,

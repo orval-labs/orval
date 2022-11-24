@@ -3,7 +3,7 @@ import { ReferenceObject } from 'openapi3-ts';
 import { resolve } from 'path';
 import url from 'url';
 import { ContextSpecs } from '../types';
-import { getExtension, getFileInfo, isUrl, pascal } from '../utils';
+import { getFileInfo, getSchemaFileName, isUrl, pascal } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 
@@ -50,9 +50,7 @@ export const getRefInfo = (
 
   const originalName = ref
     ? refPaths[refPaths.length - 1]
-    : pathname
-        .replace(`.${getExtension(pathname)}`, '')
-        .slice(pathname.lastIndexOf('/') + 1);
+    : getSchemaFileName(pathname);
 
   if (!pathname) {
     return {

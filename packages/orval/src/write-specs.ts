@@ -71,6 +71,7 @@ export const writeSpecs = async (
           schemas,
           target,
           specsName,
+          specKey,
           isRootKey: isRootKey(specKey, target),
           header,
         });

@@ -13,11 +13,13 @@ export const generateImports = ({
   target,
   isRootKey,
   specsName,
+  specKey: currentSpecKey,
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
+  specKey: string;
 }) => {
   if (!imports.length) {
     return '';
@@ -30,7 +32,8 @@ export const generateImports = ({
   )
     .sort()
     .map(({ specKey, name, values, alias }) => {
-      if (specKey) {
+      const isSameSpecKey = currentSpecKey === specKey;
+      if (specKey && !isSameSpecKey) {
         const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {

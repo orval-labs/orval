@@ -18,6 +18,7 @@ export const resolveValue = ({
       schema,
       context,
     );
+
     const { name, specKey, schemaName } = imports[0];
 
     const importSpecKey =

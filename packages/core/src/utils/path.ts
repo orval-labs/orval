@@ -35,6 +35,12 @@ export const getSpecName = (specKey: string, target: string) => {
   );
 };
 
+export const getSchemaFileName = (path: string) => {
+  return path
+    .replace(`.${getExtension(path)}`, '')
+    .slice(path.lastIndexOf('/') + 1);
+};
+
 export const separator = '/';
 
 const toUnix = function (value: string) {

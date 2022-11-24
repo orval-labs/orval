@@ -1,7 +1,7 @@
 import { ReferenceObject } from 'openapi3-ts';
 import { extname } from 'path';
 import validatorIsUrl from 'validator/lib/isURL';
-import { Verbs } from '../types';
+import { SchemaType, Verbs } from '../types';
 
 /**
  * Discriminator helper for `ReferenceObject`
@@ -50,6 +50,14 @@ export function isUndefined(x: any): x is undefined {
 
 export function isNull(x: any): x is null {
   return typeof x === null;
+}
+
+export function isSchema(x: any): x is SchemaType {
+  return (
+    isObject(x) &&
+    isString(x.type) &&
+    Object.values(SchemaType).includes(x.type)
+  );
 }
 
 export const isVerb = (verb: string): verb is Verbs =>

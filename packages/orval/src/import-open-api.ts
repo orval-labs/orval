@@ -6,15 +6,15 @@ import {
   generateParameterDefinition,
   generateSchemasDefinition,
   GeneratorSchema,
-  getSpecName,
+  getSchemaFileName,
   ibmOpenapiValidator,
   ImportOpenApi,
   InputOptions,
   isObject,
   isReference,
+  isSchema,
   NormalizedOutputOptions,
   openApiConverter,
-  SchemaType,
   WriteSpecsBuilder,
 } from '@orval/core';
 import omit from 'lodash.omit';
@@ -116,12 +116,9 @@ const getApiSchemas = ({
       packageJson: output.packageJson,
     };
 
-    const basePath = getSpecName(specKey, target);
-    const name = basePath.slice(1).split('/').join('-');
-
     const schemaDefinition = generateSchemasDefinition(
       !spec.openapi
-        ? getAllSchemas(spec, name)
+        ? getAllSchemas(spec, specKey)
         : (spec.components?.schemas as SchemasObject),
       context,
       output.override.components.schemas.suffix,
@@ -162,7 +159,7 @@ const getApiSchemas = ({
   }, {} as Record<string, GeneratorSchema[]>);
 };
 
-const getAllSchemas = (spec: object, specName: string): SchemasObject => {
+const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
   const cleanedSpec = omit(spec, [
     'openapi',
     'info',
@@ -174,8 +171,22 @@ const getAllSchemas = (spec: object, specName: string): SchemasObject => {
     'externalDocs',
   ]);
 
-  if (Object.values(SchemaType).includes((cleanedSpec as any).type)) {
-    return { [specName]: cleanedSpec as SchemasObject };
+  if (specKey && isSchema(cleanedSpec)) {
+    const name = getSchemaFileName(specKey);
+
+    return {
+      [name]: cleanedSpec as SchemasObject,
+      ...getAllSchemas(
+        omit(cleanedSpec, [
+          'type',
+          'properties',
+          'allOf',
+          'oneOf',
+          'anyOf',
+          'items',
+        ]),
+      ),
+    };
   }
 
   const schemas = Object.entries(cleanedSpec).reduce<SchemasObject>(
@@ -185,7 +196,7 @@ const getAllSchemas = (spec: object, specName: string): SchemasObject => {
       }
 
       if (!value.type && !isReference(value)) {
-        return { ...acc, ...getAllSchemas(value, specName) };
+        return { ...acc, ...getAllSchemas(value) };
       }
 
       acc[key] = value;
