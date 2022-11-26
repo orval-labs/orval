@@ -615,7 +615,7 @@ Type: `Object`.
 
 Give you the possibility to override the generated mock
 
-#### properties
+##### properties
 
 Type: `Object` or `Function`.
 
@@ -638,7 +638,7 @@ module.exports = {
 };
 ```
 
-#### format
+##### format
 
 Type: `Object`.
 
@@ -661,7 +661,7 @@ module.exports = {
 };
 ```
 
-#### required
+##### required
 
 Type: `Boolean`.
 
@@ -681,7 +681,7 @@ module.exports = {
 };
 ```
 
-#### delay
+##### delay
 
 Type: `number`.
 
@@ -703,7 +703,7 @@ module.exports = {
 };
 ```
 
-#### arrayMin
+##### arrayMin
 
 Type: `Number`.
 
@@ -723,7 +723,7 @@ module.exports = {
 };
 ```
 
-#### arrayMax
+##### arrayMax
 
 Type: `Number`.
 
@@ -743,7 +743,7 @@ module.exports = {
 };
 ```
 
-#### baseUrl
+##### baseUrl
 
 Type: `String`.
 
