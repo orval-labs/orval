@@ -18,6 +18,7 @@
     "@mdx-js/react": "^1.6.18",
     "@mdx-js/tag": "^0.20.3",
     "@next/mdx": "^10.0.1",
+    "@octokit/graphql": "^5.0.4",
     "@reactions/component": "^2.0.2",
     "@sentry/browser": "^5.27.3",
     "@sentry/node": "^5.27.3",
