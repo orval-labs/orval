@@ -17,9 +17,6 @@ export const getEnum = (value: string, enumName: string, names?: string[]) => {
 
 export const getEnumImplementation = (value: string, names?: string[]) => {
   return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
-    // nullable value shouldn't be in the enum implementation
-    if (val === 'null') return acc;
-
     const name = names?.[index];
     if (name) {
       return (

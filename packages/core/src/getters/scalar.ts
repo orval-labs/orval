@@ -32,7 +32,7 @@ export const getScalar = ({
       let isEnum = false;
 
       if (item.enum) {
-        value = item.enum.join(' | ');
+        value = item.enum.map((enumItem: string) => `${enumItem}`).join(' | ');
         isEnum = true;
       }
 
