@@ -1,4 +1,4 @@
-import { ReferenceObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { extname } from 'path';
 import validatorIsUrl from 'validator/lib/isURL';
 import { SchemaType, Verbs } from '../types';
@@ -52,12 +52,25 @@ export function isNull(x: any): x is null {
   return typeof x === null;
 }
 
-export function isSchema(x: any): x is SchemaType {
-  return (
-    isObject(x) &&
-    isString(x.type) &&
-    Object.values(SchemaType).includes(x.type)
-  );
+export function isSchema(x: any): x is SchemaObject {
+  if (!isObject(x)) {
+    return false;
+  }
+
+  if (isString(x.type) && Object.values(SchemaType).includes(x.type)) {
+    return true;
+  }
+
+  const combine = x.allOf || x.anyOf || x.oneOf;
+  if (Array.isArray(combine)) {
+    return true;
+  }
+
+  if (isObject(x.properties)) {
+    return true;
+  }
+
+  return false;
 }
 
 export const isVerb = (verb: string): verb is Verbs =>
