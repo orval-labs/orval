@@ -78,10 +78,12 @@ export const getObject = ({
           );
         }
 
-        const isNameAlreadyTaken =
-          !!context.specs[context.target]?.components?.schemas?.[
-            propName || ''
-          ];
+        const allSpecSchemas =
+          context.specs[context.target]?.components?.schemas ?? {};
+
+        const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
+          (schemaName) => pascal(schemaName) === propName,
+        );
 
         if (isNameAlreadyTaken) {
           propName = propName + 'Property';
