@@ -66,49 +66,50 @@ export const generateMutatorImports = ({
   const imports = uniqWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
-  )
-    .map((mutator) => {
-      const path = `${oneMore ? '../' : ''}${mutator.path}`;
-      const importDefault = mutator.default
-        ? mutator.name
-        : `{ ${mutator.name} }`;
+  ).reduce((acc, mutator) => {
+    const path = `${oneMore ? '../' : ''}${mutator.path}`;
+    const importDefault = mutator.default
+      ? mutator.name
+      : `{ ${mutator.name} }`;
 
-      let dep = `import ${importDefault} from '${path}'`;
+    acc += `import ${importDefault} from '${path}';`;
+    acc += '\n';
 
-      if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
-        let errorImportName = '';
-        if (
-          mutator.hasErrorType &&
-          implementation.includes(mutator.errorTypeName)
-        ) {
-          errorImportName = mutator.default
-            ? `ErrorType as ${mutator.errorTypeName}`
-            : mutator.errorTypeName;
-        }
-
-        let bodyImportName = '';
-        if (
-          mutator.bodyTypeName &&
-          implementation.includes(mutator.bodyTypeName)
-        ) {
-          bodyImportName = mutator.default
-            ? `BodyType as ${mutator.bodyTypeName}`
-            : mutator.bodyTypeName;
-        }
-
-        if (bodyImportName || errorImportName) {
-          dep += '\n';
-          dep += `import type { ${errorImportName}${
-            errorImportName && bodyImportName ? ', ' : ''
-          }${bodyImportName} } from '${path}'`;
-        }
+    if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
+      let errorImportName = '';
+      if (
+        mutator.hasErrorType &&
+        implementation.includes(mutator.errorTypeName) &&
+        !acc.includes(mutator.errorTypeName)
+      ) {
+        errorImportName = mutator.default
+          ? `ErrorType as ${mutator.errorTypeName}`
+          : mutator.errorTypeName;
       }
 
-      return dep;
-    })
-    .join('\n');
+      let bodyImportName = '';
+      if (
+        mutator.bodyTypeName &&
+        implementation.includes(mutator.bodyTypeName) &&
+        !acc.includes(mutator.bodyTypeName)
+      ) {
+        bodyImportName = mutator.default
+          ? `BodyType as ${mutator.bodyTypeName}`
+          : mutator.bodyTypeName;
+      }
 
-  return imports ? imports + '\n' : '';
+      if (bodyImportName || errorImportName) {
+        acc += `import type { ${errorImportName}${
+          errorImportName && bodyImportName ? ', ' : ''
+        }${bodyImportName} } from '${path}';`;
+        acc += '\n';
+      }
+    }
+
+    return acc;
+  }, '');
+
+  return imports;
 };
 
 const generateDependency = ({
