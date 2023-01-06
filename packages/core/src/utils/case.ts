@@ -55,8 +55,8 @@ const fill = (s: string, fillWith?: string, isDeapostrophe = false) => {
   return s;
 };
 
-const decap = (s: string) => {
-  return low.call(s.charAt(0)) + s.slice(1);
+const decap = (s: string, char = 0) => {
+  return low.call(s.charAt(char)) + s.slice(char + 1);
 };
 
 const relax = (
@@ -90,7 +90,9 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
 };
 
 export const pascal = (s: string) => {
-  return fill(
+  const isStartWithUnderscore = s?.startsWith('_');
+
+  const pascalString = fill(
     prep(s, false, true).replace(
       regexps.pascal,
       (m: string, border: string, letter: string) => {
@@ -100,10 +102,14 @@ export const pascal = (s: string) => {
     '',
     true,
   );
+
+  return isStartWithUnderscore ? `_${pascalString}` : pascalString;
 };
 
 export const camel = (s: string) => {
-  return decap(pascal(s));
+  const isStartWithUnderscore = s?.startsWith('_');
+  const camelString = decap(pascal(s), isStartWithUnderscore ? 1 : 0);
+  return isStartWithUnderscore ? `_${camelString}` : camelString;
 };
 
 export const snake = (s: string) => {

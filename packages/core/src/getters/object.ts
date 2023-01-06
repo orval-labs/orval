@@ -67,12 +67,23 @@ export const getObject = ({
         const isRequired = (
           Array.isArray(item.required) ? item.required : []
         ).includes(key);
-        let propName = name ? pascal(name) + pascal(key) : undefined;
 
-        const isNameAlreadyTaken =
-          !!context.specs[context.target]?.components?.schemas?.[
-            propName || ''
-          ];
+        let propName = '';
+
+        if (name) {
+          const isKeyStartWithUnderscore = key.startsWith('_');
+
+          propName += pascal(
+            `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
+          );
+        }
+
+        const allSpecSchemas =
+          context.specs[context.target]?.components?.schemas ?? {};
+
+        const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
+          (schemaName) => pascal(schemaName) === propName,
+        );
 
         if (isNameAlreadyTaken) {
           propName = propName + 'Property';

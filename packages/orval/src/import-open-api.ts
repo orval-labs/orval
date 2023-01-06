@@ -195,7 +195,7 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
         return acc;
       }
 
-      if (!value.type && !isReference(value)) {
+      if (!isSchema(value) && !isReference(value)) {
         return { ...acc, ...getAllSchemas(value) };
       }
 

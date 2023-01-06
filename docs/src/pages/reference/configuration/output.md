@@ -565,11 +565,63 @@ Type: `String`.
 
 Use to automatically add to the request the query param provided by the useInfiniteQuery when you use `getFetchMore` function.
 
-##### options
+##### options (deprecated use queryOptions instead)
 
 Type: `Object`.
 
 Use to override the query config. Check available options <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">here</a>
+
+##### queryOptions
+
+Type: `String` or `Object`.
+
+Valid values: path of the `queryOptions` function or object with a path and name.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          path: './api/mutator/custom-query-options.ts',
+          name: 'customFormDataFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+##### mutatorOptions
+
+Type: `String` or `Object`.
+
+Valid values: path of the `mutatorOptions` function or object with a path and name.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          path: './api/mutator/custom-mutator-options.ts',
+          name: 'customFormDataFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
 
 ##### signal
 

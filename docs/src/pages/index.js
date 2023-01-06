@@ -8,8 +8,11 @@ import Link from 'next/link';
 import * as React from 'react';
 import { siteConfig } from 'siteConfig';
 import Highlight from '../components/Highlight';
+import { getSponsors } from '../get-sponsors';
 
-const Home = () => {
+const Home = (props) => {
+  const { sponsors } = props;
+
   return (
     <>
       <Seo
@@ -257,8 +260,23 @@ my-app
         <div className="bg-gray-100 border-b border-gray-300">
           <div className="container mx-auto py-12 text-center">
             <h3 className="text-2xl md:text-5xl mx-auto leading-tight font-extrabold tracking-tight   lg:leading-none mt-2">
-              You want to support open-source?
+              Thanks for the support guys! 🍻
             </h3>
+            <div className="flex flex-wrap justify-center mt-8">
+              {sponsors.map((sponsor) => (
+                <a
+                  key={sponsor.login}
+                  target="_blank"
+                  href={`https://github.com/${sponsor.login}`}
+                  alt={sponsor.login}
+                >
+                  <img
+                    className="w-10 h-10 m-1 rounded-full"
+                    src={sponsor.avatarUrl}
+                  />
+                </a>
+              ))}
+            </div>
             <div className="inline-flex rounded-md shadow mt-12">
               <a
                 href="https://github.com/sponsors/anymaniax"
@@ -300,8 +318,27 @@ my-app
   );
 };
 
+export const getStaticProps = async () => {
+  try {
+    const sponsors = await getSponsors();
+
+    return {
+      props: {
+        sponsors,
+      },
+    };
+  } catch (e) {
+    return {
+      props: {
+        sponsors: [],
+      },
+    };
+  }
+};
+
 export default Home;
 Home.displayName = 'Home';
+
 const Check = React.memo(() => (
   <svg
     fill="none"

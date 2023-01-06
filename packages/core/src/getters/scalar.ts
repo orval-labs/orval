@@ -1,8 +1,6 @@
 import { SchemaObject } from 'openapi3-ts';
-import { ContextSpecs } from '../types';
-import { ResolverValue } from '../types';
-import { isString } from '../utils';
-import { escape } from '../utils';
+import { ContextSpecs, ResolverValue } from '../types';
+import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
 
@@ -34,7 +32,7 @@ export const getScalar = ({
       let isEnum = false;
 
       if (item.enum) {
-        value = item.enum.join(' | ');
+        value = item.enum.map((enumItem: string) => `${enumItem}`).join(' | ');
         isEnum = true;
       }
 
@@ -77,10 +75,11 @@ export const getScalar = ({
       if (item.enum) {
         value = `'${item.enum
           .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : enumItem,
+            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
           )
           .filter(Boolean)
           .join(`' | '`)}'`;
+
         isEnum = true;
       }
 
@@ -116,6 +115,24 @@ export const getScalar = ({
 
     case 'object':
     default: {
+      if (item.enum) {
+        const value = `'${item.enum
+          .map((enumItem: string) =>
+            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+          )
+          .filter(Boolean)
+          .join(`' | '`)}'`;
+
+        return {
+          value: value + nullable,
+          isEnum: true,
+          type: 'string',
+          imports: [],
+          schemas: [],
+          isRef: false,
+        };
+      }
+
       const { value, ...rest } = getObject({
         item,
         name,

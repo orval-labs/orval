@@ -215,7 +215,9 @@ const getSchemaFormDataAndUrlEncoded = ({
   isRef?: boolean;
 }) => {
   const { schema, imports } = resolveRef<SchemaObject>(schemaObject, context);
-  const propName = !isRef && isReference(schemaObject) ? imports[0].name : name;
+  const propName = camel(
+    !isRef && isReference(schemaObject) ? imports[0].name : name,
+  );
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
   const form = isUrlEncoded
@@ -234,36 +236,42 @@ const getSchemaFormDataAndUrlEncoded = ({
           : `.${key}`;
 
         if (property.type === 'object') {
-          formDataValue = `${variableName}.append('${key}', JSON.stringify(${camel(
-            propName,
-          )}${formatedKey}));\n`;
+          formDataValue = `${variableName}.append('${key}', JSON.stringify(${propName}${formatedKey}));\n`;
         } else if (property.type === 'array') {
-          formDataValue = `${camel(
-            propName,
-          )}${formatedKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
+          formDataValue = `${propName}${formatedKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
         } else if (
           property.type === 'number' ||
           property.type === 'integer' ||
           property.type === 'boolean'
         ) {
-          formDataValue = `${variableName}.append('${key}', ${camel(
-            propName,
-          )}${formatedKey}.toString())\n`;
+          formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey}.toString())\n`;
         } else {
-          formDataValue = `${variableName}.append('${key}', ${camel(
-            propName,
-          )}${formatedKey})\n`;
+          formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey})\n`;
         }
 
-        if (schema.required?.includes(key)) {
+        const isRequired = schema.required?.includes(key);
+
+        if (property.nullable) {
+          if (isRequired) {
+            return (
+              acc +
+              `if(${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
+            );
+          }
+
+          return (
+            acc +
+            `if(${propName}${formatedKey} !== undefined && ${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
+          );
+        }
+
+        if (isRequired) {
           return acc + formDataValue;
         }
 
         return (
           acc +
-          `if(${camel(
-            propName,
-          )}${formatedKey} !== undefined) {\n ${formDataValue} }\n`
+          `if(${propName}${formatedKey} !== undefined) {\n ${formDataValue} }\n`
         );
       },
       '',
@@ -273,16 +281,12 @@ const getSchemaFormDataAndUrlEncoded = ({
   }
 
   if (schema.type === 'array') {
-    return `${form}${camel(
-      propName,
-    )}.forEach(value => ${variableName}.append('data', value))\n`;
+    return `${form}${propName}.forEach(value => ${variableName}.append('data', value))\n`;
   }
 
   if (schema.type === 'number' || schema.type === 'boolean') {
-    return `${form}${variableName}.append('data', ${camel(
-      propName,
-    )}.toString())\n`;
+    return `${form}${variableName}.append('data', ${propName}.toString())\n`;
   }
 
-  return `${form}${variableName}.append('data', ${camel(propName)})\n`;
+  return `${form}${variableName}.append('data', ${propName})\n`;
 };
