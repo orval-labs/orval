@@ -109,7 +109,7 @@ export const combineSchemasMock = ({
       }
 
       if (arr.length === 1) {
-        if (resolvedValue.type !== 'object') {
+        if (resolvedValue.type && resolvedValue.type !== 'object') {
           return currentValue;
         }
         return `{${currentValue}}`;
