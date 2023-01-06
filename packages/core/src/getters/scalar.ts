@@ -115,6 +115,24 @@ export const getScalar = ({
 
     case 'object':
     default: {
+      if (item.enum) {
+        const value = `'${item.enum
+          .map((enumItem: string) =>
+            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+          )
+          .filter(Boolean)
+          .join(`' | '`)}'`;
+
+        return {
+          value: value + nullable,
+          isEnum: true,
+          type: 'string',
+          imports: [],
+          schemas: [],
+          isRef: false,
+        };
+      }
+
       const { value, ...rest } = getObject({
         item,
         name,
