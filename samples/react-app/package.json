@@ -37,7 +37,7 @@
   },
   "devDependencies": {
     "msw": "^0.30.0",
-    "orval": "link:../../../packages/orval/dist"
+    "orval": "link:../../packages/orval/dist"
   },
   "msw": {
     "workerDirectory": "public"

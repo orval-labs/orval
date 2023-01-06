@@ -264,7 +264,7 @@ object.assign@^4.1.0:
     has-symbols "^1.0.0"
     object-keys "^1.0.11"
 
-"orval@link:../../dist":
+"orval@link:../../packages/orval/dist":
   version "0.0.0"
   uid ""
 

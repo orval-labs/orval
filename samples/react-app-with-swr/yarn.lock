@@ -7925,7 +7925,7 @@ original@^1.0.0:
   dependencies:
     url-parse "^1.4.3"
 
-"orval@link:../../dist":
+"orval@link:../../packages/orval/dist":
   version "0.0.0"
   uid ""
 
