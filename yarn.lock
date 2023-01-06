@@ -294,15 +294,16 @@
   resolved "https://registry.yarnpkg.com/@iarna/toml/-/toml-2.2.5.tgz#b32366c89b43c6f8cefbdefac778b9c828e3ba8c"
   integrity sha512-trnsAYxU3xnS1gPHPyU961coFyLkh4gAD/0zQ5mymY4yOZ+CYvsPqUbOFSw0aDM4y0tV7tiFxL/1XfXPNC6IPg==
 
-"@ibm-cloud/openapi-ruleset@0.37.3":
-  version "0.37.3"
-  resolved "https://registry.yarnpkg.com/@ibm-cloud/openapi-ruleset/-/openapi-ruleset-0.37.3.tgz#b7916359d860c5cc4af571d69b65d655b5334787"
-  integrity sha512-saQM/1YTfhW7ou/mtmC4BMUhW/UM54aD47KBZucjrZLvAelzt8Lykm5zeN59Cu4cs/LBDEcvJfyZzDpPhdcVjQ==
+"@ibm-cloud/openapi-ruleset@0.45.2":
+  version "0.45.2"
+  resolved "https://registry.yarnpkg.com/@ibm-cloud/openapi-ruleset/-/openapi-ruleset-0.45.2.tgz#5189bea34de01cf47e53eb31ede4d5ccd708d59c"
+  integrity sha512-/hEC3PtJWWqw9rnk67Z+y0Flkwbhx5YxcgaILG8dD6rAhD0UFIMr+dG8mvxBAF/6IMDwVSEJ2mGKprDbCflwRQ==
   dependencies:
     "@stoplight/spectral-formats" "^1.1.0"
     "@stoplight/spectral-functions" "^1.6.1"
     "@stoplight/spectral-rulesets" "^1.6.0"
     lodash "^4.17.21"
+    validator "^13.7.0"
 
 "@jridgewell/resolve-uri@^3.0.3":
   version "3.1.0"
@@ -3680,12 +3681,12 @@ husky@^8.0.1:
   resolved "https://registry.yarnpkg.com/husky/-/husky-8.0.1.tgz#511cb3e57de3e3190514ae49ed50f6bc3f50b3e9"
   integrity sha512-xs7/chUH/CKdOCs7Zy0Aev9e/dKOMZf3K1Az1nar3tzlv0jfqnYtu235bstsWTmXOR0EfINrPa97yy4Lz6RiKw==
 
-ibm-openapi-validator@^0.88.0:
-  version "0.88.3"
-  resolved "https://registry.yarnpkg.com/ibm-openapi-validator/-/ibm-openapi-validator-0.88.3.tgz#3dc12ac9d81ee4c8feb75307ea4477d9fa94f4aa"
-  integrity sha512-WHkkO5TXWSS12P8VybB04Stq+yFloMlHy2aVzcLAZo425PYIVMuIWhsH7zN9vwcZcOB/qAnWQ4T3PKn6wrcT+Q==
+ibm-openapi-validator@^0.97.2:
+  version "0.97.2"
+  resolved "https://registry.yarnpkg.com/ibm-openapi-validator/-/ibm-openapi-validator-0.97.2.tgz#815d784df938d83fa5148a60c996dc44d23533c3"
+  integrity sha512-eWATUc+2144RUBMEfugUNAxfag7T4sB3RBcnbrIyCTSjzIYwUVFZso0+VIVZ/rtUfMjwT/zJu3B5poVX1YgIJQ==
   dependencies:
-    "@ibm-cloud/openapi-ruleset" "0.37.3"
+    "@ibm-cloud/openapi-ruleset" "0.45.2"
     "@stoplight/spectral-cli" "^6.4.2"
     "@stoplight/spectral-core" "^1.12.4"
     "@stoplight/spectral-parsers" "^1.0.1"
@@ -3703,7 +3704,6 @@ ibm-openapi-validator@^0.88.0:
     pad "^2.3.0"
     require-all "^3.0.0"
     semver "^5.7.1"
-    validator "^13.7.0"
     yaml-js "^0.2.3"
 
 iconv-lite@0.4.24, iconv-lite@^0.4.24:
@@ -5751,7 +5751,7 @@ semver-diff@^4.0.0:
   resolved "https://registry.yarnpkg.com/semver/-/semver-5.7.1.tgz#a954f931aeba508d307bbf069eff0c01c96116f7"
   integrity sha512-sauaDf/PZdVgrLTNYHRtpXa1iRiKcaebiKQ1BJdpQlWH2lCvexQdX55snPFyK7QzpudqbCI0qXFfOasHdyNDGQ==
 
-semver@7.3.7, semver@^7.3.4, semver@^7.3.5, semver@^7.3.7:
+semver@7.3.7:
   version "7.3.7"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.3.7.tgz#12c5b649afdbf9049707796e22a4028814ce523f"
   integrity sha512-QlYTucUYOews+WeEujDoEGziz4K6c47V/Bd+LjSSYcA94p+DmINdf7ncaUinThfvZyu13lN9OY1XDxt8C0Tw0g==
@@ -5763,7 +5763,7 @@ semver@^6.0.0:
   resolved "https://registry.yarnpkg.com/semver/-/semver-6.3.0.tgz#ee0a64c8af5e8ceea67687b133761e1becbd1d3d"
   integrity sha512-b39TBaTSfV6yBrapU89p5fKekE2m/NwnDocOVruQFS1/veMgdzuPcnOM34M6CwxW8jH/lxEa5rBoDeUwu5HHTw==
 
-semver@^7.1.3, semver@^7.3.2:
+semver@^7.1.3, semver@^7.3.2, semver@^7.3.4, semver@^7.3.5, semver@^7.3.7:
   version "7.3.8"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.3.8.tgz#07a78feafb3f7b32347d725e33de7e2a2df67798"
   integrity sha512-NB1ctGL5rlHrPJtFDVIVzTyQylMLu9N9VICA6HSFJo8MCGVTMW6gfpicwKmmK/dAjTOrqu5l63JJOpDSrAis3A==
