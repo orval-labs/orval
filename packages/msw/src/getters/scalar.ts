@@ -156,12 +156,18 @@ export const getMockScalar = ({
         };
       }
 
+      let mapValue = value;
+
+      if (combine && (!value.startsWith('faker') || !value.startsWith('{'))) {
+        mapValue = `{${value}}`;
+      }
+
       return {
         value:
           `Array.from({ length: faker.datatype.number({ ` +
           `min: ${mockOptions?.arrayMin}, ` +
           `max: ${mockOptions?.arrayMax} }) ` +
-          `}, (_, i) => i + 1).map(() => (${value}))`,
+          `}, (_, i) => i + 1).map(() => (${mapValue}))`,
         imports: resolvedImports,
         name: item.name,
       };

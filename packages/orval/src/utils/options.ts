@@ -269,15 +269,7 @@ const normalizeOperationsAndTags = (
     Object.entries(operationsOrTags).map(
       ([
         key,
-        {
-          transformer,
-          mutator,
-          formData,
-          formUrlEncoded,
-          requestOptions,
-          query,
-          ...rest
-        },
+        { transformer, mutator, formData, formUrlEncoded, query, ...rest },
       ]) => {
         return [
           key,

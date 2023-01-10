@@ -30,7 +30,7 @@
 	"dependencies": {
 		"@sveltestack/svelte-query": "^1.6.0",
 		"axios": "^0.26.1",
-		"orval": "link:../../../packages/orval/dist",
+		"orval": "link:../../packages/orval/dist",
 		"ya": "^0.2.2"
 	},
 	"type": "module",

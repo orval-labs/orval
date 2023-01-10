@@ -142,7 +142,7 @@ once@^1.3.0:
   dependencies:
     wrappy "1"
 
-"orval@link:../../../dist":
+"orval@link:../../../packages/orval/dist":
   version "0.0.0"
   uid ""
 

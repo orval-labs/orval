@@ -23,7 +23,12 @@ const getQueryParamsTypes = (
   context: ContextSpecs,
 ): QueryParamsType[] => {
   return queryParams.map(({ parameter, imports: parameterImports }) => {
-    const { name, required, schema, content } = parameter as {
+    const {
+      name,
+      required,
+      schema: schemaParam,
+      content,
+    } = parameter as {
       name: string;
       required: boolean;
       schema: SchemaObject;
@@ -38,8 +43,10 @@ const getQueryParamsTypes = (
       es5IdentifierName: true,
     });
 
+    const schema = (schemaParam || content['application/json'].schema)!;
+
     const resolvedeValue = resolveValue({
-      schema: (schema || content['application/json'].schema)!,
+      schema,
       context,
       name: queryName,
     });

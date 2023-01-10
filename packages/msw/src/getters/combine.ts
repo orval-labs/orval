@@ -97,7 +97,11 @@ export const combineSchemasMock = ({
       !combine || (combine.separator === 'oneOf' && separator === 'allOf');
 
     if (!index && isObjectBounds) {
-      if (resolvedValue.enums || separator === 'oneOf') {
+      if (
+        resolvedValue.enums ||
+        separator === 'oneOf' ||
+        resolvedValue.type === 'array'
+      ) {
         if (arr.length === 1) {
           return `faker.helpers.arrayElement([${currentValue}])`;
         }
@@ -105,7 +109,7 @@ export const combineSchemasMock = ({
       }
 
       if (arr.length === 1) {
-        if (resolvedValue.type !== 'object') {
+        if (resolvedValue.type && resolvedValue.type !== 'object') {
           return currentValue;
         }
         return `{${currentValue}}`;
@@ -115,7 +119,11 @@ export const combineSchemasMock = ({
     }
 
     if (isLastElement) {
-      if (resolvedValue.enums || separator === 'oneOf') {
+      if (
+        resolvedValue.enums ||
+        separator === 'oneOf' ||
+        resolvedValue.type === 'array'
+      ) {
         return `${acc}${currentValue}${!combine ? '])' : ''}`;
       }
 

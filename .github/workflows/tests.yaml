@@ -22,7 +22,7 @@ jobs:
       - name: build
         run: yarn build
       - name: unit tests
-        run: yarn test --run
+        run: yarn test:ci
       - name: tests install
         working-directory: ./tests
         run: yarn
