@@ -1,5 +1,5 @@
-import { resolve } from 'path';
 import { isModule, isObject, isString } from './assertion';
+import { resolve } from './path';
 
 export const dynamicImport = async <T>(
   toImport: T | string,

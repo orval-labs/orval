@@ -11,7 +11,7 @@ export * from './logger';
 export * from './merge-deep';
 export * from './occurrence';
 export * from './open-api-converter';
-export * from './path';
+export * as upath from './path';
 export * from './sort';
 export * from './string';
 export * from './tsconfig';

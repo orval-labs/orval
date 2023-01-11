@@ -1,7 +1,43 @@
-import path from 'path';
-import { isUrl } from './assertion';
+import basepath from 'path';
+import { isString, isUrl } from './assertion';
 import { getExtension } from './extension';
 import { getFileInfo } from './file';
+
+// override path to support windows paths
+// https://github.com/anodynos/upath/blob/master/source/code/upath.coffee
+type Path = typeof basepath;
+const path = {} as Path;
+
+Object.entries(basepath).forEach(([propName, propValue]) => {
+  if (typeof propValue === 'function') {
+    // @ts-ignore
+    path[propName] = ((propName) => {
+      return (...args: any[]) => {
+        args = args.map((p) => {
+          if (isString(p)) {
+            return toUnix(p);
+          } else {
+            return p;
+          }
+        });
+
+        // @ts-ignore
+        const result = basepath[propName](...args);
+        if (isString(result)) {
+          return toUnix(result);
+        } else {
+          return result;
+        }
+      };
+    })(propName);
+  } else {
+    // @ts-ignore
+    path[propName] = propValue;
+  }
+});
+
+let { join, resolve, extname, dirname, basename, isAbsolute } = path;
+export { join, resolve, extname, dirname, basename, isAbsolute };
 
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"

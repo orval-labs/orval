@@ -1,6 +1,7 @@
 import {
   asyncReduce,
   ConfigExternal,
+  upath,
   errorMessage,
   getFileInfo,
   GlobalOptions,
@@ -13,7 +14,6 @@ import {
   removeFiles,
 } from '@orval/core';
 import chalk from 'chalk';
-import { dirname } from 'path';
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -99,7 +99,7 @@ export const generateConfig = async (
     throw `failed to load from ${path} => ${error}`;
   }
 
-  const workspace = dirname(path);
+  const workspace = upath.dirname(path);
 
   const config = await (isFunction(configExternal)
     ? configExternal()

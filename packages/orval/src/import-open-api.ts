@@ -6,7 +6,6 @@ import {
   generateParameterDefinition,
   generateSchemasDefinition,
   GeneratorSchema,
-  getSchemaFileName,
   ibmOpenapiValidator,
   ImportOpenApi,
   InputOptions,
@@ -15,6 +14,7 @@ import {
   isSchema,
   NormalizedOutputOptions,
   openApiConverter,
+  upath,
   WriteSpecsBuilder,
 } from '@orval/core';
 import omit from 'lodash.omit';
@@ -172,7 +172,7 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
   ]);
 
   if (specKey && isSchema(cleanedSpec)) {
-    const name = getSchemaFileName(specKey);
+    const name = upath.getSchemaFileName(specKey);
 
     return {
       [name]: cleanedSpec as SchemasObject,

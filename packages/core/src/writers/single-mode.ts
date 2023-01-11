@@ -5,7 +5,7 @@ import {
   camel,
   getFileInfo,
   isSyntheticDefaultImportsAllow,
-  relativeSafe,
+  upath,
 } from '../utils';
 import { generateTarget } from './target';
 
@@ -34,7 +34,7 @@ export const writeSingleMode = async ({
     let data = header;
 
     const schemasPath = output.schemas
-      ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+      ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
       : undefined;
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(

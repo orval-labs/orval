@@ -3,7 +3,7 @@ import { SchemasObject } from 'openapi3-ts';
 import { getEnum, resolveDiscriminators } from '../getters';
 import { resolveValue } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
-import { getSpecName, isReference, jsDoc, pascal, sanitize } from '../utils';
+import { upath, isReference, jsDoc, pascal, sanitize } from '../utils';
 import { generateInterface } from './interface';
 
 /**
@@ -77,7 +77,7 @@ export const generateSchemasDefinition = (
             output += `export type ${schemaName} = ${resolvedValue.value};\n`;
           } else {
             const alias = imp?.specKey
-              ? `${pascal(getSpecName(imp.specKey, context.specKey))}${
+              ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
                   resolvedValue.value
                 }`
               : `${resolvedValue.value}Bis`;

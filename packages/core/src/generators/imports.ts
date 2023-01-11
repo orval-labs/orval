@@ -1,12 +1,11 @@
 import uniq from 'lodash.uniq';
 import uniqWith from 'lodash.uniqwith';
-import { join } from 'path';
 import {
   GeneratorImport,
   GeneratorMutator,
   GeneratorVerbOptions,
 } from '../types';
-import { camel } from '../utils';
+import { camel, upath } from '../utils';
 
 export const generateImports = ({
   imports = [],
@@ -39,12 +38,12 @@ export const generateImports = ({
         if (!isRootKey && specKey) {
           return `import ${!values ? 'type ' : ''}{ ${name}${
             alias ? ` as ${alias}` : ''
-          } } from \'../${join(path, camel(name))}\';`;
+          } } from \'../${upath.join(path, camel(name))}\';`;
         }
 
         return `import ${!values ? 'type ' : ''}{ ${name}${
           alias ? ` as ${alias}` : ''
-        } } from \'./${join(path, camel(name))}\';`;
+        } } from \'./${upath.join(path, camel(name))}\';`;
       }
 
       return `import ${!values ? 'type ' : ''}{ ${name}${

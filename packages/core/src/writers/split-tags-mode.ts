@@ -1,12 +1,11 @@
 import fs from 'fs-extra';
-import path from 'path';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
   isSyntheticDefaultImportsAllow,
-  relativeSafe,
+  upath,
 } from '../utils';
 import { generateTargetForTags } from './target-tags';
 
@@ -44,7 +43,8 @@ export const writeSplitTagsMode = async ({
         let mswData = header;
 
         const relativeSchemasPath = output.schemas
-          ? '../' + relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+          ? '../' +
+            upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : '../' + filename + '.schemas';
 
         implementationData += builder.imports({
@@ -71,7 +71,7 @@ export const writeSplitTagsMode = async ({
         });
 
         const schemasPath = !output.schemas
-          ? path.join(dirname, filename + '.schemas' + extension)
+          ? upath.join(dirname, filename + '.schemas' + extension)
           : undefined;
 
         if (schemasPath) {
@@ -116,7 +116,7 @@ export const writeSplitTagsMode = async ({
           (OutputClient.ANGULAR === output.client ? '.service' : '') +
           extension;
 
-        const implementationPath = path.join(
+        const implementationPath = upath.join(
           dirname,
           tag,
           implementationFilename,
@@ -124,7 +124,7 @@ export const writeSplitTagsMode = async ({
         await fs.outputFile(implementationPath, implementationData);
 
         const mockPath = output.mock
-          ? path.join(dirname, tag, tag + '.msw' + extension)
+          ? upath.join(dirname, tag, tag + '.msw' + extension)
           : undefined;
 
         if (mockPath) {

@@ -1,8 +1,7 @@
 import fs from 'fs-extra';
-import { join } from 'path';
 import { generateImports } from '../generators';
 import { GeneratorSchema } from '../types';
-import { camel } from '../utils';
+import { camel, upath } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -37,7 +36,7 @@ const getSchema = ({
 };
 
 const getPath = (path: string, name: string): string =>
-  join(path, `/${name}.ts`);
+  upath.join(path, `/${name}.ts`);
 
 export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n`;
@@ -91,7 +90,7 @@ export const writeSchemas = async ({
   specsName: Record<string, string>;
   header: string;
 }) => {
-  const schemaFilePath = join(schemaPath, '/index.ts');
+  const schemaFilePath = upath.join(schemaPath, '/index.ts');
   await fs.ensureFile(schemaFilePath);
 
   await Promise.all(
