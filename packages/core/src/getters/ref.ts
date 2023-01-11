@@ -1,9 +1,8 @@
 import get from 'lodash.get';
 import { ReferenceObject } from 'openapi3-ts';
-import { resolve } from 'path';
 import url from 'url';
 import { ContextSpecs } from '../types';
-import { getFileInfo, getSchemaFileName, isUrl, pascal } from '../utils';
+import { getFileInfo, isUrl, pascal, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 
@@ -50,7 +49,7 @@ export const getRefInfo = (
 
   const originalName = ref
     ? refPaths[refPaths.length - 1]
-    : getSchemaFileName(pathname);
+    : upath.getSchemaFileName(pathname);
 
   if (!pathname) {
     return {
@@ -62,7 +61,7 @@ export const getRefInfo = (
 
   const path = isUrl(context.specKey)
     ? url.resolve(context.specKey, pathname)
-    : resolve(getFileInfo(context.specKey).dirname, pathname);
+    : upath.resolve(getFileInfo(context.specKey).dirname, pathname);
 
   return {
     name: pascal(originalName) + suffix,

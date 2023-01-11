@@ -7,13 +7,7 @@ import {
   NormalizedMutator,
   Tsconfig,
 } from '../types';
-import {
-  createLogger,
-  getFileInfo,
-  loadFile,
-  pascal,
-  relativeSafe,
-} from '../utils';
+import { createLogger, getFileInfo, loadFile, pascal, upath } from '../utils';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
@@ -21,7 +15,7 @@ const getImport = (output: string, mutator: NormalizedMutator) => {
   const outputFileInfo = getFileInfo(output);
   const mutatorFileInfo = getFileInfo(mutator.path);
   const { pathWithoutExtension } = getFileInfo(
-    relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
+    upath.relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
 
   return pathWithoutExtension;

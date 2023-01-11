@@ -1,13 +1,12 @@
 import {
   createSuccessMessage,
   getFileInfo,
-  getSpecName,
   isRootKey,
   jsDoc,
   log,
   NormalizedOptions,
   OutputMode,
-  relativeSafe,
+  upath,
   writeSchemas,
   writeSingleMode,
   WriteSpecsBuilder,
@@ -20,7 +19,6 @@ import execa from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts';
-import path from 'path';
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -47,7 +45,7 @@ export const writeSpecs = async (
   const projectTitle = projectName || info.title;
 
   const specsName = Object.keys(schemas).reduce((acc, specKey) => {
-    const basePath = getSpecName(specKey, target);
+    const basePath = upath.getSpecName(specKey, target);
     const name = basePath.slice(1).split('/').join('-');
 
     acc[specKey] = name;
@@ -63,7 +61,7 @@ export const writeSpecs = async (
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
         const schemaPath = !isRootKey(specKey, target)
-          ? path.join(rootSchemaPath, specsName[specKey])
+          ? upath.join(rootSchemaPath, specsName[specKey])
           : rootSchemaPath;
 
         return writeSchemas({
@@ -97,16 +95,19 @@ export const writeSpecs = async (
     let imports = implementationPaths
       .filter((path) => !path.endsWith('.msw.ts'))
       .map((path) =>
-        relativeSafe(workspacePath, getFileInfo(path).pathWithoutExtension),
+        upath.relativeSafe(
+          workspacePath,
+          getFileInfo(path).pathWithoutExtension,
+        ),
       );
 
     if (output.schemas) {
       imports.push(
-        relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
+        upath.relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
       );
     }
 
-    const indexFile = path.join(workspacePath, '/index.ts');
+    const indexFile = upath.join(workspacePath, '/index.ts');
 
     if (await fs.pathExists(indexFile)) {
       const data = await fs.readFile(indexFile, 'utf8');

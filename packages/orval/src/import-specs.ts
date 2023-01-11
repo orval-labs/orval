@@ -4,11 +4,12 @@ import {
   isUrl,
   log,
   NormalizedOptions,
+  upath,
   SwaggerParserOptions,
   WriteSpecsBuilder,
 } from '@orval/core';
 import chalk from 'chalk';
-import { resolve } from 'path';
+
 import { importOpenApi } from './import-open-api';
 
 const resolveSpecs = async (
@@ -35,7 +36,7 @@ const resolveSpecs = async (
 
   // normalizing slashes after SwaggerParser
   return Object.fromEntries(
-    Object.entries(data).map(([key, value]) => [resolve(key), value]),
+    Object.entries(data).map(([key, value]) => [upath.resolve(key), value]),
   );
 };
 

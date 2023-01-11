@@ -1,5 +1,4 @@
 import fs from 'fs-extra';
-import path from 'path';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { WriteModeProps } from '../types';
 import {
@@ -7,7 +6,7 @@ import {
   getFileInfo,
   isSyntheticDefaultImportsAllow,
   kebab,
-  relativeSafe,
+  upath,
 } from '../utils';
 import { generateTargetForTags } from './target-tags';
 
@@ -44,7 +43,7 @@ export const writeTagsMode = async ({
         let data = header;
 
         const schemasPathRelative = output.schemas
-          ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+          ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : './' + filename + '.schemas';
 
         data += builder.imports({
@@ -76,7 +75,7 @@ export const writeTagsMode = async ({
         }
 
         const schemasPath = !output.schemas
-          ? path.join(dirname, filename + '.schemas' + extension)
+          ? upath.join(dirname, filename + '.schemas' + extension)
           : undefined;
 
         if (schemasPath) {
@@ -112,7 +111,7 @@ export const writeTagsMode = async ({
           data += implementationMSW;
         }
 
-        const implementationPath = path.join(
+        const implementationPath = upath.join(
           dirname,
           `${kebab(tag)}${extension}`,
         );

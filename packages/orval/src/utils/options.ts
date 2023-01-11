@@ -23,11 +23,11 @@ import {
   OutputMode,
   QueryOptions,
   RefComponentSuffix,
+  upath,
   SwaggerParserOptions,
 } from '@orval/core';
 import chalk from 'chalk';
 import { InfoObject } from 'openapi3-ts';
-import { resolve } from 'path';
 import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';
@@ -227,14 +227,14 @@ const normalizeMutator = <T>(
 
     return {
       ...mutator,
-      path: resolve(workspace, mutator.path),
+      path: upath.resolve(workspace, mutator.path),
       default: (mutator.default || !mutator.name) ?? false,
     };
   }
 
   if (isString(mutator)) {
     return {
-      path: resolve(workspace, mutator),
+      path: upath.resolve(workspace, mutator),
       default: true,
     };
   }
@@ -254,7 +254,7 @@ export const normalizePath = <T>(path: T, workspace: string) => {
   if (!isString(path)) {
     return path;
   }
-  return resolve(workspace, path);
+  return upath.resolve(workspace, path);
 };
 
 const normalizeOperationsAndTags = (

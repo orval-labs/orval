@@ -1,8 +1,8 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
+import { upath } from '@orval/core';
 import { prompt } from 'enquirer';
 import fs from 'fs-extra';
 import https from 'https';
-import { join } from 'path';
 import { request } from './request';
 
 export const getGithubSpecReq = ({
@@ -84,7 +84,7 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
 };
 
 export const getGithubOpenApi = async (url: string): Promise<string> => {
-  const githubTokenPath = join(__dirname, '.githubToken');
+  const githubTokenPath = upath.join(__dirname, '.githubToken');
   const accessToken = await getGithubAcessToken(githubTokenPath);
   const [info] = url.split('github.com/').slice(-1);
 

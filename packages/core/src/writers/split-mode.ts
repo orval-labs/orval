@@ -1,12 +1,11 @@
 import fs from 'fs-extra';
-import path from 'path';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
   isSyntheticDefaultImportsAllow,
-  relativeSafe,
+  upath,
 } from '../utils';
 import { generateTarget } from './target';
 
@@ -36,7 +35,7 @@ export const writeSplitMode = async ({
     let mswData = header;
 
     const relativeSchemasPath = output.schemas
-      ? relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+      ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
       : './' + filename + '.schemas';
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
@@ -67,14 +66,14 @@ export const writeSplitMode = async ({
     });
 
     const schemasPath = !output.schemas
-      ? path.join(dirname, filename + '.schemas' + extension)
+      ? upath.join(dirname, filename + '.schemas' + extension)
       : undefined;
 
     if (schemasPath) {
       const schemasData = header + generateModelsInline(builder.schemas);
 
       await fs.outputFile(
-        path.join(dirname, filename + '.schemas' + extension),
+        upath.join(dirname, filename + '.schemas' + extension),
         schemasData,
       );
     }
@@ -110,14 +109,14 @@ export const writeSplitMode = async ({
       (OutputClient.ANGULAR === output.client ? '.service' : '') +
       extension;
 
-    const implementationPath = path.join(dirname, implementationFilename);
+    const implementationPath = upath.join(dirname, implementationFilename);
     await fs.outputFile(
-      path.join(dirname, implementationFilename),
+      upath.join(dirname, implementationFilename),
       implementationData,
     );
 
     const mockPath = output.mock
-      ? path.join(dirname, filename + '.msw' + extension)
+      ? upath.join(dirname, filename + '.msw' + extension)
       : undefined;
 
     if (mockPath) {

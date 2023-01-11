@@ -3,12 +3,20 @@ import { build, PluginBuild } from 'esbuild';
 import fs from 'fs';
 import glob from 'globby';
 import mm from 'micromatch';
-import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
 import { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
 import { createLogger, LogLevel } from './logger';
-import { joinSafe, normalizeSafe } from './path';
+import {
+  basename,
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  joinSafe,
+  normalizeSafe,
+  resolve,
+} from './path';
 
 export const getFileInfo = (
   target: string = '',

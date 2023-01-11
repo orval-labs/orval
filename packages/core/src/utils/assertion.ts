@@ -1,7 +1,7 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { extname } from 'path';
 import validatorIsUrl from 'validator/lib/isURL';
 import { SchemaType, Verbs } from '../types';
+import { extname } from './path';
 
 /**
  * Discriminator helper for `ReferenceObject`
