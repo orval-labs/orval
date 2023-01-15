@@ -1,5 +1,5 @@
 import basepath from 'path';
-import { isString, isUrl } from './assertion';
+import { isUrl } from './assertion';
 import { getExtension } from './extension';
 import { getFileInfo } from './file';
 
@@ -8,8 +8,22 @@ import { getFileInfo } from './file';
 type Path = typeof basepath;
 const path = {} as Path;
 
+const isFunction = (val: any) => typeof val == 'function';
+
+const isString = (val: any) => {
+  if (typeof val === 'string') {
+    return true;
+  }
+
+  if (typeof val === 'object' && val !== null) {
+    return Object.toString.call(val) == '[object String]';
+  }
+
+  return false;
+};
+
 Object.entries(basepath).forEach(([propName, propValue]) => {
-  if (typeof propValue === 'function') {
+  if (isFunction(propValue)) {
     // @ts-ignore
     path[propName] = ((propName) => {
       return (...args: any[]) => {
