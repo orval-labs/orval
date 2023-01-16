@@ -1,6 +1,5 @@
 import get from 'lodash.get';
 import { ReferenceObject } from 'openapi3-ts';
-import url from 'url';
 import { ContextSpecs } from '../types';
 import { getFileInfo, isUrl, pascal, upath } from '../utils';
 
@@ -21,6 +20,16 @@ export const RefComponentSuffix: Record<RefComponent, string> = {
 };
 
 const regex = new RegExp('~1', 'g');
+
+const resolveUrl = (from: string, to: string): string => {
+  const resolvedUrl = new URL(to, new URL(from, 'resolve://'));
+  if (resolvedUrl.protocol === 'resolve:') {
+    // `from` is a relative URL.
+    const { pathname, search, hash } = resolvedUrl;
+    return pathname + search + hash;
+  }
+  return resolvedUrl.toString();
+};
 
 /**
  * Return the output type from the $ref
@@ -60,7 +69,7 @@ export const getRefInfo = (
   }
 
   const path = isUrl(context.specKey)
-    ? url.resolve(context.specKey, pathname)
+    ? resolveUrl(context.specKey, pathname)
     : upath.resolve(getFileInfo(context.specKey).dirname, pathname);
 
   return {
