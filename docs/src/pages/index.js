@@ -8,6 +8,7 @@ import Link from 'next/link';
 import * as React from 'react';
 import { siteConfig } from 'siteConfig';
 import Highlight from '../components/Highlight';
+import { Playground } from '../components/playground/Playground';
 import { getSponsors } from '../get-sponsors';
 
 const Home = (props) => {
@@ -116,6 +117,7 @@ const Home = (props) => {
             </div>
           </div>
         </div>
+        <Playground height={300} />
         <div className="bg-gray-100 relative py-24 border-t border-gray-200 ">
           <div className="px-4 sm:px-6 lg:px-8  mx-auto container max-w-3xl sm:text-center">
             <h3 className="text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10 lg:leading-none mt-2">

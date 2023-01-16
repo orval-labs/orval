@@ -1,7 +1,13 @@
 import '@docsearch/react/dist/style.css';
 import * as Sentry from '@sentry/node';
+import {
+  Hydrate,
+  QueryClient,
+  QueryClientProvider,
+} from '@tanstack/react-query';
 import { SearchProvider } from 'components/useSearch';
 import Head from 'next/head';
+import { useState } from 'react';
 import '../styles/index.css';
 
 if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
@@ -12,6 +18,8 @@ if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
 }
 
 function MyApp({ Component, pageProps, err }) {
+  const [queryClient] = useState(() => new QueryClient());
+
   return (
     <>
       <Head>
@@ -36,9 +44,13 @@ function MyApp({ Component, pageProps, err }) {
           }}
         />
       </Head>
-      <SearchProvider>
-        <Component {...pageProps} err={err} />
-      </SearchProvider>
+      <QueryClientProvider client={queryClient}>
+        <Hydrate state={pageProps.dehydratedState}>
+          <SearchProvider>
+            <Component {...pageProps} err={err} />
+          </SearchProvider>
+        </Hydrate>
+      </QueryClientProvider>
     </>
   );
 }
