@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "6.11.0",
+  "version": "6.11.1",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -48,7 +48,6 @@
     "micromatch": "^4.0.5",
     "openapi3-ts": "^3.0.0",
     "swagger2openapi": "^7.0.8",
-    "url": "^0.11.0",
     "validator": "^13.7.0"
   }
 }

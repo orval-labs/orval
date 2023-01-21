@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import * as React from 'react';
 import { siteConfig } from 'siteConfig';
 import logoSrc from '../images/orval-logo-horizontal.svg';
 import { Search } from './Search';
@@ -26,6 +25,11 @@ export const Nav = () => (
             <div>
               <Link href="/overview">
                 <a className="leading-6 font-medium">Docs</a>
+              </Link>
+            </div>
+            <div>
+              <Link href="/playground">
+                <a className="leading-6 font-medium">Playground</a>
               </Link>
             </div>
             <div>

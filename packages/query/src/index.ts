@@ -22,6 +22,7 @@ import {
   mergeDeep,
   OutputClient,
   OutputClientFunc,
+  PackageJson,
   pascal,
   QueryOptions,
   stringify,
@@ -161,12 +162,51 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const VUE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+      { name: 'UseQueryOptions' },
+      { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'QueryKey' },
+      { name: 'UseQueryReturnType' },
+      { name: 'UseInfiniteQueryReturnType' },
+    ],
+    dependency: '@tanstack/vue-query',
+  },
+  {
+    exports: [{ name: 'MaybeRef' }],
+    dependency: '@tanstack/vue-query/build/lib/types',
+  },
+];
+
+const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
+  const hasVueQuery =
+    packageJson?.dependencies?.['vue-query'] ??
+    packageJson?.devDependencies?.['vue-query'];
+  const hasVueQueryV4 =
+    packageJson?.dependencies?.['@tanstack/vue-query'] ??
+    packageJson?.devDependencies?.['@tanstack/vue-query'];
+
+  return !!hasVueQuery && !hasVueQueryV4;
+};
+
 export const getVueQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
-) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
-  ...VUE_QUERY_DEPENDENCIES,
-];
+  packageJson,
+) => {
+  const hasVueQueryV3 = isVueQueryV3(packageJson);
+
+  return [
+    ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasVueQueryV3 ? VUE_QUERY_DEPENDENCIES : VUE_QUERY_V4_DEPENDENCIES),
+  ];
+};
 
 const generateRequestOptionsArguments = ({
   isRequestOptions,
@@ -353,14 +393,14 @@ const generateQueryOptions = ({
       return `{${queryConfig} ...queryOptions}`;
     }
 
-    return 'queryOptions';
+    return '...queryOptions';
   }
 
-  return `{${
+  return `${
     !isObject(options) || !options.hasOwnProperty('enabled')
       ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
       : ''
-  }${queryConfig} ...queryOptions}`;
+  }${queryConfig} ...queryOptions`;
 };
 
 const getQueryArgumentsRequestType = (mutator?: GeneratorMutator) => {
@@ -423,11 +463,13 @@ const generateQueryReturnType = ({
   type,
   isMutatorHook,
   operationName,
+  packageJson,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   type: QueryType;
   isMutatorHook?: boolean;
   operationName: string;
+  packageJson?: PackageJson;
 }) => {
   switch (outputClient) {
     case OutputClient.SVELTE_QUERY:
@@ -435,14 +477,26 @@ const generateQueryReturnType = ({
         isMutatorHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `typeof ${operationName}`
-      }>>, TError, TData, QueryKey>`;
-    case OutputClient.VUE_QUERY:
-      return ` UseQueryReturnType<TData, TError, Use${pascal(
-        type,
-      )}Result<TData, TError>>`;
+      }>>, TError, TData, QueryKey> & { queryKey: QueryKey }`;
+    case OutputClient.VUE_QUERY: {
+      const hasVueQueryV3 = isVueQueryV3(packageJson);
+      if (hasVueQueryV3) {
+        return ` UseQueryReturnType<TData, TError, Use${pascal(
+          type,
+        )}Result<TData, TError>> & { queryKey: QueryKey }`;
+      }
+
+      if (type !== QueryType.INFINITE) {
+        return `UseQueryReturnType<TData, TError> & { queryKey: QueryKey }`;
+      }
+
+      return `UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey }`;
+    }
     case OutputClient.REACT_QUERY:
     default:
-      return ` Use${pascal(type)}Result<TData, TError>`;
+      return ` Use${pascal(
+        type,
+      )}Result<TData, TError> & { queryKey: QueryKey }`;
   }
 };
 
@@ -546,6 +600,7 @@ const generateQueryImplementation = ({
   isExactOptionalPropertyTypes,
   hasSignal,
   route,
+  packageJson,
 }: {
   queryOption: {
     name: string;
@@ -568,6 +623,7 @@ const generateQueryImplementation = ({
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   route: string;
+  packageJson?: PackageJson;
 }) => {
   const queryProps = toObjectString(props, 'implementation');
   const httpFunctionProps = queryParam
@@ -578,11 +634,14 @@ const generateQueryImplementation = ({
         .join(',')
     : queryProperties;
 
+  const hasVueQueryV4 =
+    OutputClient.VUE_QUERY === outputClient && !isVueQueryV3(packageJson);
   const returnType = generateQueryReturnType({
     outputClient,
     type,
     isMutatorHook: mutator?.isHook,
     operationName,
+    packageJson,
   });
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
@@ -633,13 +692,15 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 export const ${camel(
     `use-${name}`,
-  )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} & { queryKey: QueryKey } => {
+  )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
 
   ${hookOptions}
 
   const queryKey =  ${
     !queryKeyMutator
-      ? `queryOptions?.queryKey ?? ${queryKeyFnName}(${queryKeyProperties});`
+      ? `${
+          !hasVueQueryV4 ? 'queryOptions?.queryKey ?? ' : ''
+        }${queryKeyFnName}(${queryKeyProperties});`
       : `${queryKeyMutator.name}({ ${queryProperties} }${
           queryKeyMutator.hasSecondArg
             ? `, { url: \`${route}\`, queryOptions }`
@@ -679,13 +740,13 @@ export const ${camel(
       : `typeof ${operationName}`
   }>>, TError, TData>(${
     !queryOptionsMutator
-      ? `queryKey, queryFn, ${generateQueryOptions({
+      ? `{ queryKey, queryFn, ${generateQueryOptions({
           params,
           options,
           type,
-        })}`
+        })}}`
       : 'customOptions'
-  }) as ${returnType} & { queryKey: QueryKey };
+  }) as ${returnType};
 
   query.queryKey = ${
     !queryOptionsMutator ? 'queryKey' : 'customOptions.queryKey'
@@ -809,6 +870,7 @@ const generateQueryHook = async (
           queryOptionsMutator,
           queryKeyMutator,
           route,
+          packageJson: context.packageJson,
         }),
       '',
     )}
