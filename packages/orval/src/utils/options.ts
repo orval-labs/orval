@@ -25,6 +25,7 @@ import {
   RefComponentSuffix,
   upath,
   SwaggerParserOptions,
+  isUndefined,
 } from '@orval/core';
 import chalk from 'chalk';
 import { InfoObject } from 'openapi3-ts';
@@ -356,8 +357,12 @@ const normalizeQueryOptions = (
   }
 
   return {
-    ...(queryOptions.useQuery ? { useQuery: true } : {}),
-    ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
+    ...(!isUndefined(queryOptions.useQuery)
+      ? { useQuery: queryOptions.useQuery }
+      : {}),
+    ...(!isUndefined(queryOptions.useInfinite)
+      ? { useInfinite: queryOptions.useInfinite }
+      : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
@@ -383,7 +388,9 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
-    ...(queryOptions.signal ? { signal: true } : {}),
+    ...(!isUndefined(queryOptions.signal)
+      ? { signal: queryOptions.signal }
+      : {}),
   };
 };
 
