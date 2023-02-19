@@ -1,4 +1,6 @@
-export const customFormData = <Body>(body: Body): FormData => {
+export const customFormData = <Body extends Record<string, string | Blob>>(
+  body: Body,
+): FormData => {
   const formData = new FormData();
 
   Object.entries(body).forEach(([key, value]) => {
