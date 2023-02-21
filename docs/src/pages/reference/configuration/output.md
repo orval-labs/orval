@@ -586,10 +586,12 @@ module.exports = {
   petstore: {
     output: {
       override: {
-        formData: {
-          path: './api/mutator/custom-query-options.ts',
-          name: 'customFormDataFn',
-          // default: true
+        query: {
+          queryOptions: {
+            path: './api/query/custom-query-options.ts',
+            name: 'customQueryOptionsFn',
+            // default: true
+          },
         },
       },
     },
@@ -612,10 +614,12 @@ module.exports = {
   petstore: {
     output: {
       override: {
-        formData: {
-          path: './api/mutator/custom-mutator-options.ts',
-          name: 'customFormDataFn',
-          // default: true
+        query: {
+          mutatorOptions: {
+            path: './api/mutator/custom-mutator-options.ts',
+            name: 'customMutatorOptionsFn',
+            // default: true
+          },
         },
       },
     },
