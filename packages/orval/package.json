@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "6.11.1",
+  "version": "6.12.0",
   "license": "MIT",
   "files": [
     "dist"
@@ -54,12 +54,12 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
-    "@orval/angular": "6.11.1",
-    "@orval/axios": "6.11.1",
-    "@orval/core": "6.11.1",
-    "@orval/msw": "6.11.1",
-    "@orval/query": "6.11.1",
-    "@orval/swr": "6.11.1",
+    "@orval/angular": "6.12.0",
+    "@orval/axios": "6.12.0",
+    "@orval/core": "6.12.0",
+    "@orval/msw": "6.12.0",
+    "@orval/query": "6.12.0",
+    "@orval/swr": "6.12.0",
     "ajv": "^8.11.0",
     "cac": "^6.7.12",
     "chalk": "^4.1.2",
