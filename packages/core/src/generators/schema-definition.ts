@@ -4,6 +4,7 @@ import { getEnum, resolveDiscriminators } from '../getters';
 import { resolveValue } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { upath, isReference, jsDoc, pascal, sanitize } from '../utils';
+import { generateConsts } from './consts';
 import { generateInterface } from './interface';
 
 /**
@@ -91,6 +92,12 @@ export const generateSchemasDefinition = (
         } else {
           output += `export type ${schemaName} = ${resolvedValue.value};\n`;
         }
+
+        output += generateConsts({
+          context,
+          schema,
+          name: schemaName,
+        });
 
         acc.push(...resolvedValue.schemas, {
           name: schemaName,

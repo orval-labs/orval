@@ -3,6 +3,7 @@ import { generalJSTypesWithArray } from '../constants';
 import { getScalar } from '../getters';
 import { ContextSpecs } from '../types';
 import { jsDoc } from '../utils';
+import { generateConsts } from './consts';
 
 /**
  * Generate the interface string
@@ -55,6 +56,12 @@ export const generateInterface = ({
   const externalModulesImportsOnly = scalar.imports.filter(
     (importName) => importName.name !== name,
   );
+
+  model += generateConsts({
+    context,
+    name,
+    schema,
+  });
 
   return [
     ...scalar.schemas,

@@ -228,6 +228,8 @@ components:
       properties:
         cuteness:
           type: integer
+          minimum: 1
+          maximum: 128
     Dachshund:
       type: object
       required: ['length']
@@ -259,3 +261,4 @@ components:
           format: int32
         message:
           type: string
+          maxLength: 256

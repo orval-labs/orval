@@ -7,6 +7,9 @@
 import type { LabradoodleBreed } from './labradoodleBreed';
 
 export interface Labradoodle {
+  labraname?: string;
   cuteness: number;
   breed: LabradoodleBreed;
 }
+export const Labradoodle_labraname_minLenght = 5;
+export const Labradoodle_labraname_maxLenght = 50;

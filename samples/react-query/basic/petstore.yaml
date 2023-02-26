@@ -154,6 +154,10 @@ components:
       type: object
       required: ['cuteness']
       properties:
+        labraname:
+          type: string
+          minLength: 5
+          maxLength: 50
         cuteness:
           type: integer
     Dachshund:
