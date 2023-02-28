@@ -428,7 +428,7 @@ const generateQueryOptions = ({
 
   if (!params.length) {
     if (options) {
-      return `{${queryConfig} ...queryOptions}`;
+      return `${queryConfig} ...queryOptions`;
     }
 
     return '...queryOptions';
