@@ -175,7 +175,8 @@ export type OutputClient =
   | 'react-query'
   | 'svelte-query'
   | 'vue-query'
-  | 'swr';
+  | 'swr'
+  | 'zod';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,

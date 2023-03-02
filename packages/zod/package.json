@@ -1,0 +1,18 @@
+{
+  "name": "@orval/zod",
+  "version": "6.12.0",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup ./src/index.ts --target node12 --minify --clean --dts --splitting",
+    "dev": "tsup ./src/index.ts --target node12 --clean --watch src",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@orval/core": "6.12.0"
+  }
+}
