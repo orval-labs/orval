@@ -8,11 +8,11 @@ You can install Orval with <a href="https://npmjs.com" target="_blank">NPM</a> o
 Using NPM:
 
 ```bash
-$ npm i -g orval
+$ npm i orval -D
 ```
 
 Using Yarn:
 
 ```
-$ yarn global add orval
+$ yarn add orval -D
 ```
