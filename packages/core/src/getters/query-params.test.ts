@@ -114,10 +114,38 @@ describe('getQueryParams getter', () => {
       });
 
       expect(result?.schema.model.trim()).toBe(
-        `export type Params = { ${parameter.name}${
+        `export type Params = {\n${parameter.name}${
           optional ? '?' : ''
-        }: string };`,
+        }: string;\n};`,
       );
     });
+  });
+
+  it('queryParamWithDescription should be documented', () => {
+    const result = getQueryParams({
+      queryParams: [
+        {
+          parameter: {
+            name: 'queryParamWithDescription',
+            in: 'query',
+            description: 'Parameter description.',
+            schema: {
+              type: 'string',
+            },
+          },
+          imports: [],
+        },
+      ],
+      operationName: '',
+      context,
+    });
+    expect(result?.schema.model.trim()).toBe([
+      'export type Params = {',
+      '/**',
+      ' * Parameter description.',
+      ' */',
+      'queryParamWithDescription?: string;',
+      '};',
+    ].join('\n'));
   });
 });
