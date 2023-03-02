@@ -100,6 +100,7 @@ export const combineSchemasMock = ({
       if (
         resolvedValue.enums ||
         separator === 'oneOf' ||
+        separator === 'anyOf' ||
         resolvedValue.type === 'array'
       ) {
         if (arr.length === 1) {
@@ -122,6 +123,7 @@ export const combineSchemasMock = ({
       if (
         resolvedValue.enums ||
         separator === 'oneOf' ||
+        separator === 'anyOf' ||
         resolvedValue.type === 'array'
       ) {
         return `${acc}${currentValue}${!combine ? '])' : ''}`;
