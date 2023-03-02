@@ -27,6 +27,7 @@ const generateTargetTags = (
         imports: operation.imports,
         importsMSW: operation.importsMSW,
         mutators: operation.mutator ? [operation.mutator] : [],
+        clientMutators: operation.clientMutators ?? [],
         formData: operation.formData ? [operation.formData] : [],
         formUrlEncoded: operation.formUrlEncoded
           ? [operation.formUrlEncoded]
