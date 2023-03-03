@@ -793,7 +793,7 @@ export const ${camel(
       : `typeof ${operationName}`
   }>>, TError, TData>(${
     !queryOptionsMutator
-      ? `{ queryKey, queryFn, ${generateQueryOptions({
+      ? `{ queryKey, queryFn, ...${generateQueryOptions({
           params,
           options,
           type,
