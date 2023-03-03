@@ -416,7 +416,7 @@ const generateQueryOptions = ({
   }
 
   const queryConfig = isObject(options)
-    ? ` ${stringify(
+    ? ` ...${stringify(
         omitBy(
           options,
           (_, key) =>
@@ -793,7 +793,7 @@ export const ${camel(
       : `typeof ${operationName}`
   }>>, TError, TData>(${
     !queryOptionsMutator
-      ? `{ queryKey, queryFn, ...${generateQueryOptions({
+      ? `{ queryKey, queryFn, ${generateQueryOptions({
           params,
           options,
           type,
