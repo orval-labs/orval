@@ -1,5 +1,5 @@
 import { SchemaObject } from 'openapi3-ts';
-import { ContextSpecs, ResolverValue } from '../types';
+import { ContextSpecs, ScalarValue } from '../types';
 import { resolveObject } from '../resolvers/object';
 
 /**
@@ -15,7 +15,7 @@ export const getArray = ({
   schema: SchemaObject;
   name?: string;
   context: ContextSpecs;
-}): ResolverValue => {
+}): ScalarValue => {
   if (schema.items) {
     const resolvedObject = resolveObject({
       schema: schema.items,

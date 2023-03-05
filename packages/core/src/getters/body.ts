@@ -1,7 +1,6 @@
 import { ReferenceObject, RequestBodyObject } from 'openapi3-ts';
 import { generalJSTypesWithArray } from '../constants';
-import { ContextSpecs, OverrideOutputContentType } from '../types';
-import { GetterBody } from '../types';
+import { ContextSpecs, GetterBody, OverrideOutputContentType } from '../types';
 import { camel } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
@@ -51,6 +50,7 @@ export const getBody = ({
       : camel(definition);
 
   return {
+    originalSchema: requestBody,
     definition,
     implementation,
     imports,

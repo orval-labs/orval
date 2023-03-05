@@ -102,6 +102,7 @@ export const getParams = ({
       default: resolvedValue.originalSchema!.default,
       required,
       imports: resolvedValue.imports,
+      originalSchema: resolvedValue.originalSchema,
     };
   });
 };

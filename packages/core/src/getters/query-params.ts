@@ -15,6 +15,7 @@ type QueryParamsType = {
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
+  originalSchema: SchemaObject;
 };
 
 const getQueryParamsTypes = (
@@ -60,6 +61,7 @@ const getQueryParamsTypes = (
         }`,
         imports: parameterImports,
         schemas: [],
+        originalSchema: resolvedeValue.originalSchema,
       };
     }
 
@@ -81,6 +83,7 @@ const getQueryParamsTypes = (
           ...resolvedeValue.schemas,
           { name: enumName, model: enumValue, imports: resolvedeValue.imports },
         ],
+        originalSchema: resolvedeValue.originalSchema,
       };
     }
 
@@ -92,6 +95,7 @@ const getQueryParamsTypes = (
       definition,
       imports: resolvedeValue.imports,
       schemas: resolvedeValue.schemas,
+      originalSchema: resolvedeValue.originalSchema,
     };
   });
 };

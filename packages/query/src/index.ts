@@ -909,6 +909,7 @@ const generateQueryHook = async (
     }${body.implementation ? `, ${body.implementation}` : ''}];`;
 
     const implementation = `${!queryKeyMutator ? queryKeyFn : ''}
+  
 
     ${queries.reduce(
       (acc, queryOption) =>

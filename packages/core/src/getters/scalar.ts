@@ -1,5 +1,5 @@
 import { SchemaObject } from 'openapi3-ts';
-import { ContextSpecs, ResolverValue } from '../types';
+import { ContextSpecs, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -18,7 +18,7 @@ export const getScalar = ({
   item: SchemaObject;
   name?: string;
   context: ContextSpecs;
-}): ResolverValue => {
+}): ScalarValue => {
   const nullable = item.nullable ? ' | null' : '';
 
   if (!item.type && item.items) {

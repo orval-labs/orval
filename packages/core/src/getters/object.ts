@@ -1,6 +1,6 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { resolveObject, resolveValue } from '../resolvers';
-import { ContextSpecs, ResolverValue, SchemaType } from '../types';
+import { ContextSpecs, ScalarValue, SchemaType } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
@@ -21,7 +21,7 @@ export const getObject = ({
   name?: string;
   context: ContextSpecs;
   nullable: string;
-}): ResolverValue => {
+}): ScalarValue => {
   if (isReference(item)) {
     const { name, specKey } = getRefInfo(item.$ref, context);
     return {
@@ -137,7 +137,7 @@ export const getObject = ({
         type: 'object' as SchemaType,
         isRef: false,
         schema: {},
-      } as ResolverValue,
+      } as ScalarValue,
     );
   }
 
