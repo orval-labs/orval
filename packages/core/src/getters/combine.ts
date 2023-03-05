@@ -48,9 +48,7 @@ const combineValues = ({
   }
 
   if (resolvedValue) {
-    return `(${resolvedData.values.join(` & ${resolvedValue.value}) | (`)} & ${
-      resolvedValue.value
-    })`;
+    return `(${resolvedData.values.join(' | ')}) & ${resolvedValue.value}`;
   }
 
   return resolvedData.values.join(' | ');
