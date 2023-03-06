@@ -11,7 +11,8 @@
     "build": "tsup ./src/index.ts --minify --clean --dts --splitting",
     "dev": "tsup ./src/index.ts --clean --watch src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest --global test.ts"
+    "test": "vitest --global test.ts",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/chalk": "^2.2.0",

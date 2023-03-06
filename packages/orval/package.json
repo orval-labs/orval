@@ -45,7 +45,8 @@
     "build": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --minify --clean --dts --splitting",
     "dev": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --clean --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
-    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts --watch"
+    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts --watch",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/chalk": "^2.2.0",
