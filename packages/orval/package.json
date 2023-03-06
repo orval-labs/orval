@@ -49,7 +49,7 @@
   },
   "devDependencies": {
     "@types/chalk": "^2.2.0",
-    "@types/inquirer": "^8.2.2",
+    "@types/inquirer": "^9.0.3",
     "@types/lodash.uniq": "^4.5.7"
   },
   "dependencies": {
