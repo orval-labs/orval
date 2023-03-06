@@ -45,6 +45,7 @@ export const serializeMockValue = (value: MockValue): string => {
       return value.value;
     case 'object':
       return `{${Object.entries(value.value)
+        .sort(([a], [b]) => a.localeCompare(b))
         .map(([key, value]) => `${key}: ${serializeMockValue(value)}`)
         .join(', ')}}`;
     case 'oneOf':
