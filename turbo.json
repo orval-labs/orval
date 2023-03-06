@@ -23,7 +23,7 @@
       "cache": false
     },
     "precommit": {
-      "dependsOn": ["//#format:staged", "^lint", "^test:ci"]
+      "dependsOn": ["//#format:staged", "^lint", "^test:ci", "^typecheck"]
     }
   },
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"]

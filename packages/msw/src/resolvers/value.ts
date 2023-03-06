@@ -6,7 +6,7 @@ import {
   MockOptions,
 } from '@orval/core';
 import get from 'lodash.get';
-import { SchemaObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
 import { getMockScalar } from '../getters/scalar';
 import { MockDefinition, MockSchemaObject } from '../types';
 
@@ -65,7 +65,7 @@ export const resolveMockValue = ({
   };
   context: ContextSpecs;
   imports: GeneratorImport[];
-}): MockDefinition & { type?: string } => {
+}): MockDefinition & { type?: SchemaObject['type'] } => {
   if (isReference(schema)) {
     const {
       name,
@@ -73,7 +73,10 @@ export const resolveMockValue = ({
       refPaths,
     } = getRefInfo(schema.$ref, context);
 
-    const schemaRef = get(context.specs[specKey], refPaths);
+    const schemaRef = get(
+      context.specs[specKey],
+      refPaths as [keyof OpenAPIObject],
+    );
 
     const newSchema = {
       ...schemaRef,
