@@ -8,6 +8,7 @@ import {
 } from '@orval/core';
 import { getRouteMSW } from './getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
+import { MockValue, serializeMockValue } from './types';
 
 const MSW_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -40,7 +41,7 @@ export const generateMSW = (
   { operationId, response, verb, tags }: GeneratorVerbOptions,
   { pathRoute, override, context }: GeneratorOptions,
 ) => {
-  const { definitions, definition, imports } = getMockDefinition({
+  const { definitions, imports } = getMockDefinition({
     operationId,
     tags,
     response,
@@ -51,12 +52,15 @@ export const generateMSW = (
   const route = getRouteMSW(pathRoute, override?.mock?.baseUrl);
   const mockData = getMockOptionsDataOverride(operationId, override);
 
-  let value = '';
+  let value: MockValue | undefined = undefined;
 
   if (mockData) {
     value = mockData;
   } else if (definitions.length > 1) {
-    value = `faker.helpers.arrayElement(${definition})`;
+    value = {
+      type: 'oneOf',
+      value: definitions,
+    };
   } else if (definitions[0]) {
     value = definitions[0];
   }
@@ -65,17 +69,20 @@ export const generateMSW = (
     ? 'text'
     : 'json';
 
+  console.log(operationId, value, definitions);
+
   return {
     implementation: {
-      function:
-        value && value !== 'undefined'
-          ? `export const get${pascal(operationId)}Mock = () => (${value})\n\n`
-          : '',
+      function: value
+        ? `export const get${pascal(
+            operationId,
+          )}Mock = () => (${serializeMockValue(value)})\n\n`
+        : '',
       handler: `rest.${verb}('${route}', (_req, res, ctx) => {
         return res(
           ctx.delay(${override?.mock?.delay ?? 1000}),
           ctx.status(200, 'Mocked status'),${
-            value && value !== 'undefined'
+            value
               ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`
               : ''
           }

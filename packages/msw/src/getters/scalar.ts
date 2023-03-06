@@ -13,7 +13,7 @@ import {
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { MockDefinition, MockSchemaObject, serializeMockValue } from '../types';
 import { getMockObject } from './object';
 
 export const getMockScalar = ({
@@ -73,7 +73,10 @@ export const getMockScalar = ({
 
   if (item.format && ALL_FORMAT[item.format]) {
     return {
-      value: getNullable(ALL_FORMAT[item.format], item.nullable),
+      value: getNullable(
+        { type: 'primitive', value: ALL_FORMAT[item.format] },
+        item.nullable,
+      ),
       imports: [],
       name: item.name,
       overrided: false,
@@ -85,7 +88,10 @@ export const getMockScalar = ({
     case 'integer': {
       return {
         value: getNullable(
-          `faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`,
+          {
+            type: 'primitive',
+            value: `faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`,
+          },
           item.nullable,
         ),
         imports: [],
@@ -95,7 +101,7 @@ export const getMockScalar = ({
 
     case 'boolean': {
       return {
-        value: 'faker.datatype.boolean()',
+        value: { type: 'primitive', value: 'faker.datatype.boolean()' },
         imports: [],
         name: item.name,
       };
@@ -103,7 +109,11 @@ export const getMockScalar = ({
 
     case 'array': {
       if (!item.items) {
-        return { value: '[]', imports: [], name: item.name };
+        return {
+          value: { type: 'primitive', value: '[]' },
+          imports: [],
+          name: item.name,
+        };
       }
 
       const {
@@ -139,7 +149,10 @@ export const getMockScalar = ({
         );
         const enumValue = enumImp?.name || name;
         return {
-          value: `faker.helpers.arrayElements(Object.values(${enumValue}))`,
+          value: {
+            type: 'primitive',
+            value: `faker.helpers.arrayElements(Object.values(${enumValue}))`,
+          },
           imports: enumImp
             ? [
                 ...resolvedImports,
@@ -156,30 +169,26 @@ export const getMockScalar = ({
         };
       }
 
-      let mapValue = value;
-
-      if (combine && (!value.startsWith('faker') || !value.startsWith('{'))) {
-        mapValue = `{${value}}`;
-      }
-
       return {
-        value:
-          `Array.from({ length: faker.datatype.number({ ` +
-          `min: ${mockOptions?.arrayMin}, ` +
-          `max: ${mockOptions?.arrayMax} }) ` +
-          `}, (_, i) => i + 1).map(() => (${mapValue}))`,
+        value: {
+          type: 'primitive',
+          value:
+            `Array.from({ length: faker.datatype.number({ ` +
+            `min: ${mockOptions?.arrayMin}, ` +
+            `max: ${mockOptions?.arrayMax} }) ` +
+            `}, (_, i) => i + 1).map(() => (${serializeMockValue(value)}))`,
+        },
         imports: resolvedImports,
         name: item.name,
       };
     }
 
     case 'string': {
-      let value = 'faker.random.word()';
+      let value;
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {
-        let enumValue =
-          "['" + item.enum.map((e) => escape(e)).join("','") + "']";
+        let enumValue;
 
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
@@ -192,13 +201,17 @@ export const getMockScalar = ({
                 : {}),
             },
           ];
+        } else {
+          enumValue = "['" + item.enum.map((e) => escape(e)).join("','") + "']";
         }
 
         value = `faker.helpers.arrayElement(${enumValue})`;
+      } else {
+        value = `faker.random.word()`;
       }
 
       return {
-        value: getNullable(value, item.nullable),
+        value: getNullable({ type: 'primitive', value }, item.nullable),
         enums: item.enum,
         name: item.name,
         imports,

@@ -8,7 +8,7 @@ import {
 import get from 'lodash.get';
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
 import { getMockScalar } from '../getters/scalar';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { MockDefinition, MockSchemaObject, MockValue } from '../types';
 
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
@@ -36,15 +36,31 @@ export const resolveMockOverride = (
   }
 
   return {
-    value: getNullable(property[1] as string, item.nullable),
+    value: getNullable(
+      { type: 'primitive', value: property[1] as string },
+      item.nullable,
+    ),
     imports: [],
     name: item.name,
     overrided: true,
   };
 };
 
-export const getNullable = (value: string, nullable?: boolean) =>
-  nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+export const getNullable = (value: MockValue, nullable?: boolean): MockValue =>
+  nullable
+    ? {
+        type: 'primitive',
+        value: `faker.helpers.arrayElement([${value}, null])`,
+      }
+    : value;
+
+export const getOptional = (value: MockValue, optional?: boolean): MockValue =>
+  optional
+    ? {
+        type: 'primitive',
+        value: `faker.helpers.arrayElement([${value}, undefined])`,
+      }
+    : value;
 
 export const resolveMockValue = ({
   schema,
@@ -97,6 +113,8 @@ export const resolveMockValue = ({
       },
       imports,
     });
+
+    console.log('REFERENCE', JSON.stringify(scalar));
 
     return {
       ...scalar,

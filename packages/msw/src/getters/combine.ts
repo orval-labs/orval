@@ -6,7 +6,12 @@ import {
 } from '@orval/core';
 import omit from 'lodash.omit';
 import { resolveMockValue } from '../resolvers';
-import { MockSchemaObject } from '../types';
+import {
+  mergeValues,
+  MockDefinition,
+  MockSchemaObject,
+  MockValue,
+} from '../types';
 
 export const combineSchemasMock = ({
   item,
@@ -29,7 +34,7 @@ export const combineSchemasMock = ({
   };
   context: ContextSpecs;
   imports: GeneratorImport[];
-}) => {
+}): MockDefinition => {
   let combineImports: GeneratorImport[] = [];
   let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
     0,
@@ -53,89 +58,28 @@ export const combineSchemasMock = ({
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
   combineImports.push(...(itemResolvedValue?.imports ?? []));
 
-  const value = (item[separator] ?? []).reduce((acc, val, index, arr) => {
-    const resolvedValue = resolveMockValue({
-      schema: {
-        ...val,
-        name: item.name,
-        path: item.path ? item.path : '#',
-      },
-      combine: {
+  console.log(item, separator, operationId, item[separator]);
+
+  const value = {
+    type: separator,
+    value: (item[separator] ?? []).map(
+      extractKeys({
+        item,
         separator,
-        includedProperties:
-          separator !== 'oneOf'
-            ? includedProperties
-            : itemResolvedValue?.includedProperties ?? [],
-      },
-      mockOptions,
-      operationId,
-      tags,
-      context,
-      imports,
-    });
+        includedProperties,
+        itemResolvedValue,
+        mockOptions,
+        operationId,
+        tags,
+        context,
+        imports,
+        combineImports,
+        combine,
+      }),
+    ),
+  };
 
-    combineImports.push(...resolvedValue.imports);
-    includedProperties.push(...(resolvedValue.includedProperties ?? []));
-
-    const isLastElement = index === arr.length - 1;
-
-    let currentValue = resolvedValue.value;
-
-    if (itemResolvedValue?.value && separator === 'oneOf') {
-      currentValue = `${resolvedValue.value.slice(0, -1)},${
-        itemResolvedValue.value
-      }}`;
-    }
-
-    if (itemResolvedValue?.value && separator !== 'oneOf' && isLastElement) {
-      currentValue = `${currentValue}${
-        itemResolvedValue?.value ? `,${itemResolvedValue.value}` : ''
-      }`;
-    }
-
-    const isObjectBounds =
-      !combine || (combine.separator === 'oneOf' && separator === 'allOf');
-
-    if (!index && isObjectBounds) {
-      if (
-        resolvedValue.enums ||
-        separator === 'oneOf' ||
-        resolvedValue.type === 'array'
-      ) {
-        if (arr.length === 1) {
-          return `faker.helpers.arrayElement([${currentValue}])`;
-        }
-        return `faker.helpers.arrayElement([${currentValue},`;
-      }
-
-      if (arr.length === 1) {
-        if (resolvedValue.type && resolvedValue.type !== 'object') {
-          return currentValue;
-        }
-        return `{${currentValue}}`;
-      }
-
-      return `{${currentValue},`;
-    }
-
-    if (isLastElement) {
-      if (
-        resolvedValue.enums ||
-        separator === 'oneOf' ||
-        resolvedValue.type === 'array'
-      ) {
-        return `${acc}${currentValue}${!combine ? '])' : ''}`;
-      }
-
-      return `${acc}${currentValue}${isObjectBounds ? '}' : ''}`;
-    }
-
-    if (!currentValue) {
-      return acc;
-    }
-
-    return `${acc}${currentValue},`;
-  }, '');
+  console.log('COMBINE', item.name, JSON.stringify(value));
 
   return {
     value,
@@ -144,3 +88,42 @@ export const combineSchemasMock = ({
     includedProperties,
   };
 };
+
+const extractKeys =
+  (ctx) =>
+  (val): MockValue => {
+    const resolvedValue = resolveMockValue({
+      schema: {
+        ...val,
+        name: ctx.item.name,
+        path: ctx.item.path ?? '#',
+      },
+      combine: {
+        separator: ctx.separator,
+        includedProperties:
+          ctx.separator !== 'oneOf'
+            ? ctx.includedProperties
+            : ctx.itemResolvedValue?.includedProperties ?? [],
+      },
+      mockOptions: ctx.mockOptions,
+      operationId: ctx.operationId,
+      tags: ctx.tags,
+      context: ctx.context,
+      imports: ctx.imports,
+    });
+
+    ctx.combineImports.push(...resolvedValue.imports);
+    ctx.includedProperties.push(...(resolvedValue.includedProperties ?? []));
+
+    let currentValue = resolvedValue.value;
+
+    if (ctx.itemResolvedValue?.value) {
+      currentValue = mergeValues(currentValue, ctx.itemResolvedValue.value);
+    }
+
+    console.log('EXTRACT', val);
+    console.log(currentValue);
+    console.log(ctx.itemResolvedValue.value);
+
+    return currentValue;
+  };

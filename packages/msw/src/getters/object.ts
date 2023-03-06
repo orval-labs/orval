@@ -9,8 +9,8 @@ import {
 } from '@orval/core';
 import cuid from 'cuid';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { resolveMockValue } from '../resolvers/value';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { getOptional, resolveMockValue } from '../resolvers/value';
+import { MockDefinition, MockSchemaObject, MockValue } from '../types';
 import { combineSchemasMock } from './combine';
 
 export const getMockObject = ({
@@ -63,23 +63,21 @@ export const getMockObject = ({
   }
 
   if (item.properties) {
-    let value = !combine || combine?.separator === 'oneOf' ? '{' : '';
-    let imports: GeneratorImport[] = [];
     let includedProperties: string[] = [];
-    value += Object.entries(item.properties)
-      .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
-        if (combine?.includedProperties.includes(key)) {
-          return undefined;
-        }
 
-        const isRequired =
-          mockOptions?.required ||
-          (Array.isArray(item.required) ? item.required : []).includes(key);
+    const value = Object.entries(item.properties)
+      .filter(([key]) => {
+        if (combine?.includedProperties.includes(key)) {
+          return false;
+        }
 
         if (count(item.path, `\\.${key}\\.`) >= 1) {
-          return undefined;
+          return false;
         }
 
+        return true;
+      })
+      .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
         const resolvedValue = resolveMockValue({
           schema: {
             ...prop,
@@ -96,18 +94,23 @@ export const getMockObject = ({
         imports.push(...resolvedValue.imports);
         includedProperties.push(key);
 
+        const isRequired =
+          mockOptions?.required ||
+          (Array.isArray(item.required) ? item.required : []).includes(key);
+
         const keyDefinition = getKey(key);
         if (!isRequired && !resolvedValue.overrided) {
-          return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
+          return {
+            [keyDefinition]: getOptional(resolvedValue.value),
+          };
         }
 
-        return `${keyDefinition}: ${resolvedValue.value}`;
+        return { [keyDefinition]: resolvedValue.value };
       })
-      .filter(Boolean)
-      .join(', ');
-    value += !combine || combine?.separator === 'oneOf' ? '}' : '';
+      .reduce((acc, cur) => ({ ...acc, ...cur }), {});
+
     return {
-      value,
+      value: { type: 'object', value },
       imports,
       name: item.name,
       includedProperties,
@@ -116,7 +119,11 @@ export const getMockObject = ({
 
   if (item.additionalProperties) {
     if (isBoolean(item.additionalProperties)) {
-      return { value: `{}`, imports: [], name: item.name };
+      return {
+        value: { type: 'object', value: {} },
+        imports: [],
+        name: item.name,
+      };
     }
 
     const resolvedValue = resolveMockValue({
@@ -134,11 +141,14 @@ export const getMockObject = ({
 
     return {
       ...resolvedValue,
-      value: `{
-        '${cuid()}': ${resolvedValue.value}
-      }`,
+      value: {
+        type: 'object',
+        value: {
+          [cuid()]: resolvedValue.value,
+        },
+      },
     };
   }
 
-  return { value: '{}', imports: [], name: item.name };
+  return { value: { type: 'object', value: {} }, imports: [], name: item.name };
 };
