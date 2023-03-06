@@ -11,9 +11,7 @@
     "dev": {
       "persistent": true
     },
-    "lint": {
-      "outputs": []
-    },
+    "lint": {},
     "test": {
       "persistent": true
     }
