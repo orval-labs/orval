@@ -9,13 +9,13 @@
       "outputs": ["tsconfig.tsbuildinfo"]
     },
     "dev": {
-      "cache": false
+      "persistent": true
     },
     "lint": {
       "outputs": []
     },
     "test": {
-      "outputs": []
+      "persistent": true
     }
   },
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"]
