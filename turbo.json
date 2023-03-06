@@ -15,11 +15,15 @@
     "test": {
       "persistent": true
     },
+    "test:ci": {},
     "//#format": {
       "cache": false
     },
     "//#format:staged": {
       "cache": false
+    },
+    "precommit": {
+      "dependsOn": ["//#format:staged", "^lint", "^test:ci"]
     }
   },
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"]

@@ -12,6 +12,7 @@
     "dev": "tsup ./src/index.ts --clean --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest --global test.ts",
+    "test:ci": "vitest --global test.ts --run",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
