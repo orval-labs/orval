@@ -5,7 +5,9 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**"]
     },
-    "typecheck": {},
+    "typecheck": {
+      "outputs": ["tsconfig.tsbuildinfo"]
+    },
     "dev": {
       "cache": false
     },
