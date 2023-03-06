@@ -14,6 +14,12 @@
     "lint": {},
     "test": {
       "persistent": true
+    },
+    "//#format": {
+      "cache": false
+    },
+    "//#format:staged": {
+      "cache": false
     }
   },
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"]
