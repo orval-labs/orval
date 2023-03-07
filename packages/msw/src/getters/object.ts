@@ -63,7 +63,12 @@ export const getMockObject = ({
   }
 
   if (item.properties) {
-    let value = !combine || combine?.separator === 'oneOf' ? '{' : '';
+    let value =
+      !combine ||
+      combine?.separator === 'oneOf' ||
+      combine?.separator === 'anyOf'
+        ? '{'
+        : '';
     let imports: GeneratorImport[] = [];
     let includedProperties: string[] = [];
     value += Object.entries(item.properties)
@@ -105,7 +110,12 @@ export const getMockObject = ({
       })
       .filter(Boolean)
       .join(', ');
-    value += !combine || combine?.separator === 'oneOf' ? '}' : '';
+    value +=
+      !combine ||
+      combine?.separator === 'oneOf' ||
+      combine?.separator === 'anyOf'
+        ? '}'
+        : '';
     return {
       value,
       imports,
