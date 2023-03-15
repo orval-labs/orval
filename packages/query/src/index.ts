@@ -906,7 +906,13 @@ const generateQueryHook = async (
 
     const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
-    }${body.implementation ? `, ${body.implementation}` : ''}];`;
+    }${body.implementation ? `, ${body.implementation}` : ''}] as ${
+      queryParams
+        ? `[string, ${queryParams.schema.name}${
+            queryParams.isOptional ? '| undefined' : ''
+          }]`
+        : '[string]'
+    };`;
 
     const implementation = `${!queryKeyMutator ? queryKeyFn : ''}
 

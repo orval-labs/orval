@@ -323,7 +323,13 @@ const generateSwrHook = (
 
   return `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     queryParams ? ', ...(params ? [params]: [])' : ''
-  }${body.implementation ? `, ${body.implementation}` : ''}];
+  }${body.implementation ? `, ${body.implementation}` : ''}] as ${
+    queryParams
+      ? `[string, ${queryParams.schema.name}${
+          queryParams.isOptional ? '| undefined' : ''
+        }]`
+      : '[string]'
+  };
 
     ${generateSwrImplementation({
       operationName,

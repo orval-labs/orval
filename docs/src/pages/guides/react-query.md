@@ -38,7 +38,8 @@ export const showPetById = (
   return axios.get(`/pets/${petId}`, options);
 };
 
-export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+export const getShowPetByIdQueryKey = (petId: string) =>
+  [`/pets/${petId}`] as [string];
 
 export const useShowPetById = <
   TData = AsyncReturnType<typeof showPetById>,
