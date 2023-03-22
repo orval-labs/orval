@@ -103,6 +103,7 @@ export const normalizeOptions = async (
         parserDefaultOptions,
         inputOptions.parserOptions ?? {},
       ),
+      filters: inputOptions.filters,
     },
     output: {
       target: globalOptions.output

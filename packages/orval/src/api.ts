@@ -7,6 +7,7 @@ import {
   GeneratorSchema,
   getRoute,
   isReference,
+  NormalizedInputOptions,
   NormalizedOutputOptions,
   resolveRef,
 } from '@orval/core';
@@ -21,9 +22,11 @@ import {
 } from './client';
 
 export const getApiBuilder = async ({
+  input,
   output,
   context,
 }: {
+  input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   context: ContextSpecs;
 }): Promise<GeneratorApiBuilder> => {
@@ -52,6 +55,7 @@ export const getApiBuilder = async ({
 
       let verbsOptions = await generateVerbsOptions({
         verbs: resolvedVerbs,
+        input,
         output,
         route,
         context: resolvedContext,

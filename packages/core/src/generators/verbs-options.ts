@@ -18,6 +18,7 @@ import {
   ContextSpecs,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
+  NormalizedInputOptions,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
   NormalizedOverrideOutput,
@@ -188,17 +189,19 @@ const generateVerbOptions = async ({
 
 export const generateVerbsOptions = ({
   verbs,
+  input,
   output,
   route,
   context,
 }: {
   verbs: PathItemObject;
+  input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   route: string;
   context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>
   asyncReduce(
-    Object.entries(verbs),
+    filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
@@ -217,3 +220,18 @@ export const generateVerbsOptions = ({
     },
     [] as GeneratorVerbsOptions,
   );
+
+const filteredVerbs = (
+  verbs: PathItemObject,
+  filters: NormalizedInputOptions['filters'],
+) => {
+  if (filters === undefined || filters.tags === undefined) {
+    return Object.entries(verbs);
+  }
+
+  return Object.entries(verbs).filter(
+    ([_verb, operation]: [string, OperationObject]) => {
+      return operation.tags?.some((tag) => filters.tags?.includes(tag));
+    },
+  );
+};
