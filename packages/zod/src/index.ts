@@ -94,17 +94,40 @@ const generateZodValidationSchemaDefinition = (
         generateZodValidationSchemaDefinition(items, true, camel(name)),
       ]);
       break;
-    default:
+    case 'string': {
       if (schema?.enum && type === 'string') {
         break;
       }
+
+      functions.push([type as string, undefined]);
+
+      if (schema?.format === 'date-time' || schema?.format === 'date') {
+        functions.push(['datetime', undefined]);
+        break;
+      }
+
+      if (schema?.format === 'email') {
+        functions.push(['email', undefined]);
+        break;
+      }
+
+      if (schema?.format === 'uri' || schema?.format === 'hostname') {
+        functions.push(['url', undefined]);
+        break;
+      }
+
+      if (schema?.format === 'uuid') {
+        functions.push(['uuid', undefined]);
+        break;
+      }
+
+      break;
+    }
+    default:
       functions.push([type as string, undefined]);
       break;
   }
 
-  if (!required) {
-    functions.push(['optional', undefined]);
-  }
   if (min !== undefined) {
     consts.push(`export const ${name}Min = ${min};`);
     functions.push(['min', `${name}Min`]);
@@ -117,13 +140,12 @@ const generateZodValidationSchemaDefinition = (
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
-    const regexp = `new RegExp('${matches.slice(
-      isStartWithSlash ? 1 : 0,
-      isEndWithSlash ? -1 : undefined,
+    const regexp = `new RegExp('${escape(
+      matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
-    consts.push(`export const ${name}Matches = ${regexp};`);
-    functions.push(['matches', `${name}Matches`]);
+    consts.push(`export const ${name}RegExp = ${regexp};`);
+    functions.push(['regex', `${name}RegExp`]);
   }
   if (schema?.enum) {
     functions.push([
@@ -134,6 +156,10 @@ const generateZodValidationSchemaDefinition = (
           .join(', ')}]`,
       ],
     ]);
+  }
+
+  if (!required) {
+    functions.push(['optional', undefined]);
   }
 
   return { functions, consts };
