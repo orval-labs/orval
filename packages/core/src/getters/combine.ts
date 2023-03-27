@@ -5,7 +5,7 @@ import {
   ContextSpecs,
   GeneratorImport,
   GeneratorSchema,
-  ResolverValue,
+  ScalarValue,
   SchemaType,
 } from '../types';
 import { getNumberWord, pascal } from '../utils';
@@ -30,7 +30,7 @@ const combineValues = ({
   separator,
 }: {
   resolvedData: CombinedData;
-  resolvedValue?: ResolverValue;
+  resolvedValue?: ScalarValue;
   separator: Separator;
 }) => {
   const isAllEnums = resolvedData.isEnum.every((v) => v);
@@ -68,7 +68,7 @@ export const combineSchemas = ({
   separator: Separator;
   context: ContextSpecs;
   nullable: string;
-}): ResolverValue => {
+}): ScalarValue => {
   const items = schema[separator] ?? [];
 
   const resolvedData = items.reduce<CombinedData>(

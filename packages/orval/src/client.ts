@@ -20,6 +20,7 @@ import {
 import { generateMSW } from '@orval/msw';
 import query from '@orval/query';
 import swr from '@orval/swr';
+import zod from '@orval/zod';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -31,6 +32,7 @@ export const GENERATOR_CLIENT: GeneratorClients = {
   'svelte-query': query({ type: 'svelte-query' })(),
   'vue-query': query({ type: 'vue-query' })(),
   swr: swr()(),
+  zod: zod()(),
 };
 
 const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
@@ -200,6 +202,10 @@ export const generateOperations = (
       const { client: generatorClient } = getGeneratorClient(outputClient);
       const client = await generatorClient(verbOption, options, outputClient);
       const msw = generateMock(verbOption, options);
+
+      if (!client.implementation) {
+        return acc;
+      }
 
       acc[verbOption.operationId] = {
         implementation: verbOption.doc + client.implementation,

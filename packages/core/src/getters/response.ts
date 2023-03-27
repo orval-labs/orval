@@ -93,5 +93,6 @@ export const getResponse = ({
     types: groupedByStatus,
     contentTypes,
     schemas,
+    originalSchema: responses,
   };
 };

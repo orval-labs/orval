@@ -4,6 +4,9 @@ import {
   OpenAPIObject,
   OperationObject,
   ParameterObject,
+  ReferenceObject,
+  RequestBodyObject,
+  ResponsesObject,
   SchemaObject,
 } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
@@ -175,7 +178,8 @@ export type OutputClient =
   | 'react-query'
   | 'svelte-query'
   | 'vue-query'
-  | 'swr';
+  | 'swr'
+  | 'zod';
 
 export const OutputClient = {
   ANGULAR: 'angular' as OutputClient,
@@ -591,9 +595,12 @@ export type GetterResponse = {
   };
   contentTypes: string[];
   schemas: GeneratorSchema[];
+
+  originalSchema?: ResponsesObject;
 };
 
 export type GetterBody = {
+  originalSchema: ReferenceObject | RequestBodyObject;
   imports: GeneratorImport[];
   definition: string;
   implementation: string;
@@ -623,6 +630,7 @@ export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
+  originalSchema?: SchemaObject;
 };
 
 export type GetterPropType = 'param' | 'body' | 'queryParam' | 'header';
@@ -668,22 +676,26 @@ export const SchemaType = {
   unknown: 'unknown',
 };
 
-export type ResolverValue = {
+export type ScalarValue = {
   value: string;
   isEnum: boolean;
   type: SchemaType;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema?: SchemaObject;
   isRef: boolean;
 };
 
-export type ResReqTypesValue = ResolverValue & {
+export type ResolverValue = ScalarValue & {
+  originalSchema: SchemaObject;
+};
+
+export type ResReqTypesValue = ScalarValue & {
   formData?: string;
   formUrlEncoded?: string;
   isRef?: boolean;
   key: string;
   contentType: string;
+  originalSchema?: SchemaObject;
 };
 
 export type WriteSpecsBuilder = {

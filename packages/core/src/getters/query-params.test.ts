@@ -139,13 +139,15 @@ describe('getQueryParams getter', () => {
       operationName: '',
       context,
     });
-    expect(result?.schema.model.trim()).toBe([
-      'export type Params = {',
-      '/**',
-      ' * Parameter description.',
-      ' */',
-      'queryParamWithDescription?: string;',
-      '};',
-    ].join('\n'));
+    expect(result?.schema.model.trim()).toBe(
+      [
+        'export type Params = {',
+        '/**',
+        ' * Parameter description.',
+        ' */',
+        'queryParamWithDescription?: string;',
+        '};',
+      ].join('\n'),
+    );
   });
 });
