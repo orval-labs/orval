@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "6.12.0",
+  "version": "6.12.1",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -38,7 +38,7 @@
     "esutils": "2.0.3",
     "fs-extra": "^10.1.0",
     "globby": "11.1.0",
-    "ibm-openapi-validator": "^0.88.0",
+    "ibm-openapi-validator": "^0.97.3",
     "lodash.get": "^4.4.2",
     "lodash.isempty": "^4.4.0",
     "lodash.omit": "^4.5.0",

@@ -9,6 +9,8 @@
   Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!
 </h1>
 
+⚠️ Actively searching for contributors, if you want to help, please contact me on [discord](https://discord.gg/6fC2sjDU7w) ⚠️
+
 ### Code Generation
 
 `orval` is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.

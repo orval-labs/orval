@@ -7,7 +7,7 @@ import {
   GetterParameters,
   GetterQueryParam,
 } from '../types';
-import { pascal, sanitize } from '../utils';
+import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum } from './enum';
 import { getKey } from './keys';
 
@@ -53,12 +53,13 @@ const getQueryParamsTypes = (
     });
 
     const key = getKey(name);
+    const doc = jsDoc(parameter);
 
     if (parameterImports.length) {
       return {
-        definition: `${key}${!required || schema.default ? '?' : ''}: ${
+        definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
           parameterImports[0].name
-        }`,
+        };`,
         imports: parameterImports,
         schemas: [],
         originalSchema: resolvedeValue.originalSchema,
@@ -75,9 +76,9 @@ const getQueryParamsTypes = (
       );
 
       return {
-        definition: `${key}${
+        definition: `${doc}${key}${
           !required || schema.default ? '?' : ''
-        }: ${enumName}`,
+        }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
           ...resolvedeValue.schemas,
@@ -87,9 +88,9 @@ const getQueryParamsTypes = (
       };
     }
 
-    const definition = `${key}${!required || schema.default ? '?' : ''}: ${
-      resolvedeValue.value
-    }`;
+    const definition = `${doc}${key}${
+      !required || schema.default ? '?' : ''
+    }: ${resolvedeValue.value};`;
 
     return {
       definition,
@@ -119,12 +120,12 @@ export const getQueryParams = ({
   const schemas = types.flatMap(({ schemas }) => schemas);
   const name = `${pascal(operationName)}${pascal(suffix)}`;
 
-  const type = types.map(({ definition }) => definition).join('; ');
+  const type = types.map(({ definition }) => definition).join('\n');
   const allOptional = queryParams.every(({ parameter }) => !parameter.required);
 
   const schema = {
     name,
-    model: `export type ${name} = { ${type} };\n`,
+    model: `export type ${name} = {\n${type}\n};\n`,
     imports,
   };
 
