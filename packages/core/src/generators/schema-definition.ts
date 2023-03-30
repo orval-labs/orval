@@ -37,7 +37,8 @@ export const generateSchemasDefinition = (
         !schema.oneOf &&
         !schema.anyOf &&
         !isReference(schema) &&
-        !schema.nullable
+        !schema.nullable &&
+        !schema.enum
       ) {
         acc.push(
           ...generateInterface({

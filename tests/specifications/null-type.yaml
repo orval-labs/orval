@@ -54,3 +54,9 @@ components:
           oneOf:
             - type: 'string'
             - type: 'null'
+    NullEnum:
+      enum:
+        - null
+    BlankEnum:
+      enum:
+        - ''
