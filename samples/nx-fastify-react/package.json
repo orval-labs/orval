@@ -6,7 +6,7 @@
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
-    "generate-api": "npx kill-port 3000 && UPDATE_SPEC=true nx serve api --watch false"
+    "generate-api": "UPDATE_SPEC=true nx serve api --watch false"
   },
   "private": true,
   "dependencies": {
