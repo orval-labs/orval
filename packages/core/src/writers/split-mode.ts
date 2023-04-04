@@ -14,6 +14,7 @@ export const writeSplitMode = async ({
   output,
   specsName,
   header,
+  needSchema,
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
@@ -69,7 +70,7 @@ export const writeSplitMode = async ({
       ? upath.join(dirname, filename + '.schemas' + extension)
       : undefined;
 
-    if (schemasPath) {
+    if (schemasPath && needSchema) {
       const schemasData = header + generateModelsInline(builder.schemas);
 
       await fs.outputFile(

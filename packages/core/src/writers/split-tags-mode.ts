@@ -14,6 +14,7 @@ export const writeSplitTagsMode = async ({
   output,
   specsName,
   header,
+  needSchema,
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
@@ -74,7 +75,7 @@ export const writeSplitTagsMode = async ({
           ? upath.join(dirname, filename + '.schemas' + extension)
           : undefined;
 
-        if (schemasPath) {
+        if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
 
           await fs.outputFile(schemasPath, schemasData);

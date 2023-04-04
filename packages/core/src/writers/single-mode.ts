@@ -14,6 +14,7 @@ export const writeSingleMode = async ({
   output,
   specsName,
   header,
+  needSchema,
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { path, dirname } = getFileInfo(output.target, {
@@ -89,7 +90,7 @@ export const writeSingleMode = async ({
       data += generateMutatorImports({ mutators: formUrlEncoded });
     }
 
-    if (!output.schemas) {
+    if (!output.schemas && needSchema) {
       data += generateModelsInline(builder.schemas);
     }
 

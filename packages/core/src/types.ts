@@ -716,6 +716,7 @@ export type WriteModeProps = {
   workspace: string;
   specsName: Record<string, string>;
   header: string;
+  needSchema: boolean;
 };
 
 export type GeneratorApiOperations = {

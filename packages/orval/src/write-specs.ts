@@ -87,6 +87,7 @@ export const writeSpecs = async (
       output,
       specsName,
       header,
+      needSchema: !output.schemas && output.client !== 'zod',
     });
   }
 
