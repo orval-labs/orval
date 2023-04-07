@@ -56,7 +56,7 @@ const generateZodValidationSchemaDefinition = (
 ): { functions: [string, any][]; consts: string[] } => {
   if (!schema) return { functions: [], consts: [] };
 
-  const consts = [];
+  const consts: string[] = [];
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
   const required = schema.default !== undefined ? false : _required ?? false;
@@ -182,16 +182,10 @@ const generateZodValidationSchemaDefinition = (
   }
 
   if (min !== undefined) {
-    if (min === 1) {
-      functions.push(['min', `${min}`]);
-    } else {
-      consts.push(`export const ${name}Min = ${min};`);
-      functions.push(['min', `${name}Min`]);
-    }
+    functions.push(['min', `${min}`]);
   }
   if (max !== undefined) {
-    consts.push(`export const ${name}Max = ${max};`);
-    functions.push(['max', `${name}Max`]);
+    functions.push(['max', `${max}`]);
   }
   if (matches) {
     const isStartWithSlash = matches.startsWith('/');
@@ -201,8 +195,7 @@ const generateZodValidationSchemaDefinition = (
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
-    consts.push(`export const ${name}RegExp = ${regexp};`);
-    functions.push(['regex', `${name}RegExp`]);
+    functions.push(['regex', `${regexp}`]);
   }
 
   if (schema.enum && type !== 'number') {
@@ -279,7 +272,7 @@ const parseZodValidationSchemaDefinition = (
     if (fn === 'additionalProperties') {
       const value = args.functions.map(parseProperty).join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-      consts += args.consts
+      consts += args.consts;
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
