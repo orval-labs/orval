@@ -33,6 +33,7 @@ export const importOpenApi = async ({
   const schemas = getApiSchemas({ output, target, workspace, specs });
 
   const api = await getApiBuilder({
+    input,
     output,
     context: {
       specKey: target,

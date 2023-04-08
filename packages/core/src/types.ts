@@ -137,6 +137,9 @@ export type NormalizedInputOptions = {
   override: OverrideInput;
   converterOptions: swagger2openapi.Options;
   parserOptions: SwaggerParserOptions;
+  filters?: {
+    tags?: string[];
+  };
 };
 
 export type OutputClientFunc = (
@@ -169,6 +172,9 @@ export type InputOptions = {
   override?: OverrideInput;
   converterOptions?: swagger2openapi.Options;
   parserOptions?: SwaggerParserOptions;
+  filters?: {
+    tags?: string[];
+  };
 };
 
 export type OutputClient =
