@@ -43,6 +43,7 @@ export const resolveObject = ({
       type: 'object',
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
+      hasReadonlyProps: resolvedValue.hasReadonlyProps,
     };
   }
 
@@ -68,6 +69,7 @@ export const resolveObject = ({
       type: 'enum',
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
+      hasReadonlyProps: resolvedValue.hasReadonlyProps,
     };
   }
 

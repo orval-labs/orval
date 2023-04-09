@@ -20,6 +20,7 @@ type CombinedData = {
   isRef: boolean[];
   isEnum: boolean[];
   types: string[];
+  hasReadonlyProps: boolean;
 };
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
@@ -92,6 +93,7 @@ export const combineSchemas = ({
       acc.types.push(resolvedValue.type);
       acc.isRef.push(resolvedValue.isRef);
       acc.originalSchema.push(resolvedValue.originalSchema);
+      acc.hasReadonlyProps ||= resolvedValue.hasReadonlyProps;
 
       return acc;
     },
@@ -103,6 +105,7 @@ export const combineSchemas = ({
       isRef: [],
       types: [],
       originalSchema: [],
+      hasReadonlyProps: false,
     } as CombinedData,
   );
 
@@ -133,6 +136,7 @@ export const combineSchemas = ({
       isEnum: false,
       type: 'object' as SchemaType,
       isRef: false,
+      hasReadonlyProps: resolvedData.hasReadonlyProps,
     };
   }
 
@@ -147,6 +151,10 @@ export const combineSchemas = ({
     isEnum: false,
     type: 'object' as SchemaType,
     isRef: false,
+    hasReadonlyProps:
+      resolvedData?.hasReadonlyProps ||
+      resolvedValue?.hasReadonlyProps ||
+      false,
   };
 };
 

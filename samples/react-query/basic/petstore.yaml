@@ -70,6 +70,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a pet
+      operationId: updatePets
+      tags:
+        - pets
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Pet'
+      responses:
+        '200':
+          description: Created Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /pets/{petId}:
     get:
       summary: Info for a specific pet
@@ -168,6 +192,7 @@ components:
       properties:
         petsRequested:
           type: integer
+          readOnly: true
         type:
           type: string
           enum:

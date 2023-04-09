@@ -31,6 +31,7 @@ export const getArray = ({
       isEnum: false,
       type: 'array',
       isRef: false,
+      hasReadonlyProps: resolvedObject.hasReadonlyProps,
     };
   } else {
     throw new Error('All arrays must have an `items` key define');

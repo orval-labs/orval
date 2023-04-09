@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { resolveObject, resolveValue } from '../resolvers';
+import { resolveObject, resolveRef, resolveValue } from '../resolvers';
 import { ContextSpecs, ScalarValue, SchemaType } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
@@ -31,6 +31,7 @@ export const getObject = ({
       isEnum: false,
       type: 'object',
       isRef: true,
+      hasReadonlyProps: item.readOnly || false,
     };
   }
 
@@ -102,6 +103,7 @@ export const getObject = ({
 
         const doc = jsDoc(schema as SchemaObject, true);
 
+        acc.hasReadonlyProps ||= isReadOnly || false;
         acc.imports.push(...resolvedValue.imports);
         acc.value += `\n  ${doc ? `${doc}  ` : ''}${
           isReadOnly ? 'readonly ' : ''
@@ -137,6 +139,7 @@ export const getObject = ({
         type: 'object' as SchemaType,
         isRef: false,
         schema: {},
+        hasReadonlyProps: false,
       } as ScalarValue,
     );
   }
@@ -150,6 +153,7 @@ export const getObject = ({
         isEnum: false,
         type: 'object',
         isRef: false,
+        hasReadonlyProps: item.readOnly || false,
       };
     }
     const resolvedValue = resolveValue({
@@ -164,6 +168,7 @@ export const getObject = ({
       isEnum: false,
       type: 'object',
       isRef: false,
+      hasReadonlyProps: resolvedValue.hasReadonlyProps,
     };
   }
 
@@ -175,5 +180,6 @@ export const getObject = ({
     isEnum: false,
     type: 'object',
     isRef: false,
+    hasReadonlyProps: item.readOnly || false,
   };
 };
