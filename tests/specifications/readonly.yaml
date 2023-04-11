@@ -1,0 +1,86 @@
+openapi: 3.1.0
+info:
+  title: Readonly Properties
+  description: 'Readonly properties'
+  version: 1.0.0
+tags:
+  - name: readonly
+    description: Readonly properties
+servers:
+  - url: http://localhost
+paths:
+  /without-readonly:
+    post:
+      tags:
+        - readonly
+      summary: Create readonly object
+      operationId: createReadonlyFreeObject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nonReadonlyProperty:
+                  type: string
+                name:
+                  type: string
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadonlyObject'
+  /readonly-ref:
+    post:
+      tags:
+        - readonly
+      summary: Create readonly object
+      operationId: createReadonly
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReadonlyObject'
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadonlyObject'
+  /readonly-direct:
+    put:
+      tags:
+        - readonly
+      summary: Update object response
+      operationId: updateReadonly
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                readonlyProperty:
+                  type: string
+                  readOnly: true
+                name:
+                  type: string
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadonlyObject'
+components:
+  schemas:
+    ReadonlyObject:
+      type: object
+      properties:
+        readonlyProperty:
+          type: string
+          readOnly: true
+        name:
+          type: string

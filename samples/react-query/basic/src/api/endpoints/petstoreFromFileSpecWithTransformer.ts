@@ -17,6 +17,7 @@ import type {
 } from '@tanstack/react-query';
 import type {
   Pets,
+  NonReadonly,
   Error,
   ListPetsParams,
   Pet,
@@ -177,6 +178,54 @@ export const useCreatePets = <
     Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number },
+    TContext
+  >(mutationFn, mutationOptions);
+};
+
+/**
+ * @summary Update a pet
+ */
+export const updatePets = (pet: NonReadonly<Pet>, version = 1) => {
+  return customInstance<Pet>({
+    url: `/v${version}/pets`,
+    method: 'put',
+    headers: { 'Content-Type': 'application/json' },
+    data: pet,
+  });
+};
+
+export type UpdatePetsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePets>>
+>;
+export type UpdatePetsMutationBody = NonReadonly<Pet>;
+export type UpdatePetsMutationError = ErrorType<Error>;
+
+export const useUpdatePets = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updatePets>>,
+    TError,
+    { data: NonReadonly<Pet>; version?: number },
+    TContext
+  >;
+}) => {
+  const { mutation: mutationOptions } = options ?? {};
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePets>>,
+    { data: NonReadonly<Pet>; version?: number }
+  > = (props) => {
+    const { data, version } = props ?? {};
+
+    return updatePets(data, version);
+  };
+
+  return useMutation<
+    Awaited<ReturnType<typeof updatePets>>,
+    TError,
+    { data: NonReadonly<Pet>; version?: number },
     TContext
   >(mutationFn, mutationOptions);
 };

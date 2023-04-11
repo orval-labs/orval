@@ -74,6 +74,7 @@ export const getResReqTypes = (
               type: 'unknown',
               isEnum: false,
               isRef: true,
+              hasReadonlyProps: false,
               originalSchema: mediaType?.schema,
               key,
               contentType,
@@ -113,6 +114,7 @@ export const getResReqTypes = (
             schemas: [],
             type: 'unknown',
             isEnum: false,
+            hasReadonlyProps: false,
             formData,
             formUrlEncoded,
             isRef: true,
@@ -146,8 +148,19 @@ export const getResReqTypes = (
             const isFormUrlEncoded =
               formUrlEncodedContentTypes.includes(contentType);
 
+            const imports = [
+              ...resolvedValue.imports,
+              ...(resolvedValue.hasReadonlyProps
+                ? [{ name: 'NonReadonly' }]
+                : []),
+            ];
+
             if ((!isFormData && !isFormUrlEncoded) || !propName) {
-              return { ...resolvedValue, contentType };
+              return {
+                ...resolvedValue,
+                imports,
+                contentType,
+              };
             }
 
             const formData = isFormData
@@ -169,6 +182,7 @@ export const getResReqTypes = (
 
             return {
               ...resolvedValue,
+              imports,
               formData,
               formUrlEncoded,
               contentType,
@@ -190,6 +204,7 @@ export const getResReqTypes = (
           isEnum: false,
           key,
           isRef: false,
+          hasReadonlyProps: false,
           contentType: 'application/json',
         },
       ] as ResReqTypesValue[];

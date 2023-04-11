@@ -7,6 +7,6 @@
 import type { CatType } from './catType';
 
 export interface Cat {
-  petsRequested?: number;
+  readonly petsRequested?: number;
   type: CatType;
 }

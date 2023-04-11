@@ -57,4 +57,11 @@ export default defineConfig({
       target: '../generated/default/null-type/endpoints.ts',
     },
   },
+  readonly: {
+    input: '../specifications/readonly.yaml',
+    output: {
+      schemas: '../generated/default/readonly/model',
+      target: '../generated/default/readonly/endpoints.ts',
+    },
+  },
 });

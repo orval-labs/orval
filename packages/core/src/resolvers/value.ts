@@ -3,6 +3,7 @@ import { getScalar } from '../getters';
 import { ContextSpecs, ResolverValue, SchemaType } from '../types';
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
+import { resolveObject } from './object';
 
 export const resolveValue = ({
   schema,
@@ -19,6 +20,8 @@ export const resolveValue = ({
       context,
     );
 
+    const resolvedObject = resolveObject({ schema: schemaObject, context });
+
     const { name, specKey, schemaName } = imports[0];
 
     const importSpecKey =
@@ -32,6 +35,7 @@ export const resolveValue = ({
       schemas: [],
       isEnum: !!schemaObject?.enum,
       originalSchema: schemaObject,
+      hasReadonlyProps: resolvedObject.hasReadonlyProps,
       isRef: true,
     };
   }

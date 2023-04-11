@@ -685,6 +685,7 @@ export const SchemaType = {
 export type ScalarValue = {
   value: string;
   isEnum: boolean;
+  hasReadonlyProps: boolean;
   type: SchemaType;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
@@ -699,6 +700,7 @@ export type ResReqTypesValue = ScalarValue & {
   formData?: string;
   formUrlEncoded?: string;
   isRef?: boolean;
+  hasReadonlyProps?: boolean;
   key: string;
   contentType: string;
   originalSchema?: SchemaObject;
