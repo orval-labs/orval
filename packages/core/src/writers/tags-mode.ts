@@ -9,6 +9,7 @@ import {
   upath,
 } from '../utils';
 import { generateTargetForTags } from './target-tags';
+import { getOrvalGeneratedTypes } from './types';
 
 export const writeTagsMode = async ({
   builder,
@@ -104,6 +105,12 @@ export const writeTagsMode = async ({
         }
 
         data += '\n\n';
+
+        if (implementation.includes('NonReadonly<')) {
+          data += getOrvalGeneratedTypes();
+          data += '\n';
+        }
+
         data += implementation;
 
         if (output.mock) {

@@ -8,6 +8,7 @@ import {
   upath,
 } from '../utils';
 import { generateTarget } from './target';
+import { getOrvalGeneratedTypes } from './types';
 
 export const writeSingleMode = async ({
   builder,
@@ -88,6 +89,11 @@ export const writeSingleMode = async ({
 
     if (formUrlEncoded) {
       data += generateMutatorImports({ mutators: formUrlEncoded });
+    }
+
+    if (implementation.includes('NonReadonly<')) {
+      data += getOrvalGeneratedTypes();
+      data += '\n';
     }
 
     if (!output.schemas && needSchema) {

@@ -130,7 +130,7 @@ export const writeSchemas = async ({
       .sort()
       .join('\n');
 
-    const fileContent = `${header}\n${exports}\n${getOrvalGeneratedTypes()}`;
+    const fileContent = `${header}\n${exports}`;
 
     await fs.writeFile(schemaFilePath, fileContent);
   } catch (e) {

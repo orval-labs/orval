@@ -19,7 +19,7 @@ type UnionToIntersection<U> =
 type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
 
 type Writable<T> = Pick<T, WritableKeys<T>>;
-export type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
+type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
   [P in keyof Writable<T>]: T[P] extends object
     ? NonReadonly<NonNullable<T[P]>>
     : T[P];

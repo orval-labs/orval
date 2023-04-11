@@ -8,6 +8,7 @@ import {
   upath,
 } from '../utils';
 import { generateTargetForTags } from './target-tags';
+import { getOrvalGeneratedTypes } from './types';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -107,6 +108,11 @@ export const writeSplitTagsMode = async ({
             mutators: formUrlEncoded,
             oneMore: true,
           });
+        }
+
+        if (implementation.includes('NonReadonly<')) {
+          implementationData += getOrvalGeneratedTypes();
+          implementationData += '\n';
         }
 
         implementationData += `\n${implementation}`;

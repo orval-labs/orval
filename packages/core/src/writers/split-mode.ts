@@ -8,6 +8,7 @@ import {
   upath,
 } from '../utils';
 import { generateTarget } from './target';
+import { getOrvalGeneratedTypes } from './types';
 
 export const writeSplitMode = async ({
   builder,
@@ -100,6 +101,10 @@ export const writeSplitMode = async ({
       implementationData += generateMutatorImports({
         mutators: formUrlEncoded,
       });
+    }
+
+    if (implementation.includes('NonReadonly<')) {
+      implementationData += getOrvalGeneratedTypes();
     }
 
     implementationData += `\n${implementation}`;

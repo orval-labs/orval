@@ -148,17 +148,10 @@ export const getResReqTypes = (
             const isFormUrlEncoded =
               formUrlEncodedContentTypes.includes(contentType);
 
-            const imports = [
-              ...resolvedValue.imports,
-              ...(resolvedValue.hasReadonlyProps
-                ? [{ name: 'NonReadonly' }]
-                : []),
-            ];
-
             if ((!isFormData && !isFormUrlEncoded) || !propName) {
               return {
                 ...resolvedValue,
-                imports,
+                imports: resolvedValue.imports,
                 contentType,
               };
             }
@@ -182,7 +175,7 @@ export const getResReqTypes = (
 
             return {
               ...resolvedValue,
-              imports,
+              imports: resolvedValue.imports,
               formData,
               formUrlEncoded,
               contentType,
