@@ -49,6 +49,37 @@ export const listPets = (
 export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) =>
   [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 
+export const getListPetsInfiniteQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version = 1,
+  options?: {
+    query?: UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
+    >;
+  },
+): UseInfiniteQueryOptions<
+  Awaited<ReturnType<typeof listPets>>,
+  TError,
+  TData
+> & { queryKey: QueryKey } => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    signal,
+    pageParam,
+  }) => listPets({ limit: pageParam, ...params }, version, signal);
+
+  return { queryKey, queryFn, enabled: !!version, ...queryOptions };
+};
+
 export type ListPetsInfiniteQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPets>>
 >;
@@ -68,6 +99,39 @@ export const useListPetsInfinite = <
     >;
   },
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const listPetsInfiniteQueryOptions = getListPetsInfiniteQueryOptions(
+    params,
+    version,
+    options,
+  );
+
+  const query = useInfiniteQuery(
+    listPetsInfiniteQueryOptions,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  query.queryKey = listPetsInfiniteQueryOptions.queryKey;
+
+  return query;
+};
+
+export const getListPetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version = 1,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
+    >;
+  },
+): UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
+  queryKey: QueryKey;
+} => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey =
@@ -75,23 +139,9 @@ export const useListPetsInfinite = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-    pageParam,
-  }) => listPets({ limit: pageParam, ...params }, version, signal);
+  }) => listPets(params, version, signal);
 
-  const query = useInfiniteQuery<
-    Awaited<ReturnType<typeof listPets>>,
-    TError,
-    TData
-  >({
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  }) as UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryKey;
-
-  return query;
+  return { queryKey, queryFn, enabled: !!version, ...queryOptions };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -113,23 +163,18 @@ export const useListPets = <
     >;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions } = options ?? {};
+  const listPetsQueryOptions = getListPetsQueryOptions(
+    params,
+    version,
+    options,
+  );
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
+  const query = useQuery(listPetsQueryOptions) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
-    signal,
-  }) => listPets(params, version, signal);
-
-  const query = useQuery<Awaited<ReturnType<typeof listPets>>, TError, TData>({
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  }) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryKey;
+  query.queryKey = listPetsQueryOptions.queryKey;
 
   return query;
 };
@@ -146,6 +191,45 @@ export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
   });
 };
 
+export const getCreatePetsMutationOptions = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    {
+      data: CreatePetsBody;
+      version?: number;
+    },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  {
+    data: CreatePetsBody;
+    version?: number;
+  },
+  TContext
+> => {
+  const { mutation: mutationOptions } = options ?? {};
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPets>>,
+    {
+      data: CreatePetsBody;
+      version?: number;
+    }
+  > = (props) => {
+    const { data, version } = props ?? {};
+
+    return createPets(data, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
 export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
@@ -159,27 +243,16 @@ export const useCreatePets = <
   mutation?: UseMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; version?: number },
+    {
+      data: CreatePetsBody;
+      version?: number;
+    },
     TContext
   >;
 }) => {
-  const { mutation: mutationOptions } = options ?? {};
+  const createPetsMutationOptions = getCreatePetsMutationOptions(options);
 
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; version?: number }
-  > = (props) => {
-    const { data, version } = props ?? {};
-
-    return createPets(data, version);
-  };
-
-  return useMutation<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBody; version?: number },
-    TContext
-  >(mutationFn, mutationOptions);
+  return useMutation(createPetsMutationOptions);
 };
 
 /**
@@ -248,6 +321,36 @@ export const showPetById = (
 export const getShowPetByIdQueryKey = (petId: string, version = 1) =>
   [`/v${version}/pets/${petId}`] as const;
 
+export const getShowPetByIdInfiniteQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = ErrorType<Error>,
+>(
+  petId: string,
+  version = 1,
+  options?: {
+    query?: UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >;
+  },
+): UseInfiniteQueryOptions<
+  Awaited<ReturnType<typeof showPetById>>,
+  TError,
+  TData
+> & { queryKey: QueryKey } => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
+    signal,
+  }) => showPetById(petId, version, signal);
+
+  return { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions };
+};
+
 export type ShowPetByIdInfiniteQueryResult = NonNullable<
   Awaited<ReturnType<typeof showPetById>>
 >;
@@ -267,6 +370,39 @@ export const useShowPetByIdInfinite = <
     >;
   },
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const showPetByIdInfiniteQueryOptions = getShowPetByIdInfiniteQueryOptions(
+    petId,
+    version,
+    options,
+  );
+
+  const query = useInfiniteQuery(
+    showPetByIdInfiniteQueryOptions,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  query.queryKey = showPetByIdInfiniteQueryOptions.queryKey;
+
+  return query;
+};
+
+export const getShowPetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = ErrorType<Error>,
+>(
+  petId: string,
+  version = 1,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >;
+  },
+): UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> & {
+  queryKey: QueryKey;
+} => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey =
@@ -276,20 +412,7 @@ export const useShowPetByIdInfinite = <
     signal,
   }) => showPetById(petId, version, signal);
 
-  const query = useInfiniteQuery<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  >({
-    queryKey,
-    queryFn,
-    enabled: !!(version && petId),
-    ...queryOptions,
-  }) as UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryKey;
-
-  return query;
+  return { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -311,27 +434,18 @@ export const useShowPetById = <
     >;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
-  const { query: queryOptions } = options ?? {};
+  const showPetByIdQueryOptions = getShowPetByIdQueryOptions(
+    petId,
+    version,
+    options,
+  );
 
-  const queryKey =
-    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
+  const query = useQuery(showPetByIdQueryOptions) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: QueryKey };
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
-    signal,
-  }) => showPetById(petId, version, signal);
-
-  const query = useQuery<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  >({
-    queryKey,
-    queryFn,
-    enabled: !!(version && petId),
-    ...queryOptions,
-  }) as UseQueryResult<TData, TError> & { queryKey: QueryKey };
-
-  query.queryKey = queryKey;
+  query.queryKey = showPetByIdQueryOptions.queryKey;
 
   return query;
 };
