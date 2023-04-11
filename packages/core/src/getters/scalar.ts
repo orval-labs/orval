@@ -43,6 +43,7 @@ export const getScalar = ({
         schemas: [],
         imports: [],
         isRef: false,
+        hasReadonlyProps: item.readOnly || false,
       };
     }
 
@@ -54,6 +55,7 @@ export const getScalar = ({
         schemas: [],
         imports: [],
         isRef: false,
+        hasReadonlyProps: item.readOnly || false,
       };
 
     case 'array': {
@@ -100,6 +102,7 @@ export const getScalar = ({
         imports: [],
         schemas: [],
         isRef: false,
+        hasReadonlyProps: item.readOnly || false,
       };
     }
 
@@ -111,6 +114,7 @@ export const getScalar = ({
         imports: [],
         schemas: [],
         isRef: false,
+        hasReadonlyProps: item.readOnly || false,
       };
 
     case 'object':
@@ -130,6 +134,7 @@ export const getScalar = ({
           imports: [],
           schemas: [],
           isRef: false,
+          hasReadonlyProps: item.readOnly || false,
         };
       }
 

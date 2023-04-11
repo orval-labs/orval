@@ -42,6 +42,9 @@ export const getBody = ({
   const schemas = filteredBodyTypes.flatMap(({ schemas }) => schemas);
 
   const definition = filteredBodyTypes.map(({ value }) => value).join(' | ');
+  const hasReadonlyProps = filteredBodyTypes.some((x) => x.hasReadonlyProps);
+  const nonReadonlyDefinition =
+    hasReadonlyProps && definition ? `NonReadonly<${definition}>` : definition;
 
   const implementation =
     generalJSTypesWithArray.includes(definition.toLowerCase()) ||
@@ -51,7 +54,7 @@ export const getBody = ({
 
   return {
     originalSchema: requestBody,
-    definition,
+    definition: nonReadonlyDefinition,
     implementation,
     imports,
     schemas,

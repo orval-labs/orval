@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema } from '../types';
 import { camel, upath } from '../utils';
+import { getOrvalGeneratedTypes } from './types';
 
 const getSchema = ({
   schema: { imports, model },
@@ -125,9 +126,11 @@ export const writeSchemas = async ({
       .match(/export \* from(.*)('|")/g)
       ?.map((s) => s + ';') ?? []) as string[];
 
-    const fileContent = [...currentFileExports, ...importStatements]
+    const exports = [...currentFileExports, ...importStatements]
       .sort()
       .join('\n');
+
+    const fileContent = `${header}\n${exports}\n${getOrvalGeneratedTypes()}`;
 
     await fs.writeFile(schemaFilePath, fileContent);
   } catch (e) {
