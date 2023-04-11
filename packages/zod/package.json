@@ -13,6 +13,10 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.13.1"
+    "@orval/core": "6.13.1",
+    "lodash.uniq": "^4.5.0"
+  },
+  "devDependencies": {
+    "@types/lodash.uniq": "^4.5.7"
   }
 }

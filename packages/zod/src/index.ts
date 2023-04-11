@@ -20,7 +20,7 @@ import {
   isObject,
   isBoolean,
 } from '@orval/core';
-import SwaggerParser from '@apidevtools/swagger-parser';
+import uniq from 'lodash.uniq';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -204,7 +204,7 @@ const generateZodValidationSchemaDefinition = (
     functions.push(['optional', undefined]);
   }
 
-  return { functions, consts };
+  return { functions, consts: uniq(consts) };
 };
 
 const parseZodValidationSchemaDefinition = (
@@ -356,7 +356,7 @@ const generateZodRoute = (
           !!resolvedResponseJsonSchema?.required?.find(
             (requiredKey: string) => requiredKey === key,
           ),
-          camel(`${operationName}-${key}`),
+          camel(`${operationName}-response-${key}`),
         ),
       };
     })
@@ -389,7 +389,7 @@ const generateZodRoute = (
           !!resolvedRequestBodyJsonSchema?.required?.find(
             (requiredKey: string) => requiredKey === key,
           ),
-          camel(`${operationName}-${key}`),
+          camel(`${operationName}-body-${key}`),
         ),
       };
     })
@@ -408,7 +408,7 @@ const generateZodRoute = (
       const definition = generateZodValidationSchemaDefinition(
         schema,
         parameter.required,
-        camel(`${operationName}-${parameter.name}`),
+        camel(`${operationName}-${parameter.in}-${parameter.name}`),
       );
 
       if (parameter.in === 'header') {
