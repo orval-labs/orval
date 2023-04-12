@@ -383,6 +383,7 @@ export interface ContextSpecs {
   override: NormalizedOverrideOutput;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
+  parents?: string[];
 }
 
 export interface GlobalOptions {

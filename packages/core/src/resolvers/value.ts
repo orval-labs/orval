@@ -27,20 +27,15 @@ export const resolveValue = ({
 
     let hasReadonlyProps = false;
 
-    const spec = context.specs[context.specKey];
-
     // Avoid infinite loop
-    if (
-      name &&
-      !name.startsWith(resolvedImport.name) &&
-      !spec?.components?.schemas?.[name]
-    ) {
+    if (!name || !context.parents?.includes(name)) {
       const scalar = getScalar({
         item: schemaObject,
         name: resolvedImport.name,
         context: {
           ...context,
           specKey: importSpecKey || context.specKey,
+          ...(name ? { parents: [...(context.parents || []), name] } : {}),
         },
       });
 
