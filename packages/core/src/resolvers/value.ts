@@ -3,7 +3,6 @@ import { getScalar } from '../getters';
 import { ContextSpecs, ResolverValue, SchemaType } from '../types';
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
-import { resolveObject } from './object';
 
 export const resolveValue = ({
   schema,
@@ -20,22 +19,48 @@ export const resolveValue = ({
       context,
     );
 
-    const resolvedObject = resolveObject({ schema: schemaObject, context });
-
-    const { name, specKey, schemaName } = imports[0];
+    const resolvedImport = imports[0];
 
     const importSpecKey =
-      specKey ||
+      resolvedImport.specKey ||
       (context.specKey !== context.target ? context.specKey : undefined);
 
+    let hasReadonlyProps = false;
+
+    const spec = context.specs[context.specKey];
+
+    // Avoid infinite loop
+    if (
+      name &&
+      !name.startsWith(resolvedImport.name) &&
+      !spec?.components?.schemas?.[name]
+    ) {
+      const scalar = getScalar({
+        item: schemaObject,
+        name: resolvedImport.name,
+        context: {
+          ...context,
+          specKey: importSpecKey || context.specKey,
+        },
+      });
+
+      hasReadonlyProps = scalar.hasReadonlyProps;
+    }
+
     return {
-      value: name,
-      imports: [{ name, specKey: importSpecKey, schemaName }],
+      value: resolvedImport.name,
+      imports: [
+        {
+          name: resolvedImport.name,
+          specKey: importSpecKey,
+          schemaName: resolvedImport.schemaName,
+        },
+      ],
       type: (schemaObject?.type as SchemaType) || 'object',
       schemas: [],
       isEnum: !!schemaObject?.enum,
       originalSchema: schemaObject,
-      hasReadonlyProps: resolvedObject.hasReadonlyProps,
+      hasReadonlyProps,
       isRef: true,
     };
   }
