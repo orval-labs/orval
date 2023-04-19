@@ -131,15 +131,24 @@ export type NormalizedOperationOptions = {
   formUrlEncoded?: boolean | NormalizedMutator;
   requestOptions?: object | boolean;
 };
+
+type InputFilterTags =
+  | {
+      regex?: true;
+      tags?: RegExp;
+    }
+  | {
+      regex?: false;
+      tags?: string[];
+    };
+
 export type NormalizedInputOptions = {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation: boolean;
   override: OverrideInput;
   converterOptions: swagger2openapi.Options;
   parserOptions: SwaggerParserOptions;
-  filters?: {
-    tags?: string[];
-  };
+  filters?: {} & InputFilterTags;
 };
 
 export type OutputClientFunc = (
