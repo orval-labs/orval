@@ -31,7 +31,7 @@ export const getApiBuilder = async ({
   context: ContextSpecs;
 }): Promise<GeneratorApiBuilder> => {
   const api = await asyncReduce(
-    Object.entries(context.specs[context.specKey].paths),
+    Object.entries(context.specs[context.specKey].paths ?? {}),
     async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
       const route = getRoute(pathRoute);
 

@@ -40,7 +40,7 @@ export const writeSpecs = async (
   options: NormalizedOptions,
   projectName?: string,
 ) => {
-  const { info, schemas, target } = builder;
+  const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName || info.title;
 
@@ -53,7 +53,7 @@ export const writeSpecs = async (
     return acc;
   }, {} as Record<keyof typeof schemas, string>);
 
-  const header = getHeader(output.override.header, info);
+  const header = getHeader(output.override.header, info as InfoObject);
 
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
