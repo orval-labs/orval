@@ -100,7 +100,7 @@ export type NormalizedOverrideOutput = {
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
-  useNumberTypeForBigInt?: boolean;
+  useBigInt?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -279,7 +279,7 @@ export type OverrideOutput = {
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
-  useNumberTypeForBigInt?: boolean;
+  useBigInt?: boolean;
 };
 
 export type OverrideOutputContentType = {

@@ -28,11 +28,10 @@ export const getScalar = ({
   switch (item.type) {
     case 'number':
     case 'integer': {
-      let value = context.override.useNumberTypeForBigInt
-        ? 'number'
-        : item.format === 'int64'
-        ? 'bigint'
-        : 'number';
+      let value =
+        item.format === 'int64' && context.override.useBigInt
+          ? 'bigint'
+          : 'number';
       let isEnum = false;
 
       if (item.enum) {
