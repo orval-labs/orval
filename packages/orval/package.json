@@ -31,7 +31,8 @@
     "axios",
     "vue-query",
     "vue",
-    "swr"
+    "swr",
+    "zod"
   ],
   "author": {
     "name": "Victor Bury",
