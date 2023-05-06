@@ -15,6 +15,7 @@ import type {
   UseQueryReturnType,
   UseInfiniteQueryReturnType,
 } from '@tanstack/vue-query';
+import { unref } from 'vue';
 import type {
   Pets,
   Error,
@@ -37,7 +38,7 @@ export const listPets = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pets>({
-    url: `/v${version}/pets`,
+    url: `/v${unref(version)}/pets`,
     method: 'get',
     params,
     signal,
@@ -45,7 +46,7 @@ export const listPets = (
 };
 
 export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) =>
-  [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+  [`/v${unref(version)}/pets`, ...(params ? [params] : [])] as const;
 
 export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -174,7 +175,7 @@ export const useListPets = <
  */
 export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
   return customInstance<Pet>({
-    url: `/v${version}/pets`,
+    url: `/v${unref(version)}/pets`,
     method: 'post',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -239,14 +240,14 @@ export const showPetById = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
-    url: `/v${version}/pets/${petId}`,
+    url: `/v${unref(version)}/pets/${unref(petId)}`,
     method: 'get',
     signal,
   });
 };
 
 export const getShowPetByIdQueryKey = (petId: string, version = 1) =>
-  [`/v${version}/pets/${petId}`] as const;
+  [`/v${unref(version)}/pets/${unref(petId)}`] as const;
 
 export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
