@@ -91,6 +91,10 @@ const SVELTE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+// Vue persist reactivity
+const updateVueRoute = (route: string): string =>
+  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}'); //
+
 const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
   const hasVueQuery =
     packageJson?.dependencies?.['@sveltestack/svelte-query'] ??
@@ -195,6 +199,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'vue-query/types',
   },
   {
+    exports: [{ name: 'unref', values: true }],
+    dependency: 'vue',
+  },
+  {
     exports: [{ name: 'UseQueryReturnType' }],
     dependency: 'vue-query/lib/vue/useBaseQuery',
   },
@@ -216,6 +224,10 @@ const VUE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryReturnType' },
     ],
     dependency: '@tanstack/vue-query',
+  },
+  {
+    exports: [{ name: 'unref', values: true }],
+    dependency: 'vue',
   },
   {
     exports: [{ name: 'MaybeRef' }],
@@ -274,8 +286,12 @@ const generateQueryRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
 ) => {
+  // Vue - Unwrap path params
+  const route: string = !!OutputClient.VUE_QUERY
+    ? updateVueRoute(_route)
+    : _route;
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -868,9 +884,18 @@ const generateQueryHook = async (
     response,
     operationId,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} }, context, output }: GeneratorOptions,
+  {
+    route: _route,
+    override: { operations = {} },
+    context,
+    output,
+  }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
+  // Vue - Unwrap path params
+  const route: string = !!OutputClient.VUE_QUERY
+    ? updateVueRoute(_route)
+    : _route;
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
