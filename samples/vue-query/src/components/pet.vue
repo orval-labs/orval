@@ -11,7 +11,7 @@ import { useShowPetById } from '../api/endpoints/petstoreFromFileSpecWithTransfo
 
 const props = defineProps<{ petId: string }>();
 const petId = computed(() => props.petId);
-const petQuery = useShowPetById(petId); // @todo fix this typing
+const petQuery = useShowPetById(petId);
 const pet = computed(() => unref(petQuery?.data));
 </script>
 
