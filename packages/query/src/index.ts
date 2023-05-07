@@ -719,7 +719,10 @@ const generateQueryImplementation = ({
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
 }) => {
-  const queryProps = toObjectString(props, 'implementation');
+  const queryProps = OutputClient.VUE_QUERY
+    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    : toObjectString(props, 'implementation');
+
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
@@ -974,10 +977,14 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryKeyProps = toObjectString(
+    let queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
     );
+
+    if (OutputClient.VUE_QUERY) {
+      queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
+    }
 
     const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
