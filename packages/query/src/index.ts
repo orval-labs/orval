@@ -31,7 +31,11 @@ import {
   VERBS_WITH_BODY,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
-import { normalizeQueryOptions } from './utils';
+import {
+  normalizeQueryOptions,
+  makeVueRouteReactive,
+  vueWrapTypeWithMaybeRef,
+} from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -90,10 +94,6 @@ const SVELTE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
     dependency: '@tanstack/svelte-query',
   },
 ];
-
-// Vue persist reactivity
-const updateVueRoute = (route: string): string =>
-  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}'); //
 
 const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
   const hasVueQuery =
@@ -290,7 +290,7 @@ const generateQueryRequestFunction = (
 ) => {
   // Vue - Unwrap path params
   const route: string = !!OutputClient.VUE_QUERY
-    ? updateVueRoute(_route)
+    ? makeVueRouteReactive(_route)
     : _route;
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
@@ -327,13 +327,17 @@ const generateQueryRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
-    const propsImplementation =
+    let propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
+
+    if (OutputClient.VUE_QUERY) {
+      propsImplementation = vueWrapTypeWithMaybeRef(propsImplementation);
+    }
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
@@ -894,7 +898,7 @@ const generateQueryHook = async (
 ) => {
   // Vue - Unwrap path params
   const route: string = !!OutputClient.VUE_QUERY
-    ? updateVueRoute(_route)
+    ? makeVueRouteReactive(_route)
     : _route;
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;

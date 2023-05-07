@@ -73,3 +73,29 @@ const normalizeMutator = <T>(
 
   return mutator;
 };
+
+/**
+ * Wrap any type declaration with MaybeRef\<type\>
+ */
+export function vueWrapTypeWithMaybeRef(input: string): string {
+  if (!input.includes(',')) return input;
+
+  const output = input
+    .split(',')
+    .map((param) => {
+      const [paramName, paramType] = param.split(':');
+      if (paramType) {
+        return `${paramName}: MaybeRef<${paramType.trim()}>,`;
+      } else {
+        return `${param},`;
+      }
+    })
+    .join('')
+    .replace(',,', ',');
+
+  return output;
+}
+
+// Vue persist reactivity
+export const makeVueRouteReactive = (route: string): string =>
+  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
