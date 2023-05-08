@@ -35,6 +35,7 @@ import {
   normalizeQueryOptions,
   makeVueRouteReactive,
   vueWrapTypeWithMaybeRef,
+  isVue,
 } from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -287,9 +288,10 @@ const generateQueryRequestFunction = (
     override,
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
   // Vue - Unwrap path params
-  const route: string = !!OutputClient.VUE_QUERY
+  const route: string = isVue(outputClient)
     ? makeVueRouteReactive(_route)
     : _route;
   const isRequestOptions = override.requestOptions !== false;
@@ -335,7 +337,7 @@ const generateQueryRequestFunction = (
           )
         : toObjectString(props, 'implementation');
 
-    if (OutputClient.VUE_QUERY) {
+    if (isVue(outputClient)) {
       propsImplementation = vueWrapTypeWithMaybeRef(propsImplementation);
     }
 
@@ -719,7 +721,7 @@ const generateQueryImplementation = ({
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
 }) => {
-  const queryProps = OutputClient.VUE_QUERY
+  const queryProps = isVue(outputClient)
     ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
     : toObjectString(props, 'implementation');
 
@@ -900,7 +902,7 @@ const generateQueryHook = async (
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   // Vue - Unwrap path params
-  const route: string = !!OutputClient.VUE_QUERY
+  const route: string = isVue(outputClient)
     ? makeVueRouteReactive(_route)
     : _route;
   const query = override?.query;
@@ -982,7 +984,7 @@ const generateQueryHook = async (
       'implementation',
     );
 
-    if (OutputClient.VUE_QUERY) {
+    if (isVue(outputClient)) {
       queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
     }
 
@@ -1224,6 +1226,7 @@ export const generateQuery: ClientBuilder = async (
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
+    outputClient,
   );
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);

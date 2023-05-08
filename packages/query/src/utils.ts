@@ -6,6 +6,8 @@ import {
   NormalizedMutator,
   NormalizedQueryOptions,
   QueryOptions,
+  OutputClient,
+  OutputClientFunc,
   upath,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -99,3 +101,6 @@ export function vueWrapTypeWithMaybeRef(input: string): string {
 // Vue persist reactivity
 export const makeVueRouteReactive = (route: string): string =>
   (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
+
+export const isVue = (client: OutputClient | OutputClientFunc) =>
+  OutputClient.VUE_QUERY === client;
