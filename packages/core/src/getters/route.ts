@@ -37,3 +37,33 @@ export const getRoute = (route: string) => {
     return `${acc}/${getRoutePath(path)}`;
   }, '');
 };
+
+// transform "blabla{param}" string into ["blabla", "${param}"] array
+export function getRouteArray(input: string): string[] {
+  const output = [];
+  let current = '';
+
+  for (let i = 0; i < input.length; i++) {
+    const char = input[i];
+
+    if (char === '{') {
+      output.push(current);
+      current = '';
+    }
+
+    current += char;
+
+    if (char === '}') {
+      output.push(getRoutePath(current));
+      current = '';
+    }
+  }
+
+  if (current) {
+    output.push(current);
+  }
+
+  console.log({ input, output });
+
+  return output;
+}

@@ -29,11 +29,12 @@ import {
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
+  getRouteArray,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
   normalizeQueryOptions,
-  makeVueRouteReactive,
+  handleReactiveVueRoute,
   vueWrapTypeWithMaybeRef,
   isVue,
 } from './utils';
@@ -292,7 +293,7 @@ const generateQueryRequestFunction = (
 ) => {
   // Vue - Unwrap path params
   const route: string = isVue(outputClient)
-    ? makeVueRouteReactive(_route)
+    ? handleReactiveVueRoute(_route)
     : _route;
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
@@ -904,7 +905,7 @@ const generateQueryHook = async (
 ) => {
   // Vue - Unwrap path params
   const route: string = isVue(outputClient)
-    ? makeVueRouteReactive(_route)
+    ? handleReactiveVueRoute(_route)
     : _route;
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
@@ -989,7 +990,13 @@ const generateQueryHook = async (
       queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
     }
 
-    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+    const routeString = isVue(outputClient)
+      ? getRouteArray(_route.replace(/\${/g, '{'))
+          .map((x) => `\`${x}\``)
+          .join(', ')
+      : `\`${route}\``;
+
+    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [${routeString}${
       queryParams ? ', ...(params ? [params]: [])' : ''
     }${body.implementation ? `, ${body.implementation}` : ''}] as const;`;
 

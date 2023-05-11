@@ -49,7 +49,7 @@ export const listPets = (
 export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
   version = 1,
-) => [`/v${unref(version)}/pets`, ...(params ? [params] : [])] as const;
+) => [`/v`, `${version}`, `/pets`, ...(params ? [params] : [])] as const;
 
 export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -253,7 +253,7 @@ export const showPetById = (
 };
 
 export const getShowPetByIdQueryKey = (petId: MaybeRef<string>, version = 1) =>
-  [`/v${unref(version)}/pets/${unref(petId)}`] as const;
+  [`/v`, `${version}`, `/pets/`, `${petId}`] as const;
 
 export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
