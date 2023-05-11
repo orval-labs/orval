@@ -402,10 +402,11 @@ const generateQueryRequestFunction = (
     hasSignal,
   });
 
-  return `export const ${operationName} = (\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${optionsArgs} ): Promise<AxiosResponse<${
+  const queryProps = isVue(outputClient)
+    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    : toObjectString(props, 'implementation');
+
+  return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
