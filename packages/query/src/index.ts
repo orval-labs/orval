@@ -992,7 +992,9 @@ const generateQueryHook = async (
 
     const routeString = isVue(outputClient)
       ? getRouteArray(_route.replace(/\${/g, '{'))
-          .map((x) => `\`${x}\``)
+          .map((x) =>
+            x.startsWith('${') ? x.substring(2, x.length - 1) : `\`${x}\``,
+          )
           .join(', ')
       : `\`${route}\``;
 
