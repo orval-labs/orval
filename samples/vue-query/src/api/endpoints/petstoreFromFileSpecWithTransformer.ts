@@ -49,7 +49,7 @@ export const listPets = (
 export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
   version = 1,
-) => [`/v`, version, `/pets`, ...(params ? [params] : [])] as const;
+) => ['v', version, 'pets', ...(params ? [params] : [])] as const;
 
 export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -68,7 +68,7 @@ export const getListPetsInfiniteQueryOptions = <
   Awaited<ReturnType<typeof listPets>>,
   TError,
   TData
-> & { queryKey: QueryKey } => {
+> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getListPetsQueryKey(params, version);
@@ -111,7 +111,7 @@ export const useListPetsInfinite = <
     TError
   > & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
@@ -129,9 +129,7 @@ export const getListPetsQueryOptions = <
       TData
     >;
   },
-): UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
-  queryKey: QueryKey;
-} => {
+): UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getListPetsQueryKey(params, version);
@@ -168,7 +166,7 @@ export const useListPets = <
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
@@ -253,7 +251,7 @@ export const showPetById = (
 };
 
 export const getShowPetByIdQueryKey = (petId: MaybeRef<string>, version = 1) =>
-  [`/v`, version, `/pets/`, petId] as const;
+  ['v', version, 'pets', petId] as const;
 
 export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
@@ -272,7 +270,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   Awaited<ReturnType<typeof showPetById>>,
   TError,
   TData
-> & { queryKey: QueryKey } => {
+> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getShowPetByIdQueryKey(petId, version);
@@ -314,7 +312,7 @@ export const useShowPetByIdInfinite = <
     TError
   > & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
@@ -332,9 +330,7 @@ export const getShowPetByIdQueryOptions = <
       TData
     >;
   },
-): UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> & {
-  queryKey: QueryKey;
-} => {
+): UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getShowPetByIdQueryKey(petId, version);
@@ -371,7 +367,7 @@ export const useShowPetById = <
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
