@@ -34,7 +34,7 @@ import {
 import omitBy from 'lodash.omitby';
 import {
   normalizeQueryOptions,
-  handleReactiveVueRoute,
+  vueMakeRouteReactive,
   vueWrapTypeWithMaybeRef,
   isVue,
 } from './utils';
@@ -293,7 +293,7 @@ const generateQueryRequestFunction = (
 ) => {
   // Vue - Unwrap path params
   const route: string = isVue(outputClient)
-    ? handleReactiveVueRoute(_route)
+    ? vueMakeRouteReactive(_route)
     : _route;
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
@@ -907,7 +907,7 @@ const generateQueryHook = async (
 ) => {
   // Vue - Unwrap path params
   const route: string = isVue(outputClient)
-    ? handleReactiveVueRoute(_route)
+    ? vueMakeRouteReactive(_route)
     : _route;
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;

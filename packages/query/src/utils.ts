@@ -99,7 +99,7 @@ export function vueWrapTypeWithMaybeRef(input: string): string {
 }
 
 // Vue persist reactivity
-export const handleReactiveVueRoute = (route: string): string =>
+export const vueMakeRouteReactive = (route: string): string =>
   (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
 
 export const isVue = (client: OutputClient | OutputClientFunc) =>
