@@ -29,7 +29,7 @@ import {
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
-  getRouteArray,
+  getRouteAsArray,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
@@ -807,7 +807,9 @@ const generateQueryImplementation = ({
 
   const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} & { queryKey: QueryKey } => {
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} ${
+    isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
+  } => {
 ${hookOptions}
 
   const queryKey =  ${
@@ -876,7 +878,7 @@ export const ${camel(
     `${operationPrefix}-${type}`,
   )}(${queryOptionsVarName}) as ${returnType};
 
-  query.queryKey = ${queryOptionsVarName}.queryKey;
+  query.queryKey = ${queryOptionsVarName}.queryKey as QueryKey;
 
   return query;
 }\n`;
@@ -991,11 +993,7 @@ const generateQueryHook = async (
     }
 
     const routeString = isVue(outputClient)
-      ? getRouteArray(_route.replace(/\${/g, '{'))
-          .map((x) =>
-            x.startsWith('${') ? x.substring(2, x.length - 1) : `\`${x}\``,
-          )
-          .join(', ')
+      ? getRouteAsArray(_route)
       : `\`${route}\``;
 
     const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [${routeString}${
