@@ -1,5 +1,8 @@
 import { camel, sanitize } from '../utils';
 
+const TEMPLATE_TAG_REGEX = /\${(\w+)}/g; // For replace of 'thing' ${thing}
+const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path
+
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
 const getRoutePath = (path: string): string => {
@@ -37,3 +40,16 @@ export const getRoute = (route: string) => {
     return `${acc}/${getRoutePath(path)}`;
   }, '');
 };
+
+// Creates a mixed use array with path variables and string from template string route
+export const getRouteAsArray = (route: string): string =>
+  route
+    .replace(TEMPLATE_TAG_IN_PATH_REGEX, '/$1/${')
+    .split('/')
+    .filter((i) => i !== '')
+    .map((i) =>
+      // @note - array is mixed with string and var
+      i.includes('${') ? i.replace(TEMPLATE_TAG_REGEX, '$1') : `'${i}'`,
+    )
+    .join(',')
+    .replace(',,', '');
