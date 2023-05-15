@@ -878,7 +878,9 @@ export const ${camel(
     `${operationPrefix}-${type}`,
   )}(${queryOptionsVarName}) as ${returnType};
 
-  query.queryKey = ${queryOptionsVarName}.queryKey as QueryKey;
+  query.queryKey = ${queryOptionsVarName}.queryKey ${
+    isVue(outputClient) ? 'as QueryKey' : ''
+  };
 
   return query;
 }\n`;
