@@ -1,8 +1,10 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { getEnum } from '../getters/enum';
 import { ContextSpecs, ResolverValue } from '../types';
-import { jsDoc } from '../utils';
+import { isReference, jsDoc } from '../utils';
 import { resolveValue } from './value';
+import { resolveRef } from './ref';
+import mergeWith from 'lodash.mergewith';
 
 export const resolveObject = ({
   schema,
@@ -15,6 +17,34 @@ export const resolveObject = ({
   combined?: boolean;
   context: ContextSpecs;
 }): ResolverValue => {
+  if (typeof schema === 'object' && (schema as SchemaObject)?.allOf) {
+    const allOf = (schema as SchemaObject).allOf || [];
+    let specKey = context.specKey;
+    const object = allOf
+      .map((v) => {
+        if (isReference(v)) {
+          const result = resolveRef<SchemaObject>(v, context);
+          specKey = result.imports[0].specKey || specKey;
+          return result.schema;
+        }
+        return v;
+      })
+      .reduce((prev, current) => {
+        return mergeWith({}, prev, current, (a, b) => {
+          if (Array.isArray(a) && Array.isArray(b)) {
+            return a.concat(b);
+          }
+        });
+      }, {});
+    schema = mergeWith({}, schema, object, (a, b) => {
+      if (Array.isArray(a) && Array.isArray(b)) {
+        return a.concat(b);
+      }
+    });
+    delete (schema as SchemaObject)['allOf'];
+    context.specKey = specKey;
+  }
+
   const resolvedValue = resolveValue({
     schema,
     name: propName,

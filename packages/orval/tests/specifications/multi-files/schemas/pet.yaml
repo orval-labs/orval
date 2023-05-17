@@ -1,0 +1,27 @@
+openapi: 3.0.2
+info:
+  title: PetStore
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Pet:
+      description: default Pet description
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: default Pet name
+        owner:
+          required:
+            - name
+          allOf:
+            - $ref: './person.yaml#/components/schemas/Person'
+            - type: object
+              properties:
+                name:
+                  description: required name
+      required:
+        - owner

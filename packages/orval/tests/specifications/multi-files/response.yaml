@@ -1,0 +1,35 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+  license:
+    name: MIT
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  /my-path:
+    get:
+      tags:
+        - getPets
+      operationId: getPets
+      responses:
+        '200':
+          description: OK
+          content:
+            'application/json':
+              schema:
+                type: object
+                properties:
+                  pets:
+                    type: array
+                    items:
+                      allOf:
+                        - $ref: 'schemas/pet.yaml#/components/schemas/Pet'
+                        - required:
+                            - name
+                        - type: object
+                          properties:
+                            name:
+                              description: required name
+                            owner:
+                              deprecated: true

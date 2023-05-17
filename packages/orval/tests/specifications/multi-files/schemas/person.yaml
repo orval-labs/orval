@@ -1,0 +1,18 @@
+openapi: 3.0.2
+info:
+  title: PetStore
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Person:
+      description: default Person description
+      type: object
+      required:
+        - id
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          description: default Person name
