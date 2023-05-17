@@ -101,7 +101,7 @@ export const getObject = ({
           acc.value += '{';
         }
 
-        const doc = jsDoc(resolvedValue.originalSchema, true);
+        const doc = jsDoc(schema as SchemaObject, true);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
         acc.imports.push(...resolvedValue.imports);
