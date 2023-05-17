@@ -58,10 +58,8 @@ const generateZodValidationSchemaDefinition = (
   const consts = [];
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
-  const required =
-    schema.default !== undefined
-      ? false
-      : _required ?? !schema.nullable ?? false;
+  const required = schema.default !== undefined ? false : _required ?? false;
+  const nullable = schema.nullable ?? false;
   const min =
     schema.minimum ?? schema.exclusiveMinimum ?? schema.minLength ?? undefined;
   const max =
@@ -200,7 +198,11 @@ const generateZodValidationSchemaDefinition = (
     ]);
   }
 
-  if (!required) {
+  if (!required && nullable) {
+    functions.push(['nullish', undefined]);
+  } else if (nullable) {
+    functions.push(['nullable', undefined]);
+  } else if (!required) {
     functions.push(['optional', undefined]);
   }
 
