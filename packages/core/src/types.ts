@@ -410,8 +410,23 @@ export interface Tsconfig {
     allowSyntheticDefaultImports?: boolean;
     exactOptionalPropertyTypes?: boolean;
     paths?: Record<string, string[]>;
+    target?: TsConfigTarget;
   };
 }
+
+export type TsConfigTarget =
+  | 'es3'
+  | 'es5'
+  | 'es6'
+  | 'es2015'
+  | 'es2016'
+  | 'es2017'
+  | 'es2018'
+  | 'es2019'
+  | 'es2020'
+  | 'es2021'
+  | 'es2022'
+  | 'esnext'; // https://www.typescriptlang.org/tsconfig#target
 
 export interface PackageJson {
   dependencies?: Record<string, string>;
