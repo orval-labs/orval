@@ -35,16 +35,8 @@ const resolveSpecs = async (
       }
     }
 
-    const data = (await SwaggerParser.resolve(path, options)).values();
-
-    if (isUrl) {
-      return data;
-    }
-
-    // normalizing slashes after SwaggerParser
-    return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [upath.resolve(key), value]),
-    );
+    const data = await SwaggerParser.dereference(path, options);
+    return { [path]: data };
   } catch {
     const file = await fs.readFile(path, 'utf8');
 
