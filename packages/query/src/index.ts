@@ -29,9 +29,15 @@ import {
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
+  getRouteAsArray,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
-import { normalizeQueryOptions } from './utils';
+import {
+  normalizeQueryOptions,
+  vueMakeRouteReactive,
+  vueWrapTypeWithMaybeRef,
+  isVue,
+} from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -195,6 +201,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'vue-query/types',
   },
   {
+    exports: [{ name: 'unref', values: true }],
+    dependency: 'vue',
+  },
+  {
     exports: [{ name: 'UseQueryReturnType' }],
     dependency: 'vue-query/lib/vue/useBaseQuery',
   },
@@ -216,6 +226,10 @@ const VUE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryReturnType' },
     ],
     dependency: '@tanstack/vue-query',
+  },
+  {
+    exports: [{ name: 'unref', values: true }],
+    dependency: 'vue',
   },
   {
     exports: [{ name: 'MaybeRef' }],
@@ -274,8 +288,13 @@ const generateQueryRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
+  // Vue - Unwrap path params
+  const route: string = isVue(outputClient)
+    ? vueMakeRouteReactive(_route)
+    : _route;
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -311,13 +330,17 @@ const generateQueryRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
-    const propsImplementation =
+    let propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
+
+    if (isVue(outputClient)) {
+      propsImplementation = vueWrapTypeWithMaybeRef(propsImplementation);
+    }
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
@@ -380,10 +403,11 @@ const generateQueryRequestFunction = (
     hasSignal,
   });
 
-  return `export const ${operationName} = (\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${optionsArgs} ): Promise<AxiosResponse<${
+  const queryProps = isVue(outputClient)
+    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    : toObjectString(props, 'implementation');
+
+  return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
@@ -699,7 +723,10 @@ const generateQueryImplementation = ({
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
 }) => {
-  const queryProps = toObjectString(props, 'implementation');
+  const queryProps = isVue(outputClient)
+    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    : toObjectString(props, 'implementation');
+
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
@@ -780,7 +807,9 @@ const generateQueryImplementation = ({
 
   const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} & { queryKey: QueryKey } => {
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} ${
+    isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
+  } => {
 ${hookOptions}
 
   const queryKey =  ${
@@ -849,7 +878,9 @@ export const ${camel(
     `${operationPrefix}-${type}`,
   )}(${queryOptionsVarName}) as ${returnType};
 
-  query.queryKey = ${queryOptionsVarName}.queryKey;
+  query.queryKey = ${queryOptionsVarName}.queryKey ${
+    isVue(outputClient) ? 'as QueryKey' : ''
+  };
 
   return query;
 }\n`;
@@ -868,9 +899,18 @@ const generateQueryHook = async (
     response,
     operationId,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} }, context, output }: GeneratorOptions,
+  {
+    route: _route,
+    override: { operations = {} },
+    context,
+    output,
+  }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
+  // Vue - Unwrap path params
+  const route: string = isVue(outputClient)
+    ? vueMakeRouteReactive(_route)
+    : _route;
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
@@ -945,12 +985,20 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryKeyProps = toObjectString(
+    let queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
     );
 
-    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+    if (isVue(outputClient)) {
+      queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
+    }
+
+    const routeString = isVue(outputClient)
+      ? getRouteAsArray(_route)
+      : `\`${route}\``;
+
+    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [${routeString}${
       queryParams ? ', ...(params ? [params]: [])' : ''
     }${body.implementation ? `, ${body.implementation}` : ''}] as const;`;
 
@@ -1188,6 +1236,7 @@ export const generateQuery: ClientBuilder = async (
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
+    outputClient,
   );
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);

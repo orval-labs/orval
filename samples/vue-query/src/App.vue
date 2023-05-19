@@ -1,25 +1,31 @@
 <template>
-  <div className="App">
-    <header className="App-header">
-      <img src="./assets/logo.svg" className="App-logo" alt="logo" />
-      <Pets />
+  <div class="App">
+    <header class="App-header">
+      <img src="./assets/logo.svg" class="App-logo" alt="logo" />
+      <Pet
+        v-if="selectedPetId"
+        :pet-id="selectedPetId"
+        :id="'selected-pet-' + selectedPetId"
+      />
+      <Pets @[SELECT_PET_ID_EVENT]="selectedPetId = $event" />
     </header>
   </div>
-  <VueQueryDevTools />
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { useQueryProvider } from 'vue-query';
-import { VueQueryDevTools } from 'vue-query/devtools';
+import { defineComponent, ref } from 'vue';
+import { SELECT_PET_ID_EVENT } from './constants';
 
 import Pets from './components/pets.vue';
+import Pet from './components/pet.vue';
 
 export default defineComponent({
   name: 'App',
-  components: { VueQueryDevTools, Pets },
+  components: { Pets, Pet },
   setup() {
-    useQueryProvider();
+    const selectedPetId = ref();
+
+    return { selectedPetId, SELECT_PET_ID_EVENT };
   },
 });
 </script>
@@ -32,6 +38,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
 }
 
 code {

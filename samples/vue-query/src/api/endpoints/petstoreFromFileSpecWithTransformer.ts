@@ -15,6 +15,8 @@ import type {
   UseQueryReturnType,
   UseInfiniteQueryReturnType,
 } from '@tanstack/vue-query';
+import { unref } from 'vue';
+import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
 import type {
   Pets,
   Error,
@@ -32,26 +34,28 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
  * @summary List all pets
  */
 export const listPets = (
-  params?: ListPetsParams,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   signal?: AbortSignal,
 ) => {
   return customInstance<Pets>({
-    url: `/v${version}/pets`,
+    url: `/v${unref(version)}/pets`,
     method: 'get',
     params,
     signal,
   });
 };
 
-export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) =>
-  [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+export const getListPetsQueryKey = (
+  params?: MaybeRef<ListPetsParams>,
+  version = 1,
+) => ['v', version, 'pets', ...(params ? [params] : [])] as const;
 
 export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: ListPetsParams,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -64,7 +68,7 @@ export const getListPetsInfiniteQueryOptions = <
   Awaited<ReturnType<typeof listPets>>,
   TError,
   TData
-> & { queryKey: QueryKey } => {
+> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getListPetsQueryKey(params, version);
@@ -86,7 +90,7 @@ export const useListPetsInfinite = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: ListPetsParams,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -107,7 +111,7 @@ export const useListPetsInfinite = <
     TError
   > & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
@@ -116,7 +120,7 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: ListPetsParams,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -125,9 +129,7 @@ export const getListPetsQueryOptions = <
       TData
     >;
   },
-): UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> & {
-  queryKey: QueryKey;
-} => {
+): UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getListPetsQueryKey(params, version);
@@ -148,7 +150,7 @@ export const useListPets = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: ListPetsParams,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -164,7 +166,7 @@ export const useListPets = <
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
@@ -172,9 +174,12 @@ export const useListPets = <
 /**
  * @summary Create a pet
  */
-export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
+export const createPets = (
+  createPetsBody: MaybeRef<CreatePetsBody>,
+  version = 1,
+) => {
   return customInstance<Pet>({
-    url: `/v${version}/pets`,
+    url: `/v${unref(version)}/pets`,
     method: 'post',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -234,25 +239,25 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: string,
+  petId: MaybeRef<string>,
   version = 1,
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
-    url: `/v${version}/pets/${petId}`,
+    url: `/v${unref(version)}/pets/${unref(petId)}`,
     method: 'get',
     signal,
   });
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version = 1) =>
-  [`/v${version}/pets/${petId}`] as const;
+export const getShowPetByIdQueryKey = (petId: MaybeRef<string>, version = 1) =>
+  ['v', version, 'pets', petId] as const;
 
 export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -265,7 +270,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   Awaited<ReturnType<typeof showPetById>>,
   TError,
   TData
-> & { queryKey: QueryKey } => {
+> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getShowPetByIdQueryKey(petId, version);
@@ -286,7 +291,7 @@ export const useShowPetByIdInfinite = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -307,7 +312,7 @@ export const useShowPetByIdInfinite = <
     TError
   > & { queryKey: QueryKey };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };
@@ -316,7 +321,7 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -325,9 +330,7 @@ export const getShowPetByIdQueryOptions = <
       TData
     >;
   },
-): UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> & {
-  queryKey: QueryKey;
-} => {
+): UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> => {
   const { query: queryOptions } = options ?? {};
 
   const queryKey = getShowPetByIdQueryKey(petId, version);
@@ -348,7 +351,7 @@ export const useShowPetById = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: string,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -364,7 +367,7 @@ export const useShowPetById = <
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
+  query.queryKey = queryOptions.queryKey as QueryKey;
 
   return query;
 };

@@ -9,13 +9,13 @@
   },
   "dependencies": {
     "@faker-js/faker": "^7.3.0",
-    "@tanstack/vue-query": "^4.22.0",
+    "@tanstack/vue-query": "4.29.5",
     "axios": "^0.26.1",
-    "vue": "^3.0.5"
+    "vue": "3.2.36"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^1.2.5",
-    "@vue/compiler-sfc": "^3.0.5",
+    "@vue/compiler-sfc": "3.2.36",
     "msw": "^0.32.0",
     "orval": "link:../../packages/orval/dist",
     "typescript": "^4.3.2",
