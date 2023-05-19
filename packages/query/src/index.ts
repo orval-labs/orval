@@ -1191,9 +1191,9 @@ ${mutationOptionsFn}
     }
     export type ${pascal(operationName)}MutationError = ${errorType}
 
-    export const ${camel(
-      `${operationPrefix}-${operationName}`,
-    )} = <TError = ${errorType},
+    ${doc}export const ${camel(
+    `${operationPrefix}-${operationName}`,
+  )} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${mutationArguments}) => {
     
