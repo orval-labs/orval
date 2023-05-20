@@ -5,6 +5,7 @@ import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
+import { mergeAllOf } from './merge-all-of';
 
 /**
  * Return the output type from an object
@@ -35,8 +36,12 @@ export const getObject = ({
     };
   }
 
-  if (item.allOf || item.oneOf || item.anyOf) {
-    const separator = item.allOf ? 'allOf' : item.oneOf ? 'oneOf' : 'anyOf';
+  if (item.allOf) {
+    item = mergeAllOf(item, context);
+  }
+
+  if (item.oneOf || item.anyOf) {
+    const separator = item.oneOf ? 'oneOf' : 'anyOf';
 
     return combineSchemas({
       schema: item,
@@ -89,6 +94,8 @@ export const getObject = ({
         if (isNameAlreadyTaken) {
           propName = propName + 'Property';
         }
+
+        schema = mergeAllOf(schema, context);
 
         const resolvedValue = resolveObject({
           schema,

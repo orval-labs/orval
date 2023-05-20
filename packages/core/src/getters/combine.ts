@@ -23,12 +23,11 @@ type CombinedData = {
   hasReadonlyProps: boolean;
 };
 
-type Separator = 'allOf' | 'anyOf' | 'oneOf';
+type Separator = 'anyOf' | 'oneOf';
 
 const combineValues = ({
   resolvedData,
   resolvedValue,
-  separator,
 }: {
   resolvedData: CombinedData;
   resolvedValue?: ScalarValue;
@@ -39,12 +38,6 @@ const combineValues = ({
   if (isAllEnums) {
     return `${resolvedData.values.join(` | `)}${
       resolvedValue ? ` | ${resolvedValue.value}` : ''
-    }`;
-  }
-
-  if (separator === 'allOf') {
-    return `${resolvedData.values.join(` & `)}${
-      resolvedValue ? ` & ${resolvedValue.value}` : ''
     }`;
   }
 
