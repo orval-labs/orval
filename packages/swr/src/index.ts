@@ -23,6 +23,7 @@ import {
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
+  jsDoc,
 } from '@orval/core';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -197,6 +198,7 @@ const generateSwrImplementation = ({
   response,
   swrOptions,
   props,
+  doc,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -208,6 +210,7 @@ const generateSwrImplementation = ({
   response: GetterResponse;
   mutator?: GeneratorMutator;
   swrOptions: { options?: any };
+  doc?: string;
 }) => {
   const swrProps = toObjectString(props, 'implementation');
   const httpFunctionProps = swrProperties;
@@ -233,7 +236,7 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
 export type ${pascal(operationName)}QueryError = ${errorType}
 
-export const ${camel(
+${doc}export const ${camel(
     `use-${operationName}`,
   )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
     operationName,
@@ -293,6 +296,8 @@ const generateSwrHook = (
     override,
     mutator,
     response,
+    summary,
+    deprecated,
   }: GeneratorVerbOptions,
   { route }: GeneratorOptions,
 ) => {
@@ -321,6 +326,8 @@ const generateSwrHook = (
     'implementation',
   );
 
+  const doc = jsDoc({ summary, deprecated });
+
   return `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     queryParams ? ', ...(params ? [params]: [])' : ''
   }${body.implementation ? `, ${body.implementation}` : ''}] as const;
@@ -336,6 +343,7 @@ const generateSwrHook = (
       isRequestOptions,
       response,
       swrOptions: override.swr,
+      doc,
     })}
 `;
 };

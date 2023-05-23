@@ -30,6 +30,7 @@ import {
   Verbs,
   VERBS_WITH_BODY,
   getRouteAsArray,
+  jsDoc,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
@@ -698,6 +699,7 @@ const generateQueryImplementation = ({
   route,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  doc,
 }: {
   queryOption: {
     name: string;
@@ -722,6 +724,7 @@ const generateQueryImplementation = ({
   route: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  doc?: string;
 }) => {
   const queryProps = isVue(outputClient)
     ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
@@ -866,7 +869,7 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
-export const ${camel(
+${doc}export const ${camel(
     `${operationPrefix}-${name}`,
   )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
 
@@ -898,6 +901,8 @@ const generateQueryHook = async (
     mutator,
     response,
     operationId,
+    summary,
+    deprecated,
   }: GeneratorVerbOptions,
   {
     route: _route,
@@ -923,6 +928,8 @@ const generateQueryHook = async (
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
     !isSvelteQueryV3(context.packageJson);
+
+  const doc = jsDoc({ summary, deprecated });
 
   if (
     verb === Verbs.GET ||
@@ -1027,6 +1034,7 @@ const generateQueryHook = async (
           route,
           hasVueQueryV4,
           hasSvelteQueryV4,
+          doc,
         }),
       '',
     )}
@@ -1183,9 +1191,9 @@ ${mutationOptionsFn}
     }
     export type ${pascal(operationName)}MutationError = ${errorType}
 
-    export const ${camel(
-      `${operationPrefix}-${operationName}`,
-    )} = <TError = ${errorType},
+    ${doc}export const ${camel(
+    `${operationPrefix}-${operationName}`,
+  )} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${mutationArguments}) => {
     
