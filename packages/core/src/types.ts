@@ -289,6 +289,7 @@ export type OverrideOutputContentType = {
 
 export type NormalizedQueryOptions = {
   useQuery?: boolean;
+  useMutation?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
@@ -300,6 +301,7 @@ export type NormalizedQueryOptions = {
 
 export type QueryOptions = {
   useQuery?: boolean;
+  useMutation?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;

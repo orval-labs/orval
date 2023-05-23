@@ -180,6 +180,7 @@ export const normalizeOptions = async (
         },
         query: {
           useQuery: true,
+          useMutation: true,
           signal: true,
           ...normalizeQueryOptions(outputOptions.override?.query, workspace),
         },
@@ -360,6 +361,9 @@ const normalizeQueryOptions = (
   return {
     ...(!isUndefined(queryOptions.useQuery)
       ? { useQuery: queryOptions.useQuery }
+      : {}),
+    ...(!isUndefined(queryOptions.useMutation)
+      ? { useMutation: queryOptions.useMutation }
       : {}),
     ...(!isUndefined(queryOptions.useInfinite)
       ? { useInfinite: queryOptions.useInfinite }

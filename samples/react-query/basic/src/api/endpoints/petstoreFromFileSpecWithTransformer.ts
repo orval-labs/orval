@@ -115,6 +115,9 @@ export type ListPetsInfiniteQueryResult = NonNullable<
 >;
 export type ListPetsInfiniteQueryError = ErrorType<Error>;
 
+/**
+ * @summary List all pets
+ */
 export const useListPetsInfinite = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
@@ -178,6 +181,9 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = ErrorType<Error>;
 
+/**
+ * @summary List all pets
+ */
 export const useListPets = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
@@ -251,6 +257,9 @@ export type CreatePetsMutationResult = NonNullable<
 export type CreatePetsMutationBody = CreatePetsBody;
 export type CreatePetsMutationError = ErrorType<Error>;
 
+/**
+ * @summary Create a pet
+ */
 export const useCreatePets = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -315,6 +324,9 @@ export type UpdatePetsMutationResult = NonNullable<
 export type UpdatePetsMutationBody = NonReadonly<Pet>;
 export type UpdatePetsMutationError = ErrorType<Error>;
 
+/**
+ * @summary Update a pet
+ */
 export const useUpdatePets = <
   TError = ErrorType<Error>,
   TContext = unknown,
@@ -384,6 +396,9 @@ export type ShowPetByIdInfiniteQueryResult = NonNullable<
 >;
 export type ShowPetByIdInfiniteQueryError = ErrorType<Error>;
 
+/**
+ * @summary Info for a specific pet
+ */
 export const useShowPetByIdInfinite = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = ErrorType<Error>,
@@ -447,6 +462,9 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = ErrorType<Error>;
 
+/**
+ * @summary Info for a specific pet
+ */
 export const useShowPetById = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = ErrorType<Error>,
