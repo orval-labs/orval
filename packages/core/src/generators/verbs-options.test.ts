@@ -55,8 +55,7 @@ describe('_filteredVerbs', () => {
     };
 
     const filters = {
-      regex: true,
-      tags: /tag1/,
+      tags: [/tag1/],
     };
 
     expect(_filteredVerbs(verbs, filters)).toEqual(

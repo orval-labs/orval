@@ -229,18 +229,14 @@ export const _filteredVerbs = (
     return Object.entries(verbs);
   }
 
-  if (filters.regex) {
-    return Object.entries(verbs).filter(
-      ([_verb, operation]: [string, OperationObject]) => {
-        return operation.tags?.some((tag) => filters.tags?.test(tag));
-      },
-    );
-  }
-
   return Object.entries(verbs).filter(
     ([_verb, operation]: [string, OperationObject]) => {
-      return operation.tags?.some((tag) =>
-        (filters.tags as string[]).includes(tag),
+      const operationTags = operation.tags || [];
+      const filterTags = filters.tags || [];
+      return operationTags.some((tag) =>
+        filterTags.some((filterTag) =>
+          filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
+        ),
       );
     },
   );

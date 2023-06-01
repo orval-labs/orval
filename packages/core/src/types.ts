@@ -132,23 +132,15 @@ export type NormalizedOperationOptions = {
   requestOptions?: object | boolean;
 };
 
-type InputFilterTags =
-  | {
-      regex?: true;
-      tags?: RegExp;
-    }
-  | {
-      regex?: false;
-      tags?: string[];
-    };
-
 export type NormalizedInputOptions = {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation: boolean;
   override: OverrideInput;
   converterOptions: swagger2openapi.Options;
   parserOptions: SwaggerParserOptions;
-  filters?: {} & InputFilterTags;
+  filters?: {
+    tags?: (string | RegExp)[];
+  };
 };
 
 export type OutputClientFunc = (
