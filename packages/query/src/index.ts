@@ -29,9 +29,16 @@ import {
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
+  getRouteAsArray,
+  jsDoc,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
-import { normalizeQueryOptions } from './utils';
+import {
+  normalizeQueryOptions,
+  vueMakeRouteReactive,
+  vueWrapTypeWithMaybeRef,
+  isVue,
+} from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -195,6 +202,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
     dependency: 'vue-query/types',
   },
   {
+    exports: [{ name: 'unref', values: true }],
+    dependency: 'vue',
+  },
+  {
     exports: [{ name: 'UseQueryReturnType' }],
     dependency: 'vue-query/lib/vue/useBaseQuery',
   },
@@ -216,6 +227,10 @@ const VUE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryReturnType' },
     ],
     dependency: '@tanstack/vue-query',
+  },
+  {
+    exports: [{ name: 'unref', values: true }],
+    dependency: 'vue',
   },
   {
     exports: [{ name: 'MaybeRef' }],
@@ -274,8 +289,13 @@ const generateQueryRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
 ) => {
+  // Vue - Unwrap path params
+  const route: string = isVue(outputClient)
+    ? vueMakeRouteReactive(_route)
+    : _route;
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -311,13 +331,17 @@ const generateQueryRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
-    const propsImplementation =
+    let propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
+
+    if (isVue(outputClient)) {
+      propsImplementation = vueWrapTypeWithMaybeRef(propsImplementation);
+    }
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
@@ -380,10 +404,11 @@ const generateQueryRequestFunction = (
     hasSignal,
   });
 
-  return `export const ${operationName} = (\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${optionsArgs} ): Promise<AxiosResponse<${
+  const queryProps = isVue(outputClient)
+    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    : toObjectString(props, 'implementation');
+
+  return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
@@ -674,6 +699,7 @@ const generateQueryImplementation = ({
   route,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  doc,
 }: {
   queryOption: {
     name: string;
@@ -698,8 +724,12 @@ const generateQueryImplementation = ({
   route: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  doc?: string;
 }) => {
-  const queryProps = toObjectString(props, 'implementation');
+  const queryProps = isVue(outputClient)
+    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    : toObjectString(props, 'implementation');
+
   const httpFunctionProps = queryParam
     ? props
         .map(({ name }) =>
@@ -780,7 +810,9 @@ const generateQueryImplementation = ({
 
   const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} & { queryKey: QueryKey } => {
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} ${
+    isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
+  } => {
 ${hookOptions}
 
   const queryKey =  ${
@@ -837,7 +869,7 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
-export const ${camel(
+${doc}export const ${camel(
     `${operationPrefix}-${name}`,
   )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
 
@@ -849,7 +881,9 @@ export const ${camel(
     `${operationPrefix}-${type}`,
   )}(${queryOptionsVarName}) as ${returnType};
 
-  query.queryKey = ${queryOptionsVarName}.queryKey;
+  query.queryKey = ${queryOptionsVarName}.queryKey ${
+    isVue(outputClient) ? 'as QueryKey' : ''
+  };
 
   return query;
 }\n`;
@@ -867,10 +901,21 @@ const generateQueryHook = async (
     mutator,
     response,
     operationId,
+    summary,
+    deprecated,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} }, context, output }: GeneratorOptions,
+  {
+    route: _route,
+    override: { operations = {} },
+    context,
+    output,
+  }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
+  // Vue - Unwrap path params
+  const route: string = isVue(outputClient)
+    ? vueMakeRouteReactive(_route)
+    : _route;
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
@@ -884,11 +929,18 @@ const generateQueryHook = async (
     OutputClient.SVELTE_QUERY === outputClient &&
     !isSvelteQueryV3(context.packageJson);
 
-  if (
-    verb === Verbs.GET ||
+  const doc = jsDoc({ summary, deprecated });
+
+  let implementation = '';
+  let mutators = undefined;
+
+  const isQuery =
+    (Verbs.GET === verb &&
+      (override.query.useQuery || override.query.useInfinite)) ||
     operationQueryOptions?.useInfinite ||
-    operationQueryOptions?.useQuery
-  ) {
+    operationQueryOptions?.useQuery;
+
+  if (isQuery) {
     const queryKeyMutator = query.queryKey
       ? await generateMutator({
           output,
@@ -945,16 +997,24 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryKeyProps = toObjectString(
+    let queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
     );
 
-    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+    if (isVue(outputClient)) {
+      queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
+    }
+
+    const routeString = isVue(outputClient)
+      ? getRouteAsArray(_route)
+      : `\`${route}\``;
+
+    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [${routeString}${
       queryParams ? ', ...(params ? [params]: [])' : ''
     }${body.implementation ? `, ${body.implementation}` : ''}] as const;`;
 
-    const implementation = `${!queryKeyMutator ? queryKeyFn : ''}
+    implementation += `${!queryKeyMutator ? queryKeyFn : ''}
   
 
     ${queries.reduce(
@@ -979,87 +1039,90 @@ const generateQueryHook = async (
           route,
           hasVueQueryV4,
           hasSvelteQueryV4,
+          doc,
         }),
       '',
     )}
 `;
 
-    return {
-      implementation,
-      mutators:
-        queryOptionsMutator || queryKeyMutator
-          ? [
-              ...(queryOptionsMutator ? [queryOptionsMutator] : []),
-              ...(queryKeyMutator ? [queryKeyMutator] : []),
-            ]
-          : undefined,
-    };
+    mutators =
+      queryOptionsMutator || queryKeyMutator
+        ? [
+            ...(queryOptionsMutator ? [queryOptionsMutator] : []),
+            ...(queryKeyMutator ? [queryKeyMutator] : []),
+          ]
+        : undefined;
   }
 
-  const mutationOptionsMutator = query.mutationOptions
-    ? await generateMutator({
-        output,
-        mutator: query.mutationOptions,
-        name: `${operationName}MutationOptions`,
-        workspace: context.workspace,
-        tsconfig: context.tsconfig,
-      })
-    : undefined;
+  const isMutation =
+    (verb !== Verbs.GET && override.query.useMutation) ||
+    operationQueryOptions?.useMutation;
 
-  const definitions = props
-    .map(({ definition, type }) =>
-      type === GetterPropType.BODY
-        ? mutator?.bodyTypeName
-          ? `data: ${mutator.bodyTypeName}<${body.definition}>`
-          : `data: ${body.definition}`
-        : definition,
-    )
-    .join(';');
+  if (isMutation) {
+    const mutationOptionsMutator = query.mutationOptions
+      ? await generateMutator({
+          output,
+          mutator: query.mutationOptions,
+          name: `${operationName}MutationOptions`,
+          workspace: context.workspace,
+          tsconfig: context.tsconfig,
+        })
+      : undefined;
 
-  const properties = props
-    .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
-    .join(',');
+    const definitions = props
+      .map(({ definition, type }) =>
+        type === GetterPropType.BODY
+          ? mutator?.bodyTypeName
+            ? `data: ${mutator.bodyTypeName}<${body.definition}>`
+            : `data: ${body.definition}`
+          : definition,
+      )
+      .join(';');
 
-  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+    const properties = props
+      .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
+      .join(',');
 
-  if (mutator) {
-    errorType = mutator.hasErrorType
-      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
-          response.definition.errors || 'unknown'
-        }>`
-      : response.definition.errors || 'unknown';
-  }
+    let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
-  const dataType = mutator?.isHook
-    ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-    : `typeof ${operationName}`;
+    if (mutator) {
+      errorType = mutator.hasErrorType
+        ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
+            response.definition.errors || 'unknown'
+          }>`
+        : response.definition.errors || 'unknown';
+    }
 
-  const mutationOptionFnReturnType = getQueryOptionsDefinition({
-    operationName,
-    definitions,
-    mutator,
-    hasSvelteQueryV4,
-  });
+    const dataType = mutator?.isHook
+      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+      : `typeof ${operationName}`;
 
-  const mutationArguments = generateQueryArguments({
-    operationName,
-    definitions,
-    mutator,
-    isRequestOptions,
-    hasSvelteQueryV4,
-  });
+    const mutationOptionFnReturnType = getQueryOptionsDefinition({
+      operationName,
+      definitions,
+      mutator,
+      hasSvelteQueryV4,
+    });
 
-  const mutationOptionsFnName = camel(
-    mutationOptionsMutator || mutator?.isHook
-      ? `use-${operationName}-mutationOptions`
-      : `get-${operationName}-mutationOptions`,
-  );
+    const mutationArguments = generateQueryArguments({
+      operationName,
+      definitions,
+      mutator,
+      isRequestOptions,
+      hasSvelteQueryV4,
+    });
 
-  const mutationOptionsVarName = isRequestOptions
-    ? 'mutationOptions'
-    : 'options';
+    const mutationOptionsFnName = camel(
+      mutationOptionsMutator || mutator?.isHook
+        ? `use-${operationName}-mutationOptions`
+        : `get-${operationName}-mutationOptions`,
+    );
 
-  const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
+    const mutationOptionsVarName = isRequestOptions
+      ? 'mutationOptions'
+      : 'options';
+
+    const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
  ${
@@ -1082,19 +1145,19 @@ const generateQueryHook = async (
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-    definitions ? `{${definitions}}` : 'TVariables'
-  }> = (${properties ? 'props' : ''}) => {
+      definitions ? `{${definitions}}` : 'TVariables'
+    }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
-    isRequestOptions
-      ? !mutator
-        ? `axiosOptions`
-        : mutator?.hasSecondArg
-        ? 'requestOptions'
+      isRequestOptions
+        ? !mutator
+          ? `axiosOptions`
+          : mutator?.hasSecondArg
+          ? 'requestOptions'
+          : ''
         : ''
-      : ''
-  })
+    })
         }
 
         ${
@@ -1116,9 +1179,9 @@ const generateQueryHook = async (
        : 'customOptions'
    }}`;
 
-  const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
+    const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
-  const implementation = `
+    implementation += `
 ${mutationOptionsFn}
 
     export type ${pascal(
@@ -1135,23 +1198,28 @@ ${mutationOptionsFn}
     }
     export type ${pascal(operationName)}MutationError = ${errorType}
 
-    export const ${camel(
+    ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
     )} = <TError = ${errorType},
     ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${mutationArguments}) => {
     
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
-    isRequestOptions ? 'options' : 'mutationOptions'
-  });
+      isRequestOptions ? 'options' : 'mutationOptions'
+    });
      
       return ${operationPrefix}Mutation(${mutationOptionsVarName});
     }
     `;
 
+    mutators = mutationOptionsMutator
+      ? [...(mutators ?? []), mutationOptionsMutator]
+      : mutators;
+  }
+
   return {
     implementation,
-    mutators: mutationOptionsMutator ? [mutationOptionsMutator] : undefined,
+    mutators,
   };
 };
 
@@ -1188,6 +1256,7 @@ export const generateQuery: ClientBuilder = async (
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
+    outputClient,
   );
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);

@@ -36,7 +36,7 @@ export const Toc = ({ title }) => {
   );
 
   return (
-    <ul className="space-y-3">
+    <ul className={cx('space-y-3', styles.contents__list)}>
       <li className="text-sm">
         <a className={styles.contents__link} href="#_top">
           {title}

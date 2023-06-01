@@ -23,7 +23,7 @@ module.exports = {
 
 Type: `String | Function`.
 
-Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`, `vue-query`.
+Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`, `vue-query`, `zod`.
 
 Default Value: `axios-functions`.
 
@@ -551,13 +551,19 @@ module.exports = {
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
+Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
+
+##### useMutation
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useMutation" target="_blank">useMutation</a> custom hook.
 
 ##### useInfinite
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://react-query.tanstack.com/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
+Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
 
 ##### useInfiniteQueryParam
 
@@ -569,7 +575,7 @@ Use to automatically add to the request the query param provided by the useInfin
 
 Type: `Object`.
 
-Use to override the query config. Check available options <a href="https://react-query.tanstack.com/reference/useQuery" target="_blank">here</a>
+Use to override the query config. Check available options <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">here</a>
 
 ##### queryOptions
 
@@ -1042,6 +1048,28 @@ export function handleDates(body: any) {
     }
   }
 }
+```
+
+#### useBigInt
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to convert OpenAPI `int64` format to JavaScript `BigInt` objects instead of `number`.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useBigInt: true,
+      },
+    },
+  },
+};
 ```
 
 #### useTypeOverInterfaces

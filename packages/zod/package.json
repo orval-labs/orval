@@ -1,6 +1,6 @@
 {
   "name": "@orval/zod",
-  "version": "6.14.3",
+  "version": "6.16.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.14.3",
+    "@orval/core": "6.16.0",
     "lodash.uniq": "^4.5.0"
   },
   "devDependencies": {

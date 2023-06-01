@@ -1,4 +1,4 @@
-import { Parser } from 'acorn';
+import acorn, { Parser } from 'acorn';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import {
@@ -6,6 +6,7 @@ import {
   GeneratorMutatorParsingInfo,
   NormalizedMutator,
   Tsconfig,
+  TsConfigTarget,
 } from '../types';
 import { createLogger, getFileInfo, loadFile, pascal, upath } from '../utils';
 
@@ -69,7 +70,12 @@ export const generateMutator = async ({
 
   if (file) {
     const mutatorInfoName = isDefault ? 'default' : mutator.name!;
-    const mutatorInfo = parseFile(file, mutatorInfoName);
+
+    const mutatorInfo = parseFile(
+      file,
+      mutatorInfoName,
+      getEcmaVersion(tsconfig?.compilerOptions?.target),
+    );
 
     if (!mutatorInfo) {
       createLogger().error(
@@ -122,12 +128,31 @@ export const generateMutator = async ({
   }
 };
 
+const getEcmaVersion = (
+  target?: TsConfigTarget,
+): acorn.ecmaVersion | undefined => {
+  if (!target) {
+    return;
+  }
+
+  if (target.toLowerCase() === 'esnext') {
+    return 'latest';
+  }
+
+  try {
+    return Number(target.toLowerCase().replace('es', '')) as acorn.ecmaVersion;
+  } catch {
+    return;
+  }
+};
+
 const parseFile = (
   file: string,
   name: string,
+  ecmaVersion: acorn.ecmaVersion = 6,
 ): GeneratorMutatorParsingInfo | undefined => {
   try {
-    const ast = Parser.parse(file, { ecmaVersion: 6 }) as any;
+    const ast = Parser.parse(file, { ecmaVersion }) as any;
 
     const node = ast?.body?.find((childNode: any) => {
       if (childNode.type === 'ExpressionStatement') {

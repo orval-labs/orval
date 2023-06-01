@@ -6,6 +6,8 @@ import {
   NormalizedMutator,
   NormalizedQueryOptions,
   QueryOptions,
+  OutputClient,
+  OutputClientFunc,
   upath,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -73,3 +75,32 @@ const normalizeMutator = <T>(
 
   return mutator;
 };
+
+/**
+ * Wrap any type declaration with MaybeRef\<type\>
+ */
+export function vueWrapTypeWithMaybeRef(input: string): string {
+  if (!input.includes(',')) return input;
+
+  const output = input
+    .split(',')
+    .map((param) => {
+      const [paramName, paramType] = param.split(':');
+      if (paramType) {
+        return `${paramName}: MaybeRef<${paramType.trim()}>,`;
+      } else {
+        return `${param},`;
+      }
+    })
+    .join('')
+    .replace(',,', ',');
+
+  return output;
+}
+
+// Vue persist reactivity
+export const vueMakeRouteReactive = (route: string): string =>
+  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
+
+export const isVue = (client: OutputClient | OutputClientFunc) =>
+  OutputClient.VUE_QUERY === client;

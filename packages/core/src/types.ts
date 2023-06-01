@@ -100,6 +100,7 @@ export type NormalizedOverrideOutput = {
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
+  useBigInt?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -279,6 +280,7 @@ export type OverrideOutput = {
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
+  useBigInt?: boolean;
 };
 
 export type OverrideOutputContentType = {
@@ -288,6 +290,7 @@ export type OverrideOutputContentType = {
 
 export type NormalizedQueryOptions = {
   useQuery?: boolean;
+  useMutation?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
@@ -299,6 +302,7 @@ export type NormalizedQueryOptions = {
 
 export type QueryOptions = {
   useQuery?: boolean;
+  useMutation?: boolean;
   useInfinite?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
@@ -409,8 +413,23 @@ export interface Tsconfig {
     allowSyntheticDefaultImports?: boolean;
     exactOptionalPropertyTypes?: boolean;
     paths?: Record<string, string[]>;
+    target?: TsConfigTarget;
   };
 }
+
+export type TsConfigTarget =
+  | 'es3'
+  | 'es5'
+  | 'es6'
+  | 'es2015'
+  | 'es2016'
+  | 'es2017'
+  | 'es2018'
+  | 'es2019'
+  | 'es2020'
+  | 'es2021'
+  | 'es2022'
+  | 'esnext'; // https://www.typescriptlang.org/tsconfig#target
 
 export interface PackageJson {
   dependencies?: Record<string, string>;

@@ -3,7 +3,7 @@
   "include": ["generated/**/*", "regressions/**/*"],
   "compilerOptions": {
     "skipLibCheck": true,
-    "target": "es5",
+    "target": "es6",
     "module": "commonjs",
     "lib": ["es2019", "dom", "es2016.array.include", "es2017.object"],
     "declaration": true,

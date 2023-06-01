@@ -210,8 +210,13 @@ async function bundleFile(
     format: mjs ? 'esm' : 'cjs',
     sourcemap: 'inline',
     metafile: true,
-    target: 'es6',
-    minifyWhitespace: true,
+    target: compilerOptions?.target || 'es6',
+    minify: false,
+    minifyIdentifiers: false,
+    minifySyntax: false,
+    minifyWhitespace: false,
+    treeShaking: false,
+    keepNames: false,
     plugins: [
       ...(alias || compilerOptions?.paths
         ? [

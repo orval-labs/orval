@@ -5,7 +5,7 @@ export const compareVersions = (
   secondVersions: string,
   operator: CompareOperator = '>=',
 ) => {
-  if (firstVersion === 'latest') {
+  if (firstVersion === 'latest' || firstVersion === '*') {
     return true;
   }
 
