@@ -73,7 +73,7 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
 
   const schemaByRefPaths: Schema | undefined =
     refPaths && get(context.specs[specKey || context.specKey], refPaths);
-  if (isReferenceObject(schemaByRefPaths)) {
+  if (isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);
   }
   const currentSchema = schemaByRefPaths
@@ -83,10 +83,4 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
     currentSchema,
     refInfo,
   };
-}
-
-function isReferenceObject(
-  schema: ComponentObject | undefined,
-): schema is ReferenceObject {
-  return !!schema && !!(schema as ReferenceObject).$ref;
 }
