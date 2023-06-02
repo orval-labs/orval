@@ -16,7 +16,7 @@ paths:
         content:
           'application/json':
             schema:
-              $ref: '#/components/schemas/Pet'
+              $ref: '#/components/schemas/MyPet'
         required: true
       responses:
         '200':
@@ -24,8 +24,8 @@ paths:
           content:
             'application/json':
               schema:
-                $ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/MyPet'
 components:
   schemas:
-    Pet:
+    MyPet:
       $ref: 'schemas/pet.yaml'
