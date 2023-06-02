@@ -10,7 +10,7 @@ import { RefInfo, getRefInfo } from '../getters/ref';
 import { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
 
-type ComponentObject =
+export type ComponentObject =
   | SchemaObject
   | ResponseObject
   | ParameterObject
