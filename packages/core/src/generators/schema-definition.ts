@@ -31,6 +31,7 @@ export const generateSchemasDefinition = (
         es5keyword: true,
         es5IdentifierName: true,
       });
+      console.log('schema', schemaName, schema);
       if (
         (!schema.type || schema.type === 'object') &&
         !schema.allOf &&
