@@ -132,6 +132,7 @@ export type NormalizedOperationOptions = {
   formUrlEncoded?: boolean | NormalizedMutator;
   requestOptions?: object | boolean;
 };
+
 export type NormalizedInputOptions = {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation: boolean;
@@ -139,7 +140,7 @@ export type NormalizedInputOptions = {
   converterOptions: swagger2openapi.Options;
   parserOptions: SwaggerParserOptions;
   filters?: {
-    tags?: string[];
+    tags?: (string | RegExp)[];
   };
 };
 
