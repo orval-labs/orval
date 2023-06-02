@@ -28,4 +28,4 @@ paths:
 components:
   schemas:
     Pet:
-      $ref: 'schemas/pet.yaml#/components/schemas/Pet'
+      $ref: 'schemas/pet.yaml'

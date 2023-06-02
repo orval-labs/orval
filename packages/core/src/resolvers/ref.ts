@@ -44,17 +44,10 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
     return { schema: schema as Schema, imports };
   }
 
-  const { name, originalName, specKey, refPaths } = getRefInfo(
-    schema.$ref,
+  const { currentSchema, specKey, name, originalName } = getSchema(
+    schema,
     context,
   );
-
-  const schemaByRefPaths: Schema | undefined =
-    refPaths && get(context.specs[specKey || context.specKey], refPaths);
-  const currentSchema =
-    schemaByRefPaths && !(schemaByRefPaths as ReferenceObject).$ref
-      ? schemaByRefPaths
-      : (context.specs[specKey || context.specKey] as unknown as Schema);
 
   if (!currentSchema) {
     throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
@@ -66,3 +59,39 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
     [...imports, { name, specKey, schemaName: originalName }],
   );
 };
+
+function getSchema<Schema extends ComponentObject = ComponentObject>(
+  schema: ReferenceObject,
+  context: ContextSpecs,
+): {
+  specKey: string | undefined;
+  name: string;
+  originalName: string;
+  currentSchema: Schema | undefined;
+} {
+  const { name, originalName, specKey, refPaths } = getRefInfo(
+    schema.$ref,
+    context,
+  );
+
+  const schemaByRefPaths: Schema | undefined =
+    refPaths && get(context.specs[specKey || context.specKey], refPaths);
+  if (isReferenceObject(schemaByRefPaths)) {
+    return getSchema(schemaByRefPaths, context);
+  }
+  const currentSchema = schemaByRefPaths
+    ? schemaByRefPaths
+    : (context.specs[specKey || context.specKey] as unknown as Schema);
+  return {
+    currentSchema,
+    name,
+    originalName,
+    specKey,
+  };
+}
+
+function isReferenceObject(
+  schema: ComponentObject | undefined,
+): schema is ReferenceObject {
+  return !!schema && !!(schema as ReferenceObject).$ref;
+}
