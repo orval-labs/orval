@@ -61,22 +61,22 @@ export const generateSchemasDefinition = (
             resolvedValue.originalSchema?.['x-enumNames'],
           );
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
-          const imp = resolvedValue.imports.find(
-            (imp) => imp.name === schemaName,
-          );
+          // Don't add type if schema has same name and the referred schema will be an interface
+          const { schema: referredSchema } = resolveRef(schema, context);
+          if (!shouldCreateInterface(referredSchema as SchemaObject)) {
+            const imp = resolvedValue.imports.find(
+              (imp) => imp.name === schemaName,
+            );
 
-          if (!imp) {
-            output += `export type ${schemaName} = ${resolvedValue.value};\n`;
-          } else {
-            const alias = imp?.specKey
-              ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
-                  resolvedValue.value
-                }`
-              : `${resolvedValue.value}Bis`;
+            if (!imp) {
+              output += `export type ${schemaName} = ${resolvedValue.value};\n`;
+            } else {
+              const alias = imp?.specKey
+                ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
+                    resolvedValue.value
+                  }`
+                : `${resolvedValue.value}Bis`;
 
-            // Don't add type if schema has same name and the referred schema will be an interface
-            const { schema: referredSchema } = resolveRef(schema, context);
-            if (!shouldCreateInterface(referredSchema as SchemaObject)) {
               output += `export type ${schemaName} = ${alias};\n`;
 
               imports = imports.map((imp) =>
