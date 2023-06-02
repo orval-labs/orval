@@ -201,7 +201,7 @@ export const generateVerbsOptions = ({
   context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>
   asyncReduce(
-    filteredVerbs(verbs, input.filters),
+    _filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
@@ -221,7 +221,7 @@ export const generateVerbsOptions = ({
     [] as GeneratorVerbsOptions,
   );
 
-const filteredVerbs = (
+export const _filteredVerbs = (
   verbs: PathItemObject,
   filters: NormalizedInputOptions['filters'],
 ) => {
@@ -231,7 +231,13 @@ const filteredVerbs = (
 
   return Object.entries(verbs).filter(
     ([_verb, operation]: [string, OperationObject]) => {
-      return operation.tags?.some((tag) => filters.tags?.includes(tag));
+      const operationTags = operation.tags || [];
+      const filterTags = filters.tags || [];
+      return operationTags.some((tag) =>
+        filterTags.some((filterTag) =>
+          filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
+        ),
+      );
     },
   );
 };
