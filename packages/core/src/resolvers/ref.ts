@@ -49,11 +49,12 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
     context,
   );
 
-  const currentSchema = (
-    refPaths
-      ? get(context.specs[specKey || context.specKey], refPaths)
-      : context.specs[specKey || context.specKey]
-  ) as Schema;
+  const schemaByRefPaths: Schema | undefined =
+    refPaths && get(context.specs[specKey || context.specKey], refPaths);
+  const currentSchema =
+    schemaByRefPaths && !(schemaByRefPaths as ReferenceObject).$ref
+      ? schemaByRefPaths
+      : (context.specs[specKey || context.specKey] as unknown as Schema);
 
   if (!currentSchema) {
     throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
