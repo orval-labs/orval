@@ -56,6 +56,13 @@ export const getResponse = ({
       })
     : types;
 
+  const imports = filteredTypes.flatMap(({ imports }) => imports);
+  const schemas = filteredTypes.flatMap(({ schemas }) => schemas);
+
+  const contentTypes = [
+    ...new Set(filteredTypes.map(({ contentType }) => contentType)),
+  ];
+
   const groupedByStatus = filteredTypes.reduce<{
     success: ResReqTypesValue[];
     errors: ResReqTypesValue[];
@@ -71,23 +78,18 @@ export const getResponse = ({
     { success: [], errors: [] },
   );
 
-  const imports = filteredTypes.flatMap(({ imports }) => imports);
-  const schemas = filteredTypes.flatMap(({ schemas }) => schemas);
-
-  const contentTypes = [
-    ...new Set(filteredTypes.map(({ contentType }) => contentType)),
-  ];
-
   const success = groupedByStatus.success
     .map(({ value, formData }) => (formData ? 'Blob' : value))
     .join(' | ');
   const errors = groupedByStatus.errors.map(({ value }) => value).join(' | ');
 
+  const defaultType = filteredTypes.find(({ key }) => key === 'default')?.value;
+
   return {
     imports,
     definition: {
-      success: success || 'unknown',
-      errors: errors || 'unknown',
+      success: success || (defaultType ?? 'unknown'),
+      errors: errors || (defaultType ?? 'unknown'),
     },
     isBlob: success === 'Blob',
     types: groupedByStatus,
