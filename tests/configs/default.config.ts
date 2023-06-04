@@ -64,4 +64,11 @@ export default defineConfig({
       target: '../generated/default/readonly/endpoints.ts',
     },
   },
+  'default-status': {
+    input: '../specifications/default-status.yaml',
+    output: {
+      schemas: '../generated/default/default-status/model',
+      target: '../generated/default/default-status/endpoints.ts',
+    },
+  },
 });
