@@ -88,6 +88,7 @@ export type NormalizedOverrideOutput = {
   };
   query: NormalizedQueryOptions;
   angular: Required<AngularOptions>;
+  axios: Required<AxiosOptions>;
   swr: {
     options?: any;
   };
@@ -120,6 +121,7 @@ export type NormalizedOperationOptions = {
   contentType?: OverrideOutputContentType;
   query?: NormalizedQueryOptions;
   angular?: Required<AngularOptions>;
+  axios?: Required<AxiosOptions>;
   swr?: {
     options?: any;
   };
@@ -271,6 +273,7 @@ export type OverrideOutput = {
     options?: any;
   };
   angular?: AngularOptions;
+  axios?: AxiosOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -316,6 +319,10 @@ export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
 };
 
+export type AxiosOptions = {
+  useNamedParameters?: boolean;
+};
+
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
 
 type InputTransformer = string | InputTransformerFn;
@@ -333,6 +340,7 @@ export type OperationOptions = {
   };
   query?: QueryOptions;
   angular?: Required<AngularOptions>;
+  axios?: Required<AxiosOptions>;
   swr?: {
     options?: any;
   };

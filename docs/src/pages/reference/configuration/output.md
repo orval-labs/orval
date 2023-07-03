@@ -671,6 +671,36 @@ Default Value: `'root'`.
 
 Can be used to set the value of `providedIn` on the generated Angular services. If `false`, no `providedIn` will be set. If `true` or not specified, it will fall back to the default value: `root`.
 
+#### axios
+
+Type: `Object`.
+
+Give you specific options for the axios client
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        angular: {
+          useNamedParameters: true,
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### useNamedParameters
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Generates the operation functions with named path parameters instead of individual arguments for each path parameter.
+
 #### mock
 
 Type: `Object`.

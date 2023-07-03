@@ -190,6 +190,10 @@ export const normalizeOptions = async (
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
         },
+        axios: {
+          useNamedParameters:
+            outputOptions.override?.axios?.useNamedParameters || false,
+        },
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
