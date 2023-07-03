@@ -675,7 +675,7 @@ Can be used to set the value of `providedIn` on the generated Angular services. 
 
 Type: `Object`.
 
-Give you specific options for the axios client
+Give specific options for the axios client
 
 ```js
 module.exports = {
@@ -683,7 +683,7 @@ module.exports = {
     output: {
       ...
       override: {
-        angular: {
+        axios: {
           useNamedParameters: true,
         },
       },
