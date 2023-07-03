@@ -13,6 +13,8 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
+  GetterProps,
+  GetterPropType,
   isSyntheticDefaultImportsAllow,
   pascal,
   sanitize,
@@ -77,6 +79,37 @@ const generateAxiosImplementation = (
   });
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
+  let parameterTypeDefinition = '';
+  let newProperties = props;
+  if (context.override.axios.useNamedParameters) {
+    const parameterTypeName = `${pascal(operationName)}PathParameters`;
+    const parameters = props.filter(
+      (property) => property.type === GetterPropType.PARAM,
+    );
+
+    parameterTypeDefinition = `\ntype ${parameterTypeName} = {\n ${parameters
+      .map((property) => property.definition)
+      .join(',\n    ')},\n }\n`;
+
+    const parametersDestructured = `{ ${parameters
+      .map((property) =>
+        property.default ? property.implementation : property.name,
+      )
+      .join(', ')} }: ${parameterTypeName}`;
+
+    newProperties = [
+      {
+        default: false,
+        definition: parametersDestructured,
+        implementation: parametersDestructured,
+        name: 'params',
+        required: true,
+        type: GetterPropType.PARAM,
+      },
+      ...props.filter((property) => property.type !== GetterPropType.PARAM),
+    ];
+  }
+
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
       route,
@@ -113,11 +146,11 @@ const generateAxiosImplementation = (
 
     const propsImplementation =
       mutator.bodyTypeName && body.definition
-        ? toObjectString(props, 'implementation').replace(
+        ? toObjectString(newProperties, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
-        : toObjectString(props, 'implementation');
+        : toObjectString(newProperties, 'implementation');
 
     return `const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
@@ -127,7 +160,7 @@ const generateAxiosImplementation = (
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
-    }
+    }${parameterTypeDefinition}
   `;
   }
 
@@ -155,13 +188,13 @@ const generateAxiosImplementation = (
 
   return `const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
-  }>>(\n    ${toObjectString(props, 'implementation')} ${
+  }>>(\n    ${toObjectString(newProperties, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
     }.${verb}(${options});
-  }
+  }${parameterTypeDefinition}
 `;
 };
 
