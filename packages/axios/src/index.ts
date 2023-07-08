@@ -52,7 +52,7 @@ const generateAxiosImplementation = (
     response,
     mutator,
     body,
-    props,
+    props: _props,
     verb,
     override,
     formData,
@@ -79,15 +79,15 @@ const generateAxiosImplementation = (
   });
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
-  let parameterTypeDefinition = '';
-  let newProperties = props;
-  if (context.override.axios.useNamedParameters) {
+  let namedParametersTypeDefinition = '';
+  let props = _props;
+  const parameters = _props.filter(
+    (property) => property.type === GetterPropType.PARAM,
+  );
+  if (context.override.axios.useNamedParameters && parameters.length > 0) {
     const parameterTypeName = `${pascal(operationName)}PathParameters`;
-    const parameters = props.filter(
-      (property) => property.type === GetterPropType.PARAM,
-    );
 
-    parameterTypeDefinition = `\ntype ${parameterTypeName} = {\n ${parameters
+    namedParametersTypeDefinition = `\ntype ${parameterTypeName} = {\n ${parameters
       .map((property) => property.definition)
       .join(',\n    ')},\n }\n`;
 
@@ -97,7 +97,7 @@ const generateAxiosImplementation = (
       )
       .join(', ')} }: ${parameterTypeName}`;
 
-    newProperties = [
+    props = [
       {
         default: false,
         definition: parametersDestructured,
@@ -106,7 +106,7 @@ const generateAxiosImplementation = (
         required: true,
         type: GetterPropType.PARAM,
       },
-      ...props.filter((property) => property.type !== GetterPropType.PARAM),
+      ..._props.filter((property) => property.type !== GetterPropType.PARAM),
     ];
   }
 
@@ -146,11 +146,11 @@ const generateAxiosImplementation = (
 
     const propsImplementation =
       mutator.bodyTypeName && body.definition
-        ? toObjectString(newProperties, 'implementation').replace(
+        ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
-        : toObjectString(newProperties, 'implementation');
+        : toObjectString(props, 'implementation');
 
     return `const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
@@ -160,7 +160,7 @@ const generateAxiosImplementation = (
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
-    }${parameterTypeDefinition}
+    }${namedParametersTypeDefinition}
   `;
   }
 
@@ -188,13 +188,13 @@ const generateAxiosImplementation = (
 
   return `const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
-  }>>(\n    ${toObjectString(newProperties, 'implementation')} ${
+  }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
     }.${verb}(${options});
-  }${parameterTypeDefinition}
+  }${namedParametersTypeDefinition}
 `;
 };
 
