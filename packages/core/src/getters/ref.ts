@@ -31,6 +31,12 @@ const resolveUrl = (from: string, to: string): string => {
   return resolvedUrl.toString();
 };
 
+export interface RefInfo {
+  name: string;
+  originalName: string;
+  refPaths?: string[];
+  specKey?: string;
+}
 /**
  * Return the output type from the $ref
  *
@@ -39,12 +45,7 @@ const resolveUrl = (from: string, to: string): string => {
 export const getRefInfo = (
   $ref: ReferenceObject['$ref'],
   context: ContextSpecs,
-): {
-  name: string;
-  originalName: string;
-  refPaths?: string[];
-  specKey?: string;
-} => {
+): RefInfo => {
   const [pathname, ref] = $ref.split('#');
 
   const refPaths = ref

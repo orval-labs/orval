@@ -1,7 +1,7 @@
 import isEmpty from 'lodash.isempty';
-import { SchemasObject } from 'openapi3-ts';
+import { SchemaObject, SchemasObject } from 'openapi3-ts';
 import { getEnum, resolveDiscriminators } from '../getters';
-import { resolveValue } from '../resolvers';
+import { resolveRef, resolveValue } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { upath, isReference, jsDoc, pascal, sanitize } from '../utils';
 import { generateInterface } from './interface';
@@ -21,7 +21,6 @@ export const generateSchemasDefinition = (
   }
 
   const transformedSchemas = resolveDiscriminators(schemas, context);
-
   const models = Object.entries(transformedSchemas).reduce(
     (acc, [name, schema]) => {
       const schemaName = sanitize(`${pascal(name)}${suffix}`, {
@@ -31,15 +30,7 @@ export const generateSchemasDefinition = (
         es5keyword: true,
         es5IdentifierName: true,
       });
-      if (
-        (!schema.type || schema.type === 'object') &&
-        !schema.allOf &&
-        !schema.oneOf &&
-        !schema.anyOf &&
-        !isReference(schema) &&
-        !schema.nullable &&
-        !schema.enum
-      ) {
+      if (shouldCreateInterface(schema)) {
         acc.push(
           ...generateInterface({
             name: schemaName,
@@ -70,24 +61,28 @@ export const generateSchemasDefinition = (
             resolvedValue.originalSchema?.['x-enumNames'],
           );
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
-          const imp = resolvedValue.imports.find(
-            (imp) => imp.name === schemaName,
-          );
-
-          if (!imp) {
-            output += `export type ${schemaName} = ${resolvedValue.value};\n`;
-          } else {
-            const alias = imp?.specKey
-              ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
-                  resolvedValue.value
-                }`
-              : `${resolvedValue.value}Bis`;
-
-            output += `export type ${schemaName} = ${alias};\n`;
-
-            imports = imports.map((imp) =>
-              imp.name === schemaName ? { ...imp, alias } : imp,
+          // Don't add type if schema has same name and the referred schema will be an interface
+          const { schema: referredSchema } = resolveRef(schema, context);
+          if (!shouldCreateInterface(referredSchema as SchemaObject)) {
+            const imp = resolvedValue.imports.find(
+              (imp) => imp.name === schemaName,
             );
+
+            if (!imp) {
+              output += `export type ${schemaName} = ${resolvedValue.value};\n`;
+            } else {
+              const alias = imp?.specKey
+                ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
+                    resolvedValue.value
+                  }`
+                : `${resolvedValue.value}Bis`;
+
+              output += `export type ${schemaName} = ${alias};\n`;
+
+              imports = imports.map((imp) =>
+                imp.name === schemaName ? { ...imp, alias } : imp,
+              );
+            }
           }
         } else {
           output += `export type ${schemaName} = ${resolvedValue.value};\n`;
@@ -107,3 +102,15 @@ export const generateSchemasDefinition = (
 
   return models;
 };
+
+function shouldCreateInterface(schema: SchemaObject) {
+  return (
+    (!schema.type || schema.type === 'object') &&
+    !schema.allOf &&
+    !schema.oneOf &&
+    !schema.anyOf &&
+    !isReference(schema) &&
+    !schema.nullable &&
+    !schema.enum
+  );
+}
