@@ -14,6 +14,7 @@
     "generate:svelte-query": "yarn orval --config ./configs/svelte-query.config.ts",
     "generate:vue-query": "yarn orval --config ./configs/vue-query.config.ts",
     "generate:swr": "yarn orval --config ./configs/swr.config.ts",
+    "generate:multi-file": "yarn orval --config ./configs/multi-file.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
