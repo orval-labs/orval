@@ -6,7 +6,7 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts';
-import { getRefInfo } from '../getters/ref';
+import { RefInfo, getRefInfo } from '../getters/ref';
 import { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
 
@@ -44,16 +44,10 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
     return { schema: schema as Schema, imports };
   }
 
-  const { name, originalName, specKey, refPaths } = getRefInfo(
-    schema.$ref,
-    context,
-  );
-
-  const currentSchema = (
-    refPaths
-      ? get(context.specs[specKey || context.specKey], refPaths)
-      : context.specs[specKey || context.specKey]
-  ) as Schema;
+  const {
+    currentSchema,
+    refInfo: { specKey, name, originalName },
+  } = getSchema(schema, context);
 
   if (!currentSchema) {
     throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
@@ -65,3 +59,28 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
     [...imports, { name, specKey, schemaName: originalName }],
   );
 };
+
+function getSchema<Schema extends ComponentObject = ComponentObject>(
+  schema: ReferenceObject,
+  context: ContextSpecs,
+): {
+  refInfo: RefInfo;
+  currentSchema: Schema | undefined;
+} {
+  const refInfo = getRefInfo(schema.$ref, context);
+
+  const { specKey, refPaths } = refInfo;
+
+  const schemaByRefPaths: Schema | undefined =
+    refPaths && get(context.specs[specKey || context.specKey], refPaths);
+  if (isReference(schemaByRefPaths)) {
+    return getSchema(schemaByRefPaths, context);
+  }
+  const currentSchema = schemaByRefPaths
+    ? schemaByRefPaths
+    : (context.specs[specKey || context.specKey] as unknown as Schema);
+  return {
+    currentSchema,
+    refInfo,
+  };
+}
