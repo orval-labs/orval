@@ -34,7 +34,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
  * @summary List all pets
  */
 export const listPets = (
-  params?: MaybeRef<ListPetsParams | undefined | null>,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   signal?: AbortSignal,
 ) => {
@@ -47,7 +47,7 @@ export const listPets = (
 };
 
 export const getListPetsQueryKey = (
-  params?: MaybeRef<ListPetsParams | undefined | null>,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
 ) => ['v', version, 'pets', ...(params ? [params] : [])] as const;
 
@@ -55,7 +55,7 @@ export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams | undefined | null>,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -93,7 +93,7 @@ export const useListPetsInfinite = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams | undefined | null>,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -123,7 +123,7 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams | undefined | null>,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -156,7 +156,7 @@ export const useListPets = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  params?: MaybeRef<ListPetsParams | undefined | null>,
+  params?: MaybeRef<ListPetsParams>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -181,7 +181,7 @@ export const useListPets = <
  * @summary Create a pet
  */
 export const createPets = (
-  createPetsBody: MaybeRef<CreatePetsBody | undefined | null>,
+  createPetsBody: MaybeRef<CreatePetsBody>,
   version = 1,
 ) => {
   return customInstance<Pet>({

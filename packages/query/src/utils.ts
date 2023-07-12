@@ -9,6 +9,8 @@ import {
   OutputClient,
   OutputClientFunc,
   upath,
+  GetterProps,
+  GetterPropType,
 } from '@orval/core';
 import chalk from 'chalk';
 
@@ -87,7 +89,35 @@ export function vueWrapTypeWithMaybeRef(input: string): string {
     .map((param) => {
       const [paramName, paramType] = param.split(':');
       if (paramType) {
-        return `${paramName}: MaybeRef<${paramType.trim()} | undefined | null>,`;
+        return `${paramName}: MaybeRef<${paramType.trim()}>,`;
+      } else {
+        return `${param},`;
+      }
+    })
+    .join('')
+    .replace(',,', ',');
+
+  return output;
+}
+
+/**
+ * Make params optional
+ */
+export function vueMakeParamsOptional(
+  input: string,
+  props: GetterProps,
+): string {
+  if (!input.includes(',')) return input;
+
+  const output = input
+    .split(',')
+    .map((param) => {
+      const [paramName, paramType] = param.split(':');
+      if (
+        paramType &&
+        props.find((x) => x.name === paramName)?.type === GetterPropType.PARAM
+      ) {
+        return `${paramName}: ${paramType.trim()} | undefined | null,`;
       } else {
         return `${param},`;
       }

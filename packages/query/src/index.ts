@@ -1,43 +1,44 @@
 import {
-  camel,
   ClientBuilder,
   ClientDependenciesBuilder,
   ClientHeaderBuilder,
+  GeneratorDependency,
+  GeneratorMutator,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GetterParams,
+  GetterPropType,
+  GetterProps,
+  GetterResponse,
+  OutputClient,
+  OutputClientFunc,
+  PackageJson,
+  QueryOptions,
+  VERBS_WITH_BODY,
+  Verbs,
+  camel,
   generateFormDataAndUrlEncodedFunction,
   generateMutator,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
   generateVerbImports,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GetterParams,
-  GetterProps,
-  GetterPropType,
-  GetterResponse,
+  getRouteAsArray,
   isObject,
   isSyntheticDefaultImportsAllow,
+  jsDoc,
   mergeDeep,
-  OutputClient,
-  OutputClientFunc,
-  PackageJson,
   pascal,
-  QueryOptions,
   stringify,
   toObjectString,
-  Verbs,
-  VERBS_WITH_BODY,
-  getRouteAsArray,
-  jsDoc,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
+  isVue,
   normalizeQueryOptions,
+  vueMakeParamsOptional,
   vueMakeRouteReactive,
   vueWrapTypeWithMaybeRef,
-  isVue,
 } from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -340,7 +341,9 @@ const generateQueryRequestFunction = (
         : toObjectString(props, 'implementation');
 
     if (isVue(outputClient)) {
-      propsImplementation = vueWrapTypeWithMaybeRef(propsImplementation);
+      propsImplementation = vueWrapTypeWithMaybeRef(
+        vueMakeParamsOptional(propsImplementation, props),
+      );
     }
 
     const requestOptions = isRequestOptions
@@ -405,7 +408,9 @@ const generateQueryRequestFunction = (
   });
 
   const queryProps = isVue(outputClient)
-    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    ? vueWrapTypeWithMaybeRef(
+        vueMakeParamsOptional(toObjectString(props, 'implementation'), props),
+      )
     : toObjectString(props, 'implementation');
 
   return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
@@ -727,7 +732,9 @@ const generateQueryImplementation = ({
   doc?: string;
 }) => {
   const queryProps = isVue(outputClient)
-    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
+    ? vueWrapTypeWithMaybeRef(
+        vueMakeParamsOptional(toObjectString(props, 'implementation'), props),
+      )
     : toObjectString(props, 'implementation');
 
   const httpFunctionProps = queryParam
@@ -1003,7 +1010,9 @@ const generateQueryHook = async (
     );
 
     if (isVue(outputClient)) {
-      queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
+      queryKeyProps = vueWrapTypeWithMaybeRef(
+        vueMakeParamsOptional(queryKeyProps, props),
+      );
     }
 
     const routeString = isVue(outputClient)
