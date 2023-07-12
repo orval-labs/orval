@@ -87,7 +87,7 @@ export function vueWrapTypeWithMaybeRef(input: string): string {
     .map((param) => {
       const [paramName, paramType] = param.split(':');
       if (paramType) {
-        return `${paramName}: MaybeRef<${paramType.trim()}>,`;
+        return `${paramName}: MaybeRef<${paramType.trim()} | undefined | null>,`;
       } else {
         return `${param},`;
       }

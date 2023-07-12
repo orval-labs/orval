@@ -9,7 +9,7 @@
 import { computed, unref } from 'vue';
 import { useShowPetById } from '../api/endpoints/petstoreFromFileSpecWithTransformer';
 
-const props = defineProps<{ petId: string }>();
+const props = defineProps({ petId: String });
 const petId = computed(() => props.petId);
 const petQuery = useShowPetById(petId);
 const pet = computed(() => unref(petQuery?.data));
