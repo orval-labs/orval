@@ -98,9 +98,19 @@ export function vueWrapTypeWithMaybeRef(input: string): string {
   return output;
 }
 
+const wrapRouteParameters = (
+  route: string,
+  prepend: string,
+  append: string,
+): string =>
+  (route ?? '').replaceAll(/\${(.+?)}/g, `\${${prepend}$1${append}}`);
+
 // Vue persist reactivity
 export const vueMakeRouteReactive = (route: string): string =>
-  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
+  wrapRouteParameters(route, 'unref(', ')');
+
+export const makeRouteSafe = (route: string): string =>
+  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
 
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;

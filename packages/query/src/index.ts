@@ -38,6 +38,7 @@ import {
   vueMakeRouteReactive,
   vueWrapTypeWithMaybeRef,
   isVue,
+  makeRouteSafe,
 } from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -229,12 +230,8 @@ const VUE_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
     dependency: '@tanstack/vue-query',
   },
   {
-    exports: [{ name: 'unref', values: true }],
+    exports: [{ name: 'unref', values: true }, { name: 'MaybeRef' }],
     dependency: 'vue',
-  },
-  {
-    exports: [{ name: 'MaybeRef' }],
-    dependency: '@tanstack/vue-query/build/lib/types',
   },
 ];
 
@@ -293,9 +290,9 @@ const generateQueryRequestFunction = (
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   // Vue - Unwrap path params
-  const route: string = isVue(outputClient)
-    ? vueMakeRouteReactive(_route)
-    : _route;
+  const route: string = makeRouteSafe(
+    isVue(outputClient) ? vueMakeRouteReactive(_route) : _route,
+  );
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
