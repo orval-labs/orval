@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler", // as per default in node_modules/@vue/tsconfig/tsconfig.json
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,

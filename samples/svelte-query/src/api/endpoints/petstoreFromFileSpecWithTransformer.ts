@@ -31,7 +31,7 @@ export const listPets = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pets>({
-    url: `/v${version}/pets`,
+    url: `/v${encodeURIComponent(String(version))}/pets`,
     method: 'get',
     params,
     signal,
@@ -108,7 +108,7 @@ export const createListPets = <
  */
 export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
   return customInstance<void>({
-    url: `/v${version}/pets`,
+    url: `/v${encodeURIComponent(String(version))}/pets`,
     method: 'post',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -176,7 +176,9 @@ export const showPetById = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
-    url: `/v${version}/pets/${petId}`,
+    url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(
+      String(petId),
+    )}`,
     method: 'get',
     signal,
   });

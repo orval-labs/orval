@@ -11,7 +11,7 @@
     "@faker-js/faker": "^7.3.0",
     "@tanstack/vue-query": "4.29.5",
     "axios": "^0.26.1",
-    "vue": "3.2.36"
+    "vue": "^3.3.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^1.2.5",

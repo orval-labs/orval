@@ -16,7 +16,7 @@ import type {
   UseInfiniteQueryReturnType,
 } from '@tanstack/vue-query';
 import { unref } from 'vue';
-import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
+import type { MaybeRef } from 'vue';
 import type {
   Pets,
   Error,
@@ -39,7 +39,7 @@ export const listPets = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pets>({
-    url: `/v${unref(version)}/pets`,
+    url: `/v${encodeURIComponent(String(unref(version)))}/pets`,
     method: 'get',
     params,
     signal,
@@ -185,7 +185,7 @@ export const createPets = (
   version = 1,
 ) => {
   return customInstance<Pet>({
-    url: `/v${unref(version)}/pets`,
+    url: `/v${encodeURIComponent(String(unref(version)))}/pets`,
     method: 'post',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -253,7 +253,9 @@ export const showPetById = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
-    url: `/v${unref(version)}/pets/${unref(petId)}`,
+    url: `/v${encodeURIComponent(
+      String(unref(version)),
+    )}/pets/${encodeURIComponent(String(unref(petId)))}`,
     method: 'get',
     signal,
   });
