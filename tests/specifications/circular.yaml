@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+  title: Circular references
+  version: 0.0.0
+paths:
+  /example:
+    get:
+      summary: Example
+      responses:
+        '200':
+          description: 'Example'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+components:
+  schemas:
+    Node:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        child:
+          $ref: '#/components/schemas/Node'
