@@ -81,7 +81,12 @@ const generateZodValidationSchemaDefinition = (
 
       functions.push([type as string, undefined]);
 
-      if (schema.format === 'date-time' || schema.format === 'date') {
+      if (schema.format === 'date') {
+        functions.push(['regex', 'new RegExp(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)']);
+        break;
+      }
+
+      if (schema.format === 'date-time') {
         functions.push(['datetime', undefined]);
         break;
       }
@@ -168,8 +173,12 @@ const generateZodValidationSchemaDefinition = (
   }
 
   if (min !== undefined) {
-    consts.push(`export const ${name}Min = ${min};`);
-    functions.push(['min', `${name}Min`]);
+    if (min === 1) {
+      functions.push(['min', `${min}`]);
+    } else {
+      consts.push(`export const ${name}Min = ${min};`);
+      functions.push(['min', `${name}Min`]);
+    }
   }
   if (max !== undefined) {
     consts.push(`export const ${name}Max = ${max};`);
@@ -271,6 +280,7 @@ const parseZodValidationSchemaDefinition = (
     }
     if (fn === 'array') {
       const value = args.functions.map(parseProperty).join('');
+      consts += args.consts;
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
     return `.${fn}(${args})`;
