@@ -5,7 +5,7 @@ export const customClient = async <ResponseType>({
   data,
 }: {
   url: string;
-  method: 'get' | 'post' | 'put' | 'delete' | 'patch';
+  method: 'get' | 'post' | 'put' | 'delete' | 'PATCH';
   params?: Record<string, string>;
   data?: BodyType<unknown>;
   headers?: Record<string, string>;
