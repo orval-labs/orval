@@ -61,9 +61,17 @@ const generateZodValidationSchemaDefinition = (
   const required = schema.default !== undefined ? false : _required ?? false;
   const nullable = schema.nullable ?? false;
   const min =
-    schema.minimum ?? schema.exclusiveMinimum ?? schema.minLength ?? undefined;
+    schema.minimum ??
+    schema.exclusiveMinimum ??
+    schema.minLength ??
+    schema.minItems ??
+    undefined;
   const max =
-    schema.maximum ?? schema.exclusiveMaximum ?? schema.maxLength ?? undefined;
+    schema.maximum ??
+    schema.exclusiveMaximum ??
+    schema.maxLength ??
+    schema.maxItems ??
+    undefined;
   const matches = schema.pattern ?? undefined;
 
   switch (type) {
