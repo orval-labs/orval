@@ -21,6 +21,7 @@ import {
   isBoolean,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
+import {jsStringEscape} from "@orval/core/src";
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -179,7 +180,7 @@ const generateZodValidationSchemaDefinition = (
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
-    const regexp = `new RegExp('${escape(
+    const regexp = `new RegExp('${jsStringEscape(
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
