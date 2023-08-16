@@ -15,6 +15,7 @@
     "generate:vue-query": "yarn orval --config ./configs/vue-query.config.ts",
     "generate:swr": "yarn orval --config ./configs/swr.config.ts",
     "generate:multi-file": "yarn orval --config ./configs/multi-file.config.ts",
+    "generate:zod": "yarn orval --config ./configs/zod.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
@@ -33,6 +34,7 @@
     "axios": "^0.26.1",
     "msw": "^0.35.0",
     "swr": "^2.1.2",
-    "vue": "3.2.47"
+    "vue": "3.2.47",
+    "zod": "^3.21.4"
   }
 }
