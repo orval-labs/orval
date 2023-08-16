@@ -732,9 +732,13 @@ const generateQueryImplementation = ({
 
   const httpFunctionProps = queryParam
     ? props
-        .map(({ name }) =>
-          name === 'params' ? `{ ${queryParam}: pageParam, ...params }` : name,
-        )
+        .map((param) => {
+          if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+            return param.destructured;
+          return param.name === 'params'
+            ? `{ ${queryParam}: pageParam, ...params }`
+            : param.name;
+        })
         .join(',')
     : queryProperties;
 
@@ -962,16 +966,24 @@ const generateQueryHook = async (
       : undefined;
 
     const queryProperties = props
-      .map(({ name, type }) =>
-        type === GetterPropType.BODY ? body.implementation : name,
-      )
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          return param.destructured;
+        return param.type === GetterPropType.BODY
+          ? body.implementation
+          : param.name;
+      })
       .join(',');
 
     const queryKeyProperties = props
       .filter((prop) => prop.type !== GetterPropType.HEADER)
-      .map(({ name, type }) =>
-        type === GetterPropType.BODY ? body.implementation : name,
-      )
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          return param.destructured;
+        return param.type === GetterPropType.BODY
+          ? body.implementation
+          : param.name;
+      })
       .join(',');
 
     const queries = [
