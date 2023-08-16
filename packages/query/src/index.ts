@@ -29,15 +29,14 @@ import {
   toObjectString,
   Verbs,
   VERBS_WITH_BODY,
-  getRouteAsArray,
   jsDoc,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
   normalizeQueryOptions,
-  vueMakeRouteReactive,
-  vueWrapTypeWithMaybeRef,
   isVue,
+  vueWrapTypeWithMaybeRef,
+  vueUnRefParams,
 } from './utils';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -283,19 +282,19 @@ const generateQueryRequestFunction = (
     response,
     mutator,
     body,
-    props,
+    props: _props,
     verb,
     formData,
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route: _route, context }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
-  // Vue - Unwrap path params
-  const route: string = isVue(outputClient)
-    ? vueMakeRouteReactive(_route)
-    : _route;
+  let props = _props;
+  if (isVue(outputClient)) {
+    props = vueWrapTypeWithMaybeRef(_props);
+  }
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -339,10 +338,6 @@ const generateQueryRequestFunction = (
           )
         : toObjectString(props, 'implementation');
 
-    if (isVue(outputClient)) {
-      propsImplementation = vueWrapTypeWithMaybeRef(propsImplementation);
-    }
-
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
           override.requestOptions,
@@ -375,9 +370,9 @@ const generateQueryRequestFunction = (
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${
-      !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
-    }) => {${bodyForm}
+    }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
+      ${isVue(outputClient) ? vueUnRefParams(props) : ''}
+      ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
       ${requestOptions});
@@ -404,13 +399,12 @@ const generateQueryRequestFunction = (
     hasSignal,
   });
 
-  const queryProps = isVue(outputClient)
-    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
-    : toObjectString(props, 'implementation');
+  const queryProps = toObjectString(props, 'implementation');
 
   return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
+    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
     }.${verb}(${options});
@@ -726,14 +720,15 @@ const generateQueryImplementation = ({
   hasSvelteQueryV4: boolean;
   doc?: string;
 }) => {
-  const queryProps = isVue(outputClient)
-    ? vueWrapTypeWithMaybeRef(toObjectString(props, 'implementation'))
-    : toObjectString(props, 'implementation');
+  const queryProps = toObjectString(props, 'implementation');
 
   const httpFunctionProps = queryParam
     ? props
         .map((param) => {
-          if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          if (
+            param.type === GetterPropType.NAMED_PATH_PARAMS &&
+            !isVue(outputClient)
+          )
             return param.destructured;
           return param.name === 'params'
             ? `{ ${queryParam}: pageParam, ...params }`
@@ -817,6 +812,7 @@ const generateQueryImplementation = ({
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}): ${queryOptionFnReturnType} ${
     isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
   } => {
+    
 ${hookOptions}
 
   const queryKey =  ${
@@ -844,6 +840,16 @@ ${hookOptions}
     }>>> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
   }${queryOptions});
+
+      ${
+        isVue(outputClient)
+          ? vueUnRefParams(
+              props.filter(
+                (prop) => prop.type === GetterPropType.NAMED_PATH_PARAMS,
+              ),
+            )
+          : ''
+      }
     
       ${
         queryOptionsMutator
@@ -898,7 +904,7 @@ const generateQueryHook = async (
     queryParams,
     operationName,
     body,
-    props,
+    props: _props,
     verb,
     params,
     override,
@@ -908,18 +914,13 @@ const generateQueryHook = async (
     summary,
     deprecated,
   }: GeneratorVerbOptions,
-  {
-    route: _route,
-    override: { operations = {} },
-    context,
-    output,
-  }: GeneratorOptions,
+  { route, override: { operations = {} }, context, output }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
-  // Vue - Unwrap path params
-  const route: string = isVue(outputClient)
-    ? vueMakeRouteReactive(_route)
-    : _route;
+  let props = _props;
+  if (isVue(outputClient)) {
+    props = vueWrapTypeWithMaybeRef(_props);
+  }
   const query = override?.query;
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
@@ -967,7 +968,10 @@ const generateQueryHook = async (
 
     const queryProperties = props
       .map((param) => {
-        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+        if (
+          param.type === GetterPropType.NAMED_PATH_PARAMS &&
+          !isVue(outputClient)
+        )
           return param.destructured;
         return param.type === GetterPropType.BODY
           ? body.implementation
@@ -978,7 +982,10 @@ const generateQueryHook = async (
     const queryKeyProperties = props
       .filter((prop) => prop.type !== GetterPropType.HEADER)
       .map((param) => {
-        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+        if (
+          param.type === GetterPropType.NAMED_PATH_PARAMS &&
+          !isVue(outputClient)
+        )
           return param.destructured;
         return param.type === GetterPropType.BODY
           ? body.implementation
@@ -1014,17 +1021,14 @@ const generateQueryHook = async (
       'implementation',
     );
 
-    if (isVue(outputClient)) {
-      queryKeyProps = vueWrapTypeWithMaybeRef(queryKeyProps);
-    }
+    const routeString = `\`${route}\``;
 
-    const routeString = isVue(outputClient)
-      ? getRouteAsArray(_route)
-      : `\`${route}\``;
-
-    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => [${routeString}${
-      queryParams ? ', ...(params ? [params]: [])' : ''
-    }${body.implementation ? `, ${body.implementation}` : ''}] as const;`;
+    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => {
+    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
+    return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
+      body.implementation ? `, ${body.implementation}` : ''
+    }] as const;
+    }`;
 
     implementation += `${!queryKeyMutator ? queryKeyFn : ''}
   
