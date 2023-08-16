@@ -662,23 +662,34 @@ export type GetterQueryParam = {
   originalSchema?: SchemaObject;
 };
 
-export type GetterPropType = 'param' | 'body' | 'queryParam' | 'header';
+export type GetterPropType =
+  | 'param'
+  | 'body'
+  | 'queryParam'
+  | 'header'
+  | 'namedPathParams';
 
 export const GetterPropType = {
-  PARAM: 'param' as GetterPropType,
-  BODY: 'body' as GetterPropType,
-  QUERY_PARAM: 'queryParam' as GetterPropType,
-  HEADER: 'header' as GetterPropType,
-};
+  PARAM: 'param',
+  NAMED_PATH_PARAMS: 'namedPathParams',
+  BODY: 'body',
+  QUERY_PARAM: 'queryParam',
+  HEADER: 'header',
+} as const;
 
-export type GetterProp = {
+type GetterPropBase = {
   name: string;
   definition: string;
   implementation: string;
   default: boolean;
   required: boolean;
-  type: GetterPropType;
 };
+
+export type GetterProp = GetterPropBase &
+  (
+    | { type: 'namedPathParams'; destructured: string; schema: GeneratorSchema }
+    | { type: Exclude<GetterPropType, 'namedPathParams'> }
+  );
 
 export type GetterProps = GetterProp[];
 

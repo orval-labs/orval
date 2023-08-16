@@ -6,6 +6,7 @@ import {
   GeneratorApiOperations,
   GeneratorSchema,
   getRoute,
+  GetterPropType,
   isReference,
   NormalizedInputOptions,
   NormalizedOutputOptions,
@@ -69,7 +70,16 @@ export const getApiBuilder = async ({
       }
 
       const schemas = verbsOptions.reduce(
-        (acc, { queryParams, headers, body, response }) => {
+        (acc, { queryParams, headers, body, response, props }) => {
+          if (props) {
+            acc.push(
+              ...props.flatMap((param) =>
+                param.type === GetterPropType.NAMED_PATH_PARAMS
+                  ? param.schema
+                  : [],
+              ),
+            );
+          }
           if (queryParams) {
             acc.push(queryParams.schema, ...queryParams.deps);
           }
