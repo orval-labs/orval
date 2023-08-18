@@ -82,6 +82,7 @@ export const writeSchemas = async ({
   isRootKey,
   specsName,
   header,
+  index,
 }: {
   schemaPath: string;
   schemas: GeneratorSchema[];
@@ -90,10 +91,8 @@ export const writeSchemas = async ({
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
+  index: boolean;
 }) => {
-  const schemaFilePath = upath.join(schemaPath, '/index.ts');
-  await fs.ensureFile(schemaFilePath);
-
   await Promise.all(
     schemas.map((schema) =>
       writeSchema({
@@ -108,32 +107,36 @@ export const writeSchemas = async ({
     ),
   );
 
-  try {
-    const data = await fs.readFile(schemaFilePath);
+  if (index) {
+    const schemaFilePath = upath.join(schemaPath, '/index.ts');
+    await fs.ensureFile(schemaFilePath);
+    try {
+      const data = await fs.readFile(schemaFilePath);
 
-    const stringData = data.toString();
+      const stringData = data.toString();
 
-    const importStatements = schemas
-      .filter((schema) => {
-        return (
-          !stringData.includes(`export * from './${camel(schema.name)}'`) &&
-          !stringData.includes(`export * from "./${camel(schema.name)}"`)
-        );
-      })
-      .map((schema) => `export * from './${camel(schema.name)}';`);
+      const importStatements = schemas
+          .filter((schema) => {
+            return (
+                !stringData.includes(`export * from './${camel(schema.name)}'`) &&
+                !stringData.includes(`export * from "./${camel(schema.name)}"`)
+            );
+          })
+          .map((schema) => `export * from './${camel(schema.name)}';`);
 
-    const currentFileExports = (stringData
-      .match(/export \* from(.*)('|")/g)
-      ?.map((s) => s + ';') ?? []) as string[];
+      const currentFileExports = (stringData
+          .match(/export \* from(.*)('|")/g)
+          ?.map((s) => s + ';') ?? []) as string[];
 
-    const exports = [...currentFileExports, ...importStatements]
-      .sort()
-      .join('\n');
+      const exports = [...currentFileExports, ...importStatements]
+          .sort()
+          .join('\n');
 
-    const fileContent = `${header}\n${exports}`;
+      const fileContent = `${header}\n${exports}`;
 
-    await fs.writeFile(schemaFilePath, fileContent);
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
+      await fs.writeFile(schemaFilePath, fileContent);
+    } catch (e) {
+      throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
+    }
   }
 };
