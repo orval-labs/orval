@@ -177,6 +177,7 @@ const generateVerbOptions = async ({
     override,
     doc,
     deprecated,
+    originalSchema: operation,
   };
 
   const transformer = await dynamicImport(
