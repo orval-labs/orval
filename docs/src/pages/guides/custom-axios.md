@@ -22,7 +22,7 @@ module.exports = {
 ```ts
 // custom-instance.ts
 
-import Axios, { AxiosRequestConfig } from 'axios';
+import Axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export const AXIOS_INSTANCE = Axios.create({ baseURL: '<BACKEND URL>' }); // use your own URL here or environment variable
 
@@ -30,7 +30,7 @@ export const AXIOS_INSTANCE = Axios.create({ baseURL: '<BACKEND URL>' }); // use
 export const customInstance = <T>(
   config: AxiosRequestConfig,
   options?: AxiosRequestConfig,
-): Promise<T> => {
+): Promise<AxiosResponse<T>> => {
   const source = Axios.CancelToken.source();
   const promise = AXIOS_INSTANCE({
     ...config,
