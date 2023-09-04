@@ -71,11 +71,13 @@ export const getProps = ({
       .map((property) => property.definition)
       .join(',\n    ')},\n }`;
 
+    const isOptional = params.every((param) => param.default);
+
     const implementation = `{ ${params
       .map((property) =>
         property.default ? property.implementation : property.name,
       )
-      .join(', ')} }: ${parameterTypeName}`;
+      .join(', ')} }: ${parameterTypeName}${isOptional ? ' = {}' : ''}`;
 
     const destructured = `{ ${params
       .map((property) => property.name)

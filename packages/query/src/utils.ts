@@ -86,9 +86,13 @@ export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
       prop.type === GetterPropType.NAMED_PATH_PARAMS
         ? prop.name
         : `${paramName}`;
+
+    const [type, defaultValue] = paramType.split('=');
     return {
       ...prop,
-      implementation: `${name}: MaybeRef<${paramType.trim()}>`,
+      implementation: `${name}: MaybeRef<${type.trim()}>${
+        defaultValue ? ` = ${defaultValue}` : ''
+      }`,
     };
   });
 }
