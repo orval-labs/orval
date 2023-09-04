@@ -4,6 +4,7 @@
       <img src="./assets/logo.svg" class="App-logo" alt="logo" />
       <Pet
         v-if="selectedPetId"
+        :key="selectedPetId"
         :pet-id="selectedPetId"
         :id="'selected-pet-' + selectedPetId"
       />
