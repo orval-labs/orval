@@ -20,6 +20,12 @@ paths:
           required: false
           schema:
             type: string
+        - name: filter
+          in: query
+          description: Something that goes in the URL query and isn't limit
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: A paged array of pets
