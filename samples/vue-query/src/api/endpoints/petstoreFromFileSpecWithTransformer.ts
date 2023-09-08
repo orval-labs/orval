@@ -16,7 +16,7 @@ import type {
   UseInfiniteQueryReturnType,
 } from '@tanstack/vue-query';
 import { unref } from 'vue';
-import type { MaybeRef } from 'vue';
+import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
 import type {
   Pets,
   Error,
@@ -39,7 +39,7 @@ export const listPets = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pets>({
-    url: `/v${encodeURIComponent(String(unref(version)))}/pets`,
+    url: `/v${unref(version)}/pets`,
     method: 'get',
     params: unref(params),
     signal,
@@ -185,7 +185,7 @@ export const createPets = (
   version = 1,
 ) => {
   return customInstance<Pet>({
-    url: `/v${encodeURIComponent(String(unref(version)))}/pets`,
+    url: `/v${unref(version)}/pets`,
     method: 'post',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -248,29 +248,25 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string>,
   version = 1,
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
-    url: `/v${encodeURIComponent(
-      String(unref(version)),
-    )}/pets/${encodeURIComponent(String(unref(petId)))}`,
+    url: `/v${unref(version)}/pets/${unref(petId)}`,
     method: 'get',
     signal,
   });
 };
 
-export const getShowPetByIdQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
-  version = 1,
-) => ['v', version, 'pets', petId] as const;
+export const getShowPetByIdQueryKey = (petId: MaybeRef<string>, version = 1) =>
+  ['v', version, 'pets', petId] as const;
 
 export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -307,7 +303,7 @@ export const useShowPetByIdInfinite = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseInfiniteQueryOptions<
@@ -337,7 +333,7 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
@@ -370,7 +366,7 @@ export const useShowPetById = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  petId: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string>,
   version = 1,
   options?: {
     query?: UseQueryOptions<
