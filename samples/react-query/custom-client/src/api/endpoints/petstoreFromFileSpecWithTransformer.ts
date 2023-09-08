@@ -35,7 +35,7 @@ export const useListPetsHook = () => {
 
   return (params?: ListPetsParams, version = 1, signal?: AbortSignal) => {
     return listPets({
-      url: `/v${encodeURIComponent(String(version))}/pets`,
+      url: `/v${version}/pets`,
       method: 'get',
       params,
       signal,
@@ -119,7 +119,7 @@ export const useCreatePetsHook = () => {
 
   return (createPetsBody: BodyType<CreatePetsBody>, version = 1) => {
     return createPets({
-      url: `/v${encodeURIComponent(String(version))}/pets`,
+      url: `/v${version}/pets`,
       method: 'post',
       headers: { 'Content-Type': 'application/json' },
       data: createPetsBody,
@@ -192,9 +192,7 @@ export const useShowPetByIdHook = () => {
 
   return (petId: string, version = 1, signal?: AbortSignal) => {
     return showPetById({
-      url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(
-        String(petId),
-      )}`,
+      url: `/v${version}/pets/${petId}`,
       method: 'get',
       signal,
     });

@@ -36,6 +36,7 @@ export const generateAxiosOptions = ({
   headers,
   requestOptions,
   hasSignal,
+  isVue,
 }: {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
@@ -43,6 +44,7 @@ export const generateAxiosOptions = ({
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
   hasSignal: boolean;
+  isVue: boolean;
 }) => {
   const isRequestOptions = requestOptions !== false;
   if (!queryParams && !headers && !response.isBlob) {
@@ -91,7 +93,11 @@ export const generateAxiosOptions = ({
     value += '\n    ...options,';
 
     if (queryParams) {
-      value += '\n        params: {...params, ...options?.params},';
+      if (isVue) {
+        value += '\n        params: {...unref(params), ...options?.params},';
+      } else {
+        value += '\n        params: {...params, ...options?.params},';
+      }
     }
 
     if (headers) {
@@ -115,6 +121,7 @@ export const generateOptions = ({
   isAngular,
   isExactOptionalPropertyTypes,
   hasSignal,
+  isVue,
 }: {
   route: string;
   body: GetterBody;
@@ -128,6 +135,7 @@ export const generateOptions = ({
   isAngular?: boolean;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  isVue?: boolean;
 }) => {
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
@@ -141,6 +149,7 @@ export const generateOptions = ({
     requestOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    isVue: isVue ?? false,
   });
 
   const options = axiosOptions ? `{${axiosOptions}}` : '';

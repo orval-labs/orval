@@ -398,6 +398,7 @@ const generateQueryRequestFunction = (
     isFormUrlEncoded,
     isExactOptionalPropertyTypes,
     hasSignal,
+    isVue: isVue(outputClient),
   });
 
   const optionsArgs = generateRequestOptionsArguments({
