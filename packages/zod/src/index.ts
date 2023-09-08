@@ -19,9 +19,9 @@ import {
   ContextSpecs,
   isObject,
   isBoolean,
+  jsStringEscape,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
-import { jsStringEscape } from '@orval/core/src';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {

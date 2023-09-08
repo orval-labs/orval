@@ -186,6 +186,7 @@ export const generateBodyMutatorConfig = (
 
 export const generateQueryParamsAxiosConfig = (
   response: GetterResponse,
+  isVue: boolean,
   queryParams?: GetterQueryParam,
 ) => {
   if (!queryParams && !response.isBlob) {
@@ -195,7 +196,11 @@ export const generateQueryParamsAxiosConfig = (
   let value = '';
 
   if (queryParams) {
-    value += ',\n        params';
+    if (isVue) {
+      value += ',\n        params: unref(params)';
+    } else {
+      value += ',\n        params';
+    }
   }
 
   if (response.isBlob) {
@@ -217,6 +222,7 @@ export const generateMutatorConfig = ({
   isBodyVerb,
   hasSignal,
   isExactOptionalPropertyTypes,
+  isVue,
 }: {
   route: string;
   body: GetterBody;
@@ -229,6 +235,7 @@ export const generateMutatorConfig = ({
   isBodyVerb: boolean;
   hasSignal: boolean;
   isExactOptionalPropertyTypes: boolean;
+  isVue?: boolean;
 }) => {
   const bodyOptions = isBodyVerb
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -236,6 +243,7 @@ export const generateMutatorConfig = ({
 
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
+    isVue ?? false,
     queryParams,
   );
 

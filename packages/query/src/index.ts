@@ -329,6 +329,7 @@ const generateQueryRequestFunction = (
       isBodyVerb,
       hasSignal,
       isExactOptionalPropertyTypes,
+      isVue: isVue(outputClient),
     });
 
     let propsImplementation =
