@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
-    "orval": "link:../../../packages/orval/dist"
+    "orval": "link:../../../packages/orval/dist",
+    "prettier": "^3.0.3"
   },
   "scripts": {
     "generate-api": "node ../../../packages/orval/dist/bin/orval.js"

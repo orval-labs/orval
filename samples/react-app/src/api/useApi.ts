@@ -1,3 +1,3 @@
-import { getSwaggerPetstore } from './endpoints/petstoreFromFileSpecWithTransformer';
+import * as api from './endpoints/petstoreFromFileSpecWithTransformer';
 
-export const useApi = () => getSwaggerPetstore();
+export const useApi = () => api;

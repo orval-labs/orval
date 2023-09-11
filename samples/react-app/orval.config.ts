@@ -8,6 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       mock: true,
+      prettier: true,
       override: {
         mutator: {
           path: 'src/api/mutator/custom-instance.ts',

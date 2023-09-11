@@ -308,16 +308,24 @@ const generateSwrHook = (
   }
 
   const swrProperties = props
-    .map(({ name, type }) =>
-      type === GetterPropType.BODY ? body.implementation : name,
-    )
+    .map((param) => {
+      if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+        return param.destructured;
+      return param.type === GetterPropType.BODY
+        ? body.implementation
+        : param.name;
+    })
     .join(',');
 
   const swrKeyProperties = props
     .filter((prop) => prop.type !== GetterPropType.HEADER)
-    .map(({ name, type }) =>
-      type === GetterPropType.BODY ? body.implementation : name,
-    )
+    .map((param) => {
+      if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+        return param.destructured;
+      return param.type === GetterPropType.BODY
+        ? body.implementation
+        : param.name;
+    })
     .join(',');
 
   const swrKeyFnName = camel(`get-${operationName}-key`);

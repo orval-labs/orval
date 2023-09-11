@@ -4,6 +4,7 @@ import {
   GeneratorImport,
   GeneratorMutator,
   GeneratorVerbOptions,
+  GetterPropType,
 } from '../types';
 import { camel, upath } from '../utils';
 
@@ -275,11 +276,17 @@ export const generateVerbImports = ({
   response,
   body,
   queryParams,
+  props,
   headers,
   params,
 }: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
+  ...props.flatMap((prop) =>
+    prop.type === GetterPropType.NAMED_PATH_PARAMS
+      ? [{ name: prop.schema.name }]
+      : [],
+  ),
   ...(queryParams ? [{ name: queryParams.schema.name }] : []),
   ...(headers ? [{ name: headers.schema.name }] : []),
   ...params.flatMap<GeneratorImport>(({ imports }) => imports),

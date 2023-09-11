@@ -1072,6 +1072,28 @@ module.exports = {
 };
 ```
 
+#### useNamedParameters
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Generates the operation interfaces with named path parameters instead of individual arguments for each path parameter.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useNamedParameters: true,
+      },
+    },
+  },
+};
+```
+
 #### useTypeOverInterfaces
 
 Type: `Boolean`
