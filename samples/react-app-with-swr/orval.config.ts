@@ -8,6 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'swr',
+      prettier: true,
       mock: true,
       override: {
         mutator: {
@@ -27,7 +28,7 @@ export default defineConfig({
               data: () => ({
                 id: faker.datatype.number({ min: 1, max: 99 }),
                 name: faker.name.firstName(),
-                tag: faker.helpers.ranarrayElementdomize([
+                tag: faker.helpers.arrayElement([
                   faker.random.word(),
                   undefined,
                 ]),

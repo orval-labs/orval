@@ -76,8 +76,9 @@ export const listPets = (
   });
 };
 
-export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) =>
-  [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) => {
+  return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+};
 
 export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -358,8 +359,9 @@ export const showPetById = (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version = 1) =>
-  [`/v${version}/pets/${petId}`] as const;
+export const getShowPetByIdQueryKey = (petId: string, version = 1) => {
+  return [`/v${version}/pets/${petId}`] as const;
+};
 
 export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
