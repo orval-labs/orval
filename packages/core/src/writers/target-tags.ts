@@ -95,7 +95,7 @@ export const generateTargetForTags = (
             isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
           );
           const operationNames = Object.values(builder.operations)
-            .filter(({ tags }) => tags.map(kebab).includes(tag))
+            .filter(({ tags }) => tags.map(kebab).includes(kebab(tag)))
             .map(({ operationName }) => operationName);
 
           const typescriptVersion =
