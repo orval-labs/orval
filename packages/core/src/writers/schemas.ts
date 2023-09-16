@@ -82,7 +82,7 @@ export const writeSchemas = async ({
   isRootKey,
   specsName,
   header,
-  index,
+  indexFiles,
 }: {
   schemaPath: string;
   schemas: GeneratorSchema[];
@@ -91,7 +91,7 @@ export const writeSchemas = async ({
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
-  index: boolean;
+  indexFiles: boolean;
 }) => {
   await Promise.all(
     schemas.map((schema) =>
@@ -107,7 +107,7 @@ export const writeSchemas = async ({
     ),
   );
 
-  if (index) {
+  if (indexFiles) {
     const schemaFilePath = upath.join(schemaPath, '/index.ts');
     await fs.ensureFile(schemaFilePath);
     try {

@@ -72,7 +72,7 @@ export const writeSpecs = async (
           specKey,
           isRootKey: isRootKey(specKey, target),
           header,
-          index: output.index,
+          indexFiles: output.indexFiles,
         });
       }),
     );
@@ -109,7 +109,7 @@ export const writeSpecs = async (
       );
     }
 
-    if (output.index) {
+    if (output.indexFiles) {
       const indexFile = upath.join(workspacePath, '/index.ts');
 
       if (await fs.pathExists(indexFile)) {

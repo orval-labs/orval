@@ -51,7 +51,7 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
-  index: boolean;
+  indexFiles: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -164,7 +164,7 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
-  index?: boolean;
+  indexFiles?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
