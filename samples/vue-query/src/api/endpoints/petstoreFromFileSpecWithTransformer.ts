@@ -15,7 +15,7 @@ import type {
   UseQueryReturnType,
   UseInfiniteQueryReturnType,
 } from '@tanstack/vue-query';
-import { unref } from 'vue';
+import { unref, computed } from 'vue';
 import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
 import type {
   Pets,
@@ -85,7 +85,12 @@ export const getListPetsInfiniteQueryOptions = <
     pageParam,
   }) => listPets({ limit: pageParam, ...params }, version, signal);
 
-  return { queryKey, queryFn, enabled: !!version, ...queryOptions };
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version)),
+    ...queryOptions,
+  };
 };
 
 export type ListPetsInfiniteQueryResult = NonNullable<
@@ -148,7 +153,12 @@ export const getListPetsQueryOptions = <
     signal,
   }) => listPets(params, version, signal);
 
-  return { queryKey, queryFn, enabled: !!version, ...queryOptions };
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version)),
+    ...queryOptions,
+  };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -307,7 +317,12 @@ export const getShowPetByIdInfiniteQueryOptions = <
     signal,
   }) => showPetById(petId, version, signal);
 
-  return { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions };
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version && petId)),
+    ...queryOptions,
+  };
 };
 
 export type ShowPetByIdInfiniteQueryResult = NonNullable<
@@ -370,7 +385,12 @@ export const getShowPetByIdQueryOptions = <
     signal,
   }) => showPetById(petId, version, signal);
 
-  return { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions };
+  return {
+    queryKey,
+    queryFn,
+    enabled: computed(() => !!unref(version && petId)),
+    ...queryOptions,
+  };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
