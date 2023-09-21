@@ -66,7 +66,7 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
-    delay?: number;
+    delay?: number | (() => number);
   };
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);

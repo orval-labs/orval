@@ -4,6 +4,7 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
+  NormalizedOverrideOutput,
   pascal,
 } from '@orval/core';
 import { getRouteMSW } from './getters';
@@ -34,6 +35,18 @@ export const generateMSWImports: GenerateMockImports = ({
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );
+};
+
+const getDelay = (override?: NormalizedOverrideOutput): number => {
+  const overrideDelay = override?.mock?.delay;
+  switch (typeof overrideDelay) {
+    case 'function':
+      return overrideDelay();
+    case 'number':
+      return overrideDelay;
+    default:
+      return 1000;
+  }
 };
 
 export const generateMSW = (
@@ -73,7 +86,7 @@ export const generateMSW = (
           : '',
       handler: `rest.${verb}('${route}', (_req, res, ctx) => {
         return res(
-          ctx.delay(${override?.mock?.delay ?? 1000}),
+          ctx.delay(${getDelay(override)}),
           ctx.status(200, 'Mocked status'),${
             value && value !== 'undefined'
               ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`

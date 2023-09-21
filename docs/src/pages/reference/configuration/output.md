@@ -745,9 +745,9 @@ module.exports = {
 
 ##### delay
 
-Type: `number`.
+Type: `number` or `Function`.
 
-Give you the possibility to set delay time for mock
+Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
 
 Default Value: `1000`
 
