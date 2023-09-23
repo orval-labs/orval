@@ -821,7 +821,7 @@ const generateQueryImplementation = ({
           )
             return param.destructured;
           return param.name === 'params'
-            ? `{...params, ${queryParam}: pageParam }`
+            ? `{...params, ${queryParam}: pageParam || params.page }`
             : param.name;
         })
         .join(',')
