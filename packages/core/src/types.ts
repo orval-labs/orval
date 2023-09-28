@@ -527,6 +527,7 @@ export type GeneratorVerbOptions = {
   formUrlEncoded?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
+  originalOperation: OperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
