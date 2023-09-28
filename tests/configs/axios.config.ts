@@ -65,4 +65,20 @@ export default defineConfig({
       },
     },
   },
+  namedParameters: {
+    output: {
+      target: '../generated/axios/named-parameters/endpoints.ts',
+      schemas: '../generated/axios/named-parameters/model',
+      client: 'axios-functions',
+      override: {
+        useNamedParameters: true,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer,
+      },
+    },
+  },
 });

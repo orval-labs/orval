@@ -37,8 +37,9 @@ export const useListPetsHook = () => {
   };
 };
 
-export const getListPetsQueryKey = (params?: ListPetsParams) =>
-  [`/pets`, ...(params ? [params] : [])] as const;
+export const getListPetsQueryKey = (params?: ListPetsParams) => {
+  return [`/pets`, ...(params ? [params] : [])] as const;
+};
 
 export const useListPetsQueryOptions = <
   TData = Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
@@ -183,8 +184,9 @@ export const useShowPetByIdHook = () => {
   };
 };
 
-export const getShowPetByIdQueryKey = (petId: string) =>
-  [`/pets/${petId}`] as const;
+export const getShowPetByIdQueryKey = (petId: string) => {
+  return [`/pets/${petId}`] as const;
+};
 
 export const useShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,

@@ -19,9 +19,9 @@ import {
   ContextSpecs,
   isObject,
   isBoolean,
+  jsStringEscape,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
-import {jsStringEscape} from "@orval/core/src";
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -262,6 +262,7 @@ const parseZodValidationSchemaDefinition = (
     if (fn === 'additionalProperties') {
       const value = args.functions.map(parseProperty).join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+      consts += args.consts
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 

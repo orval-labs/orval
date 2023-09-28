@@ -47,4 +47,25 @@ export default defineConfig({
       },
     },
   },
+  namedParameters: {
+    output: {
+      target: '../generated/vue-query/named-parameters/endpoints.ts',
+      schemas: '../generated/vue-query/named-parameters/model',
+      client: 'vue-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+        useNamedParameters: true,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });

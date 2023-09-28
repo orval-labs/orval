@@ -14,26 +14,26 @@ export const getListPetsMock = () =>
   ).map(() =>
     faker.helpers.arrayElement([
       {
-        cuteness: faker.datatype.number({ min: undefined, max: undefined }),
+        cuteness: faker.number.int({ min: undefined, max: undefined }),
         breed: faker.helpers.arrayElement(['Labradoodle']),
         barksPerMinute: faker.helpers.arrayElement([
-          faker.datatype.number({ min: undefined, max: undefined }),
+          faker.number.int({ min: undefined, max: undefined }),
           undefined,
         ]),
         type: faker.helpers.arrayElement(['dog']),
       },
       {
-        length: faker.datatype.number({ min: undefined, max: undefined }),
+        length: faker.number.int({ min: undefined, max: undefined }),
         breed: faker.helpers.arrayElement(['Dachshund']),
         barksPerMinute: faker.helpers.arrayElement([
-          faker.datatype.number({ min: undefined, max: undefined }),
+          faker.number.int({ min: undefined, max: undefined }),
           undefined,
         ]),
         type: faker.helpers.arrayElement(['dog']),
-        '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
-        id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
-        name: (() => faker.name.lastName())(),
-        tag: (() => faker.name.lastName())(),
+        '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+        id: (() => faker.number.int({ min: 1, max: 99999 }))(),
+        name: (() => faker.person.lastName())(),
+        tag: (() => faker.person.lastName())(),
         email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
         callingCode: faker.helpers.arrayElement([
           faker.helpers.arrayElement(['+33', '+420', '+33']),
@@ -46,14 +46,14 @@ export const getListPetsMock = () =>
       },
       {
         petsRequested: faker.helpers.arrayElement([
-          faker.datatype.number({ min: undefined, max: undefined }),
+          faker.number.int({ min: undefined, max: undefined }),
           undefined,
         ]),
         type: faker.helpers.arrayElement(['cat']),
-        '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
-        id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
-        name: (() => faker.name.lastName())(),
-        tag: (() => faker.name.lastName())(),
+        '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+        id: (() => faker.number.int({ min: 1, max: 99999 }))(),
+        name: (() => faker.person.lastName())(),
+        tag: (() => faker.person.lastName())(),
         email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
         callingCode: faker.helpers.arrayElement([
           faker.helpers.arrayElement(['+33', '+420', '+33']),
@@ -70,26 +70,26 @@ export const getListPetsMock = () =>
 export const getCreatePetsMock = () =>
   faker.helpers.arrayElement([
     {
-      cuteness: faker.datatype.number({ min: undefined, max: undefined }),
+      cuteness: faker.number.int({ min: undefined, max: undefined }),
       breed: faker.helpers.arrayElement(['Labradoodle']),
       barksPerMinute: faker.helpers.arrayElement([
-        faker.datatype.number({ min: undefined, max: undefined }),
+        faker.number.int({ min: undefined, max: undefined }),
         undefined,
       ]),
       type: faker.helpers.arrayElement(['dog']),
     },
     {
-      length: faker.datatype.number({ min: undefined, max: undefined }),
+      length: faker.number.int({ min: undefined, max: undefined }),
       breed: faker.helpers.arrayElement(['Dachshund']),
       barksPerMinute: faker.helpers.arrayElement([
-        faker.datatype.number({ min: undefined, max: undefined }),
+        faker.number.int({ min: undefined, max: undefined }),
         undefined,
       ]),
       type: faker.helpers.arrayElement(['dog']),
-      '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
-      id: faker.datatype.number({ min: undefined, max: undefined }),
-      name: (() => faker.name.lastName())(),
-      tag: (() => faker.name.lastName())(),
+      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33']),
@@ -102,14 +102,14 @@ export const getCreatePetsMock = () =>
     },
     {
       petsRequested: faker.helpers.arrayElement([
-        faker.datatype.number({ min: undefined, max: undefined }),
+        faker.number.int({ min: undefined, max: undefined }),
         undefined,
       ]),
       type: faker.helpers.arrayElement(['cat']),
-      '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
-      id: faker.datatype.number({ min: undefined, max: undefined }),
-      name: (() => faker.name.lastName())(),
-      tag: (() => faker.name.lastName())(),
+      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33']),
@@ -125,26 +125,26 @@ export const getCreatePetsMock = () =>
 export const getUpdatePetsMock = () =>
   faker.helpers.arrayElement([
     {
-      cuteness: faker.datatype.number({ min: undefined, max: undefined }),
+      cuteness: faker.number.int({ min: undefined, max: undefined }),
       breed: faker.helpers.arrayElement(['Labradoodle']),
       barksPerMinute: faker.helpers.arrayElement([
-        faker.datatype.number({ min: undefined, max: undefined }),
+        faker.number.int({ min: undefined, max: undefined }),
         undefined,
       ]),
       type: faker.helpers.arrayElement(['dog']),
     },
     {
-      length: faker.datatype.number({ min: undefined, max: undefined }),
+      length: faker.number.int({ min: undefined, max: undefined }),
       breed: faker.helpers.arrayElement(['Dachshund']),
       barksPerMinute: faker.helpers.arrayElement([
-        faker.datatype.number({ min: undefined, max: undefined }),
+        faker.number.int({ min: undefined, max: undefined }),
         undefined,
       ]),
       type: faker.helpers.arrayElement(['dog']),
-      '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
-      id: faker.datatype.number({ min: undefined, max: undefined }),
-      name: (() => faker.name.lastName())(),
-      tag: (() => faker.name.lastName())(),
+      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33']),
@@ -157,14 +157,14 @@ export const getUpdatePetsMock = () =>
     },
     {
       petsRequested: faker.helpers.arrayElement([
-        faker.datatype.number({ min: undefined, max: undefined }),
+        faker.number.int({ min: undefined, max: undefined }),
         undefined,
       ]),
       type: faker.helpers.arrayElement(['cat']),
-      '@id': faker.helpers.arrayElement([faker.random.word(), undefined]),
-      id: faker.datatype.number({ min: undefined, max: undefined }),
-      name: (() => faker.name.lastName())(),
-      tag: (() => faker.name.lastName())(),
+      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
+      tag: (() => faker.person.lastName())(),
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33']),
@@ -179,9 +179,9 @@ export const getUpdatePetsMock = () =>
 
 export const getShowPetByIdMock = () =>
   (() => ({
-    id: faker.datatype.number({ min: 1, max: 99 }),
-    name: faker.name.firstName(),
-    tag: faker.helpers.arrayElement([faker.random.word(), void 0]),
+    id: faker.number.int({ min: 1, max: 99 }),
+    name: faker.person.firstName(),
+    tag: faker.helpers.arrayElement([faker.word.sample(), void 0]),
   }))();
 
 export const getSwaggerPetstoreMSW = () => [

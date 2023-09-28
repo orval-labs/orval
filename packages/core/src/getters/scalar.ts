@@ -20,6 +20,7 @@ export const getScalar = ({
   context: ContextSpecs;
 }): ScalarValue => {
   const nullable = item.nullable ? ' | null' : '';
+  const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
   if (!item.type && item.items) {
     item.type = 'array';
@@ -34,8 +35,8 @@ export const getScalar = ({
           : 'number';
       let isEnum = false;
 
-      if (item.enum) {
-        value = item.enum.map((enumItem: string) => `${enumItem}`).join(' | ');
+      if (enumItems) {
+        value = enumItems.map((enumItem: string) => `${enumItem}`).join(' | ');
         isEnum = true;
       }
 
@@ -77,8 +78,8 @@ export const getScalar = ({
       let value = 'string';
       let isEnum = false;
 
-      if (item.enum) {
-        value = `'${item.enum
+      if (enumItems) {
+        value = `'${enumItems
           .map((enumItem: string) =>
             isString(enumItem) ? escape(enumItem) : `${enumItem}`,
           )
@@ -122,8 +123,8 @@ export const getScalar = ({
 
     case 'object':
     default: {
-      if (item.enum) {
-        const value = `'${item.enum
+      if (enumItems) {
+        const value = `'${enumItems
           .map((enumItem: string) =>
             isString(enumItem) ? escape(enumItem) : `${enumItem}`,
           )
