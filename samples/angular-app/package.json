@@ -26,7 +26,7 @@
     "@angular-devkit/build-angular": "~12.2.14",
     "@angular/cli": "~12.2.14",
     "@angular/compiler-cli": "~12.2.15",
-    "@faker-js/faker": "^7.3.0",
+    "@faker-js/faker": "^8.0.2",
     "@types/node": "^12.11.1",
     "codelyzer": "^6.0.0",
     "msw": "^0.21.2",
