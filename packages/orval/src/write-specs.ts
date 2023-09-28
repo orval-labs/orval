@@ -72,6 +72,7 @@ export const writeSpecs = async (
           specKey,
           isRootKey: isRootKey(specKey, target),
           header,
+          indexFiles: output.indexFiles,
         });
       }),
     );
@@ -108,24 +109,26 @@ export const writeSpecs = async (
       );
     }
 
-    const indexFile = upath.join(workspacePath, '/index.ts');
+    if (output.indexFiles) {
+      const indexFile = upath.join(workspacePath, '/index.ts');
 
-    if (await fs.pathExists(indexFile)) {
-      const data = await fs.readFile(indexFile, 'utf8');
-      const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
-      await fs.appendFile(
-        indexFile,
-        uniq(importsNotDeclared)
-          .map((imp) => `export * from '${imp}';`)
-          .join('\n') + '\n',
-      );
-    } else {
-      await fs.outputFile(
-        indexFile,
-        uniq(imports)
-          .map((imp) => `export * from '${imp}';`)
-          .join('\n') + '\n',
-      );
+      if (await fs.pathExists(indexFile)) {
+        const data = await fs.readFile(indexFile, 'utf8');
+        const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
+        await fs.appendFile(
+          indexFile,
+          uniq(importsNotDeclared)
+            .map((imp) => `export * from '${imp}';`)
+            .join('\n') + '\n',
+        );
+      } else {
+        await fs.outputFile(
+          indexFile,
+          uniq(imports)
+            .map((imp) => `export * from '${imp}';`)
+            .join('\n') + '\n',
+        );
+      }
     }
 
     implementationPaths = [indexFile, ...implementationPaths];

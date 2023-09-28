@@ -51,6 +51,7 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
+  indexFiles: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -66,7 +67,7 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
-    delay?: number;
+    delay?: number | (() => number);
   };
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -163,6 +164,7 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
+  indexFiles?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -527,6 +529,7 @@ export type GeneratorVerbOptions = {
   formUrlEncoded?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
+  originalOperation: OperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
