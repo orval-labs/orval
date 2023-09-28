@@ -120,6 +120,7 @@ export const normalizeOptions = async (
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,
+      indexFiles: outputOptions.indexFiles ?? true,
       override: {
         ...outputOptions.override,
         mock: {
