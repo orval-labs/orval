@@ -129,9 +129,9 @@ export const writeSpecs = async (
             .join('\n') + '\n',
         );
       }
-    }
 
-    implementationPaths = [indexFile, ...implementationPaths];
+      implementationPaths = [indexFile, ...implementationPaths];
+    }
   }
 
   const paths = [
