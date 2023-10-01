@@ -397,6 +397,9 @@ const normalizeQueryOptions = (
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
       : {}),
+    ...(!isUndefined(queryOptions.version)
+      ? { version: queryOptions.version }
+      : {}),
   };
 };
 

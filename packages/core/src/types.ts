@@ -302,6 +302,7 @@ export type NormalizedQueryOptions = {
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type QueryOptions = {
@@ -314,6 +315,7 @@ export type QueryOptions = {
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
