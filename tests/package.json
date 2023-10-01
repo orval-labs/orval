@@ -28,6 +28,7 @@
   "dependencies": {
     "@angular/common": "^12.2.9",
     "@angular/core": "^12.2.9",
+    "@faker-js/faker": "^8.1.0",
     "@tanstack/react-query": "^4.22.0",
     "@tanstack/svelte-query": "^4.24.9",
     "@tanstack/vue-query": "^4.22.0",
