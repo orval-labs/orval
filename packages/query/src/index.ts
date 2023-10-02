@@ -136,6 +136,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'QueryClient' },
     ],
     dependency: 'react-query',
   },
@@ -154,6 +155,7 @@ const REACT_QUERY_V4_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'QueryClient' },
     ],
     dependency: '@tanstack/react-query',
   },
@@ -694,6 +696,7 @@ const generateQueryImplementation = ({
   hasVueQueryV4,
   hasSvelteQueryV4,
   doc,
+  usePrefetch,
 }: {
   queryOption: {
     name: string;
@@ -719,6 +722,7 @@ const generateQueryImplementation = ({
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
   doc?: string;
+  usePrefetch?: boolean;
 }) => {
   const queryProps = toObjectString(props, 'implementation');
 
@@ -731,7 +735,7 @@ const generateQueryImplementation = ({
           )
             return param.destructured;
           return param.name === 'params'
-            ? `{ ${queryParam}: pageParam, ...params }`
+            ? `{...params, ${queryParam}: pageParam || params.page, }`
             : param.name;
         })
         .join(',')
@@ -896,7 +900,24 @@ ${doc}export const ${camel(
   };
 
   return query;
-}\n`;
+}\n
+${
+  usePrefetch
+    ? `${doc}export const ${camel(
+        `prefetch-${name}`,
+      )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+        queryProperties ? ',' : ''
+      }${isRequestOptions ? 'options' : 'queryOptions'})
+
+  await queryClient.${camel(`prefetch-${type}`)}(${queryOptionsVarName});
+
+  return queryClient;
+}\n`
+    : ''
+}
+`;
 };
 
 const generateQueryHook = async (
@@ -1056,6 +1077,7 @@ const generateQueryHook = async (
           hasVueQueryV4,
           hasSvelteQueryV4,
           doc,
+          usePrefetch: query.usePrefetch,
         }),
       '',
     )}
