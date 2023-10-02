@@ -12,14 +12,14 @@ export const getProps = ({
   body,
   queryParams,
   params,
-  operationId,
+  operationName,
   headers,
   context,
 }: {
   body: GetterBody;
   queryParams?: GetterQueryParam;
   params: GetterParams;
-  operationId: string;
+  operationName: string;
   headers?: GetterQueryParam;
   context: ContextSpecs;
 }): GetterProps => {
@@ -62,7 +62,7 @@ export const getProps = ({
 
   let paramGetterProps: GetterProps;
   if (context.override.useNamedParameters && params.length > 0) {
-    const parameterTypeName = `${pascal(operationId)}PathParameters`;
+    const parameterTypeName = `${pascal(operationName)}PathParameters`;
 
     const name = 'pathParams';
 
