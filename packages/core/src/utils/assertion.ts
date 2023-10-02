@@ -9,7 +9,7 @@ import { extname } from './path';
  * @param property
  */
 export const isReference = (property: any): property is ReferenceObject => {
-  return Boolean(property.$ref);
+  return Boolean(property?.$ref);
 };
 
 export const isDirectory = (path: string) => {
