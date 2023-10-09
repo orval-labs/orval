@@ -32,6 +32,7 @@ import {
   jsDoc,
   GetterQueryParam,
   compareVersions,
+  getRouteAsArray,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
@@ -1128,7 +1129,9 @@ const generateQueryHook = async (
       'implementation',
     );
 
-    const routeString = `\`${route}\``;
+    const routeString = isVue(outputClient)
+      ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
+      : `\`${route}\``;
 
     // Note: do not unref() params in Vue - this will make key lose reactivity
     const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => {
