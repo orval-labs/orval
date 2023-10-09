@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { resolveObject, resolveRef, resolveValue } from '../resolvers';
+import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
 import { ContextSpecs, ScalarValue, SchemaType } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
@@ -32,6 +32,8 @@ export const getObject = ({
       type: 'object',
       isRef: true,
       hasReadonlyProps: item.readOnly || false,
+      example: item.example,
+      examples: resolveExampleRefs(item.examples, context),
     };
   }
 
@@ -144,6 +146,8 @@ export const getObject = ({
           isRef: false,
           schema: {},
           hasReadonlyProps: false,
+          example: item.example,
+          examples: resolveExampleRefs(item.examples, context),
         } as ScalarValue,
       );
   }

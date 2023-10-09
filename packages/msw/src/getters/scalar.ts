@@ -70,6 +70,15 @@ export const getMockScalar = ({
     return property;
   }
 
+  if (context.override?.mock?.useExamples && item.example) {
+    return {
+      value: JSON.stringify(item.example),
+      imports: [],
+      name: item.name,
+      overrided: true,
+    };
+  }
+
   const ALL_FORMAT: Record<string, string> = {
     ...DEFAULT_FORMAT_MOCK,
     ...(mockOptions?.format ?? {}),

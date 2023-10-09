@@ -69,6 +69,7 @@ export type NormalizedOverrideOutput = {
     required?: boolean;
     baseUrl?: string;
     delay?: number | (() => number);
+    useExamples?: boolean;
   };
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -252,6 +253,7 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
     delay?: number;
+    useExamples?: boolean;
   };
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
@@ -735,6 +737,8 @@ export type ScalarValue = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   isRef: boolean;
+  example?: any;
+  examples?: Record<string, any>;
 };
 
 export type ResolverValue = ScalarValue & {
