@@ -120,6 +120,7 @@ export const normalizeOptions = async (
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,
+      indexFiles: outputOptions.indexFiles ?? true,
       override: {
         ...outputOptions.override,
         mock: {
@@ -395,6 +396,9 @@ const normalizeQueryOptions = (
       : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
+      : {}),
+    ...(!isUndefined(queryOptions.version)
+      ? { version: queryOptions.version }
       : {}),
   };
 };

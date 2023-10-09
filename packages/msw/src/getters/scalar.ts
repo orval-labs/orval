@@ -85,7 +85,7 @@ export const getMockScalar = ({
     case 'integer': {
       return {
         value: getNullable(
-          `faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`,
+          `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
           item.nullable,
         ),
         imports: [],
@@ -174,7 +174,7 @@ export const getMockScalar = ({
     }
 
     case 'string': {
-      let value = 'faker.random.word()';
+      let value = 'faker.word.sample()';
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {

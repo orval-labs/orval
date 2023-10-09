@@ -51,6 +51,7 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
+  indexFiles: boolean;
 };
 
 export type NormalizedOverrideOutput = {
@@ -66,7 +67,7 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
-    delay?: number;
+    delay?: number | (() => number);
   };
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -101,6 +102,7 @@ export type NormalizedOverrideOutput = {
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
+  useNamedParameters?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -162,6 +164,7 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
+  indexFiles?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -281,6 +284,7 @@ export type OverrideOutput = {
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
+  useNamedParameters?: boolean;
 };
 
 export type OverrideOutputContentType = {
@@ -298,6 +302,7 @@ export type NormalizedQueryOptions = {
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type QueryOptions = {
@@ -310,6 +315,7 @@ export type QueryOptions = {
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
@@ -525,6 +531,7 @@ export type GeneratorVerbOptions = {
   formUrlEncoded?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
+  originalOperation: OperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -660,23 +667,34 @@ export type GetterQueryParam = {
   originalSchema?: SchemaObject;
 };
 
-export type GetterPropType = 'param' | 'body' | 'queryParam' | 'header';
+export type GetterPropType =
+  | 'param'
+  | 'body'
+  | 'queryParam'
+  | 'header'
+  | 'namedPathParams';
 
 export const GetterPropType = {
-  PARAM: 'param' as GetterPropType,
-  BODY: 'body' as GetterPropType,
-  QUERY_PARAM: 'queryParam' as GetterPropType,
-  HEADER: 'header' as GetterPropType,
-};
+  PARAM: 'param',
+  NAMED_PATH_PARAMS: 'namedPathParams',
+  BODY: 'body',
+  QUERY_PARAM: 'queryParam',
+  HEADER: 'header',
+} as const;
 
-export type GetterProp = {
+type GetterPropBase = {
   name: string;
   definition: string;
   implementation: string;
   default: boolean;
   required: boolean;
-  type: GetterPropType;
 };
+
+export type GetterProp = GetterPropBase &
+  (
+    | { type: 'namedPathParams'; destructured: string; schema: GeneratorSchema }
+    | { type: Exclude<GetterPropType, 'namedPathParams'> }
+  );
 
 export type GetterProps = GetterProp[];
 

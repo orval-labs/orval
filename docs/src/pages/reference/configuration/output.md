@@ -303,7 +303,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L510" target="_blank">VerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L510" target="_blank">VerbOptions</a>
 
 ```js
 module.exports = {
@@ -745,9 +745,9 @@ module.exports = {
 
 ##### delay
 
-Type: `number`.
+Type: `number` or `Function`.
 
-Give you the possibility to set delay time for mock
+Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
 
 Default Value: `1000`
 
@@ -1066,6 +1066,28 @@ module.exports = {
     output: {
       override: {
         useBigInt: true,
+      },
+    },
+  },
+};
+```
+
+#### useNamedParameters
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Generates the operation interfaces with named path parameters instead of individual arguments for each path parameter.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useNamedParameters: true,
       },
     },
   },

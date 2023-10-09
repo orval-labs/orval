@@ -125,7 +125,14 @@ const generateVerbOptions = async ({
     context,
   });
 
-  const props = getProps({ body, queryParams, params, headers });
+  const props = getProps({
+    body,
+    queryParams,
+    params,
+    headers,
+    operationId,
+    context,
+  });
 
   const mutator = await generateMutator({
     output: output.target,
@@ -177,6 +184,7 @@ const generateVerbOptions = async ({
     override,
     doc,
     deprecated,
+    originalOperation: operation,
   };
 
   const transformer = await dynamicImport(

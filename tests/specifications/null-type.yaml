@@ -55,7 +55,9 @@ components:
             - type: 'string'
             - type: 'null'
     NullEnum:
+      nullable: true
       enum:
+        - foo
         - null
     BlankEnum:
       enum:

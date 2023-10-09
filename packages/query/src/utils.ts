@@ -9,6 +9,8 @@ import {
   OutputClient,
   OutputClientFunc,
   upath,
+  GetterProps,
+  GetterPropType,
 } from '@orval/core';
 import chalk from 'chalk';
 
@@ -76,31 +78,35 @@ const normalizeMutator = <T>(
   return mutator;
 };
 
-/**
- * Wrap any type declaration with MaybeRef\<type\>
- */
-export function vueWrapTypeWithMaybeRef(input: string): string {
-  if (!input.includes(',')) return input;
+export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
+  return props.map((prop) => {
+    const [paramName, paramType] = prop.implementation.split(':');
+    if (!paramType) return prop;
+    const name =
+      prop.type === GetterPropType.NAMED_PATH_PARAMS
+        ? prop.name
+        : `${paramName}`;
 
-  const output = input
-    .split(',')
-    .map((param) => {
-      const [paramName, paramType] = param.split(':');
-      if (paramType) {
-        return `${paramName}: MaybeRef<${paramType.trim()}>,`;
-      } else {
-        return `${param},`;
-      }
-    })
-    .join('')
-    .replace(',,', ',');
-
-  return output;
+    const [type, defaultValue] = paramType.split('=');
+    return {
+      ...prop,
+      implementation: `${name}: MaybeRef<${type.trim()}>${
+        defaultValue ? ` = ${defaultValue}` : ''
+      }`,
+    };
+  });
 }
 
-// Vue persist reactivity
-export const vueMakeRouteReactive = (route: string): string =>
-  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
+export const vueUnRefParams = (props: GetterProps): string => {
+  return props
+    .map((prop) => {
+      if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+        return `const ${prop.destructured} = unref(${prop.name});`;
+      }
+      return `${prop.name} = unref(${prop.name});`;
+    })
+    .join('\n');
+};
 
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;

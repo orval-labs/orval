@@ -47,4 +47,20 @@ export default defineConfig({
       },
     },
   },
+  namedParameters: {
+    output: {
+      target: '../generated/angular/named-parameters/endpoints.ts',
+      schemas: '../generated/angular/named-parameters/model',
+      client: 'angular',
+      override: {
+        useNamedParameters: true,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });

@@ -6,6 +6,7 @@ export default defineConfig({
       target: './endpoints.ts',
       schemas: './models',
       client: 'react-query',
+      prettier: true,
       override: {
         mutator: {
           path: './use-custom-instance.ts',
