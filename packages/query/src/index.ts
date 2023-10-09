@@ -1130,8 +1130,8 @@ const generateQueryHook = async (
 
     const routeString = `\`${route}\``;
 
+    // Note: do not unref() params in Vue - this will make key lose reactivity
     const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => {
-    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
     return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
     }] as const;

@@ -53,8 +53,6 @@ export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
   version = 1,
 ) => {
-  params = unref(params);
-  version = unref(version);
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 
@@ -286,8 +284,6 @@ export const getShowPetByIdQueryKey = (
   petId: MaybeRef<string>,
   version = 1,
 ) => {
-  petId = unref(petId);
-  version = unref(version);
   return [`/v${version}/pets/${petId}`] as const;
 };
 
