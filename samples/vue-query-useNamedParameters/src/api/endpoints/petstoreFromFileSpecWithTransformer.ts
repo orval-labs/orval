@@ -16,7 +16,7 @@ import type {
   UseInfiniteQueryReturnType,
 } from '@tanstack/vue-query';
 import { unref } from 'vue';
-import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
+import type { MaybeRefDeep } from '@tanstack/vue-query/build/lib/types';
 import type {
   Pets,
   Error,
@@ -37,11 +37,11 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
  * @summary List all pets
  */
 export const listPets = (
-  pathParams: MaybeRef<ListPetsPathParameters> = {},
-  params?: MaybeRef<ListPetsParams>,
+  pathParams: MaybeRefDeep<ListPetsPathParameters> = {},
+  params?: MaybeRefDeep<ListPetsParams>,
   signal?: AbortSignal,
 ) => {
-  const { version } = unref(pathParams);
+  const { version = 1 } = unref(pathParams);
   params = unref(params);
 
   return customInstance<Pets>({
@@ -53,18 +53,19 @@ export const listPets = (
 };
 
 export const getListPetsQueryKey = (
-  pathParams: MaybeRef<ListPetsPathParameters> = {},
-  params?: MaybeRef<ListPetsParams>,
+  pathParams: MaybeRefDeep<ListPetsPathParameters> = {},
+  params?: MaybeRefDeep<ListPetsParams>,
 ) => {
-  return ['v', 'pets', pathParams, ...(params ? [params] : [])] as const;
+  const { version = 1 } = unref(pathParams);
+  return ['v', version, 'pets', ...(params ? [params] : [])] as const;
 };
 
 export const getListPetsInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ListPetsPathParameters> = {},
-  params?: MaybeRef<ListPetsParams>,
+  pathParams: MaybeRefDeep<ListPetsPathParameters> = {},
+  params?: MaybeRefDeep<ListPetsParams>,
   options?: {
     query?: UseInfiniteQueryOptions<
       Awaited<ReturnType<typeof listPets>>,
@@ -82,7 +83,7 @@ export const getListPetsInfiniteQueryOptions = <
     pageParam,
   }) => listPets(pathParams, { limit: pageParam, ...params }, signal);
 
-  const { version } = unref(pathParams);
+  const { version = 1 } = unref(pathParams);
 
   return {
     queryKey,
@@ -108,8 +109,8 @@ export const useListPetsInfinite = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ListPetsPathParameters> = {},
-  params?: MaybeRef<ListPetsParams>,
+  pathParams: MaybeRefDeep<ListPetsPathParameters> = {},
+  params?: MaybeRefDeep<ListPetsParams>,
   options?: {
     query?: UseInfiniteQueryOptions<
       Awaited<ReturnType<typeof listPets>>,
@@ -138,8 +139,8 @@ export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ListPetsPathParameters> = {},
-  params?: MaybeRef<ListPetsParams>,
+  pathParams: MaybeRefDeep<ListPetsPathParameters> = {},
+  params?: MaybeRefDeep<ListPetsParams>,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof listPets>>,
@@ -156,7 +157,7 @@ export const getListPetsQueryOptions = <
     signal,
   }) => listPets(pathParams, params, signal);
 
-  const { version } = unref(pathParams);
+  const { version = 1 } = unref(pathParams);
 
   return {
     queryKey,
@@ -178,8 +179,8 @@ export const useListPets = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ListPetsPathParameters> = {},
-  params?: MaybeRef<ListPetsParams>,
+  pathParams: MaybeRefDeep<ListPetsPathParameters> = {},
+  params?: MaybeRefDeep<ListPetsParams>,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof listPets>>,
@@ -203,10 +204,10 @@ export const useListPets = <
  * @summary Create a pet
  */
 export const createPets = (
-  pathParams: MaybeRef<CreatePetsPathParameters> = {},
-  createPetsBody: MaybeRef<CreatePetsBody>,
+  pathParams: MaybeRefDeep<CreatePetsPathParameters> = {},
+  createPetsBody: MaybeRefDeep<CreatePetsBody>,
 ) => {
-  const { version } = unref(pathParams);
+  const { version = 1 } = unref(pathParams);
   createPetsBody = unref(createPetsBody);
 
   return customInstance<Pet>({
@@ -273,10 +274,10 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
  * @summary Info for a specific pet
  */
 export const showPetById = (
-  pathParams: MaybeRef<ShowPetByIdPathParameters>,
+  pathParams: MaybeRefDeep<ShowPetByIdPathParameters>,
   signal?: AbortSignal,
 ) => {
-  const { version, petId } = unref(pathParams);
+  const { version = 1, petId } = unref(pathParams);
 
   return customInstance<Pet>({
     url: `/v${version}/pets/${petId}`,
@@ -286,7 +287,7 @@ export const showPetById = (
 };
 
 export const getShowPetByIdQueryKey = (
-  pathParams: MaybeRef<ShowPetByIdPathParameters>,
+  pathParams: MaybeRefDeep<ShowPetByIdPathParameters>,
 ) => {
   return ['v', 'pets', pathParams] as const;
 };
@@ -295,7 +296,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ShowPetByIdPathParameters>,
+  pathParams: MaybeRefDeep<ShowPetByIdPathParameters>,
   options?: {
     query?: UseInfiniteQueryOptions<
       Awaited<ReturnType<typeof showPetById>>,
@@ -312,7 +313,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
     signal,
   }) => showPetById(pathParams, signal);
 
-  const { version, petId } = unref(pathParams);
+  const { version = 1, petId } = unref(pathParams);
 
   return {
     queryKey,
@@ -338,7 +339,7 @@ export const useShowPetByIdInfinite = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ShowPetByIdPathParameters>,
+  pathParams: MaybeRefDeep<ShowPetByIdPathParameters>,
   options?: {
     query?: UseInfiniteQueryOptions<
       Awaited<ReturnType<typeof showPetById>>,
@@ -363,7 +364,7 @@ export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ShowPetByIdPathParameters>,
+  pathParams: MaybeRefDeep<ShowPetByIdPathParameters>,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof showPetById>>,
@@ -380,7 +381,7 @@ export const getShowPetByIdQueryOptions = <
     signal,
   }) => showPetById(pathParams, signal);
 
-  const { version, petId } = unref(pathParams);
+  const { version = 1, petId } = unref(pathParams);
 
   return {
     queryKey,
@@ -402,7 +403,7 @@ export const useShowPetById = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
-  pathParams: MaybeRef<ShowPetByIdPathParameters>,
+  pathParams: MaybeRefDeep<ShowPetByIdPathParameters>,
   options?: {
     query?: UseQueryOptions<
       Awaited<ReturnType<typeof showPetById>>,

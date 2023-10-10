@@ -15,10 +15,10 @@ const overridePetId = ref<string | undefined>();
 setTimeout(() => {
   overridePetId.value = '123';
 }, 100);
-const pathParams = computed(() => ({
-  // pathParams is ref/computed - this works
-  petId: overridePetId.value || props.petId,
-}));
+const pathParams = {
+  // pathParams is a plain object instead of computed - this doesn't work, see test for details
+  petId: computed(() => overridePetId.value || props.petId),
+};
 const petQuery = useShowPetById(pathParams);
 const pet = computed(() => unref(petQuery?.data));
 </script>
