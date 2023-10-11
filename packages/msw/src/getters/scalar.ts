@@ -46,13 +46,17 @@ export const getMockScalar = ({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags ?? {}).reduce<{
-    properties: Record<string, string>;
-  }>(
-    (acc, [tag, options]) =>
-      tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as { properties: Record<string, string> },
-  );
+  const overrideTag = Object.entries(mockOptions?.tags ?? {})
+    .sort((a, b) => {
+      return a[0].localeCompare(b[0]);
+    })
+    .reduce<{
+      properties: Record<string, string>;
+    }>(
+      (acc, [tag, options]) =>
+        tags.includes(tag) ? mergeDeep(acc, options) : acc,
+      {} as { properties: Record<string, string> },
+    );
 
   const tagProperty = resolveMockOverride(overrideTag?.properties, item);
 
