@@ -277,9 +277,12 @@ const parseZodValidationSchemaDefinition = (
     }
 
     if (fn === 'additionalProperties') {
+      if (isBoolean(args)) {
+        return args === true ? '.passthrough()' : ''; //by default zod strips out additional properties, if additional properties are allowed, we want to passthrough
+      }
       const value = args.functions.map(parseProperty).join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-      consts += args.consts
+      consts += args.consts;
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
