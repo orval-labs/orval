@@ -69,17 +69,17 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
 } {
   const refInfo = getRefInfo(schema.$ref, context);
 
-  const { specKey, refPaths = [] } = refInfo;
+  const { specKey, refPaths } = refInfo;
 
-  let schemaByRefPaths: Schema | undefined = get(
-    context.specs[context.specKey],
-    refPaths,
-  );
+  let schemaByRefPaths: Schema | undefined =
+    refPaths && get(context.specs[specKey || context.specKey], refPaths);
+
   if (!schemaByRefPaths) {
     schemaByRefPaths = context.specs?.[
       specKey || context.specKey
     ] as unknown as Schema;
   }
+
   if (isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);
   }
