@@ -130,7 +130,7 @@ const generateVerbOptions = async ({
     queryParams,
     params,
     headers,
-    operationId,
+    operationName,
     context,
   });
 
