@@ -364,11 +364,17 @@ const normalizeQueryOptions = (
     ...(!isUndefined(queryOptions.useQuery)
       ? { useQuery: queryOptions.useQuery }
       : {}),
+    ...(!isUndefined(queryOptions.useSuspenseQuery)
+      ? { useSuspenseQuery: queryOptions.useSuspenseQuery }
+      : {}),
     ...(!isUndefined(queryOptions.useMutation)
       ? { useMutation: queryOptions.useMutation }
       : {}),
     ...(!isUndefined(queryOptions.useInfinite)
       ? { useInfinite: queryOptions.useInfinite }
+      : {}),
+    ...(!isUndefined(queryOptions.useSuspenseInfiniteQuery)
+      ? { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }
       : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }

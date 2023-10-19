@@ -146,15 +146,21 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'useQuery', values: true },
+      { name: 'useSuspenseQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
+      { name: 'useSuspenseInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
       { name: 'UseQueryOptions' },
+      { name: 'UseSuspenseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseSuspenseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
       { name: 'UseQueryResult' },
+      { name: 'UseSuspenseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
+      { name: 'UseSuspenseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'InfiniteData' },
     ],
@@ -461,6 +467,8 @@ type QueryType = 'infiniteQuery' | 'query';
 const QueryType = {
   INFINITE: 'infiniteQuery' as QueryType,
   QUERY: 'query' as QueryType,
+  SUSPENSE_QUERY: 'suspenseQuery' as QueryType,
+  SUSPENSE_INFINITE: 'suspenseInfiniteQuery' as QueryType,
 };
 
 const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
@@ -483,7 +491,8 @@ const generateQueryOptions = ({
         omitBy(
           options,
           (_, key) =>
-            type !== QueryType.INFINITE &&
+            (type !== QueryType.INFINITE ||
+              type !== QueryType.SUSPENSE_INFINITE) &&
             INFINITE_QUERY_PROPERTIES.includes(key),
         ),
       )?.slice(1, -1)}`
@@ -550,7 +559,10 @@ const getQueryOptionsDefinition = ({
     }>>`;
 
     return `${prefix}${pascal(type)}Options<${funcReturnType}, TError, TData${
-      hasQueryV5 && type === QueryType.INFINITE && queryParam && queryParams
+      hasQueryV5 &&
+      (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
+      queryParam &&
+      queryParams
         ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
     }>`;
@@ -613,9 +625,6 @@ const generateQueryReturnType = ({
   operationName,
   hasVueQueryV4,
   hasSvelteQueryV4,
-  hasQueryV5,
-  queryParams,
-  queryParam,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   type: QueryType;
@@ -623,9 +632,6 @@ const generateQueryReturnType = ({
   operationName: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
-  hasQueryV5: boolean;
-  queryParams?: GetterQueryParam;
-  queryParam?: string;
 }) => {
   switch (outputClient) {
     case OutputClient.SVELTE_QUERY: {
@@ -648,7 +654,7 @@ const generateQueryReturnType = ({
         )}Result<TData, TError>> & { queryKey: QueryKey }`;
       }
 
-      if (type !== QueryType.INFINITE) {
+      if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
         return `UseQueryReturnType<TData, TError> & { queryKey: QueryKey }`;
       }
 
@@ -656,15 +662,9 @@ const generateQueryReturnType = ({
     }
     case OutputClient.REACT_QUERY:
     default: {
-      const infiniteParame =
-        queryParams && queryParam
-          ? `, ${queryParams?.schema.name}['${queryParam}']`
-          : '';
-      return ` Use${pascal(type)}Result<${
-        hasQueryV5 && type === QueryType.INFINITE
-          ? `InfiniteData<TData${infiniteParame}>`
-          : 'TData'
-      }, TError> & { queryKey: QueryKey }`;
+      return ` Use${pascal(
+        type,
+      )}Result<TData, TError> & { queryKey: QueryKey }`;
     }
   }
 };
@@ -828,9 +828,6 @@ const generateQueryImplementation = ({
     operationName,
     hasVueQueryV4,
     hasSvelteQueryV4,
-    hasQueryV5,
-    queryParams,
-    queryParam,
   });
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
@@ -902,7 +899,17 @@ const generateQueryImplementation = ({
 
   const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
+  const infiniteParam =
+    queryParams && queryParam
+      ? `, ${queryParams?.schema.name}['${queryParam}']`
+      : '';
+  const TData =
+    hasQueryV5 &&
+    (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE)
+      ? `InfiniteData<Awaited<ReturnType<${dataType}>>${infiniteParam}>`
+      : `Awaited<ReturnType<${dataType}>>`;
+
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
     
 ${hookOptions}
 
@@ -979,7 +986,7 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${doc}export const ${camel(
     `${operationPrefix}-${name}`,
-  )} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
+  )} = <TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
 
   const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
     queryProperties ? ',' : ''
@@ -1118,6 +1125,25 @@ const generateQueryHook = async (
             },
           ]
         : []),
+      ...(query?.useSuspenseQuery
+        ? [
+            {
+              name: camel(`${operationName}-suspense`),
+              options: query?.options,
+              type: QueryType.SUSPENSE_QUERY,
+            },
+          ]
+        : []),
+      ...(query?.useSuspenseInfiniteQuery
+        ? [
+            {
+              name: camel(`${operationName}-suspense-infinite`),
+              options: query?.options,
+              type: QueryType.SUSPENSE_INFINITE,
+              queryParam: query?.useInfiniteQueryParam,
+            },
+          ]
+        : []),
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
@@ -1136,7 +1162,6 @@ const generateQueryHook = async (
     }`;
 
     implementation += `${!queryKeyMutator ? queryKeyFn : ''}
-  
 
     ${queries.reduce(
       (acc, queryOption) =>

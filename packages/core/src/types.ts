@@ -296,8 +296,10 @@ export type OverrideOutputContentType = {
 
 export type NormalizedQueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
   queryKey?: NormalizedMutator;
@@ -309,8 +311,10 @@ export type NormalizedQueryOptions = {
 
 export type QueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
   queryKey?: Mutator;

@@ -7,6 +7,6 @@
 import type { LabradoodleBreed } from './labradoodleBreed';
 
 export interface Labradoodle {
-  cuteness: number;
   breed: LabradoodleBreed;
+  cuteness: number;
 }
