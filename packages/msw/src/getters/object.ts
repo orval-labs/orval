@@ -72,6 +72,9 @@ export const getMockObject = ({
     let imports: GeneratorImport[] = [];
     let includedProperties: string[] = [];
     value += Object.entries(item.properties)
+      .sort((a, b) => {
+        return a[0].localeCompare(b[0]);
+      })
       .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
         if (combine?.includedProperties.includes(key)) {
           return undefined;

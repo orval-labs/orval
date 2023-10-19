@@ -121,6 +121,7 @@ export const normalizeOptions = async (
       packageJson,
       headers: outputOptions.headers ?? false,
       indexFiles: outputOptions.indexFiles ?? true,
+      baseUrl: outputOptions.baseUrl,
       override: {
         ...outputOptions.override,
         mock: {

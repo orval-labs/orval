@@ -52,6 +52,7 @@ export type NormalizedOutputOptions = {
   packageJson?: PackageJson;
   headers: boolean;
   indexFiles: boolean;
+  baseUrl?: string;
 };
 
 export type NormalizedOverrideOutput = {
@@ -165,6 +166,7 @@ export type OutputOptions = {
   packageJson?: string;
   headers?: boolean;
   indexFiles?: boolean;
+  baseUrl?: string;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
