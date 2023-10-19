@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Addtional properties
+  title: Additional properties
   version: 0.0.0
 paths:
   /example:
