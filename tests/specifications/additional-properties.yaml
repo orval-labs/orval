@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Circular references
+  title: Addtional properties
   version: 0.0.0
 paths:
   /example:
