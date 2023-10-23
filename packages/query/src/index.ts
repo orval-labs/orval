@@ -538,7 +538,7 @@ const getQueryOptionsDefinition = ({
   hasQueryV5,
   queryParams,
   queryParam,
-  isReturnType
+  isReturnType,
 }: {
   operationName: string;
   definitions: string;
@@ -561,14 +561,16 @@ const getQueryOptionsDefinition = ({
         : `typeof ${operationName}`
     }>>`;
 
-    return `${partialOptions ? 'WithOptional<':''}${prefix}${pascal(type)}Options<${funcReturnType}, TError, TData${
+    return `${partialOptions ? 'Partial<' : ''}${prefix}${pascal(
+      type,
+    )}Options<${funcReturnType}, TError, TData${
       hasQueryV5 &&
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
       queryParams
         ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
-    }>${partialOptions ? ', "queryKey">':''}`;
+    }>${partialOptions ? '>' : ''}`;
   }
 
   return `${prefix}MutationOptions<Awaited<ReturnType<${
@@ -608,7 +610,7 @@ const generateQueryArguments = ({
     hasQueryV5,
     queryParams,
     queryParam,
-    isReturnType: false
+    isReturnType: false,
   });
 
   if (!isRequestOptions) {
@@ -887,7 +889,7 @@ const generateQueryImplementation = ({
     hasQueryV5,
     queryParams,
     queryParam,
-    isReturnType: true
+    isReturnType: true,
   });
 
   const queryOptionsImp = generateQueryOptions({
@@ -1256,7 +1258,7 @@ const generateQueryHook = async (
       mutator,
       hasSvelteQueryV4,
       hasQueryV5,
-      isReturnType: true
+      isReturnType: true,
     });
 
     const mutationArguments = generateQueryArguments({
@@ -1401,7 +1403,6 @@ ${
   : never;\n\n`
     : ''
 }
-type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 `;
 };
 
