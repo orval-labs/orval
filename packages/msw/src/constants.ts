@@ -26,3 +26,5 @@ export const DEFAULT_FORMAT_MOCK: Record<
   uuid: 'faker.string.uuid()',
   zipCode: 'faker.location.zipCode()',
 };
+
+export const DEFAULT_OBJECT_KEY_MOCK = 'faker.string.alphanumeric(5)';
