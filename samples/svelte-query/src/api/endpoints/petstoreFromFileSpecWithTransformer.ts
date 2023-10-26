@@ -22,6 +22,8 @@ import type {
 } from '../model';
 import { customInstance } from '../mutator/custom-instance';
 
+// eslint-disable-next-line
+type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 /**
  * @summary List all pets
  */

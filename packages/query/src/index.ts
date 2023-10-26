@@ -561,7 +561,7 @@ const getQueryOptionsDefinition = ({
         : `typeof ${operationName}`
     }>>`;
 
-    return `${partialOptions ? 'Partial<' : ''}${prefix}${pascal(
+    return `${partialOptions ? 'WithOptional<' : ''}${prefix}${pascal(
       type,
     )}Options<${funcReturnType}, TError, TData${
       hasQueryV5 &&
@@ -570,7 +570,7 @@ const getQueryOptionsDefinition = ({
       queryParams
         ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
-    }>${partialOptions ? '>' : ''}`;
+    }>${partialOptions ? ', "queryKey">' : ''}`;
   }
 
   return `${prefix}MutationOptions<Awaited<ReturnType<${
@@ -619,9 +619,9 @@ const generateQueryArguments = ({
 
   const requestType = getQueryArgumentsRequestType(mutator);
 
-  return `options?: { ${
-    type ? 'query' : 'mutation'
-  }?:${definition}, ${requestType}}\n`;
+  return `options?: { ${type ? 'query' : 'mutation'}${
+    hasQueryV5 && type === 'infiniteQuery' ? '' : '?'
+  }:${definition}, ${requestType}}\n`;
 };
 
 const generateQueryReturnType = ({
@@ -1403,6 +1403,9 @@ ${
   : never;\n\n`
     : ''
 }
+
+// eslint-disable-next-line
+type WithOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 `;
 };
 
