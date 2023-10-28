@@ -12,6 +12,7 @@ import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { resolveMockValue } from '../resolvers/value';
 import { MockDefinition, MockSchemaObject } from '../types';
 import { combineSchemasMock } from './combine';
+import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 
 export const getMockObject = ({
   item,
@@ -148,7 +149,7 @@ export const getMockObject = ({
     return {
       ...resolvedValue,
       value: `{
-        '${cuid()}': ${resolvedValue.value}
+        '[${DEFAULT_OBJECT_KEY_MOCK}]': ${resolvedValue.value}
       }`,
     };
   }
