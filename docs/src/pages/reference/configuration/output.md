@@ -120,7 +120,7 @@ Here a single file petstore will be created in src with your specification imple
 
 #### Value: split
 
-Use to have definition, implementation, schemas, mock in differents files
+Use to have definition, implementation, schemas, mock in different files
 
 ```js
 module.exports = {
@@ -253,7 +253,7 @@ Default Value: `false`.
 
 Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
 
-Be carefull clean all output target and schemas folder.
+Be careful clean all output target and schemas folder.
 
 ### prettier
 
@@ -913,7 +913,7 @@ Function to override the generate operation name.
 
 Type: `Object | Boolean`.
 
-Use this property to provide a config to your http client or completly remove the request options property from the generated files.
+Use this property to provide a config to your http client or completely remove the request options property from the generated files.
 
 #### formData
 
