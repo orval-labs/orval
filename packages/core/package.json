@@ -17,7 +17,7 @@
     "@types/chalk": "^2.2.0",
     "@types/debug": "^4.1.7",
     "@types/fs-extra": "^9.0.13",
-    "@types/inquirer": "^8.2.2",
+    "@types/inquirer": "^9.0.6",
     "@types/lodash.get": "^4.4.7",
     "@types/lodash.isempty": "^4.4.7",
     "@types/lodash.omit": "^4.5.7",
