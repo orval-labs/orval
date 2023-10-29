@@ -31,7 +31,7 @@ export const customInstance = async <T>({
   data,
 }: {
   url: string;
-  method: 'get' | 'post' | 'put' | 'delete' | 'PATCH';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   params?: any;
   data?: BodyType<unknown>;
   responseType?: string;
