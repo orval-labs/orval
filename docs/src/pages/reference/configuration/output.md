@@ -334,7 +334,7 @@ Possible arguments:
 ```ts
 // based on AxiosRequestConfig
 interface RequestConfig {
-  method: 'get' | 'put' | 'PATCH' | 'post' | 'delete';
+  method: 'GET' | 'PUT' | 'PATCH' | 'POST' | 'DELETE';
   url: string;
   params?: any;
   data?: any;
