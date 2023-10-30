@@ -9,7 +9,7 @@ import { rest } from 'msw';
 
 export const getListPetsMock = () =>
   Array.from(
-    { length: faker.datatype.number({ min: 1, max: 10 }) },
+    { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
