@@ -155,6 +155,10 @@ export const normalizeOptions = async (
                 outputOptions.override?.formUrlEncoded,
               )
             : outputOptions.override?.formUrlEncoded) ?? true,
+        paramsSerializer: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.paramsSerializer,
+        ),
         header:
           outputOptions.override?.header === false
             ? false
@@ -274,7 +278,15 @@ const normalizeOperationsAndTags = (
     Object.entries(operationsOrTags).map(
       ([
         key,
-        { transformer, mutator, formData, formUrlEncoded, query, ...rest },
+        {
+          transformer,
+          mutator,
+          formData,
+          formUrlEncoded,
+          paramsSerializer,
+          query,
+          ...rest
+        },
       ]) => {
         return [
           key,
@@ -303,6 +315,14 @@ const normalizeOperationsAndTags = (
                   formUrlEncoded: !isBoolean(formUrlEncoded)
                     ? normalizeMutator(workspace, formUrlEncoded)
                     : formUrlEncoded,
+                }
+              : {}),
+            ...(paramsSerializer
+              ? {
+                  paramsSerializer: normalizeMutator(
+                    workspace,
+                    paramsSerializer,
+                  ),
                 }
               : {}),
           },

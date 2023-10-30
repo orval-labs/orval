@@ -989,6 +989,71 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 };
 ```
 
+#### paramsSerializer
+
+Type: `String` or `Object`.
+
+Valid values: path of the paramsSerializer function or object with a path and name.
+
+Use this property to add a custom params serializer to all requests that use query params.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializer: {
+          path: './api/mutator/custom-params-serializer-fn.ts',
+          name: 'customParamsSerializerFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customParamsSerializerFn = (
+  params: Record<string, any>,
+): string => {
+  // do your implementation to transform the params
+
+  return params;
+};
+```
+
+#### paramsSerializerOptions
+
+Type: `Object`
+
+Use this property to add a default params serializer. Current options are: `qs`.
+
+All options are then passed to the chosen serializer.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 #### useDates
 
 Type: `Boolean`

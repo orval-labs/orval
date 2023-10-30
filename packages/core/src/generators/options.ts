@@ -5,6 +5,7 @@ import {
   GetterBody,
   GetterQueryParam,
   GetterResponse,
+  ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { isObject, stringify } from '../utils';
@@ -36,6 +37,8 @@ export const generateAxiosOptions = ({
   headers,
   requestOptions,
   hasSignal,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
@@ -43,6 +46,8 @@ export const generateAxiosOptions = ({
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
   hasSignal: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
   if (!queryParams && !headers && !response.isBlob) {
@@ -99,6 +104,16 @@ export const generateAxiosOptions = ({
     }
   }
 
+  if (queryParams && (paramsSerializer || paramsSerializerOptions?.qs)) {
+    if (paramsSerializer) {
+      value += `\n        paramsSerializer: ${paramsSerializer.name},`;
+    } else {
+      value += `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+        paramsSerializerOptions!.qs,
+      )}),`;
+    }
+  }
+
   return value;
 };
 
@@ -115,6 +130,8 @@ export const generateOptions = ({
   isAngular,
   isExactOptionalPropertyTypes,
   hasSignal,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   route: string;
   body: GetterBody;
@@ -128,6 +145,8 @@ export const generateOptions = ({
   isAngular?: boolean;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
@@ -141,6 +160,8 @@ export const generateOptions = ({
     requestOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    paramsSerializer,
+    paramsSerializerOptions,
   });
 
   const options = axiosOptions ? `{${axiosOptions}}` : '';

@@ -31,6 +31,7 @@ export const writeSplitMode = async ({
       clientMutators,
       formData,
       formUrlEncoded,
+      paramsSerializer,
     } = generateTarget(builder, output);
 
     let implementationData = header;
@@ -52,6 +53,7 @@ export const writeSplitMode = async ({
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
+      hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
     });
     mswData += builder.importsMock({
@@ -100,6 +102,12 @@ export const writeSplitMode = async ({
     if (formUrlEncoded) {
       implementationData += generateMutatorImports({
         mutators: formUrlEncoded,
+      });
+    }
+
+    if (paramsSerializer) {
+      implementationData += generateMutatorImports({
+        mutators: paramsSerializer,
       });
     }
 

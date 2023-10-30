@@ -58,6 +58,20 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'qs',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
+    dependency: 'qs',
+  },
+];
+
 const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
   {
     exports: [
@@ -112,12 +126,14 @@ const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
 
 export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
 ) => {
   const hasSvelteQueryV3 = isSvelteQueryV3(packageJson);
 
   return [
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasSvelteQueryV3
       ? SVELTE_QUERY_DEPENDENCIES_V3
       : SVELTE_QUERY_DEPENDENCIES),
@@ -170,6 +186,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getReactQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
 ) => {
   const hasReactQuery =
@@ -181,6 +198,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
 
   return [
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasReactQuery && !hasReactQueryV4
       ? REACT_QUERY_DEPENDENCIES_V3
       : REACT_QUERY_DEPENDENCIES),
@@ -259,12 +277,14 @@ const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
 
 export const getVueQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
+  hasParamsSerializerOptions: boolean,
   packageJson,
 ) => {
   const hasVueQueryV3 = isVueQueryV3(packageJson);
 
   return [
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasVueQueryV3 ? VUE_QUERY_DEPENDENCIES_V3 : VUE_QUERY_DEPENDENCIES),
   ];
 };
@@ -336,6 +356,7 @@ const generateQueryRequestFunction = (
     verb,
     formData,
     formUrlEncoded,
+    paramsSerializer,
     override,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
@@ -440,6 +461,8 @@ const generateQueryRequestFunction = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
   });
