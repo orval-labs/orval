@@ -9,19 +9,19 @@ import { rest } from 'msw';
 
 export const getListPetsMock = () =>
   Array.from(
-    { length: faker.datatype.number({ min: 1, max: 10 }) },
+    { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    id: (() => faker.datatype.number({ min: 1, max: 99999 }))(),
-    name: (() => faker.name.lastName())(),
-    tag: (() => faker.name.lastName())(),
+    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
+    name: (() => faker.person.lastName())(),
+    tag: (() => faker.person.lastName())(),
   }));
 
 export const getShowPetByIdMock = () =>
   (() => ({
-    id: faker.datatype.number({ min: 1, max: 99 }),
-    name: faker.name.firstName(),
-    tag: faker.helpers.arrayElement([faker.random.word(), void 0]),
+    id: faker.number.int({ min: 1, max: 99 }),
+    name: faker.person.firstName(),
+    tag: faker.helpers.arrayElement([faker.word.sample(), void 0]),
   }))();
 
 export const getSwaggerPetstoreMSW = () => [

@@ -58,10 +58,10 @@ app.ready(async () => {
 });
 
 export const getGetPetsMock = () =>
-  [...Array(faker.datatype.number({ min: 1, max: 10 }))].map(() => ({
-    id: faker.datatype.number(),
-    name: faker.random.word(),
-    tag: faker.random.word(),
+  [...Array(faker.number.int({ min: 1, max: 10 }))].map(() => ({
+    id: faker.number.int(),
+    name: faker.word.sample(),
+    tag: faker.word.sample(),
   }));
 
 app.get(
