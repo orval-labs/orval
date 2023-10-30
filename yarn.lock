@@ -1128,10 +1128,10 @@
   dependencies:
     "@types/lodash" "*"
 
-"@types/lodash.uniqwith@^4.5.7":
-  version "4.5.7"
-  resolved "https://registry.npmjs.org/@types/lodash.uniqwith/-/lodash.uniqwith-4.5.7.tgz"
-  integrity sha512-qg55yHtu/t9S7J1dEcipoD7Oqr5lwVJxwIicRCJ8yabBNv6T9DpIxhWuVIAUdewxYeEl0mNKSnZHQXTw7Owmug==
+"@types/lodash.uniqwith@^4.5.8":
+  version "4.5.8"
+  resolved "https://registry.yarnpkg.com/@types/lodash.uniqwith/-/lodash.uniqwith-4.5.8.tgz#4ac1a7e2a0b119957ecd97fca59d9e8090e694bf"
+  integrity sha512-xCe1FCV6QBKvCl+H2rxiGizbzDmYQAjsceD8iweTCHt1tP+G2/Czki0f7Uqi4KR1tAWwdV2Fe5RH/wDN/iqLCQ==
   dependencies:
     "@types/lodash" "*"
 
