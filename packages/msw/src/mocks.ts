@@ -128,7 +128,25 @@ export const getResponsesMockDefinition = ({
   context: ContextSpecs;
 }) => {
   return response.types.success.reduce(
-    (acc, { value: definition, originalSchema, imports, isRef }) => {
+    (
+      acc,
+      { value: definition, originalSchema, example, examples, imports, isRef },
+    ) => {
+      if (context.override?.mock?.useExamples) {
+        const exampleValue =
+          example ||
+          originalSchema?.example ||
+          Object.values(examples || {})[0]?.value ||
+          originalSchema?.examples?.[0];
+        if (exampleValue) {
+          acc.definitions.push(
+            transformer
+              ? transformer(exampleValue, response.definition.success)
+              : JSON.stringify(exampleValue),
+          );
+          return acc;
+        }
+      }
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
 

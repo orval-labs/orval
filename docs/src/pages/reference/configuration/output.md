@@ -807,6 +807,26 @@ module.exports = {
 };
 ```
 
+##### useExamples
+
+Type: `Boolean`.
+
+Give you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          useExamples: true,
+        },
+      },
+    },
+  },
+};
+```
+
 ##### baseUrl
 
 Type: `String`.
