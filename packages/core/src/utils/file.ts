@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { build, PluginBuild } from 'esbuild';
 import fs from 'fs';
-import { globby } from 'globby';
+import glob from 'globby';
 import mm from 'micromatch';
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
 import { Tsconfig } from '../types';
@@ -360,7 +360,7 @@ async function loadFromBundledFile<File = unknown>(
 }
 
 export async function removeFiles(patterns: string[], dir: string) {
-  const files = await globby(patterns, {
+  const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
   });
