@@ -28,3 +28,8 @@ You can find below some samples
 - [react app with swr](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-swr)
 - [nx fastify react](https://github.com/anymaniax/orval/tree/master/samples/nx-fastify-react)
 - [angular app](https://github.com/anymaniax/orval/tree/master/samples/angular-app)
+
+### All Thanks To Our Contributors:
+<a href="https://github.com/anymaniax/orval/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=anymaniax/orval" />
+</a>
