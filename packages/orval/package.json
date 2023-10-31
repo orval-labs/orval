@@ -6,9 +6,7 @@
   "files": [
     "dist"
   ],
-  "bin": {
-    "orval": "dist/bin/orval.js"
-  },
+  "bin": "dist/bin/orval.js",
   "type": "commonjs",
   "main": "dist/index.js",
   "keywords": [
@@ -51,8 +49,8 @@
   "devDependencies": {
     "@types/chalk": "^2.2.0",
     "@types/inquirer": "^9.0.6",
-    "@types/js-yaml": "^4.0.5",
-    "@types/lodash.uniq": "^4.5.7"
+    "@types/js-yaml": "^4.0.8",
+    "@types/lodash.uniq": "^4.5.8"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
@@ -63,17 +61,17 @@
     "@orval/query": "6.19.1",
     "@orval/swr": "6.19.1",
     "@orval/zod": "6.19.1",
-    "ajv": "^8.11.0",
-    "cac": "^6.7.12",
+    "ajv": "^8.12.0",
+    "cac": "^6.7.14",
     "chalk": "^4.1.2",
     "chokidar": "^3.5.3",
-    "enquirer": "^2.3.6",
+    "enquirer": "^2.4.1",
     "execa": "^5.1.1",
     "find-up": "5.0.0",
     "fs-extra": "^10.1.0",
     "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "^3.0.0",
-    "string-argv": "^0.3.1",
+    "openapi3-ts": "^3.2.0",
+    "string-argv": "^0.3.2",
     "tsconfck": "^2.0.1"
   }
 }
