@@ -8,7 +8,7 @@ import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
 import { faker } from '@faker-js/faker';
-import { rest } from 'msw';
+import { HttpResponse, delay, http } from 'msw';
 import listPetsMutator from '../mutator/response-type';
 
 /**
@@ -70,21 +70,31 @@ export const getShowPetByIdMock = () =>
   }))();
 
 export const getSwaggerPetstoreMSW = () => [
-  rest.get('*/v:version/pets', (_req, res, ctx) => {
-    return res(
-      ctx.delay(1000),
-      ctx.status(200, 'Mocked status'),
-      ctx.json(getListPetsMock()),
-    );
+  http.get('*/v:version/pets', async () => {
+    await delay(1000);
+    return new HttpResponse(JSON.stringify(getListPetsMock()), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }),
-  rest.post('*/v:version/pets', (_req, res, ctx) => {
-    return res(ctx.delay(1000), ctx.status(200, 'Mocked status'));
+  http.post('*/v:version/pets', async () => {
+    await delay(1000);
+    return new HttpResponse(null, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }),
-  rest.get('*/v:version/pets/:petId', (_req, res, ctx) => {
-    return res(
-      ctx.delay(1000),
-      ctx.status(200, 'Mocked status'),
-      ctx.json(getShowPetByIdMock()),
-    );
+  http.get('*/v:version/pets/:petId', async () => {
+    await delay(1000);
+    return new HttpResponse(JSON.stringify(getShowPetByIdMock()), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }),
 ];
