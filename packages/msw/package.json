@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@orval/core": "6.19.1",
-    "cuid": "^2.1.8",
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
     "openapi3-ts": "^3.0.0"
