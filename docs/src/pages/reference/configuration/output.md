@@ -605,11 +605,11 @@ module.exports = {
 };
 ```
 
-##### mutatorOptions
+##### mutationOptions
 
 Type: `String` or `Object`.
 
-Valid values: path of the `mutatorOptions` function or object with a path and name.
+Valid values: path of the `mutationOptions` function or object with a path and name.
 
 If you provide an object you can also add a default property to use an export default function.
 
@@ -621,7 +621,7 @@ module.exports = {
     output: {
       override: {
         query: {
-          mutatorOptions: {
+          mutationOptions: {
             path: './api/mutator/custom-mutator-options.ts',
             name: 'customMutatorOptionsFn',
             // default: true
