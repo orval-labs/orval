@@ -1,6 +1,7 @@
 [![npm version](https://badge.fury.io/js/orval.svg)](https://badge.fury.io/js/orval)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![tests](https://github.com/anymaniax/orval/actions/workflows/tests.yaml/badge.svg)](https://github.com/anymaniax/orval/actions/workflows/tests.yaml)
+[![orval](https://snyk.io/advisor/npm-package/orval/badge.svg)](https://snyk.io/advisor/npm-package/orval)
 
 <p align="center">
   <img src="./logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
