@@ -25,7 +25,7 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   schema: Schema;
   imports: GeneratorImport[];
 } => {
-  // the schema is refering to another object
+  // the schema is referring to another object
   if ((schema as any)?.schema?.$ref) {
     const resolvedRef = resolveRef<Schema>(
       (schema as any)?.schema,
@@ -63,7 +63,7 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   } = getSchema(schema, context);
 
   if (!currentSchema) {
-    throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
+    throw `Oops... 🍻. Ref not found: ${schema.$ref}`;
   }
 
   return resolveRef<Schema>(

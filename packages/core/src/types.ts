@@ -27,7 +27,7 @@ export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormizaledConfig = {
+export type NormalizedConfig = {
   [project: string]: NormalizedOptions;
 };
 

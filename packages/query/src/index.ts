@@ -1470,16 +1470,16 @@ export const builder =
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
       if (queryOptions) {
-        const normarlizeQueryOptions = normalizeQueryOptions(
+        const normalizedQueryOptions = normalizeQueryOptions(
           queryOptions,
           options.context.workspace,
         );
         verbOptions.override.query = mergeDeep(
-          normarlizeQueryOptions,
+          normalizedQueryOptions,
           verbOptions.override.query,
         );
         options.override.query = mergeDeep(
-          normarlizeQueryOptions,
+          normalizedQueryOptions,
           verbOptions.override.query,
         );
       }
