@@ -1,0 +1,66 @@
+openapi: 3.0.0
+info:
+  title: Nullables
+  description: 'OpenAPI 3.0 Nullable types'
+  version: 1.0.0
+tags:
+  - name: nullables
+    description: Nullable types
+servers:
+  - url: http://localhost
+paths:
+  /post-object-with-nullable-enum:
+    post:
+      tags:
+        - nullables
+      summary: Nullable object with nullable properties request
+      operationId: createNullableObject
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ObjectWithNullableEnum'
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectWithNullableEnum'
+  /get-object-with-nullable-enum:
+    get:
+      tags:
+        - nullables
+      summary: Nullable object with nullable properties response
+      operationId: getNullableObject
+      parameters:
+        - name: nullableEnum
+          in: query
+          description: Nullable enum
+          required: false
+          schema:
+            type: string
+            nullable: true
+            enum:
+              - ONE
+              - TWO
+              - THREE
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ObjectWithNullableEnum'
+components:
+  schemas:
+    ObjectWithNullableEnum:
+      type: object
+      properties:
+        nullableEnum:
+          type: string
+          nullable: true
+          enum:
+            - ONE
+            - TWO
+            - THREE

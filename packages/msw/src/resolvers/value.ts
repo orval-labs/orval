@@ -16,15 +16,16 @@ export const resolveMockOverride = (
   properties: Record<string, string> | undefined = {},
   item: SchemaObject & { name: string; path?: string },
 ) => {
+  const path = item.path ? item.path : `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
       const regex = new RegExp(key.slice(1, key.length - 1));
-      if (regex.test(item.name)) {
+      if (regex.test(item.name) || regex.test(path)) {
         return true;
       }
     }
 
-    if (`#.${key}` === (item.path ? item.path : `#.${item.name}`)) {
+    if (`#.${key}` === path) {
       return true;
     }
 

@@ -120,7 +120,7 @@ Here a single file petstore will be created in src with your specification imple
 
 #### Value: split
 
-Use to have definition, implementation, schemas, mock in differents files
+Use to have definition, implementation, schemas, mock in different files
 
 ```js
 module.exports = {
@@ -253,7 +253,7 @@ Default Value: `false`.
 
 Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
 
-Be carefull clean all output target and schemas folder.
+Be careful clean all output target and schemas folder.
 
 ### prettier
 
@@ -637,11 +637,11 @@ module.exports = {
 };
 ```
 
-##### mutatorOptions
+##### mutationOptions
 
 Type: `String` or `Object`.
 
-Valid values: path of the `mutatorOptions` function or object with a path and name.
+Valid values: path of the `mutationOptions` function or object with a path and name.
 
 If you provide an object you can also add a default property to use an export default function.
 
@@ -653,7 +653,7 @@ module.exports = {
     output: {
       override: {
         query: {
-          mutatorOptions: {
+          mutationOptions: {
             path: './api/mutator/custom-mutator-options.ts',
             name: 'customMutatorOptionsFn',
             // default: true
@@ -713,7 +713,7 @@ Give you the possibility to override the generated mock
 
 Type: `Object` or `Function`.
 
-You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the name of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
+You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the path of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
 
 ```js
 module.exports = {
@@ -722,8 +722,10 @@ module.exports = {
       override: {
         mock: {
           properties: {
-            '/tag|name/': 'jon',
-            email: () => faker.internet.email(),
+            '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
+            '/.*.user.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            email: () => faker.internet.email(), // Matches only the property 'email'
+            'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },
         },
       },
@@ -777,9 +779,9 @@ module.exports = {
 
 ##### delay
 
-Type: `number`.
+Type: `number` or `Function`.
 
-Give you the possibility to set delay time for mock
+Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
 
 Default Value: `1000`
 
@@ -830,6 +832,26 @@ module.exports = {
       override: {
         mock: {
           arrayMax: 15,
+        },
+      },
+    },
+  },
+};
+```
+
+##### useExamples
+
+Type: `Boolean`.
+
+Give you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          useExamples: true,
         },
       },
     },
@@ -898,7 +920,7 @@ module.exports = {
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.datatype.number({ min: 1, max: 99999 }),
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -906,10 +928,10 @@ module.exports = {
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -943,7 +965,7 @@ Function to override the generate operation name.
 
 Type: `Object | Boolean`.
 
-Use this property to provide a config to your http client or completly remove the request options property from the generated files.
+Use this property to provide a config to your http client or completely remove the request options property from the generated files.
 
 #### formData
 
@@ -1016,6 +1038,71 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
   // do your implementation to transform it to FormData
 
   return URLSearchParams;
+};
+```
+
+#### paramsSerializer
+
+Type: `String` or `Object`.
+
+Valid values: path of the paramsSerializer function or object with a path and name.
+
+Use this property to add a custom params serializer to all requests that use query params.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializer: {
+          path: './api/mutator/custom-params-serializer-fn.ts',
+          name: 'customParamsSerializerFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customParamsSerializerFn = (
+  params: Record<string, any>,
+): string => {
+  // do your implementation to transform the params
+
+  return params;
+};
+```
+
+#### paramsSerializerOptions
+
+Type: `Object`
+
+Use this property to add a default params serializer. Current options are: `qs`.
+
+All options are then passed to the chosen serializer.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+  },
 };
 ```
 
