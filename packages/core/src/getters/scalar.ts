@@ -3,6 +3,7 @@ import { ContextSpecs, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
+import { resolveExampleRefs } from '../resolvers';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -48,6 +49,8 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
@@ -60,6 +63,8 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
 
     case 'array': {
@@ -107,6 +112,8 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
@@ -139,6 +146,8 @@ export const getScalar = ({
           schemas: [],
           isRef: false,
           hasReadonlyProps: item.readOnly || false,
+          example: item.example,
+          examples: resolveExampleRefs(item.examples, context),
         };
       }
 

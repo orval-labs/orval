@@ -22,6 +22,13 @@ export default defineConfig({
                 '[].id': () => faker.number.int({ min: 1, max: 99999 }),
               }),
             },
+            query: {
+              useQuery: true,
+              useSuspenseQuery: true,
+              useSuspenseInfiniteQuery: true,
+              useInfinite: true,
+              useInfiniteQueryParam: 'limit',
+            },
           },
           showPetById: {
             mock: {
@@ -40,11 +47,6 @@ export default defineConfig({
           properties: {
             '/tag|name/': () => faker.person.lastName(),
           },
-        },
-        query: {
-          useQuery: true,
-          useInfinite: true,
-          useInfiniteQueryParam: 'limit',
         },
       },
     },

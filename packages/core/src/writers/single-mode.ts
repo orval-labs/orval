@@ -31,6 +31,7 @@ export const writeSingleMode = async ({
       clientMutators,
       formData,
       formUrlEncoded,
+      paramsSerializer,
     } = generateTarget(builder, output);
 
     let data = header;
@@ -60,6 +61,7 @@ export const writeSingleMode = async ({
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
+      hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
     });
 
@@ -89,6 +91,10 @@ export const writeSingleMode = async ({
 
     if (formUrlEncoded) {
       data += generateMutatorImports({ mutators: formUrlEncoded });
+    }
+
+    if (paramsSerializer) {
+      data += generateMutatorImports({ mutators: paramsSerializer });
     }
 
     if (implementation.includes('NonReadonly<')) {

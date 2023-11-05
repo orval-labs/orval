@@ -43,12 +43,11 @@ const deapostrophe = (s: string) => {
 const up = String.prototype.toUpperCase;
 const low = String.prototype.toLowerCase;
 
-const fill = (s: string, fillWith?: string, isDeapostrophe = false) => {
-  if (fillWith != null) {
-    s = s.replace(regexps.fill, function (m, next) {
-      return next ? fillWith + next : '';
-    });
-  }
+const fill = (s: string, fillWith: string, isDeapostrophe = false) => {
+  s = s.replace(regexps.fill, function (m, next) {
+    return next ? fillWith + next : '';
+  });
+
   if (isDeapostrophe) {
     s = deapostrophe(s);
   }
@@ -89,21 +88,31 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
   return fill(low.call(prep(s, !!fillWith)), fillWith, isDeapostrophe);
 };
 
+// Caches the previously converted strings to improve performance
+let pascalMemory: Record<string, string> = {};
+
 export const pascal = (s: string) => {
+  if (pascalMemory[s]) {
+    return pascalMemory[s];
+  }
+
   const isStartWithUnderscore = s?.startsWith('_');
 
-  const pascalString = fill(
-    prep(s, false, true).replace(
-      regexps.pascal,
-      (m: string, border: string, letter: string) => {
-        return up.call(letter);
-      },
-    ),
-    '',
-    true,
-  );
+  if (regexps.upper.test(s)) {
+    s = low.call(s);
+  }
 
-  return isStartWithUnderscore ? `_${pascalString}` : pascalString;
+  const pascalString = (s.match(/[a-zA-Z0-9]+/g) || [])
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join('');
+
+  const pascalWithUnderscore = isStartWithUnderscore
+    ? `_${pascalString}`
+    : pascalString;
+
+  pascalMemory[s] = pascalWithUnderscore;
+
+  return pascalWithUnderscore;
 };
 
 export const camel = (s: string) => {
@@ -122,7 +131,7 @@ export const kebab = (s: string) => {
 
 export const upper = (
   s: string,
-  fillWith?: string,
+  fillWith: string,
   isDeapostrophe?: boolean,
 ) => {
   return fill(

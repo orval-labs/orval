@@ -36,11 +36,29 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'qs',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
+    dependency: 'qs',
+  },
+];
+
 const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
 
 export const getAxiosDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
-) => [...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : [])];
+  hasParamsSerializerOptions: boolean,
+) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+];
 
 const generateAxiosImplementation = (
   {
@@ -55,6 +73,7 @@ const generateAxiosImplementation = (
     override,
     formData,
     formUrlEncoded,
+    paramsSerializer,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
@@ -141,6 +160,8 @@ const generateAxiosImplementation = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });

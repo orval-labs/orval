@@ -2,7 +2,14 @@ import { keyword } from 'esutils';
 import { isNumeric, sanitize } from '../utils';
 
 export const getEnum = (value: string, enumName: string, names?: string[]) => {
-  let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}];\n`;
+  let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
+
+  if (value.endsWith(' | null')) {
+    value = value.replace(' | null', '');
+    enumValue += ' | null';
+  }
+
+  enumValue += ';\n';
 
   const implementation = getEnumImplementation(value, names);
 

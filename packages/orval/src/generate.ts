@@ -10,7 +10,7 @@ import {
   loadFile,
   log,
   NormalizedOptions,
-  NormizaledConfig,
+  NormalizedConfig,
   removeFiles,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -49,7 +49,7 @@ export const generateSpec = async (
 };
 
 export const generateSpecs = async (
-  config: NormizaledConfig,
+  config: NormalizedConfig,
   workspace: string,
   projectName?: string,
 ) => {
@@ -61,7 +61,7 @@ export const generateSpecs = async (
         await generateSpec(workspace, options, projectName);
       } catch (e) {
         log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
-        process.exit(1)
+        process.exit(1);
       }
     } else {
       errorMessage('Project not found');
@@ -70,14 +70,14 @@ export const generateSpecs = async (
     return;
   }
 
-  let hasErrors: true | undefined
+  let hasErrors: true | undefined;
   const accumulate = asyncReduce(
     Object.entries(config),
     async (acc, [projectName, options]) => {
       try {
         acc.push(await generateSpec(workspace, options, projectName));
       } catch (e) {
-        hasErrors = true
+        hasErrors = true;
         log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
       }
       return acc;
@@ -85,8 +85,8 @@ export const generateSpecs = async (
     [] as void[],
   );
 
-  if (hasErrors) process.exit(1)
-  return accumulate
+  if (hasErrors) process.exit(1);
+  return accumulate;
 };
 
 export const generateConfig = async (
@@ -118,7 +118,7 @@ export const generateConfig = async (
 
       return acc;
     },
-    {} as NormizaledConfig,
+    {} as NormalizedConfig,
   );
 
   const fileToWatch = Object.entries(normalizedConfig)
