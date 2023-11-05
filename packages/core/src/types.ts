@@ -27,7 +27,7 @@ export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormizaledConfig = {
+export type NormalizedConfig = {
   [project: string]: NormalizedOptions;
 };
 
@@ -51,6 +51,12 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
+  indexFiles: boolean;
+  baseUrl?: string;
+};
+
+export type NormalizedParamsSerializerOptions = {
+  qs?: Record<string, any>;
 };
 
 export type NormalizedOverrideOutput = {
@@ -66,12 +72,15 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
-    delay?: number;
+    delay?: number | (() => number);
+    useExamples?: boolean;
   };
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
   formUrlEncoded: boolean | NormalizedMutator;
+  paramsSerializer?: NormalizedMutator;
+  paramsSerializerOptions?: NormalizedParamsSerializerOptions;
   components: {
     schemas: {
       suffix: string;
@@ -131,6 +140,7 @@ export type NormalizedOperationOptions = {
   ) => string;
   formData?: boolean | NormalizedMutator;
   formUrlEncoded?: boolean | NormalizedMutator;
+  paramsSerializer?: NormalizedMutator;
   requestOptions?: object | boolean;
 };
 
@@ -163,6 +173,8 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
+  indexFiles?: boolean;
+  baseUrl?: string;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -234,6 +246,10 @@ export type MutatorObject = {
 
 export type Mutator = string | MutatorObject;
 
+export type ParamsSerializerOptions = {
+  qs?: Record<string, any>;
+};
+
 export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -248,11 +264,14 @@ export type OverrideOutput = {
     required?: boolean;
     baseUrl?: string;
     delay?: number;
+    useExamples?: boolean;
   };
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
+  paramsSerializer?: Mutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
   components?: {
     schemas?: {
       suffix?: string;
@@ -292,26 +311,32 @@ export type OverrideOutputContentType = {
 
 export type NormalizedQueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type QueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
@@ -345,6 +370,7 @@ export type OperationOptions = {
   ) => string;
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
+  paramsSerializer?: Mutator;
   requestOptions?: object | boolean;
 };
 
@@ -477,6 +503,7 @@ export type GeneratorTarget = {
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
+  paramsSerializer?: GeneratorMutator[];
 };
 
 export type GeneratorTargetFull = {
@@ -491,6 +518,7 @@ export type GeneratorTargetFull = {
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
+  paramsSerializer?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
@@ -503,6 +531,7 @@ export type GeneratorOperation = {
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
+  paramsSerializer?: GeneratorMutator;
   operationName: string;
   types?: {
     result: (title?: string) => string;
@@ -525,8 +554,10 @@ export type GeneratorVerbOptions = {
   mutator?: GeneratorMutator;
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
+  paramsSerializer?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
+  originalOperation: OperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -590,6 +621,7 @@ export type ClientTitleBuilder = (title: string) => string;
 
 export type ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
+  hasParamsSerializerOptions: boolean,
   packageJson?: PackageJson,
 ) => GeneratorDependency[];
 
@@ -724,6 +756,8 @@ export type ScalarValue = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   isRef: boolean;
+  example?: any;
+  examples?: Record<string, any>;
 };
 
 export type ResolverValue = ScalarValue & {
@@ -806,6 +840,7 @@ export type GeneratorClientImports = (data: {
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   hasGlobalMutator: boolean;
+  hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
 }) => string;
 

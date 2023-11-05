@@ -26,3 +26,6 @@ export const DEFAULT_FORMAT_MOCK: Record<
   uuid: 'faker.string.uuid()',
   zipCode: 'faker.location.zipCode()',
 };
+
+// #980 replace CUID so tests are consistent
+export const DEFAULT_OBJECT_KEY_MOCK = 'faker.string.alphanumeric(5)';

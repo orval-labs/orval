@@ -40,6 +40,7 @@ export const writeTagsMode = async ({
           clientMutators,
           formData,
           formUrlEncoded,
+          paramsSerializer,
         } = target;
 
         let data = header;
@@ -63,6 +64,7 @@ export const writeTagsMode = async ({
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
+          hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
         });
 
@@ -102,6 +104,10 @@ export const writeTagsMode = async ({
 
         if (formUrlEncoded) {
           data += generateMutatorImports({ mutators: formUrlEncoded });
+        }
+
+        if (paramsSerializer) {
+          data += generateMutatorImports({ mutators: paramsSerializer });
         }
 
         data += '\n\n';

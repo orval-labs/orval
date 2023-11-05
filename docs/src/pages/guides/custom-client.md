@@ -1,6 +1,6 @@
 ### Custom client
 
-You can add a mutator function to your config and setup a custom instance of your prefered HTTP client.
+You can add a mutator function to your config and setup a custom instance of your preferred HTTP client.
 
 ```js
 module.exports = {

@@ -95,11 +95,18 @@ export const getApiBuilder = async ({
         [] as GeneratorSchema[],
       );
 
+      let fullRoute = route;
+      if (output.baseUrl) {
+        if (output.baseUrl.endsWith('/') && route.startsWith('/')) {
+          fullRoute = route.slice(1);
+        }
+        fullRoute = `${output.baseUrl}${fullRoute}`;
+      }
       const pathOperations = await generateOperations(
         output.client,
         verbsOptions,
         {
-          route,
+          route: fullRoute,
           pathRoute,
           override: output.override,
           context: resolvedContext,

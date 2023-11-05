@@ -32,6 +32,9 @@ const generateTargetTags = (
         formUrlEncoded: operation.formUrlEncoded
           ? [operation.formUrlEncoded]
           : [],
+        paramsSerializer: operation.paramsSerializer
+          ? [operation.paramsSerializer]
+          : [],
         implementation: operation.implementation,
         implementationMSW: {
           function: operation.implementationMSW.function,
@@ -70,6 +73,12 @@ const generateTargetTags = (
       formUrlEncoded: operation.formUrlEncoded
         ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
         : currentOperation.formUrlEncoded,
+      paramsSerializer: operation.paramsSerializer
+        ? [
+            ...(currentOperation.paramsSerializer ?? []),
+            operation.paramsSerializer,
+          ]
+        : currentOperation.paramsSerializer,
     };
 
     return acc;
@@ -147,6 +156,7 @@ export const generateTargetForTags = (
             clientMutators: target.clientMutators,
             formData: target.formData,
             formUrlEncoded: target.formUrlEncoded,
+            paramsSerializer: target.paramsSerializer,
           };
 
           return acc;

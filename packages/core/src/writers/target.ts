@@ -39,6 +39,9 @@ export const generateTarget = (
       if (operation.formUrlEncoded) {
         acc.formUrlEncoded.push(operation.formUrlEncoded);
       }
+      if (operation.paramsSerializer) {
+        acc.paramsSerializer.push(operation.paramsSerializer);
+      }
 
       if (operation.clientMutators) {
         acc.clientMutators.push(...operation.clientMutators);
@@ -93,6 +96,7 @@ export const generateTarget = (
       clientMutators: [],
       formData: [],
       formUrlEncoded: [],
+      paramsSerializer: [],
     } as Required<GeneratorTargetFull>,
   );
 
