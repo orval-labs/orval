@@ -28,7 +28,7 @@
     "@faker-js/faker": "^8.2.0",
     "@release-it-plugins/workspaces": "^3.2.0",
     "@release-it/conventional-changelog": "^5.0.0",
-    "@types/node": "^18.14.6",
+    "@types/node": "^20.8.10",
     "@types/prettier": "^2.7.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.33.0",
