@@ -26,7 +26,7 @@
     "@commitlint/cli": "^17.0.3",
     "@commitlint/config-conventional": "^17.0.3",
     "@faker-js/faker": "^8.2.0",
-    "@release-it-plugins/workspaces": "^3.2.0",
+    "@release-it-plugins/workspaces": "^4.0.0",
     "@release-it/conventional-changelog": "^5.0.0",
     "@types/node": "^20.8.10",
     "@types/prettier": "^2.7.0",
