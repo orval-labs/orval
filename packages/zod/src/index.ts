@@ -56,7 +56,7 @@ const generateZodValidationSchemaDefinition = (
 ): { functions: [string, any][]; consts: string[] } => {
   if (!schema) return { functions: [], consts: [] };
 
-  const consts = [];
+  const consts: any[] = [];
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
   const required = schema.default !== undefined ? false : _required ?? false;
@@ -357,9 +357,10 @@ const generateZodRoute = (
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters;
-  const requestBody = spec?.[verb]?.requestBody;
-  const response = spec?.[verb]?.responses?.['200'] as
+  const httpVerb = verb?.toString().toLowerCase();
+  const parameters = spec?.[httpVerb]?.parameters;
+  const requestBody = spec?.[httpVerb]?.requestBody;
+  const response = spec?.[httpVerb]?.responses?.['200'] as
     | ResponseObject
     | ReferenceObject;
 
