@@ -334,7 +334,7 @@ Possible arguments:
 ```ts
 // based on AxiosRequestConfig
 interface RequestConfig {
-  method: 'get' | 'put' | 'patch' | 'post' | 'delete';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   url: string;
   params?: any;
   data?: any;
@@ -691,7 +691,7 @@ module.exports = {
         mock: {
           properties: {
             '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
-            '/.*\.user\.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            '/.*.user.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
             email: () => faker.internet.email(), // Matches only the property 'email'
             'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },

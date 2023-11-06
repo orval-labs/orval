@@ -388,15 +388,15 @@ export type HooksOptions<T = HookCommand | NormalizedHookCommand> = Partial<
 
 export type NormalizedHookOptions = HooksOptions<NormalizedHookCommand>;
 
-export type Verbs = 'post' | 'put' | 'get' | 'patch' | 'delete' | 'head';
+export type Verbs = 'POST' | 'PUT' | 'GET' | 'PATCH' | 'DELETE' | 'HEAD';
 
 export const Verbs = {
-  POST: 'post' as Verbs,
-  PUT: 'put' as Verbs,
-  GET: 'get' as Verbs,
-  PATCH: 'patch' as Verbs,
-  DELETE: 'delete' as Verbs,
-  HEAD: 'head' as Verbs,
+  POST: 'POST' as Verbs,
+  PUT: 'PUT' as Verbs,
+  GET: 'GET' as Verbs,
+  PATCH: 'PATCH' as Verbs,
+  DELETE: 'DELETE' as Verbs,
+  HEAD: 'HEAD' as Verbs,
 };
 
 export type ImportOpenApi = {
