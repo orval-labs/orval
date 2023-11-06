@@ -35,7 +35,7 @@
     "dotenv-cli": "^6.0.0",
     "esbuild-plugin-alias": "^0.2.1",
     "eslint": "^8.52.0",
-    "eslint-config-prettier": "^8.5.0",
+    "eslint-config-prettier": "^9.0.0",
     "eslint-config-turbo": "^0.0.4",
     "eslint-plugin-prettier": "^4.2.1",
     "husky": "^8.0.3",
