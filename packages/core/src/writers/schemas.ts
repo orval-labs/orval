@@ -116,21 +116,21 @@ export const writeSchemas = async ({
       const stringData = data.toString();
 
       const importStatements = schemas
-          .filter((schema) => {
-            return (
-                !stringData.includes(`export * from './${camel(schema.name)}'`) &&
-                !stringData.includes(`export * from "./${camel(schema.name)}"`)
-            );
-          })
-          .map((schema) => `export * from './${camel(schema.name)}';`);
+        .filter((schema) => {
+          return (
+            !stringData.includes(`export * from './${camel(schema.name)}'`) &&
+            !stringData.includes(`export * from "./${camel(schema.name)}"`)
+          );
+        })
+        .map((schema) => `export * from './${camel(schema.name)}';`);
 
       const currentFileExports = (stringData
-          .match(/export \* from(.*)('|")/g)
-          ?.map((s) => s + ';') ?? []) as string[];
+        .match(/export \* from(.*)('|")/g)
+        ?.map((s) => s + ';') ?? []) as string[];
 
       const exports = [...currentFileExports, ...importStatements]
-          .sort()
-          .join('\n');
+        .sort()
+        .join('\n');
 
       const fileContent = `${header}\n${exports}`;
 

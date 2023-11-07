@@ -279,7 +279,7 @@ const parseZodValidationSchemaDefinition = (
     if (fn === 'additionalProperties') {
       const value = args.functions.map(parseProperty).join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-      consts += args.consts
+      consts += args.consts;
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 

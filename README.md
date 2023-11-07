@@ -31,6 +31,7 @@ You can find below some samples
 - [angular app](https://github.com/anymaniax/orval/tree/master/samples/angular-app)
 
 ### All Thanks To Our Contributors:
+
 <a href="https://github.com/anymaniax/orval/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=anymaniax/orval" />
 </a>

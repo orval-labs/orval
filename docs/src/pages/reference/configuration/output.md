@@ -565,6 +565,38 @@ Type: `Boolean`.
 
 Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
 
+##### usePrefetch
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://tanstack.com/query/v4/docs/react/guides/prefetching" target="_blank">prefetching</a> functions.
+This may be useful for the NextJS SSR or any prefetching situations.
+
+Example generated function:
+
+```js
+export const prefetchGetCategories = async <
+  TData = Awaited<ReturnType<typeof getCategories>>,
+  TError = ErrorType<unknown>,
+>(
+  queryClient: QueryClient,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCategories>>,
+      TError,
+      TData,
+    >,
+    request?: SecondParameter<typeof customAxiosInstance>,
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetCategoriesQueryOptions(options);
+
+  await queryClient.prefetchQuery(queryOptions);
+
+  return queryClient;
+};
+```
+
 ##### useInfiniteQueryParam
 
 Type: `String`.
@@ -691,7 +723,7 @@ module.exports = {
         mock: {
           properties: {
             '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
-            '/.*\.user\.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            '/.*.user.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
             email: () => faker.internet.email(), // Matches only the property 'email'
             'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },

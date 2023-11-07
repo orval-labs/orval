@@ -117,7 +117,8 @@ export const getListPetsInfiniteQueryOptions = <
     Awaited<ReturnType<typeof listPets>>,
     QueryKey,
     ListPetsParams['limit']
-  > = ({ pageParam }) => listPets({ limit: pageParam, ...params }, version);
+  > = ({ pageParam }) =>
+    listPets({ ...params, limit: pageParam || params.page }, version);
 
   return {
     queryKey,
@@ -348,7 +349,8 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
     Awaited<ReturnType<typeof listPets>>,
     QueryKey,
     ListPetsParams['limit']
-  > = ({ pageParam }) => listPets({ limit: pageParam, ...params }, version);
+  > = ({ pageParam }) =>
+    listPets({ ...params, limit: pageParam || params.page }, version);
 
   return {
     queryKey,
