@@ -37,7 +37,9 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = enumItems.map((enumItem: string) => `${enumItem}`).join(' | ');
+        value = enumItems
+          .map((enumItem: number | null) => `${enumItem}`)
+          .join(' | ');
         isEnum = true;
       }
 
@@ -84,12 +86,12 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = `'${enumItems
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+        value = `${enumItems
+          .map((enumItem: string | null) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `)}`;
 
         isEnum = true;
       }
@@ -131,12 +133,12 @@ export const getScalar = ({
     case 'object':
     default: {
       if (enumItems) {
-        const value = `'${enumItems
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+        const value = `${enumItems
+          .map((enumItem: unknown) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `)}`;
 
         return {
           value: value + nullable,

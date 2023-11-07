@@ -23,6 +23,9 @@ export const getEnum = (value: string, enumName: string, names?: string[]) => {
 };
 
 export const getEnumImplementation = (value: string, names?: string[]) => {
+  // empty enum or null-only enum
+  if (value === '') return '';
+
   return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
     const name = names?.[index];
     if (name) {

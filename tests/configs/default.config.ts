@@ -64,13 +64,6 @@ export default defineConfig({
       target: '../generated/default/null-type-v3-0/endpoints.ts',
     },
   },
-  'nullable-enum': {
-    input: '../specifications/nullable-enum.yaml',
-    output: {
-      schemas: '../generated/default/nullable-enum/model',
-      target: '../generated/default/nullable-enum/endpoints.ts',
-    },
-  },
   readonly: {
     input: '../specifications/readonly.yaml',
     output: {
