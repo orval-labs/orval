@@ -51,7 +51,7 @@ paths:
                 $ref: '#/components/schemas/NullableAnyObject'
 components:
   schemas:
-    ObjectWithNullableObjectKey:
+    ObjectWithNullableItems:
       type: object
       properties:
         nullableObject:
@@ -66,3 +66,33 @@ components:
     NullableAnyObject:
       type: object
       nullable: true
+
+    # Nullable Enums
+    NullableStringEnum:
+      type: string
+      nullable: true
+      enum:
+        - ONE
+        - TWO
+        - THREE
+        - null
+    NullableNumberEnum:
+      type: number
+      nullable: true
+      enum:
+        - 1
+        - 2
+        - 3
+        - null
+    NullOnlyStringEnum:
+      type: string
+      nullable: true
+      enum:
+        - null
+    NullOnlyNumberEnum:
+      type: number
+      nullable: true
+      enum:
+        - null
+    EmptyEnum:
+      enum: []
