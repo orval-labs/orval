@@ -47,7 +47,6 @@
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts"
   },
   "devDependencies": {
-    "@types/chalk": "^2.2.0",
     "@types/inquirer": "^9.0.6",
     "@types/js-yaml": "^4.0.8",
     "@types/lodash.uniq": "^4.5.8"
@@ -70,6 +69,7 @@
     "find-up": "5.0.0",
     "fs-extra": "^10.1.0",
     "lodash.uniq": "^4.5.0",
+    "openapi-types": "^12.1.3",
     "openapi3-ts": "^3.2.0",
     "string-argv": "^0.3.2",
     "tsconfck": "^2.0.1"
