@@ -102,7 +102,7 @@ export const pascal = (s: string) => {
     s = low.call(s);
   }
 
-  const pascalString = (s.match(/[a-zA-Z0-9]+/g) || [])
+  const pascalString = (s?.match(/[a-zA-Z0-9]+/g) || [])
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join('');
 
