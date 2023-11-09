@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "6.19.1",
+  "version": "6.20.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
