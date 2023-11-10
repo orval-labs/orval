@@ -149,7 +149,7 @@ export const getMockObject = ({
     return {
       ...resolvedValue,
       value: `{
-        '[${DEFAULT_OBJECT_KEY_MOCK}]': ${resolvedValue.value}
+        [${DEFAULT_OBJECT_KEY_MOCK}]: ${resolvedValue.value}
       }`,
     };
   }
