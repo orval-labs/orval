@@ -7,7 +7,6 @@ import {
   isReference,
   MockOptions,
 } from '@orval/core';
-import cuid from 'cuid';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { resolveMockValue } from '../resolvers/value';
 import { MockDefinition, MockSchemaObject } from '../types';

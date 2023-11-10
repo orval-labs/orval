@@ -6,6 +6,7 @@ import {
   isRootKey,
   mergeDeep,
   MockOptions,
+  log,
 } from '@orval/core';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
@@ -37,6 +38,8 @@ export const getMockScalar = ({
   };
   context: ContextSpecs;
 }): MockDefinition => {
+  log(item);
+
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
@@ -191,9 +194,12 @@ export const getMockScalar = ({
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {
+        // By default the value isn't a reference, so we don't have the object explicitly defined.
+        // So we have to create an array with the enum values and force them to be a const.
         let enumValue =
-          "['" + item.enum.map((e) => escape(e)).join("','") + "']";
+          "['" + item.enum.map((e) => escape(e)).join("','") + "'] as const";
 
+        // But if the value is a reference, we can use the object directly via the imports and using Object.values.
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
           imports = [
