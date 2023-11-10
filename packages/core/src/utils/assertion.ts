@@ -9,7 +9,7 @@ import { extname } from './path';
  * @param property
  */
 export const isReference = (property: any): property is ReferenceObject => {
-  return Boolean(property.$ref);
+  return Boolean(property?.$ref);
 };
 
 export const isDirectory = (path: string) => {
@@ -80,8 +80,6 @@ export const isRootKey = (specKey: string, target: string) => {
   return specKey === target;
 };
 
-const LOCALHOST_REGEX = /^https?:\/\/\w+(\.\w+)*(:[0-9]+)?(\/.*)?$/;
-
 export const isUrl = (str: string) => {
-  return validatorIsUrl(str) || LOCALHOST_REGEX.test(str);
+  return validatorIsUrl(str, { require_tld: false });
 };

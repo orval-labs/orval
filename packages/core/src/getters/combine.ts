@@ -1,6 +1,6 @@
 import omit from 'lodash.omit';
 import { SchemaObject } from 'openapi3-ts';
-import { resolveObject } from '../resolvers';
+import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   ContextSpecs,
   GeneratorImport,
@@ -106,6 +106,8 @@ export const combineSchemas = ({
       types: [],
       originalSchema: [],
       hasReadonlyProps: false,
+      example: schema.example,
+      examples: resolveExampleRefs(schema.examples, context),
     } as CombinedData,
   );
 
@@ -137,6 +139,8 @@ export const combineSchemas = ({
       type: 'object' as SchemaType,
       isRef: false,
       hasReadonlyProps: resolvedData.hasReadonlyProps,
+      example: schema.example,
+      examples: resolveExampleRefs(schema.examples, context),
     };
   }
 
@@ -155,6 +159,8 @@ export const combineSchemas = ({
       resolvedData?.hasReadonlyProps ||
       resolvedValue?.hasReadonlyProps ||
       false,
+    example: schema.example,
+    examples: resolveExampleRefs(schema.examples, context),
   };
 };
 

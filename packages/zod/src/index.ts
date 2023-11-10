@@ -19,6 +19,7 @@ import {
   ContextSpecs,
   isObject,
   isBoolean,
+  jsStringEscape,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 
@@ -61,9 +62,17 @@ const generateZodValidationSchemaDefinition = (
   const required = schema.default !== undefined ? false : _required ?? false;
   const nullable = schema.nullable ?? false;
   const min =
-    schema.minimum ?? schema.exclusiveMinimum ?? schema.minLength ?? undefined;
+    schema.minimum ??
+    schema.exclusiveMinimum ??
+    schema.minLength ??
+    schema.minItems ??
+    undefined;
   const max =
-    schema.maximum ?? schema.exclusiveMaximum ?? schema.maxLength ?? undefined;
+    schema.maximum ??
+    schema.exclusiveMaximum ??
+    schema.maxLength ??
+    schema.maxItems ??
+    undefined;
   const matches = schema.pattern ?? undefined;
 
   switch (type) {
@@ -81,7 +90,12 @@ const generateZodValidationSchemaDefinition = (
 
       functions.push([type as string, undefined]);
 
-      if (schema.format === 'date-time' || schema.format === 'date') {
+      if (schema.format === 'date') {
+        functions.push(['regex', 'new RegExp(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)']);
+        break;
+      }
+
+      if (schema.format === 'date-time') {
         functions.push(['datetime', undefined]);
         break;
       }
@@ -168,8 +182,12 @@ const generateZodValidationSchemaDefinition = (
   }
 
   if (min !== undefined) {
-    consts.push(`export const ${name}Min = ${min};`);
-    functions.push(['min', `${name}Min`]);
+    if (min === 1) {
+      functions.push(['min', `${min}`]);
+    } else {
+      consts.push(`export const ${name}Min = ${min};`);
+      functions.push(['min', `${name}Min`]);
+    }
   }
   if (max !== undefined) {
     consts.push(`export const ${name}Max = ${max};`);
@@ -179,7 +197,7 @@ const generateZodValidationSchemaDefinition = (
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
-    const regexp = `new RegExp('${escape(
+    const regexp = `new RegExp('${jsStringEscape(
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
@@ -261,6 +279,7 @@ const parseZodValidationSchemaDefinition = (
     if (fn === 'additionalProperties') {
       const value = args.functions.map(parseProperty).join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+      consts += args.consts;
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
@@ -271,6 +290,7 @@ const parseZodValidationSchemaDefinition = (
     }
     if (fn === 'array') {
       const value = args.functions.map(parseProperty).join('');
+      consts += args.consts;
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
     return `.${fn}(${args})`;
@@ -306,11 +326,25 @@ const deference = (
   schema: SchemaObject | ReferenceObject,
   context: ContextSpecs,
 ): SchemaObject => {
-  const { schema: resolvedSchema } = resolveRef<SchemaObject>(schema, context);
+  const refName = '$ref' in schema ? schema.$ref : undefined;
+  if (refName && context.parents?.includes(refName)) {
+    return {};
+  }
+
+  const childContext: ContextSpecs = {
+    ...context,
+    ...(refName
+      ? { parents: [...(context.parents || []), refName] }
+      : undefined),
+  };
+
+  const { schema: resolvedSchema } = resolveRef<SchemaObject>(
+    schema,
+    childContext,
+  );
 
   return Object.entries(resolvedSchema).reduce((acc, [key, value]) => {
-    acc[key] = deferenceScalar(value, context);
-
+    acc[key] = deferenceScalar(value, childContext);
     return acc;
   }, {} as any);
 };

@@ -6,6 +6,7 @@ import {
   GeneratorApiOperations,
   GeneratorSchema,
   getRoute,
+  GetterPropType,
   isReference,
   NormalizedInputOptions,
   NormalizedOutputOptions,
@@ -69,7 +70,16 @@ export const getApiBuilder = async ({
       }
 
       const schemas = verbsOptions.reduce(
-        (acc, { queryParams, headers, body, response }) => {
+        (acc, { queryParams, headers, body, response, props }) => {
+          if (props) {
+            acc.push(
+              ...props.flatMap((param) =>
+                param.type === GetterPropType.NAMED_PATH_PARAMS
+                  ? param.schema
+                  : [],
+              ),
+            );
+          }
           if (queryParams) {
             acc.push(queryParams.schema, ...queryParams.deps);
           }
@@ -85,11 +95,18 @@ export const getApiBuilder = async ({
         [] as GeneratorSchema[],
       );
 
+      let fullRoute = route;
+      if (output.baseUrl) {
+        if (output.baseUrl.endsWith('/') && route.startsWith('/')) {
+          fullRoute = route.slice(1);
+        }
+        fullRoute = `${output.baseUrl}${fullRoute}`;
+      }
       const pathOperations = await generateOperations(
         output.client,
         verbsOptions,
         {
-          route,
+          route: fullRoute,
           pathRoute,
           override: output.override,
           context: resolvedContext,

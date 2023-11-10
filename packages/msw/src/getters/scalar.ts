@@ -46,13 +46,17 @@ export const getMockScalar = ({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags ?? {}).reduce<{
-    properties: Record<string, string>;
-  }>(
-    (acc, [tag, options]) =>
-      tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as { properties: Record<string, string> },
-  );
+  const overrideTag = Object.entries(mockOptions?.tags ?? {})
+    .sort((a, b) => {
+      return a[0].localeCompare(b[0]);
+    })
+    .reduce<{
+      properties: Record<string, string>;
+    }>(
+      (acc, [tag, options]) =>
+        tags.includes(tag) ? mergeDeep(acc, options) : acc,
+      {} as { properties: Record<string, string> },
+    );
 
   const tagProperty = resolveMockOverride(overrideTag?.properties, item);
 
@@ -64,6 +68,15 @@ export const getMockScalar = ({
 
   if (property) {
     return property;
+  }
+
+  if (context.override?.mock?.useExamples && item.example) {
+    return {
+      value: JSON.stringify(item.example),
+      imports: [],
+      name: item.name,
+      overrided: true,
+    };
   }
 
   const ALL_FORMAT: Record<string, string> = {
@@ -85,7 +98,7 @@ export const getMockScalar = ({
     case 'integer': {
       return {
         value: getNullable(
-          `faker.datatype.number({min: ${item.minimum}, max: ${item.maximum}})`,
+          `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
           item.nullable,
         ),
         imports: [],
@@ -164,7 +177,7 @@ export const getMockScalar = ({
 
       return {
         value:
-          `Array.from({ length: faker.datatype.number({ ` +
+          `Array.from({ length: faker.number.int({ ` +
           `min: ${mockOptions?.arrayMin}, ` +
           `max: ${mockOptions?.arrayMax} }) ` +
           `}, (_, i) => i + 1).map(() => (${mapValue}))`,
@@ -174,7 +187,7 @@ export const getMockScalar = ({
     }
 
     case 'string': {
-      let value = 'faker.random.word()';
+      let value = 'faker.word.sample()';
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {

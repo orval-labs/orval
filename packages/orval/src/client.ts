@@ -55,13 +55,21 @@ export const generateClientImports: GeneratorClientImports = ({
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
 }) => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
     dependencies
-      ? [...dependencies(hasGlobalMutator, packageJson), ...imports]
+      ? [
+          ...dependencies(
+            hasGlobalMutator,
+            hasParamsSerializerOptions,
+            packageJson,
+          ),
+          ...imports,
+        ]
       : imports,
     specsName,
     hasSchemaDir,
@@ -217,6 +225,7 @@ export const generateOperations = (
         clientMutators: client.mutators,
         formData: verbOption.formData,
         formUrlEncoded: verbOption.formUrlEncoded,
+        paramsSerializer: verbOption.paramsSerializer,
         operationName: verbOption.operationName,
       };
 

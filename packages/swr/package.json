@@ -1,6 +1,6 @@
 {
   "name": "@orval/swr",
-  "version": "6.16.0",
+  "version": "6.20.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -8,11 +8,11 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --target node12 --minify --clean --dts --splitting",
+    "build": "tsup ./src/index.ts --target node12 --clean --dts",
     "dev": "tsup ./src/index.ts --target node12 --clean --watch src",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.16.0"
+    "@orval/core": "6.20.0"
   }
 }

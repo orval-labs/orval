@@ -120,6 +120,8 @@ export const normalizeOptions = async (
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,
+      indexFiles: outputOptions.indexFiles ?? true,
+      baseUrl: outputOptions.baseUrl,
       override: {
         ...outputOptions.override,
         mock: {
@@ -153,6 +155,10 @@ export const normalizeOptions = async (
                 outputOptions.override?.formUrlEncoded,
               )
             : outputOptions.override?.formUrlEncoded) ?? true,
+        paramsSerializer: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.paramsSerializer,
+        ),
         header:
           outputOptions.override?.header === false
             ? false
@@ -272,7 +278,15 @@ const normalizeOperationsAndTags = (
     Object.entries(operationsOrTags).map(
       ([
         key,
-        { transformer, mutator, formData, formUrlEncoded, query, ...rest },
+        {
+          transformer,
+          mutator,
+          formData,
+          formUrlEncoded,
+          paramsSerializer,
+          query,
+          ...rest
+        },
       ]) => {
         return [
           key,
@@ -301,6 +315,14 @@ const normalizeOperationsAndTags = (
                   formUrlEncoded: !isBoolean(formUrlEncoded)
                     ? normalizeMutator(workspace, formUrlEncoded)
                     : formUrlEncoded,
+                }
+              : {}),
+            ...(paramsSerializer
+              ? {
+                  paramsSerializer: normalizeMutator(
+                    workspace,
+                    paramsSerializer,
+                  ),
                 }
               : {}),
           },
@@ -359,14 +381,23 @@ const normalizeQueryOptions = (
   }
 
   return {
+    ...(!isUndefined(queryOptions.usePrefetch)
+      ? { usePrefetch: queryOptions.usePrefetch }
+      : {}),
     ...(!isUndefined(queryOptions.useQuery)
       ? { useQuery: queryOptions.useQuery }
+      : {}),
+    ...(!isUndefined(queryOptions.useSuspenseQuery)
+      ? { useSuspenseQuery: queryOptions.useSuspenseQuery }
       : {}),
     ...(!isUndefined(queryOptions.useMutation)
       ? { useMutation: queryOptions.useMutation }
       : {}),
     ...(!isUndefined(queryOptions.useInfinite)
       ? { useInfinite: queryOptions.useInfinite }
+      : {}),
+    ...(!isUndefined(queryOptions.useSuspenseInfiniteQuery)
+      ? { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }
       : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
@@ -395,6 +426,9 @@ const normalizeQueryOptions = (
       : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
+      : {}),
+    ...(!isUndefined(queryOptions.version)
+      ? { version: queryOptions.version }
       : {}),
   };
 };

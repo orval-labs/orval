@@ -57,11 +57,25 @@ export default defineConfig({
       target: '../generated/default/null-type/endpoints.ts',
     },
   },
+  'null-type-v-3-0': {
+    input: '../specifications/null-type-v3-0.yaml',
+    output: {
+      schemas: '../generated/default/null-type-v3-0/model',
+      target: '../generated/default/null-type-v3-0/endpoints.ts',
+    },
+  },
   readonly: {
     input: '../specifications/readonly.yaml',
     output: {
       schemas: '../generated/default/readonly/model',
       target: '../generated/default/readonly/endpoints.ts',
+    },
+  },
+  'default-status': {
+    input: '../specifications/default-status.yaml',
+    output: {
+      schemas: '../generated/default/default-status/model',
+      target: '../generated/default/default-status/endpoints.ts',
     },
   },
 });
