@@ -110,6 +110,31 @@ export const writeSchemas = async ({
   if (indexFiles) {
     const schemaFilePath = upath.join(schemaPath, '/index.ts');
     await fs.ensureFile(schemaFilePath);
+  
+    // Ensure separate files are used for parallel schema writing.
+    // Throw an exception, which list all duplicates, before attempting
+    // multiple writes on the same file.
+    const schemaNamesSet = new Set<string>();
+    const duplicateNamesMap = new Map<string, number>();
+    schemas.forEach((schema) => {
+      if (!schemaNamesSet.has(schema.name)) {
+        schemaNamesSet.add(schema.name);
+      } else {
+        duplicateNamesMap.set(
+          schema.name,
+          (duplicateNamesMap.get(schema.name) || 0) + 1,
+        );
+      }
+    });
+    if (duplicateNamesMap.size) {
+      throw new Error(
+        'Duplicate schema names detected:\n' +
+          Array.from(duplicateNamesMap)
+            .map((duplicate) => `  ${duplicate[1]}x ${duplicate[0]}`)
+            .join('\n'),
+      );
+    }
+    
     try {
       const data = await fs.readFile(schemaFilePath);
 
