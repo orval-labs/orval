@@ -6,7 +6,6 @@ import {
   isRootKey,
   mergeDeep,
   MockOptions,
-  log,
 } from '@orval/core';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
@@ -38,8 +37,6 @@ export const getMockScalar = ({
   };
   context: ContextSpecs;
 }): MockDefinition => {
-  log(item);
-
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
