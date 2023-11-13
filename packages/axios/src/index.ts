@@ -181,7 +181,7 @@ const generateAxiosImplementation = (
   } ): Promise<TData> => {${bodyForm}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(${options});
+    }.${verb.toLowerCase()}(${options});
   }
 `;
 };

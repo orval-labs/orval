@@ -81,5 +81,11 @@ export const isRootKey = (specKey: string, target: string) => {
 };
 
 export const isUrl = (str: string) => {
-  return validatorIsUrl(str, { require_tld: false });
+  let givenURL;
+  try {
+    givenURL = new URL(str);
+  } catch (error) {
+    return false;
+  }
+  return givenURL.protocol === 'http:' || givenURL.protocol === 'https:';
 };

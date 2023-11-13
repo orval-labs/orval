@@ -357,9 +357,30 @@ const generateZodRoute = (
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters;
-  const requestBody = spec?.[verb]?.requestBody;
-  const response = spec?.[verb]?.responses?.['200'] as
+  let specificaton;
+  switch (verb) {
+    case 'DELETE':
+      specificaton = spec?.delete;
+      break;
+    case 'PUT':
+      specificaton = spec?.put;
+      break;
+    case 'POST':
+      specificaton = spec?.post;
+      break;
+    case 'PATCH':
+      specificaton = spec?.patch;
+      break;
+    case 'HEAD':
+      specificaton = spec?.head;
+      break;
+    default:
+      specificaton = spec?.get;
+      break;
+  }
+  const parameters = specificaton?.parameters;
+  const requestBody = specificaton?.requestBody;
+  const response = specificaton?.responses?.['200'] as
     | ResponseObject
     | ReferenceObject;
 
@@ -432,7 +453,15 @@ const generateZodRoute = (
     .reduce((acc, curr) => ({ ...acc, ...curr }), {});
 
   const zodDefinitionsParameters = (parameters ?? []).reduce(
-    (acc, val) => {
+    (
+      acc: { headers: any; queryParams: any; params: any },
+      val:
+        | SchemaObject
+        | ReferenceObject
+        | ResponseObject
+        | ParameterObject
+        | RequestBodyObject,
+    ) => {
       const { schema: parameter } = resolveRef<ParameterObject>(val, context);
 
       if (!parameter.schema) {
