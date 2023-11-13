@@ -32,7 +32,7 @@
     "@types/prettier": "^2.7.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.33.0",
-    "dotenv-cli": "^6.0.0",
+    "dotenv-cli": "^7.3.0",
     "esbuild-plugin-alias": "^0.2.1",
     "eslint": "^8.52.0",
     "eslint-config-prettier": "^9.0.0",
