@@ -24,6 +24,7 @@ export const getMockScalar = ({
   tags,
   combine,
   context,
+  existingReferencedProperties,
 }: {
   item: MockSchemaObject;
   imports: GeneratorImport[];
@@ -36,7 +37,15 @@ export const getMockScalar = ({
     includedProperties: string[];
   };
   context: ContextSpecs;
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
 }): MockDefinition => {
+  // Add the property to the existing properties to validate on object recursion
+  if (item.isRef) {
+    existingReferencedProperties = [...existingReferencedProperties, item.name];
+  }
+
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
@@ -136,6 +145,7 @@ export const getMockScalar = ({
         tags,
         context,
         imports,
+        existingReferencedProperties,
       });
 
       if (enums) {
@@ -231,6 +241,7 @@ export const getMockScalar = ({
         combine,
         context,
         imports,
+        existingReferencedProperties,
       });
     }
   }

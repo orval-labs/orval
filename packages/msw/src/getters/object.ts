@@ -21,6 +21,7 @@ export const getMockObject = ({
   combine,
   context,
   imports,
+  existingReferencedProperties,
 }: {
   item: MockSchemaObject;
   operationId: string;
@@ -32,6 +33,9 @@ export const getMockObject = ({
   };
   context: ContextSpecs;
   imports: GeneratorImport[];
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
@@ -45,6 +49,7 @@ export const getMockObject = ({
       tags,
       context,
       imports,
+      existingReferencedProperties,
     });
   }
 
@@ -59,6 +64,7 @@ export const getMockObject = ({
       combine,
       context,
       imports,
+      existingReferencedProperties,
     });
   }
 
@@ -84,7 +90,12 @@ export const getMockObject = ({
           mockOptions?.required ||
           (Array.isArray(item.required) ? item.required : []).includes(key);
 
-        if (count(item.path, `\\.${key}\\.`) >= 1) {
+        // Check to see if the property is a reference to an existing property
+        // Fixes issue #910
+        if (
+          '$ref' in prop &&
+          existingReferencedProperties.includes(prop.$ref.split('/').pop()!)
+        ) {
           return undefined;
         }
 
@@ -99,6 +110,7 @@ export const getMockObject = ({
           tags,
           context,
           imports,
+          existingReferencedProperties,
         });
 
         imports.push(...resolvedValue.imports);
@@ -143,6 +155,7 @@ export const getMockObject = ({
       tags,
       context,
       imports,
+      existingReferencedProperties,
     });
 
     return {

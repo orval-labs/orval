@@ -178,6 +178,7 @@ export const getResponsesMockDefinition = ({
               specKey: response.imports[0]?.specKey ?? context.specKey,
             }
           : context,
+        existingReferencedProperties: [],
       });
 
       acc.imports.push(...scalar.imports);
