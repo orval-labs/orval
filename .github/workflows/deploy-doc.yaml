@@ -17,8 +17,6 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 18
-      - name: Install deps and build (with cache)
-        uses: bahmutov/npm-install@v1
       - name: Install Vercel CLI
         run: |
           npm install -g vercel
