@@ -49,6 +49,9 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
   }
 };
 
+// https://github.com/colinhacks/zod#coercion-for-primitives
+const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+
 const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   _required: boolean | undefined,
@@ -227,8 +230,14 @@ const generateZodValidationSchemaDefinition = (
   return { functions, consts: uniq(consts) };
 };
 
-const parseZodValidationSchemaDefinition = (
-  input: Record<string, { functions: [string, any][]; consts: string[] }>,
+export type ZodValidationSchemaDefinitionInput = Record<
+  string,
+  { functions: [string, any][]; consts: string[] }
+>;
+
+export const parseZodValidationSchemaDefinition = (
+  input: ZodValidationSchemaDefinitionInput,
+  coerceTypes = false,
 ): { zod: string; consts: string } => {
   if (!Object.keys(input).length) {
     return { zod: '', consts: '' };
@@ -279,7 +288,7 @@ const parseZodValidationSchemaDefinition = (
     if (fn === 'additionalProperties') {
       const value = args.functions.map(parseProperty).join('');
       const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-      consts += args.consts
+      consts += args.consts;
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
@@ -293,6 +302,11 @@ const parseZodValidationSchemaDefinition = (
       consts += args.consts;
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
+
+    if (coerceTypes && COERCEABLE_TYPES.includes(fn)) {
+      return `.coerce.${fn}(${args})`;
+    }
+
     return `.${fn}(${args})`;
   };
 
@@ -301,12 +315,12 @@ const parseZodValidationSchemaDefinition = (
   }, '');
 
   const zod = `zod.object({
-  ${Object.entries(input)
-    .map(([key, schema]) => {
-      const value = schema.functions.map(parseProperty).join('');
-      return `"${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
-    })
-    .join(',')}
+${Object.entries(input)
+  .map(([key, schema]) => {
+    const value = schema.functions.map(parseProperty).join('');
+    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+  })
+  .join(',\n')}
 })`;
 
   return { zod, consts };
@@ -351,7 +365,7 @@ const deference = (
 
 const generateZodRoute = (
   { operationName, body, verb }: GeneratorVerbOptions,
-  { pathRoute, context }: GeneratorOptions,
+  { pathRoute, context, override }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
@@ -485,6 +499,7 @@ const generateZodRoute = (
   );
   const inputQueryParams = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.queryParams,
+    override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.headers,
