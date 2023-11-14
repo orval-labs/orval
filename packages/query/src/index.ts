@@ -403,10 +403,11 @@ const generateQueryRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
+    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
     let propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${body.definition}`),
+            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
