@@ -13,6 +13,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Node'
+  /list:
+    post:
+      summary: Add list
+      operationId: add-list
+      responses:
+        '200':
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                list:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items:
+                    type: number
+                    minimum: 1
+                    maximum: 10
+              required:
+                - list
 components:
   schemas:
     Node:
