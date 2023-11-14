@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { siteConfig } from 'siteConfig';
-import logoSrc from '../images/orval-logo-horizontal.svg';
 import { Search } from './Search';
 
 export const Nav = () => (
@@ -9,10 +8,10 @@ export const Nav = () => (
       <div className="flex flex-wrap items-center">
         <div className="w-60 flex items-center h-16 pt-4 md:pt-0">
           <Link href="/" as="/">
-            <a>
+            <>
               <span className="sr-only">Home</span>
-              <img src={logoSrc} alt="orval" />
-            </a>
+              <img src="/images/orval-logo-horizontal.svg" alt="orval" />
+            </>
           </Link>
         </div>
 
@@ -23,21 +22,22 @@ export const Nav = () => (
         <div className="flex flex-grow items-center justify-between w-3/4 md:w-auto md:justify-end space-x-4 md:space-x-8 h-16">
           <div className="flex space-x-4 md:space-x-8 text-sm md:text-base">
             <div>
-              <Link href="/overview">
-                <a className="leading-6 font-medium">Docs</a>
+              <Link href="/overview" className="leading-6 font-medium">
+                Docs
               </Link>
             </div>
             <div>
-              <Link href="/playground">
-                <a className="leading-6 font-medium">Playground</a>
+              <Link href="/playground" className="leading-6 font-medium">
+                Playground
               </Link>
             </div>
             <div>
               <Link
                 href={`${siteConfig.repoUrl}/tree/master/samples`}
                 target="_blank"
+                className="leading-6 font-medium"
               >
-                <a className="leading-6 font-medium">Examples</a>
+                Examples
               </Link>
             </div>
           </div>

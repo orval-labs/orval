@@ -98,8 +98,8 @@ export function SearchProvider({
 
 function Hit({ hit, children }) {
   return (
-    <Link href={hit.url.replace()}>
-      <a>{children}</a>
+    <Link href={hit.url.replace()} legacyBehavior>
+      {children}
     </Link>
   );
 }

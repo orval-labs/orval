@@ -1,59 +1,20 @@
+const webpack = require('webpack');
+const fs = require('fs');
 const path = require('path');
-const dotenvLoad = require('dotenv-load');
-const optimizedImages = require('next-optimized-images');
-dotenvLoad();
+const visit = require('unist-util-visit');
+const remarkPlugins = require('./src/lib/docs/remark-plugins');
 
-const remarkPlugins = [
-  require('remark-slug'),
-  require('./src/lib/docs/remark-paragraph-alerts'),
-  [
-    require('remark-autolink-headings'),
-    {
-      behavior: 'append',
-      linkProperties: {
-        class: ['anchor'],
-        title: 'Direct link to heading',
-      },
-    },
-  ],
-
-  require('remark-emoji'),
-  require('remark-footnotes'),
-  require('remark-images'),
-  [
-    require('remark-github'),
-    { repository: 'https://github.com/anymaniax/orval' },
-  ],
-  require('remark-unwrap-images'),
-  [
-    require('remark-toc'),
-    {
-      skip: 'Reference',
-      maxDepth: 6,
-    },
-  ],
-];
-
-module.exports = optimizedImages({
-  pageExtensions: ['jsx', 'js', 'mdx', 'md'],
-  async redirects() {
+module.exports = {
+  pageExtensions: ['jsx', 'js', 'ts', 'tsx', 'mdx', 'md'],
+  rewrites() {
     return [
       {
-        source: '/docs/:any*',
-        destination: '/:any*', // Matched parameters can be used in the destination
-        permanent: true,
+        source: '/docs{/}?',
+        destination: '/docs/overview',
       },
     ];
   },
-  experimental: {
-    plugins: true,
-    modern: true,
-  },
   webpack: (config, { dev, isServer, ...options }) => {
-    if (!isServer) {
-      config.resolve.alias['@sentry/node'] = '@sentry/browser';
-    }
-
     config.module.rules.push({
       test: /.mdx?$/, // load both .md and .mdx files
       use: [
@@ -68,33 +29,17 @@ module.exports = optimizedImages({
       ],
     });
 
-    // only compile build-rss in production server build
-    if (dev || !isServer) {
-      return config;
-    }
+    if (!dev && isServer) {
+      // we're in build mode so enable shared caching for the GitHub API
+      process.env.USE_CACHE = 'true';
+      const originalEntry = config.entry;
 
-    // we're in build mode so enable shared caching for Notion data
-    process.env.USE_CACHE = 'true';
-
-    const originalEntry = config.entry;
-    config.entry = async () => {
-      const entries = {
-        ...(await originalEntry()),
+      config.entry = async () => {
+        const entries = { ...(await originalEntry()) };
+        return entries;
       };
-      // entries['./scripts/build-rss.js'] = './src/lib/build-rss.js'
-      return entries;
-    };
+    }
 
     return config;
   },
-  optimizeImages: {
-    /* config for next-optimized-images */
-    mozjpeg: {
-      quality: 70,
-    },
-    optipng: {
-      optimizationLevel: 3,
-    },
-    optimizeImagesInDev: true,
-  },
-});
+};

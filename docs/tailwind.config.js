@@ -3,17 +3,7 @@
 const defaultTheme = require('tailwindcss/defaultTheme');
 
 module.exports = {
-  corePlugins: {
-    preflight: true,
-    float: false,
-  },
-  purge: {
-    enabled: process.env.NODE_ENV !== 'development',
-    content: ['./src/**/*.js'],
-    options: {
-      defaultExtractor: (content) => content.match(/[\w-/.:]+(?<!:)/g) || [],
-    },
-  },
+  content: ['./src/**/*.js', './src/**/*.jsx'],
   theme: {
     extend: {
       colors: {
@@ -57,10 +47,5 @@ module.exports = {
       },
     }),
   },
-  variants: {},
-  plugins: [require('@tailwindcss/ui')],
-  future: {
-    removeDeprecatedGapUtilities: true,
-    purgeLayersByDefault: true,
-  },
+  plugins: [require('@tailwindcss/forms')],
 };
