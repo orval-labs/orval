@@ -8,7 +8,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --clean --dts",
+    "build": "tsup ./src/index.ts --clean --dts --sourcemap",
     "dev": "tsup ./src/index.ts --clean --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest --global test.ts"
