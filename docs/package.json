@@ -88,6 +88,9 @@
     "webp-loader": "^0.6.0"
   },
   "engines": {
-    "node": "18.x"
+    "node": "16.x"
+  },
+  "volta": {
+    "node": "16.20.2"
   }
 }
