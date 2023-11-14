@@ -88,6 +88,6 @@
     "webp-loader": "^0.6.0"
   },
   "engines": {
-    "node": ">=12.x <17"
+    "node": "18.x"
   }
 }
