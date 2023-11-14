@@ -16,6 +16,7 @@
     "generate:swr": "yarn orval --config ./configs/swr.config.ts",
     "generate:multi-file": "yarn orval --config ./configs/multi-file.config.ts",
     "generate:zod": "yarn orval --config ./configs/zod.config.ts",
+    "generate:zod-parameters": "yarn orval --config ./configs/zod-parameters.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
