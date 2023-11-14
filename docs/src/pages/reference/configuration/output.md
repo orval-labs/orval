@@ -691,7 +691,7 @@ module.exports = {
         mock: {
           properties: {
             '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
-            '/.*\.user\.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            '/.*.user.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
             email: () => faker.internet.email(), // Matches only the property 'email'
             'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },
@@ -1153,6 +1153,30 @@ module.exports = {
     output: {
       override: {
         useBigInt: true,
+      },
+    },
+  },
+};
+```
+
+#### coerceTypes
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to enable [type coercion](https://zod.dev/?id=coercion-for-primitives) for [Zod](https://zod.dev/) schemas (only applies to query parameters schemas).
+
+This is helpful if you want to use the zod schema to coerce (likely string-serialized) query parameters into the correct type before validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        coerceTypes: true,
       },
     },
   },
