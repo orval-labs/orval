@@ -6,7 +6,7 @@ import {
 } from '@orval/core';
 import omit from 'lodash.omit';
 import { resolveMockValue } from '../resolvers';
-import { MockSchemaObject } from '../types';
+import { MockSchemaObject } from '../../types';
 
 export const combineSchemasMock = ({
   item,

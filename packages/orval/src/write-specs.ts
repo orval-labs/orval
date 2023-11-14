@@ -13,6 +13,7 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  getMockFileExtensionByTypeName,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
@@ -95,7 +96,11 @@ export const writeSpecs = async (
   if (output.workspace) {
     const workspacePath = output.workspace;
     let imports = implementationPaths
-      .filter((path) => !path.endsWith('.msw.ts'))
+      .filter(
+        (path) =>
+          !output.mock ||
+          !path.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
+      )
       .map((path) =>
         upath.relativeSafe(
           workspacePath,

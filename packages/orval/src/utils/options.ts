@@ -27,6 +27,7 @@ import {
   SwaggerParserOptions,
   isUndefined,
 } from '@orval/core';
+import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
 import { InfoObject } from 'openapi3-ts';
 import pkg from '../../package.json';
@@ -74,7 +75,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, mode, mock, tslint } = globalOptions;
+  const { clean, prettier, client, mode, tslint } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -85,6 +86,18 @@ export const normalizeOptions = async (
     outputOptions.packageJson || globalOptions.packageJson,
     workspace,
   );
+
+  let mock = outputOptions.mock ?? globalOptions.mock;
+  if (typeof mock === 'boolean' && mock) {
+    mock = DEFAULT_MOCK_OPTIONS;
+  } else if (!mock) {
+    mock = undefined;
+  } else {
+    mock = {
+      ...DEFAULT_MOCK_OPTIONS,
+      ...mock,
+    };
+  }
 
   const normalizedOptions: NormalizedOptions = {
     input: {
@@ -113,7 +126,7 @@ export const normalizeOptions = async (
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
-      mock: outputOptions.mock ?? mock ?? false,
+      mock,
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,

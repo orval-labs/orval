@@ -3,6 +3,7 @@ import {
   generalJSTypesWithArray,
   GeneratorImport,
   GetterResponse,
+  GlobalMockOptions,
   isFunction,
   MockOptions,
   NormalizedOverrideOutput,
@@ -10,7 +11,7 @@ import {
   stringify,
 } from '@orval/core';
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
-import { getMockScalar } from './getters';
+import { getMockScalar } from '../faker/getters';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
   Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<
@@ -119,6 +120,7 @@ export const getResponsesMockDefinition = ({
   mockOptionsWithoutFunc,
   transformer,
   context,
+  mockOptions,
 }: {
   operationId: string;
   tags: string[];
@@ -126,13 +128,14 @@ export const getResponsesMockDefinition = ({
   mockOptionsWithoutFunc: { [key: string]: unknown };
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
+  mockOptions?: GlobalMockOptions;
 }) => {
   return response.types.success.reduce(
     (
       acc,
       { value: definition, originalSchema, example, examples, imports, isRef },
     ) => {
-      if (context.override?.mock?.useExamples) {
+      if (context.override?.mock?.useExamples || mockOptions?.useExamples) {
         const exampleValue =
           example ||
           originalSchema?.example ||
@@ -204,6 +207,7 @@ export const getMockDefinition = ({
   override,
   transformer,
   context,
+  mockOptions,
 }: {
   operationId: string;
   tags: string[];
@@ -211,6 +215,7 @@ export const getMockDefinition = ({
   override: NormalizedOverrideOutput;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
+  mockOptions?: GlobalMockOptions;
 }) => {
   const mockOptionsWithoutFunc = getMockWithoutFunc(
     context.specs[context.specKey],
@@ -224,6 +229,7 @@ export const getMockDefinition = ({
     mockOptionsWithoutFunc,
     transformer,
     context,
+    mockOptions,
   });
 
   return {

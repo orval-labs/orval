@@ -25,10 +25,10 @@ export const generateTarget = (
   const target = Object.values(builder.operations).reduce(
     (acc, operation, index, arr) => {
       acc.imports.push(...operation.imports);
-      acc.importsMSW.push(...operation.importsMSW);
+      acc.importsMock.push(...operation.importsMock);
       acc.implementation += operation.implementation + '\n';
-      acc.implementationMSW.function += operation.implementationMSW.function;
-      acc.implementationMSW.handler += operation.implementationMSW.handler;
+      acc.implementationMock.function += operation.implementationMock.function;
+      acc.implementationMock.handler += operation.implementationMock.handler;
       if (operation.mutator) {
         acc.mutators.push(operation.mutator);
       }
@@ -69,8 +69,8 @@ export const generateTarget = (
           titles,
         });
         acc.implementation = header.implementation + acc.implementation;
-        acc.implementationMSW.handler =
-          header.implementationMSW + acc.implementationMSW.handler;
+        acc.implementationMock.handler =
+          header.implementationMock + acc.implementationMock.handler;
 
         const footer = builder.footer({
           outputClient: options?.client,
@@ -80,18 +80,18 @@ export const generateTarget = (
           titles,
         });
         acc.implementation += footer.implementation;
-        acc.implementationMSW.handler += footer.implementationMSW;
+        acc.implementationMock.handler += footer.implementationMock;
       }
       return acc;
     },
     {
       imports: [],
       implementation: '',
-      implementationMSW: {
+      implementationMock: {
         function: '',
         handler: '',
       },
-      importsMSW: [],
+      importsMock: [],
       mutators: [],
       clientMutators: [],
       formData: [],
@@ -102,7 +102,7 @@ export const generateTarget = (
 
   return {
     ...target,
-    implementationMSW:
-      target.implementationMSW.function + target.implementationMSW.handler,
+    implementationMock:
+      target.implementationMock.function + target.implementationMock.handler,
   };
 };

@@ -4,13 +4,14 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
-  NormalizedOverrideOutput,
+  isFunction,
   pascal,
 } from '@orval/core';
-import { getRouteMSW } from './getters';
+import { getRouteMSW } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
+import { getDelay } from '../delay';
 
-const MSW_DEPENDENCIES: GeneratorDependency[] = [
+const getMSWDependencies = (locale?: string): GeneratorDependency[] => [
   {
     exports: [
       { name: 'http', values: true },
@@ -21,7 +22,7 @@ const MSW_DEPENDENCIES: GeneratorDependency[] = [
   },
   {
     exports: [{ name: 'faker', values: true }],
-    dependency: '@faker-js/faker',
+    dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
   },
 ];
 
@@ -31,31 +32,20 @@ export const generateMSWImports: GenerateMockImports = ({
   specsName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
+  options,
 }) => {
   return generateDependencyImports(
     implementation,
-    [...MSW_DEPENDENCIES, ...imports],
+    [...getMSWDependencies(options?.locale), ...imports],
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );
 };
 
-const getDelay = (override?: NormalizedOverrideOutput): number => {
-  const overrideDelay = override?.mock?.delay;
-  switch (typeof overrideDelay) {
-    case 'function':
-      return overrideDelay();
-    case 'number':
-      return overrideDelay;
-    default:
-      return 1000;
-  }
-};
-
 export const generateMSW = (
   { operationId, response, verb, tags }: GeneratorVerbOptions,
-  { pathRoute, override, context }: GeneratorOptions,
+  { pathRoute, override, context, mock }: GeneratorOptions,
 ) => {
   const { definitions, definition, imports } = getMockDefinition({
     operationId,
@@ -63,9 +53,13 @@ export const generateMSW = (
     response,
     override,
     context,
+    mockOptions: !isFunction(mock) ? mock : undefined,
   });
 
-  const route = getRouteMSW(pathRoute, override?.mock?.baseUrl);
+  const route = getRouteMSW(
+    pathRoute,
+    override?.mock?.baseUrl ?? (!isFunction(mock) ? mock?.baseUrl : undefined),
+  );
   const mockData = getMockOptionsDataOverride(operationId, override);
 
   let value = '';
@@ -89,7 +83,10 @@ export const generateMSW = (
           ? `export const ${functionName} = () => (${value})\n\n`
           : '',
       handler: `http.${verb}('${route}', async () => {
-        await delay(${getDelay(override)});
+        await delay(${getDelay(
+          override,
+          !isFunction(mock) ? mock : undefined,
+        )});
         return new HttpResponse(${
           value && value !== 'undefined'
             ? isTextPlain

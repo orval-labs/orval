@@ -9,7 +9,7 @@ import {
 } from '@orval/core';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
 import { resolveMockValue } from '../resolvers/value';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { MockDefinition, MockSchemaObject } from '../../types';
 import { combineSchemasMock } from './combine';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 

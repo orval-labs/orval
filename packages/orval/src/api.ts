@@ -12,7 +12,7 @@ import {
   NormalizedOutputOptions,
   resolveRef,
 } from '@orval/core';
-import { generateMSWImports } from '@orval/msw';
+import { generateMockImports } from '@orval/mock';
 import { PathItemObject } from 'openapi3-ts';
 import {
   generateClientFooter,
@@ -110,7 +110,7 @@ export const getApiBuilder = async ({
           pathRoute,
           override: output.override,
           context: resolvedContext,
-          mock: !!output.mock,
+          mock: output.mock,
           output: output.target,
         },
       );
@@ -133,6 +133,6 @@ export const getApiBuilder = async ({
     header: generateClientHeader,
     footer: generateClientFooter,
     imports: generateClientImports,
-    importsMock: generateMSWImports,
+    importsMock: generateMockImports,
   };
 };

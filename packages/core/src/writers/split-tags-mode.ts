@@ -4,11 +4,13 @@ import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
+  isFunction,
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
+import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -33,8 +35,8 @@ export const writeSplitTagsMode = async ({
         const {
           imports,
           implementation,
-          implementationMSW,
-          importsMSW,
+          implementationMock,
+          importsMock,
           mutators,
           clientMutators,
           formData,
@@ -43,7 +45,7 @@ export const writeSplitTagsMode = async ({
         } = target;
 
         let implementationData = header;
-        let mswData = header;
+        let mockData = header;
 
         const relativeSchemasPath = output.schemas
           ? '../' +
@@ -61,17 +63,18 @@ export const writeSplitTagsMode = async ({
           hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
         });
-        mswData += builder.importsMock({
-          implementation: implementationMSW,
+        mockData += builder.importsMock({
+          implementation: implementationMock,
           imports: [
             {
-              exports: importsMSW,
+              exports: importsMock,
               dependency: relativeSchemasPath,
             },
           ],
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
+          options: !isFunction(output.mock) ? output.mock : undefined,
         });
 
         const schemasPath = !output.schemas
@@ -124,7 +127,7 @@ export const writeSplitTagsMode = async ({
         }
 
         implementationData += `\n${implementation}`;
-        mswData += `\n${implementationMSW}`;
+        mockData += `\n${implementationMock}`;
 
         const implementationFilename =
           tag +
@@ -139,11 +142,18 @@ export const writeSplitTagsMode = async ({
         await fs.outputFile(implementationPath, implementationData);
 
         const mockPath = output.mock
-          ? upath.join(dirname, tag, tag + '.msw' + extension)
+          ? upath.join(
+              dirname,
+              tag,
+              tag +
+                '.' +
+                getMockFileExtensionByTypeName(output.mock) +
+                extension,
+            )
           : undefined;
 
         if (mockPath) {
-          await fs.outputFile(mockPath, mswData);
+          await fs.outputFile(mockPath, mockData);
         }
 
         return [

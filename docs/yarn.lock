@@ -2056,9 +2056,9 @@
     url "^0.11.0"
     validator "^13.7.0"
 
-"@orval/msw@6.11.0":
+"@orval/mock@6.11.0":
   version "6.11.0"
-  resolved "https://registry.yarnpkg.com/@orval/msw/-/msw-6.11.0.tgz#eb517a5aa98847b6bf5da686bd88f3ed3009a43b"
+  resolved "https://registry.yarnpkg.com/@orval/mock/-/msw-6.11.0.tgz#eb517a5aa98847b6bf5da686bd88f3ed3009a43b"
   integrity sha512-g9oHX6IgqEQIJS6J0SJa3dUkDeZe/Iv6dgZ5Y0LorOgYfduAcfVjRepG/vnNu6mxmHbh5d2ZrxrSDZmxmuWU6Q==
   dependencies:
     "@orval/core" "6.11.0"
@@ -9097,7 +9097,7 @@ orval@^6.11.0:
     "@orval/angular" "6.11.0"
     "@orval/axios" "6.11.0"
     "@orval/core" "6.11.0"
-    "@orval/msw" "6.11.0"
+    "@orval/mock" "6.11.0"
     "@orval/query" "6.11.0"
     "@orval/swr" "6.11.0"
     ajv "^8.11.0"
