@@ -23,7 +23,7 @@ export function SidebarNavLink({
           </a>
         ) : (
           <Link href={href} as={pathname}>
-            <a>{title}</a>
+            {title}
           </Link>
         )
       }

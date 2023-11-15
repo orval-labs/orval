@@ -58,6 +58,20 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'qs',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
+    dependency: 'qs',
+  },
+];
+
 const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
   {
     exports: [
@@ -112,12 +126,14 @@ const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
 
 export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
 ) => {
   const hasSvelteQueryV3 = isSvelteQueryV3(packageJson);
 
   return [
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasSvelteQueryV3
       ? SVELTE_QUERY_DEPENDENCIES_V3
       : SVELTE_QUERY_DEPENDENCIES),
@@ -138,6 +154,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'QueryClient' },
     ],
     dependency: 'react-query',
   },
@@ -162,6 +179,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryResult' },
       { name: 'UseSuspenseInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'QueryClient' },
       { name: 'InfiniteData' },
     ],
     dependency: '@tanstack/react-query',
@@ -170,6 +188,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getReactQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
 ) => {
   const hasReactQuery =
@@ -181,6 +200,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
 
   return [
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasReactQuery && !hasReactQueryV4
       ? REACT_QUERY_DEPENDENCIES_V3
       : REACT_QUERY_DEPENDENCIES),
@@ -259,12 +279,14 @@ const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
 
 export const getVueQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
+  hasParamsSerializerOptions: boolean,
   packageJson,
 ) => {
   const hasVueQueryV3 = isVueQueryV3(packageJson);
 
   return [
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasVueQueryV3 ? VUE_QUERY_DEPENDENCIES_V3 : VUE_QUERY_DEPENDENCIES),
   ];
 };
@@ -336,6 +358,7 @@ const generateQueryRequestFunction = (
     verb,
     formData,
     formUrlEncoded,
+    paramsSerializer,
     override,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
@@ -380,10 +403,11 @@ const generateQueryRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
+    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
     let propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${body.definition}`),
+            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
@@ -440,6 +464,8 @@ const generateQueryRequestFunction = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
   });
@@ -780,6 +806,7 @@ const generateQueryImplementation = ({
   hasSvelteQueryV4,
   hasQueryV5,
   doc,
+  usePrefetch,
 }: {
   queryOption: {
     name: string;
@@ -807,6 +834,7 @@ const generateQueryImplementation = ({
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
   doc?: string;
+  usePrefetch?: boolean;
 }) => {
   const queryProps = toObjectString(props, 'implementation');
 
@@ -1008,7 +1036,24 @@ ${doc}export const ${camel(
   };
 
   return query;
-}\n`;
+}\n
+${
+  usePrefetch
+    ? `${doc}export const ${camel(
+        `prefetch-${name}`,
+      )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+        queryProperties ? ',' : ''
+      }${isRequestOptions ? 'options' : 'queryOptions'})
+
+  await queryClient.${camel(`prefetch-${type}`)}(${queryOptionsVarName});
+
+  return queryClient;
+}\n`
+    : ''
+}
+`;
 };
 
 const generateQueryHook = async (
@@ -1195,6 +1240,7 @@ const generateQueryHook = async (
           hasSvelteQueryV4,
           hasQueryV5,
           doc,
+          usePrefetch: query.usePrefetch,
         }),
       '',
     )}
@@ -1447,16 +1493,16 @@ export const builder =
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
       if (queryOptions) {
-        const normarlizeQueryOptions = normalizeQueryOptions(
+        const normalizedQueryOptions = normalizeQueryOptions(
           queryOptions,
           options.context.workspace,
         );
         verbOptions.override.query = mergeDeep(
-          normarlizeQueryOptions,
+          normalizedQueryOptions,
           verbOptions.override.query,
         );
         options.override.query = mergeDeep(
-          normarlizeQueryOptions,
+          normalizedQueryOptions,
           verbOptions.override.query,
         );
       }

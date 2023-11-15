@@ -8,7 +8,7 @@ import {
   SchemaObject,
 } from 'openapi3-ts';
 import { resolveObject } from '../resolvers/object';
-import { resolveRef } from '../resolvers/ref';
+import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import { ContextSpecs, ResReqTypesValue } from '../types';
 import { camel } from '../utils';
 import { isReference } from '../utils/assertion';
@@ -76,6 +76,8 @@ export const getResReqTypes = (
               isRef: true,
               hasReadonlyProps: false,
               originalSchema: mediaType?.schema,
+              example: mediaType.example,
+              examples: resolveExampleRefs(mediaType.examples, context),
               key,
               contentType,
             },
@@ -119,6 +121,8 @@ export const getResReqTypes = (
             formUrlEncoded,
             isRef: true,
             originalSchema: mediaType?.schema,
+            example: mediaType.example,
+            examples: resolveExampleRefs(mediaType.examples, context),
             key,
             contentType,
           },
@@ -153,6 +157,8 @@ export const getResReqTypes = (
                 ...resolvedValue,
                 imports: resolvedValue.imports,
                 contentType,
+                example: mediaType.example,
+                examples: resolveExampleRefs(mediaType.examples, context),
               };
             }
 
@@ -179,6 +185,8 @@ export const getResReqTypes = (
               formData,
               formUrlEncoded,
               contentType,
+              example: mediaType.example,
+              examples: resolveExampleRefs(mediaType.examples, context),
             };
           },
         );

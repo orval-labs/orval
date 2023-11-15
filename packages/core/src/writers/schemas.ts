@@ -110,27 +110,52 @@ export const writeSchemas = async ({
   if (indexFiles) {
     const schemaFilePath = upath.join(schemaPath, '/index.ts');
     await fs.ensureFile(schemaFilePath);
+  
+    // Ensure separate files are used for parallel schema writing.
+    // Throw an exception, which list all duplicates, before attempting
+    // multiple writes on the same file.
+    const schemaNamesSet = new Set<string>();
+    const duplicateNamesMap = new Map<string, number>();
+    schemas.forEach((schema) => {
+      if (!schemaNamesSet.has(schema.name)) {
+        schemaNamesSet.add(schema.name);
+      } else {
+        duplicateNamesMap.set(
+          schema.name,
+          (duplicateNamesMap.get(schema.name) || 0) + 1,
+        );
+      }
+    });
+    if (duplicateNamesMap.size) {
+      throw new Error(
+        'Duplicate schema names detected:\n' +
+          Array.from(duplicateNamesMap)
+            .map((duplicate) => `  ${duplicate[1]}x ${duplicate[0]}`)
+            .join('\n'),
+      );
+    }
+    
     try {
       const data = await fs.readFile(schemaFilePath);
 
       const stringData = data.toString();
 
       const importStatements = schemas
-          .filter((schema) => {
-            return (
-                !stringData.includes(`export * from './${camel(schema.name)}'`) &&
-                !stringData.includes(`export * from "./${camel(schema.name)}"`)
-            );
-          })
-          .map((schema) => `export * from './${camel(schema.name)}';`);
+        .filter((schema) => {
+          return (
+            !stringData.includes(`export * from './${camel(schema.name)}'`) &&
+            !stringData.includes(`export * from "./${camel(schema.name)}"`)
+          );
+        })
+        .map((schema) => `export * from './${camel(schema.name)}';`);
 
       const currentFileExports = (stringData
-          .match(/export \* from(.*)('|")/g)
-          ?.map((s) => s + ';') ?? []) as string[];
+        .match(/export \* from(.*)('|")/g)
+        ?.map((s) => s + ';') ?? []) as string[];
 
       const exports = [...currentFileExports, ...importStatements]
-          .sort()
-          .join('\n');
+        .sort()
+        .join('\n');
 
       const fileContent = `${header}\n${exports}`;
 

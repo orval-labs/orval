@@ -95,18 +95,18 @@ const getMockScalarJsTypes = (
   switch (type) {
     case 'number':
       return isArray
-        ? `Array.from({length: faker.datatype.number({` +
+        ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
             `max: ${mockOptionsWithoutFunc.arrayMax}}` +
-            `)}, () => faker.datatype.number())`
-        : 'faker.datatype.number().toString()';
+            `)}, () => faker.number.int())`
+        : 'faker.number.int().toString()';
     case 'string':
       return isArray
-        ? `Array.from({length: faker.datatype.number({` +
+        ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc?.arrayMin},` +
             `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
-            `)}, () => faker.random.word())`
-        : 'faker.random.word()';
+            `)}, () => faker.word.sample())`
+        : 'faker.word.sample()';
     default:
       return 'undefined';
   }
@@ -128,7 +128,25 @@ export const getResponsesMockDefinition = ({
   context: ContextSpecs;
 }) => {
   return response.types.success.reduce(
-    (acc, { value: definition, originalSchema, imports, isRef }) => {
+    (
+      acc,
+      { value: definition, originalSchema, example, examples, imports, isRef },
+    ) => {
+      if (context.override?.mock?.useExamples) {
+        const exampleValue =
+          example ||
+          originalSchema?.example ||
+          Object.values(examples || {})[0]?.value ||
+          originalSchema?.examples?.[0];
+        if (exampleValue) {
+          acc.definitions.push(
+            transformer
+              ? transformer(exampleValue, response.definition.success)
+              : JSON.stringify(exampleValue),
+          );
+          return acc;
+        }
+      }
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
 
@@ -160,6 +178,7 @@ export const getResponsesMockDefinition = ({
               specKey: response.imports[0]?.specKey ?? context.specKey,
             }
           : context,
+        existingReferencedProperties: [],
       });
 
       acc.imports.push(...scalar.imports);

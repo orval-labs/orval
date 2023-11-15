@@ -29,7 +29,7 @@
     "@faker-js/faker": "^8.0.2",
     "@types/node": "^12.11.1",
     "codelyzer": "^6.0.0",
-    "msw": "^0.21.2",
+    "msw": "^2.0.2",
     "orval": "link:../../packages/orval/dist",
     "ts-node": "~8.3.0",
     "tslint": "~6.1.0",

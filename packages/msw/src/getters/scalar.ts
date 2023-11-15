@@ -24,6 +24,7 @@ export const getMockScalar = ({
   tags,
   combine,
   context,
+  existingReferencedProperties,
 }: {
   item: MockSchemaObject;
   imports: GeneratorImport[];
@@ -36,7 +37,15 @@ export const getMockScalar = ({
     includedProperties: string[];
   };
   context: ContextSpecs;
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
 }): MockDefinition => {
+  // Add the property to the existing properties to validate on object recursion
+  if (item.isRef) {
+    existingReferencedProperties = [...existingReferencedProperties, item.name];
+  }
+
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
@@ -68,6 +77,15 @@ export const getMockScalar = ({
 
   if (property) {
     return property;
+  }
+
+  if (context.override?.mock?.useExamples && item.example) {
+    return {
+      value: JSON.stringify(item.example),
+      imports: [],
+      name: item.name,
+      overrided: true,
+    };
   }
 
   const ALL_FORMAT: Record<string, string> = {
@@ -127,6 +145,7 @@ export const getMockScalar = ({
         tags,
         context,
         imports,
+        existingReferencedProperties,
       });
 
       if (enums) {
@@ -168,7 +187,7 @@ export const getMockScalar = ({
 
       return {
         value:
-          `Array.from({ length: faker.datatype.number({ ` +
+          `Array.from({ length: faker.number.int({ ` +
           `min: ${mockOptions?.arrayMin}, ` +
           `max: ${mockOptions?.arrayMax} }) ` +
           `}, (_, i) => i + 1).map(() => (${mapValue}))`,
@@ -182,9 +201,12 @@ export const getMockScalar = ({
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {
+        // By default the value isn't a reference, so we don't have the object explicitly defined.
+        // So we have to create an array with the enum values and force them to be a const.
         let enumValue =
-          "['" + item.enum.map((e) => escape(e)).join("','") + "']";
+          "['" + item.enum.map((e) => escape(e)).join("','") + "'] as const";
 
+        // But if the value is a reference, we can use the object directly via the imports and using Object.values.
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
           imports = [
@@ -219,6 +241,7 @@ export const getMockScalar = ({
         combine,
         context,
         imports,
+        existingReferencedProperties,
       });
     }
   }

@@ -120,7 +120,7 @@ Here a single file petstore will be created in src with your specification imple
 
 #### Value: split
 
-Use to have definition, implementation, schemas, mock in differents files
+Use to have definition, implementation, schemas, mock in different files
 
 ```js
 module.exports = {
@@ -253,7 +253,7 @@ Default Value: `false`.
 
 Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
 
-Be carefull clean all output target and schemas folder.
+Be careful clean all output target and schemas folder.
 
 ### prettier
 
@@ -565,6 +565,38 @@ Type: `Boolean`.
 
 Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
 
+##### usePrefetch
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://tanstack.com/query/v4/docs/react/guides/prefetching" target="_blank">prefetching</a> functions.
+This may be useful for the NextJS SSR or any prefetching situations.
+
+Example generated function:
+
+```js
+export const prefetchGetCategories = async <
+  TData = Awaited<ReturnType<typeof getCategories>>,
+  TError = ErrorType<unknown>,
+>(
+  queryClient: QueryClient,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCategories>>,
+      TError,
+      TData,
+    >,
+    request?: SecondParameter<typeof customAxiosInstance>,
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetCategoriesQueryOptions(options);
+
+  await queryClient.prefetchQuery(queryOptions);
+
+  return queryClient;
+};
+```
+
 ##### useInfiniteQueryParam
 
 Type: `String`.
@@ -605,11 +637,11 @@ module.exports = {
 };
 ```
 
-##### mutatorOptions
+##### mutationOptions
 
 Type: `String` or `Object`.
 
-Valid values: path of the `mutatorOptions` function or object with a path and name.
+Valid values: path of the `mutationOptions` function or object with a path and name.
 
 If you provide an object you can also add a default property to use an export default function.
 
@@ -621,7 +653,7 @@ module.exports = {
     output: {
       override: {
         query: {
-          mutatorOptions: {
+          mutationOptions: {
             path: './api/mutator/custom-mutator-options.ts',
             name: 'customMutatorOptionsFn',
             // default: true
@@ -691,7 +723,7 @@ module.exports = {
         mock: {
           properties: {
             '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
-            '/.*\.user\.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            '/.*.user.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
             email: () => faker.internet.email(), // Matches only the property 'email'
             'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },
@@ -807,6 +839,26 @@ module.exports = {
 };
 ```
 
+##### useExamples
+
+Type: `Boolean`.
+
+Give you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          useExamples: true,
+        },
+      },
+    },
+  },
+};
+```
+
 ##### baseUrl
 
 Type: `String`.
@@ -868,7 +920,7 @@ module.exports = {
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.datatype.number({ min: 1, max: 99999 }),
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -876,10 +928,10 @@ module.exports = {
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -913,7 +965,7 @@ Function to override the generate operation name.
 
 Type: `Object | Boolean`.
 
-Use this property to provide a config to your http client or completly remove the request options property from the generated files.
+Use this property to provide a config to your http client or completely remove the request options property from the generated files.
 
 #### formData
 
@@ -986,6 +1038,71 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
   // do your implementation to transform it to FormData
 
   return URLSearchParams;
+};
+```
+
+#### paramsSerializer
+
+Type: `String` or `Object`.
+
+Valid values: path of the paramsSerializer function or object with a path and name.
+
+Use this property to add a custom params serializer to all requests that use query params.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializer: {
+          path: './api/mutator/custom-params-serializer-fn.ts',
+          name: 'customParamsSerializerFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customParamsSerializerFn = (
+  params: Record<string, any>,
+): string => {
+  // do your implementation to transform the params
+
+  return params;
+};
+```
+
+#### paramsSerializerOptions
+
+Type: `Object`
+
+Use this property to add a default params serializer. Current options are: `qs`.
+
+All options are then passed to the chosen serializer.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+  },
 };
 ```
 
@@ -1068,6 +1185,30 @@ module.exports = {
     output: {
       override: {
         useBigInt: true,
+      },
+    },
+  },
+};
+```
+
+#### coerceTypes
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to enable [type coercion](https://zod.dev/?id=coercion-for-primitives) for [Zod](https://zod.dev/) schemas (only applies to query parameters schemas).
+
+This is helpful if you want to use the zod schema to coerce (likely string-serialized) query parameters into the correct type before validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        coerceTypes: true,
       },
     },
   },

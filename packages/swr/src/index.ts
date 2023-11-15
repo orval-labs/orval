@@ -43,6 +43,20 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'qs',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
+    dependency: 'qs',
+  },
+];
+
 const SWR_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -56,7 +70,12 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getSwrDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
-) => [...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []), ...SWR_DEPENDENCIES];
+  hasParamsSerializerOptions: boolean,
+) => [
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+  ...SWR_DEPENDENCIES,
+];
 
 const generateSwrRequestFunction = (
   {
@@ -71,6 +90,7 @@ const generateSwrRequestFunction = (
     formData,
     formUrlEncoded,
     override,
+    paramsSerializer,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
@@ -144,6 +164,8 @@ const generateSwrRequestFunction = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });

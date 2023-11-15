@@ -21,12 +21,56 @@ paths:
       tags:
         - pets
       parameters:
+        - name: q
+          in: query
+          description: Filter pets by substring
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
         - name: limit
           in: query
           description: How many items to return at one time (max 100)
           required: false
           schema:
+            type: integer
+            format: int32
+        - name: offset
+          in: query
+          description: How many items to skip
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: order
+          in: query
+          description: How to order the items
+          required: false
+          schema:
             type: string
+            enum: [asc, desc]
+        - name: sort
+          in: query
+          description: |
+            Which property to sort by?
+            Example: name sorts ASC while -name sorts DESC.
+          required: false
+          schema:
+            type: string
+            enum:
+              - name
+              - -name
+              - age
+              - -age
+        - name: cnonly
+          in: query
+          description: |
+            Only return pets from China?
+            Example: true
+          required: false
+          schema:
+            type: boolean
       responses:
         '200':
           description: A paged array of pets

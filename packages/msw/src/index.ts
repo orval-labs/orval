@@ -12,7 +12,11 @@ import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
 const MSW_DEPENDENCIES: GeneratorDependency[] = [
   {
-    exports: [{ name: 'rest', values: true }],
+    exports: [
+      { name: 'http', values: true },
+      { name: 'HttpResponse', values: true },
+      { name: 'delay', values: true },
+    ],
     dependency: 'msw',
   },
   {
@@ -74,23 +78,32 @@ export const generateMSW = (
     value = definitions[0];
   }
 
-  const responseType = response.contentTypes.includes('text/plain')
-    ? 'text'
-    : 'json';
+  const isTextPlain = response.contentTypes.includes('text/plain');
+
+  const functionName = `get${pascal(operationId)}Mock`;
 
   return {
     implementation: {
       function:
         value && value !== 'undefined'
-          ? `export const get${pascal(operationId)}Mock = () => (${value})\n\n`
+          ? `export const ${functionName} = () => (${value})\n\n`
           : '',
-      handler: `rest.${verb}('${route}', (_req, res, ctx) => {
-        return res(
-          ctx.delay(${getDelay(override)}),
-          ctx.status(200, 'Mocked status'),${
-            value && value !== 'undefined'
-              ? `\nctx.${responseType}(get${pascal(operationId)}Mock()),`
-              : ''
+      handler: `http.${verb}('${route}', async () => {
+        await delay(${getDelay(override)});
+        return new HttpResponse(${
+          value && value !== 'undefined'
+            ? isTextPlain
+              ? `${functionName}()`
+              : `JSON.stringify(${functionName}())`
+            : null
+        },
+          { 
+            status: 200,
+            headers: {
+              'Content-Type': '${
+                isTextPlain ? 'text/plain' : 'application/json'
+              }',
+            }
           }
         )
       }),`,
