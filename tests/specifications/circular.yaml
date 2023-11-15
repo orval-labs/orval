@@ -36,6 +36,21 @@ paths:
                     maximum: 10
               required:
                 - list
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: string
+            pattern: '^\+\d{10, 15}'
+        - name: birthdate
+          in: query
+          description: birth date
+          required: false
+          schema:
+            type: string
+            format: 'date'
 components:
   schemas:
     Node:
