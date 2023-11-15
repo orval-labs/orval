@@ -91,12 +91,12 @@ const generateZodValidationSchemaDefinition = (
         break;
       }
 
-      functions.push([type as string, undefined]);
-
       if (schema.format === 'date') {
-        functions.push(['regex', 'new RegExp(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)']);
+        functions.push(['date', undefined]);
         break;
       }
+
+      functions.push([type as string, undefined]);
 
       if (schema.format === 'date-time') {
         functions.push(['datetime', undefined]);
@@ -204,7 +204,7 @@ const generateZodValidationSchemaDefinition = (
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
-    consts.push(`export const ${name}RegExp = ${regexp};`);
+    consts.push(`export const ${name}RegExp = ${regexp};\n`);
     functions.push(['regex', `${name}RegExp`]);
   }
 
