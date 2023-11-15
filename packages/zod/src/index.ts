@@ -49,8 +49,12 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
   }
 };
 
+// counter for unique naming
+let counter = 0;
+
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+
 
 const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
@@ -59,7 +63,7 @@ const generateZodValidationSchemaDefinition = (
 ): { functions: [string, any][]; consts: string[] } => {
   if (!schema) return { functions: [], consts: [] };
 
-  const consts = [];
+  const consts: string[] = [];
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
   const required = schema.default !== undefined ? false : _required ?? false;
@@ -188,13 +192,15 @@ const generateZodValidationSchemaDefinition = (
     if (min === 1) {
       functions.push(['min', `${min}`]);
     } else {
-      consts.push(`export const ${name}Min = ${min};`);
-      functions.push(['min', `${name}Min`]);
+      counter++;
+      consts.push(`export const ${name}Min${counter} = ${min};\n`);
+      functions.push(['min', `${name}Min${counter}`]);
     }
   }
   if (max !== undefined) {
-    consts.push(`export const ${name}Max = ${max};`);
-    functions.push(['max', `${name}Max`]);
+    counter++;
+    consts.push(`export const ${name}Max${counter} = ${max};\n`);
+    functions.push(['max', `${name}Max${counter}`]);
   }
   if (matches) {
     const isStartWithSlash = matches.startsWith('/');
