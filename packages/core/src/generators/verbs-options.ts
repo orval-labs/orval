@@ -130,7 +130,7 @@ const generateVerbOptions = async ({
     queryParams,
     params,
     headers,
-    operationId,
+    operationName,
     context,
   });
 
@@ -184,6 +184,7 @@ const generateVerbOptions = async ({
     override,
     doc,
     deprecated,
+    originalOperation: operation,
   };
 
   const transformer = await dynamicImport(

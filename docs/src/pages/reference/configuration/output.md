@@ -681,7 +681,7 @@ Give you the possibility to override the generated mock
 
 Type: `Object` or `Function`.
 
-You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the name of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
+You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the path of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
 
 ```js
 module.exports = {
@@ -690,8 +690,10 @@ module.exports = {
       override: {
         mock: {
           properties: {
-            '/tag|name/': 'jon',
-            email: () => faker.internet.email(),
+            '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
+            '/.*\.user\.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            email: () => faker.internet.email(), // Matches only the property 'email'
+            'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },
         },
       },
@@ -745,9 +747,9 @@ module.exports = {
 
 ##### delay
 
-Type: `number`.
+Type: `number` or `Function`.
 
-Give you the possibility to set delay time for mock
+Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
 
 Default Value: `1000`
 

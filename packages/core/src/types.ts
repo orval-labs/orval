@@ -51,6 +51,8 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
+  indexFiles: boolean;
+  baseUrl?: string;
 };
 
 export type NormalizedOverrideOutput = {
@@ -66,7 +68,7 @@ export type NormalizedOverrideOutput = {
     format?: { [key: string]: unknown };
     required?: boolean;
     baseUrl?: string;
-    delay?: number;
+    delay?: number | (() => number);
   };
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -163,6 +165,8 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
+  indexFiles?: boolean;
+  baseUrl?: string;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -292,26 +296,32 @@ export type OverrideOutputContentType = {
 
 export type NormalizedQueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type QueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   options?: any;
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
@@ -527,6 +537,7 @@ export type GeneratorVerbOptions = {
   formUrlEncoded?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
+  originalOperation: OperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
