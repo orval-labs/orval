@@ -849,7 +849,11 @@ const generateQueryImplementation = ({
           )
             return param.destructured;
           return param.name === 'params'
-            ? `{ ${queryParam}: pageParam, ...params }`
+            ? `{...params, ${queryParam}: pageParam || ${
+                isVue(outputClient)
+                  ? `unref(params)?.['${queryParam}']`
+                  : `params?.['${queryParam}']`
+              }}`
             : param.name;
         })
         .join(',')

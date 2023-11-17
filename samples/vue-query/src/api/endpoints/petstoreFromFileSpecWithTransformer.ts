@@ -79,7 +79,12 @@ export const getListPetsInfiniteQueryOptions = <
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
     pageParam,
-  }) => listPets({ limit: pageParam, ...params }, version, signal);
+  }) =>
+    listPets(
+      { ...params, limit: pageParam || params?.['limit'] },
+      version,
+      signal,
+    );
 
   return {
     queryKey,
