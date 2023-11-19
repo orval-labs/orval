@@ -1,6 +1,6 @@
 import isEmpty from 'lodash.isempty';
 import { SchemaObject, SchemasObject } from 'openapi3-ts';
-import { getEnum, resolveDiscriminators } from '../getters';
+import { getEnum, getNativeEnum, resolveDiscriminators } from '../getters';
 import { resolveRef, resolveValue } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { upath, isReference, jsDoc, pascal, sanitize } from '../utils';
@@ -55,11 +55,19 @@ export const generateSchemasDefinition = (
         output += jsDoc(schema);
 
         if (resolvedValue.isEnum && !resolvedValue.isRef) {
-          output += getEnum(
-            resolvedValue.value,
-            schemaName,
-            resolvedValue.originalSchema?.['x-enumNames'],
-          );
+          if (context.override.useNativeEnums) {
+            output += getNativeEnum(
+              resolvedValue.value,
+              schemaName,
+              resolvedValue.originalSchema?.['x-enumNames'],
+            );
+          } else {
+            output += getEnum(
+              resolvedValue.value,
+              schemaName,
+              resolvedValue.originalSchema?.['x-enumNames'],
+            );
+          }
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
           // Don't add type if schema has same name and the referred schema will be an interface
           const { schema: referredSchema } = resolveRef(schema, context);

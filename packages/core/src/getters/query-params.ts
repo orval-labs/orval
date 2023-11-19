@@ -8,7 +8,7 @@ import {
   GetterQueryParam,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
-import { getEnum } from './enum';
+import { getEnum, getNativeEnum } from './enum';
 import { getKey } from './keys';
 
 type QueryParamsType = {
@@ -68,12 +68,21 @@ const getQueryParamsTypes = (
 
     if (resolvedValue.isEnum && !resolvedValue.isRef) {
       const enumName = queryName;
+      let enumValue: string;
 
-      const enumValue = getEnum(
-        resolvedValue.value,
-        enumName,
-        resolvedValue.originalSchema?.['x-enumNames'],
-      );
+      if (context.override.useNativeEnums) {
+        enumValue = getNativeEnum(
+          resolvedValue.value,
+          enumName,
+          resolvedValue.originalSchema?.['x-enumNames'],
+        );
+      } else {
+        enumValue = getEnum(
+          resolvedValue.value,
+          enumName,
+          resolvedValue.originalSchema?.['x-enumNames'],
+        );
+      }
 
       return {
         definition: `${doc}${key}${

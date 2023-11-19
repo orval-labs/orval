@@ -1279,3 +1279,25 @@ module.exports = {
   },
 };
 ```
+
+#### useNativeEnums
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to generate native Typescript `enum` instead of `type` and `const` combo.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useNativeEnums: true,
+      },
+    },
+  },
+};
+```
