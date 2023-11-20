@@ -199,6 +199,7 @@ export const normalizeOptions = async (
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
+        useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
       },
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},

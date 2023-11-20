@@ -68,11 +68,11 @@ const getQueryParamsTypes = (
 
     if (resolvedValue.isEnum && !resolvedValue.isRef) {
       const enumName = queryName;
-
       const enumValue = getEnum(
         resolvedValue.value,
         enumName,
         resolvedValue.originalSchema?.['x-enumNames'],
+        context.override.useNativeEnums,
       );
 
       return {

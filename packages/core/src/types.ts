@@ -112,6 +112,7 @@ export type NormalizedOverrideOutput = {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  useNativeEnums?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -303,6 +304,7 @@ export type OverrideOutput = {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  useNativeEnums?: boolean;
 };
 
 export type OverrideOutputContentType = {
