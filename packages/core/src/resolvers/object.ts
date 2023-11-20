@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { getEnum, getNativeEnum } from '../getters/enum';
+import { getEnum } from '../getters/enum';
 import { ContextSpecs, ResolverValue } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
@@ -48,20 +48,12 @@ export const resolveObject = ({
   }
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
-    let enumValue: string;
-    if (context.override.useNativeEnums) {
-      enumValue = getNativeEnum(
-        resolvedValue.value,
-        propName,
-        resolvedValue.originalSchema?.['x-enumNames'],
-      );
-    } else {
-      enumValue = getEnum(
-        resolvedValue.value,
-        propName,
-        resolvedValue.originalSchema?.['x-enumNames'],
-      );
-    }
+    const enumValue = getEnum(
+      resolvedValue.value,
+      propName,
+      resolvedValue.originalSchema?.['x-enumNames'],
+      context.override.useNativeEnums,
+    );
 
     return {
       value: propName,

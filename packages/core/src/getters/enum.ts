@@ -1,7 +1,23 @@
 import { keyword } from 'esutils';
 import { isNumeric, sanitize } from '../utils';
 
-export const getEnum = (value: string, enumName: string, names?: string[]) => {
+export const getEnum = (
+  value: string,
+  enumName: string,
+  names?: string[],
+  useNativeEnums?: boolean,
+) => {
+  const enumValue = useNativeEnums
+    ? getNativeEnum(value, enumName, names)
+    : getTypeConstEnum(value, enumName, names);
+  return enumValue;
+};
+
+const getTypeConstEnum = (
+  value: string,
+  enumName: string,
+  names?: string[],
+) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
 
   if (value.endsWith(' | null')) {
@@ -59,11 +75,7 @@ export const getEnumImplementation = (value: string, names?: string[]) => {
   }, '');
 };
 
-export const getNativeEnum = (
-  value: string,
-  enumName: string,
-  names?: string[],
-) => {
+const getNativeEnum = (value: string, enumName: string, names?: string[]) => {
   const enumItems = getNativeEnumItems(value, names);
   const enumValue = `export enum ${enumName} {\n${enumItems}\n}`;
 
