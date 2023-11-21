@@ -2,6 +2,7 @@
   "name": "@orval/axios",
   "version": "6.20.0",
   "license": "MIT",
+  "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -15,9 +16,16 @@
   "files": [
     "dist"
   ],
+  "tsup": {
+    "entry": ["./src/index.ts"],
+    "sourcemap": true,
+    "shims": true,
+    "clean": true,
+    "dts": true
+  },
   "scripts": {
-    "build": "tsup ./src/index.ts --target node12 --clean --dts --format esm,cjs",
-    "dev": "tsup ./src/index.ts --target node12 --clean --format esm,cjs --watch src",
+    "build": "tsup --format esm,cjs",
+    "dev": "tsup --format esm,cjs --watch src",
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {

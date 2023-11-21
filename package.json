@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "private": true,
+  "type": "module",
   "scripts": {
     "format": "prettier --write .",
     "format:staged": "pretty-quick --staged",
