@@ -2,14 +2,38 @@
   "name": "@orval/core",
   "version": "6.20.0",
   "license": "MIT",
+  "type": "module",
   "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "default": "./dist/index.js",
+      "import": "./dist/index.mjs",
+      "types": "./dist/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "files": [
     "dist"
   ],
+  "tsup": {
+    "entry": [
+      "./src/index.ts"
+    ],
+    "dts": true,
+    "treeshake": true,
+    "sourcemap": true,
+    "minify": false,
+    "clean": true,
+    "platform": "node",
+    "shims": true,
+    "splitting": false
+  },
   "scripts": {
-    "build": "tsup ./src/index.ts --clean --dts --sourcemap",
-    "dev": "tsup ./src/index.ts --clean --watch src",
+    "build": "tsup --format esm,cjs",
+    "dev": "tsup --format esm,cjs --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest --global test.ts"
   },

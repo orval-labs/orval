@@ -3,9 +3,9 @@ import {
   ibmOpenapiValidatorErrors,
   ibmOpenapiValidatorWarnings,
 } from './logger';
-
-const ibmOpenapiRuleset = require('@ibm-cloud/openapi-ruleset');
-const { Spectral } = require('@stoplight/spectral-core');
+// @ts-ignore
+import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
+import { Spectral } from '@stoplight/spectral-core';
 
 /**
  * Validate the spec with ibm-openapi-validator (with a custom pretty logger).
@@ -15,6 +15,7 @@ const { Spectral } = require('@stoplight/spectral-core');
 export const ibmOpenapiValidator = async (specs: OpenAPIObject) => {
   const spectral = new Spectral();
   spectral.setRuleset(ibmOpenapiRuleset);
+  // @ts-ignore
   const { errors, warnings } = await spectral.run(specs);
 
   if (warnings.length) {
