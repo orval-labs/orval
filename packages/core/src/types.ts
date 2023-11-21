@@ -99,10 +99,12 @@ export type NormalizedOverrideOutput = {
   ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
+  coerceTypes?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  useNativeEnums?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -303,6 +305,7 @@ export type OverrideOutput = {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  useNativeEnums?: boolean;
 };
 
 export type OverrideOutputContentType = {

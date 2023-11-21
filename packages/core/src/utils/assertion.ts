@@ -1,5 +1,4 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import validatorIsUrl from 'validator/lib/isURL';
 import { SchemaType, Verbs } from '../types';
 import { extname } from './path';
 
@@ -81,5 +80,11 @@ export const isRootKey = (specKey: string, target: string) => {
 };
 
 export const isUrl = (str: string) => {
-  return validatorIsUrl(str, { require_tld: false });
+  let givenURL;
+  try {
+    givenURL = new URL(str);
+  } catch (error) {
+    return false;
+  }
+  return givenURL.protocol === 'http:' || givenURL.protocol === 'https:';
 };

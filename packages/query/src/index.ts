@@ -403,10 +403,11 @@ const generateQueryRequestFunction = (
       isExactOptionalPropertyTypes,
     });
 
+    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
     let propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${body.definition}`),
+            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
@@ -848,7 +849,11 @@ const generateQueryImplementation = ({
           )
             return param.destructured;
           return param.name === 'params'
-            ? `{ ${queryParam}: pageParam, ...params }`
+            ? `{...params, ${queryParam}: pageParam || ${
+                isVue(outputClient)
+                  ? `unref(params)?.['${queryParam}']`
+                  : `params?.['${queryParam}']`
+              }}`
             : param.name;
         })
         .join(',')

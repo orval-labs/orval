@@ -20,29 +20,31 @@ export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
       <div className="py-8">
         <div className="flex space-between items-center">
           {prevRoute && prevRoute.path ? (
-            <NextLink href={removeFromLast(prevRoute.path, '.')}>
-              <a className="flex-grow  block">
-                <span className="text-sm block text-gray-500 mb-1 font-semibold">
-                  ← Prev
-                </span>
-                <span className="text-xl block text-blue-600 font-semibold">
-                  {prevRoute.title}
-                </span>
-              </a>
+            <NextLink
+              href={removeFromLast(prevRoute.path, '.')}
+              className="flex-grow  block"
+            >
+              <span className="text-sm block text-gray-500 mb-1 font-semibold">
+                ← Prev
+              </span>
+              <span className="text-xl block text-blue-600 font-semibold">
+                {prevRoute.title}
+              </span>
             </NextLink>
           ) : (
             <div />
           )}
           {nextRoute && nextRoute.path && (
-            <NextLink href={removeFromLast(nextRoute.path, '.')}>
-              <a className="flex-grow text-right block">
-                <span className="text-sm block text-gray-500 mb-1 font-semibold">
-                  Next →
-                </span>
-                <span className="text-xl block text-blue-600 font-semibold">
-                  {nextRoute.title}
-                </span>
-              </a>
+            <NextLink
+              href={removeFromLast(nextRoute.path, '.')}
+              className="flex-grow text-right block"
+            >
+              <span className="text-sm block text-gray-500 mb-1 font-semibold">
+                Next →
+              </span>
+              <span className="text-xl block text-blue-600 font-semibold">
+                {nextRoute.title}
+              </span>
             </NextLink>
           )}
         </div>

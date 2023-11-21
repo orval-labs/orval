@@ -1245,6 +1245,30 @@ module.exports = {
 };
 ```
 
+#### coerceTypes
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to enable [type coercion](https://zod.dev/?id=coercion-for-primitives) for [Zod](https://zod.dev/) schemas (only applies to query parameters schemas).
+
+This is helpful if you want to use the zod schema to coerce (likely string-serialized) query parameters into the correct type before validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        coerceTypes: true,
+      },
+    },
+  },
+};
+```
+
 #### useNamedParameters
 
 Type: `Boolean`.
@@ -1328,6 +1352,28 @@ module.exports = {
           include: ['application/json'],
           exclude: ['application/xml'],
         },
+      },
+    },
+  },
+};
+```
+
+#### useNativeEnums
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to generate native Typescript `enum` instead of `type` and `const` combo.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useNativeEnums: true,
       },
     },
   },

@@ -16,7 +16,7 @@ html {
 
 .focus-ring {
   outline: none;
-  @apply shadow-outline border-blue-400;
+  @apply border-blue-400 ring ring-blue-400;
 }
 
 /* purgecss start ignore */

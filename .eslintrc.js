@@ -9,4 +9,7 @@ module.exports = {
       modules: true,
     },
   },
+  rules: {
+    'turbo/no-undeclared-env-vars': 'off',
+  },
 };

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+      <urlset xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 
+      http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" 
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" 
+      xmlns:xhtml="http://www.w3.org/1999/xhtml">
+      <url><loc>https://orval.dev/guides/angular</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/basics</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/custom-axios</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/custom-client</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/react-query</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/set-base-url</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/svelte-query</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/swr</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/guides/vue-query</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/installation</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/overview</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/quick-start</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/cli</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/configuration/full-example</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/configuration/hooks</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/configuration/input</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/configuration/output</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/configuration/overview</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url><url><loc>https://orval.dev/reference/integration</loc>
+                
+                
+                
+                <lastmod>2023-11-14</lastmod>
+                </url></urlset>
