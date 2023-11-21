@@ -87,20 +87,11 @@ export const generateMSW = (
           override,
           !isFunction(mock) ? mock : undefined,
         )});
-        return new HttpResponse(${
-          value && value !== 'undefined'
-            ? isTextPlain
-              ? `${functionName}()`
-              : `JSON.stringify(${functionName}())`
-            : null
-        },
+        return HttpResponse.${isTextPlain ? 'text' : 'json'}(${
+        value && value !== 'undefined' ? `${functionName}()` : null
+      },
           { 
             status: 200,
-            headers: {
-              'Content-Type': '${
-                isTextPlain ? 'text/plain' : 'application/json'
-              }',
-            }
           }
         )
       }),`,
