@@ -7,6 +7,7 @@ export * from './doc';
 export * from './dynamic-import';
 export * from './extension';
 export * from './file';
+export * from './fileExtensions';
 export * from './logger';
 export * from './merge-deep';
 export * from './occurrence';

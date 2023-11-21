@@ -1,5 +1,5 @@
 {
-  "name": "@orval/msw",
+  "name": "@orval/mock",
   "version": "6.20.0",
   "license": "MIT",
   "main": "./dist/index.js",

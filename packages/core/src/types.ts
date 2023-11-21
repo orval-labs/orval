@@ -10,6 +10,7 @@ import {
   SchemaObject,
 } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
+import type { allLocales } from '@faker-js/faker';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -42,7 +43,7 @@ export type NormalizedOutputOptions = {
   target?: string;
   schemas?: string;
   mode: OutputMode;
-  mock: boolean | ClientMSWBuilder;
+  mock?: GlobalMockOptions | ClientMockBuilder;
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   clean: boolean | string[];
@@ -65,16 +66,7 @@ export type NormalizedOverrideOutput = {
   mutator?: NormalizedMutator;
   operations: { [key: string]: NormalizedOperationOptions };
   tags: { [key: string]: NormalizedOperationOptions };
-  mock?: {
-    arrayMin?: number;
-    arrayMax?: number;
-    properties?: MockProperties;
-    format?: { [key: string]: unknown };
-    required?: boolean;
-    baseUrl?: string;
-    delay?: number | (() => number);
-    useExamples?: boolean;
-  };
+  mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
@@ -166,7 +158,8 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean | ClientMSWBuilder;
+  // If mock is a boolean, it will use the default mock options (type: msw)
+  mock?: boolean | GlobalMockOptions | ClientMockBuilder;
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   clean?: boolean | string[];
@@ -194,41 +187,58 @@ export type InputOptions = {
   };
 };
 
-export type OutputClient =
-  | 'axios'
-  | 'axios-functions'
-  | 'angular'
-  | 'react-query'
-  | 'svelte-query'
-  | 'vue-query'
-  | 'swr'
-  | 'zod';
-
 export const OutputClient = {
-  ANGULAR: 'angular' as OutputClient,
-  AXIOS: 'axios' as OutputClient,
-  AXIOS_FUNCTIONS: 'axios-functions' as OutputClient,
-  REACT_QUERY: 'react-query' as OutputClient,
-  SVELTE_QUERY: 'svelte-query' as OutputClient,
-  VUE_QUERY: 'vue-query' as OutputClient,
-};
+  ANGULAR: 'angular',
+  AXIOS: 'axios',
+  AXIOS_FUNCTIONS: 'axios-functions',
+  REACT_QUERY: 'react-query',
+  SVELTE_QUERY: 'svelte-query',
+  VUE_QUERY: 'vue-query',
+} as const;
 
-export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';
+export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
+
 export const OutputMode = {
-  SINGLE: 'single' as OutputMode,
-  SPLIT: 'split' as OutputMode,
-  TAGS: 'tags' as OutputMode,
-  TAGS_SPLIT: 'tags-split' as OutputMode,
+  SINGLE: 'single',
+  SPLIT: 'split',
+  TAGS: 'tags',
+  TAGS_SPLIT: 'tags-split',
+} as const;
+
+export type OutputMode = typeof OutputMode[keyof typeof OutputMode];
+
+// TODO: add support for other mock types (like cypress or playwright)
+export const OutputMockType = {
+  MSW: 'msw',
+} as const;
+
+export type OutputMockType = typeof OutputMockType[keyof typeof OutputMockType];
+
+export type GlobalMockOptions = {
+  // This is the type of the mock that will be generated
+  type: OutputMockType;
+  // This is the option to use the examples from the openapi specification where possible to generate mock data
+  useExamples?: boolean;
+  // This is used to set the delay to your own custom value
+  delay?: number | (() => number);
+  // This is used to set the base url to your own custom value
+  baseUrl?: string;
+  // This is used to set the locale of the faker library
+  locale?: keyof typeof allLocales;
 };
 
-export type MockOptions = {
+export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   arrayMin?: number;
   arrayMax?: number;
   required?: boolean;
-  properties?: Record<string, string>;
-  operations?: Record<string, { properties: Record<string, string> }>;
-  format?: Record<string, string>;
-  tags?: Record<string, { properties: Record<string, string> }>;
+  properties?: MockProperties;
+  format?: Record<string, unknown>;
+};
+
+export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
+  properties?: Record<string, unknown>;
+  operations?: Record<string, { properties: Record<string, unknown> }>;
+  tags?: Record<string, { properties: Record<string, unknown> }>;
 };
 
 export type MockProperties =
@@ -258,16 +268,7 @@ export type OverrideOutput = {
   mutator?: Mutator;
   operations?: { [key: string]: OperationOptions };
   tags?: { [key: string]: OperationOptions };
-  mock?: {
-    arrayMin?: number;
-    arrayMax?: number;
-    properties?: MockProperties;
-    format?: { [key: string]: unknown };
-    required?: boolean;
-    baseUrl?: string;
-    delay?: number;
-    useExamples?: boolean;
-  };
+  mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
   formData?: boolean | Mutator;
@@ -430,7 +431,7 @@ export interface GlobalOptions {
   clean?: boolean | string[];
   prettier?: boolean;
   tslint?: boolean;
-  mock?: boolean;
+  mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
@@ -502,8 +503,8 @@ export type GeneratorOperations = {
 export type GeneratorTarget = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: string;
-  importsMSW: GeneratorImport[];
+  implementationMock: string;
+  importsMock: GeneratorImport[];
   mutators?: GeneratorMutator[];
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
@@ -514,11 +515,11 @@ export type GeneratorTarget = {
 export type GeneratorTargetFull = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: {
+  implementationMock: {
     function: string;
     handler: string;
   };
-  importsMSW: GeneratorImport[];
+  importsMock: GeneratorImport[];
   mutators?: GeneratorMutator[];
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
@@ -529,8 +530,8 @@ export type GeneratorTargetFull = {
 export type GeneratorOperation = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: { function: string; handler: string };
-  importsMSW: GeneratorImport[];
+  implementationMock: { function: string; handler: string };
+  importsMock: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
   clientMutators?: GeneratorMutator[];
@@ -572,7 +573,7 @@ export type GeneratorOptions = {
   pathRoute: string;
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
-  mock: boolean;
+  mock?: GlobalMockOptions | ClientMockBuilder;
   output: string;
 };
 
@@ -630,7 +631,7 @@ export type ClientDependenciesBuilder = (
   packageJson?: PackageJson,
 ) => GeneratorDependency[];
 
-export type ClientMSWBuilder = (
+export type ClientMockBuilder = (
   verbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
 ) => {
@@ -807,7 +808,7 @@ export type GeneratorApiOperations = {
 
 export type GeneratorClientExtra = {
   implementation: string;
-  implementationMSW: string;
+  implementationMock: string;
 };
 
 export type GeneratorClientTitle = (data: {
@@ -858,6 +859,7 @@ export type GenerateMockImports = (data: {
   specsName: Record<string, string>;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
+  options?: GlobalMockOptions;
 }) => string;
 
 export type GeneratorApiBuilder = GeneratorApiOperations & {

@@ -7,14 +7,14 @@ import {
   mergeDeep,
   MockOptions,
 } from '@orval/core';
-import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { MockDefinition, MockSchemaObject } from '../../types';
 import { getMockObject } from './object';
+import { DEFAULT_FORMAT_MOCK } from '../constants';
 
 export const getMockScalar = ({
   item,
@@ -59,12 +59,10 @@ export const getMockScalar = ({
     .sort((a, b) => {
       return a[0].localeCompare(b[0]);
     })
-    .reduce<{
-      properties: Record<string, string>;
-    }>(
+    .reduce(
       (acc, [tag, options]) =>
         tags.includes(tag) ? mergeDeep(acc, options) : acc,
-      {} as { properties: Record<string, string> },
+      {} as { properties: Record<string, unknown> },
     );
 
   const tagProperty = resolveMockOverride(overrideTag?.properties, item);
@@ -79,7 +77,10 @@ export const getMockScalar = ({
     return property;
   }
 
-  if (context.override?.mock?.useExamples && item.example) {
+  if (
+    (context.override?.mock?.useExamples || mockOptions?.useExamples) &&
+    item.example
+  ) {
     return {
       value: JSON.stringify(item.example),
       imports: [],
@@ -88,14 +89,14 @@ export const getMockScalar = ({
     };
   }
 
-  const ALL_FORMAT: Record<string, string> = {
+  const ALL_FORMAT = {
     ...DEFAULT_FORMAT_MOCK,
     ...(mockOptions?.format ?? {}),
   };
 
   if (item.format && ALL_FORMAT[item.format]) {
     return {
-      value: getNullable(ALL_FORMAT[item.format], item.nullable),
+      value: getNullable(`${ALL_FORMAT[item.format]}`, item.nullable),
       imports: [],
       name: item.name,
       overrided: false,

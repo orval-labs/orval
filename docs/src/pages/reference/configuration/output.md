@@ -227,11 +227,11 @@ module.exports = {
 
 ### mock
 
-Type: `Boolean | Function`.
+Type: `Boolean | Object | Function`.
 
 Default Value: `false`.
 
-Will generate your mock using <a href="https://github.com/faker-js/faker" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a>
+Will generate your mock using <a href="https://github.com/faker-js/faker" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a> by default (if value set to true).
 
 ```js
 module.exports = {
@@ -243,7 +243,63 @@ module.exports = {
 };
 ```
 
-If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type
+The mock options can take some properties to customize the generation if you set it to an object. If you set it to `true`, the default options will be used. The default options are:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        delay: 1000,
+        useExamples: false,
+      },
+    },
+  },
+};
+```
+
+If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type.
+
+To discover all the available options, read below.
+
+#### type
+
+Type: `String`.
+
+Default Value: `msw`.
+
+Valid values: `msw`, `cypress` (coming soon).
+
+Use to specify the mock type you want to generate.
+
+#### delay
+
+Type: `Number | Function`.
+
+Default Value: `1000`.
+
+Use to specify the delay time for the mock. It can either be a fixed number or a function that returns a number.
+
+#### useExamples
+
+Type: `Boolean`.
+
+Gives you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
+
+#### baseUrl
+
+Type: `String`.
+
+Give you the possibility to set base url to your mock handlers.
+
+#### locale
+
+Type: `String`.
+
+Default Value: `en`.
+
+Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
 ### clean
 
@@ -841,9 +897,7 @@ module.exports = {
 
 ##### useExamples
 
-Type: `Boolean`.
-
-Give you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
+An extension of the global mock option. If set to `true`, the mock generator will use the `example` property of the specification to generate the mock. If the `example` property is not set, the mock generator will fallback to the default behavior. Will override the global option.
 
 ```js
 module.exports = {
@@ -863,7 +917,7 @@ module.exports = {
 
 Type: `String`.
 
-Give you the possibility to set base url to your mock handlers.
+Give you the possibility to set base url to your mock handlers. Will override the global option.
 
 #### components
 

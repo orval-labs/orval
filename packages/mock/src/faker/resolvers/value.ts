@@ -8,12 +8,12 @@ import {
 import get from 'lodash.get';
 import { SchemaObject } from 'openapi3-ts';
 import { getMockScalar } from '../getters/scalar';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { MockDefinition, MockSchemaObject } from '../../types';
 
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
 export const resolveMockOverride = (
-  properties: Record<string, string> | undefined = {},
+  properties: Record<string, unknown> | undefined = {},
   item: SchemaObject & { name: string; path?: string },
 ) => {
   const path = item.path ? item.path : `#.${item.name}`;

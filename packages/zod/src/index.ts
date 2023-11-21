@@ -55,7 +55,6 @@ let counter = 0;
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
 
-
 const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   _required: boolean | undefined,

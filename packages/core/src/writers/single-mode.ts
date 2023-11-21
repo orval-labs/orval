@@ -4,6 +4,7 @@ import { WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
+  isFunction,
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
@@ -24,9 +25,9 @@ export const writeSingleMode = async ({
 
     const {
       imports,
-      importsMSW,
+      importsMock,
       implementation,
-      implementationMSW,
+      implementationMock,
       mutators,
       clientMutators,
       formData,
@@ -51,7 +52,8 @@ export const writeSingleMode = async ({
         ? [
             {
               exports: imports.filter(
-                (imp) => !importsMSW.some((impMSW) => imp.name === impMSW.name),
+                (imp) =>
+                  !importsMock.some((impMock) => imp.name === impMock.name),
               ),
               dependency: schemasPath,
             },
@@ -67,13 +69,14 @@ export const writeSingleMode = async ({
 
     if (output.mock) {
       data += builder.importsMock({
-        implementation: implementationMSW,
+        implementation: implementationMock,
         imports: schemasPath
-          ? [{ exports: importsMSW, dependency: schemasPath }]
+          ? [{ exports: importsMock, dependency: schemasPath }]
           : [],
         specsName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
+        options: !isFunction(output.mock) ? output.mock : undefined,
       });
     }
 
@@ -110,7 +113,7 @@ export const writeSingleMode = async ({
 
     if (output.mock) {
       data += '\n\n';
-      data += implementationMSW;
+      data += implementationMock;
     }
 
     await fs.outputFile(path, data);
