@@ -6,7 +6,7 @@
     "build": "vite build",
     "serve": "vite preview",
     "generate-api": "node ../../packages/orval/dist/bin/orval.js",
-    "test": "vue-tsc --noEmit && vitest --run"
+    "test": "vue-tsc --noEmit && vitest"
   },
   "dependencies": {
     "@faker-js/faker": "^8.0.2",

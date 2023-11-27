@@ -10,11 +10,13 @@
   "scripts": {
     "build": "tsup ./src/index.ts --target node12 --clean --dts",
     "dev": "tsup ./src/index.ts --target node12 --clean --watch src",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@orval/core": "6.20.0",
-    "lodash.omitby": "^4.6.0"
+    "lodash.omitby": "^4.6.0",
+    "vitest": "^0.34.6"
   },
   "devDependencies": {
     "@types/lodash.omitby": "^4.6.7"

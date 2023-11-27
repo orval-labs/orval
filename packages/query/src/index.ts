@@ -1501,6 +1501,15 @@ export const builder =
   } = {}) =>
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
+      if (
+        options.override.useNamedParameters &&
+        (type === 'vue-query' || outputClient === 'vue-query')
+      ) {
+        throw new Error(
+          `vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686`,
+        );
+      }
+
       if (queryOptions) {
         const normalizedQueryOptions = normalizeQueryOptions(
           queryOptions,
