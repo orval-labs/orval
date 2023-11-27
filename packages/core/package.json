@@ -34,7 +34,7 @@
     "chalk": "^4.1.2",
     "compare-versions": "^6.1.0",
     "debug": "^4.3.4",
-    "esbuild": "^0.19.5",
+    "esbuild": "^0.19.8",
     "esutils": "2.0.3",
     "fs-extra": "^11.1.1",
     "globby": "11.1.0",
