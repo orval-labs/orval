@@ -11,7 +11,7 @@ await $`cd ./samples/react-query/form-url-encoded && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/form-url-encoded-mutator && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/hook-mutator && yarn && yarn generate-api`;
 await $`cd ./samples/react-app-with-swr && yarn && yarn generate-api`;
-await $`cd ./samples/svelte-query && yarn && yarn generate-api`;
+// await $`cd ./samples/svelte-query && yarn && yarn generate-api`; // TODO: Fix error `Cannot find base config file "./.svelte-kit/tsconfig.json" [tsconfig.json]` and re-enable
 await $`cd ./samples/vue-query && yarn && yarn generate-api`;
 
 // clean ./samples/vue-query-useNamedParameters
@@ -28,4 +28,4 @@ await $`sed -i 's/useListPets(params)/useListPets({ version: 1 }, params)/' ./sa
 await $`sed -i 's/useShowPetById(petId)/useShowPetById({ version: 1 }, petId)/' ./samples/vue-query-useNamedParameters/src/components/pet.vue`;
 // await $`cd ./samples/vue-query-useNamedParameters && yarn && yarn generate-api`; // TODO: enable this once useNamedParameters actually works with vue-query reactivity
 
-await $`cd ./samples/nx-fastify-react && yarn && yarn generate-api`;
+// await $`cd ./samples/nx-fastify-react && yarn && yarn generate-api`; // TODO: Fix error `Cannot send the message - the message port has been closed for the process 5163` and re-enable

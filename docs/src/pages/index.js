@@ -10,6 +10,7 @@ import { siteConfig } from 'siteConfig';
 import Highlight from '../components/Highlight';
 import { Playground } from '../components/playground/Playground';
 import { getSponsors } from '../get-sponsors';
+import Image from 'next/image';
 
 const Home = (props) => {
   const { sponsors } = props;
@@ -31,8 +32,8 @@ const Home = (props) => {
         <div className="relative bg-white overflow-hidden">
           <div className="py-24 mx-auto container px-4 sm:mt-12  relative">
             <img
-              src={require('images/emblem.svg')}
-              className="absolute transform right-0 top-5/12 h-0 lg:h-full scale-100 translate-x-1/12 -translate-y-1/2"
+              src="/images/emblem.svg"
+              className="absolute transform right-0 top-5/12 h-0 lg:h-full scale-100 translate-x-1/12 -translate-y-1/4"
               alt="orval Emblem"
             />
             <div className="grid grid-cols-12 lg:gap-8">
@@ -50,10 +51,11 @@ const Home = (props) => {
 
                   <div className="mt-5  mx-auto sm:flex sm:justify-center lg:justify-start lg:mx-0 md:mt-8">
                     <div className="rounded-md shadow">
-                      <Link href="/overview">
-                        <a className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral hover:bg-coral-light focus:outline-none focus:border-coral focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10">
-                          Get Started
-                        </a>
+                      <Link
+                        href="/overview"
+                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-none focus:border-coral focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
+                      >
+                        Get Started
                       </Link>
                     </div>
                     <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
@@ -61,7 +63,7 @@ const Home = (props) => {
                         href={siteConfig.repoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral bg-white hover:text-coral-light focus:outline-none focus:border-coral-light focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
+                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral-default bg-white hover:text-coral-light focus:outline-none focus:border-coral-light focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
                       >
                         GitHub
                       </a>
@@ -135,7 +137,7 @@ const Home = (props) => {
           />
         </div>
 
-        <section className="bg-coral body-font">
+        <section className="bg-coral-default body-font">
           <div className="container max-w-7xl px-4  mx-auto -mt-72 relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-x-hidden">
               <Highlight>
@@ -283,7 +285,7 @@ my-app
               <a
                 href="https://github.com/sponsors/anymaniax"
                 target="_blank"
-                className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
               >
                 Become a sponsor
               </a>
@@ -297,16 +299,17 @@ my-app
             </h2>
             <div className="mt-8 flex lg:flex-shrink-0 md:mt-0">
               <div className="inline-flex rounded-md shadow">
-                <Link href="/overview">
-                  <a className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out">
-                    Okay, let's get started!
-                  </a>
+                <Link
+                  href="/overview"
+                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                >
+                  Okay, let's get started!
                 </Link>
               </div>
               <div className="ml-3 inline-flex rounded-md shadow">
                 <a
                   href={siteConfig.repoUrl}
-                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral bg-white hover:text-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral-default bg-white hover:text-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
                 >
                   GitHub
                 </a>

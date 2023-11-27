@@ -1,3 +1,3 @@
-import { getSwaggerPetstoreMSW } from '../api/endpoints/petstoreFromFileSpecWithTransformer.msw';
+import { getSwaggerPetstoreMock } from '../api/endpoints/petstoreFromFileSpecWithTransformer.msw';
 
-export const handlers = [...getSwaggerPetstoreMSW()];
+export const handlers = [...getSwaggerPetstoreMock()];

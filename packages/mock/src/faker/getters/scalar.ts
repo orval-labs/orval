@@ -7,14 +7,14 @@ import {
   mergeDeep,
   MockOptions,
 } from '@orval/core';
-import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
-import { MockDefinition, MockSchemaObject } from '../types';
+import { MockDefinition, MockSchemaObject } from '../../types';
 import { getMockObject } from './object';
+import { DEFAULT_FORMAT_MOCK } from '../constants';
 
 export const getMockScalar = ({
   item,
@@ -24,6 +24,7 @@ export const getMockScalar = ({
   tags,
   combine,
   context,
+  existingReferencedProperties,
 }: {
   item: MockSchemaObject;
   imports: GeneratorImport[];
@@ -36,7 +37,15 @@ export const getMockScalar = ({
     includedProperties: string[];
   };
   context: ContextSpecs;
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
 }): MockDefinition => {
+  // Add the property to the existing properties to validate on object recursion
+  if (item.isRef) {
+    existingReferencedProperties = [...existingReferencedProperties, item.name];
+  }
+
   const operationProperty = resolveMockOverride(
     mockOptions?.operations?.[operationId]?.properties,
     item,
@@ -46,13 +55,15 @@ export const getMockScalar = ({
     return operationProperty;
   }
 
-  const overrideTag = Object.entries(mockOptions?.tags ?? {}).reduce<{
-    properties: Record<string, string>;
-  }>(
-    (acc, [tag, options]) =>
-      tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as { properties: Record<string, string> },
-  );
+  const overrideTag = Object.entries(mockOptions?.tags ?? {})
+    .sort((a, b) => {
+      return a[0].localeCompare(b[0]);
+    })
+    .reduce(
+      (acc, [tag, options]) =>
+        tags.includes(tag) ? mergeDeep(acc, options) : acc,
+      {} as { properties: Record<string, unknown> },
+    );
 
   const tagProperty = resolveMockOverride(overrideTag?.properties, item);
 
@@ -66,14 +77,26 @@ export const getMockScalar = ({
     return property;
   }
 
-  const ALL_FORMAT: Record<string, string> = {
+  if (
+    (context.override?.mock?.useExamples || mockOptions?.useExamples) &&
+    item.example
+  ) {
+    return {
+      value: JSON.stringify(item.example),
+      imports: [],
+      name: item.name,
+      overrided: true,
+    };
+  }
+
+  const ALL_FORMAT = {
     ...DEFAULT_FORMAT_MOCK,
     ...(mockOptions?.format ?? {}),
   };
 
   if (item.format && ALL_FORMAT[item.format]) {
     return {
-      value: getNullable(ALL_FORMAT[item.format], item.nullable),
+      value: getNullable(`${ALL_FORMAT[item.format]}`, item.nullable),
       imports: [],
       name: item.name,
       overrided: false,
@@ -123,6 +146,7 @@ export const getMockScalar = ({
         tags,
         context,
         imports,
+        existingReferencedProperties,
       });
 
       if (enums) {
@@ -164,7 +188,7 @@ export const getMockScalar = ({
 
       return {
         value:
-          `Array.from({ length: faker.datatype.number({ ` +
+          `Array.from({ length: faker.number.int({ ` +
           `min: ${mockOptions?.arrayMin}, ` +
           `max: ${mockOptions?.arrayMax} }) ` +
           `}, (_, i) => i + 1).map(() => (${mapValue}))`,
@@ -178,9 +202,12 @@ export const getMockScalar = ({
       let imports: GeneratorImport[] = [];
 
       if (item.enum) {
+        // By default the value isn't a reference, so we don't have the object explicitly defined.
+        // So we have to create an array with the enum values and force them to be a const.
         let enumValue =
-          "['" + item.enum.map((e) => escape(e)).join("','") + "']";
+          "['" + item.enum.map((e) => escape(e)).join("','") + "'] as const";
 
+        // But if the value is a reference, we can use the object directly via the imports and using Object.values.
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
           imports = [
@@ -215,6 +242,7 @@ export const getMockScalar = ({
         combine,
         context,
         imports,
+        existingReferencedProperties,
       });
     }
   }

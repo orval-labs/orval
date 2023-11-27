@@ -19,6 +19,7 @@ export const normalizeQueryOptions = (
   outputWorkspace: string,
 ): NormalizedQueryOptions => {
   return {
+    ...(queryOptions.usePrefetch ? { usePrefetch: true } : {}),
     ...(queryOptions.useQuery ? { useQuery: true } : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam

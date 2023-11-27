@@ -125,6 +125,7 @@ const generateImplementation = (
     override,
     formData,
     formUrlEncoded,
+    paramsSerializer,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
@@ -204,6 +205,8 @@ const generateImplementation = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,

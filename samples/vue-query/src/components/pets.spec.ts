@@ -1,6 +1,6 @@
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { render, screen, waitFor } from '@testing-library/vue';
-import { rest } from 'msw';
+import { http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { server } from '../mocks/server';
 import Pets from './pets.vue';
@@ -8,10 +8,10 @@ import Pets from './pets.vue';
 describe('Query parameters reactivity', () => {
   it('works', async () => {
     server.use(
-      rest.get('*/v:version/pets', (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.json(
+      http.get('*/v:version/pets', ({ request }) => {
+        const url = new URL(request.url);
+        return new Response(
+          JSON.stringify(
             [
               {
                 id: 1,
@@ -29,7 +29,7 @@ describe('Query parameters reactivity', () => {
                 tag: 'bird',
               },
             ].filter((pet) =>
-              pet.tag.includes(req.url.searchParams.get('filter') ?? ''),
+              pet.tag.includes(url.searchParams.get('filter') ?? ''),
             ),
           ),
         );

@@ -46,7 +46,7 @@ const getQueryParamsTypes = (
 
     const schema = (schemaParam || content['application/json'].schema)!;
 
-    const resolvedeValue = resolveValue({
+    const resolvedValue = resolveValue({
       schema,
       context,
       name: queryName,
@@ -62,17 +62,17 @@ const getQueryParamsTypes = (
         };`,
         imports: parameterImports,
         schemas: [],
-        originalSchema: resolvedeValue.originalSchema,
+        originalSchema: resolvedValue.originalSchema,
       };
     }
 
-    if (resolvedeValue.isEnum && !resolvedeValue.isRef) {
+    if (resolvedValue.isEnum && !resolvedValue.isRef) {
       const enumName = queryName;
-
       const enumValue = getEnum(
-        resolvedeValue.value,
+        resolvedValue.value,
         enumName,
-        resolvedeValue.originalSchema?.['x-enumNames'],
+        resolvedValue.originalSchema?.['x-enumNames'],
+        context.override.useNativeEnums,
       );
 
       return {
@@ -81,22 +81,22 @@ const getQueryParamsTypes = (
         }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
-          ...resolvedeValue.schemas,
-          { name: enumName, model: enumValue, imports: resolvedeValue.imports },
+          ...resolvedValue.schemas,
+          { name: enumName, model: enumValue, imports: resolvedValue.imports },
         ],
-        originalSchema: resolvedeValue.originalSchema,
+        originalSchema: resolvedValue.originalSchema,
       };
     }
 
     const definition = `${doc}${key}${
       !required || schema.default ? '?' : ''
-    }: ${resolvedeValue.value};`;
+    }: ${resolvedValue.value};`;
 
     return {
       definition,
-      imports: resolvedeValue.imports,
-      schemas: resolvedeValue.schemas,
-      originalSchema: resolvedeValue.originalSchema,
+      imports: resolvedValue.imports,
+      schemas: resolvedValue.schemas,
+      originalSchema: resolvedValue.originalSchema,
     };
   });
 };

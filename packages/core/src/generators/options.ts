@@ -5,6 +5,7 @@ import {
   GetterBody,
   GetterQueryParam,
   GetterResponse,
+  ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { isObject, stringify } from '../utils';
@@ -37,6 +38,8 @@ export const generateAxiosOptions = ({
   requestOptions,
   hasSignal,
   isVue,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
@@ -45,6 +48,8 @@ export const generateAxiosOptions = ({
   requestOptions?: object | boolean;
   hasSignal: boolean;
   isVue: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
   if (!queryParams && !headers && !response.isBlob) {
@@ -105,6 +110,16 @@ export const generateAxiosOptions = ({
     }
   }
 
+  if (queryParams && (paramsSerializer || paramsSerializerOptions?.qs)) {
+    if (paramsSerializer) {
+      value += `\n        paramsSerializer: ${paramsSerializer.name},`;
+    } else {
+      value += `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+        paramsSerializerOptions!.qs,
+      )}),`;
+    }
+  }
+
   return value;
 };
 
@@ -122,6 +137,8 @@ export const generateOptions = ({
   isExactOptionalPropertyTypes,
   hasSignal,
   isVue,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   route: string;
   body: GetterBody;
@@ -136,6 +153,8 @@ export const generateOptions = ({
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   isVue?: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
@@ -150,6 +169,8 @@ export const generateOptions = ({
     isExactOptionalPropertyTypes,
     hasSignal,
     isVue: isVue ?? false,
+    paramsSerializer,
+    paramsSerializerOptions,
   });
 
   const options = axiosOptions ? `{${axiosOptions}}` : '';
@@ -264,7 +285,7 @@ export const generateMutatorConfig = ({
     ? ',\n      headers'
     : '';
 
-  return `{url: \`${route}\`, method: '${verb}'${headerOptions}${bodyOptions}${queryParamsOptions}${
+  return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
     !isBodyVerb && hasSignal
       ? `, ${
           isExactOptionalPropertyTypes

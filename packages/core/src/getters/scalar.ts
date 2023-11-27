@@ -3,6 +3,7 @@ import { ContextSpecs, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
+import { resolveExampleRefs } from '../resolvers';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -36,7 +37,9 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = enumItems.map((enumItem: string) => `${enumItem}`).join(' | ');
+        value = enumItems
+          .map((enumItem: number | null) => `${enumItem}`)
+          .join(' | ');
         isEnum = true;
       }
 
@@ -48,6 +51,8 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
@@ -60,6 +65,8 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
 
     case 'array': {
@@ -79,12 +86,12 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = `'${enumItems
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+        value = `${enumItems
+          .map((enumItem: string | null) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `)}`;
 
         isEnum = true;
       }
@@ -107,6 +114,8 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
@@ -124,12 +133,12 @@ export const getScalar = ({
     case 'object':
     default: {
       if (enumItems) {
-        const value = `'${enumItems
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+        const value = `${enumItems
+          .map((enumItem: unknown) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `)}`;
 
         return {
           value: value + nullable,
@@ -139,6 +148,8 @@ export const getScalar = ({
           schemas: [],
           isRef: false,
           hasReadonlyProps: item.readOnly || false,
+          example: item.example,
+          examples: resolveExampleRefs(item.examples, context),
         };
       }
 

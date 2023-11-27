@@ -23,12 +23,7 @@ export default {
     setTimeout(() => {
       filter.value = 'cat';
     }, 100);
-    const { data } = useListPets(
-      {
-        version: computed(() => 1),
-      },
-      params,
-    );
+    const { data } = useListPets({ version: 1 }, params);
     return {
       pets: data,
       SELECT_PET_ID_EVENT,

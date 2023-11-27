@@ -1,6 +1,6 @@
 import { VueQueryPlugin } from '@tanstack/vue-query';
 import { render, screen, waitFor } from '@testing-library/vue';
-import { rest } from 'msw';
+import { http } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { server } from '../mocks/server';
 import Pet from './pet.vue';
@@ -8,12 +8,11 @@ import Pet from './pet.vue';
 describe('Path parameters reactivity', () => {
   it('works', async () => {
     server.use(
-      rest.get('*/v:version/pets/:petId', (req, res, ctx) => {
-        return res(
-          ctx.status(200),
-          ctx.json({
-            id: req.params.petId,
-            name: req.params.petId === '123' ? 'Cat 123' : 'Dog not 123',
+      http.get('*/v:version/pets/:petId', ({ params }) => {
+        return new Response(
+          JSON.stringify({
+            id: params.petId,
+            name: params.petId === '123' ? 'Cat 123' : 'Dog not 123',
           }),
         );
       }),

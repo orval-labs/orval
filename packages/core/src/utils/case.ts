@@ -88,18 +88,31 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
   return fill(low.call(prep(s, !!fillWith)), fillWith, isDeapostrophe);
 };
 
+// Caches the previously converted strings to improve performance
+let pascalMemory: Record<string, string> = {};
+
 export const pascal = (s: string) => {
+  if (pascalMemory[s]) {
+    return pascalMemory[s];
+  }
+
   const isStartWithUnderscore = s?.startsWith('_');
 
   if (regexps.upper.test(s)) {
     s = low.call(s);
   }
 
-  const pascalString = (s.match(/[a-zA-Z0-9]+/g) || [])
+  const pascalString = (s?.match(/[a-zA-Z0-9]+/g) || [])
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join('');
 
-  return isStartWithUnderscore ? `_${pascalString}` : pascalString;
+  const pascalWithUnderscore = isStartWithUnderscore
+    ? `_${pascalString}`
+    : pascalString;
+
+  pascalMemory[s] = pascalWithUnderscore;
+
+  return pascalWithUnderscore;
 };
 
 export const camel = (s: string) => {

@@ -1,6 +1,7 @@
 import { SchemaObject } from 'openapi3-ts';
 import { ContextSpecs, ScalarValue } from '../types';
 import { resolveObject } from '../resolvers/object';
+import { resolveExampleRefs } from '../resolvers';
 
 /**
  * Return the output type from an array
@@ -32,6 +33,8 @@ export const getArray = ({
       type: 'array',
       isRef: false,
       hasReadonlyProps: resolvedObject.hasReadonlyProps,
+      example: schema.example,
+      examples: resolveExampleRefs(schema.examples, context),
     };
   } else {
     throw new Error('All arrays must have an `items` key define');

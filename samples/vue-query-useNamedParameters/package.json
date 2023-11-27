@@ -15,13 +15,14 @@
     "vue": "3.2.36"
   },
   "devDependencies": {
-    "@testing-library/vue": "^7.0.0",
-    "@vitejs/plugin-vue": "^4.4.0",
-    "jsdom": "^22.1.0",
-    "msw": "^0.32.0",
+    "@testing-library/vue": "^8.0.1",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "@vue/compiler-sfc": "3.2.36",
+    "jsdom": "^23.0.0",
+    "msw": "^2.0.2",
     "orval": "link:../../packages/orval/dist",
     "prettier": "^3.0.3",
-    "typescript": "^4.3.2",
+    "typescript": "^5.3.2",
     "vite": "^4.4.11",
     "vitest": "^0.34.6",
     "vue-tsc": "^1.8.18"

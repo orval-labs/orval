@@ -10,7 +10,7 @@ import {
   loadFile,
   log,
   NormalizedOptions,
-  NormizaledConfig,
+  NormalizedConfig,
   removeFiles,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -49,7 +49,7 @@ export const generateSpec = async (
 };
 
 export const generateSpecs = async (
-  config: NormizaledConfig,
+  config: NormalizedConfig,
   workspace: string,
   projectName?: string,
 ) => {
@@ -118,7 +118,7 @@ export const generateConfig = async (
 
       return acc;
     },
-    {} as NormizaledConfig,
+    {} as NormalizedConfig,
   );
 
   const fileToWatch = Object.entries(normalizedConfig)

@@ -47,25 +47,26 @@ export default defineConfig({
       },
     },
   },
-  namedParameters: {
-    output: {
-      target: '../generated/vue-query/named-parameters/endpoints.ts',
-      schemas: '../generated/vue-query/named-parameters/model',
-      client: 'vue-query',
-      override: {
-        query: {
-          useQuery: true,
-          useInfinite: true,
-          useInfiniteQueryParam: 'limit',
-        },
-        useNamedParameters: true,
-      },
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-      override: {
-        transformer: '../transformers/add-version.js',
-      },
-    },
-  },
+  // Unsupported for now, see for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686
+  // namedParameters: {
+  //   output: {
+  //     target: '../generated/vue-query/named-parameters/endpoints.ts',
+  //     schemas: '../generated/vue-query/named-parameters/model',
+  //     client: 'vue-query',
+  //     override: {
+  //       query: {
+  //         useQuery: true,
+  //         useInfinite: true,
+  //         useInfiniteQueryParam: 'limit',
+  //       },
+  //       useNamedParameters: true,
+  //     },
+  //   },
+  //   input: {
+  //     target: '../specifications/petstore.yaml',
+  //     override: {
+  //       transformer: '../transformers/add-version.js',
+  //     },
+  //   },
+  // },
 });

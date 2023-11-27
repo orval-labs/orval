@@ -16,6 +16,7 @@
     "generate:swr": "yarn orval --config ./configs/swr.config.ts",
     "generate:multi-file": "yarn orval --config ./configs/multi-file.config.ts",
     "generate:zod": "yarn orval --config ./configs/zod.config.ts",
+    "generate:zod-parameters": "yarn orval --config ./configs/zod-parameters.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
@@ -33,7 +34,7 @@
     "@tanstack/svelte-query": "^4.24.9",
     "@tanstack/vue-query": "^4.22.0",
     "axios": "^0.26.1",
-    "msw": "^0.35.0",
+    "msw": "^2.0.2",
     "swr": "^2.1.2",
     "vue": "3.2.47",
     "zod": "^3.21.4"
