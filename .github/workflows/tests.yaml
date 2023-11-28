@@ -16,6 +16,10 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         node-version: [18.x]
     steps:
+      - name: Set git to use LF (instead of CRLF on Windows)
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
