@@ -129,6 +129,13 @@ export const getMockScalar = ({
         return { value: '[]', imports: [], name: item.name };
       }
 
+      if (
+        '$ref' in item.items &&
+        existingReferencedProperties.includes(item.items.$ref.split('/').pop()!)
+      ) {
+        return { value: '[]', imports: [], name: item.name };
+      }
+
       const {
         value,
         enums,
