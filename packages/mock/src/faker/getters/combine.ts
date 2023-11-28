@@ -38,8 +38,12 @@ export const combineSchemasMock = ({
   let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
     0,
   );
+
+  const isRefAndNotExisting =
+    isReference(item) && !existingReferencedProperties.includes(item.name);
+
   const itemResolvedValue =
-    isReference(item) || item.properties
+    isRefAndNotExisting || item.properties
       ? resolveMockValue({
           schema: omit(item, separator) as MockSchemaObject,
           combine: {
@@ -59,6 +63,17 @@ export const combineSchemasMock = ({
   combineImports.push(...(itemResolvedValue?.imports ?? []));
 
   const value = (item[separator] ?? []).reduce((acc, val, index, arr) => {
+    if (
+      '$ref' in val &&
+      existingReferencedProperties.includes(val.$ref.split('/').pop()!)
+    ) {
+      if (arr.length === 1) {
+        return 'undefined';
+      }
+
+      return acc;
+    }
+
     const resolvedValue = resolveMockValue({
       schema: {
         ...val,
@@ -146,7 +161,7 @@ export const combineSchemasMock = ({
   }, '');
 
   return {
-    value,
+    value: value,
     imports: combineImports,
     name: item.name,
     includedProperties,
