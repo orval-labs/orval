@@ -76,7 +76,7 @@ export const getProps = ({
     const implementation = `{ ${params
       .map((property) =>
         property.default
-          ? `${property.name} = ${property.default}`
+          ? `${property.name} = ${property.default}` // if we use property.implementation, we will get `{ version: number = 1 }: ListPetsPathParameters = {}` which isn't valid
           : property.name,
       )
       .join(', ')} }: ${parameterTypeName}${isOptional ? ' = {}' : ''}`;
