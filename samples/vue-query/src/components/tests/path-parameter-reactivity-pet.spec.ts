@@ -2,8 +2,8 @@ import { VueQueryPlugin } from '@tanstack/vue-query';
 import { render, screen, waitFor } from '@testing-library/vue';
 import { http } from 'msw';
 import { describe, expect, it } from 'vitest';
-import { server } from '../mocks/server';
-import Pet from './pet.vue';
+import { server } from '../../mocks/server';
+import Pet from './path-parameter-reactivity-pet.vue';
 
 describe('Path parameters reactivity', () => {
   it('works', async () => {
