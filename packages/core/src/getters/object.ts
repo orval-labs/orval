@@ -181,7 +181,9 @@ export const getObject = ({
   }
 
   return {
-    value: (item.type === 'object' ? '{ [key: string]: any }' : 'unknown') + nullable,
+    value:
+      (item.type === 'object' ? '{ [key: string]: any }' : 'unknown') +
+      nullable,
     imports: [],
     schemas: [],
     isEnum: false,

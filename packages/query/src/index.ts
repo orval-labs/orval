@@ -32,6 +32,7 @@ import {
   jsDoc,
   GetterQueryParam,
   compareVersions,
+  getRouteAsArray,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
@@ -401,6 +402,7 @@ const generateQueryRequestFunction = (
       isBodyVerb,
       hasSignal,
       isExactOptionalPropertyTypes,
+      isVue: isVue(outputClient),
     });
 
     let bodyDefinition = body.definition.replace('[]', '\\[\\]');
@@ -468,6 +470,7 @@ const generateQueryRequestFunction = (
     paramsSerializerOptions: override?.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    isVue: isVue(outputClient),
   });
 
   const optionsArgs = generateRequestOptionsArguments({
@@ -1208,10 +1211,12 @@ const generateQueryHook = async (
       'implementation',
     );
 
-    const routeString = `\`${route}\``;
+    const routeString = isVue(outputClient)
+      ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
+      : `\`${route}\``;
 
+    // Note: do not unref() params in Vue - this will make key lose reactivity
     const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => {
-    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
     return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
     }] as const;
@@ -1496,6 +1501,15 @@ export const builder =
   } = {}) =>
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
+      if (
+        options.override.useNamedParameters &&
+        (type === 'vue-query' || outputClient === 'vue-query')
+      ) {
+        throw new Error(
+          `vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686`,
+        );
+      }
+
       if (queryOptions) {
         const normalizedQueryOptions = normalizeQueryOptions(
           queryOptions,

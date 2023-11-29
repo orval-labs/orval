@@ -9,6 +9,7 @@
   "private": true,
   "scripts": {
     "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "format:staged": "pretty-quick --staged",
     "prerelease": "yarn build && cd ./tests && yarn generate && yarn build",
     "release": "dotenv release-it",
@@ -18,7 +19,8 @@
     "update-samples": "zx ./scripts/update-samples.mjs",
     "build": "turbo run build",
     "test": "turbo run test",
-    "test:ci": "turbo run test -- --run",
+    "test:ci": "yarn test -- -- --run && yarn test:vue-query --run",
+    "test:vue-query": "cd ./samples/vue-query && yarn && yarn test",
     "lint": "turbo run lint",
     "dev": "turbo run dev"
   },

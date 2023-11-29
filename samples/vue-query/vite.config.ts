@@ -7,4 +7,8 @@ export default defineConfig({
   optimizeDeps: {
     include: ['axios'],
   },
+  test: {
+    environment: 'jsdom',
+    setupFiles: ['src/setupTests.ts'],
+  },
 });

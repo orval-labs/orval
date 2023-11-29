@@ -110,7 +110,7 @@ export const writeSchemas = async ({
   if (indexFiles) {
     const schemaFilePath = upath.join(schemaPath, '/index.ts');
     await fs.ensureFile(schemaFilePath);
-  
+
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception, which list all duplicates, before attempting
     // multiple writes on the same file.
@@ -134,7 +134,7 @@ export const writeSchemas = async ({
             .join('\n'),
       );
     }
-    
+
     try {
       const data = await fs.readFile(schemaFilePath);
 

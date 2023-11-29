@@ -26,10 +26,6 @@ import type {
 } from '../model';
 import { customInstance } from '../mutator/custom-instance';
 
-type AwaitedInput<T> = PromiseLike<T> | T;
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-
 /**
  * @summary List all pets
  */
@@ -44,7 +40,7 @@ export const listPets = (
   return customInstance<Pets>({
     url: `/v${version}/pets`,
     method: 'GET',
-    params,
+    params: unref(params),
     signal,
   });
 };
@@ -53,9 +49,7 @@ export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
   version = 1,
 ) => {
-  params = unref(params);
-  version = unref(version);
-  return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+  return ['v', version, 'pets', ...(params ? [params] : [])] as const;
 };
 
 export const getListPetsInfiniteQueryOptions = <
@@ -291,9 +285,7 @@ export const getShowPetByIdQueryKey = (
   petId: MaybeRef<string>,
   version = 1,
 ) => {
-  petId = unref(petId);
-  version = unref(version);
-  return [`/v${version}/pets/${petId}`] as const;
+  return ['v', version, 'pets', petId] as const;
 };
 
 export const getShowPetByIdInfiniteQueryOptions = <

@@ -1,7 +1,7 @@
 import { SchemasObject } from 'openapi3-ts';
 import { ContextSpecs } from '../types';
 import { getRefInfo } from './ref';
-import { pascal } from "../utils";
+import { pascal } from '../utils';
 
 export const resolveDiscriminators = (
   schemas: SchemasObject,
@@ -19,7 +19,7 @@ export const resolveDiscriminators = (
         try {
           const { originalName } = getRefInfo(mappingValue, context);
           // name from getRefInfo may contain a suffix, which we don't want
-          const name = pascal(originalName)
+          const name = pascal(originalName);
           subTypeSchema = transformedSchemas[name];
         } catch (e) {
           subTypeSchema = transformedSchemas[mappingValue];

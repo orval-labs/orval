@@ -1,4 +1,4 @@
 import { setupWorker } from 'msw/browser';
-import { getSwaggerPetstoreMSW } from '../api/endpoints/petstoreFromFileSpecWithTransformer.msw';
+import { getSwaggerPetstoreMock } from '../api/endpoints/petstoreFromFileSpecWithTransformer.msw';
 
-export const worker = setupWorker(...getSwaggerPetstoreMSW());
+export const worker = setupWorker(...getSwaggerPetstoreMock());
