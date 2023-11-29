@@ -1,5 +1,4 @@
 <template>
-  <!-- <div>Query is enabled: {{ petQuery.isFetching === false && petQuery. }}</div> -->
   <div v-if="pet && petId" :key="pet.id">
     {{ petId }}
     {{ pet }}
