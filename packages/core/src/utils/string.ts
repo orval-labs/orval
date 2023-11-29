@@ -137,8 +137,8 @@ export const getNumberWord = (num: number) => {
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 };
 
-export const escape = (str: string, char: string = "'") =>
-  str.replace(char, `\\${char}`);
+export const escape = (str: string | null, char: string = "'") =>
+  str?.replace(char, `\\${char}`);
 
 /**
  * Escape all characters not included in SingleStringCharacters and
