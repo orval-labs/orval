@@ -196,6 +196,7 @@ export const OutputClient = {
   REACT_QUERY: 'react-query',
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
+  SWR: 'swr',
 } as const;
 
 export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
