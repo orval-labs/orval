@@ -16,7 +16,7 @@ import type {
   UseQueryReturnType,
 } from '@tanstack/vue-query';
 import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
-import { unref } from 'vue';
+import { computed, unref } from 'vue';
 import type {
   CreatePetsBody,
   Error,
@@ -83,7 +83,7 @@ export const getListPetsInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: computed(() => !!unref(version)),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -155,7 +155,7 @@ export const getListPetsQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!version,
+    enabled: computed(() => !!unref(version)),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
 };
@@ -313,7 +313,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: computed(() => !!unref(version && petId)),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -385,7 +385,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: computed(() => !!unref(version && petId)),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
 };

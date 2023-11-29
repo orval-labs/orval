@@ -231,7 +231,10 @@ const VUE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
     dependency: 'vue-query/types',
   },
   {
-    exports: [{ name: 'unref', values: true }],
+    exports: [
+      { name: 'unref', values: true },
+      { name: 'computed', values: true },
+    ],
     dependency: 'vue',
   },
   {
@@ -258,7 +261,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
     dependency: '@tanstack/vue-query',
   },
   {
-    exports: [{ name: 'unref', values: true }],
+    exports: [
+      { name: 'unref', values: true },
+      { name: 'computed', values: true },
+    ],
     dependency: 'vue',
   },
   {
@@ -506,10 +512,12 @@ const generateQueryOptions = ({
   params,
   options,
   type,
+  outputClient,
 }: {
   params: GetterParams;
   options?: object | boolean;
   type: QueryType;
+  outputClient: OutputClient | OutputClientFunc;
 }) => {
   if (options === false) {
     return '';
@@ -537,7 +545,11 @@ const generateQueryOptions = ({
 
   return `${
     !isObject(options) || !options.hasOwnProperty('enabled')
-      ? `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
+      ? isVue(outputClient)
+        ? `enabled: computed(() => !!unref(${params
+            .map(({ name }) => name)
+            .join(' && ')})),`
+        : `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
       : ''
   }${queryConfig} ...queryOptions`;
 };
@@ -931,6 +943,7 @@ const generateQueryImplementation = ({
     params,
     options,
     type,
+    outputClient,
   });
 
   const queryOptionsFnName = camel(
