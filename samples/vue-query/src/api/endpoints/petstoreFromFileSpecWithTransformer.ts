@@ -313,7 +313,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(version && petId)),
+    enabled: computed(() => !!(unref(version) && unref(petId))),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -385,7 +385,7 @@ export const getShowPetByIdQueryOptions = <
   return {
     queryKey,
     queryFn,
-    enabled: computed(() => !!unref(version && petId)),
+    enabled: computed(() => !!(unref(version) && unref(petId))),
     ...queryOptions,
   } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
 };

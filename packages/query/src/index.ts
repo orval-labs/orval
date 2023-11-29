@@ -546,8 +546,8 @@ const generateQueryOptions = ({
   return `${
     !isObject(options) || !options.hasOwnProperty('enabled')
       ? isVue(outputClient)
-        ? `enabled: computed(() => !!unref(${params
-            .map(({ name }) => name)
+        ? `enabled: computed(() => !!(${params
+            .map(({ name }) => `unref(${name})`)
             .join(' && ')})),`
         : `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
       : ''
