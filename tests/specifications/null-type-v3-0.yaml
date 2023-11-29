@@ -49,6 +49,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NullableAnyObject'
+  /nullable-string-enum:
+    get:
+      tags:
+        - nullables
+      summary: Nullable string enums
+      operationId: fetchNullableEnums
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableStringEnum'
 components:
   schemas:
     ObjectWithNullableItems:

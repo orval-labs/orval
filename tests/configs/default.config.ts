@@ -60,6 +60,7 @@ export default defineConfig({
   'null-type-v-3-0': {
     input: '../specifications/null-type-v3-0.yaml',
     output: {
+      mock: true,
       schemas: '../generated/default/null-type-v3-0/model',
       target: '../generated/default/null-type-v3-0/endpoints.ts',
     },
