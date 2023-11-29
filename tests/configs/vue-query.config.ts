@@ -47,6 +47,18 @@ export default defineConfig({
       },
     },
   },
+  allParamsOptional: {
+    output: {
+      target: '../generated/vue-query/all-params-optional/endpoints.ts',
+      schemas: '../generated/vue-query/all-params-optional/model',
+      client: 'vue-query',
+      mock: true,
+      allParamsOptional: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Unsupported for now, see for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {
