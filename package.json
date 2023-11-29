@@ -19,7 +19,7 @@
     "update-samples": "zx ./scripts/update-samples.mjs",
     "build": "turbo run build",
     "test": "turbo run test",
-    "test:ci": "yarn test -- -- --run && yarn test:vue-query --run",
+    "test:ci": "yarn test -- -- --run && yarn test:vue-query",
     "test:vue-query": "cd ./samples/vue-query && yarn && yarn test",
     "test:react-query:custom-client": "cd ./samples/react-query/custom-client && yarn && yarn test",
     "lint": "turbo run lint",
