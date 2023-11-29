@@ -8,6 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'swr',
+      prettier: true,
       mock: true,
       override: {
         mutator: {
@@ -18,17 +19,17 @@ export default defineConfig({
           listPets: {
             mock: {
               properties: () => ({
-                '[].id': () => faker.datatype.number({ min: 1, max: 99999 }),
+                '[].id': () => faker.number.int({ min: 1, max: 99999 }),
               }),
             },
           },
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
-                tag: faker.helpers.ranarrayElementdomize([
-                  faker.random.word(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -37,7 +38,7 @@ export default defineConfig({
         },
         mock: {
           properties: {
-            '/tag|name/': () => faker.name.lastName(),
+            '/tag|name/': () => faker.person.lastName(),
           },
         },
       },

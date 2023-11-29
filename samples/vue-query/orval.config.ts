@@ -9,6 +9,7 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'vue-query',
       mock: true,
+      prettier: true,
       override: {
         mutator: {
           path: './src/api/mutator/custom-instance.ts',
@@ -18,17 +19,17 @@ export default defineConfig({
           listPets: {
             mock: {
               properties: () => ({
-                '[].id': () => faker.datatype.number({ min: 1, max: 99999 }),
+                '[].id': () => faker.number.int({ min: 1, max: 99999 }),
               }),
             },
           },
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -37,7 +38,7 @@ export default defineConfig({
         },
         mock: {
           properties: {
-            '/tag|name/': () => faker.name.lastName(),
+            '/tag|name/': () => faker.person.lastName(),
           },
         },
         query: {
@@ -46,6 +47,7 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      allParamsOptional: true, // TODO: this this not a default, maybe consider creating a separate sample to test default behaviour still works; Definitely add a generated test (same as named-params for other clients)
     },
     input: {
       target: './petstore.yaml',

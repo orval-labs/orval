@@ -93,15 +93,17 @@ export function Playground({ height }) {
           options={groupedExamples}
         />
       </div>
-      <PlaygroundEditors
-        setSchema={setSchema}
-        schema={schema}
-        setConfig={setConfig}
-        config={config}
-        error={error?.response?.data?.error}
-        output={output}
-        height={height}
-      />
+      {output ? (
+        <PlaygroundEditors
+          setSchema={setSchema}
+          schema={schema}
+          setConfig={setConfig}
+          config={config}
+          error={error?.response?.data?.error}
+          output={output}
+          height={height}
+        />
+      ) : null}
     </div>
   );
 }

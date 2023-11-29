@@ -19,6 +19,7 @@ export const normalizeQueryOptions = (
   outputWorkspace: string,
 ): NormalizedQueryOptions => {
   return {
+    ...(queryOptions.usePrefetch ? { usePrefetch: true } : {}),
     ...(queryOptions.useQuery ? { useQuery: true } : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam
@@ -78,55 +79,35 @@ const normalizeMutator = <T>(
   return mutator;
 };
 
-/**
- * Wrap any type declaration with MaybeRef\<type\>
- */
-export function vueWrapTypeWithMaybeRef(input: string): string {
-  if (!input.includes(',')) return input;
+export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
+  return props.map((prop) => {
+    const [paramName, paramType] = prop.implementation.split(':');
+    if (!paramType) return prop;
+    const name =
+      prop.type === GetterPropType.NAMED_PATH_PARAMS
+        ? prop.name
+        : `${paramName}`;
 
-  const output = input
-    .split(',')
-    .map((param) => {
-      const [paramName, paramType] = param.split(':');
-      if (paramType) {
-        return `${paramName}: MaybeRef<${paramType.trim()}>,`;
-      } else {
-        return `${param},`;
-      }
-    })
-    .join('')
-    .replace(',,', ',');
-
-  return output;
+    const [type, defaultValue] = paramType.split('=');
+    return {
+      ...prop,
+      implementation: `${name}: MaybeRef<${type.trim()}>${
+        defaultValue ? ` = ${defaultValue}` : ''
+      }`,
+    };
+  });
 }
 
-/**
- * Make params optional
- */
-export function vueMakeParamsOptional(
-  input: string,
-  props: GetterProps,
-): string {
-  if (!input.includes(',')) return input;
-
-  const output = input
-    .split(',')
-    .map((param) => {
-      const [paramName, paramType] = param.split(':');
-      if (
-        paramType &&
-        props.find((x) => x.name === paramName)?.type === GetterPropType.PARAM
-      ) {
-        return `${paramName}: ${paramType.trim()} | undefined | null,`;
-      } else {
-        return `${param},`;
+export const vueUnRefParams = (props: GetterProps): string => {
+  return props
+    .map((prop) => {
+      if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+        return `const ${prop.destructured} = unref(${prop.name});`;
       }
+      return `${prop.name} = unref(${prop.name});`;
     })
-    .join('')
-    .replace(',,', ',');
-
-  return output;
-}
+    .join('\n');
+};
 
 // Vue persist reactivity
 export const vueMakeRouteReactive = (route: string): string =>

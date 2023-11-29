@@ -59,6 +59,7 @@ export const generateSchemasDefinition = (
             resolvedValue.value,
             schemaName,
             resolvedValue.originalSchema?.['x-enumNames'],
+            context.override.useNativeEnums,
           );
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
           // Don't add type if schema has same name and the referred schema will be an interface

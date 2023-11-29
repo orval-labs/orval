@@ -17,7 +17,7 @@ import {
   OutputClientFunc,
   pascal,
 } from '@orval/core';
-import { generateMSW } from '@orval/msw';
+import * as mock from '@orval/mock';
 import query from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
@@ -55,13 +55,21 @@ export const generateClientImports: GeneratorClientImports = ({
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   hasGlobalMutator,
+  hasParamsSerializerOptions,
   packageJson,
 }) => {
   const { dependencies } = getGeneratorClient(client);
   return generateDependencyImports(
     implementation,
     dependencies
-      ? [...dependencies(hasGlobalMutator, packageJson), ...imports]
+      ? [
+          ...dependencies(
+            hasGlobalMutator,
+            hasParamsSerializerOptions,
+            packageJson,
+          ),
+          ...imports,
+        ]
       : imports,
     specsName,
     hasSchemaDir,
@@ -90,7 +98,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
           hasAwaitedType,
         })
       : '',
-    implementationMSW: `export const ${titles.implementationMSW} = () => [\n`,
+    implementationMock: `export const ${titles.implementationMock} = () => [\n`,
   };
 };
 
@@ -106,7 +114,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
   if (!footer) {
     return {
       implementation: '',
-      implementationMSW: `]\n`,
+      implementationMock: `]\n`,
     };
   }
 
@@ -139,7 +147,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
 
   return {
     implementation,
-    implementationMSW: `]\n`,
+    implementationMock: `]\n`,
   };
 };
 
@@ -153,7 +161,7 @@ export const generateClientTitle: GeneratorClientTitle = ({
   if (!generatorTitle) {
     return {
       implementation: '',
-      implementationMSW: `get${pascal(title)}MSW`,
+      implementationMock: `get${pascal(title)}Mock`,
     };
   }
 
@@ -161,12 +169,12 @@ export const generateClientTitle: GeneratorClientTitle = ({
     const customTitle = customTitleFunc(title);
     return {
       implementation: generatorTitle(customTitle),
-      implementationMSW: `get${pascal(customTitle)}MSW`,
+      implementationMock: `get${pascal(customTitle)}Mock`,
     };
   }
   return {
     implementation: generatorTitle(title),
-    implementationMSW: `get${pascal(title)}MSW`,
+    implementationMock: `get${pascal(title)}Mock`,
   };
 };
 
@@ -188,7 +196,7 @@ const generateMock = (
     return options.mock(verbOption, options);
   }
 
-  return generateMSW(verbOption, options);
+  return mock.generateMock(verbOption, options);
 };
 
 export const generateOperations = (
@@ -201,7 +209,7 @@ export const generateOperations = (
     async (acc, verbOption) => {
       const { client: generatorClient } = getGeneratorClient(outputClient);
       const client = await generatorClient(verbOption, options, outputClient);
-      const msw = generateMock(verbOption, options);
+      const generatedMock = generateMock(verbOption, options);
 
       if (!client.implementation) {
         return acc;
@@ -210,13 +218,14 @@ export const generateOperations = (
       acc[verbOption.operationId] = {
         implementation: verbOption.doc + client.implementation,
         imports: client.imports,
-        implementationMSW: msw.implementation,
-        importsMSW: msw.imports,
+        implementationMock: generatedMock.implementation,
+        importsMock: generatedMock.imports,
         tags: verbOption.tags,
         mutator: verbOption.mutator,
         clientMutators: client.mutators,
         formData: verbOption.formData,
         formUrlEncoded: verbOption.formUrlEncoded,
+        paramsSerializer: verbOption.paramsSerializer,
         operationName: verbOption.operationName,
       };
 

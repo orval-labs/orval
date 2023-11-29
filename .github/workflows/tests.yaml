@@ -14,17 +14,23 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [16.x]
+        node-version: [18.x]
     steps:
-      - uses: actions/checkout@v3
+      - name: Set git to use LF (instead of CRLF on Windows)
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - name: install
         run: yarn
       - name: build
         run: yarn build
+      - name: formatting
+        run: yarn format:check
       - name: unit tests
         run: yarn test:ci
       - name: tests install

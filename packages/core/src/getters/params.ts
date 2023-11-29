@@ -1,5 +1,10 @@
 import { resolveValue } from '../resolvers';
-import { ContextSpecs, GetterParameters, GetterParams } from '../types';
+import {
+  ContextSpecs,
+  GetterParameters,
+  GetterParams,
+  NormalizedOutputOptions,
+} from '../types';
 import { camel, sanitize, stringify } from '../utils';
 
 /**
@@ -29,11 +34,13 @@ export const getParams = ({
   pathParams = [],
   operationId,
   context,
+  output,
 }: {
   route: string;
   pathParams?: GetterParameters['query'];
   operationId: string;
   context: ContextSpecs;
+  output: NormalizedOutputOptions;
 }): GetterParams => {
   const params = getParamsInPath(route);
   return params.map((p) => {
@@ -83,6 +90,11 @@ export const getParams = ({
       },
     });
 
+    let paramType = resolvedValue.value;
+    if (output.allParamsOptional) {
+      paramType = `${paramType} | undefined | null`; // TODO: maybe check that `paramType` isn't already undefined or null
+    }
+
     const definition = `${name}${
       !required || resolvedValue.originalSchema!.default ? '?' : ''
     }: ${resolvedValue.value}`;
@@ -91,8 +103,8 @@ export const getParams = ({
       !required && !resolvedValue.originalSchema!.default ? '?' : ''
     }${
       !resolvedValue.originalSchema!.default
-        ? `: ${resolvedValue.value}`
-        : `= ${stringify(resolvedValue.originalSchema!.default)}`
+        ? `: ${paramType}`
+        : `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
     return {

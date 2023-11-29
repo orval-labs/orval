@@ -1,0 +1,64 @@
+openapi: 3.0.0
+info:
+  title: Circular references
+  version: 0.0.0
+paths:
+  /example:
+    get:
+      summary: Example
+      responses:
+        '200':
+          description: 'Example'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Node'
+  /list:
+    post:
+      summary: Add list
+      operationId: add-list
+      responses:
+        '200':
+          description: OK
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                list:
+                  type: array
+                  minItems: 1
+                  maxItems: 10
+                  items:
+                    type: number
+                    minimum: 1
+                    maximum: 10
+              required:
+                - list
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: string
+            pattern: '^\+\d{10, 15}'
+        - name: birthdate
+          in: query
+          description: birth date
+          required: false
+          schema:
+            type: string
+            format: 'date'
+components:
+  schemas:
+    Node:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        child:
+          $ref: '#/components/schemas/Node'

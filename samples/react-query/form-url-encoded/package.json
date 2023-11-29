@@ -9,7 +9,7 @@
     "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
   },
   "dependencies": {
-    "@faker-js/faker": "^7.3.0",
+    "@faker-js/faker": "^8.0.2",
     "axios": "^0.26.1",
     "react-query": "^3.34.19"
   }

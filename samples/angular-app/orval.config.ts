@@ -9,6 +9,7 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'angular',
       mock: true,
+      prettier: true,
       tsconfig: './tsconfig.app.json',
       override: {
         operations: {
@@ -17,7 +18,7 @@ export default defineConfig({
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.datatype.number({ min: 1, max: 99999 }),
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -25,10 +26,10 @@ export default defineConfig({
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -37,7 +38,7 @@ export default defineConfig({
         },
         mock: {
           properties: {
-            '/tag|name/': () => faker.name.lastName(),
+            '/tag|name/': () => faker.person.lastName(),
           },
         },
       },

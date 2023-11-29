@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@angular/core';
-import { setupWorker, SetupWorkerApi } from 'msw';
+import { setupWorker } from 'msw/browser';
 import { getPetsMSW } from '../endpoints/pets/pets.msw';
 import { MOCKED_API } from './mock.token';
 import { MockedApi } from './mock.type';
 
 @Injectable()
 export class MockService {
-  worker: SetupWorkerApi;
+  worker: ReturnType<typeof setupWorker>;
 
   constructor(@Inject(MOCKED_API) private mockedApi: MockedApi) {}
 

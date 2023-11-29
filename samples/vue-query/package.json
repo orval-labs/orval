@@ -3,24 +3,29 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vite build",
     "serve": "vite preview",
-    "generate-api": "node ../../packages/orval/dist/bin/orval.js"
+    "generate-api": "node ../../packages/orval/dist/bin/orval.js",
+    "test": "vue-tsc --noEmit && vitest"
   },
   "dependencies": {
-    "@faker-js/faker": "^7.3.0",
+    "@faker-js/faker": "^8.0.2",
     "@tanstack/vue-query": "4.29.5",
     "axios": "^0.26.1",
     "vue": "3.2.36"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^1.2.5",
+    "@testing-library/vue": "^8.0.1",
+    "@vitejs/plugin-vue": "^4.5.0",
     "@vue/compiler-sfc": "3.2.36",
-    "msw": "^0.32.0",
+    "jsdom": "^23.0.0",
+    "msw": "^2.0.2",
     "orval": "link:../../packages/orval/dist",
-    "typescript": "^4.3.2",
-    "vite": "^2.4.2",
-    "vue-tsc": "^0.0.24"
+    "prettier": "^3.0.3",
+    "typescript": "^5.3.2",
+    "vite": "^4.4.11",
+    "vitest": "^0.34.6",
+    "vue-tsc": "^1.8.18"
   },
   "msw": {
     "workerDirectory": "public"

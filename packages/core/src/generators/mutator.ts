@@ -42,7 +42,9 @@ export const generateMutator = async ({
   const importName = mutator.name ? mutator.name : `${name}Mutator`;
   const importPath = mutator.path;
 
-  const rawFile = await fs.readFile(importPath, 'utf8');
+  let rawFile = await fs.readFile(importPath, 'utf8');
+
+  rawFile = removeComments(rawFile);
 
   const hasErrorType =
     rawFile.includes('export type ErrorType') ||
@@ -144,6 +146,16 @@ const getEcmaVersion = (
   } catch {
     return;
   }
+};
+
+const removeComments = (file: string) => {
+  // Regular expression to match single-line and multi-line comments
+  const commentRegex = /\/\/.*|\/\*[\s\S]*?\*\//g;
+
+  // Remove comments from the rawFile string
+  const cleanedFile = file.replace(commentRegex, '');
+
+  return cleanedFile;
 };
 
 const parseFile = (

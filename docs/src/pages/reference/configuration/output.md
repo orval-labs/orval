@@ -120,7 +120,7 @@ Here a single file petstore will be created in src with your specification imple
 
 #### Value: split
 
-Use to have definition, implementation, schemas, mock in differents files
+Use to have definition, implementation, schemas, mock in different files
 
 ```js
 module.exports = {
@@ -227,11 +227,11 @@ module.exports = {
 
 ### mock
 
-Type: `Boolean | Function`.
+Type: `Boolean | Object | Function`.
 
 Default Value: `false`.
 
-Will generate your mock using <a href="https://github.com/faker-js/faker" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a>
+Will generate your mock using <a href="https://github.com/faker-js/faker" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a> by default (if value set to true).
 
 ```js
 module.exports = {
@@ -243,7 +243,63 @@ module.exports = {
 };
 ```
 
-If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type
+The mock options can take some properties to customize the generation if you set it to an object. If you set it to `true`, the default options will be used. The default options are:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        delay: 1000,
+        useExamples: false,
+      },
+    },
+  },
+};
+```
+
+If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type.
+
+To discover all the available options, read below.
+
+#### type
+
+Type: `String`.
+
+Default Value: `msw`.
+
+Valid values: `msw`, `cypress` (coming soon).
+
+Use to specify the mock type you want to generate.
+
+#### delay
+
+Type: `Number | Function`.
+
+Default Value: `1000`.
+
+Use to specify the delay time for the mock. It can either be a fixed number or a function that returns a number.
+
+#### useExamples
+
+Type: `Boolean`.
+
+Gives you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
+
+#### baseUrl
+
+Type: `String`.
+
+Give you the possibility to set base url to your mock handlers.
+
+#### locale
+
+Type: `String`.
+
+Default Value: `en`.
+
+Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
 ### clean
 
@@ -253,7 +309,7 @@ Default Value: `false`.
 
 Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
 
-Be carefull clean all output target and schemas folder.
+Be careful clean all output target and schemas folder.
 
 ### prettier
 
@@ -303,7 +359,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L40" target="_blank">VerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L510" target="_blank">VerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L510" target="_blank">VerbOptions</a>
 
 ```js
 module.exports = {
@@ -565,6 +621,38 @@ Type: `Boolean`.
 
 Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
 
+##### usePrefetch
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://tanstack.com/query/v4/docs/react/guides/prefetching" target="_blank">prefetching</a> functions.
+This may be useful for the NextJS SSR or any prefetching situations.
+
+Example generated function:
+
+```js
+export const prefetchGetCategories = async <
+  TData = Awaited<ReturnType<typeof getCategories>>,
+  TError = ErrorType<unknown>,
+>(
+  queryClient: QueryClient,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCategories>>,
+      TError,
+      TData,
+    >,
+    request?: SecondParameter<typeof customAxiosInstance>,
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getGetCategoriesQueryOptions(options);
+
+  await queryClient.prefetchQuery(queryOptions);
+
+  return queryClient;
+};
+```
+
 ##### useInfiniteQueryParam
 
 Type: `String`.
@@ -605,11 +693,11 @@ module.exports = {
 };
 ```
 
-##### mutatorOptions
+##### mutationOptions
 
 Type: `String` or `Object`.
 
-Valid values: path of the `mutatorOptions` function or object with a path and name.
+Valid values: path of the `mutationOptions` function or object with a path and name.
 
 If you provide an object you can also add a default property to use an export default function.
 
@@ -621,7 +709,7 @@ module.exports = {
     output: {
       override: {
         query: {
-          mutatorOptions: {
+          mutationOptions: {
             path: './api/mutator/custom-mutator-options.ts',
             name: 'customMutatorOptionsFn',
             // default: true
@@ -681,7 +769,7 @@ Give you the possibility to override the generated mock
 
 Type: `Object` or `Function`.
 
-You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the name of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
+You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the path of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
 
 ```js
 module.exports = {
@@ -690,8 +778,10 @@ module.exports = {
       override: {
         mock: {
           properties: {
-            '/tag|name/': 'jon',
-            email: () => faker.internet.email(),
+            '/tag|name/': 'jon', // Matches every property named 'tag' or 'name', including nested ones
+            '/.*.user.id/': faker.string.uuid(), // Matches every property named 'id', inside an object named 'user', including nested ones
+            email: () => faker.internet.email(), // Matches only the property 'email'
+            'user.id': () => faker.string.uuid(), // Matches only the full path 'user.id'
           },
         },
       },
@@ -745,9 +835,9 @@ module.exports = {
 
 ##### delay
 
-Type: `number`.
+Type: `number` or `Function`.
 
-Give you the possibility to set delay time for mock
+Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
 
 Default Value: `1000`
 
@@ -805,11 +895,29 @@ module.exports = {
 };
 ```
 
+##### useExamples
+
+An extension of the global mock option. If set to `true`, the mock generator will use the `example` property of the specification to generate the mock. If the `example` property is not set, the mock generator will fallback to the default behavior. Will override the global option.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          useExamples: true,
+        },
+      },
+    },
+  },
+};
+```
+
 ##### baseUrl
 
 Type: `String`.
 
-Give you the possibility to set base url to your mock handlers.
+Give you the possibility to set base url to your mock handlers. Will override the global option.
 
 #### components
 
@@ -866,7 +974,7 @@ module.exports = {
             mock: {
               properties: () => {
                 return {
-                  id: () => faker.datatype.number({ min: 1, max: 99999 }),
+                  id: () => faker.number.int({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -874,10 +982,10 @@ module.exports = {
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -911,7 +1019,7 @@ Function to override the generate operation name.
 
 Type: `Object | Boolean`.
 
-Use this property to provide a config to your http client or completly remove the request options property from the generated files.
+Use this property to provide a config to your http client or completely remove the request options property from the generated files.
 
 #### formData
 
@@ -984,6 +1092,71 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
   // do your implementation to transform it to FormData
 
   return URLSearchParams;
+};
+```
+
+#### paramsSerializer
+
+Type: `String` or `Object`.
+
+Valid values: path of the paramsSerializer function or object with a path and name.
+
+Use this property to add a custom params serializer to all requests that use query params.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializer: {
+          path: './api/mutator/custom-params-serializer-fn.ts',
+          name: 'customParamsSerializerFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customParamsSerializerFn = (
+  params: Record<string, any>,
+): string => {
+  // do your implementation to transform the params
+
+  return params;
+};
+```
+
+#### paramsSerializerOptions
+
+Type: `Object`
+
+Use this property to add a default params serializer. Current options are: `qs`.
+
+All options are then passed to the chosen serializer.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+  },
 };
 ```
 
@@ -1072,6 +1245,52 @@ module.exports = {
 };
 ```
 
+#### coerceTypes
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to enable [type coercion](https://zod.dev/?id=coercion-for-primitives) for [Zod](https://zod.dev/) schemas (only applies to query parameters schemas).
+
+This is helpful if you want to use the zod schema to coerce (likely string-serialized) query parameters into the correct type before validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        coerceTypes: true,
+      },
+    },
+  },
+};
+```
+
+#### useNamedParameters
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Generates the operation interfaces with named path parameters instead of individual arguments for each path parameter.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useNamedParameters: true,
+      },
+    },
+  },
+};
+```
+
 #### useTypeOverInterfaces
 
 Type: `Boolean`
@@ -1133,6 +1352,28 @@ module.exports = {
           include: ['application/json'],
           exclude: ['application/xml'],
         },
+      },
+    },
+  },
+};
+```
+
+#### useNativeEnums
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Use this property to generate native Typescript `enum` instead of `type` and `const` combo.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        useNativeEnums: true,
       },
     },
   },

@@ -6,7 +6,7 @@ import {
 } from '@orval/core';
 import omit from 'lodash.omit';
 import { resolveMockValue } from '../resolvers';
-import { MockSchemaObject } from '../types';
+import { MockSchemaObject } from '../../types';
 
 export const combineSchemasMock = ({
   item,
@@ -17,6 +17,7 @@ export const combineSchemasMock = ({
   combine,
   context,
   imports,
+  existingReferencedProperties,
 }: {
   item: MockSchemaObject;
   separator: 'allOf' | 'oneOf' | 'anyOf';
@@ -29,13 +30,20 @@ export const combineSchemasMock = ({
   };
   context: ContextSpecs;
   imports: GeneratorImport[];
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
 }) => {
   let combineImports: GeneratorImport[] = [];
   let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
     0,
   );
+
+  const isRefAndNotExisting =
+    isReference(item) && !existingReferencedProperties.includes(item.name);
+
   const itemResolvedValue =
-    isReference(item) || item.properties
+    isRefAndNotExisting || item.properties
       ? resolveMockValue({
           schema: omit(item, separator) as MockSchemaObject,
           combine: {
@@ -47,6 +55,7 @@ export const combineSchemasMock = ({
           tags,
           context,
           imports,
+          existingReferencedProperties,
         })
       : undefined;
 
@@ -54,6 +63,17 @@ export const combineSchemasMock = ({
   combineImports.push(...(itemResolvedValue?.imports ?? []));
 
   const value = (item[separator] ?? []).reduce((acc, val, index, arr) => {
+    if (
+      '$ref' in val &&
+      existingReferencedProperties.includes(val.$ref.split('/').pop()!)
+    ) {
+      if (arr.length === 1) {
+        return 'undefined';
+      }
+
+      return acc;
+    }
+
     const resolvedValue = resolveMockValue({
       schema: {
         ...val,
@@ -72,6 +92,7 @@ export const combineSchemasMock = ({
       tags,
       context,
       imports,
+      existingReferencedProperties,
     });
 
     combineImports.push(...resolvedValue.imports);
@@ -140,7 +161,7 @@ export const combineSchemasMock = ({
   }, '');
 
   return {
-    value,
+    value: value,
     imports: combineImports,
     name: item.name,
     includedProperties,

@@ -27,6 +27,7 @@ import {
   SwaggerParserOptions,
   isUndefined,
 } from '@orval/core';
+import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
 import { InfoObject } from 'openapi3-ts';
 import pkg from '../../package.json';
@@ -74,7 +75,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, mode, mock, tslint } = globalOptions;
+  const { clean, prettier, client, mode, tslint } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -85,6 +86,18 @@ export const normalizeOptions = async (
     outputOptions.packageJson || globalOptions.packageJson,
     workspace,
   );
+
+  let mock = outputOptions.mock ?? globalOptions.mock;
+  if (typeof mock === 'boolean' && mock) {
+    mock = DEFAULT_MOCK_OPTIONS;
+  } else if (!mock) {
+    mock = undefined;
+  } else {
+    mock = {
+      ...DEFAULT_MOCK_OPTIONS,
+      ...mock,
+    };
+  }
 
   const normalizedOptions: NormalizedOptions = {
     input: {
@@ -113,13 +126,15 @@ export const normalizeOptions = async (
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
-      mock: outputOptions.mock ?? mock ?? false,
+      mock,
       clean: outputOptions.clean ?? clean ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,
+      indexFiles: outputOptions.indexFiles ?? true,
+      baseUrl: outputOptions.baseUrl,
       override: {
         ...outputOptions.override,
         mock: {
@@ -153,6 +168,10 @@ export const normalizeOptions = async (
                 outputOptions.override?.formUrlEncoded,
               )
             : outputOptions.override?.formUrlEncoded) ?? true,
+        paramsSerializer: normalizeMutator(
+          outputWorkspace,
+          outputOptions.override?.paramsSerializer,
+        ),
         header:
           outputOptions.override?.header === false
             ? false
@@ -193,7 +212,9 @@ export const normalizeOptions = async (
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
+        useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
       },
+      allParamsOptional: outputOptions.allParamsOptional ?? false,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
@@ -272,7 +293,15 @@ const normalizeOperationsAndTags = (
     Object.entries(operationsOrTags).map(
       ([
         key,
-        { transformer, mutator, formData, formUrlEncoded, query, ...rest },
+        {
+          transformer,
+          mutator,
+          formData,
+          formUrlEncoded,
+          paramsSerializer,
+          query,
+          ...rest
+        },
       ]) => {
         return [
           key,
@@ -301,6 +330,14 @@ const normalizeOperationsAndTags = (
                   formUrlEncoded: !isBoolean(formUrlEncoded)
                     ? normalizeMutator(workspace, formUrlEncoded)
                     : formUrlEncoded,
+                }
+              : {}),
+            ...(paramsSerializer
+              ? {
+                  paramsSerializer: normalizeMutator(
+                    workspace,
+                    paramsSerializer,
+                  ),
                 }
               : {}),
           },
@@ -359,14 +396,23 @@ const normalizeQueryOptions = (
   }
 
   return {
+    ...(!isUndefined(queryOptions.usePrefetch)
+      ? { usePrefetch: queryOptions.usePrefetch }
+      : {}),
     ...(!isUndefined(queryOptions.useQuery)
       ? { useQuery: queryOptions.useQuery }
+      : {}),
+    ...(!isUndefined(queryOptions.useSuspenseQuery)
+      ? { useSuspenseQuery: queryOptions.useSuspenseQuery }
       : {}),
     ...(!isUndefined(queryOptions.useMutation)
       ? { useMutation: queryOptions.useMutation }
       : {}),
     ...(!isUndefined(queryOptions.useInfinite)
       ? { useInfinite: queryOptions.useInfinite }
+      : {}),
+    ...(!isUndefined(queryOptions.useSuspenseInfiniteQuery)
+      ? { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }
       : {}),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
@@ -395,6 +441,9 @@ const normalizeQueryOptions = (
       : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
+      : {}),
+    ...(!isUndefined(queryOptions.version)
+      ? { version: queryOptions.version }
       : {}),
   };
 };

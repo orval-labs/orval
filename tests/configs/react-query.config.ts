@@ -292,4 +292,20 @@ export default defineConfig({
       target: '../specifications/polymorphic.yaml',
     },
   },
+  namedParameters: {
+    output: {
+      target: '../generated/react-query/named-parameters/endpoints.ts',
+      schemas: '../generated/react-query/named-parameters/model',
+      client: 'react-query',
+      override: {
+        useNamedParameters: true,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });

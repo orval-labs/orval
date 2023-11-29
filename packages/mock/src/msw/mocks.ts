@@ -3,6 +3,7 @@ import {
   generalJSTypesWithArray,
   GeneratorImport,
   GetterResponse,
+  GlobalMockOptions,
   isFunction,
   MockOptions,
   NormalizedOverrideOutput,
@@ -10,7 +11,7 @@ import {
   stringify,
 } from '@orval/core';
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
-import { getMockScalar } from './getters';
+import { getMockScalar } from '../faker/getters';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
   Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<
@@ -95,18 +96,18 @@ const getMockScalarJsTypes = (
   switch (type) {
     case 'number':
       return isArray
-        ? `Array.from({length: faker.datatype.number({` +
+        ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
             `max: ${mockOptionsWithoutFunc.arrayMax}}` +
-            `)}, () => faker.datatype.number())`
-        : 'faker.datatype.number().toString()';
+            `)}, () => faker.number.int())`
+        : 'faker.number.int().toString()';
     case 'string':
       return isArray
-        ? `Array.from({length: faker.datatype.number({` +
+        ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc?.arrayMin},` +
             `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
-            `)}, () => faker.random.word())`
-        : 'faker.random.word()';
+            `)}, () => faker.word.sample())`
+        : 'faker.word.sample()';
     default:
       return 'undefined';
   }
@@ -119,6 +120,7 @@ export const getResponsesMockDefinition = ({
   mockOptionsWithoutFunc,
   transformer,
   context,
+  mockOptions,
 }: {
   operationId: string;
   tags: string[];
@@ -126,9 +128,28 @@ export const getResponsesMockDefinition = ({
   mockOptionsWithoutFunc: { [key: string]: unknown };
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
+  mockOptions?: GlobalMockOptions;
 }) => {
   return response.types.success.reduce(
-    (acc, { value: definition, originalSchema, imports, isRef }) => {
+    (
+      acc,
+      { value: definition, originalSchema, example, examples, imports, isRef },
+    ) => {
+      if (context.override?.mock?.useExamples || mockOptions?.useExamples) {
+        const exampleValue =
+          example ||
+          originalSchema?.example ||
+          Object.values(examples || {})[0]?.value ||
+          originalSchema?.examples?.[0];
+        if (exampleValue) {
+          acc.definitions.push(
+            transformer
+              ? transformer(exampleValue, response.definition.success)
+              : JSON.stringify(exampleValue),
+          );
+          return acc;
+        }
+      }
       if (!definition || generalJSTypesWithArray.includes(definition)) {
         const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
 
@@ -160,6 +181,7 @@ export const getResponsesMockDefinition = ({
               specKey: response.imports[0]?.specKey ?? context.specKey,
             }
           : context,
+        existingReferencedProperties: [],
       });
 
       acc.imports.push(...scalar.imports);
@@ -185,6 +207,7 @@ export const getMockDefinition = ({
   override,
   transformer,
   context,
+  mockOptions,
 }: {
   operationId: string;
   tags: string[];
@@ -192,6 +215,7 @@ export const getMockDefinition = ({
   override: NormalizedOverrideOutput;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
+  mockOptions?: GlobalMockOptions;
 }) => {
   const mockOptionsWithoutFunc = getMockWithoutFunc(
     context.specs[context.specKey],
@@ -205,6 +229,7 @@ export const getMockDefinition = ({
     mockOptionsWithoutFunc,
     transformer,
     context,
+    mockOptions,
   });
 
   return {

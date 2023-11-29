@@ -55,4 +55,20 @@ export default defineConfig({
       },
     },
   },
+  namedParameters: {
+    output: {
+      target: '../generated/swr/named-parameters/endpoints.ts',
+      schemas: '../generated/swr/named-parameters/model',
+      client: 'swr',
+      override: {
+        useNamedParameters: true,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });

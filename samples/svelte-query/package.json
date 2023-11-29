@@ -16,14 +16,15 @@
     "prepare": "see https://github.com/sveltejs/kit/issues/5390#issuecomment-1176480653"
   },
   "devDependencies": {
-    "@faker-js/faker": "^7.6.0",
+    "@faker-js/faker": "^8.0.2",
     "@sveltejs/adapter-auto": "^2.0.0",
     "@sveltejs/kit": "^1.5.0",
     "@typescript-eslint/eslint-plugin": "^5.45.0",
     "@typescript-eslint/parser": "^5.45.0",
     "eslint": "^8.28.0",
     "eslint-plugin-svelte3": "^4.0.0",
-    "msw": "^1.0.1",
+    "msw": "^2.0.2",
+    "prettier": "^3.0.3",
     "svelte": "^3.54.0",
     "svelte-check": "^3.0.1",
     "tslib": "^2.4.1",
@@ -34,7 +35,7 @@
   "dependencies": {
     "@tanstack/svelte-query": "^4.24.9",
     "axios": "^1.3.3",
-    "orval": "^6.11.1"
+    "orval": "link:../../packages/orval/dist"
   },
   "msw": {
     "workerDirectory": "static"
