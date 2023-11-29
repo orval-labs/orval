@@ -109,9 +109,5 @@ export const vueUnRefParams = (props: GetterProps): string => {
     .join('\n');
 };
 
-// Vue persist reactivity
-export const vueMakeRouteReactive = (route: string): string =>
-  (route ?? '').replaceAll(/\${(\w+)}/g, '${unref($1)}');
-
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;
