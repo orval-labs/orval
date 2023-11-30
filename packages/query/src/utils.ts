@@ -109,12 +109,11 @@ export const vueUnRefParams = (props: GetterProps): string => {
     .join('\n');
 };
 
-const wrapRouteParameters = (
+export const wrapRouteParameters = (
   route: string,
   prepend: string,
   append: string,
-): string =>
-  (route ?? '').replaceAll(/\${(.+?)}/g, `\${${prepend}$1${append}}`);
+): string => route.replaceAll(/\${(.+?)}/g, `\${${prepend}$1${append}}`);
 
 // Vue persist reactivity
 export const vueMakeRouteReactive = (route: string): string =>
