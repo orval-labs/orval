@@ -43,7 +43,7 @@ export class PetsService {
   /**
    * @summary List all pets
    */
-  listPets<TData = Pets>(params?: ListPetsParams, version = 1) {
+  listPets<TData = Pets>(params?: ListPetsParams, version: number = 1) {
     return listPetsMutator<TData>(
       { url: `/v${version}/pets`, method: 'GET', params },
       this.http,
@@ -54,7 +54,7 @@ export class PetsService {
    */
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    version = 1,
+    version: number = 1,
     options?: HttpClientOptions,
   ): Observable<TData> {
     return this.http.post<TData>(`/v${version}/pets`, createPetsBody, options);
@@ -64,7 +64,7 @@ export class PetsService {
    */
   showPetById<TData = Pet>(
     petId: string,
-    version = 1,
+    version: number = 1,
     options?: HttpClientOptions,
   ): Observable<TData> {
     return this.http.get<TData>(`/v${version}/pets/${petId}`, options);

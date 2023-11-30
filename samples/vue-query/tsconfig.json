@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "esnext",
     "module": "esnext",
-    "moduleResolution": "bundler", // as per default in node_modules/@vue/tsconfig/tsconfig.json
+    "moduleResolution": "node",
     "skipLibCheck": true,
     "strict": true,
     "jsx": "preserve",
@@ -11,5 +11,6 @@
     "esModuleInterop": true,
     "lib": ["esnext", "dom"]
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.tsx", "src/**/*.vue"],
+  "exclude": ["**/*.test-d.ts"]
 }

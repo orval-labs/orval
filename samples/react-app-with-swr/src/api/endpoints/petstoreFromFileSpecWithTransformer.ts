@@ -22,7 +22,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 /**
  * @summary List all pets
  */
-export const listPets = (params?: ListPetsParams, version = 1) => {
+export const listPets = (params?: ListPetsParams, version: number = 1) => {
   return customInstance<Pets>({
     url: `/v${version}/pets`,
     method: 'GET',
@@ -30,7 +30,7 @@ export const listPets = (params?: ListPetsParams, version = 1) => {
   });
 };
 
-export const getListPetsKey = (params?: ListPetsParams, version = 1) =>
+export const getListPetsKey = (params?: ListPetsParams, version: number = 1) =>
   [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 
 export type ListPetsQueryResult = NonNullable<
@@ -43,7 +43,7 @@ export type ListPetsQueryError = Error;
  */
 export const useListPets = <TError = Error>(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     swr?: SWRConfiguration<Awaited<ReturnType<typeof listPets>>, TError> & {
       swrKey?: Key;
@@ -74,7 +74,10 @@ export const useListPets = <TError = Error>(
 /**
  * @summary Create a pet
  */
-export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
+export const createPets = (
+  createPetsBody: CreatePetsBody,
+  version: number = 1,
+) => {
   return customInstance<Pet>({
     url: `/v${version}/pets`,
     method: 'POST',
@@ -86,14 +89,14 @@ export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
 /**
  * @summary Info for a specific pet
  */
-export const showPetById = (petId: string, version = 1) => {
+export const showPetById = (petId: string, version: number = 1) => {
   return customInstance<Pet>({
     url: `/v${version}/pets/${petId}`,
     method: 'GET',
   });
 };
 
-export const getShowPetByIdKey = (petId: string, version = 1) =>
+export const getShowPetByIdKey = (petId: string, version: number = 1) =>
   [`/v${version}/pets/${petId}`] as const;
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -106,7 +109,7 @@ export type ShowPetByIdQueryError = Error;
  */
 export const useShowPetById = <TError = Error>(
   petId: string,
-  version = 1,
+  version: number = 1,
   options?: {
     swr?: SWRConfiguration<Awaited<ReturnType<typeof showPetById>>, TError> & {
       swrKey?: Key;

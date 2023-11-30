@@ -5,7 +5,7 @@ export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
 
 type CustomClient<T> = (data: {
   url: string;
-  method: 'get' | 'post' | 'put' | 'delete' | 'patch';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   params?: Record<string, any>;
   headers?: Record<string, any>;
   data?: BodyType<unknown>;

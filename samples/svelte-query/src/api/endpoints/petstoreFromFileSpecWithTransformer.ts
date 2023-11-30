@@ -27,7 +27,7 @@ import { customInstance } from '../mutator/custom-instance';
  */
 export const listPets = (
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   signal?: AbortSignal,
 ) => {
   return customInstance<Pets>({
@@ -38,7 +38,10 @@ export const listPets = (
   });
 };
 
-export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) => {
+export const getListPetsQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
+) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 
@@ -47,7 +50,7 @@ export const getListPetsQueryOptions = <
   TError = Error,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: CreateQueryOptions<
       Awaited<ReturnType<typeof listPets>>,
@@ -90,7 +93,7 @@ export const createListPets = <
   TError = Error,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: CreateQueryOptions<
       Awaited<ReturnType<typeof listPets>>,
@@ -114,7 +117,10 @@ export const createListPets = <
 /**
  * @summary Create a pet
  */
-export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
+export const createPets = (
+  createPetsBody: CreatePetsBody,
+  version: number = 1,
+) => {
   return customInstance<void>({
     url: `/v${encodeURIComponent(String(version))}/pets`,
     method: 'POST',
@@ -180,7 +186,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
  */
 export const showPetById = (
   petId: string,
-  version = 1,
+  version: number = 1,
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
@@ -192,7 +198,7 @@ export const showPetById = (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version = 1) => {
+export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
 
@@ -201,7 +207,7 @@ export const getShowPetByIdQueryOptions = <
   TError = Error,
 >(
   petId: string,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: CreateQueryOptions<
       Awaited<ReturnType<typeof showPetById>>,
@@ -244,7 +250,7 @@ export const createShowPetById = <
   TError = Error,
 >(
   petId: string,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: CreateQueryOptions<
       Awaited<ReturnType<typeof showPetById>>,
