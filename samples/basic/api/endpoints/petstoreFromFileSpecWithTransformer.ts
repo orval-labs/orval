@@ -14,7 +14,7 @@ import listPetsMutator from '../mutator/response-type';
 /**
  * @summary List all pets
  */
-export const listPets = (params?: ListPetsParams, version = 1) => {
+export const listPets = (params?: ListPetsParams, version: number = 1) => {
   return listPetsMutator<Pets>({
     url: `/v${version}/pets`,
     method: 'GET',
@@ -27,7 +27,7 @@ export const listPets = (params?: ListPetsParams, version = 1) => {
  */
 export const createPets = <TData = AxiosResponse<void>>(
   createPetsBody: CreatePetsBody,
-  version = 1,
+  version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
   return axios.post(`/v${version}/pets`, createPetsBody, options);
@@ -38,7 +38,7 @@ export const createPets = <TData = AxiosResponse<void>>(
  */
 export const showPetById = <TData = AxiosResponse<Pet>>(
   petId: string,
-  version = 1,
+  version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
   return axios.get(`/v${version}/pets/${petId}`, options);

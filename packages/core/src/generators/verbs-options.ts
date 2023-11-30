@@ -124,6 +124,7 @@ const generateVerbOptions = async ({
     pathParams: parameters.path,
     operationId: operationId!,
     context,
+    output,
   });
 
   const props = getProps({

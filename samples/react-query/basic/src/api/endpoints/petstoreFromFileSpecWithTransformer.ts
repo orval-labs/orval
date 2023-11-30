@@ -74,7 +74,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 /**
  * @summary List all pets
  */
-export const listPets = (params?: ListPetsParams, version = 1) => {
+export const listPets = (params?: ListPetsParams, version: number = 1) => {
   return customInstance<Pets>({
     url: `/v${version}/pets`,
     method: 'GET',
@@ -82,7 +82,10 @@ export const listPets = (params?: ListPetsParams, version = 1) => {
   });
 };
 
-export const getListPetsQueryKey = (params?: ListPetsParams, version = 1) => {
+export const getListPetsQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
+) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 
@@ -94,7 +97,7 @@ export const getListPetsInfiniteQueryOptions = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -151,7 +154,7 @@ export const useListPetsInfinite = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
@@ -186,7 +189,7 @@ export const getListPetsQueryOptions = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -224,7 +227,7 @@ export const useListPets = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -247,7 +250,7 @@ export const getListPetsSuspenseQueryOptions = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
@@ -291,7 +294,7 @@ export const useListPetsSuspense = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseSuspenseQueryOptions<
@@ -326,7 +329,7 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseSuspenseInfiniteQueryOptions<
@@ -383,7 +386,7 @@ export const useListPetsSuspenseInfinite = <
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseSuspenseInfiniteQueryOptions<
@@ -415,7 +418,10 @@ export const useListPetsSuspenseInfinite = <
 /**
  * @summary Create a pet
  */
-export const createPets = (createPetsBody: CreatePetsBody, version = 1) => {
+export const createPets = (
+  createPetsBody: CreatePetsBody,
+  version: number = 1,
+) => {
   return customInstance<Pet>({
     url: `/v${version}/pets`,
     method: 'POST',
@@ -482,7 +488,7 @@ export const useCreatePets = <
 /**
  * @summary Update a pet
  */
-export const updatePets = (pet: NonReadonly<Pet>, version = 1) => {
+export const updatePets = (pet: NonReadonly<Pet>, version: number = 1) => {
   return customInstance<Pet>({
     url: `/v${version}/pets`,
     method: 'PUT',
@@ -551,7 +557,7 @@ export const useUpdatePets = <
  */
 export const showPetById = (
   petId: string,
-  version = 1,
+  version: number = 1,
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
@@ -561,7 +567,7 @@ export const showPetById = (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version = 1) => {
+export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
 
@@ -570,7 +576,7 @@ export const getShowPetByIdQueryOptions = <
   TError = ErrorType<Error>,
 >(
   petId: string,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -611,7 +617,7 @@ export const useShowPetById = <
   TError = ErrorType<Error>,
 >(
   petId: string,
-  version = 1,
+  version: number = 1,
   options?: {
     query?: Partial<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>

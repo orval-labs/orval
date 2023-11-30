@@ -5,11 +5,15 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "prepare": "svelte-kit sync",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
     "generate-api": "node ../../packages/orval/dist/bin/orval.js"
+  },
+  "scriptsComments": {
+    "prepare": "see https://github.com/sveltejs/kit/issues/5390#issuecomment-1176480653"
   },
   "devDependencies": {
     "@faker-js/faker": "^8.0.2",

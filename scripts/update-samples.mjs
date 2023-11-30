@@ -11,7 +11,7 @@ await $`cd ./samples/react-query/form-url-encoded && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/form-url-encoded-mutator && yarn && yarn generate-api`;
 await $`cd ./samples/react-query/hook-mutator && yarn && yarn generate-api`;
 await $`cd ./samples/react-app-with-swr && yarn && yarn generate-api`;
-// await $`cd ./samples/svelte-query && yarn && yarn generate-api`; // TODO: Fix error `Cannot find base config file "./.svelte-kit/tsconfig.json" [tsconfig.json]` and re-enable
+await $`cd ./samples/svelte-query && yarn && yarn generate-api`;
 await $`cd ./samples/vue-query && yarn && yarn generate-api`;
 
 /** NOTE: use below to create a sample for `useNamedParameters: true` with code that is supposed to work and pass tests, but it will require changes in Orval code generation

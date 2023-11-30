@@ -214,6 +214,7 @@ export const normalizeOptions = async (
           outputOptions.override?.useDeprecatedOperations ?? true,
         useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
       },
+      allParamsOptional: outputOptions.allParamsOptional ?? false,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };

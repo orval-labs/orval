@@ -47,6 +47,7 @@ export default defineConfig({
           useInfiniteQueryParam: 'limit',
         },
       },
+      allParamsOptional: true, // TODO: this this not a default, maybe consider creating a separate sample to test default behaviour still works; There is a generated test tho (same as named-params for other clients)
     },
     input: {
       target: './petstore.yaml',

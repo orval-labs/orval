@@ -54,6 +54,7 @@ export type NormalizedOutputOptions = {
   headers: boolean;
   indexFiles: boolean;
   baseUrl?: string;
+  allParamsOptional: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -170,6 +171,7 @@ export type OutputOptions = {
   headers?: boolean;
   indexFiles?: boolean;
   baseUrl?: string;
+  allParamsOptional?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -194,6 +196,7 @@ export const OutputClient = {
   REACT_QUERY: 'react-query',
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
+  SWR: 'swr',
 } as const;
 
 export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
