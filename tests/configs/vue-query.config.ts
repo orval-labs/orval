@@ -59,6 +59,32 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/vue-query/url-encode-parameters/endpoints.ts',
+      schemas: '../generated/vue-query/url-encode-parameters/model',
+      client: 'vue-query',
+      mock: true,
+      urlEncodeParameters: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  combinationUsedByMaximMazurok: {
+    output: {
+      target:
+        '../generated/vue-query/combination-used-by-maxim-mazurok/endpoints.ts',
+      schemas: '../generated/vue-query/combination-used-by-maxim-mazurok/model',
+      client: 'vue-query',
+      mock: true,
+      allParamsOptional: true,
+      urlEncodeParameters: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   // Unsupported for now, see for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {

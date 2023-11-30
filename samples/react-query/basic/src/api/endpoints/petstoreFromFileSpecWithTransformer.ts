@@ -76,7 +76,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
  */
 export const listPets = (params?: ListPetsParams, version: number = 1) => {
   return customInstance<Pets>({
-    url: `/v${encodeURIComponent(String(version))}/pets`,
+    url: `/v${version}/pets`,
     method: 'GET',
     params,
   });
@@ -423,7 +423,7 @@ export const createPets = (
   version: number = 1,
 ) => {
   return customInstance<Pet>({
-    url: `/v${encodeURIComponent(String(version))}/pets`,
+    url: `/v${version}/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -490,7 +490,7 @@ export const useCreatePets = <
  */
 export const updatePets = (pet: NonReadonly<Pet>, version: number = 1) => {
   return customInstance<Pet>({
-    url: `/v${encodeURIComponent(String(version))}/pets`,
+    url: `/v${version}/pets`,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     data: pet,
@@ -561,9 +561,7 @@ export const showPetById = (
   signal?: AbortSignal,
 ) => {
   return customInstance<Pet>({
-    url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(
-      String(petId),
-    )}`,
+    url: `/v${version}/pets/${petId}`,
     method: 'GET',
     signal,
   });

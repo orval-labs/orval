@@ -180,11 +180,7 @@ export const useShowPetByIdHook = () => {
   const showPetById = useCustomInstance<Pet>();
 
   return (petId: string, signal?: AbortSignal) => {
-    return showPetById({
-      url: `/pets/${encodeURIComponent(String(petId))}`,
-      method: 'GET',
-      signal,
-    });
+    return showPetById({ url: `/pets/${petId}`, method: 'GET', signal });
   };
 };
 

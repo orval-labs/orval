@@ -33,6 +33,7 @@ import {
   GetterQueryParam,
   compareVersions,
   getRouteAsArray,
+  NormalizedOutputOptions,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
@@ -369,14 +370,20 @@ const generateQueryRequestFunction = (
   }: GeneratorVerbOptions,
   { route: _route, context }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
+  output?: NormalizedOutputOptions,
 ) => {
   let props = _props;
+  let route = _route;
+
   if (isVue(outputClient)) {
     props = vueWrapTypeWithMaybeRef(_props);
+    route = vueMakeRouteReactive(_route);
   }
-  const route: string = makeRouteSafe(
-    isVue(outputClient) ? vueMakeRouteReactive(_route) : _route,
-  );
+
+  if (output?.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -1480,12 +1487,14 @@ export const generateQuery: ClientBuilder = async (
   verbOptions,
   options,
   outputClient,
+  output,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
     outputClient,
+    output,
   );
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);
@@ -1510,9 +1519,11 @@ export const builder =
   ({
     type = 'react-query',
     options: queryOptions,
+    output,
   }: {
     type?: 'react-query' | 'vue-query' | 'svelte-query';
     options?: QueryOptions;
+    output?: NormalizedOutputOptions;
   } = {}) =>
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
@@ -1539,7 +1550,7 @@ export const builder =
           verbOptions.override.query,
         );
       }
-      return generateQuery(verbOptions, options, outputClient);
+      return generateQuery(verbOptions, options, outputClient, output);
     };
 
     return {

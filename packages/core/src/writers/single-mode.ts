@@ -65,6 +65,7 @@ export const writeSingleMode = async ({
       hasGlobalMutator: !!output.override.mutator,
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
+      output,
     });
 
     if (output.mock) {

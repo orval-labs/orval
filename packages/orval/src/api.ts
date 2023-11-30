@@ -111,8 +111,10 @@ export const getApiBuilder = async ({
           override: output.override,
           context: resolvedContext,
           mock: output.mock,
+          // @ts-expect-error // FIXME
           output: output.target,
         },
+        output,
       );
 
       acc.schemas.push(...schemas);

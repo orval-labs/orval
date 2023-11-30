@@ -20,6 +20,7 @@ export const generateTarget = (
     outputClient: options.client,
     title: pascal(builder.info.title),
     customTitleFunc: options.override.title,
+    output: options,
   });
 
   const target = Object.values(builder.operations).reduce(
@@ -67,6 +68,7 @@ export const generateTarget = (
           provideIn: options.override.angular.provideIn,
           hasAwaitedType,
           titles,
+          output: options,
         });
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMock.handler =
@@ -78,6 +80,7 @@ export const generateTarget = (
           hasMutator: !!acc.mutators.length,
           hasAwaitedType,
           titles,
+          output: options,
         });
         acc.implementation += footer.implementation;
         acc.implementationMock.handler += footer.implementationMock;
