@@ -87,4 +87,11 @@ export default defineConfig({
       mock: true,
     },
   },
+  'deeply-nested-refs': {
+    input: '../specifications/deeply-nested-refs.yaml',
+    output: {
+      schemas: '../generated/default/deeply-nested-refs/model',
+      target: '../generated/default/deeply-nested-refs/endpoints.ts',
+    },
+  },
 });

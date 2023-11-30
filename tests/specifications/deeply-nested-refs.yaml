@@ -1,0 +1,105 @@
+openapi: 3.0.0
+info:
+  title: Deeply nested refs
+  description: ''
+  version: 1.0.0
+paths:
+  /deeply-nested:
+    get:
+      summary: deeply nested
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+components:
+  schemas:
+    DeeplyNestedRefSchema1:
+      type: object
+      properties:
+        item1:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+        item2:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema2'
+        item_all:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema2'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema3'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema4'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema5'
+    DeeplyNestedRefSchema2:
+      type: object
+      properties:
+        item3:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/DeeplyNestedRefSchema3'
+        item_all:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema2'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema3'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema4'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema5'
+    DeeplyNestedRefSchema3:
+      type: object
+      properties:
+        item4:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/DeeplyNestedRefSchema4'
+        item_all:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema2'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema3'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema4'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema5'
+    DeeplyNestedRefSchema4:
+      type: object
+      properties:
+        item5:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/DeeplyNestedRefSchema5'
+        item_all:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema2'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema3'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema4'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema5'
+    DeeplyNestedRefSchema5:
+      type: object
+      properties:
+        item1:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+        item_all:
+          type: array
+          items:
+            allOf:
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema1'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema2'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema3'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema4'
+              - $ref: '#/components/schemas/DeeplyNestedRefSchema5'
