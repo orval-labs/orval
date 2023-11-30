@@ -1,3 +1,5 @@
+<template></template>
+
 <script lang="ts" setup>
 import { useShowPetById } from '../../api/endpoints/petstoreFromFileSpecWithTransformer';
 
