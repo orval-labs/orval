@@ -118,6 +118,7 @@ export const generateTargetForTags = (
             outputClient: options.client,
             title: pascal(tag),
             customTitleFunc: options.override.title,
+            output: options,
           });
 
           const footer = builder.footer({
@@ -126,6 +127,7 @@ export const generateTargetForTags = (
             hasMutator: !!target.mutators?.length,
             hasAwaitedType,
             titles,
+            output: options,
           });
 
           const header = builder.header({
@@ -136,6 +138,7 @@ export const generateTargetForTags = (
             provideIn: options.override.angular.provideIn,
             hasAwaitedType,
             titles,
+            output: options,
           });
 
           acc[tag] = {

@@ -9,6 +9,7 @@ import {
   ResponsesObject,
   SchemaObject,
 } from 'openapi3-ts';
+// @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
 import swagger2openapi from 'swagger2openapi';
 import type { allLocales } from '@faker-js/faker';
 
@@ -55,6 +56,7 @@ export type NormalizedOutputOptions = {
   indexFiles: boolean;
   baseUrl?: string;
   allParamsOptional: boolean;
+  urlEncodeParameters: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -172,6 +174,7 @@ export type OutputOptions = {
   indexFiles?: boolean;
   baseUrl?: string;
   allParamsOptional?: boolean;
+  urlEncodeParameters?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -197,6 +200,7 @@ export const OutputClient = {
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
   SWR: 'swr',
+  ZOD: 'zod',
 } as const;
 
 export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
@@ -606,6 +610,7 @@ export type ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
+  output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
 export type ClientHeaderBuilder = (params: {
@@ -818,6 +823,7 @@ export type GeneratorClientTitle = (data: {
   outputClient?: OutputClient | OutputClientFunc;
   title: string;
   customTitleFunc?: (title: string) => string;
+  output: NormalizedOutputOptions;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientHeader = (data: {
@@ -828,6 +834,7 @@ export type GeneratorClientHeader = (data: {
   provideIn: boolean | 'root' | 'any';
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
+  output: NormalizedOutputOptions;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientFooter = (data: {
@@ -836,6 +843,7 @@ export type GeneratorClientFooter = (data: {
   hasMutator: boolean;
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
+  output: NormalizedOutputOptions;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientImports = (data: {
@@ -851,6 +859,7 @@ export type GeneratorClientImports = (data: {
   hasGlobalMutator: boolean;
   hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
+  output: NormalizedOutputOptions;
 }) => string;
 
 export type GenerateMockImports = (data: {

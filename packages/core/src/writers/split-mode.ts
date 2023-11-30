@@ -57,6 +57,7 @@ export const writeSplitMode = async ({
       hasGlobalMutator: !!output.override.mutator,
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
+      output,
     });
     mockData += builder.importsMock({
       implementation: implementationMock,

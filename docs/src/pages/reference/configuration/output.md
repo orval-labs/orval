@@ -1379,3 +1379,39 @@ module.exports = {
   },
 };
 ```
+
+### allParamsOptional
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false. Applies to all clients, but probably only makes sense for Tanstack Query.
+
+Use this property to make all parameters optional. This is useful to take advantage of the Orval's auto-enable feature for Tanstack Query, see https://github.com/anymaniax/orval/pull/894
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      allParamsOptional: true,
+    },
+  },
+};
+```
+
+### urlEncodeParameters
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false. **Note:** this only works for Tanstack Query clients for now.
+
+Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become a default in the future, see https://github.com/anymaniax/orval/pull/895
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      urlEncodeParameters: true,
+    },
+  },
+};
+```

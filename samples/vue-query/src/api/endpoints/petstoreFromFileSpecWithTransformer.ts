@@ -15,8 +15,8 @@ import type {
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query';
-import type { MaybeRef } from '@tanstack/vue-query/build/lib/types';
 import { computed, unref } from 'vue';
+import type { MaybeRef } from 'vue';
 import type {
   CreatePetsBody,
   Error,
@@ -38,7 +38,7 @@ export const listPets = (
   version = unref(version);
 
   return customInstance<Pets>({
-    url: `/v${version}/pets`,
+    url: `/v${encodeURIComponent(String(version))}/pets`,
     method: 'GET',
     params: unref(params),
     signal,
@@ -204,7 +204,7 @@ export const createPets = (
   version = unref(version);
 
   return customInstance<Pet>({
-    url: `/v${version}/pets`,
+    url: `/v${encodeURIComponent(String(version))}/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
@@ -275,7 +275,9 @@ export const showPetById = (
   version = unref(version);
 
   return customInstance<Pet>({
-    url: `/v${version}/pets/${petId}`,
+    url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(
+      String(petId),
+    )}`,
     method: 'GET',
     signal,
   });

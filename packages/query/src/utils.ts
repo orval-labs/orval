@@ -109,5 +109,14 @@ export const vueUnRefParams = (props: GetterProps): string => {
     .join('\n');
 };
 
+export const wrapRouteParameters = (
+  route: string,
+  prepend: string,
+  append: string,
+): string => route.replaceAll(/\${(.+?)}/g, `\${${prepend}$1${append}}`);
+
+export const makeRouteSafe = (route: string): string =>
+  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
+
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;

@@ -46,6 +46,8 @@ module.exports = {
           delay: 500,
         },
       },
+      allParamsOptional: true,
+      urlEncodeParameters: true,
     },
     input: {
       target: './petstore.yaml',

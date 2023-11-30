@@ -15,7 +15,7 @@
     "@faker-js/faker": "^8.0.2",
     "@tanstack/vue-query": "4.29.5",
     "axios": "^0.26.1",
-    "vue": "3.2.36"
+    "vue": "^3.3.4"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.0.1",

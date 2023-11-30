@@ -33,11 +33,13 @@ import {
   GetterQueryParam,
   compareVersions,
   getRouteAsArray,
+  NormalizedOutputOptions,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
   normalizeQueryOptions,
   isVue,
+  makeRouteSafe,
   vueWrapTypeWithMaybeRef,
   vueUnRefParams,
 } from './utils';
@@ -263,13 +265,10 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       { name: 'unref', values: true },
+      { name: 'MaybeRef' },
       { name: 'computed', values: true },
     ],
     dependency: 'vue',
-  },
-  {
-    exports: [{ name: 'MaybeRef' }],
-    dependency: '@tanstack/vue-query/build/lib/types',
   },
 ];
 
@@ -368,13 +367,21 @@ const generateQueryRequestFunction = (
     paramsSerializer,
     override,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route: _route, context }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
+  output?: NormalizedOutputOptions,
 ) => {
   let props = _props;
+  let route = _route;
+
   if (isVue(outputClient)) {
     props = vueWrapTypeWithMaybeRef(_props);
   }
+
+  if (output?.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
@@ -1478,12 +1485,14 @@ export const generateQuery: ClientBuilder = async (
   verbOptions,
   options,
   outputClient,
+  output,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
     outputClient,
+    output,
   );
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);
@@ -1508,9 +1517,11 @@ export const builder =
   ({
     type = 'react-query',
     options: queryOptions,
+    output,
   }: {
     type?: 'react-query' | 'vue-query' | 'svelte-query';
     options?: QueryOptions;
+    output?: NormalizedOutputOptions;
   } = {}) =>
   () => {
     const client: ClientBuilder = (verbOptions, options, outputClient) => {
@@ -1537,7 +1548,7 @@ export const builder =
           verbOptions.override.query,
         );
       }
-      return generateQuery(verbOptions, options, outputClient);
+      return generateQuery(verbOptions, options, outputClient, output);
     };
 
     return {

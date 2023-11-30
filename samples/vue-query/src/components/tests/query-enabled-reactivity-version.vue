@@ -15,7 +15,6 @@ setTimeout(() => {
 }, 100);
 const petId = ref('123');
 const version = ref(0);
-// @ts-expect-error // version has `number` type instead of `MaybeRef<number>` because of its default value of 1, still version is being trated like ref, so it works. This probably should be addressed separately
 const petQuery = useShowPetById(petId, version);
 const pet = computed(() => unref(petQuery?.data));
 </script>

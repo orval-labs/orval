@@ -63,6 +63,7 @@ export const importSpecs = async (
   if (isObject(input.target)) {
     return importOpenApi({
       data: { [workspace]: input.target },
+      // @ts-expect-error // FIXME
       input,
       output,
       target: workspace,
@@ -70,9 +71,11 @@ export const importSpecs = async (
     });
   }
 
+  // @ts-expect-error // FIXME
   const isPathUrl = isUrl(input.target);
 
   const data = await resolveSpecs(
+    // @ts-expect-error // FIXME
     input.target,
     input.parserOptions,
     isPathUrl,
@@ -81,8 +84,10 @@ export const importSpecs = async (
 
   return importOpenApi({
     data,
+    // @ts-expect-error // FIXME
     input,
     output,
+    // @ts-expect-error // FIXME
     target: input.target,
     workspace,
   });
