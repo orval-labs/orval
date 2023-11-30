@@ -13,24 +13,27 @@ export const Footer = (props) => {
                 </h4>
                 <ul className="mt-4">
                   <li>
-                    <Link href="/overview">
-                      <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
-                        Docs
-                      </a>
+                    <Link
+                      href="/overview"
+                      className="text-base leading-6 text-gray-500 hover:text-gray-900"
+                    >
+                      Docs
                     </Link>
                   </li>
                   <li className="mt-4">
-                    <Link href={`${siteConfig.repoUrl}/tree/master/samples`}>
-                      <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
-                        Examples
-                      </a>
+                    <Link
+                      href={`${siteConfig.repoUrl}/tree/master/samples`}
+                      className="text-base leading-6 text-gray-500 hover:text-gray-900"
+                    >
+                      Examples
                     </Link>
                   </li>
                   <li className="mt-4">
-                    <Link href="/reference/configuration">
-                      <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
-                        API Reference
-                      </a>
+                    <Link
+                      href="/reference/configuration"
+                      className="text-base leading-6 text-gray-500 hover:text-gray-900"
+                    >
+                      API Reference
                     </Link>
                   </li>
                 </ul>

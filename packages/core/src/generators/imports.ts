@@ -4,6 +4,7 @@ import {
   GeneratorImport,
   GeneratorMutator,
   GeneratorVerbOptions,
+  GetterPropType,
 } from '../types';
 import { camel, upath } from '../utils';
 
@@ -139,7 +140,9 @@ const generateDependency = ({
     deps
       .filter((e) => !e.default && !e.syntheticDefaultImport)
       .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
-  ).join(',\n  ');
+  )
+    .sort()
+    .join(',\n  ');
 
   let importString = '';
 
@@ -245,6 +248,11 @@ export const addDependency = ({
     .join('\n');
 };
 
+const getLibName = (code: string) => {
+  const splitString = code.split(' from ');
+  return splitString[splitString.length - 1].split(';')[0].trim();
+};
+
 export const generateDependencyImports = (
   implementation: string,
   imports: {
@@ -266,6 +274,19 @@ export const generateDependencyImports = (
       }),
     )
     .filter(Boolean)
+    .sort((a, b) => {
+      const aLib = getLibName(a!);
+      const bLib = getLibName(b!);
+
+      if (aLib === bLib) {
+        return 0;
+      }
+
+      if (aLib.startsWith("'.") && !bLib.startsWith("'.")) {
+        return 1;
+      }
+      return aLib < bLib ? -1 : 1;
+    })
     .join('\n');
 
   return dependencies ? dependencies + '\n' : '';
@@ -275,11 +296,17 @@ export const generateVerbImports = ({
   response,
   body,
   queryParams,
+  props,
   headers,
   params,
 }: GeneratorVerbOptions): GeneratorImport[] => [
   ...response.imports,
   ...body.imports,
+  ...props.flatMap((prop) =>
+    prop.type === GetterPropType.NAMED_PATH_PARAMS
+      ? [{ name: prop.schema.name }]
+      : [],
+  ),
   ...(queryParams ? [{ name: queryParams.schema.name }] : []),
   ...(headers ? [{ name: headers.schema.name }] : []),
   ...params.flatMap<GeneratorImport>(({ imports }) => imports),

@@ -25,17 +25,20 @@ const generateTargetTags = (
     if (!currentOperation) {
       acc[tag] = {
         imports: operation.imports,
-        importsMSW: operation.importsMSW,
+        importsMock: operation.importsMock,
         mutators: operation.mutator ? [operation.mutator] : [],
         clientMutators: operation.clientMutators ?? [],
         formData: operation.formData ? [operation.formData] : [],
         formUrlEncoded: operation.formUrlEncoded
           ? [operation.formUrlEncoded]
           : [],
+        paramsSerializer: operation.paramsSerializer
+          ? [operation.paramsSerializer]
+          : [],
         implementation: operation.implementation,
-        implementationMSW: {
-          function: operation.implementationMSW.function,
-          handler: operation.implementationMSW.handler,
+        implementationMock: {
+          function: operation.implementationMock.function,
+          handler: operation.implementationMock.handler,
         },
       };
 
@@ -46,14 +49,14 @@ const generateTargetTags = (
       implementation:
         currentOperation.implementation + operation.implementation,
       imports: [...currentOperation.imports, ...operation.imports],
-      importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
-      implementationMSW: {
+      importsMock: [...currentOperation.importsMock, ...operation.importsMock],
+      implementationMock: {
         function:
-          currentOperation.implementationMSW.function +
-          operation.implementationMSW.function,
+          currentOperation.implementationMock.function +
+          operation.implementationMock.function,
         handler:
-          currentOperation.implementationMSW.handler +
-          operation.implementationMSW.handler,
+          currentOperation.implementationMock.handler +
+          operation.implementationMock.handler,
       },
       mutators: operation.mutator
         ? [...(currentOperation.mutators ?? []), operation.mutator]
@@ -70,6 +73,12 @@ const generateTargetTags = (
       formUrlEncoded: operation.formUrlEncoded
         ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
         : currentOperation.formUrlEncoded,
+      paramsSerializer: operation.paramsSerializer
+        ? [
+            ...(currentOperation.paramsSerializer ?? []),
+            operation.paramsSerializer,
+          ]
+        : currentOperation.paramsSerializer,
     };
 
     return acc;
@@ -95,7 +104,7 @@ export const generateTargetForTags = (
             isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
           );
           const operationNames = Object.values(builder.operations)
-            .filter(({ tags }) => tags.includes(tag))
+            .filter(({ tags }) => tags.map(kebab).includes(kebab(tag)))
             .map(({ operationName }) => operationName);
 
           const typescriptVersion =
@@ -134,19 +143,20 @@ export const generateTargetForTags = (
               header.implementation +
               target.implementation +
               footer.implementation,
-            implementationMSW: {
-              function: target.implementationMSW.function,
+            implementationMock: {
+              function: target.implementationMock.function,
               handler:
-                header.implementationMSW +
-                target.implementationMSW.handler +
-                footer.implementationMSW,
+                header.implementationMock +
+                target.implementationMock.handler +
+                footer.implementationMock,
             },
             imports: target.imports,
-            importsMSW: target.importsMSW,
+            importsMock: target.importsMock,
             mutators: target.mutators,
             clientMutators: target.clientMutators,
             formData: target.formData,
             formUrlEncoded: target.formUrlEncoded,
+            paramsSerializer: target.paramsSerializer,
           };
 
           return acc;
@@ -160,8 +170,9 @@ export const generateTargetForTags = (
     (acc, [tag, target]) => {
       acc[tag] = {
         ...target,
-        implementationMSW:
-          target.implementationMSW.function + target.implementationMSW.handler,
+        implementationMock:
+          target.implementationMock.function +
+          target.implementationMock.handler,
       };
 
       return acc;

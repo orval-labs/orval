@@ -3,6 +3,7 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler", // as per default in node_modules/@vue/tsconfig/tsconfig.json
+    "skipLibCheck": true,
     "strict": true,
     "jsx": "preserve",
     "sourceMap": true,

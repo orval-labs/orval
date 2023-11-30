@@ -47,4 +47,25 @@ export default defineConfig({
       },
     },
   },
+  namedParameters: {
+    output: {
+      target: '../generated/svelte-query/named-parameters/endpoints.ts',
+      schemas: '../generated/svelte-query/named-parameters/model',
+      client: 'svelte-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'limit',
+        },
+        useNamedParameters: true,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });

@@ -1,0 +1,30 @@
+openapi: 3.0.3
+info:
+  title: NestedArrays
+  version: 1.0.0
+paths:
+  /api/sample:
+    post:
+      summary: sample
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResSampleModel'
+components:
+  schemas:
+    ResSampleModel:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            type: array
+            minItems: 2
+            maxItems: 5
+            items:
+              type: string

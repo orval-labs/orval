@@ -19,6 +19,7 @@ import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   NormalizedInputOptions,
+  NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
   NormalizedOverrideOutput,
@@ -125,7 +126,14 @@ const generateVerbOptions = async ({
     context,
   });
 
-  const props = getProps({ body, queryParams, params, headers });
+  const props = getProps({
+    body,
+    queryParams,
+    params,
+    headers,
+    operationName,
+    context,
+  });
 
   const mutator = await generateMutator({
     output: output.target,
@@ -157,6 +165,17 @@ const generateVerbOptions = async ({
         })
       : undefined;
 
+  const paramsSerializer =
+    isString(override?.paramsSerializer) || isObject(override?.paramsSerializer)
+      ? await generateMutator({
+          output: output.target,
+          name: 'paramsSerializer',
+          mutator: override.paramsSerializer as NormalizedMutator,
+          workspace: context.workspace,
+          tsconfig: context.tsconfig,
+        })
+      : undefined;
+
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
@@ -174,9 +193,11 @@ const generateVerbOptions = async ({
     mutator,
     formData,
     formUrlEncoded,
+    paramsSerializer,
     override,
     doc,
     deprecated,
+    originalOperation: operation,
   };
 
   const transformer = await dynamicImport(

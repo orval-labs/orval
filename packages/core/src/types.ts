@@ -10,6 +10,7 @@ import {
   SchemaObject,
 } from 'openapi3-ts';
 import swagger2openapi from 'swagger2openapi';
+import type { allLocales } from '@faker-js/faker';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -27,7 +28,7 @@ export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormizaledConfig = {
+export type NormalizedConfig = {
   [project: string]: NormalizedOptions;
 };
 
@@ -42,7 +43,7 @@ export type NormalizedOutputOptions = {
   target?: string;
   schemas?: string;
   mode: OutputMode;
-  mock: boolean | ClientMSWBuilder;
+  mock?: GlobalMockOptions | ClientMockBuilder;
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   clean: boolean | string[];
@@ -51,6 +52,12 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
+  indexFiles: boolean;
+  baseUrl?: string;
+};
+
+export type NormalizedParamsSerializerOptions = {
+  qs?: Record<string, any>;
 };
 
 export type NormalizedOverrideOutput = {
@@ -59,19 +66,13 @@ export type NormalizedOverrideOutput = {
   mutator?: NormalizedMutator;
   operations: { [key: string]: NormalizedOperationOptions };
   tags: { [key: string]: NormalizedOperationOptions };
-  mock?: {
-    arrayMin?: number;
-    arrayMax?: number;
-    properties?: MockProperties;
-    format?: { [key: string]: unknown };
-    required?: boolean;
-    baseUrl?: string;
-    delay?: number;
-  };
+  mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
   formUrlEncoded: boolean | NormalizedMutator;
+  paramsSerializer?: NormalizedMutator;
+  paramsSerializerOptions?: NormalizedParamsSerializerOptions;
   components: {
     schemas: {
       suffix: string;
@@ -98,9 +99,12 @@ export type NormalizedOverrideOutput = {
   ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
+  coerceTypes?: boolean;
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
+  useNamedParameters?: boolean;
+  useNativeEnums?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -130,6 +134,7 @@ export type NormalizedOperationOptions = {
   ) => string;
   formData?: boolean | NormalizedMutator;
   formUrlEncoded?: boolean | NormalizedMutator;
+  paramsSerializer?: NormalizedMutator;
   requestOptions?: object | boolean;
 };
 
@@ -153,7 +158,8 @@ export type OutputOptions = {
   target?: string;
   schemas?: string;
   mode?: OutputMode;
-  mock?: boolean | ClientMSWBuilder;
+  // If mock is a boolean, it will use the default mock options (type: msw)
+  mock?: boolean | GlobalMockOptions | ClientMockBuilder;
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   clean?: boolean | string[];
@@ -162,6 +168,8 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
+  indexFiles?: boolean;
+  baseUrl?: string;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -179,41 +187,58 @@ export type InputOptions = {
   };
 };
 
-export type OutputClient =
-  | 'axios'
-  | 'axios-functions'
-  | 'angular'
-  | 'react-query'
-  | 'svelte-query'
-  | 'vue-query'
-  | 'swr'
-  | 'zod';
-
 export const OutputClient = {
-  ANGULAR: 'angular' as OutputClient,
-  AXIOS: 'axios' as OutputClient,
-  AXIOS_FUNCTIONS: 'axios-functions' as OutputClient,
-  REACT_QUERY: 'react-query' as OutputClient,
-  SVELTE_QUERY: 'svelte-query' as OutputClient,
-  VUE_QUERY: 'vue-query' as OutputClient,
-};
+  ANGULAR: 'angular',
+  AXIOS: 'axios',
+  AXIOS_FUNCTIONS: 'axios-functions',
+  REACT_QUERY: 'react-query',
+  SVELTE_QUERY: 'svelte-query',
+  VUE_QUERY: 'vue-query',
+} as const;
 
-export type OutputMode = 'single' | 'split' | 'tags' | 'tags-split';
+export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
+
 export const OutputMode = {
-  SINGLE: 'single' as OutputMode,
-  SPLIT: 'split' as OutputMode,
-  TAGS: 'tags' as OutputMode,
-  TAGS_SPLIT: 'tags-split' as OutputMode,
+  SINGLE: 'single',
+  SPLIT: 'split',
+  TAGS: 'tags',
+  TAGS_SPLIT: 'tags-split',
+} as const;
+
+export type OutputMode = typeof OutputMode[keyof typeof OutputMode];
+
+// TODO: add support for other mock types (like cypress or playwright)
+export const OutputMockType = {
+  MSW: 'msw',
+} as const;
+
+export type OutputMockType = typeof OutputMockType[keyof typeof OutputMockType];
+
+export type GlobalMockOptions = {
+  // This is the type of the mock that will be generated
+  type: OutputMockType;
+  // This is the option to use the examples from the openapi specification where possible to generate mock data
+  useExamples?: boolean;
+  // This is used to set the delay to your own custom value
+  delay?: number | (() => number);
+  // This is used to set the base url to your own custom value
+  baseUrl?: string;
+  // This is used to set the locale of the faker library
+  locale?: keyof typeof allLocales;
 };
 
-export type MockOptions = {
+export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   arrayMin?: number;
   arrayMax?: number;
   required?: boolean;
-  properties?: Record<string, string>;
-  operations?: Record<string, { properties: Record<string, string> }>;
-  format?: Record<string, string>;
-  tags?: Record<string, { properties: Record<string, string> }>;
+  properties?: MockProperties;
+  format?: Record<string, unknown>;
+};
+
+export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
+  properties?: Record<string, unknown>;
+  operations?: Record<string, { properties: Record<string, unknown> }>;
+  tags?: Record<string, { properties: Record<string, unknown> }>;
 };
 
 export type MockProperties =
@@ -233,25 +258,23 @@ export type MutatorObject = {
 
 export type Mutator = string | MutatorObject;
 
+export type ParamsSerializerOptions = {
+  qs?: Record<string, any>;
+};
+
 export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: Mutator;
   operations?: { [key: string]: OperationOptions };
   tags?: { [key: string]: OperationOptions };
-  mock?: {
-    arrayMin?: number;
-    arrayMax?: number;
-    properties?: MockProperties;
-    format?: { [key: string]: unknown };
-    required?: boolean;
-    baseUrl?: string;
-    delay?: number;
-  };
+  mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
+  paramsSerializer?: Mutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
   components?: {
     schemas?: {
       suffix?: string;
@@ -281,6 +304,8 @@ export type OverrideOutput = {
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
+  useNamedParameters?: boolean;
+  useNativeEnums?: boolean;
 };
 
 export type OverrideOutputContentType = {
@@ -290,26 +315,34 @@ export type OverrideOutputContentType = {
 
 export type NormalizedQueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
+  usePrefetch?: boolean;
   options?: any;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type QueryOptions = {
   useQuery?: boolean;
+  useSuspenseQuery?: boolean;
   useMutation?: boolean;
   useInfinite?: boolean;
+  useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
+  usePrefetch?: boolean;
   options?: any;
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   signal?: boolean;
+  version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
@@ -343,6 +376,7 @@ export type OperationOptions = {
   ) => string;
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
+  paramsSerializer?: Mutator;
   requestOptions?: object | boolean;
 };
 
@@ -397,7 +431,7 @@ export interface GlobalOptions {
   clean?: boolean | string[];
   prettier?: boolean;
   tslint?: boolean;
-  mock?: boolean;
+  mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
@@ -469,38 +503,41 @@ export type GeneratorOperations = {
 export type GeneratorTarget = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: string;
-  importsMSW: GeneratorImport[];
+  implementationMock: string;
+  importsMock: GeneratorImport[];
   mutators?: GeneratorMutator[];
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
+  paramsSerializer?: GeneratorMutator[];
 };
 
 export type GeneratorTargetFull = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: {
+  implementationMock: {
     function: string;
     handler: string;
   };
-  importsMSW: GeneratorImport[];
+  importsMock: GeneratorImport[];
   mutators?: GeneratorMutator[];
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
+  paramsSerializer?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMSW: { function: string; handler: string };
-  importsMSW: GeneratorImport[];
+  implementationMock: { function: string; handler: string };
+  importsMock: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
   clientMutators?: GeneratorMutator[];
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
+  paramsSerializer?: GeneratorMutator;
   operationName: string;
   types?: {
     result: (title?: string) => string;
@@ -523,8 +560,10 @@ export type GeneratorVerbOptions = {
   mutator?: GeneratorMutator;
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
+  paramsSerializer?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
+  originalOperation: OperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -534,7 +573,7 @@ export type GeneratorOptions = {
   pathRoute: string;
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
-  mock: boolean;
+  mock?: GlobalMockOptions | ClientMockBuilder;
   output: string;
 };
 
@@ -588,10 +627,11 @@ export type ClientTitleBuilder = (title: string) => string;
 
 export type ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
+  hasParamsSerializerOptions: boolean,
   packageJson?: PackageJson,
 ) => GeneratorDependency[];
 
-export type ClientMSWBuilder = (
+export type ClientMockBuilder = (
   verbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
 ) => {
@@ -660,23 +700,34 @@ export type GetterQueryParam = {
   originalSchema?: SchemaObject;
 };
 
-export type GetterPropType = 'param' | 'body' | 'queryParam' | 'header';
+export type GetterPropType =
+  | 'param'
+  | 'body'
+  | 'queryParam'
+  | 'header'
+  | 'namedPathParams';
 
 export const GetterPropType = {
-  PARAM: 'param' as GetterPropType,
-  BODY: 'body' as GetterPropType,
-  QUERY_PARAM: 'queryParam' as GetterPropType,
-  HEADER: 'header' as GetterPropType,
-};
+  PARAM: 'param',
+  NAMED_PATH_PARAMS: 'namedPathParams',
+  BODY: 'body',
+  QUERY_PARAM: 'queryParam',
+  HEADER: 'header',
+} as const;
 
-export type GetterProp = {
+type GetterPropBase = {
   name: string;
   definition: string;
   implementation: string;
   default: boolean;
   required: boolean;
-  type: GetterPropType;
 };
+
+export type GetterProp = GetterPropBase &
+  (
+    | { type: 'namedPathParams'; destructured: string; schema: GeneratorSchema }
+    | { type: Exclude<GetterPropType, 'namedPathParams'> }
+  );
 
 export type GetterProps = GetterProp[];
 
@@ -711,6 +762,8 @@ export type ScalarValue = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   isRef: boolean;
+  example?: any;
+  examples?: Record<string, any>;
 };
 
 export type ResolverValue = ScalarValue & {
@@ -755,7 +808,7 @@ export type GeneratorApiOperations = {
 
 export type GeneratorClientExtra = {
   implementation: string;
-  implementationMSW: string;
+  implementationMock: string;
 };
 
 export type GeneratorClientTitle = (data: {
@@ -793,6 +846,7 @@ export type GeneratorClientImports = (data: {
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   hasGlobalMutator: boolean;
+  hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
 }) => string;
 
@@ -805,6 +859,7 @@ export type GenerateMockImports = (data: {
   specsName: Record<string, string>;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
+  options?: GlobalMockOptions;
 }) => string;
 
 export type GeneratorApiBuilder = GeneratorApiOperations & {

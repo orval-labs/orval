@@ -5,6 +5,7 @@ import {
   GetterBody,
   GetterQueryParam,
   GetterResponse,
+  ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { isObject, stringify } from '../utils';
@@ -36,6 +37,9 @@ export const generateAxiosOptions = ({
   headers,
   requestOptions,
   hasSignal,
+  isVue,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
@@ -43,6 +47,9 @@ export const generateAxiosOptions = ({
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
   hasSignal: boolean;
+  isVue: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
   if (!queryParams && !headers && !response.isBlob) {
@@ -91,11 +98,25 @@ export const generateAxiosOptions = ({
     value += '\n    ...options,';
 
     if (queryParams) {
-      value += '\n        params: {...params, ...options?.params},';
+      if (isVue) {
+        value += '\n        params: {...unref(params), ...options?.params},';
+      } else {
+        value += '\n        params: {...params, ...options?.params},';
+      }
     }
 
     if (headers) {
       value += '\n        headers: {...headers, ...options?.headers},';
+    }
+  }
+
+  if (queryParams && (paramsSerializer || paramsSerializerOptions?.qs)) {
+    if (paramsSerializer) {
+      value += `\n        paramsSerializer: ${paramsSerializer.name},`;
+    } else {
+      value += `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+        paramsSerializerOptions!.qs,
+      )}),`;
     }
   }
 
@@ -115,6 +136,9 @@ export const generateOptions = ({
   isAngular,
   isExactOptionalPropertyTypes,
   hasSignal,
+  isVue,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   route: string;
   body: GetterBody;
@@ -128,6 +152,9 @@ export const generateOptions = ({
   isAngular?: boolean;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  isVue?: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyOptions = isBodyVerb
@@ -141,6 +168,9 @@ export const generateOptions = ({
     requestOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    isVue: isVue ?? false,
+    paramsSerializer,
+    paramsSerializerOptions,
   });
 
   const options = axiosOptions ? `{${axiosOptions}}` : '';
@@ -186,6 +216,7 @@ export const generateBodyMutatorConfig = (
 
 export const generateQueryParamsAxiosConfig = (
   response: GetterResponse,
+  isVue: boolean,
   queryParams?: GetterQueryParam,
 ) => {
   if (!queryParams && !response.isBlob) {
@@ -195,7 +226,11 @@ export const generateQueryParamsAxiosConfig = (
   let value = '';
 
   if (queryParams) {
-    value += ',\n        params';
+    if (isVue) {
+      value += ',\n        params: unref(params)';
+    } else {
+      value += ',\n        params';
+    }
   }
 
   if (response.isBlob) {
@@ -217,6 +252,7 @@ export const generateMutatorConfig = ({
   isBodyVerb,
   hasSignal,
   isExactOptionalPropertyTypes,
+  isVue,
 }: {
   route: string;
   body: GetterBody;
@@ -229,6 +265,7 @@ export const generateMutatorConfig = ({
   isBodyVerb: boolean;
   hasSignal: boolean;
   isExactOptionalPropertyTypes: boolean;
+  isVue?: boolean;
 }) => {
   const bodyOptions = isBodyVerb
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
@@ -236,6 +273,7 @@ export const generateMutatorConfig = ({
 
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
+    isVue ?? false,
     queryParams,
   );
 
@@ -247,7 +285,7 @@ export const generateMutatorConfig = ({
     ? ',\n      headers'
     : '';
 
-  return `{url: \`${route}\`, method: '${verb}'${headerOptions}${bodyOptions}${queryParamsOptions}${
+  return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
     !isBodyVerb && hasSignal
       ? `, ${
           isExactOptionalPropertyTypes

@@ -3,6 +3,7 @@ import { ContextSpecs, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
+import { resolveExampleRefs } from '../resolvers';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -20,6 +21,7 @@ export const getScalar = ({
   context: ContextSpecs;
 }): ScalarValue => {
   const nullable = item.nullable ? ' | null' : '';
+  const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
   if (!item.type && item.items) {
     item.type = 'array';
@@ -34,8 +36,10 @@ export const getScalar = ({
           : 'number';
       let isEnum = false;
 
-      if (item.enum) {
-        value = item.enum.map((enumItem: string) => `${enumItem}`).join(' | ');
+      if (enumItems) {
+        value = enumItems
+          .map((enumItem: number | null) => `${enumItem}`)
+          .join(' | ');
         isEnum = true;
       }
 
@@ -47,6 +51,8 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
@@ -59,6 +65,8 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
 
     case 'array': {
@@ -77,13 +85,13 @@ export const getScalar = ({
       let value = 'string';
       let isEnum = false;
 
-      if (item.enum) {
-        value = `'${item.enum
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+      if (enumItems) {
+        value = `${enumItems
+          .map((enumItem: string | null) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `)}`;
 
         isEnum = true;
       }
@@ -106,6 +114,8 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
@@ -122,13 +132,13 @@ export const getScalar = ({
 
     case 'object':
     default: {
-      if (item.enum) {
-        const value = `'${item.enum
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+      if (enumItems) {
+        const value = `${enumItems
+          .map((enumItem: unknown) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `)}`;
 
         return {
           value: value + nullable,
@@ -138,6 +148,8 @@ export const getScalar = ({
           schemas: [],
           isRef: false,
           hasReadonlyProps: item.readOnly || false,
+          example: item.example,
+          examples: resolveExampleRefs(item.examples, context),
         };
       }
 

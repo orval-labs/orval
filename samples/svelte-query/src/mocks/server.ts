@@ -1,4 +1,4 @@
 import { setupServer } from 'msw/node';
-import { getSwaggerPetstoreMSW } from '../api/endpoints/petstoreFromFileSpecWithTransformer.msw';
+import { getSwaggerPetstoreMock } from '../api/endpoints/petstoreFromFileSpecWithTransformer.msw';
 
-export const server = setupServer(...getSwaggerPetstoreMSW());
+export const server = setupServer(...getSwaggerPetstoreMock());

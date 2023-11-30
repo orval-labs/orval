@@ -15,7 +15,8 @@
     "orval": "link:../../packages/orval/dist"
   },
   "dependencies": {
-    "@faker-js/faker": "^7.3.0",
-    "axios": "^0.26.1"
+    "@faker-js/faker": "^8.0.2",
+    "axios": "^0.26.1",
+    "msw": "^2.0.2"
   }
 }

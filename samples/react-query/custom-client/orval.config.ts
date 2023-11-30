@@ -9,6 +9,7 @@ export default defineConfig({
       schemas: 'src/api/model',
       client: 'react-query',
       mock: true,
+      prettier: true,
       override: {
         mutator: {
           path: './src/api/mutator/custom-client.ts',
@@ -18,17 +19,17 @@ export default defineConfig({
           listPets: {
             mock: {
               properties: () => ({
-                '[].id': () => faker.datatype.number({ min: 1, max: 99999 }),
+                '[].id': () => faker.number.int({ min: 1, max: 99999 }),
               }),
             },
           },
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -37,7 +38,7 @@ export default defineConfig({
         },
         mock: {
           properties: {
-            '/tag|name/': () => faker.name.lastName(),
+            '/tag|name/': () => faker.person.lastName(),
           },
         },
       },
