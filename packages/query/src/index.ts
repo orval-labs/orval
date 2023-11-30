@@ -41,7 +41,6 @@ import {
   isVue,
   makeRouteSafe,
   vueWrapTypeWithMaybeRef,
-  vueMakeRouteReactive,
   vueUnRefParams,
 } from './utils';
 
@@ -377,7 +376,6 @@ const generateQueryRequestFunction = (
 
   if (isVue(outputClient)) {
     props = vueWrapTypeWithMaybeRef(_props);
-    route = vueMakeRouteReactive(_route);
   }
 
   if (output?.urlEncodeParameters) {

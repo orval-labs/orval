@@ -115,10 +115,6 @@ export const wrapRouteParameters = (
   append: string,
 ): string => route.replaceAll(/\${(.+?)}/g, `\${${prepend}$1${append}}`);
 
-// Vue persist reactivity
-export const vueMakeRouteReactive = (route: string): string =>
-  wrapRouteParameters(route, 'unref(', ')');
-
 export const makeRouteSafe = (route: string): string =>
   wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
 

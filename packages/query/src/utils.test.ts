@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  makeRouteSafe,
-  vueMakeRouteReactive,
-  wrapRouteParameters,
-} from './utils';
+import { makeRouteSafe, wrapRouteParameters } from './utils';
 
 describe('wrapRouteParameters', () => {
   it('wraps parameters correctly', () => {
@@ -22,23 +18,6 @@ describe('wrapRouteParameters', () => {
 
   it('handles empty route', () => {
     const result = wrapRouteParameters('', 'prefix-', '-suffix');
-    expect(result).toBe('');
-  });
-});
-
-describe('vueMakeRouteReactive', () => {
-  it('makes Vue route parameters reactive', () => {
-    const result = vueMakeRouteReactive('/user/${id}/profile/${bla}');
-    expect(result).toBe('/user/${unref(id)}/profile/${unref(bla)}');
-  });
-
-  it('handles no parameters gracefully', () => {
-    const result = vueMakeRouteReactive('/user/profile');
-    expect(result).toBe('/user/profile');
-  });
-
-  it('handles empty route', () => {
-    const result = vueMakeRouteReactive('');
     expect(result).toBe('');
   });
 });
