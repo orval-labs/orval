@@ -4,33 +4,41 @@
  * @param {OpenAPIObject} schema
  * @return {OpenAPIObject}
  */
-module.exports = (inputSchema) => ({
-  ...inputSchema,
-  paths: Object.entries(inputSchema.paths).reduce(
-    (acc, [path, pathItem]) => ({
-      ...acc,
-      [`v{version}${path}`]: Object.entries(pathItem).reduce(
-        (pathItemAcc, [verb, operation]) => ({
-          ...pathItemAcc,
-          [verb]: {
-            ...operation,
-            parameters: [
-              ...(operation.parameters || []),
-              {
-                name: 'version',
-                in: 'path',
-                required: true,
-                schema: {
-                  type: 'number',
-                  default: 1,
-                },
-              },
-            ],
+module.exports = (inputSchema) => {
+  const transformedPaths = {};
+
+  Object.entries(inputSchema.paths).forEach(([path, pathItem]) => {
+    const transformedPathItem = {};
+
+    if (path === '/api/v1/user/logout') {
+      // for testing special case with no parameters
+      transformedPaths[path] = pathItem;
+      return;
+    }
+
+    Object.entries(pathItem).forEach(([verb, operation]) => {
+      transformedPathItem[verb] = {
+        ...operation,
+        parameters: [
+          ...(operation.parameters || []),
+          {
+            name: 'version',
+            in: 'path',
+            required: true,
+            schema: {
+              type: 'number',
+              default: 1,
+            },
           },
-        }),
-        {},
-      ),
-    }),
-    {},
-  ),
-});
+        ],
+      };
+    });
+
+    transformedPaths[`v{version}${path}`] = transformedPathItem;
+  });
+
+  return {
+    ...inputSchema,
+    paths: transformedPaths,
+  };
+};
