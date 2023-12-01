@@ -625,7 +625,7 @@ const getQueryOptionsDefinition = ({
     isMutatorHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>>, TError,${definitions ? `{${definitions}}` : 'TVariables'}, TContext>`;
+  }>>, TError,${definitions ? `{${definitions}}` : '{}'}, TContext>`;
 };
 
 const generateQueryArguments = ({
@@ -1356,7 +1356,6 @@ const generateQueryHook = async (
       : 'options';
 
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
-    ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
  ${
    isRequestOptions
@@ -1378,7 +1377,7 @@ const generateQueryHook = async (
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-      definitions ? `{${definitions}}` : 'TVariables'
+      definitions ? `{${definitions}}` : '{}'
     }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
@@ -1434,7 +1433,6 @@ ${mutationOptionsFn}
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
     )} = <TError = ${errorType},
-    ${!definitions ? `TVariables = void,` : ''}
     TContext = unknown>(${mutationArguments}) => {
 
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
