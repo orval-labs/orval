@@ -236,64 +236,46 @@ const getSchemaFormDataAndUrlEncoded = ({
   );
 
   const variableName = isUrlEncoded ? 'formUrlEncoded' : 'formData';
-  const form = isUrlEncoded
+  let form = isUrlEncoded
     ? `const ${variableName} = new URLSearchParams();\n`
     : `const ${variableName} = new FormData();\n`;
 
-  if (schema.type === 'object' && schema.properties) {
-    const formDataValues = Object.entries(schema.properties).reduce(
-      (acc, [key, value]) => {
-        const { schema: property } = resolveRef<SchemaObject>(value, context);
+  if (schema.type === 'object') {
+    if (schema.oneOf || schema.anyOf || schema.allOf) {
+      const combinedSchemas = schema.oneOf || schema.anyOf || schema.allOf;
 
-        let formDataValue = '';
-
-        const formatedKey = !keyword.isIdentifierNameES5(key)
-          ? `['${key}']`
-          : `.${key}`;
-
-        if (property.type === 'object') {
-          formDataValue = `${variableName}.append('${key}', JSON.stringify(${propName}${formatedKey}));\n`;
-        } else if (property.type === 'array') {
-          formDataValue = `${propName}${formatedKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
-        } else if (
-          property.type === 'number' ||
-          property.type === 'integer' ||
-          property.type === 'boolean'
-        ) {
-          formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey}.toString())\n`;
-        } else {
-          formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey})\n`;
-        }
-
-        const isRequired = schema.required?.includes(key);
-
-        if (property.nullable) {
-          if (isRequired) {
-            return (
-              acc +
-              `if(${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
-            );
-          }
-
-          return (
-            acc +
-            `if(${propName}${formatedKey} !== undefined && ${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
+      const combinedSchemasFormData = combinedSchemas!
+        .map((schema) => {
+          const { schema: combinedSchema, imports } = resolveRef<SchemaObject>(
+            schema,
+            context,
           );
-        }
 
-        if (isRequired) {
-          return acc + formDataValue;
-        }
+          return resolveSchemaPropertiesToFormData({
+            schema: combinedSchema,
+            variableName,
+            propName,
+            context,
+          });
+        })
+        .filter((x) => x)
+        .join('\n');
 
-        return (
-          acc +
-          `if(${propName}${formatedKey} !== undefined) {\n ${formDataValue} }\n`
-        );
-      },
-      '',
-    );
+      form += combinedSchemasFormData;
+    }
 
-    return `${form}${formDataValues}`;
+    if (schema.properties) {
+      const formDataValues = resolveSchemaPropertiesToFormData({
+        schema,
+        variableName,
+        propName,
+        context,
+      });
+
+      form += formDataValues;
+    }
+
+    return form;
   }
 
   if (schema.type === 'array') {
@@ -305,4 +287,70 @@ const getSchemaFormDataAndUrlEncoded = ({
   }
 
   return `${form}${variableName}.append('data', ${propName})\n`;
+};
+
+const resolveSchemaPropertiesToFormData = ({
+  schema,
+  variableName,
+  propName,
+  context,
+}: {
+  schema: SchemaObject;
+  variableName: string;
+  propName: string;
+  context: ContextSpecs;
+}) => {
+  const formDataValues = Object.entries(schema.properties ?? {}).reduce(
+    (acc, [key, value]) => {
+      const { schema: property } = resolveRef<SchemaObject>(value, context);
+
+      let formDataValue = '';
+
+      const formatedKey = !keyword.isIdentifierNameES5(key)
+        ? `['${key}']`
+        : `.${key}`;
+
+      if (property.type === 'object') {
+        formDataValue = `${variableName}.append('${key}', JSON.stringify(${propName}${formatedKey}));\n`;
+      } else if (property.type === 'array') {
+        formDataValue = `${propName}${formatedKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
+      } else if (
+        property.type === 'number' ||
+        property.type === 'integer' ||
+        property.type === 'boolean'
+      ) {
+        formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey}.toString())\n`;
+      } else {
+        formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey})\n`;
+      }
+
+      const isRequired = schema.required?.includes(key);
+
+      if (property.nullable) {
+        if (isRequired) {
+          return (
+            acc +
+            `if(${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
+          );
+        }
+
+        return (
+          acc +
+          `if(${propName}${formatedKey} !== undefined && ${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
+        );
+      }
+
+      if (isRequired) {
+        return acc + formDataValue;
+      }
+
+      return (
+        acc +
+        `if(${propName}${formatedKey} !== undefined) {\n ${formDataValue} }\n`
+      );
+    },
+    '',
+  );
+
+  return formDataValues;
 };
