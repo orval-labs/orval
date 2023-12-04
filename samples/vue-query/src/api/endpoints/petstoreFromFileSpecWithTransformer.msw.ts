@@ -60,4 +60,13 @@ export const getSwaggerPetstoreMock = () => [
       },
     });
   }),
+  http.post('*/api/v1/user/logout', async () => {
+    await delay(1000);
+    return new HttpResponse(null, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+  }),
 ];

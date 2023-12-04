@@ -7,11 +7,13 @@
     "prettier": "^3.0.3"
   },
   "scripts": {
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
+    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "test": "tsc --noEmit endpoints.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
     "axios": "^0.26.1",
+    "react": "^18.2.0",
     "react-query": "^3.34.19"
   }
 }

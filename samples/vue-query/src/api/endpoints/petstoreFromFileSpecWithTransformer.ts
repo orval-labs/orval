@@ -424,3 +424,63 @@ export const useShowPetById = <
 
   return query;
 };
+
+/**
+ * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/anymaniax/orval/issues/857#issuecomment-1835317990
+ */
+export const postApiV1UserLogout = () => {
+  return customInstance<void>({ url: `/api/v1/user/logout`, method: 'POST' });
+};
+
+export const getPostApiV1UserLogoutMutationOptions = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>,
+    TError,
+    {},
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postApiV1UserLogout>>,
+  TError,
+  {},
+  TContext
+> => {
+  const { mutation: mutationOptions } = options ?? {};
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>,
+    {}
+  > = () => {
+    return postApiV1UserLogout();
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PostApiV1UserLogoutMutationResult = NonNullable<
+  Awaited<ReturnType<typeof postApiV1UserLogout>>
+>;
+
+export type PostApiV1UserLogoutMutationError = unknown;
+
+/**
+ * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/anymaniax/orval/issues/857#issuecomment-1835317990
+ */
+export const usePostApiV1UserLogout = <
+  TError = unknown,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>,
+    TError,
+    {},
+    TContext
+  >;
+}) => {
+  const mutationOptions = getPostApiV1UserLogoutMutationOptions(options);
+
+  return useMutation(mutationOptions);
+};
