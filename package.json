@@ -37,7 +37,7 @@
     "@commitlint/config-conventional": "^18.4.3",
     "@faker-js/faker": "^8.3.1",
     "@release-it-plugins/workspaces": "^4.0.0",
-    "@release-it/conventional-changelog": "^5.0.0",
+    "@release-it/conventional-changelog": "^6.0.0",
     "@types/node": "^20.8.10",
     "@types/prettier": "^2.7.0",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
