@@ -16,7 +16,7 @@
   "dependencies": {
     "@orval/core": "6.21.0",
     "lodash.omitby": "^4.6.0",
-    "vitest": "^0.34.6"
+    "vitest": "^1.0.1"
   },
   "devDependencies": {
     "@types/lodash.omitby": "^4.6.7"
