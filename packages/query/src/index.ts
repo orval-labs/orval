@@ -1132,9 +1132,14 @@ const generateQueryHook = async (
 
   const isQuery =
     (Verbs.GET === verb &&
-      (override.query.useQuery || override.query.useInfinite)) ||
+      (override.query.useQuery ||
+        override.query.useSuspenseQuery ||
+        override.query.useInfinite ||
+        override.query.useSuspenseInfiniteQuery)) ||
     operationQueryOptions?.useInfinite ||
-    operationQueryOptions?.useQuery;
+    operationQueryOptions?.useSuspenseInfiniteQuery ||
+    operationQueryOptions?.useQuery ||
+    operationQueryOptions?.useSuspenseQuery;
 
   if (isQuery) {
     const queryKeyMutator = query.queryKey
@@ -1195,7 +1200,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...((!query?.useQuery && !query?.useInfinite) || query?.useQuery
+      ...(query?.useQuery
         ? [
             {
               name: operationName,
