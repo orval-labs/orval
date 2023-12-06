@@ -150,8 +150,8 @@ export default defineConfig({
   },
   formData: {
     output: {
-      target: '../generated/react-query/formData/endpoints.ts',
-      schemas: '../generated/react-query/formData/model',
+      target: '../generated/react-query/form-data/endpoints.ts',
+      schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
       mock: true,
       override: {
@@ -184,8 +184,8 @@ export default defineConfig({
   },
   formDataMutator: {
     output: {
-      target: '../generated/react-query/form-data/endpoints.ts',
-      schemas: '../generated/react-query/form-data/model',
+      target: '../generated/react-query/form-data-with-mutator/endpoints.ts',
+      schemas: '../generated/react-query/form-data-with-mutator/model',
       client: 'react-query',
       mock: true,
       override: {
