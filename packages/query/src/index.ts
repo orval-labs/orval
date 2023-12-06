@@ -111,6 +111,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'CreateQueryResult' },
       { name: 'CreateInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'InfiniteData' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -259,6 +260,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryKey' },
       { name: 'UseQueryReturnType' },
       { name: 'UseInfiniteQueryReturnType' },
+      { name: 'InfiniteData' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -325,8 +327,8 @@ const getPackageByQueryClient = (
     }
     case 'svelte-query': {
       return (
-        packageJson?.dependencies?.['@sveltestack/svelte-query'] ??
-        packageJson?.devDependencies?.['@sveltestack/svelte-query']
+        packageJson?.dependencies?.['@tanstack/svelte-query'] ??
+        packageJson?.devDependencies?.['@tanstack/svelte-query']
       );
     }
     case 'vue-query': {
@@ -625,7 +627,7 @@ const getQueryOptionsDefinition = ({
     isMutatorHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
       : `typeof ${operationName}`
-  }>>, TError,${definitions ? `{${definitions}}` : '{}'}, TContext>`;
+  }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
 };
 
 const generateQueryArguments = ({
@@ -1382,7 +1384,7 @@ const generateQueryHook = async (
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-      definitions ? `{${definitions}}` : '{}'
+      definitions ? `{${definitions}}` : 'void'
     }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
