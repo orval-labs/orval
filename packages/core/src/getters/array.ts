@@ -24,9 +24,11 @@ export const getArray = ({
       context,
     });
     return {
-      value: resolvedObject.value.includes('|')
-        ? `(${resolvedObject.value})[]`
-        : `${resolvedObject.value}[]`,
+      value: `${schema.readOnly === true ? 'readonly ' : ''}${
+        resolvedObject.value.includes('|')
+          ? `(${resolvedObject.value})[]`
+          : `${resolvedObject.value}[]`
+      }`,
       imports: resolvedObject.imports,
       schemas: resolvedObject.schemas,
       isEnum: false,
