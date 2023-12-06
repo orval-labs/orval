@@ -244,6 +244,8 @@ const getSchemaFormDataAndUrlEncoded = ({
     if (schema.oneOf || schema.anyOf || schema.allOf) {
       const combinedSchemas = schema.oneOf || schema.anyOf || schema.allOf;
 
+      const shouldCast = !!schema.oneOf || !!schema.anyOf;
+
       const combinedSchemasFormData = combinedSchemas!
         .map((schema) => {
           const { schema: combinedSchema, imports } = resolveRef<SchemaObject>(
@@ -254,7 +256,7 @@ const getSchemaFormDataAndUrlEncoded = ({
           return resolveSchemaPropertiesToFormData({
             schema: combinedSchema,
             variableName,
-            propName,
+            propName: shouldCast ? `(${propName} as any)` : propName,
             context,
           });
         })
@@ -310,33 +312,32 @@ const resolveSchemaPropertiesToFormData = ({
         ? `['${key}']`
         : `.${key}`;
 
+      const valueKey = `${propName}${formatedKey}`;
+
       if (property.type === 'object') {
-        formDataValue = `${variableName}.append('${key}', JSON.stringify(${propName}${formatedKey}));\n`;
+        formDataValue = `${variableName}.append('${key}', JSON.stringify(${valueKey}));\n`;
       } else if (property.type === 'array') {
-        formDataValue = `${propName}${formatedKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
+        formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
       } else if (
         property.type === 'number' ||
         property.type === 'integer' ||
         property.type === 'boolean'
       ) {
-        formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey}.toString())\n`;
+        formDataValue = `${variableName}.append('${key}', ${valueKey}.toString())\n`;
       } else {
-        formDataValue = `${variableName}.append('${key}', ${propName}${formatedKey})\n`;
+        formDataValue = `${variableName}.append('${key}', ${valueKey})\n`;
       }
 
       const isRequired = schema.required?.includes(key);
 
       if (property.nullable) {
         if (isRequired) {
-          return (
-            acc +
-            `if(${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
-          );
+          return acc + `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
         }
 
         return (
           acc +
-          `if(${propName}${formatedKey} !== undefined && ${propName}${formatedKey} !== null) {\n ${formDataValue} }\n`
+          `if(${valueKey} !== undefined && ${valueKey} !== null) {\n ${formDataValue} }\n`
         );
       }
 
@@ -344,10 +345,7 @@ const resolveSchemaPropertiesToFormData = ({
         return acc + formDataValue;
       }
 
-      return (
-        acc +
-        `if(${propName}${formatedKey} !== undefined) {\n ${formDataValue} }\n`
-      );
+      return acc + `if(${valueKey} !== undefined) {\n ${formDataValue} }\n`;
     },
     '',
   );
