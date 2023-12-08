@@ -79,6 +79,7 @@ export type NormalizedOverrideOutput = {
   components: {
     schemas: {
       suffix: string;
+      itemSuffix: string;
     };
     responses: {
       suffix: string;
@@ -285,6 +286,7 @@ export type OverrideOutput = {
   components?: {
     schemas?: {
       suffix?: string;
+      itemSuffix?: string;
     };
     responses?: {
       suffix?: string;
