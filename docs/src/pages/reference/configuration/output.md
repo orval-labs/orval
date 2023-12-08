@@ -727,6 +727,14 @@ Type: `Boolean`.
 
 Use to remove the generation of the abort signal provided by <a href="https://react-query.tanstack.com/" target="_blank">query</a>
 
+##### shouldExportMutatorHooks
+
+Type: `Boolean`.
+
+Default Value: `true`.
+
+Use to stop the export of mutator hooks. Useful if you want to rely soley on useQuery, useSuspenseQuery, etc.
+
 #### angular
 
 Type: `Object`.

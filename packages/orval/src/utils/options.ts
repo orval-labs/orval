@@ -201,6 +201,7 @@ export const normalizeOptions = async (
           useQuery: true,
           useMutation: true,
           signal: true,
+          shouldExportMutatorHooks: true,
           ...normalizeQueryOptions(outputOptions.override?.query, workspace),
         },
         swr: {
@@ -439,6 +440,9 @@ const normalizeQueryOptions = (
             queryOptions?.mutationOptions,
           ),
         }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
+      ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
       : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
