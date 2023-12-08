@@ -20,7 +20,7 @@ export const getScalar = ({
   item: SchemaObject;
   name?: string;
   context: ContextSpecs;
-  itemSuffix?: string;
+  itemSuffix: string;
 }): ScalarValue => {
   const nullable = item.nullable ? ' | null' : '';
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
@@ -161,6 +161,7 @@ export const getScalar = ({
         name,
         context,
         nullable,
+        itemSuffix,
       });
       return { value: value, ...rest };
     }

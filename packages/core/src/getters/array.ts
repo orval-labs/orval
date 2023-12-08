@@ -12,12 +12,12 @@ export const getArray = ({
   schema,
   name,
   context,
-  itemSuffix = 'Item',
+  itemSuffix,
 }: {
   schema: SchemaObject;
   name?: string;
   context: ContextSpecs;
-  itemSuffix?: string;
+  itemSuffix: string;
 }): ScalarValue => {
   if (schema.items) {
     const resolvedObject = resolveObject({

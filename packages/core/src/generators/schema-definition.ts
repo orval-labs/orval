@@ -15,7 +15,7 @@ export const generateSchemasDefinition = (
   schemas: SchemasObject = {},
   context: ContextSpecs,
   suffix: string,
-  itemSuffix?: string,
+  itemSuffix: string,
 ): GeneratorSchema[] => {
   if (isEmpty(schemas)) {
     return [];

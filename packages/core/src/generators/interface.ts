@@ -22,12 +22,13 @@ export const generateInterface = ({
   schema: SchemaObject;
   context: ContextSpecs;
   suffix: string;
-  itemSuffix?: string;
+  itemSuffix: string;
 }) => {
   const scalar = getScalar({
     item: schema,
     name,
     context,
+    itemSuffix,
   });
   const isEmptyObject = scalar.value === '{}';
 
