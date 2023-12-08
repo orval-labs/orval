@@ -124,7 +124,6 @@ const getApiSchemas = ({
         : (spec.components?.schemas as SchemasObject),
       context,
       output.override.components.schemas.suffix,
-      output.override.components.schemas.itemSuffix,
     );
 
     const responseDefinition = generateComponentDefinition(

@@ -63,14 +63,12 @@ export const combineSchemas = ({
   separator,
   context,
   nullable,
-  itemSuffix,
 }: {
   name?: string;
   schema: SchemaObject;
   separator: Separator;
   context: ContextSpecs;
   nullable: string;
-  itemSuffix: string;
 }): ScalarValue => {
   const items = schema[separator] ?? [];
 
@@ -118,12 +116,7 @@ export const combineSchemas = ({
   let resolvedValue;
 
   if (schema.properties) {
-    resolvedValue = getScalar({
-      item: omit(schema, separator),
-      name,
-      context,
-      itemSuffix,
-    });
+    resolvedValue = getScalar({ item: omit(schema, separator), name, context });
   }
 
   const value = combineValues({ resolvedData, separator, resolvedValue });

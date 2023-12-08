@@ -16,19 +16,16 @@ export const generateInterface = ({
   schema,
   context,
   suffix,
-  itemSuffix,
 }: {
   name: string;
   schema: SchemaObject;
   context: ContextSpecs;
   suffix: string;
-  itemSuffix: string;
 }) => {
   const scalar = getScalar({
     item: schema,
     name,
     context,
-    itemSuffix,
   });
   const isEmptyObject = scalar.value === '{}';
 

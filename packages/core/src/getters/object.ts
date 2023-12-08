@@ -16,13 +16,11 @@ export const getObject = ({
   name,
   context,
   nullable,
-  itemSuffix,
 }: {
   item: SchemaObject;
   name?: string;
   context: ContextSpecs;
   nullable: string;
-  itemSuffix: string;
 }): ScalarValue => {
   if (isReference(item)) {
     const { name, specKey } = getRefInfo(item.$ref, context);
@@ -48,7 +46,6 @@ export const getObject = ({
       separator,
       context,
       nullable,
-      itemSuffix,
     });
   }
 
@@ -59,7 +56,6 @@ export const getObject = ({
       separator: 'anyOf',
       context,
       nullable,
-      itemSuffix,
     });
   }
 

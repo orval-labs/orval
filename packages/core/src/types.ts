@@ -78,7 +78,6 @@ export type NormalizedOverrideOutput = {
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
   components: {
     schemas: {
-      itemSuffix: string;
       suffix: string;
     };
     responses: {
@@ -285,7 +284,6 @@ export type OverrideOutput = {
   paramsSerializerOptions?: ParamsSerializerOptions;
   components?: {
     schemas?: {
-      itemSuffix?: string;
       suffix?: string;
     };
     responses?: {
