@@ -182,6 +182,8 @@ export const normalizeOptions = async (
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,
+            itemSuffix:
+              outputOptions.override?.components?.schemas?.itemSuffix ?? 'Item',
             ...(outputOptions.override?.components?.schemas ?? {}),
           },
           responses: {
