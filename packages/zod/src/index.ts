@@ -214,14 +214,13 @@ const generateZodValidationSchemaDefinition = (
   }
 
   if (schema.enum && type !== 'number') {
-    functions.push([
-      'enum',
-      [
-        `[${schema.enum
-          .map((value) => (isString(value) ? `'${escape(value)}'` : `${value}`))
-          .join(', ')}]`,
-      ],
-    ]);
+    const enumValues = schema.enum.map((value) =>
+      isString(value) ? `'${escape(value)}'` : `${value}`,
+    );
+    if (!schema.required) {
+      enumValues.push(`""`);
+    }
+    functions.push(['enum', [`[${enumValues.join(', ')}]`]]);
   }
 
   if (!required && nullable) {
