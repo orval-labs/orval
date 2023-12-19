@@ -220,7 +220,7 @@ const generateZodValidationSchemaDefinition = (
     if (!schema.required) {
       enumValues.push(`""`);
     }
-    functions.push(["enum", [`[${enumValues.join(", ")}]`]]);
+    functions.push(['enum', [`[${enumValues.join(', ')}]`]]);
   }
 
   if (!required && nullable) {
