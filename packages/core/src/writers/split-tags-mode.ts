@@ -53,12 +53,13 @@ export const writeSplitTagsMode = async ({
             upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : '../' + filename + '.schemas';
 
-        const importsForBuilder = output.schemas
-          ? uniqBy(imports, 'name').map((i) => ({
-              exports: [i],
-              dependency: upath.join(relativeSchemasPath, camel(i.name)),
-            }))
-          : [{ exports: imports, dependency: relativeSchemasPath }];
+        const importsForBuilder =
+          output.schemas && !output.indexFiles
+            ? uniqBy(imports, 'name').map((i) => ({
+                exports: [i],
+                dependency: upath.join(relativeSchemasPath, camel(i.name)),
+              }))
+            : [{ exports: imports, dependency: relativeSchemasPath }];
 
         implementationData += builder.imports({
           client: output.client,
