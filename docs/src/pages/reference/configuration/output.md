@@ -23,7 +23,7 @@ module.exports = {
 
 Type: `String | Function`.
 
-Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`, `vue-query`, `zod`.
+Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`.
 
 Default Value: `axios-functions`.
 
@@ -37,7 +37,7 @@ module.exports = {
 };
 ```
 
-if you want you can provide a function to extend or create you custom client generator and this function receive a [GeneratorClients](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L148) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L140).
+if you want you can provide a function to extend or create you custom client generator and this function receive a [[GeneratorClients](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156)](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L652).
 
 ### schemas
 
