@@ -103,6 +103,7 @@ module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
     },
   },
 };
@@ -111,22 +112,21 @@ module.exports = {
 ```
 my-app
 └── src
-    └── api
-        └── endpoints
-            └── petstore.ts
+    └── petstore.ts
 ```
 
 Here a single file petstore will be created in src with your specification implementation.
 
 #### Value: split
 
-Use to have definition, implementation, schemas, mock in different files
+Use to have implementation, schemas, mock in different files
 
 ```js
 module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
       mode: 'split',
     },
   },
@@ -136,7 +136,6 @@ module.exports = {
 ```
 my-app
 └── src
-    ├── petstore.definition.ts
     ├── petstore.schemas.ts
     ├── petstore.msw.ts
     └── petstore.ts
@@ -144,7 +143,6 @@ my-app
 
 Here depending on the configuration, you will have multiple files named petstore with a prefix created in src.
 
-- petstore.definition.ts
 - petstore.schemas.ts
 - petstore.ts
 - petstore.msw.ts
@@ -162,6 +160,7 @@ module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
       mode: 'tags',
     },
   },
@@ -190,6 +189,7 @@ module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
       mode: 'tags-split',
     },
   },
@@ -201,8 +201,6 @@ my-app
 └── src
     ├── petstore.schemas.ts
     └── pets
-        ├── petstore.ts
-        ├── petstore.definition.ts
         ├── petstore.msw.ts
         └── petstore.ts
 ```
