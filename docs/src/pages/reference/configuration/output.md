@@ -209,6 +209,27 @@ my-app
 
 Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tag.
 
+### indexFiles
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to true.
+
+Specify whether to place `index.ts` in `schemas` generation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      schemas: 'src/gen/model',
+      indexFiles: false,
+    },
+  },
+};
+```
+
 ### title
 
 Type: `String` or `Function`.
