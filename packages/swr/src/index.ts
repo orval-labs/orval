@@ -14,6 +14,7 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterParams,
+  GetterProp,
   GetterProps,
   GetterPropType,
   GetterResponse,
@@ -235,6 +236,12 @@ const generateSwrImplementation = ({
   doc?: string;
 }) => {
   const swrProps = toObjectString(props, 'implementation');
+
+  const hasParamReservedWord = props.some(
+    (prop: GetterProp) => prop.name === 'query',
+  );
+  const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
+
   const httpFunctionProps = swrProperties;
 
   const swrKeyImplementation = `const isEnabled = swrOptions?.enabled !== false${
@@ -291,7 +298,7 @@ ${doc}export const ${camel(
       : ''
   });
 
-  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
+  const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
     swrOptions.options
       ? `{
     ${stringify(swrOptions.options)?.slice(1, -1)}
@@ -302,7 +309,7 @@ ${doc}export const ${camel(
 
   return {
     swrKey,
-    ...query
+    ...${queryResultVarName}
   }
 }\n`;
 };
