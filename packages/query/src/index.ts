@@ -14,6 +14,7 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterParams,
+  GetterProp,
   GetterProps,
   GetterPropType,
   GetterResponse,
@@ -963,6 +964,11 @@ const generateQueryImplementation = ({
 
   const queryOptionsVarName = isRequestOptions ? 'queryOptions' : 'options';
 
+  const hasParamReservedWord = props.some(
+    (prop: GetterProp) => prop.name === 'query',
+  );
+  const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
+
   const infiniteParam =
     queryParams && queryParam
       ? `, ${queryParams?.schema.name}['${queryParam}']`
@@ -1056,15 +1062,15 @@ ${doc}export const ${camel(
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  const query = ${camel(
+  const ${queryResultVarName} = ${camel(
     `${operationPrefix}-${type}`,
   )}(${queryOptionsVarName}) as ${returnType};
 
-  query.queryKey = ${queryOptionsVarName}.queryKey ${
+  ${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey ${
     isVue(outputClient) ? 'as QueryKey' : ''
   };
 
-  return query;
+  return ${queryResultVarName};
 }\n
 ${
   usePrefetch
