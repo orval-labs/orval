@@ -378,24 +378,25 @@ const generateSwrHook = (
 
   const doc = jsDoc({ summary, deprecated });
 
-  return `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+  const swrKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     queryParams ? ', ...(params ? [params]: [])' : ''
   }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+  `;
 
-    ${generateSwrImplementation({
-      operationName,
-      swrKeyFnName,
-      swrProperties,
-      swrKeyProperties,
-      params,
-      props,
-      mutator,
-      isRequestOptions,
-      response,
-      swrOptions: override.swr,
-      doc,
-    })}
-`;
+  const swrImplementation = generateSwrImplementation({
+    operationName,
+    swrKeyFnName,
+    swrProperties,
+    swrKeyProperties,
+    params,
+    props,
+    mutator,
+    isRequestOptions,
+    response,
+    swrOptions: override.swr,
+    doc,
+  });
+  return swrKeyFn + swrImplementation;
 };
 
 export const generateSwrHeader: ClientHeaderBuilder = ({
