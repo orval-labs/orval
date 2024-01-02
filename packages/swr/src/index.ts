@@ -70,6 +70,17 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const SWR_INFINITE_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useSWRInfinite', values: true, default: true },
+      { name: 'SWRInfiniteConfiguration' },
+      { name: 'SWRInfiniteKeyLoader' },
+    ],
+    dependency: 'swr/infinite',
+  },
+];
+
 export const getSwrDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
@@ -77,6 +88,7 @@ export const getSwrDependencies: ClientDependenciesBuilder = (
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
+  ...SWR_INFINITE_DEPENDENCIES,
 ];
 
 const generateSwrRequestFunction = (
