@@ -376,12 +376,26 @@ const generateSwrHook = (
     'implementation',
   );
 
+  const swrKeyLoaderFnName = camel(`get-${operationName}-infinite-key-loader`);
+  const swrKeyLoader = override.swr.useInfinite
+    ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
+  return (_: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
+    if (previousPageData && !previousPageData.data) return null
+
+    return [\`${route}\`${queryParams ? ', ...(params ? [params]: [])' : ''}${
+        body.implementation ? `, ${body.implementation}` : ''
+      }] as const;
+  }
+}\n`
+    : '';
+
   const doc = jsDoc({ summary, deprecated });
 
-  const swrKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+  const swrKeyFn = `
+export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     queryParams ? ', ...(params ? [params]: [])' : ''
   }${body.implementation ? `, ${body.implementation}` : ''}] as const;
-  `;
+\n`;
 
   const swrImplementation = generateSwrImplementation({
     operationName,
@@ -396,7 +410,7 @@ const generateSwrHook = (
     swrOptions: override.swr,
     doc,
   });
-  return swrKeyFn + swrImplementation;
+  return swrKeyFn + swrKeyLoader + swrImplementation;
 };
 
 export const generateSwrHeader: ClientHeaderBuilder = ({
