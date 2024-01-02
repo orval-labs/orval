@@ -25,6 +25,7 @@ import {
   Verbs,
   VERBS_WITH_BODY,
   jsDoc,
+  SwrOptions,
 } from '@orval/core';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -232,7 +233,7 @@ const generateSwrImplementation = ({
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
-  swrOptions: { options?: any };
+  swrOptions: SwrOptions;
   doc?: string;
 }) => {
   const swrProps = toObjectString(props, 'implementation');

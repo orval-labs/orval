@@ -93,9 +93,7 @@ export type NormalizedOverrideOutput = {
   };
   query: NormalizedQueryOptions;
   angular: Required<AngularOptions>;
-  swr: {
-    options?: any;
-  };
+  swr: SwrOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -299,9 +297,7 @@ export type OverrideOutput = {
     };
   };
   query?: QueryOptions;
-  swr?: {
-    options?: any;
-  };
+  swr?: SwrOptions;
   angular?: AngularOptions;
   operationName?: (
     operation: OperationObject,
@@ -358,6 +354,10 @@ export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
 };
 
+export type SwrOptions = {
+  options?: any;
+};
+
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
 
 type InputTransformer = string | InputTransformerFn;
@@ -375,9 +375,7 @@ export type OperationOptions = {
   };
   query?: QueryOptions;
   angular?: Required<AngularOptions>;
-  swr?: {
-    options?: any;
-  };
+  swr?: SwrOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
