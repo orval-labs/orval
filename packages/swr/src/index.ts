@@ -291,13 +291,13 @@ export type ${pascal(operationName)}InfiniteError = ${errorType}
 
 ${doc}export const ${camel(
     `use-${operationName}-infinite`,
-  )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
+  )} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
     operationName,
     mutator,
     isRequestOptions,
     isInfinite: true,
-  })}\n  ) => {
-
+  })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${
@@ -345,15 +345,13 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
 export type ${pascal(operationName)}QueryError = ${errorType}
 
-${doc}export const ${camel(
-    `use-${operationName}`,
-  )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
+${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
     operationName,
     mutator,
     isRequestOptions,
     isInfinite: false,
-  })}\n  ) => {
-
+  })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${
