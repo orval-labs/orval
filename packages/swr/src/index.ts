@@ -283,21 +283,22 @@ const generateSwrImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
-  const useSWRInfiniteImplementation = `
+  const useSWRInfiniteImplementation = swrOptions.useInfinite
+    ? `
 export type ${pascal(
-    operationName,
-  )}InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+        operationName,
+      )}InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
 export type ${pascal(operationName)}InfiniteError = ${errorType}
 
 ${doc}export const ${camel(
-    `use-${operationName}-infinite`,
-  )} = <TError = ${errorType}>(
+        `use-${operationName}-infinite`,
+      )} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrArguments({
-    operationName,
-    mutator,
-    isRequestOptions,
-    isInfinite: true,
-  })}) => {
+        operationName,
+        mutator,
+        isRequestOptions,
+        isInfinite: true,
+      })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${
@@ -313,31 +314,32 @@ ${doc}export const ${camel(
   ${enabledImplementation}
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
-    httpFunctionProps ? ', ' : ''
-  }${
-    isRequestOptions
-      ? !mutator
-        ? `axiosOptions`
-        : mutator?.hasSecondArg
-        ? 'requestOptions'
-        : ''
-      : ''
-  });
+        httpFunctionProps ? ', ' : ''
+      }${
+        isRequestOptions
+          ? !mutator
+            ? `axiosOptions`
+            : mutator?.hasSecondArg
+            ? 'requestOptions'
+            : ''
+          : ''
+      });
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
-    swrOptions.options
-      ? `{
+        swrOptions.options
+          ? `{
     ${stringify(swrOptions.options)?.slice(1, -1)}
     ...swrOptions
   }`
-      : 'swrOptions'
-  })
+          : 'swrOptions'
+      })
 
   return {
     swrKeyLoader,
     ...${queryResultVarName}
   }
-}\n`;
+}\n`
+    : '';
 
   const useSwrImplementation = `
 export type ${pascal(
