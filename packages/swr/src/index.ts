@@ -272,7 +272,7 @@ const generateSwrImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
-  return `
+  const useSwrImplementation = `
 export type ${pascal(
     operationName,
   )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
@@ -325,6 +325,8 @@ ${doc}export const ${camel(
     ...${queryResultVarName}
   }
 }\n`;
+
+  return useSwrImplementation;
 };
 
 const generateSwrHook = (
