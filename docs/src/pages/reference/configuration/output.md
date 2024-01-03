@@ -778,6 +778,37 @@ Default Value: `'root'`.
 
 Can be used to set the value of `providedIn` on the generated Angular services. If `false`, no `providedIn` will be set. If `true` or not specified, it will fall back to the default value: `root`.
 
+#### swr
+
+Type: `Object`.
+
+Give options to the generated `swr` client. It is also possible to extend the generated functions.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        swr: {
+          useInfinite: true,
+          options: {
+            dedupingInterval: 10000,
+          },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### useInfinite
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
+
 #### mock
 
 Type: `Object`.

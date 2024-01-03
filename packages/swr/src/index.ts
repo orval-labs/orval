@@ -70,6 +70,17 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const SWR_INFINITE_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useSWRInfinite', values: true, default: true },
+      { name: 'SWRInfiniteConfiguration' },
+      { name: 'SWRInfiniteKeyLoader' },
+    ],
+    dependency: 'swr/infinite',
+  },
+];
+
 export const getSwrDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
@@ -77,6 +88,7 @@ export const getSwrDependencies: ClientDependenciesBuilder = (
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
+  ...SWR_INFINITE_DEPENDENCIES,
 ];
 
 const generateSwrRequestFunction = (
@@ -191,12 +203,20 @@ const generateSwrArguments = ({
   operationName,
   mutator,
   isRequestOptions,
+  isInfinite,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
+  isInfinite: boolean;
 }) => {
-  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & { swrKey?: Key, enabled?: boolean }`;
+  const configType = isInfinite
+    ? 'SWRInfiniteConfiguration'
+    : 'SWRConfiguration';
+  const optionsType = isInfinite
+    ? '{ swrKeyLoader?: SWRInfiniteKeyLoader, enabled?: boolean }'
+    : '{ swrKey?: Key, enabled?: boolean }';
+  const definition = `${configType}<Awaited<ReturnType<typeof ${operationName}>>, TError> & ${optionsType}`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -214,6 +234,7 @@ const generateSwrArguments = ({
 const generateSwrImplementation = ({
   operationName,
   swrKeyFnName,
+  swrKeyLoaderFnName,
   swrProperties,
   swrKeyProperties,
   params,
@@ -227,6 +248,7 @@ const generateSwrImplementation = ({
   isRequestOptions: boolean;
   operationName: string;
   swrKeyFnName: string;
+  swrKeyLoaderFnName: string;
   swrProperties: string;
   swrKeyProperties: string;
   params: GetterParams;
@@ -245,12 +267,13 @@ const generateSwrImplementation = ({
 
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = `const isEnabled = swrOptions?.enabled !== false${
+  const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
     params.length
       ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
       : ''
-  }
-    const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+  }`;
+  const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+  const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
@@ -260,20 +283,22 @@ const generateSwrImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
-  return `
+  const useSWRInfiniteImplementation = swrOptions.useInfinite
+    ? `
 export type ${pascal(
-    operationName,
-  )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}QueryError = ${errorType}
+        operationName,
+      )}InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+export type ${pascal(operationName)}InfiniteError = ${errorType}
 
 ${doc}export const ${camel(
-    `use-${operationName}`,
-  )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
-    operationName,
-    mutator,
-    isRequestOptions,
-  })}\n  ) => {
-
+        `use-${operationName}-infinite`,
+      )} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
+        operationName,
+        mutator,
+        isRequestOptions,
+        isInfinite: true,
+      })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${
@@ -286,6 +311,62 @@ ${doc}export const ${camel(
       : ''
   }
 
+  ${enabledImplementation}
+  ${swrKeyLoaderImplementation}
+  const swrFn = () => ${operationName}(${httpFunctionProps}${
+        httpFunctionProps ? ', ' : ''
+      }${
+        isRequestOptions
+          ? !mutator
+            ? `axiosOptions`
+            : mutator?.hasSecondArg
+            ? 'requestOptions'
+            : ''
+          : ''
+      });
+
+  const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
+        swrOptions.options
+          ? `{
+    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ...swrOptions
+  }`
+          : 'swrOptions'
+      })
+
+  return {
+    swrKeyLoader,
+    ...${queryResultVarName}
+  }
+}\n`
+    : '';
+
+  const useSwrImplementation = `
+export type ${pascal(
+    operationName,
+  )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+export type ${pascal(operationName)}QueryError = ${errorType}
+
+${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
+    operationName,
+    mutator,
+    isRequestOptions,
+    isInfinite: false,
+  })}) => {
+  ${
+    isRequestOptions
+      ? `const {swr: swrOptions${
+          !mutator
+            ? `, axios: axiosOptions`
+            : mutator?.hasSecondArg
+            ? ', request: requestOptions'
+            : ''
+        }} = options ?? {}`
+      : ''
+  }
+
+  ${enabledImplementation}
   ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
@@ -313,6 +394,8 @@ ${doc}export const ${camel(
     ...${queryResultVarName}
   }
 }\n`;
+
+  return useSWRInfiniteImplementation + useSwrImplementation;
 };
 
 const generateSwrHook = (
@@ -364,26 +447,42 @@ const generateSwrHook = (
     'implementation',
   );
 
+  const swrKeyLoaderFnName = camel(`get-${operationName}-infinite-key-loader`);
+  const swrKeyLoader = override.swr.useInfinite
+    ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
+  return (_: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
+    if (previousPageData && !previousPageData.data) return null
+
+    return [\`${route}\`${queryParams ? ', ...(params ? [params]: [])' : ''}${
+        body.implementation ? `, ${body.implementation}` : ''
+      }] as const;
+  }
+}\n`
+    : '';
+
   const doc = jsDoc({ summary, deprecated });
 
-  return `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+  const swrKeyFn = `
+export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     queryParams ? ', ...(params ? [params]: [])' : ''
   }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+\n`;
 
-    ${generateSwrImplementation({
-      operationName,
-      swrKeyFnName,
-      swrProperties,
-      swrKeyProperties,
-      params,
-      props,
-      mutator,
-      isRequestOptions,
-      response,
-      swrOptions: override.swr,
-      doc,
-    })}
-`;
+  const swrImplementation = generateSwrImplementation({
+    operationName,
+    swrKeyFnName,
+    swrKeyLoaderFnName,
+    swrProperties,
+    swrKeyProperties,
+    params,
+    props,
+    mutator,
+    isRequestOptions,
+    response,
+    swrOptions: override.swr,
+    doc,
+  });
+  return swrKeyFn + swrKeyLoader + swrImplementation;
 };
 
 export const generateSwrHeader: ClientHeaderBuilder = ({
