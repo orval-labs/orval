@@ -267,19 +267,13 @@ const generateSwrImplementation = ({
 
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = `const isEnabled = swrOptions?.enabled !== false${
+  const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
     params.length
       ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
       : ''
-  }
-    const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
-
-  const swrKeyLoaderImplementation = `const isEnabled = swrOptions?.enabled !== false${
-    params.length
-      ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
-      : ''
-  }
-    const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
+  }`;
+  const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+  const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
@@ -316,6 +310,7 @@ ${doc}export const ${camel(
       : ''
   }
 
+  ${enabledImplementation}
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
@@ -371,6 +366,7 @@ ${doc}export const ${camel(
       : ''
   }
 
+  ${enabledImplementation}
   ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
