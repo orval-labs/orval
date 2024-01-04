@@ -428,10 +428,6 @@ const generateSwrHook = (
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
 
-  if (verb !== Verbs.GET) {
-    return '';
-  }
-
   const swrProperties = props
     .map((param) => {
       if (param.type === GetterPropType.NAMED_PATH_PARAMS)
@@ -453,48 +449,62 @@ const generateSwrHook = (
     })
     .join(',');
 
-  const swrKeyFnName = camel(`get-${operationName}-key`);
   const queryKeyProps = toObjectString(
     props.filter((prop) => prop.type !== GetterPropType.HEADER),
     'implementation',
   );
 
-  const swrKeyLoaderFnName = camel(`get-${operationName}-infinite-key-loader`);
-  const swrKeyLoader = override.swr.useInfinite
-    ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
+  const doc = jsDoc({ summary, deprecated });
+
+  if (verb !== Verbs.GET) {
+    const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
+
+    const swrMutationKeyFn = `
+export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+      queryParams ? ', ...(params ? [params]: [])' : ''
+    }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+\n`;
+
+    return swrMutationKeyFn;
+  } else {
+    const swrKeyFnName = camel(`get-${operationName}-key`);
+    const swrKeyFn = `
+export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+      queryParams ? ', ...(params ? [params]: [])' : ''
+    }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+\n`;
+    const swrKeyLoaderFnName = camel(
+      `get-${operationName}-infinite-key-loader`,
+    );
+    const swrKeyLoader = override.swr.useInfinite
+      ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
   return (_: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
     if (previousPageData && !previousPageData.data) return null
 
     return [\`${route}\`${queryParams ? ', ...(params ? [params]: [])' : ''}${
-        body.implementation ? `, ${body.implementation}` : ''
-      }] as const;
+          body.implementation ? `, ${body.implementation}` : ''
+        }] as const;
   }
 }\n`
-    : '';
+      : '';
 
-  const doc = jsDoc({ summary, deprecated });
+    const swrImplementation = generateSwrImplementation({
+      operationName,
+      swrKeyFnName,
+      swrKeyLoaderFnName,
+      swrProperties,
+      swrKeyProperties,
+      params,
+      props,
+      mutator,
+      isRequestOptions,
+      response,
+      swrOptions: override.swr,
+      doc,
+    });
 
-  const swrKeyFn = `
-export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
-    queryParams ? ', ...(params ? [params]: [])' : ''
-  }${body.implementation ? `, ${body.implementation}` : ''}] as const;
-\n`;
-
-  const swrImplementation = generateSwrImplementation({
-    operationName,
-    swrKeyFnName,
-    swrKeyLoaderFnName,
-    swrProperties,
-    swrKeyProperties,
-    params,
-    props,
-    mutator,
-    isRequestOptions,
-    response,
-    swrOptions: override.swr,
-    doc,
-  });
-  return swrKeyFn + swrKeyLoader + swrImplementation;
+    return swrKeyFn + swrKeyLoader + swrImplementation;
+  }
 };
 
 export const generateSwrHeader: ClientHeaderBuilder = ({
