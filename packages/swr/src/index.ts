@@ -81,6 +81,17 @@ const SWR_INFINITE_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const SWR_MUTATION_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useSWRMutation', values: true, default: true },
+      { name: 'SWRMutationConfiguration' },
+      { name: 'SWRMutationKey' },
+    ],
+    dependency: 'swr/mutation',
+  },
+];
+
 export const getSwrDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
@@ -89,6 +100,7 @@ export const getSwrDependencies: ClientDependenciesBuilder = (
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
   ...SWR_INFINITE_DEPENDENCIES,
+  ...SWR_MUTATION_DEPENDENCIES,
 ];
 
 const generateSwrRequestFunction = (
