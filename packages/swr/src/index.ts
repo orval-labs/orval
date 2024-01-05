@@ -65,6 +65,7 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useSwr', values: true, default: true },
       { name: 'SWRConfiguration' },
       { name: 'Key' },
+      { name: 'Arguments' },
     ],
     dependency: 'swr',
   },
@@ -243,6 +244,22 @@ const generateSwrArguments = ({
   } }\n`;
 };
 
+const generateSwrMutationArguments = ({
+  operationName,
+  isRequestOptions,
+}: {
+  operationName: string;
+  isRequestOptions: boolean;
+}) => {
+  const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, Arguments, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
+
+  if (!isRequestOptions) {
+    return `swrOptions?: ${definition}`;
+  }
+
+  return `options?: { swr?: ${definition}}\n`;
+};
+
 const generateSwrImplementation = ({
   operationName,
   swrKeyFnName,
@@ -410,6 +427,81 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   return useSWRInfiniteImplementation + useSwrImplementation;
 };
 
+const generateSwrMutationImplementation = ({
+  isRequestOptions,
+  operationName,
+  swrKeyFnName,
+  swrMutateFetcherName,
+  swrKeyProperties,
+  props,
+  response,
+  swrOptions,
+  doc,
+}: {
+  isRequestOptions: boolean;
+  operationName: string;
+  swrKeyFnName: string;
+  swrMutateFetcherName: string;
+  swrKeyProperties: string;
+  props: GetterProps;
+  response: GetterResponse;
+  swrOptions: SwrOptions;
+  doc?: string;
+}) => {
+  const swrProps = toObjectString(
+    props.filter(
+      (prop) =>
+        prop.type === GetterPropType.PARAM ||
+        prop.type === GetterPropType.NAMED_PATH_PARAMS,
+    ),
+    'implementation',
+  );
+
+  const fetcherProperties = swrKeyProperties;
+
+  const hasParamReservedWord = props.some(
+    (prop: GetterProp) => prop.name === 'query',
+  );
+  const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
+
+  const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? ${swrKeyFnName}(${swrKeyProperties});`;
+
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  const useSwrImplementation = `
+export type ${pascal(
+    operationName,
+  )}MutationResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+export type ${pascal(operationName)}MutationError = ${errorType}
+
+${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrMutationArguments({
+    operationName,
+    isRequestOptions,
+  })}) => {
+  ${isRequestOptions ? `const {swr: swrOptions} = options ?? {}` : ''}
+
+  ${swrKeyImplementation}
+  const swrFn = ${swrMutateFetcherName}(${fetcherProperties});
+
+  const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
+    swrOptions.options
+      ? `{
+    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ...swrOptions
+  }`
+      : 'swrOptions'
+  })
+
+  return {
+    swrKey,
+    ...${queryResultVarName}
+  }
+}\n`;
+
+  return useSwrImplementation;
+};
+
 const generateSwrHook = (
   {
     queryParams,
@@ -427,52 +519,42 @@ const generateSwrHook = (
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-
-  const swrProperties = props
-    .map((param) => {
-      if (param.type === GetterPropType.NAMED_PATH_PARAMS)
-        return param.destructured;
-      return param.type === GetterPropType.BODY
-        ? body.implementation
-        : param.name;
-    })
-    .join(',');
-
-  const swrKeyProperties = props
-    .filter((prop) => prop.type !== GetterPropType.HEADER)
-    .map((param) => {
-      if (param.type === GetterPropType.NAMED_PATH_PARAMS)
-        return param.destructured;
-      return param.type === GetterPropType.BODY
-        ? body.implementation
-        : param.name;
-    })
-    .join(',');
-
-  const queryKeyProps = toObjectString(
-    props.filter((prop) => prop.type !== GetterPropType.HEADER),
-    'implementation',
-  );
-
   const doc = jsDoc({ summary, deprecated });
 
-  if (verb !== Verbs.GET) {
-    const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
+  if (verb === Verbs.GET) {
+    const swrKeyProperties = props
+      .filter((prop) => prop.type !== GetterPropType.HEADER)
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          return param.destructured;
+        return param.type === GetterPropType.BODY
+          ? body.implementation
+          : param.name;
+      })
+      .join(',');
 
-    const swrMutationKeyFn = `
-export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
-      queryParams ? ', ...(params ? [params]: [])' : ''
-    }${body.implementation ? `, ${body.implementation}` : ''}] as const;
-\n`;
+    const swrProperties = props
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          return param.destructured;
+        return param.type === GetterPropType.BODY
+          ? body.implementation
+          : param.name;
+      })
+      .join(',');
 
-    return swrMutationKeyFn;
-  } else {
+    const queryKeyProps = toObjectString(
+      props.filter((prop) => prop.type !== GetterPropType.HEADER),
+      'implementation',
+    );
+
     const swrKeyFnName = camel(`get-${operationName}-key`);
     const swrKeyFn = `
 export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
     }${body.implementation ? `, ${body.implementation}` : ''}] as const;
 \n`;
+
     const swrKeyLoaderFnName = camel(
       `get-${operationName}-infinite-key-loader`,
     );
@@ -504,6 +586,80 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     });
 
     return swrKeyFn + swrKeyLoader + swrImplementation;
+  } else {
+    const queryKeyProps = toObjectString(
+      props.filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      ),
+      'implementation',
+    );
+
+    const swrKeyProperties = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      )
+      .map((prop) => {
+        if (prop.type === GetterPropType.PARAM) {
+          return prop.name;
+        } else if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return prop.destructured;
+        }
+      })
+      .join(',');
+
+    const swrMutationFetcherProperties = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      )
+      .map((prop) => prop.implementation)
+      .join(', ');
+
+    const httpFunctionProperties = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+          prop.type === GetterPropType.BODY,
+      )
+      .map((prop) => {
+        if (prop.type === GetterPropType.PARAM) {
+          return prop.name;
+        } else if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return prop.destructured;
+        } else if (prop.type === GetterPropType.BODY) {
+          return 'arg as ' + prop.implementation.split(': ')[1];
+        }
+      })
+      .join(', ');
+
+    const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
+    const swrMutationKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => \`${route}\` as const;\n`;
+
+    const swrMutateFetcherName = camel(`get-${operationName}-mutation-fetcher`);
+    const swrMutationFetcherFn = `
+export const ${swrMutateFetcherName} = (${swrMutationFetcherProperties}) => {
+  return (_: string, { arg }: { arg: Arguments }, options?: AxiosRequestConfig) => ${operationName}(${httpFunctionProperties}, options)
+}\n`;
+
+    const swrImplementation = generateSwrMutationImplementation({
+      operationName,
+      swrKeyFnName,
+      swrMutateFetcherName,
+      swrKeyProperties,
+      props,
+      isRequestOptions,
+      response,
+      swrOptions: override.swr,
+      doc,
+    });
+
+    return swrMutationFetcherFn + swrMutationKeyFn + swrImplementation;
   }
 };
 
