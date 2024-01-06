@@ -181,9 +181,12 @@ export const addDependency = ({
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
 }) => {
-  const toAdds = exports.filter((e) =>
-    implementation.includes(e.alias || e.name),
-  );
+  const toAdds = exports.filter((e) => {
+    const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
+    const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
+
+    return implementation.match(pattern);
+  });
 
   if (!toAdds.length) {
     return undefined;
