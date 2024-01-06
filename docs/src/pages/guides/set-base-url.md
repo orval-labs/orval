@@ -35,7 +35,7 @@ axios.interceptors.request.use((config) => {
 });
 ```
 
-There is also the possibility to create a custom axios instance. Check the [full guide](../guides/custom-axios.md) for more details.
+There is also the possibility to create a custom axios instance. Check the [full guide](../guides/custom-axios) for more details.
 
 ```ts
 const AXIOS_INSTANCE = axios.create({ baseURL: '<BACKEND URL>' }); // use your own URL here or environment variable
