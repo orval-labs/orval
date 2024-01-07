@@ -94,10 +94,9 @@ const SWR_MUTATION_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 export const getSwrDependencies: ClientDependenciesBuilder = (
-  hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
 ) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...AXIOS_DEPENDENCIES,
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
   ...SWR_INFINITE_DEPENDENCIES,
@@ -257,7 +256,7 @@ const generateSwrMutationArguments = ({
     return `swrOptions?: ${definition}`;
   }
 
-  return `options?: { swr?: ${definition}}\n`;
+  return `options?: { swr?:${definition}, axios?: AxiosRequestConfig}\n`;
 };
 
 const generateSwrImplementation = ({
@@ -457,8 +456,6 @@ const generateSwrMutationImplementation = ({
     'implementation',
   );
 
-  const fetcherProperties = swrKeyProperties;
-
   const hasParamReservedWord = props.some(
     (prop: GetterProp) => prop.name === 'query',
   );
@@ -479,10 +476,16 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     operationName,
     isRequestOptions,
   })}) => {
-  ${isRequestOptions ? `const {swr: swrOptions} = options ?? {}` : ''}
+  ${
+    isRequestOptions
+      ? `const {swr: swrOptions, axios: axiosOptions} = options ?? {}`
+      : ''
+  }
 
   ${swrKeyImplementation}
-  const swrFn = ${swrMutateFetcherName}(${fetcherProperties});
+  const swrFn = ${swrMutateFetcherName}(${
+    isRequestOptions ? `axiosOptions` : ''
+  });
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
     swrOptions.options
@@ -516,7 +519,7 @@ const generateSwrHook = (
     summary,
     deprecated,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const doc = jsDoc({ summary, deprecated });
@@ -611,40 +614,28 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       })
       .join(',');
 
-    const swrMutationFetcherProperties = props
-      .filter(
-        (prop) =>
-          prop.type === GetterPropType.PARAM ||
-          prop.type === GetterPropType.NAMED_PATH_PARAMS,
-      )
-      .map((prop) => prop.implementation)
-      .join(', ');
-
-    const httpFunctionProperties = props
-      .filter(
-        (prop) =>
-          prop.type === GetterPropType.PARAM ||
-          prop.type === GetterPropType.NAMED_PATH_PARAMS ||
-          prop.type === GetterPropType.BODY,
-      )
-      .map((prop) => {
-        if (prop.type === GetterPropType.PARAM) {
-          return prop.name;
-        } else if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
-          return prop.destructured;
-        } else if (prop.type === GetterPropType.BODY) {
-          return 'arg as ' + prop.implementation.split(': ')[1];
-        }
-      })
-      .join(', ');
+    const swrMutationFetcherOptions = isRequestOptions
+      ? 'options?: AxiosRequestConfig'
+      : '';
 
     const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
     const swrMutationKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => \`${route}\` as const;\n`;
 
+    const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+      context.tsconfig,
+    );
+
     const swrMutateFetcherName = camel(`get-${operationName}-mutation-fetcher`);
+    const swrMutationFetcherType = mutator
+      ? `Promise<${response.definition.success || 'unknown'}>`
+      : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
     const swrMutationFetcherFn = `
-export const ${swrMutateFetcherName} = (${swrMutationFetcherProperties}) => {
-  return (_: string, { arg }: { arg: Arguments }, options?: AxiosRequestConfig) => ${operationName}(${httpFunctionProperties}, options)
+export const ${swrMutateFetcherName} = (${swrMutationFetcherOptions}) => {
+  return (url: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
+    return axios${
+      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+    }.${verb}(url, arg${swrMutationFetcherOptions.length ? ', options' : ''});
+  }
 }\n`;
 
     const swrImplementation = generateSwrMutationImplementation({
