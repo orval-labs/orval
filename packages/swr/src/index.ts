@@ -479,7 +479,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
 
   ${swrKeyImplementation}
   const swrFn = ${swrMutationFetcherName}(${swrMutationFetcherProperties}${
-    swrMutationFetcherProperties && isRequestOptions ? ' ,' : ''
+    swrMutationFetcherProperties && isRequestOptions ? ',' : ''
   } ${isRequestOptions ? `axiosOptions` : ''});
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
@@ -514,7 +514,7 @@ const generateSwrHook = (
     summary,
     deprecated,
   }: GeneratorVerbOptions,
-  { route, context }: GeneratorOptions,
+  { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const doc = jsDoc({ summary, deprecated });
@@ -604,6 +604,35 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       'implementation',
     );
 
+    const swrMutationFetcherProperties = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.QUERY_PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      )
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return param.destructured;
+        } else {
+          return param.name;
+        }
+      })
+      .join(',');
+
+    const httpFnProperties = props
+      .filter((prop) => prop.type !== GetterPropType.HEADER)
+      .map((prop) => {
+        if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return prop.destructured;
+        } else if (prop.type === GetterPropType.BODY) {
+          return `arg as ${prop.implementation.split(': ')[1]}`;
+        } else {
+          return prop.name;
+        }
+      })
+      .join(', ');
+
     const swrKeyProperties = props
       .filter(
         (prop) =>
@@ -619,17 +648,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       })
       .join(',');
 
-    const swrMutationFetcherProperties = props
-      .filter((prop) => prop.type === GetterPropType.QUERY_PARAM)
-      .map((prop) => prop.name)
-      .join(',');
-
     const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
     const swrMutationKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => \`${route}\` as const;\n`;
-
-    const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-      context.tsconfig,
-    );
 
     const swrMutationFetcherName = camel(
       `get-${operationName}-mutation-fetcher`,
@@ -637,24 +657,14 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = mutator
       ? `Promise<${response.definition.success || 'unknown'}>`
       : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
-    const swrMutationFetcherArgType = props
-      .filter((prop) => prop.type === GetterPropType.BODY)
-      .map((prop) => prop.implementation.split(': ')[1])
-      .join(' & ');
-    const swrMutationFetcherPros = toObjectString(
-      props.filter((prop) => prop.type === GetterPropType.QUERY_PARAM),
-      'implementation',
-    );
     const swrMutationFetcherOptions = isRequestOptions
       ? 'options?: AxiosRequestConfig'
       : '';
 
     const swrMutationFetcherFn = `
-export const ${swrMutationFetcherName} = (${swrMutationFetcherPros} ${swrMutationFetcherOptions}) => {
-  return (url: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
-    return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(url, arg as ${swrMutationFetcherArgType}${
+export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
+  return (_: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
+    return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length ? ', options' : ''
     });
   }
