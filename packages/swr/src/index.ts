@@ -629,12 +629,23 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = mutator
       ? `Promise<${response.definition.success || 'unknown'}>`
       : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
+    const swrMutationFetcherArgType = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.QUERY_PARAM ||
+          prop.type === GetterPropType.BODY,
+      )
+      .map((prop) => prop.implementation.split(': ')[1])
+      .join(' & ');
+
     const swrMutationFetcherFn = `
 export const ${swrMutateFetcherName} = (${swrMutationFetcherOptions}) => {
   return (url: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(url, arg${swrMutationFetcherOptions.length ? ', options' : ''});
+    }.${verb}(url, arg as ${swrMutationFetcherArgType}${
+      swrMutationFetcherOptions.length ? ', options' : ''
+    });
   }
 }\n`;
 
