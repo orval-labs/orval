@@ -16,6 +16,6 @@
     "@orval/core": "6.23.0",
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
-    "openapi3-ts": "^3.0.0"
+    "openapi3-ts": "^4.2.1"
   }
 }
