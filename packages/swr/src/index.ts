@@ -94,9 +94,10 @@ const SWR_MUTATION_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 export const getSwrDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
 ) => [
-  ...AXIOS_DEPENDENCIES,
+  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
   ...SWR_INFINITE_DEPENDENCIES,
@@ -246,9 +247,11 @@ const generateSwrArguments = ({
 const generateSwrMutationArguments = ({
   operationName,
   isRequestOptions,
+  mutator,
 }: {
   operationName: string;
   isRequestOptions: boolean;
+  mutator?: GeneratorMutator;
 }) => {
   const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, Arguments, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
 
@@ -256,7 +259,13 @@ const generateSwrMutationArguments = ({
     return `swrOptions?: ${definition}`;
   }
 
-  return `options?: { swr?:${definition}, axios?: AxiosRequestConfig}\n`;
+  return `options?: { swr?:${definition}, ${
+    !mutator
+      ? `axios?: AxiosRequestConfig`
+      : mutator?.hasSecondArg
+      ? `request?: SecondParameter<typeof ${mutator.name}>`
+      : ''
+  } }\n`;
 };
 
 const generateSwrImplementation = ({
@@ -436,6 +445,7 @@ const generateSwrMutationImplementation = ({
   swrProps,
   props,
   response,
+  mutator,
   swrOptions,
   doc,
 }: {
@@ -448,6 +458,7 @@ const generateSwrMutationImplementation = ({
   swrProps: string;
   props: GetterProps;
   response: GetterResponse;
+  mutator?: GeneratorMutator;
   swrOptions: SwrOptions;
   doc?: string;
 }) => {
@@ -460,6 +471,12 @@ const generateSwrMutationImplementation = ({
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
   const useSwrImplementation = `
 export type ${pascal(
     operationName,
@@ -470,17 +487,33 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrMutationArguments({
     operationName,
     isRequestOptions,
+    mutator,
   })}) => {
+
   ${
     isRequestOptions
-      ? `const {swr: swrOptions, axios: axiosOptions} = options ?? {}`
+      ? `const {swr: swrOptions${
+          !mutator
+            ? `, axios: axiosOptions`
+            : mutator?.hasSecondArg
+            ? ', request: requestOptions'
+            : ''
+        }} = options ?? {}`
       : ''
   }
 
   ${swrKeyImplementation}
   const swrFn = ${swrMutationFetcherName}(${swrMutationFetcherProperties}${
     swrMutationFetcherProperties && isRequestOptions ? ',' : ''
-  } ${isRequestOptions ? `axiosOptions` : ''});
+  }${
+    isRequestOptions
+      ? !mutator
+        ? `axiosOptions`
+        : mutator?.hasSecondArg
+        ? 'requestOptions'
+        : ''
+      : ''
+  });
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
     swrOptions.options
@@ -657,9 +690,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = mutator
       ? `Promise<${response.definition.success || 'unknown'}>`
       : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
-    const swrMutationFetcherOptions = isRequestOptions
-      ? 'options?: AxiosRequestConfig'
-      : '';
+    const swrMutationFetcherOptions =
+      !mutator && isRequestOptions ? 'options?: AxiosRequestConfig' : '';
 
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
@@ -680,6 +712,7 @@ export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOption
       props,
       isRequestOptions,
       response,
+      mutator,
       swrOptions: override.swr,
       doc,
     });
