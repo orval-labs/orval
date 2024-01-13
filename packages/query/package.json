@@ -15,10 +15,10 @@
   },
   "dependencies": {
     "@orval/core": "6.23.0",
-    "lodash.omitby": "^4.6.0",
-    "vitest": "^0.34.6"
+    "lodash.omitby": "^4.6.0"
   },
   "devDependencies": {
-    "@types/lodash.omitby": "^4.6.7"
+    "@types/lodash.omitby": "^4.6.7",
+    "vitest": "^0.34.6"
   }
 }
