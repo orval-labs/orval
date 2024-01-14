@@ -1480,13 +1480,7 @@ export const generateQueryHeader: ClientHeaderBuilder = ({
   }
 ${
   isRequestOptions && isMutator
-    ? `// eslint-disable-next-line
-  type SecondParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  args: infer P,
-) => any
-  ? P
-  : never;\n\n`
+    ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
     : ''
 }
 `;
