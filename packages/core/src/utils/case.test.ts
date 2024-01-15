@@ -31,6 +31,18 @@ describe('pascal case testing', () => {
     expect(pascal('')).toBe('');
     expect(pascal(undefined)).toBe('');
   });
+
+  it('should handle nordic characters', () => {
+    // norwegian
+    expect(pascal('ærlig-ønske-åpen')).toBe('ÆrligØnskeÅpen');
+    expect(pascal('ÆRLIG_ØNSKE_ÅPEN')).toBe('ÆrligØnskeÅpen');
+    // swedish
+    expect(pascal('ärlig-önske-öppen')).toBe('ÄrligÖnskeÖppen');
+    expect(pascal('ÄRLIG_ÖNSKE_ÖPPEN')).toBe('ÄrligÖnskeÖppen');
+    // danish
+    expect(pascal('ærlig-ønske-åben')).toBe('ÆrligØnskeÅben');
+    expect(pascal('ÆRLIG_ØNSKE_ÅBEN')).toBe('ÆrligØnskeÅben');
+  });
 });
 
 describe('camel case testing', () => {
