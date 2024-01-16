@@ -440,16 +440,16 @@ const generateQueryRequestFunction = (
     if (mutator.isHook) {
       return `export const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
-        response.definition.success || 'unknown'
-      }>();
+          response.definition.success || 'unknown'
+        }>();
 
         return (\n    ${propsImplementation}\n ${
-        isRequestOptions && mutator.hasSecondArg
-          ? `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-          : ''
-      }${
-        !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
-      }) => {${bodyForm}
+          isRequestOptions && mutator.hasSecondArg
+            ? `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+            : ''
+        }${
+          !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
+        }) => {${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
@@ -1006,12 +1006,12 @@ ${hookOptions}
         ? `ReturnType<typeof use${pascal(operationName)}Hook>`
         : `typeof ${operationName}`
     }>>${
-    hasQueryV5 && hasInfiniteQueryParam
-      ? `, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
-      : ''
-  }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
-    httpFunctionProps ? ', ' : ''
-  }${queryOptions});
+      hasQueryV5 && hasInfiniteQueryParam
+        ? `, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        : ''
+    }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
+      httpFunctionProps ? ', ' : ''
+    }${queryOptions});
 
       ${
         isVue(outputClient)
@@ -1040,8 +1040,8 @@ ${hookOptions}
        ? `{ queryKey, queryFn, ${queryOptionsImp}}`
        : 'customOptions'
    } as ${queryOptionFnReturnType} ${
-    isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
-  }
+     isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
+   }
 }`;
 
   const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
@@ -1079,8 +1079,8 @@ ${
       )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
 
   const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-        queryProperties ? ',' : ''
-      }${isRequestOptions ? 'options' : 'queryOptions'})
+    queryProperties ? ',' : ''
+  }${isRequestOptions ? 'options' : 'queryOptions'})
 
   await queryClient.${camel(`prefetch-${type}`)}(${queryOptionsVarName});
 
@@ -1376,8 +1376,8 @@ const generateQueryHook = async (
          !mutator
            ? `, axios: axiosOptions`
            : mutator?.hasSecondArg
-           ? ', request: requestOptions'
-           : ''
+             ? ', request: requestOptions'
+             : ''
        }} = options ?? {};`
      : ''
  }
@@ -1390,19 +1390,19 @@ const generateQueryHook = async (
 
 
       const mutationFn: MutationFunction<Awaited<ReturnType<${dataType}>>, ${
-      definitions ? `{${definitions}}` : 'void'
-    }> = (${properties ? 'props' : ''}) => {
+        definitions ? `{${definitions}}` : 'void'
+      }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${
-      isRequestOptions
-        ? !mutator
-          ? `axiosOptions`
-          : mutator?.hasSecondArg
-          ? 'requestOptions'
-          : ''
-        : ''
-    })
+            isRequestOptions
+              ? !mutator
+                ? `axiosOptions`
+                : mutator?.hasSecondArg
+                  ? 'requestOptions'
+                  : ''
+              : ''
+          })
         }
 
         ${
@@ -1449,8 +1449,8 @@ ${mutationOptionsFn}
     TContext = unknown>(${mutationArguments}) => {
 
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
-      isRequestOptions ? 'options' : 'mutationOptions'
-    });
+        isRequestOptions ? 'options' : 'mutationOptions'
+      });
 
       return ${operationPrefix}Mutation(${mutationOptionsVarName});
     }

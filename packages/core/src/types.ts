@@ -202,7 +202,7 @@ export const OutputClient = {
   ZOD: 'zod',
 } as const;
 
-export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
+export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
 
 export const OutputMode = {
   SINGLE: 'single',
@@ -211,14 +211,15 @@ export const OutputMode = {
   TAGS_SPLIT: 'tags-split',
 } as const;
 
-export type OutputMode = typeof OutputMode[keyof typeof OutputMode];
+export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
 
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {
   MSW: 'msw',
 } as const;
 
-export type OutputMockType = typeof OutputMockType[keyof typeof OutputMockType];
+export type OutputMockType =
+  (typeof OutputMockType)[keyof typeof OutputMockType];
 
 export type GlobalMockOptions = {
   // This is the type of the mock that will be generated

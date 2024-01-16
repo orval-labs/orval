@@ -207,7 +207,7 @@ const generateMock = (
   return mock.generateMock(
     verbOption,
     options as typeof options & {
-      mock: Exclude<typeof options['mock'], Function | undefined>;
+      mock: Exclude<(typeof options)['mock'], Function | undefined>;
     },
   );
 };

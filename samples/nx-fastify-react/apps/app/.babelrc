@@ -4,9 +4,9 @@
       "@nrwl/react/babel",
       {
         "runtime": "automatic",
-        "importSource": "@emotion/react"
-      }
-    ]
+        "importSource": "@emotion/react",
+      },
+    ],
   ],
-  "plugins": ["@emotion/babel-plugin"]
+  "plugins": ["@emotion/babel-plugin"],
 }

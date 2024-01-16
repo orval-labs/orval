@@ -282,8 +282,8 @@ export const generateMutatorConfig = ({
         headers ? '...headers' : ''
       }}`
     : headers
-    ? ',\n      headers'
-    : '';
+      ? ',\n      headers'
+      : '';
 
   return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
     !isBodyVerb && hasSignal

@@ -93,81 +93,84 @@ export const generateTargetForTags = (
 
   const allTargetTags = Object.values(builder.operations)
     .map(addDefaultTagIfEmpty)
-    .reduce((acc, operation, index, arr) => {
-      const targetTags = generateTargetTags(acc, operation);
+    .reduce(
+      (acc, operation, index, arr) => {
+        const targetTags = generateTargetTags(acc, operation);
 
-      if (index === arr.length - 1) {
-        return Object.entries(targetTags).reduce<
-          Record<string, GeneratorTargetFull>
-        >((acc, [tag, target]) => {
-          const isMutator = !!target.mutators?.some((mutator) =>
-            isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
-          );
-          const operationNames = Object.values(builder.operations)
-            .filter(({ tags }) => tags.map(kebab).includes(kebab(tag)))
-            .map(({ operationName }) => operationName);
+        if (index === arr.length - 1) {
+          return Object.entries(targetTags).reduce<
+            Record<string, GeneratorTargetFull>
+          >((acc, [tag, target]) => {
+            const isMutator = !!target.mutators?.some((mutator) =>
+              isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
+            );
+            const operationNames = Object.values(builder.operations)
+              .filter(({ tags }) => tags.map(kebab).includes(kebab(tag)))
+              .map(({ operationName }) => operationName);
 
-          const typescriptVersion =
-            options.packageJson?.dependencies?.['typescript'] ??
-            options.packageJson?.devDependencies?.['typescript'] ??
-            '4.4.0';
+            const typescriptVersion =
+              options.packageJson?.dependencies?.['typescript'] ??
+              options.packageJson?.devDependencies?.['typescript'] ??
+              '4.4.0';
 
-          const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
+            const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
 
-          const titles = builder.title({
-            outputClient: options.client,
-            title: pascal(tag),
-            customTitleFunc: options.override.title,
-            output: options,
-          });
+            const titles = builder.title({
+              outputClient: options.client,
+              title: pascal(tag),
+              customTitleFunc: options.override.title,
+              output: options,
+            });
 
-          const footer = builder.footer({
-            outputClient: options?.client,
-            operationNames,
-            hasMutator: !!target.mutators?.length,
-            hasAwaitedType,
-            titles,
-            output: options,
-          });
+            const footer = builder.footer({
+              outputClient: options?.client,
+              operationNames,
+              hasMutator: !!target.mutators?.length,
+              hasAwaitedType,
+              titles,
+              output: options,
+            });
 
-          const header = builder.header({
-            outputClient: options.client,
-            isRequestOptions: options.override.requestOptions !== false,
-            isMutator,
-            isGlobalMutator: !!options.override.mutator,
-            provideIn: options.override.angular.provideIn,
-            hasAwaitedType,
-            titles,
-            output: options,
-          });
+            const header = builder.header({
+              outputClient: options.client,
+              isRequestOptions: options.override.requestOptions !== false,
+              isMutator,
+              isGlobalMutator: !!options.override.mutator,
+              provideIn: options.override.angular.provideIn,
+              hasAwaitedType,
+              titles,
+              output: options,
+            });
 
-          acc[tag] = {
-            implementation:
-              header.implementation +
-              target.implementation +
-              footer.implementation,
-            implementationMock: {
-              function: target.implementationMock.function,
-              handler:
-                header.implementationMock +
-                target.implementationMock.handler +
-                footer.implementationMock,
-            },
-            imports: target.imports,
-            importsMock: target.importsMock,
-            mutators: target.mutators,
-            clientMutators: target.clientMutators,
-            formData: target.formData,
-            formUrlEncoded: target.formUrlEncoded,
-            paramsSerializer: target.paramsSerializer,
-          };
+            acc[tag] = {
+              implementation:
+                header.implementation +
+                target.implementation +
+                footer.implementation,
+              implementationMock: {
+                function: target.implementationMock.function,
+                handler:
+                  header.implementationMock +
+                  target.implementationMock.handler +
+                  footer.implementationMock,
+              },
+              imports: target.imports,
+              importsMock: target.importsMock,
+              mutators: target.mutators,
+              clientMutators: target.clientMutators,
+              formData: target.formData,
+              formUrlEncoded: target.formUrlEncoded,
+              paramsSerializer: target.paramsSerializer,
+            };
 
-          return acc;
-        }, {});
-      }
+            return acc;
+          }, {});
+        }
 
-      return targetTags;
-    }, {} as { [key: string]: GeneratorTargetFull });
+        return targetTags;
+      },
+      {} as { [key: string]: GeneratorTargetFull },
+    );
 
   return Object.entries(allTargetTags).reduce<Record<string, GeneratorTarget>>(
     (acc, [tag, target]) => {
