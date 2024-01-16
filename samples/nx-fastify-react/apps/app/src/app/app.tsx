@@ -16,9 +16,7 @@ function App() {
     <Container>
       <header className="App-header">
         <img src={logo} className="App-logo" alt="logo" />
-        {pets?.map((pet) => (
-          <p key={pet.id}>{pet.name}</p>
-        ))}
+        {pets?.map((pet) => <p key={pet.id}>{pet.name}</p>)}
       </header>
     </Container>
   );

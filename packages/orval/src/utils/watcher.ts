@@ -15,8 +15,10 @@ export const startWatcher = async (
     typeof watchOptions === 'boolean'
       ? defaultTarget
       : Array.isArray(watchOptions)
-      ? watchOptions.filter((path): path is string => typeof path === 'string')
-      : watchOptions;
+        ? watchOptions.filter(
+            (path): path is string => typeof path === 'string',
+          )
+        : watchOptions;
 
   log(
     `Watching for changes in ${

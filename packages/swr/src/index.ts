@@ -239,8 +239,8 @@ const generateSwrArguments = ({
     !mutator
       ? `axios?: AxiosRequestConfig`
       : mutator?.hasSecondArg
-      ? `request?: SecondParameter<typeof ${mutator.name}>`
-      : ''
+        ? `request?: SecondParameter<typeof ${mutator.name}>`
+        : ''
   } }\n`;
 };
 
@@ -263,8 +263,8 @@ const generateSwrMutationArguments = ({
     !mutator
       ? `axios?: AxiosRequestConfig`
       : mutator?.hasSecondArg
-      ? `request?: SecondParameter<typeof ${mutator.name}>`
-      : ''
+        ? `request?: SecondParameter<typeof ${mutator.name}>`
+        : ''
   } }\n`;
 };
 
@@ -331,19 +331,19 @@ ${doc}export const ${camel(
         `use-${operationName}-infinite`,
       )} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrArguments({
-        operationName,
-        mutator,
-        isRequestOptions,
-        isInfinite: true,
-      })}) => {
+    operationName,
+    mutator,
+    isRequestOptions,
+    isInfinite: true,
+  })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${
           !mutator
             ? `, axios: axiosOptions`
             : mutator?.hasSecondArg
-            ? ', request: requestOptions'
-            : ''
+              ? ', request: requestOptions'
+              : ''
         }} = options ?? {}`
       : ''
   }
@@ -351,25 +351,25 @@ ${doc}export const ${camel(
   ${enabledImplementation}
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
-        httpFunctionProps ? ', ' : ''
-      }${
-        isRequestOptions
-          ? !mutator
-            ? `axiosOptions`
-            : mutator?.hasSecondArg
-            ? 'requestOptions'
-            : ''
+    httpFunctionProps ? ', ' : ''
+  }${
+    isRequestOptions
+      ? !mutator
+        ? `axiosOptions`
+        : mutator?.hasSecondArg
+          ? 'requestOptions'
           : ''
-      });
+      : ''
+  });
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
-        swrOptions.options
-          ? `{
+    swrOptions.options
+      ? `{
     ${stringify(swrOptions.options)?.slice(1, -1)}
     ...swrOptions
   }`
-          : 'swrOptions'
-      })
+      : 'swrOptions'
+  })
 
   return {
     swrKeyLoader,
@@ -397,8 +397,8 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
           !mutator
             ? `, axios: axiosOptions`
             : mutator?.hasSecondArg
-            ? ', request: requestOptions'
-            : ''
+              ? ', request: requestOptions'
+              : ''
         }} = options ?? {}`
       : ''
   }
@@ -412,8 +412,8 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
       ? !mutator
         ? `axiosOptions`
         : mutator?.hasSecondArg
-        ? 'requestOptions'
-        : ''
+          ? 'requestOptions'
+          : ''
       : ''
   });
 
@@ -496,8 +496,8 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
           !mutator
             ? `, axios: axiosOptions`
             : mutator?.hasSecondArg
-            ? ', request: requestOptions'
-            : ''
+              ? ', request: requestOptions'
+              : ''
         }} = options ?? {}`
       : ''
   }
@@ -510,8 +510,8 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
       ? !mutator
         ? `axiosOptions`
         : mutator?.hasSecondArg
-        ? 'requestOptions'
-        : ''
+          ? 'requestOptions'
+          : ''
       : ''
   });
 
@@ -595,8 +595,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     if (previousPageData && !previousPageData.data) return null
 
     return [\`${route}\`${queryParams ? ', ...(params ? [params]: [])' : ''}${
-          body.implementation ? `, ${body.implementation}` : ''
-        }] as const;
+      body.implementation ? `, ${body.implementation}` : ''
+    }] as const;
   }
 }\n`
       : '';

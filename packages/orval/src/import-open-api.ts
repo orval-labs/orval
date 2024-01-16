@@ -106,59 +106,62 @@ const getApiSchemas = ({
   target: string;
   specs: Record<string, OpenAPIObject>;
 }) => {
-  return Object.entries(specs).reduce((acc, [specKey, spec]) => {
-    const context: ContextSpecs = {
-      specKey,
-      target,
-      workspace,
-      specs,
-      override: output.override,
-      tslint: output.tslint,
-      tsconfig: output.tsconfig,
-      packageJson: output.packageJson,
-    };
+  return Object.entries(specs).reduce(
+    (acc, [specKey, spec]) => {
+      const context: ContextSpecs = {
+        specKey,
+        target,
+        workspace,
+        specs,
+        override: output.override,
+        tslint: output.tslint,
+        tsconfig: output.tsconfig,
+        packageJson: output.packageJson,
+      };
 
-    const schemaDefinition = generateSchemasDefinition(
-      !spec.openapi
-        ? getAllSchemas(spec, specKey)
-        : (spec.components?.schemas as SchemasObject),
-      context,
-      output.override.components.schemas.suffix,
-    );
+      const schemaDefinition = generateSchemasDefinition(
+        !spec.openapi
+          ? getAllSchemas(spec, specKey)
+          : (spec.components?.schemas as SchemasObject),
+        context,
+        output.override.components.schemas.suffix,
+      );
 
-    const responseDefinition = generateComponentDefinition(
-      spec.components?.responses,
-      context,
-      output.override.components.responses.suffix,
-    );
+      const responseDefinition = generateComponentDefinition(
+        spec.components?.responses,
+        context,
+        output.override.components.responses.suffix,
+      );
 
-    const bodyDefinition = generateComponentDefinition(
-      spec.components?.requestBodies,
-      context,
-      output.override.components.requestBodies.suffix,
-    );
+      const bodyDefinition = generateComponentDefinition(
+        spec.components?.requestBodies,
+        context,
+        output.override.components.requestBodies.suffix,
+      );
 
-    const parameters = generateParameterDefinition(
-      spec.components?.parameters,
-      context,
-      output.override.components.parameters.suffix,
-    );
+      const parameters = generateParameterDefinition(
+        spec.components?.parameters,
+        context,
+        output.override.components.parameters.suffix,
+      );
 
-    const schemas = [
-      ...schemaDefinition,
-      ...responseDefinition,
-      ...bodyDefinition,
-      ...parameters,
-    ];
+      const schemas = [
+        ...schemaDefinition,
+        ...responseDefinition,
+        ...bodyDefinition,
+        ...parameters,
+      ];
 
-    if (!schemas.length) {
+      if (!schemas.length) {
+        return acc;
+      }
+
+      acc[specKey] = schemas;
+
       return acc;
-    }
-
-    acc[specKey] = schemas;
-
-    return acc;
-  }, {} as Record<string, GeneratorSchema[]>);
+    },
+    {} as Record<string, GeneratorSchema[]>,
+  );
 };
 
 const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {

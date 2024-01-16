@@ -129,8 +129,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-          ? 'oneOf'
-          : 'anyOf';
+            ? 'oneOf'
+            : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
