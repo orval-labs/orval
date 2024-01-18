@@ -1,4 +1,4 @@
-import { log } from '@orval/core';
+import { log, logError } from '@orval/core';
 import chalk from 'chalk';
 
 export const startWatcher = async (
@@ -38,7 +38,7 @@ export const startWatcher = async (
     try {
       await watchFn();
     } catch (e) {
-      log(chalk.red(e));
+      logError(e);
     }
   });
 };

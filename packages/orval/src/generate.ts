@@ -2,7 +2,7 @@ import {
   asyncReduce,
   ConfigExternal,
   upath,
-  errorMessage,
+  logError,
   getFileInfo,
   GlobalOptions,
   isFunction,
@@ -60,11 +60,11 @@ export const generateSpecs = async (
       try {
         await generateSpec(workspace, options, projectName);
       } catch (e) {
-        log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
+        logError(e, projectName);
         process.exit(1);
       }
     } else {
-      errorMessage('Project not found');
+      logError('Project not found');
       process.exit(1);
     }
     return;
@@ -78,7 +78,7 @@ export const generateSpecs = async (
         acc.push(await generateSpec(workspace, options, projectName));
       } catch (e) {
         hasErrors = true;
-        log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
+        logError(e, projectName);
       }
       return acc;
     },

@@ -17,7 +17,18 @@ export const startMessage = ({
     }`,
   );
 
-export const errorMessage = (err: string) => log(chalk.red(err));
+export const logError = (err: unknown, tag?: string) =>
+  log(
+    chalk.red(
+      [
+        '🛑',
+        tag ? `${tag} - ` : undefined,
+        err instanceof Error ? err.stack : err,
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ),
+  );
 
 export const mismatchArgsMessage = (mismatchArgs: string[]) =>
   log(

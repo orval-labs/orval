@@ -3,6 +3,7 @@ import {
   isFunction,
   isString,
   log,
+  logError,
   NormalizedHookCommand,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -23,7 +24,7 @@ export const executeHook = async (
       try {
         await execa(cmd, _args);
       } catch (e) {
-        log(chalk.red(`🛑 Failed to run ${name} hook: ${e}`));
+        logError(e, `Failed to run ${name} hook`);
       }
     } else if (isFunction(command)) {
       await command(args);
