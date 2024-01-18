@@ -90,7 +90,7 @@ const getNativeEnumItems = (value: string, names?: string[]) => {
     if (name) {
       return (
         acc +
-        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}: ${val},\n`
+        `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}= ${val},\n`
       );
     }
 
