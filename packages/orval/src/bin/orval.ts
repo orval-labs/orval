@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 import { isString, logError, startMessage } from '@orval/core';
 import { cac } from 'cac';
-import chalk from 'chalk';
 import { generateConfig, generateSpec } from '../generate';
 import pkg from '../../package.json';
 import { normalizeOptions } from '../utils/options';

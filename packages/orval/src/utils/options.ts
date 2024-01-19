@@ -242,7 +242,7 @@ const parserDefaultOptions = {
   resolve: { github: githubResolver },
 } as SwaggerParserOptions;
 
-const normalizeMutator = <T>(
+const normalizeMutator = (
   workspace: string,
   mutator?: Mutator,
 ): NormalizedMutator | undefined => {
@@ -269,7 +269,7 @@ const normalizeMutator = <T>(
   return mutator;
 };
 
-const normalizePathOrUrl = <T>(path: T, workspace: string) => {
+export const normalizePathOrUrl = <T>(path: T, workspace: string) => {
   if (isString(path) && !isUrl(path)) {
     return normalizePath(path, workspace);
   }

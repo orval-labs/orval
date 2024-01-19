@@ -14,19 +14,28 @@ In order to not waste your time implementing a change that has already been decl
 
 ### Setup your environment locally
 
-_Some commands will assume you have the Github CLI installed, if you haven't, consider [installing it](https://github.com/cli/cli#installation), but you can always use the Web UI if you prefer that instead._
-
-In order to contribute to this project, you will need to fork the repository:
-
-```bash
-gh repo fork anymaniax/orval
-```
-
-then, clone it to your local machine:
-
-```bash
-gh repo clone <your-github-name>/orval
-```
+1. Install the [GitHub CLI](https://github.com/cli/cli#installation)
+2. Fork the repository (required to contribute):
+   ```bash
+   gh repo fork anymaniax/orval
+   ```
+3. Clone it to your local machine:
+   ```bash
+   gh repo clone <your-github-name>/orval
+   ```
+4. Install dependencies:
+   ```bash
+   cd orval
+   yarn install
+   ```
+5. Build:
+   ```bash
+   yarn build
+   ```
+6. Run:
+   ```bash
+   node packages/orval/dist/bin/orval.js
+   ```
 
 ### Implement your changes
 
