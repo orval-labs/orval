@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { isString, log, startMessage } from '@orval/core';
+import { isString, logError, startMessage } from '@orval/core';
 import { cac } from 'cac';
 import chalk from 'chalk';
 import { generateConfig, generateSpec } from '../generate';
@@ -63,7 +63,7 @@ cli
             try {
               await generateSpec(process.cwd(), normalizedOptions);
             } catch (e) {
-              log(chalk.red(`🛑  ${e}`));
+              logError(e);
             }
           },
           normalizedOptions.input.target as string,
@@ -72,7 +72,7 @@ cli
         try {
           await generateSpec(process.cwd(), normalizedOptions);
         } catch (e) {
-          log(chalk.red(`🛑  ${e}`));
+          logError(e);
         }
       }
     } else {
