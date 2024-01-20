@@ -63,7 +63,6 @@ export const generateMSW = (
   const mockData = getMockOptionsDataOverride(operationId, override);
 
   let value = '';
-  let isResponseOverridable = false;
 
   if (mockData) {
     value = mockData;
@@ -71,9 +70,9 @@ export const generateMSW = (
     value = `faker.helpers.arrayElement(${definition})`;
   } else if (definitions[0]) {
     value = definitions[0];
-
-    isResponseOverridable = response.types.success[0].type === 'object';
   }
+
+  const isResponseOverridable = value.includes('...overrideResponse');
 
   const isTextPlain = response.contentTypes.includes('text/plain');
 
