@@ -77,7 +77,8 @@ export const getMockObject = ({
         : '';
     let imports: GeneratorImport[] = [];
     let includedProperties: string[] = [];
-    value += Object.entries(item.properties)
+
+    const properyScalars = Object.entries(item.properties)
       .sort((a, b) => {
         return a[0].localeCompare(b[0]);
       })
@@ -123,14 +124,18 @@ export const getMockObject = ({
 
         return `${keyDefinition}: ${resolvedValue.value}`;
       })
-      .filter(Boolean)
-      .join(', ');
+      .filter(Boolean);
+
+    properyScalars.push('...overrideResponse');
+
+    value += properyScalars.join(', ');
     value +=
       !combine ||
       combine?.separator === 'oneOf' ||
       combine?.separator === 'anyOf'
         ? '}'
         : '';
+
     return {
       value,
       imports,
