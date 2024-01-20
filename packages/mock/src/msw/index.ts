@@ -74,6 +74,8 @@ export const generateMSW = (
 
   const isResponseOverridable = value.includes(overrideVarName);
 
+  const returnType = response.definition.success;
+
   const isTextPlain = response.contentTypes.includes('text/plain');
 
   const functionName = `get${pascal(operationId)}Mock`;
@@ -104,7 +106,7 @@ export const ${handlerName} = http.${verb}('${route}', async () => {
     implementation: {
       function:
         value && value !== 'undefined'
-          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse?: any` : ''}) => (${value})\n\n`
+          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse?: any` : ''}): ${returnType} => (${value})\n\n`
           : '',
       handlerName: handlerName,
       handler: handlerImplementation,
