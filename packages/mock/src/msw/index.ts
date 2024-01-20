@@ -7,7 +7,7 @@ import {
   isFunction,
   pascal,
 } from '@orval/core';
-import { getRouteMSW } from '../faker/getters';
+import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 import { getDelay } from '../delay';
 
@@ -72,7 +72,7 @@ export const generateMSW = (
     value = definitions[0];
   }
 
-  const isResponseOverridable = value.includes('...overrideResponse');
+  const isResponseOverridable = value.includes(overrideVarName);
 
   const isTextPlain = response.contentTypes.includes('text/plain');
 

@@ -13,6 +13,8 @@ import { MockDefinition, MockSchemaObject } from '../../types';
 import { combineSchemasMock } from './combine';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 
+export const overrideVarName = 'overrideResponse';
+
 export const getMockObject = ({
   item,
   mockOptions,
@@ -126,7 +128,7 @@ export const getMockObject = ({
       })
       .filter(Boolean);
 
-    properyScalars.push('...overrideResponse');
+    properyScalars.push(`...${overrideVarName}`);
 
     value += properyScalars.join(', ');
     value +=
