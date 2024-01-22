@@ -78,7 +78,7 @@ export const getMockScalar = ({
   }
 
   if (
-    (context.override?.mock?.useExamples || mockOptions?.useExamples) &&
+    (context.output.override?.mock?.useExamples || mockOptions?.useExamples) &&
     item.example
   ) {
     return {

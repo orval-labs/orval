@@ -10,7 +10,7 @@ import type { PetCallingCode } from './petCallingCode';
 import type { PetCountry } from './petCountry';
 
 export type Pet =
-  | (Dog & { petsRequested?: never } & {
+  | (Dog & {
       '@id'?: string;
       callingCode?: PetCallingCode;
       country?: PetCountry;
@@ -19,7 +19,7 @@ export type Pet =
       name: string;
       tag?: string;
     })
-  | (Cat & { barksPerMinute?: never } & {
+  | (Cat & {
       '@id'?: string;
       callingCode?: PetCallingCode;
       country?: PetCountry;

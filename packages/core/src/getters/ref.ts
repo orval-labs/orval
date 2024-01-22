@@ -54,7 +54,7 @@ export const getRefInfo = (
     .map((part) => part.replace(regex, '/'));
 
   const suffix = refPaths
-    ? get(context.override, [...refPaths.slice(0, 2), 'suffix'], '')
+    ? get(context.output.override, [...refPaths.slice(0, 2), 'suffix'], '')
     : '';
 
   const originalName = ref

@@ -72,7 +72,7 @@ const getQueryParamsTypes = (
         resolvedValue.value,
         enumName,
         resolvedValue.originalSchema?.['x-enumNames'],
-        context.override.useNativeEnums,
+        context.output.override.useNativeEnums,
       );
 
       return {

@@ -52,7 +52,7 @@ const resolveObjectOriginal = ({
       resolvedValue.value,
       propName,
       resolvedValue.originalSchema?.['x-enumNames'],
-      context.override.useNativeEnums,
+      context.output.override.useNativeEnums,
     );
 
     return {

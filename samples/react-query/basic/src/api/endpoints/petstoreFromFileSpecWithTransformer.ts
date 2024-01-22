@@ -12,7 +12,6 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query';
 import type {
-  InfiniteData,
   MutationFunction,
   QueryFunction,
   QueryKey,
@@ -87,24 +86,16 @@ export const getListPetsQueryKey = (
 };
 
 export const getListPetsInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listPets>>,
-    ListPetsParams['limit']
-  >,
+  TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
-      >
+    query?: UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ) => {
@@ -113,12 +104,9 @@ export const getListPetsInfiniteQueryOptions = <
   const queryKey =
     queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listPets>>,
-    QueryKey,
-    ListPetsParams['limit']
-  > = ({ pageParam }) =>
-    listPets({ ...params, limit: pageParam || params?.['limit'] }, version);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    pageParam,
+  }) => listPets({ ...params, limit: pageParam || params?.['limit'] }, version);
 
   return {
     queryKey,
@@ -128,10 +116,7 @@ export const getListPetsInfiniteQueryOptions = <
   } as UseInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
     TError,
-    TData,
-    Awaited<ReturnType<typeof listPets>>,
-    QueryKey,
-    ListPetsParams['limit']
+    TData
   > & { queryKey: QueryKey };
 };
 
@@ -144,24 +129,16 @@ export type ListPetsInfiniteQueryError = ErrorType<Error>;
  * @summary List all pets
  */
 export const useListPetsInfinite = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listPets>>,
-    ListPetsParams['limit']
-  >,
+  TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
-      >
+    query?: UseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
@@ -188,8 +165,10 @@ export const getListPetsQueryOptions = <
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ) => {
@@ -226,8 +205,10 @@ export const useListPets = <
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
@@ -249,12 +230,10 @@ export const getListPetsSuspenseQueryOptions = <
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData
-      >
+    query?: UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ) => {
@@ -293,12 +272,10 @@ export const useListPetsSuspense = <
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseSuspenseQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData
-      >
+    query?: UseSuspenseQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } => {
@@ -319,24 +296,16 @@ export const useListPetsSuspense = <
 };
 
 export const getListPetsSuspenseInfiniteQueryOptions = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listPets>>,
-    ListPetsParams['limit']
-  >,
+  TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
-      >
+    query?: UseSuspenseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ) => {
@@ -345,12 +314,9 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
   const queryKey =
     queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
 
-  const queryFn: QueryFunction<
-    Awaited<ReturnType<typeof listPets>>,
-    QueryKey,
-    ListPetsParams['limit']
-  > = ({ pageParam }) =>
-    listPets({ ...params, limit: pageParam || params?.['limit'] }, version);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    pageParam,
+  }) => listPets({ ...params, limit: pageParam || params?.['limit'] }, version);
 
   return {
     queryKey,
@@ -360,10 +326,7 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
   } as UseSuspenseInfiniteQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
     TError,
-    TData,
-    Awaited<ReturnType<typeof listPets>>,
-    QueryKey,
-    ListPetsParams['limit']
+    TData
   > & { queryKey: QueryKey };
 };
 
@@ -376,24 +339,16 @@ export type ListPetsSuspenseInfiniteQueryError = ErrorType<Error>;
  * @summary List all pets
  */
 export const useListPetsSuspenseInfinite = <
-  TData = InfiniteData<
-    Awaited<ReturnType<typeof listPets>>,
-    ListPetsParams['limit']
-  >,
+  TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseSuspenseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
-        TError,
-        TData,
-        Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
-      >
+    query?: UseSuspenseInfiniteQueryOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      TData
     >;
   },
 ): UseSuspenseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
@@ -575,8 +530,10 @@ export const getShowPetByIdQueryOptions = <
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
     >;
   },
 ) => {
@@ -616,8 +573,10 @@ export const useShowPetById = <
   petId: string,
   version: number = 1,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
     >;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {

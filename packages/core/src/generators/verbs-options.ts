@@ -141,7 +141,7 @@ const generateVerbOptions = async ({
     name: operationName,
     mutator: override?.mutator,
     workspace: context.workspace,
-    tsconfig: context.tsconfig,
+    tsconfig: context.output.tsconfig,
   });
 
   const formData =
@@ -151,7 +151,7 @@ const generateVerbOptions = async ({
           name: operationName,
           mutator: override.formData,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
@@ -162,7 +162,7 @@ const generateVerbOptions = async ({
           name: operationName,
           mutator: override.formUrlEncoded,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
@@ -173,7 +173,7 @@ const generateVerbOptions = async ({
           name: 'paramsSerializer',
           mutator: override.paramsSerializer as NormalizedMutator,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 

@@ -135,7 +135,10 @@ export const getResponsesMockDefinition = ({
       acc,
       { value: definition, originalSchema, example, examples, imports, isRef },
     ) => {
-      if (context.override?.mock?.useExamples || mockOptions?.useExamples) {
+      if (
+        context.output.override?.mock?.useExamples ||
+        mockOptions?.useExamples
+      ) {
         const exampleValue =
           example ||
           originalSchema?.example ||

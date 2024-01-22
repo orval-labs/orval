@@ -391,10 +391,10 @@ const generateQueryRequestFunction = (
   const hasSignal = !!override.query.signal;
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-    context.tsconfig,
+    context.output.tsconfig,
   );
   const isExactOptionalPropertyTypes =
-    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -1117,19 +1117,19 @@ const generateQueryHook = async (
   const isRequestOptions = override?.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
   const isExactOptionalPropertyTypes =
-    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
   const hasVueQueryV4 =
     OutputClient.VUE_QUERY === outputClient &&
-    (!isVueQueryV3(context.packageJson) || query.version === 4);
+    (!isVueQueryV3(context.output.packageJson) || query.version === 4);
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
-    (!isSvelteQueryV3(context.packageJson) || query.version === 4);
+    (!isSvelteQueryV3(context.output.packageJson) || query.version === 4);
 
   const hasQueryV5 =
     query.version === 5 ||
     isQueryV5(
-      context.packageJson,
+      context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
@@ -1156,7 +1156,7 @@ const generateQueryHook = async (
           mutator: query.queryKey,
           name: `${operationName}QueryKey`,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
@@ -1166,7 +1166,7 @@ const generateQueryHook = async (
           mutator: query.queryOptions,
           name: `${operationName}QueryOptions`,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
@@ -1308,7 +1308,7 @@ const generateQueryHook = async (
           mutator: query.mutationOptions,
           name: `${operationName}MutationOptions`,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
