@@ -124,9 +124,12 @@ export const combineSchemas = ({
       acc.originalSchema.push(resolvedValue.originalSchema);
       acc.hasReadonlyProps ||= resolvedValue.hasReadonlyProps;
 
-      if (resolvedValue.type === 'object') {
+      if (
+        resolvedValue.type === 'object' &&
+        resolvedValue.originalSchema.properties
+      ) {
         acc.allProperties.push(
-          ...Object.keys(resolvedValue.originalSchema.properties!),
+          ...Object.keys(resolvedValue.originalSchema.properties),
         );
       }
 
