@@ -41,10 +41,7 @@ export const importOpenApi = async ({
       target,
       workspace,
       specs,
-      override: output.override,
-      tslint: output.tslint,
-      tsconfig: output.tsconfig,
-      packageJson: output.packageJson,
+      output,
     },
   });
 
@@ -113,10 +110,7 @@ const getApiSchemas = ({
         target,
         workspace,
         specs,
-        override: output.override,
-        tslint: output.tslint,
-        tsconfig: output.tsconfig,
-        packageJson: output.packageJson,
+        output,
       };
 
       const schemaDefinition = generateSchemasDefinition(

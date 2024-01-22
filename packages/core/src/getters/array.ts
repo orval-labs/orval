@@ -20,7 +20,7 @@ export const getArray = ({
   if (schema.items) {
     const resolvedObject = resolveObject({
       schema: schema.items,
-      propName: name + context.override.components.schemas.itemSuffix,
+      propName: name + context.output.override.components.schemas.itemSuffix,
       context,
     });
     return {

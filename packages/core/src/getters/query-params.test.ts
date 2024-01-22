@@ -6,9 +6,11 @@ import { getQueryParams } from './query-params';
 // Mock context for getQueryParams
 const context: ContextSpecs = {
   specs: {},
-  // @ts-ignore
-  override: {
-    useDates: true,
+  output: {
+    // @ts-expect-error
+    override: {
+      useDates: true,
+    },
   },
 };
 

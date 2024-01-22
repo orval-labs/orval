@@ -57,6 +57,7 @@ export type NormalizedOutputOptions = {
   baseUrl?: string;
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
+  unionAddMissingProperties: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -174,6 +175,7 @@ export type OutputOptions = {
   baseUrl?: string;
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
+  unionAddMissingProperties?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -426,12 +428,9 @@ export interface ContextSpecs {
   specKey: string;
   target: string;
   workspace: string;
-  tslint: boolean;
   specs: Record<string, OpenAPIObject>;
-  override: NormalizedOverrideOutput;
-  tsconfig?: Tsconfig;
-  packageJson?: PackageJson;
   parents?: string[];
+  output: NormalizedOutputOptions;
 }
 
 export interface GlobalOptions {

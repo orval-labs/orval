@@ -9,11 +9,11 @@ import type { Dachshund } from './dachshund';
 import type { DogType } from './dogType';
 
 export type Dog =
-  | (Labradoodle & { length?: never } & {
+  | (Labradoodle & {
       barksPerMinute?: number;
       type: DogType;
     })
-  | (Dachshund & { cuteness?: never } & {
+  | (Dachshund & {
       barksPerMinute?: number;
       type: DogType;
     });

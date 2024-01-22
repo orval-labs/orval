@@ -31,7 +31,7 @@ export const getScalar = ({
     case 'number':
     case 'integer': {
       let value =
-        item.format === 'int64' && context.override.useBigInt
+        item.format === 'int64' && context.output.override.useBigInt
           ? 'bigint'
           : 'number';
       let isEnum = false;
@@ -100,7 +100,7 @@ export const getScalar = ({
         value = 'Blob';
       }
 
-      if (context.override.useDates) {
+      if (context.output.override.useDates) {
         if (item.format === 'date' || item.format === 'date-time') {
           value = 'Date';
         }

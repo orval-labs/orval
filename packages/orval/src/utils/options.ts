@@ -135,6 +135,8 @@ export const normalizeOptions = async (
       headers: outputOptions.headers ?? false,
       indexFiles: outputOptions.indexFiles ?? true,
       baseUrl: outputOptions.baseUrl,
+      unionAddMissingProperties:
+        outputOptions.unionAddMissingProperties ?? false,
       override: {
         ...outputOptions.override,
         mock: {

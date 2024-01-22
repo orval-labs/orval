@@ -133,7 +133,7 @@ const generateImplementation = (
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
-    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,

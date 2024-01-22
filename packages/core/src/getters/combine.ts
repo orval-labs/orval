@@ -11,6 +11,7 @@ import {
 import { getNumberWord, pascal } from '../utils';
 import { getEnumImplementation } from './enum';
 import { getScalar } from './scalar';
+import uniq from 'lodash.uniq';
 
 type CombinedData = {
   imports: GeneratorImport[];
@@ -34,10 +35,12 @@ const combineValues = ({
   resolvedData,
   resolvedValue,
   separator,
+  context,
 }: {
   resolvedData: CombinedData;
   resolvedValue?: ScalarValue;
   separator: Separator;
+  context: ContextSpecs;
 }) => {
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
@@ -55,7 +58,7 @@ const combineValues = ({
 
   let values = resolvedData.values;
   const hasObjectSubschemas = resolvedData.allProperties.length;
-  if (hasObjectSubschemas) {
+  if (hasObjectSubschemas && context.output.unionAddMissingProperties) {
     values = []; // the list of values will be rebuilt to add missing properties (if exist) in subschemas
     for (let i = 0; i < resolvedData.values.length; i += 1) {
       const subSchema = resolvedData.originalSchema[i];
@@ -64,8 +67,10 @@ const combineValues = ({
         continue;
       }
 
-      const missingProperties = resolvedData.allProperties.filter(
-        (p) => !Object.keys(subSchema.properties!).includes(p),
+      const missingProperties = uniq(
+        resolvedData.allProperties.filter(
+          (p) => !Object.keys(subSchema.properties!).includes(p),
+        ),
       );
       values.push(
         `${resolvedData.values[i]}${
@@ -155,7 +160,12 @@ export const combineSchemas = ({
     resolvedValue = getScalar({ item: omit(schema, separator), name, context });
   }
 
-  const value = combineValues({ resolvedData, separator, resolvedValue });
+  const value = combineValues({
+    resolvedData,
+    separator,
+    resolvedValue,
+    context,
+  });
 
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
