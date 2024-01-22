@@ -61,34 +61,43 @@ export const importSpecs = async (
   const { input, output } = options;
 
   if (isObject(input.target)) {
-    return importOpenApi({
-      data: { [workspace]: input.target },
-      // @ts-expect-error // FIXME
-      input,
-      output,
-      target: workspace,
-      workspace,
-    });
+    try {
+      return importOpenApi({
+        data: { [workspace]: input.target },
+        input,
+        output,
+        target: workspace,
+        workspace,
+      });
+    } catch {
+      process.exit(1)
+    }
   }
 
-  // @ts-expect-error // FIXME
+  if (typeof input.target !== 'string') {
+    throw new Error(
+      `The input.target option needs to be either of the type Object or String`,
+    );
+  }
+
   const isPathUrl = isUrl(input.target);
 
-  const data = await resolveSpecs(
-    // @ts-expect-error // FIXME
-    input.target,
-    input.parserOptions,
-    isPathUrl,
-    !output.target,
-  );
-
-  return importOpenApi({
-    data,
-    // @ts-expect-error // FIXME
-    input,
-    output,
-    // @ts-expect-error // FIXME
-    target: input.target,
-    workspace,
-  });
+  try {
+    const data = await resolveSpecs(
+      input.target,
+      input.parserOptions,
+      isPathUrl,
+      !output.target,
+    );
+  
+    return importOpenApi({
+      data,
+      input,
+      output,
+      target: input.target,
+      workspace,
+    });
+  } catch {
+    process.exit(1)
+  }
 };
