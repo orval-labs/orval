@@ -22,7 +22,7 @@ export const logError = (err: unknown, tag?: string) =>
     chalk.red(
       [
         '🛑',
-        tag ? `${tag} - ` : undefined,
+        tag ? `${tag} -` : undefined,
         err instanceof Error ? err.stack : err,
       ]
         .filter(Boolean)

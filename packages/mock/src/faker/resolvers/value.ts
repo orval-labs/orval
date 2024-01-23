@@ -6,7 +6,7 @@ import {
   MockOptions,
 } from '@orval/core';
 import get from 'lodash.get';
-import { SchemaObject } from 'openapi3-ts';
+import { SchemaObject } from 'openapi3-ts/oas30';
 import { getMockScalar } from '../getters/scalar';
 import { MockDefinition, MockSchemaObject } from '../../types';
 

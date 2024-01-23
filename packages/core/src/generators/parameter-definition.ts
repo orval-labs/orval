@@ -1,4 +1,4 @@
-import { ComponentsObject, ParameterObject } from 'openapi3-ts';
+import { ComponentsObject, ParameterObject } from 'openapi3-ts/oas30';
 import { resolveObject, resolveRef } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';

@@ -7,7 +7,7 @@ import {
   isReference,
   MockOptions,
 } from '@orval/core';
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveMockValue } from '../resolvers/value';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { combineSchemasMock } from './combine';

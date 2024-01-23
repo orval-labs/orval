@@ -1,5 +1,5 @@
 import isEmpty from 'lodash.isempty';
-import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
 import { getEnum, resolveDiscriminators } from '../getters';
 import { resolveRef, resolveValue } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';

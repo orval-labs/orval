@@ -6,7 +6,7 @@ import {
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import { ContextSpecs, ResReqTypesValue } from '../types';

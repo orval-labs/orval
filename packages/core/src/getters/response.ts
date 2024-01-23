@@ -1,4 +1,4 @@
-import { ResponsesObject } from 'openapi3-ts';
+import { ResponsesObject } from 'openapi3-ts/oas30';
 import {
   ContextSpecs,
   GetterResponse,

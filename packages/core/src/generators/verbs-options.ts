@@ -4,7 +4,7 @@ import {
   ParameterObject,
   PathItemObject,
   ReferenceObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
 import {
   getBody,
   getOperationId,

@@ -1,4 +1,4 @@
-import { ParameterObject, ReferenceObject } from 'openapi3-ts';
+import { ParameterObject, ReferenceObject } from 'openapi3-ts/oas30';
 import { resolveRef } from '../resolvers/ref';
 import { ContextSpecs, GetterParameters } from '../types';
 import { isReference } from '../utils';

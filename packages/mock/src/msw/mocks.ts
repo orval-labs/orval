@@ -10,7 +10,7 @@ import {
   resolveRef,
   stringify,
 } from '@orval/core';
-import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
 import { getMockScalar } from '../faker/getters';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
