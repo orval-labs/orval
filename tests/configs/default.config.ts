@@ -94,4 +94,12 @@ export default defineConfig({
       target: '../generated/default/deeply-nested-refs/endpoints.ts',
     },
   },
+  'example-v3-1': {
+    input: '../specifications/example-v3-1.yaml',
+    output: {
+      mock: true,
+      schemas: '../generated/default/example-v3-1/model',
+      target: '../generated/default/example-v3-1/endpoints.ts',
+    },
+  },
 });
