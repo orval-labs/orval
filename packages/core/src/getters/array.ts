@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { ContextSpecs, ScalarValue } from '../types';
 import { resolveObject } from '../resolvers/object';
@@ -18,14 +18,43 @@ export const getArray = ({
   name?: string;
   context: ContextSpecs;
 }): ScalarValue => {
-  if (schema.items) {
-    const schema31 = schema as SchemaObject31;
-    if (schema31.prefixItems) {
-      // TODO: https://github.com/anymaniax/orval/issues/890
-      throw new Error(
-        `prefixItems is not supported (name=${name}, schema=${JSON.stringify(schema)})`,
-      );
+  const schema31 = schema as SchemaObject31;
+  if (schema31.prefixItems) {
+    const resolvedObjects = schema31.prefixItems.map((item, index) =>
+      resolveObject({
+        schema: item as SchemaObject | ReferenceObject,
+        propName:
+          name + context.output.override.components.schemas.itemSuffix + index,
+        context,
+      }),
+    );
+    if (schema31.items) {
+      const additional = resolveObject({
+        schema: schema31.items as SchemaObject | ReferenceObject,
+        propName:
+          name +
+          context.output.override.components.schemas.itemSuffix +
+          'Additional',
+        context,
+      });
+      resolvedObjects.push({
+        ...additional,
+        value: `...${additional.value}[]`,
+      });
     }
+    return {
+      type: 'array',
+      isEnum: false,
+      isRef: false,
+      value: `[${resolvedObjects.map((o) => o.value).join(', ')}]`,
+      imports: resolvedObjects.flatMap((o) => o.imports),
+      schemas: resolvedObjects.flatMap((o) => o.schemas),
+      hasReadonlyProps: resolvedObjects.some((o) => o.hasReadonlyProps),
+      example: schema.example,
+      examples: resolveExampleRefs(schema.examples, context),
+    };
+  }
+  if (schema.items) {
     const resolvedObject = resolveObject({
       schema: schema.items,
       propName: name + context.output.override.components.schemas.itemSuffix,
