@@ -5,7 +5,7 @@ import {
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
 import {
   camel,
   ClientBuilder,

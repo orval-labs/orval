@@ -6,7 +6,7 @@ import {
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
 import { RefInfo, getRefInfo } from '../getters/ref';
 import { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';

@@ -1,4 +1,4 @@
-import { ReferenceObject, RequestBodyObject } from 'openapi3-ts';
+import { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 import { generalJSTypesWithArray } from '../constants';
 import { ContextSpecs, GetterBody, OverrideOutputContentType } from '../types';
 import { camel, sanitize } from '../utils';

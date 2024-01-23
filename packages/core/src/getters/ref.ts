@@ -1,5 +1,5 @@
 import get from 'lodash.get';
-import { ReferenceObject } from 'openapi3-ts';
+import { ReferenceObject } from 'openapi3-ts/oas30';
 import { ContextSpecs } from '../types';
 import { getFileInfo, isUrl, pascal, upath } from '../utils';
 

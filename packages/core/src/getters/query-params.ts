@@ -1,4 +1,4 @@
-import { ContentObject, SchemaObject } from 'openapi3-ts';
+import { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveValue } from '../resolvers';
 import {
   ContextSpecs,

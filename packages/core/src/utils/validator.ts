@@ -1,4 +1,4 @@
-import { OpenAPIObject } from 'openapi3-ts';
+import { OpenAPIObject } from 'openapi3-ts/oas30';
 import {
   ibmOpenapiValidatorErrors,
   ibmOpenapiValidatorWarnings,

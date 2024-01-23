@@ -1,4 +1,5 @@
-import { SchemaObject } from 'openapi3-ts';
+import { SchemaObject } from 'openapi3-ts/oas30';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { ContextSpecs, ScalarValue } from '../types';
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs } from '../resolvers';
@@ -18,6 +19,13 @@ export const getArray = ({
   context: ContextSpecs;
 }): ScalarValue => {
   if (schema.items) {
+    const schema31 = schema as SchemaObject31;
+    if (schema31.prefixItems) {
+      // TODO: https://github.com/anymaniax/orval/issues/890
+      throw new Error(
+        `prefixItems is not supported (name=${name}, schema=${JSON.stringify(schema)})`,
+      );
+    }
     const resolvedObject = resolveObject({
       schema: schema.items,
       propName: name + context.output.override.components.schemas.itemSuffix,
@@ -39,6 +47,8 @@ export const getArray = ({
       examples: resolveExampleRefs(schema.examples, context),
     };
   } else {
-    throw new Error('All arrays must have an `items` key define');
+    throw new Error(
+      `All arrays must have an \`items\` key defined (name=${name}, schema=${JSON.stringify(schema)})`,
+    );
   }
 };

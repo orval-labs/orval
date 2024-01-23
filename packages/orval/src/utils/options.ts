@@ -29,7 +29,7 @@ import {
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
-import { InfoObject } from 'openapi3-ts';
+import { InfoObject } from 'openapi3-ts/oas30';
 import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';

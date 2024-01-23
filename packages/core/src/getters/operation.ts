@@ -1,4 +1,4 @@
-import { OperationObject } from 'openapi3-ts';
+import { OperationObject } from 'openapi3-ts/oas30';
 import { Verbs } from '../types';
 import { pascal, sanitize } from '../utils';
 

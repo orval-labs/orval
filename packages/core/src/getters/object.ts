@@ -1,4 +1,4 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
 import { ContextSpecs, ScalarValue, SchemaType } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';

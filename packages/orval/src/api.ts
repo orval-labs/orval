@@ -13,7 +13,7 @@ import {
   resolveRef,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
-import { PathItemObject } from 'openapi3-ts';
+import { PathItemObject } from 'openapi3-ts/oas30';
 import {
   generateClientFooter,
   generateClientHeader,

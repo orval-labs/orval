@@ -18,7 +18,7 @@ import {
   WriteSpecsBuilder,
 } from '@orval/core';
 import omit from 'lodash.omit';
-import { OpenAPIObject, SchemasObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
 import { getApiBuilder } from './api';
 
 export const importOpenApi = async ({

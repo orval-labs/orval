@@ -19,7 +19,7 @@ import chalk from 'chalk';
 import execa from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
-import { InfoObject } from 'openapi3-ts';
+import { InfoObject } from 'openapi3-ts/oas30';
 import { executeHook } from './utils';
 
 const getHeader = (
