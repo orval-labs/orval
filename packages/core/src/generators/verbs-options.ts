@@ -145,7 +145,8 @@ const generateVerbOptions = async ({
   });
 
   const formData =
-    isString(override?.formData) || isObject(override?.formData)
+    (isString(override?.formData) || isObject(override?.formData)) &&
+    body.formData
       ? await generateMutator({
           output: output.target,
           name: operationName,
