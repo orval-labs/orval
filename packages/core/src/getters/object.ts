@@ -6,6 +6,10 @@ import { combineSchemas } from './combine';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
 
+interface SchemaWithConst extends SchemaObject {
+  const: string;
+}
+
 /**
  * Return the output type from an object
  *
@@ -182,6 +186,19 @@ export const getObject = ({
       type: 'object',
       isRef: false,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+    };
+  }
+
+  const itemWithConst = item as SchemaWithConst;
+  if (itemWithConst.const) {
+    return {
+      value: `'${itemWithConst.const}'` + nullable,
+      imports: [],
+      schemas: [],
+      isEnum: false,
+      type: 'string',
+      isRef: false,
+      hasReadonlyProps: item.readOnly || false,
     };
   }
 
