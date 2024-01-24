@@ -43,7 +43,7 @@ export const generateInterface = ({
   }
 
   if (
-    !generalJSTypesWithArray.includes(scalar.value) &&
+    scalar.type === 'object' &&
     !context?.output.override?.useTypeOverInterfaces
   ) {
     model += `export interface ${name} ${scalar.value}\n`;

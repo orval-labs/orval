@@ -26,5 +26,12 @@ components:
             type: string
           type: array
           title: Example tuple
+        example_const:
+          const: this_is_a_const
+        example_enum:
+          type: string
+          enum:
+            - enum1
+            - enum2
       title: Test
       type: object
