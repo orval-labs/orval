@@ -7,7 +7,7 @@ import {
   isFunction,
   pascal,
 } from '@orval/core';
-import { getRouteMSW } from '../faker/getters';
+import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 import { getDelay } from '../delay';
 
@@ -72,6 +72,8 @@ export const generateMSW = (
     value = definitions[0];
   }
 
+  const isResponseOverridable = value.includes(overrideVarName);
+
   const isTextPlain = response.contentTypes.includes('text/plain');
 
   const functionName = `get${pascal(operationId)}Mock`;
@@ -102,7 +104,7 @@ export const ${handlerName} = http.${verb}('${route}', async () => {
     implementation: {
       function:
         value && value !== 'undefined'
-          ? `export const ${functionName} = () => (${value})\n\n`
+          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse?: any` : ''}) => (${value})\n\n`
           : '',
       handlerName: handlerName,
       handler: handlerImplementation,
