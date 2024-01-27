@@ -93,6 +93,7 @@ export const generateTarget = (
       implementationMock: {
         function: '',
         handler: '',
+        handlerName: '',
       },
       importsMock: [],
       mutators: [],

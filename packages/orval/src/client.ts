@@ -121,7 +121,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
   if (!footer) {
     return {
       implementation: '',
-      implementationMock: `]\n`,
+      implementationMock: `\n]\n`,
     };
   }
 

@@ -526,6 +526,7 @@ export type GeneratorTargetFull = {
   implementationMock: {
     function: string;
     handler: string;
+    handlerName: string;
   };
   importsMock: GeneratorImport[];
   mutators?: GeneratorMutator[];
@@ -538,7 +539,11 @@ export type GeneratorTargetFull = {
 export type GeneratorOperation = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMock: { function: string; handler: string };
+  implementationMock: {
+    function: string;
+    handler: string;
+    handlerName: string;
+  };
   importsMock: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;

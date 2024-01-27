@@ -76,34 +76,36 @@ export const generateMSW = (
 
   const functionName = `get${pascal(operationId)}Mock`;
 
+  const handlerName = `get${pascal(operationId)}MockHandler`;
+
+  const handlerImplementation = `
+export const ${handlerName} = http.${verb}('${route}', async () => {
+  await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
+  return new HttpResponse(${
+    value && value !== 'undefined'
+      ? isTextPlain
+        ? `${functionName}()`
+        : `JSON.stringify(${functionName}())`
+      : null
+  },
+    { 
+      status: 200,
+      headers: {
+        'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+      }
+    }
+  )
+})
+`;
+
   return {
     implementation: {
       function:
         value && value !== 'undefined'
           ? `export const ${functionName} = () => (${value})\n\n`
           : '',
-      handler: `http.${verb}('${route}', async () => {
-        await delay(${getDelay(
-          override,
-          !isFunction(mock) ? mock : undefined,
-        )});
-        return new HttpResponse(${
-          value && value !== 'undefined'
-            ? isTextPlain
-              ? `${functionName}()`
-              : `JSON.stringify(${functionName}())`
-            : null
-        },
-          { 
-            status: 200,
-            headers: {
-              'Content-Type': '${
-                isTextPlain ? 'text/plain' : 'application/json'
-              }',
-            }
-          }
-        )
-      }),`,
+      handlerName: handlerName,
+      handler: handlerImplementation,
     },
     imports,
   };
