@@ -30,6 +30,13 @@ export const generateTarget = (
       acc.implementation += operation.implementation + '\n';
       acc.implementationMock.function += operation.implementationMock.function;
       acc.implementationMock.handler += operation.implementationMock.handler;
+
+      const handlerNameSeparator = acc.implementationMock.handlerName.length
+        ? ',\n  '
+        : '  ';
+      acc.implementationMock.handlerName +=
+        handlerNameSeparator + operation.implementationMock.handlerName;
+
       if (operation.mutator) {
         acc.mutators.push(operation.mutator);
       }
@@ -70,9 +77,12 @@ export const generateTarget = (
           titles,
           output: options,
         });
+
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMock.handler =
-          header.implementationMock + acc.implementationMock.handler;
+          acc.implementationMock.handler +
+          header.implementationMock +
+          acc.implementationMock.handlerName;
 
         const footer = builder.footer({
           outputClient: options?.client,
