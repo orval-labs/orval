@@ -103,10 +103,9 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
 
   return {
     implementation: {
-      function:
-        value && value !== 'undefined'
-          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
-          : '',
+      function: isReturnHttpResponse
+        ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+        : '',
       handlerName: handlerName,
       handler: handlerImplementation,
     },
