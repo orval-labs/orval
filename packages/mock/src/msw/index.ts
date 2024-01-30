@@ -106,7 +106,7 @@ export const ${handlerName} = http.${verb}('${route}', async () => {
     implementation: {
       function:
         value && value !== 'undefined'
-          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse?: any` : ''}): ${returnType} => (${value})\n\n`
+          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
           : '',
       handlerName: handlerName,
       handler: handlerImplementation,
