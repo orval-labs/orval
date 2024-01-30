@@ -39,7 +39,7 @@ const generateTargetTags = (
         implementationMock: {
           function: operation.implementationMock.function,
           handler: operation.implementationMock.handler,
-          handlerName: '  ' + operation.implementationMock.handlerName,
+          handlerName: '  ' + operation.implementationMock.handlerName + '()',
         },
       };
 
@@ -61,7 +61,8 @@ const generateTargetTags = (
         handlerName:
           currentOperation.implementationMock.handlerName +
           ',\n  ' +
-          operation.implementationMock.handlerName,
+          operation.implementationMock.handlerName +
+          '()',
       },
       mutators: operation.mutator
         ? [...(currentOperation.mutators ?? []), operation.mutator]

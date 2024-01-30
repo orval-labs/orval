@@ -35,7 +35,7 @@ export const generateTarget = (
         ? ',\n  '
         : '  ';
       acc.implementationMock.handlerName +=
-        handlerNameSeparator + operation.implementationMock.handlerName;
+        handlerNameSeparator + operation.implementationMock.handlerName + '()';
 
       if (operation.mutator) {
         acc.mutators.push(operation.mutator);
