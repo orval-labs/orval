@@ -81,24 +81,25 @@ export const generateMSW = (
   const handlerName = `get${pascal(operationId)}MockHandler`;
 
   const handlerImplementation = `
-export const ${handlerName} = http.${verb}('${route}', async () => {
-  await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
-  return new HttpResponse(${
-    isReturnHttpResponse
-      ? isTextPlain
-        ? `${functionName}()`
-        : `JSON.stringify(${functionName}())`
-      : null
-  },
-    { 
-      status: 200,
-      headers: {
-        'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
+  return http.${verb}('${route}', async () => {
+    await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
+    return new HttpResponse(${
+      isReturnHttpResponse
+        ? isTextPlain
+          ? `${functionName}()`
+          : `JSON.stringify(overrideResponse ? overrideResponse : ${functionName}())`
+        : null
+    },
+      {
+        status: 200,
+        headers: {
+          'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+        }
       }
-    }
-  )
-})
-`;
+    )
+  })
+}\n`;
 
   return {
     implementation: {
