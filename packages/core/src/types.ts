@@ -333,6 +333,7 @@ export type NormalizedQueryOptions = {
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
+  shouldExportMutatorHooks?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -349,6 +350,7 @@ export type QueryOptions = {
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
+  shouldExportMutatorHooks?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };

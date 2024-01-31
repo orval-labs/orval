@@ -438,7 +438,9 @@ const generateQueryRequestFunction = (
       : '';
 
     if (mutator.isHook) {
-      return `export const use${pascal(operationName)}Hook = () => {
+      return `${
+        override.query.shouldExportMutatorHooks ? 'export ' : ''
+      }const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
           response.definition.success || 'unknown'
         }>();

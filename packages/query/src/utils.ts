@@ -47,6 +47,9 @@ export const normalizeQueryOptions = (
           ),
         }
       : {}),
+    ...(queryOptions.shouldExportMutatorHooks
+      ? { shouldExportMutatorHooks: true }
+      : {}),
     ...(queryOptions.signal ? { signal: true } : {}),
   };
 };
