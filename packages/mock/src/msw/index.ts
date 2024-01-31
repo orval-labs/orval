@@ -73,41 +73,39 @@ export const generateMSW = (
   }
 
   const isResponseOverridable = value.includes(overrideVarName);
+  const isTextPlain = response.contentTypes.includes('text/plain');
+  const isReturnHttpResponse = value && value !== 'undefined';
 
   const returnType = response.definition.success;
-
-  const isTextPlain = response.contentTypes.includes('text/plain');
-
   const functionName = `get${pascal(operationId)}Mock`;
-
   const handlerName = `get${pascal(operationId)}MockHandler`;
 
   const handlerImplementation = `
-export const ${handlerName} = http.${verb}('${route}', async () => {
-  await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
-  return new HttpResponse(${
-    value && value !== 'undefined'
-      ? isTextPlain
-        ? `${functionName}()`
-        : `JSON.stringify(${functionName}())`
-      : null
-  },
-    { 
-      status: 200,
-      headers: {
-        'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
+  return http.${verb}('${route}', async () => {
+    await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
+    return new HttpResponse(${
+      isReturnHttpResponse
+        ? isTextPlain
+          ? `${functionName}()`
+          : `JSON.stringify(overrideResponse ? overrideResponse : ${functionName}())`
+        : null
+    },
+      {
+        status: 200,
+        headers: {
+          'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+        }
       }
-    }
-  )
-})
-`;
+    )
+  })
+}\n`;
 
   return {
     implementation: {
-      function:
-        value && value !== 'undefined'
-          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
-          : '',
+      function: isReturnHttpResponse
+        ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+        : '',
       handlerName: handlerName,
       handler: handlerImplementation,
     },
