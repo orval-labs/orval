@@ -395,7 +395,16 @@ export type Hook = 'afterAllFilesWrite';
 
 export type HookFunction = (...args: any[]) => void | Promise<void>;
 
-export type HookCommand = string | HookFunction | (string | HookFunction)[];
+export interface HookOption {
+  command: string | HookFunction;
+  injectGeneratedDirsAndFiles?: boolean;
+}
+
+export type HookCommand =
+  | string
+  | HookFunction
+  | HookOption
+  | (string | HookFunction | HookOption)[];
 
 export type NormalizedHookCommand = HookCommand[];
 

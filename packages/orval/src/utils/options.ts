@@ -4,11 +4,13 @@ import {
   GlobalOptions,
   Hook,
   HookFunction,
+  HookOption,
   HooksOptions,
   isBoolean,
   isFunction,
   isObject,
   isString,
+  isUndefined,
   isUrl,
   mergeDeep,
   Mutator,
@@ -23,9 +25,8 @@ import {
   OutputMode,
   QueryOptions,
   RefComponentSuffix,
-  upath,
   SwaggerParserOptions,
-  isUndefined,
+  upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
@@ -383,6 +384,11 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
       return {
         ...acc,
         [key]: [hooks[key]] as HookFunction[],
+      };
+    } else if (isObject(hooks[key])) {
+      return {
+        ...acc,
+        [key]: [hooks[key]] as HookOption[],
       };
     }
 
