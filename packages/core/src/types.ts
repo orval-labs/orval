@@ -393,7 +393,7 @@ export type OperationOptions = {
   requestOptions?: object | boolean;
 };
 
-export type Hook = 'afterAllFilesWrite';
+export type Hook = 'afterAllFilesWritten';
 
 export type HookFunction = (...args: any[]) => void | Promise<void>;
 

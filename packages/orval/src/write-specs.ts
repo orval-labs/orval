@@ -147,10 +147,10 @@ export const writeSpecs = async (
     ...implementationPaths,
   ];
 
-  if (options.hooks.afterAllFilesWrite) {
+  if (options.hooks.afterAllFilesWritten) {
     await executeHook(
-      'afterAllFilesWrite',
-      options.hooks.afterAllFilesWrite,
+      'afterAllFilesWritten',
+      options.hooks.afterAllFilesWritten,
       paths,
     );
   }
