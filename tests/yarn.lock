@@ -2,19 +2,19 @@
 # yarn lockfile v1
 
 
-"@angular/common@^12.2.9":
-  version "12.2.9"
-  resolved "https://registry.yarnpkg.com/@angular/common/-/common-12.2.9.tgz#8ccf16e1990c375fb9893a7b464002569900005a"
-  integrity sha512-V7leBrq80CSJWHWVE3LEL6Z6onP2ibsITY3++86Uddz8AxzfOtNRslbs4/qCWc82nT7CIEn8a28NLP/BdOwNew==
+"@angular/common@^17.1.1":
+  version "17.1.1"
+  resolved "https://registry.yarnpkg.com/@angular/common/-/common-17.1.1.tgz#67f6469329130d7c43d36e1cb3e6220157391ea0"
+  integrity sha512-YMM2vImWJg7H3Yaej7ncGpFKT28V2Y6X9/rLpRdSKAiUbcbj7GeWtX/upfZGR9KmD08baYZw0YTNMR03Ubv/mg==
   dependencies:
-    tslib "^2.2.0"
+    tslib "^2.3.0"
 
-"@angular/core@^12.2.9":
-  version "12.2.9"
-  resolved "https://registry.yarnpkg.com/@angular/core/-/core-12.2.9.tgz#66cd2268e479e6a647ad08cac45a9dbb42597736"
-  integrity sha512-RgUmn0YM4GMcViTEkWxDVGCyz8+subF+98dJie+bwJszATMxRK2TSINEg2X/Y0LgNxpRt4mKzIK2kz62oaDH7g==
+"@angular/core@^17.1.1":
+  version "17.1.1"
+  resolved "https://registry.yarnpkg.com/@angular/core/-/core-17.1.1.tgz#9da19f0c832d69994c79255c56e81f40ae7ae68a"
+  integrity sha512-JtNYM9eHr8eUSrGPq/kn0+/F+TSZ7EBWxZhM1ZndOlGu1gA4fGhrDid4ZXIHIs07DbM4NZjMn+LhRyx02YDsSA==
   dependencies:
-    tslib "^2.2.0"
+    tslib "^2.3.0"
 
 "@babel/parser@^7.20.15", "@babel/parser@^7.21.3":
   version "7.22.7"
@@ -1247,15 +1247,10 @@ tr46@~0.0.3:
   resolved "https://registry.yarnpkg.com/tr46/-/tr46-0.0.3.tgz#8184fd347dac9cdc185992f3a6622e14b9d9ab6a"
   integrity sha1-gYT9NH2snNwYWZLzpmIuFLnZq2o=
 
-tslib@^2.1.0:
+tslib@^2.1.0, tslib@^2.3.0:
   version "2.6.2"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.6.2.tgz#703ac29425e7b37cd6fd456e92404d46d1f3e4ae"
   integrity sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==
-
-tslib@^2.2.0:
-  version "2.3.1"
-  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.3.1.tgz#e8a335add5ceae51aa261d32a490158ef042ef01"
-  integrity sha512-77EbyPPpMz+FRFRuAFlWMtmgUWGe9UOG2Z25NqCwiIjRhOf5iKGuzSe5P2w1laq+FkRy4p+PCuVkJSGkzTEKVw==
 
 type-fest@^0.21.3:
   version "0.21.3"
