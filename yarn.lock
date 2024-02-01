@@ -663,10 +663,10 @@
     "@pnpm/network.ca-file" "^1.0.1"
     config-chain "^1.1.11"
 
-"@release-it-plugins/workspaces@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/@release-it-plugins/workspaces/-/workspaces-4.0.0.tgz#90382f8ce255b57ade86aa29ec5b488af91fe1af"
-  integrity sha512-79qsR770mvuQeTSMnOjrEJuJHQ4x1KyUkZjqCOQ/UxjK+igNYYDsLK26LpKTweeTjpbpmLYaOg6bl+28M5CO0A==
+"@release-it-plugins/workspaces@^4.2.0":
+  version "4.2.0"
+  resolved "https://registry.yarnpkg.com/@release-it-plugins/workspaces/-/workspaces-4.2.0.tgz#db4ce50c9f28ccb944b3fff5843d4637e372d2e7"
+  integrity sha512-hzQMdYWFnLBS/7dfasIWyeD2LUKeL7LT8ldxZgpzon90lW1cEU4Kpad78KmpZl1L188YHAbwVnboE+6i14jlEQ==
   dependencies:
     detect-indent "^6.0.0"
     detect-newline "^3.1.0"
