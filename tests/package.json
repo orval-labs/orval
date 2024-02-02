@@ -27,8 +27,8 @@
     "typescript": "4.8.2"
   },
   "dependencies": {
-    "@angular/common": "^12.2.9",
-    "@angular/core": "^12.2.9",
+    "@angular/common": "^17.1.1",
+    "@angular/core": "^17.1.1",
     "@faker-js/faker": "^8.1.0",
     "@tanstack/react-query": "^4.22.0",
     "@tanstack/svelte-query": "^4.24.9",
