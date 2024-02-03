@@ -24,6 +24,10 @@ const getMSWDependencies = (locale?: string): GeneratorDependency[] => [
     exports: [{ name: 'faker', values: true }],
     dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
   },
+  {
+    exports: [{ name: 'merge', default: true, values: true }],
+    dependency: 'lodash/merge',
+  },
 ];
 
 export const generateMSWImports: GenerateMockImports = ({
@@ -103,9 +107,10 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
 
   return {
     implementation: {
-      function: isReturnHttpResponse
-        ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
-        : '',
+      function:
+        value && value !== 'undefined'
+          ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse?: any = {}` : ''}): ${returnType} => ${isResponseOverridable ? `merge((${value}), overrideResponse)` : `(${value}) as any`}\n\n`
+          : '',
       handlerName: handlerName,
       handler: handlerImplementation,
     },

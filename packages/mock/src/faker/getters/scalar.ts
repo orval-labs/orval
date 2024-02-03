@@ -15,6 +15,7 @@ import {
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { getMockObject } from './object';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
+import { createOverrideVariable } from '../../createOverrideVariable';
 
 export const getMockScalar = ({
   item,
@@ -195,10 +196,10 @@ export const getMockScalar = ({
 
       return {
         value:
-          `Array.from({ length: faker.number.int({ ` +
+          `Array.from({ length: Math.max(${createOverrideVariable(item.path)}?.length ?? 0,  faker.number.int({ ` +
           `min: ${mockOptions?.arrayMin}, ` +
-          `max: ${mockOptions?.arrayMax} }) ` +
-          `}, (_, i) => i + 1).map(() => (${mapValue}))`,
+          `max: ${mockOptions?.arrayMax} })) ` +
+          `}, (_, i) => i + 1).map((_, index_${item.path?.match(/\[\]/g)?.length ?? 0}) => (${mapValue}))`,
         imports: resolvedImports,
         name: item.name,
       };

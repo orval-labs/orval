@@ -128,8 +128,6 @@ export const getMockObject = ({
       })
       .filter(Boolean);
 
-    properyScalars.push(`...${overrideVarName}`);
-
     value += properyScalars.join(', ');
     value +=
       !combine ||
