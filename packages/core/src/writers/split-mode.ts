@@ -59,9 +59,13 @@ export const writeSplitMode = async ({
       packageJson: output.packageJson,
       output,
     });
+
     mockData += builder.importsMock({
       implementation: implementationMock,
-      imports: [{ exports: imports, dependency: relativeSchemasPath }],
+      imports: [
+        { exports: imports, dependency: relativeSchemasPath },
+        { exports: importsMock, dependency: relativeSchemasPath },
+      ],
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
