@@ -1,5 +1,5 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
-import { ContextSpecs, ScalarValue } from '../types';
+import { ContextSpecs, ScalarValue, OutputClient } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -20,7 +20,10 @@ export const getScalar = ({
   name?: string;
   context: ContextSpecs;
 }): ScalarValue => {
-  const nullable = item.nullable ? ' | null' : '';
+  // NOTE: Angular client does not support nullable types
+  const isAngularClient = context.output.client === OutputClient.ANGULAR;
+  const nullable = item.nullable && !isAngularClient ? ' | null' : '';
+
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
   if (!item.type && item.items) {

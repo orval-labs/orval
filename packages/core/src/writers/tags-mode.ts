@@ -76,7 +76,9 @@ export const writeTagsMode = async ({
         if (output.mock) {
           data += builder.importsMock({
             implementation: implementationMock,
-            imports: importsForBuilder,
+            imports: [
+              { exports: importsMock, dependency: schemasPathRelative },
+            ],
             specsName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
