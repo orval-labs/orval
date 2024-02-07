@@ -1299,9 +1299,10 @@ const generateQueryHook = async (
         : undefined;
   }
 
-  const isMutation =
-    (verb !== Verbs.GET && override.query.useMutation) ||
-    operationQueryOptions?.useMutation;
+  let isMutation = verb !== Verbs.GET && override.query.useMutation;
+  if (operationQueryOptions?.useMutation !== undefined) {
+    isMutation = operationQueryOptions.useMutation;
+  }
 
   if (isMutation) {
     const mutationOptionsMutator = query.mutationOptions
