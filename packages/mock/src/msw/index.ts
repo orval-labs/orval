@@ -109,7 +109,8 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
   return {
     implementation: {
       function: isReturnHttpResponse
-        ? `export const ${functionName} = (${isResponseOverridable ? `${overrideVarName}: any = {}` : ''}): ${returnType} => ${isResponseOverridable ? `merge((${value}), overrideResponse)` : `(${value}) as any`}\n\n`
+        ? // TODO(https://github.com/anymaniax/orval/issues/1210): 'as any' is used to avoid type errors until #1210 is fixed
+          `export const ${functionName} = (${isResponseOverridable ? `${overrideVarName}: any = {}` : ''}): ${returnType} => ${isResponseOverridable ? `merge((${value}), overrideResponse)` : `(${value}) as any`}\n\n`
         : '',
       handlerName: handlerName,
       handler: handlerImplementation,
