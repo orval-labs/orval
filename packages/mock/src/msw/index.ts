@@ -80,6 +80,10 @@ export const generateMSW = (
   const functionName = `get${pascal(operationId)}Mock`;
   const handlerName = `get${pascal(operationId)}MockHandler`;
 
+  const mockImplementation = isReturnHttpResponse
+    ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+    : '';
+
   const handlerImplementation = `
 export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
   return http.${verb}('${route}', async () => {
@@ -101,14 +105,17 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
   })
 }\n`;
 
+  const includeResponseImports =
+    isReturnHttpResponse && !isTextPlain
+      ? [...imports, ...response.imports]
+      : imports;
+
   return {
     implementation: {
-      function: isReturnHttpResponse
-        ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
-        : '',
+      function: mockImplementation,
       handlerName: handlerName,
       handler: handlerImplementation,
     },
-    imports,
+    imports: includeResponseImports,
   };
 };
