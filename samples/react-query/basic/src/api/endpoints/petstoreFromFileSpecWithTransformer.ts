@@ -19,6 +19,7 @@ import type {
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
   UseSuspenseInfiniteQueryOptions,
@@ -476,7 +477,12 @@ export const useCreatePets = <
     { data: CreatePetsBody; version?: number },
     TContext
   >;
-}) => {
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
   const mutationOptions = getCreatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
@@ -543,7 +549,12 @@ export const useUpdatePets = <
     { data: NonReadonly<Pet>; version?: number },
     TContext
   >;
-}) => {
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePets>>,
+  TError,
+  { data: NonReadonly<Pet>; version?: number },
+  TContext
+> => {
   const mutationOptions = getUpdatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);

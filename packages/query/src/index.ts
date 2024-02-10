@@ -160,6 +160,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'QueryClient' },
+      { name: 'UseMutationResult' },
     ],
     dependency: 'react-query',
   },
@@ -186,6 +187,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryKey' },
       { name: 'QueryClient' },
       { name: 'InfiniteData' },
+      { name: 'UseMutationResult' },
     ],
     dependency: '@tanstack/react-query',
   },
@@ -726,6 +728,27 @@ const generateQueryReturnType = ({
       )}Result<TData, TError> & { queryKey: QueryKey }`;
     }
   }
+};
+
+const generateMutatorReturnType = ({
+  outputClient,
+  dataType,
+  variableType,
+}: {
+  outputClient: OutputClient | OutputClientFunc;
+  dataType: unknown;
+  variableType: unknown;
+}) => {
+  if (outputClient !== OutputClient.REACT_QUERY) {
+    return '';
+  }
+
+  return `: UseMutationResult<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
 };
 
 const getQueryOptions = ({
@@ -1373,17 +1396,17 @@ const generateQueryHook = async (
 
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
- ${
-   isRequestOptions
-     ? `const {mutation: mutationOptions${
-         !mutator
-           ? `, axios: axiosOptions`
-           : mutator?.hasSecondArg
-             ? ', request: requestOptions'
-             : ''
-       }} = options ?? {};`
-     : ''
- }
+${
+  isRequestOptions
+    ? `const {mutation: mutationOptions${
+        !mutator
+          ? `, axios: axiosOptions`
+          : mutator?.hasSecondArg
+            ? ', request: requestOptions'
+            : ''
+      }} = options ?? {};`
+    : ''
+}
 
       ${
         mutator?.isHook
@@ -1421,11 +1444,11 @@ const generateQueryHook = async (
         }
 
 
-   return  ${
-     !mutationOptionsMutator
-       ? '{ mutationFn, ...mutationOptions }'
-       : 'customOptions'
-   }}`;
+  return  ${
+    !mutationOptionsMutator
+      ? '{ mutationFn, ...mutationOptions }'
+      : 'customOptions'
+  }}`;
 
     const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
@@ -1449,7 +1472,11 @@ ${mutationOptionsFn}
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
     )} = <TError = ${errorType},
-    TContext = unknown>(${mutationArguments}) => {
+    TContext = unknown>(${mutationArguments})${generateMutatorReturnType({
+      outputClient,
+      dataType,
+      variableType: definitions ? `{${definitions}}` : 'void',
+    })} => {
 
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
         isRequestOptions ? 'options' : 'mutationOptions'

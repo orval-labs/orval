@@ -5,7 +5,11 @@
  * OpenAPI spec version: 1.0.0
  */
 import { useMutation } from 'react-query';
-import type { MutationFunction, UseMutationOptions } from 'react-query';
+import type {
+  MutationFunction,
+  UseMutationOptions,
+  UseMutationResult,
+} from 'react-query';
 import type { CreatePetsBody, Error, Pet } from './models';
 import { customInstance } from './custom-instance';
 
@@ -75,7 +79,12 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
     { data: CreatePetsBody },
     TContext
   >;
-}) => {
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody },
+  TContext
+> => {
   const mutationOptions = getCreatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
