@@ -85,6 +85,10 @@ export const generateMSW = (
       ? [...imports, { name: returnType, values: true }]
       : imports;
 
+  const mockImplementation = isReturnHttpResponse
+    ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+    : '';
+
   const handlerImplementation = `
 export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
   return http.${verb}('${route}', async () => {
@@ -108,9 +112,7 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
 
   return {
     implementation: {
-      function: isReturnHttpResponse
-        ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
-        : '',
+      function: mockImplementation,
       handlerName: handlerName,
       handler: handlerImplementation,
     },
