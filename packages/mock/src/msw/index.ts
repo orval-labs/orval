@@ -105,9 +105,9 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
   })
 }\n`;
 
-  const includeReturnTypeImports =
+  const includeResponseImports =
     isReturnHttpResponse && !isTextPlain
-      ? [...imports, { name: returnType, values: true }]
+      ? [...imports, ...response.imports]
       : imports;
 
   return {
@@ -116,6 +116,6 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
       handlerName: handlerName,
       handler: handlerImplementation,
     },
-    imports: includeReturnTypeImports,
+    imports: includeResponseImports,
   };
 };
