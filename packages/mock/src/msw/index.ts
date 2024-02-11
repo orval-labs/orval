@@ -77,11 +77,11 @@ export const generateMSW = (
   const isReturnHttpResponse = value && value !== 'undefined';
 
   const returnType = response.definition.success;
-  const functionName = `get${pascal(operationId)}Mock`;
+  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
   const handlerName = `get${pascal(operationId)}MockHandler`;
 
   const mockImplementation = isReturnHttpResponse
-    ? `export const ${functionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
     : '';
 
   const handlerImplementation = `
@@ -91,8 +91,8 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain
-          ? `${functionName}()`
-          : `JSON.stringify(overrideResponse ? overrideResponse : ${functionName}())`
+          ? `${getResponseMockFunctionName}()`
+          : `JSON.stringify(overrideResponse ? overrideResponse : ${getResponseMockFunctionName}())`
         : null
     },
       {
