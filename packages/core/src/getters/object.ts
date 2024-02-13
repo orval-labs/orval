@@ -202,10 +202,16 @@ export const getObject = ({
     };
   }
 
+  const useTypeOverInterfaces = context?.output.override?.useTypeOverInterfaces;
+  const blankValue =
+    item.type === 'object'
+      ? '{ [key: string]: any }'
+      : useTypeOverInterfaces
+        ? 'unknown'
+        : '{}';
+
   return {
-    value:
-      (item.type === 'object' ? '{ [key: string]: any }' : 'unknown') +
-      nullable,
+    value: blankValue + nullable,
     imports: [],
     schemas: [],
     isEnum: false,
