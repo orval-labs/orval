@@ -5,7 +5,6 @@ import {
   Options,
   OptionsExport,
 } from '@orval/core';
-import chalk from 'chalk';
 import { generateConfig, generateSpec } from './generate';
 import { defineConfig, normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
