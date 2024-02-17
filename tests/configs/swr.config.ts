@@ -107,4 +107,22 @@ export default defineConfig({
       },
     },
   },
+  petstoreOverrideSwr: {
+    output: {
+      target: '../generated/swr/petstore-override-swr/endpoints.ts',
+      schemas: '../generated/swr/petstore-override-swr/model',
+      client: 'swr',
+      override: {
+        swr: {
+          useInfinite: true,
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

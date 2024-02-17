@@ -817,6 +817,30 @@ Type: `Boolean`.
 
 Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
 
+##### swrOptions
+
+Type: `Object`.
+
+Use to override the `useSwr` options. Check available options [here](https://swr.vercel.app/docs/api#options)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 #### mock
 
 Type: `Object`.
