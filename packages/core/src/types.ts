@@ -363,6 +363,7 @@ export type SwrOptions = {
   options?: any;
   useInfinite?: boolean;
   swrOptions?: any;
+  swrMutationOptions?: any;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
