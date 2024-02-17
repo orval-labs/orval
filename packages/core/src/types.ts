@@ -362,6 +362,7 @@ export type AngularOptions = {
 export type SwrOptions = {
   options?: any;
   useInfinite?: boolean;
+  swrOptions?: any;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
