@@ -118,6 +118,9 @@ export default defineConfig({
           swrOptions: {
             dedupingInterval: 10000,
           },
+          swrMutationOptions: {
+            revalidate: false,
+          },
         },
       },
     },
