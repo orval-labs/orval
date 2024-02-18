@@ -518,9 +518,9 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   });
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
-    swrOptions.options
+    swrOptions.swrMutationOptions
       ? `{
-    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ${stringify(swrOptions.swrMutationOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
