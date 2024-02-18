@@ -841,6 +841,30 @@ module.exports = {
 };
 ```
 
+##### swrMutationOptions
+
+Type: `Object`.
+
+Use to override the `useSWRMutation` options. Check available options [here](https://swr.vercel.app/docs/mutation#useswrmutation-parameters)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrMutationOptions: {
+            revalidate: true,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 #### mock
 
 Type: `Object`.
