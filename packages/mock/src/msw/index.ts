@@ -81,7 +81,7 @@ export const generateMSW = (
   const handlerName = `get${pascal(operationId)}MockHandler`;
 
   const mockImplementation = isReturnHttpResponse
-    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : '';
 
   const handlerImplementation = `
