@@ -1,0 +1,37 @@
+openapi: 3.1.0
+info:
+  title: Nullables
+  description: 'OpenAPI 3.1 examples'
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    Test:
+      properties:
+        example_tuple:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+            - type: string
+            - {}
+          type: array
+          title: Example tuple
+        example_tuple_additional:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+            - type: string
+            - {}
+          items:
+            type: string
+          type: array
+          title: Example tuple
+        example_const:
+          const: this_is_a_const
+        example_enum:
+          type: string
+          enum:
+            - enum1
+            - enum2
+      title: Test
+      type: object

@@ -13,6 +13,42 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/react-query/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/react-query/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/react-query/split/endpoints.ts',
+      schemas: '../generated/react-query/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/react-query/tags/endpoints.ts',
+      schemas: '../generated/react-query/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/react-query/mutator/endpoints.ts',
@@ -150,8 +186,8 @@ export default defineConfig({
   },
   formData: {
     output: {
-      target: '../generated/react-query/formData/endpoints.ts',
-      schemas: '../generated/react-query/formData/model',
+      target: '../generated/react-query/form-data/endpoints.ts',
+      schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
       mock: true,
       override: {
@@ -184,8 +220,8 @@ export default defineConfig({
   },
   formDataMutator: {
     output: {
-      target: '../generated/react-query/form-data/endpoints.ts',
-      schemas: '../generated/react-query/form-data/model',
+      target: '../generated/react-query/form-data-with-mutator/endpoints.ts',
+      schemas: '../generated/react-query/form-data-with-mutator/model',
       client: 'react-query',
       mock: true,
       override: {

@@ -8,7 +8,8 @@ import {
   RequestBodyObject,
   ResponsesObject,
   SchemaObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
+// @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
 import swagger2openapi from 'swagger2openapi';
 import type { allLocales } from '@faker-js/faker';
 
@@ -54,6 +55,9 @@ export type NormalizedOutputOptions = {
   headers: boolean;
   indexFiles: boolean;
   baseUrl?: string;
+  allParamsOptional: boolean;
+  urlEncodeParameters: boolean;
+  unionAddMissingProperties: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -76,6 +80,7 @@ export type NormalizedOverrideOutput = {
   components: {
     schemas: {
       suffix: string;
+      itemSuffix: string;
     };
     responses: {
       suffix: string;
@@ -89,9 +94,7 @@ export type NormalizedOverrideOutput = {
   };
   query: NormalizedQueryOptions;
   angular: Required<AngularOptions>;
-  swr: {
-    options?: any;
-  };
+  swr: SwrOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -170,6 +173,9 @@ export type OutputOptions = {
   headers?: boolean;
   indexFiles?: boolean;
   baseUrl?: string;
+  allParamsOptional?: boolean;
+  urlEncodeParameters?: boolean;
+  unionAddMissingProperties?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -194,9 +200,11 @@ export const OutputClient = {
   REACT_QUERY: 'react-query',
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
+  SWR: 'swr',
+  ZOD: 'zod',
 } as const;
 
-export type OutputClient = typeof OutputClient[keyof typeof OutputClient];
+export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
 
 export const OutputMode = {
   SINGLE: 'single',
@@ -205,14 +213,15 @@ export const OutputMode = {
   TAGS_SPLIT: 'tags-split',
 } as const;
 
-export type OutputMode = typeof OutputMode[keyof typeof OutputMode];
+export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
 
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {
   MSW: 'msw',
 } as const;
 
-export type OutputMockType = typeof OutputMockType[keyof typeof OutputMockType];
+export type OutputMockType =
+  (typeof OutputMockType)[keyof typeof OutputMockType];
 
 export type GlobalMockOptions = {
   // This is the type of the mock that will be generated
@@ -278,6 +287,7 @@ export type OverrideOutput = {
   components?: {
     schemas?: {
       suffix?: string;
+      itemSuffix?: string;
     };
     responses?: {
       suffix?: string;
@@ -290,9 +300,7 @@ export type OverrideOutput = {
     };
   };
   query?: QueryOptions;
-  swr?: {
-    options?: any;
-  };
+  swr?: SwrOptions;
   angular?: AngularOptions;
   operationName?: (
     operation: OperationObject,
@@ -325,6 +333,7 @@ export type NormalizedQueryOptions = {
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
+  shouldExportMutatorHooks?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -341,12 +350,20 @@ export type QueryOptions = {
   queryKey?: Mutator;
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
+  shouldExportMutatorHooks?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
   provideIn?: 'root' | 'any' | boolean;
+};
+
+export type SwrOptions = {
+  options?: any;
+  useInfinite?: boolean;
+  swrOptions?: any;
+  swrMutationOptions?: any;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
@@ -366,9 +383,7 @@ export type OperationOptions = {
   };
   query?: QueryOptions;
   angular?: Required<AngularOptions>;
-  swr?: {
-    options?: any;
-  };
+  swr?: SwrOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -384,7 +399,16 @@ export type Hook = 'afterAllFilesWrite';
 
 export type HookFunction = (...args: any[]) => void | Promise<void>;
 
-export type HookCommand = string | HookFunction | (string | HookFunction)[];
+export interface HookOption {
+  command: string | HookFunction;
+  injectGeneratedDirsAndFiles?: boolean;
+}
+
+export type HookCommand =
+  | string
+  | HookFunction
+  | HookOption
+  | (string | HookFunction | HookOption)[];
 
 export type NormalizedHookCommand = HookCommand[];
 
@@ -417,12 +441,9 @@ export interface ContextSpecs {
   specKey: string;
   target: string;
   workspace: string;
-  tslint: boolean;
   specs: Record<string, OpenAPIObject>;
-  override: NormalizedOverrideOutput;
-  tsconfig?: Tsconfig;
-  packageJson?: PackageJson;
   parents?: string[];
+  output: NormalizedOutputOptions;
 }
 
 export interface GlobalOptions {
@@ -518,6 +539,7 @@ export type GeneratorTargetFull = {
   implementationMock: {
     function: string;
     handler: string;
+    handlerName: string;
   };
   importsMock: GeneratorImport[];
   mutators?: GeneratorMutator[];
@@ -530,7 +552,11 @@ export type GeneratorTargetFull = {
 export type GeneratorOperation = {
   imports: GeneratorImport[];
   implementation: string;
-  implementationMock: { function: string; handler: string };
+  implementationMock: {
+    function: string;
+    handler: string;
+    handlerName: string;
+  };
   importsMock: GeneratorImport[];
   tags: string[];
   mutator?: GeneratorMutator;
@@ -603,6 +629,7 @@ export type ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
+  output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
 export type ClientHeaderBuilder = (params: {
@@ -815,6 +842,7 @@ export type GeneratorClientTitle = (data: {
   outputClient?: OutputClient | OutputClientFunc;
   title: string;
   customTitleFunc?: (title: string) => string;
+  output: NormalizedOutputOptions;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientHeader = (data: {
@@ -825,6 +853,7 @@ export type GeneratorClientHeader = (data: {
   provideIn: boolean | 'root' | 'any';
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
+  output: NormalizedOutputOptions;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientFooter = (data: {
@@ -833,6 +862,7 @@ export type GeneratorClientFooter = (data: {
   hasMutator: boolean;
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
+  output: NormalizedOutputOptions;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientImports = (data: {
@@ -848,6 +878,7 @@ export type GeneratorClientImports = (data: {
   hasGlobalMutator: boolean;
   hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
+  output: NormalizedOutputOptions;
 }) => string;
 
 export type GenerateMockImports = (data: {

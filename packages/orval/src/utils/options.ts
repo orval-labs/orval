@@ -4,11 +4,13 @@ import {
   GlobalOptions,
   Hook,
   HookFunction,
+  HookOption,
   HooksOptions,
   isBoolean,
   isFunction,
   isObject,
   isString,
+  isUndefined,
   isUrl,
   mergeDeep,
   Mutator,
@@ -23,13 +25,12 @@ import {
   OutputMode,
   QueryOptions,
   RefComponentSuffix,
-  upath,
   SwaggerParserOptions,
-  isUndefined,
+  upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
-import { InfoObject } from 'openapi3-ts';
+import { InfoObject } from 'openapi3-ts/oas30';
 import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';
@@ -135,6 +136,8 @@ export const normalizeOptions = async (
       headers: outputOptions.headers ?? false,
       indexFiles: outputOptions.indexFiles ?? true,
       baseUrl: outputOptions.baseUrl,
+      unionAddMissingProperties:
+        outputOptions.unionAddMissingProperties ?? false,
       override: {
         ...outputOptions.override,
         mock: {
@@ -176,12 +179,14 @@ export const normalizeOptions = async (
           outputOptions.override?.header === false
             ? false
             : isFunction(outputOptions.override?.header)
-            ? outputOptions.override?.header!
-            : getDefaultFilesHeader,
+              ? outputOptions.override?.header!
+              : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,
+            itemSuffix:
+              outputOptions.override?.components?.schemas?.itemSuffix ?? 'Item',
             ...(outputOptions.override?.components?.schemas ?? {}),
           },
           responses: {
@@ -201,6 +206,7 @@ export const normalizeOptions = async (
           useQuery: true,
           useMutation: true,
           signal: true,
+          shouldExportMutatorHooks: true,
           ...normalizeQueryOptions(outputOptions.override?.query, workspace),
         },
         swr: {
@@ -214,6 +220,8 @@ export const normalizeOptions = async (
           outputOptions.override?.useDeprecatedOperations ?? true,
         useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
       },
+      allParamsOptional: outputOptions.allParamsOptional ?? false,
+      urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
@@ -378,6 +386,11 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
         ...acc,
         [key]: [hooks[key]] as HookFunction[],
       };
+    } else if (isObject(hooks[key])) {
+      return {
+        ...acc,
+        [key]: [hooks[key]] as HookOption[],
+      };
     }
 
     return acc;
@@ -437,6 +450,9 @@ const normalizeQueryOptions = (
             queryOptions?.mutationOptions,
           ),
         }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
+      ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
       : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }

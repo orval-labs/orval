@@ -57,15 +57,12 @@ export const writeSplitMode = async ({
       hasGlobalMutator: !!output.override.mutator,
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
+      output,
     });
+
     mockData += builder.importsMock({
       implementation: implementationMock,
-      imports: [
-        {
-          exports: importsMock,
-          dependency: relativeSchemasPath,
-        },
-      ],
+      imports: [{ exports: importsMock, dependency: relativeSchemasPath }],
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,

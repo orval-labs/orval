@@ -7,7 +7,7 @@ import {
   isFunction,
   pascal,
 } from '@orval/core';
-import { getRouteMSW } from '../faker/getters';
+import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 import { getDelay } from '../delay';
 
@@ -72,39 +72,50 @@ export const generateMSW = (
     value = definitions[0];
   }
 
+  const isResponseOverridable = value.includes(overrideVarName);
   const isTextPlain = response.contentTypes.includes('text/plain');
+  const isReturnHttpResponse = value && value !== 'undefined';
 
-  const functionName = `get${pascal(operationId)}Mock`;
+  const returnType = response.definition.success;
+  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
+  const handlerName = `get${pascal(operationId)}MockHandler`;
+
+  const mockImplementation = isReturnHttpResponse
+    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''}): ${returnType} => (${value})\n\n`
+    : '';
+
+  const handlerImplementation = `
+export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
+  return http.${verb}('${route}', async () => {
+    await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
+    return new HttpResponse(${
+      isReturnHttpResponse
+        ? isTextPlain
+          ? `${getResponseMockFunctionName}()`
+          : `JSON.stringify(overrideResponse ? overrideResponse : ${getResponseMockFunctionName}())`
+        : null
+    },
+      {
+        status: 200,
+        headers: {
+          'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+        }
+      }
+    )
+  })
+}\n`;
+
+  const includeResponseImports =
+    isReturnHttpResponse && !isTextPlain
+      ? [...imports, ...response.imports]
+      : imports;
 
   return {
     implementation: {
-      function:
-        value && value !== 'undefined'
-          ? `export const ${functionName} = () => (${value})\n\n`
-          : '',
-      handler: `http.${verb}('${route}', async () => {
-        await delay(${getDelay(
-          override,
-          !isFunction(mock) ? mock : undefined,
-        )});
-        return new HttpResponse(${
-          value && value !== 'undefined'
-            ? isTextPlain
-              ? `${functionName}()`
-              : `JSON.stringify(${functionName}())`
-            : null
-        },
-          { 
-            status: 200,
-            headers: {
-              'Content-Type': '${
-                isTextPlain ? 'text/plain' : 'application/json'
-              }',
-            }
-          }
-        )
-      }),`,
+      function: mockImplementation,
+      handlerName: handlerName,
+      handler: handlerImplementation,
     },
-    imports,
+    imports: includeResponseImports,
   };
 };

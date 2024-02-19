@@ -1,5 +1,5 @@
 declare module 'swagger2openapi' {
-  import { OpenAPIObject } from 'openapi3-ts';
+  import { OpenAPIObject } from 'openapi3-ts/oas30';
   interface ConverObjCallbackData {
     openapi: OpenAPIObject;
   }

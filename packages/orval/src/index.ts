@@ -1,11 +1,10 @@
 import {
   GlobalOptions,
   isString,
-  log,
+  logError,
   Options,
   OptionsExport,
 } from '@orval/core';
-import chalk from 'chalk';
 import { generateConfig, generateSpec } from './generate';
 import { defineConfig, normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -32,13 +31,7 @@ const generate = async (
         try {
           await generateSpec(workspace, normalizedOptions);
         } catch (e) {
-          log(
-            chalk.red(
-              `🛑  ${
-                options?.projectName ? `${options?.projectName} - ` : ''
-              }${e}`,
-            ),
-          );
+          logError(e, options?.projectName);
         }
       },
       normalizedOptions.input.target as string,
@@ -47,11 +40,7 @@ const generate = async (
     try {
       return await generateSpec(workspace, normalizedOptions);
     } catch (e) {
-      log(
-        chalk.red(
-          `🛑  ${options?.projectName ? `${options?.projectName} - ` : ''}${e}`,
-        ),
-      );
+      logError(e, options?.projectName);
     }
   }
 };

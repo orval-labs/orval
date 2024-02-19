@@ -4,7 +4,7 @@ import {
   ParameterObject,
   PathItemObject,
   ReferenceObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
 import {
   getBody,
   getOperationId,
@@ -124,6 +124,7 @@ const generateVerbOptions = async ({
     pathParams: parameters.path,
     operationId: operationId!,
     context,
+    output,
   });
 
   const props = getProps({
@@ -140,17 +141,18 @@ const generateVerbOptions = async ({
     name: operationName,
     mutator: override?.mutator,
     workspace: context.workspace,
-    tsconfig: context.tsconfig,
+    tsconfig: context.output.tsconfig,
   });
 
   const formData =
-    isString(override?.formData) || isObject(override?.formData)
+    (isString(override?.formData) || isObject(override?.formData)) &&
+    body.formData
       ? await generateMutator({
           output: output.target,
           name: operationName,
           mutator: override.formData,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
@@ -161,7 +163,7 @@ const generateVerbOptions = async ({
           name: operationName,
           mutator: override.formUrlEncoded,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 
@@ -172,7 +174,7 @@ const generateVerbOptions = async ({
           name: 'paramsSerializer',
           mutator: override.paramsSerializer as NormalizedMutator,
           workspace: context.workspace,
-          tsconfig: context.tsconfig,
+          tsconfig: context.output.tsconfig,
         })
       : undefined;
 

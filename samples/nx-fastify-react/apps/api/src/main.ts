@@ -46,7 +46,7 @@ app.ready(async () => {
       },
       input: { target: app.swagger() },
     },
-    './apps/app/src/api'
+    './apps/app/src/api',
   );
 
   if (process.env.UPDATE_SPEC) {
@@ -87,7 +87,7 @@ app.get(
   },
   async () => {
     return getGetPetsMock();
-  }
+  },
 );
 
 // Run the server!

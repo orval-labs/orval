@@ -23,7 +23,7 @@ module.exports = {
 
 Type: `String | Function`.
 
-Valid values: `axios`, `axios-functions`, `angular`, `react-query`, `svelte-query`, `vue-query`, `zod`.
+Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`.
 
 Default Value: `axios-functions`.
 
@@ -37,7 +37,7 @@ module.exports = {
 };
 ```
 
-if you want you can provide a function to extend or create you custom client generator and this function receive a [GeneratorClients](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L148) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L140).
+if you want you can provide a function to extend or create you custom client generator and this function receive a [[GeneratorClients](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156)](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L652).
 
 ### schemas
 
@@ -103,6 +103,7 @@ module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
     },
   },
 };
@@ -111,22 +112,21 @@ module.exports = {
 ```
 my-app
 └── src
-    └── api
-        └── endpoints
-            └── petstore.ts
+    └── petstore.ts
 ```
 
 Here a single file petstore will be created in src with your specification implementation.
 
 #### Value: split
 
-Use to have definition, implementation, schemas, mock in different files
+Use to have implementation, schemas, mock in different files
 
 ```js
 module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
       mode: 'split',
     },
   },
@@ -136,7 +136,6 @@ module.exports = {
 ```
 my-app
 └── src
-    ├── petstore.definition.ts
     ├── petstore.schemas.ts
     ├── petstore.msw.ts
     └── petstore.ts
@@ -144,7 +143,6 @@ my-app
 
 Here depending on the configuration, you will have multiple files named petstore with a prefix created in src.
 
-- petstore.definition.ts
 - petstore.schemas.ts
 - petstore.ts
 - petstore.msw.ts
@@ -162,6 +160,7 @@ module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
       mode: 'tags',
     },
   },
@@ -190,6 +189,7 @@ module.exports = {
   petstore: {
     output: {
       target: 'src/petstore.ts',
+      mock: true,
       mode: 'tags-split',
     },
   },
@@ -201,13 +201,32 @@ my-app
 └── src
     ├── petstore.schemas.ts
     └── pets
-        ├── petstore.ts
-        ├── petstore.definition.ts
         ├── petstore.msw.ts
         └── petstore.ts
 ```
 
 Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tag.
+
+### indexFiles
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to true.
+
+Specify whether to place `index.ts` in `schemas` generation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      schemas: 'src/gen/model',
+      indexFiles: false,
+    },
+  },
+};
+```
 
 ### title
 
@@ -359,7 +378,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L510" target="_blank">VerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L510" target="_blank">VerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a>
 
 ```js
 module.exports = {
@@ -727,6 +746,14 @@ Type: `Boolean`.
 
 Use to remove the generation of the abort signal provided by <a href="https://react-query.tanstack.com/" target="_blank">query</a>
 
+##### shouldExportMutatorHooks
+
+Type: `Boolean`.
+
+Default Value: `true`.
+
+Use to stop the export of mutator hooks. Useful if you want to rely soley on useQuery, useSuspenseQuery, etc.
+
 #### angular
 
 Type: `Object`.
@@ -758,6 +785,85 @@ Valid values: `true`, `false`, `'root'`, `'any'`, `''`.
 Default Value: `'root'`.
 
 Can be used to set the value of `providedIn` on the generated Angular services. If `false`, no `providedIn` will be set. If `true` or not specified, it will fall back to the default value: `root`.
+
+#### swr
+
+Type: `Object`.
+
+Give options to the generated `swr` client. It is also possible to extend the generated functions.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        swr: {
+          useInfinite: true,
+          options: {
+            dedupingInterval: 10000,
+          },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### useInfinite
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
+
+##### swrOptions
+
+Type: `Object`.
+
+Use to override the `useSwr` options. Check available options [here](https://swr.vercel.app/docs/api#options)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+##### swrMutationOptions
+
+Type: `Object`.
+
+Use to override the `useSWRMutation` options. Check available options [here](https://swr.vercel.app/docs/mutation#useswrmutation-parameters)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrMutationOptions: {
+            revalidate: true,
+          },
+        },
+      },
+    },
+  },
+};
+```
 
 #### mock
 
@@ -1375,6 +1481,42 @@ module.exports = {
       override: {
         useNativeEnums: true,
       },
+    },
+  },
+};
+```
+
+### allParamsOptional
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false. Applies to all clients, but probably only makes sense for Tanstack Query.
+
+Use this property to make all parameters optional. This is useful to take advantage of the Orval's auto-enable feature for Tanstack Query, see https://github.com/anymaniax/orval/pull/894
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      allParamsOptional: true,
+    },
+  },
+};
+```
+
+### urlEncodeParameters
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false. **Note:** this only works for Tanstack Query clients for now.
+
+Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become a default in the future, see https://github.com/anymaniax/orval/pull/895
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      urlEncodeParameters: true,
     },
   },
 };

@@ -13,7 +13,7 @@ import {
   resolveRef,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
-import { PathItemObject } from 'openapi3-ts';
+import { PathItemObject } from 'openapi3-ts/oas30';
 import {
   generateClientFooter,
   generateClientHeader,
@@ -111,8 +111,10 @@ export const getApiBuilder = async ({
           override: output.override,
           context: resolvedContext,
           mock: output.mock,
+          // @ts-expect-error // FIXME
           output: output.target,
         },
+        output,
       );
 
       acc.schemas.push(...schemas);

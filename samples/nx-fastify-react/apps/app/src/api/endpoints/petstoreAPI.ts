@@ -33,7 +33,7 @@ export const getGetPetsQueryKey = () => {
 
 export const getGetPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof getPets>>,
-  TError = unknown
+  TError = unknown,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof getPets>>, TError, TData>;
 }) => {
@@ -59,7 +59,7 @@ export type GetPetsQueryError = unknown;
 
 export const useGetPets = <
   TData = Awaited<ReturnType<typeof getPets>>,
-  TError = unknown
+  TError = unknown,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof getPets>>, TError, TData>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {

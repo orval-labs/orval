@@ -10,7 +10,7 @@ import {
   resolveRef,
   stringify,
 } from '@orval/core';
-import { OpenAPIObject, SchemaObject } from 'openapi3-ts';
+import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
 import { getMockScalar } from '../faker/getters';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
@@ -135,7 +135,10 @@ export const getResponsesMockDefinition = ({
       acc,
       { value: definition, originalSchema, example, examples, imports, isRef },
     ) => {
-      if (context.override?.mock?.useExamples || mockOptions?.useExamples) {
+      if (
+        context.output.override?.mock?.useExamples ||
+        mockOptions?.useExamples
+      ) {
         const exampleValue =
           example ||
           originalSchema?.example ||

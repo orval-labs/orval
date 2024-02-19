@@ -14,6 +14,7 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterParams,
+  GetterProp,
   GetterProps,
   GetterPropType,
   GetterResponse,
@@ -24,6 +25,7 @@ import {
   Verbs,
   VERBS_WITH_BODY,
   jsDoc,
+  SwrOptions,
 } from '@orval/core';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -63,8 +65,31 @@ const SWR_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useSwr', values: true, default: true },
       { name: 'SWRConfiguration' },
       { name: 'Key' },
+      { name: 'Arguments' },
     ],
     dependency: 'swr',
+  },
+];
+
+const SWR_INFINITE_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useSWRInfinite', values: true, default: true },
+      { name: 'SWRInfiniteConfiguration' },
+      { name: 'SWRInfiniteKeyLoader' },
+    ],
+    dependency: 'swr/infinite',
+  },
+];
+
+const SWR_MUTATION_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useSWRMutation', values: true, default: true },
+      { name: 'SWRMutationConfiguration' },
+      { name: 'SWRMutationKey' },
+    ],
+    dependency: 'swr/mutation',
   },
 ];
 
@@ -75,6 +100,8 @@ export const getSwrDependencies: ClientDependenciesBuilder = (
   ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
+  ...SWR_INFINITE_DEPENDENCIES,
+  ...SWR_MUTATION_DEPENDENCIES,
 ];
 
 const generateSwrRequestFunction = (
@@ -98,10 +125,10 @@ const generateSwrRequestFunction = (
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
-    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-    context.tsconfig,
+    context.output.tsconfig,
   );
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -189,12 +216,20 @@ const generateSwrArguments = ({
   operationName,
   mutator,
   isRequestOptions,
+  isInfinite,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
+  isInfinite: boolean;
 }) => {
-  const definition = `SWRConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError> & { swrKey?: Key, enabled?: boolean }`;
+  const configType = isInfinite
+    ? 'SWRInfiniteConfiguration'
+    : 'SWRConfiguration';
+  const optionsType = isInfinite
+    ? '{ swrKeyLoader?: SWRInfiniteKeyLoader, enabled?: boolean }'
+    : '{ swrKey?: Key, enabled?: boolean }';
+  const definition = `${configType}<Awaited<ReturnType<typeof ${operationName}>>, TError> & ${optionsType}`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -204,14 +239,39 @@ const generateSwrArguments = ({
     !mutator
       ? `axios?: AxiosRequestConfig`
       : mutator?.hasSecondArg
-      ? `request?: SecondParameter<typeof ${mutator.name}>`
-      : ''
+        ? `request?: SecondParameter<typeof ${mutator.name}>`
+        : ''
+  } }\n`;
+};
+
+const generateSwrMutationArguments = ({
+  operationName,
+  isRequestOptions,
+  mutator,
+}: {
+  operationName: string;
+  isRequestOptions: boolean;
+  mutator?: GeneratorMutator;
+}) => {
+  const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, Arguments, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
+
+  if (!isRequestOptions) {
+    return `swrOptions?: ${definition}`;
+  }
+
+  return `options?: { swr?:${definition}, ${
+    !mutator
+      ? `axios?: AxiosRequestConfig`
+      : mutator?.hasSecondArg
+        ? `request?: SecondParameter<typeof ${mutator.name}>`
+        : ''
   } }\n`;
 };
 
 const generateSwrImplementation = ({
   operationName,
   swrKeyFnName,
+  swrKeyLoaderFnName,
   swrProperties,
   swrKeyProperties,
   params,
@@ -225,24 +285,32 @@ const generateSwrImplementation = ({
   isRequestOptions: boolean;
   operationName: string;
   swrKeyFnName: string;
+  swrKeyLoaderFnName: string;
   swrProperties: string;
   swrKeyProperties: string;
   params: GetterParams;
   props: GetterProps;
   response: GetterResponse;
   mutator?: GeneratorMutator;
-  swrOptions: { options?: any };
+  swrOptions: SwrOptions;
   doc?: string;
 }) => {
   const swrProps = toObjectString(props, 'implementation');
+
+  const hasParamReservedWord = props.some(
+    (prop: GetterProp) => prop.name === 'query',
+  );
+  const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
+
   const httpFunctionProps = swrProperties;
 
-  const swrKeyImplementation = `const isEnabled = swrOptions?.enabled !== false${
+  const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
     params.length
       ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
       : ''
-  }
-    const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+  }`;
+  const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+  const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
   let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
 
@@ -252,33 +320,36 @@ const generateSwrImplementation = ({
       : response.definition.errors || 'unknown';
   }
 
-  return `
+  const useSWRInfiniteImplementation = swrOptions.useInfinite
+    ? `
 export type ${pascal(
-    operationName,
-  )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}QueryError = ${errorType}
+        operationName,
+      )}InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+export type ${pascal(operationName)}InfiniteError = ${errorType}
 
 ${doc}export const ${camel(
-    `use-${operationName}`,
-  )} = <TError = ${errorType}>(\n ${swrProps} ${generateSwrArguments({
+        `use-${operationName}-infinite`,
+      )} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
     operationName,
     mutator,
     isRequestOptions,
-  })}\n  ) => {
-
+    isInfinite: true,
+  })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${
           !mutator
             ? `, axios: axiosOptions`
             : mutator?.hasSecondArg
-            ? ', request: requestOptions'
-            : ''
+              ? ', request: requestOptions'
+              : ''
         }} = options ?? {}`
       : ''
   }
 
-  ${swrKeyImplementation}
+  ${enabledImplementation}
+  ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
   }${
@@ -286,12 +357,12 @@ ${doc}export const ${camel(
       ? !mutator
         ? `axiosOptions`
         : mutator?.hasSecondArg
-        ? 'requestOptions'
-        : ''
+          ? 'requestOptions'
+          : ''
       : ''
   });
 
-  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
+  const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
     swrOptions.options
       ? `{
     ${stringify(swrOptions.options)?.slice(1, -1)}
@@ -301,10 +372,167 @@ ${doc}export const ${camel(
   })
 
   return {
+    swrKeyLoader,
+    ...${queryResultVarName}
+  }
+}\n`
+    : '';
+
+  const defaultSwrOptions = { ...swrOptions.swrOptions, ...swrOptions.options };
+
+  const useSwrImplementation = `
+export type ${pascal(
+    operationName,
+  )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+export type ${pascal(operationName)}QueryError = ${errorType}
+
+${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
+    operationName,
+    mutator,
+    isRequestOptions,
+    isInfinite: false,
+  })}) => {
+  ${
+    isRequestOptions
+      ? `const {swr: swrOptions${
+          !mutator
+            ? `, axios: axiosOptions`
+            : mutator?.hasSecondArg
+              ? ', request: requestOptions'
+              : ''
+        }} = options ?? {}`
+      : ''
+  }
+
+  ${enabledImplementation}
+  ${swrKeyImplementation}
+  const swrFn = () => ${operationName}(${httpFunctionProps}${
+    httpFunctionProps ? ', ' : ''
+  }${
+    isRequestOptions
+      ? !mutator
+        ? `axiosOptions`
+        : mutator?.hasSecondArg
+          ? 'requestOptions'
+          : ''
+      : ''
+  });
+
+  const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
+    defaultSwrOptions
+      ? `{
+    ${stringify(defaultSwrOptions)?.slice(1, -1)}
+    ...swrOptions
+  }`
+      : 'swrOptions'
+  })
+
+  return {
     swrKey,
-    ...query
+    ...${queryResultVarName}
   }
 }\n`;
+
+  return useSWRInfiniteImplementation + useSwrImplementation;
+};
+
+const generateSwrMutationImplementation = ({
+  isRequestOptions,
+  operationName,
+  swrKeyFnName,
+  swrMutationFetcherName,
+  swrKeyProperties,
+  swrMutationFetcherProperties,
+  swrProps,
+  props,
+  response,
+  mutator,
+  swrOptions,
+  doc,
+}: {
+  isRequestOptions: boolean;
+  operationName: string;
+  swrKeyFnName: string;
+  swrMutationFetcherName: string;
+  swrKeyProperties: string;
+  swrMutationFetcherProperties: string;
+  swrProps: string;
+  props: GetterProps;
+  response: GetterResponse;
+  mutator?: GeneratorMutator;
+  swrOptions: SwrOptions;
+  doc?: string;
+}) => {
+  const hasParamReservedWord = props.some(
+    (prop: GetterProp) => prop.name === 'query',
+  );
+  const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
+
+  const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? ${swrKeyFnName}(${swrKeyProperties});`;
+
+  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
+
+  if (mutator) {
+    errorType = mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  }
+
+  const useSwrImplementation = `
+export type ${pascal(
+    operationName,
+  )}MutationResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+export type ${pascal(operationName)}MutationError = ${errorType}
+
+${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrMutationArguments({
+    operationName,
+    isRequestOptions,
+    mutator,
+  })}) => {
+
+  ${
+    isRequestOptions
+      ? `const {swr: swrOptions${
+          !mutator
+            ? `, axios: axiosOptions`
+            : mutator?.hasSecondArg
+              ? ', request: requestOptions'
+              : ''
+        }} = options ?? {}`
+      : ''
+  }
+
+  ${swrKeyImplementation}
+  const swrFn = ${swrMutationFetcherName}(${swrMutationFetcherProperties}${
+    swrMutationFetcherProperties && isRequestOptions ? ',' : ''
+  }${
+    isRequestOptions
+      ? !mutator
+        ? `axiosOptions`
+        : mutator?.hasSecondArg
+          ? 'requestOptions'
+          : ''
+      : ''
+  });
+
+  const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
+    swrOptions.swrMutationOptions
+      ? `{
+    ${stringify(swrOptions.swrMutationOptions)?.slice(1, -1)}
+    ...swrOptions
+  }`
+      : 'swrOptions'
+  })
+
+  return {
+    swrKey,
+    ...${queryResultVarName}
+  }
+}\n`;
+
+  return useSwrImplementation;
 };
 
 const generateSwrHook = (
@@ -324,47 +552,61 @@ const generateSwrHook = (
   { route }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-
-  if (verb !== Verbs.GET) {
-    return '';
-  }
-
-  const swrProperties = props
-    .map((param) => {
-      if (param.type === GetterPropType.NAMED_PATH_PARAMS)
-        return param.destructured;
-      return param.type === GetterPropType.BODY
-        ? body.implementation
-        : param.name;
-    })
-    .join(',');
-
-  const swrKeyProperties = props
-    .filter((prop) => prop.type !== GetterPropType.HEADER)
-    .map((param) => {
-      if (param.type === GetterPropType.NAMED_PATH_PARAMS)
-        return param.destructured;
-      return param.type === GetterPropType.BODY
-        ? body.implementation
-        : param.name;
-    })
-    .join(',');
-
-  const swrKeyFnName = camel(`get-${operationName}-key`);
-  const queryKeyProps = toObjectString(
-    props.filter((prop) => prop.type !== GetterPropType.HEADER),
-    'implementation',
-  );
-
   const doc = jsDoc({ summary, deprecated });
 
-  return `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
-    queryParams ? ', ...(params ? [params]: [])' : ''
-  }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+  if (verb === Verbs.GET) {
+    const swrKeyProperties = props
+      .filter((prop) => prop.type !== GetterPropType.HEADER)
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          return param.destructured;
+        return param.type === GetterPropType.BODY
+          ? body.implementation
+          : param.name;
+      })
+      .join(',');
 
-    ${generateSwrImplementation({
+    const swrProperties = props
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS)
+          return param.destructured;
+        return param.type === GetterPropType.BODY
+          ? body.implementation
+          : param.name;
+      })
+      .join(',');
+
+    const queryKeyProps = toObjectString(
+      props.filter((prop) => prop.type !== GetterPropType.HEADER),
+      'implementation',
+    );
+
+    const swrKeyFnName = camel(`get-${operationName}-key`);
+    const swrKeyFn = `
+export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+      queryParams ? ', ...(params ? [params]: [])' : ''
+    }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+\n`;
+
+    const swrKeyLoaderFnName = camel(
+      `get-${operationName}-infinite-key-loader`,
+    );
+    const swrKeyLoader = override.swr.useInfinite
+      ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
+  return (_: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
+    if (previousPageData && !previousPageData.data) return null
+
+    return [\`${route}\`${queryParams ? ', ...(params ? [params]: [])' : ''}${
+      body.implementation ? `, ${body.implementation}` : ''
+    }] as const;
+  }
+}\n`
+      : '';
+
+    const swrImplementation = generateSwrImplementation({
       operationName,
       swrKeyFnName,
+      swrKeyLoaderFnName,
       swrProperties,
       swrKeyProperties,
       params,
@@ -374,8 +616,111 @@ const generateSwrHook = (
       response,
       swrOptions: override.swr,
       doc,
-    })}
-`;
+    });
+
+    return swrKeyFn + swrKeyLoader + swrImplementation;
+  } else {
+    const queryKeyProps = toObjectString(
+      props.filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      ),
+      'implementation',
+    );
+
+    const swrProps = toObjectString(
+      props.filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.QUERY_PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      ),
+      'implementation',
+    );
+
+    const swrMutationFetcherProperties = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.QUERY_PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      )
+      .map((param) => {
+        if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return param.destructured;
+        } else {
+          return param.name;
+        }
+      })
+      .join(',');
+
+    const httpFnProperties = props
+      .filter((prop) => prop.type !== GetterPropType.HEADER)
+      .map((prop) => {
+        if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return prop.destructured;
+        } else if (prop.type === GetterPropType.BODY) {
+          return `arg as ${prop.implementation.split(': ')[1]}`;
+        } else {
+          return prop.name;
+        }
+      })
+      .join(', ');
+
+    const swrKeyProperties = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      )
+      .map((prop) => {
+        if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return prop.destructured;
+        } else {
+          return prop.name;
+        }
+      })
+      .join(',');
+
+    const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
+    const swrMutationKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => \`${route}\` as const;\n`;
+
+    const swrMutationFetcherName = camel(
+      `get-${operationName}-mutation-fetcher`,
+    );
+    const swrMutationFetcherType = mutator
+      ? `Promise<${response.definition.success || 'unknown'}>`
+      : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
+    const swrMutationFetcherOptions =
+      !mutator && isRequestOptions ? 'options?: AxiosRequestConfig' : '';
+
+    const swrMutationFetcherFn = `
+export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
+  return (_: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
+    return ${operationName}(${httpFnProperties}${
+      swrMutationFetcherOptions.length ? ', options' : ''
+    });
+  }
+}\n`;
+
+    const swrImplementation = generateSwrMutationImplementation({
+      operationName,
+      swrKeyFnName,
+      swrMutationFetcherName,
+      swrKeyProperties,
+      swrMutationFetcherProperties,
+      swrProps,
+      props,
+      isRequestOptions,
+      response,
+      mutator,
+      swrOptions: override.swr,
+      doc,
+    });
+
+    return swrMutationFetcherFn + swrMutationKeyFn + swrImplementation;
+  }
 };
 
 export const generateSwrHeader: ClientHeaderBuilder = ({
@@ -392,13 +737,7 @@ export const generateSwrHeader: ClientHeaderBuilder = ({
   }
   ${
     isRequestOptions && isMutator
-      ? `// eslint-disable-next-line
-  type SecondParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  args: infer P,
-) => any
-  ? P
-  : never;\n\n`
+      ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
       : ''
   }`;
 

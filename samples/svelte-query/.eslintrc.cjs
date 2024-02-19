@@ -17,4 +17,7 @@ module.exports = {
     es2017: true,
     node: true,
   },
+  rules: {
+    '@typescript-eslint/no-inferrable-types': 'off', // so that we can have `version: number | undefined | null = 1`, etc.
+  },
 };

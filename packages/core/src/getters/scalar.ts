@@ -1,5 +1,5 @@
-import { SchemaObject } from 'openapi3-ts';
-import { ContextSpecs, ScalarValue } from '../types';
+import { SchemaObject } from 'openapi3-ts/oas30';
+import { ContextSpecs, ScalarValue, OutputClient } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -20,7 +20,10 @@ export const getScalar = ({
   name?: string;
   context: ContextSpecs;
 }): ScalarValue => {
-  const nullable = item.nullable ? ' | null' : '';
+  // NOTE: Angular client does not support nullable types
+  const isAngularClient = context.output.client === OutputClient.ANGULAR;
+  const nullable = item.nullable && !isAngularClient ? ' | null' : '';
+
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
   if (!item.type && item.items) {
@@ -31,7 +34,7 @@ export const getScalar = ({
     case 'number':
     case 'integer': {
       let value =
-        item.format === 'int64' && context.override.useBigInt
+        item.format === 'int64' && context.output.override.useBigInt
           ? 'bigint'
           : 'number';
       let isEnum = false;
@@ -100,7 +103,7 @@ export const getScalar = ({
         value = 'Blob';
       }
 
-      if (context.override.useDates) {
+      if (context.output.override.useDates) {
         if (item.format === 'date' || item.format === 'date-time') {
           value = 'Date';
         }

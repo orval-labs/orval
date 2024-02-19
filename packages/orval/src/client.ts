@@ -13,6 +13,7 @@ import {
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   isFunction,
+  NormalizedOutputOptions,
   OutputClient,
   OutputClientFunc,
   pascal,
@@ -24,18 +25,21 @@ import zod from '@orval/zod';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
-export const GENERATOR_CLIENT: GeneratorClients = {
-  axios: axios({ type: 'axios' })(),
-  'axios-functions': axios({ type: 'axios-functions' })(),
-  angular: angular()(),
-  'react-query': query({ type: 'react-query' })(),
-  'svelte-query': query({ type: 'svelte-query' })(),
-  'vue-query': query({ type: 'vue-query' })(),
-  swr: swr()(),
-  zod: zod()(),
-};
+const getGeneratorClient = (
+  outputClient: OutputClient | OutputClientFunc,
+  output: NormalizedOutputOptions,
+) => {
+  const GENERATOR_CLIENT: GeneratorClients = {
+    axios: axios({ type: 'axios' })(),
+    'axios-functions': axios({ type: 'axios-functions' })(),
+    angular: angular()(),
+    'react-query': query({ output, type: 'react-query' })(),
+    'svelte-query': query({ output, type: 'svelte-query' })(),
+    'vue-query': query({ output, type: 'vue-query' })(),
+    swr: swr()(),
+    zod: zod()(),
+  };
 
-const getGeneratorClient = (outputClient: OutputClient | OutputClientFunc) => {
   const generator = isFunction(outputClient)
     ? outputClient(GENERATOR_CLIENT)
     : GENERATOR_CLIENT[outputClient];
@@ -57,8 +61,9 @@ export const generateClientImports: GeneratorClientImports = ({
   hasGlobalMutator,
   hasParamsSerializerOptions,
   packageJson,
+  output,
 }) => {
-  const { dependencies } = getGeneratorClient(client);
+  const { dependencies } = getGeneratorClient(client, output);
   return generateDependencyImports(
     implementation,
     dependencies
@@ -85,8 +90,9 @@ export const generateClientHeader: GeneratorClientHeader = ({
   provideIn,
   hasAwaitedType,
   titles,
+  output,
 }) => {
-  const { header } = getGeneratorClient(outputClient);
+  const { header } = getGeneratorClient(outputClient, output);
   return {
     implementation: header
       ? header({
@@ -108,13 +114,14 @@ export const generateClientFooter: GeneratorClientFooter = ({
   hasMutator,
   hasAwaitedType,
   titles,
+  output,
 }) => {
-  const { footer } = getGeneratorClient(outputClient);
+  const { footer } = getGeneratorClient(outputClient, output);
 
   if (!footer) {
     return {
       implementation: '',
-      implementationMock: `]\n`,
+      implementationMock: `\n]\n`,
     };
   }
 
@@ -155,8 +162,9 @@ export const generateClientTitle: GeneratorClientTitle = ({
   outputClient = DEFAULT_CLIENT,
   title,
   customTitleFunc,
+  output,
 }) => {
-  const { title: generatorTitle } = getGeneratorClient(outputClient);
+  const { title: generatorTitle } = getGeneratorClient(outputClient, output);
 
   if (!generatorTitle) {
     return {
@@ -196,18 +204,27 @@ const generateMock = (
     return options.mock(verbOption, options);
   }
 
-  return mock.generateMock(verbOption, options);
+  return mock.generateMock(
+    verbOption,
+    options as typeof options & {
+      mock: Exclude<(typeof options)['mock'], Function | undefined>;
+    },
+  );
 };
 
 export const generateOperations = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: GeneratorVerbsOptions,
   options: GeneratorOptions,
+  output: NormalizedOutputOptions,
 ): Promise<GeneratorOperations> => {
   return asyncReduce(
     verbsOptions,
     async (acc, verbOption) => {
-      const { client: generatorClient } = getGeneratorClient(outputClient);
+      const { client: generatorClient } = getGeneratorClient(
+        outputClient,
+        output,
+      );
       const client = await generatorClient(verbOption, options, outputClient);
       const generatedMock = generateMock(verbOption, options);
 
@@ -218,7 +235,9 @@ export const generateOperations = (
       acc[verbOption.operationId] = {
         implementation: verbOption.doc + client.implementation,
         imports: client.imports,
+        // @ts-expect-error // FIXME
         implementationMock: generatedMock.implementation,
+        // @ts-expect-error // FIXME
         importsMock: generatedMock.imports,
         tags: verbOption.tags,
         mutator: verbOption.mutator,

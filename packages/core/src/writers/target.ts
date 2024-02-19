@@ -20,6 +20,7 @@ export const generateTarget = (
     outputClient: options.client,
     title: pascal(builder.info.title),
     customTitleFunc: options.override.title,
+    output: options,
   });
 
   const target = Object.values(builder.operations).reduce(
@@ -29,6 +30,13 @@ export const generateTarget = (
       acc.implementation += operation.implementation + '\n';
       acc.implementationMock.function += operation.implementationMock.function;
       acc.implementationMock.handler += operation.implementationMock.handler;
+
+      const handlerNameSeparator = acc.implementationMock.handlerName.length
+        ? ',\n  '
+        : '  ';
+      acc.implementationMock.handlerName +=
+        handlerNameSeparator + operation.implementationMock.handlerName + '()';
+
       if (operation.mutator) {
         acc.mutators.push(operation.mutator);
       }
@@ -67,10 +75,14 @@ export const generateTarget = (
           provideIn: options.override.angular.provideIn,
           hasAwaitedType,
           titles,
+          output: options,
         });
+
         acc.implementation = header.implementation + acc.implementation;
         acc.implementationMock.handler =
-          header.implementationMock + acc.implementationMock.handler;
+          acc.implementationMock.handler +
+          header.implementationMock +
+          acc.implementationMock.handlerName;
 
         const footer = builder.footer({
           outputClient: options?.client,
@@ -78,6 +90,7 @@ export const generateTarget = (
           hasMutator: !!acc.mutators.length,
           hasAwaitedType,
           titles,
+          output: options,
         });
         acc.implementation += footer.implementation;
         acc.implementationMock.handler += footer.implementationMock;
@@ -90,6 +103,7 @@ export const generateTarget = (
       implementationMock: {
         function: '',
         handler: '',
+        handlerName: '',
       },
       importsMock: [],
       mutators: [],

@@ -22,6 +22,42 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/vue-query/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/vue-query/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/vue-query/split/endpoints.ts',
+      schemas: '../generated/vue-query/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/vue-query/tags/endpoints.ts',
+      schemas: '../generated/vue-query/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/vue-query/mutator/endpoints.ts',
@@ -45,6 +81,44 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  allParamsOptional: {
+    output: {
+      target: '../generated/vue-query/all-params-optional/endpoints.ts',
+      schemas: '../generated/vue-query/all-params-optional/model',
+      client: 'vue-query',
+      mock: true,
+      allParamsOptional: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  urlEncodeParameters: {
+    output: {
+      target: '../generated/vue-query/url-encode-parameters/endpoints.ts',
+      schemas: '../generated/vue-query/url-encode-parameters/model',
+      client: 'vue-query',
+      mock: true,
+      urlEncodeParameters: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  combinationUsedByMaximMazurok: {
+    output: {
+      target:
+        '../generated/vue-query/combination-used-by-maxim-mazurok/endpoints.ts',
+      schemas: '../generated/vue-query/combination-used-by-maxim-mazurok/model',
+      client: 'vue-query',
+      mock: true,
+      allParamsOptional: true,
+      urlEncodeParameters: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
   // Unsupported for now, see for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686

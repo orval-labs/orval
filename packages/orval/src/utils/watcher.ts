@@ -1,4 +1,4 @@
-import { log } from '@orval/core';
+import { log, logError } from '@orval/core';
 import chalk from 'chalk';
 
 export const startWatcher = async (
@@ -15,8 +15,10 @@ export const startWatcher = async (
     typeof watchOptions === 'boolean'
       ? defaultTarget
       : Array.isArray(watchOptions)
-      ? watchOptions.filter((path): path is string => typeof path === 'string')
-      : watchOptions;
+        ? watchOptions.filter(
+            (path): path is string => typeof path === 'string',
+          )
+        : watchOptions;
 
   log(
     `Watching for changes in ${
@@ -36,7 +38,7 @@ export const startWatcher = async (
     try {
       await watchFn();
     } catch (e) {
-      log(chalk.red(e));
+      logError(e);
     }
   });
 };

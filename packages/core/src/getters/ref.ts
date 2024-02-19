@@ -1,5 +1,5 @@
 import get from 'lodash.get';
-import { ReferenceObject } from 'openapi3-ts';
+import { ReferenceObject } from 'openapi3-ts/oas30';
 import { ContextSpecs } from '../types';
 import { getFileInfo, isUrl, pascal, upath } from '../utils';
 
@@ -54,7 +54,7 @@ export const getRefInfo = (
     .map((part) => part.replace(regex, '/'));
 
   const suffix = refPaths
-    ? get(context.override, [...refPaths.slice(0, 2), 'suffix'], '')
+    ? get(context.output.override, [...refPaths.slice(0, 2), 'suffix'], '')
     : '';
 
   const originalName = ref

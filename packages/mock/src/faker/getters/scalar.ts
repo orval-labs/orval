@@ -78,7 +78,7 @@ export const getMockScalar = ({
   }
 
   if (
-    (context.override?.mock?.useExamples || mockOptions?.useExamples) &&
+    (context.output.override?.mock?.useExamples || mockOptions?.useExamples) &&
     item.example
   ) {
     return {
@@ -211,8 +211,12 @@ export const getMockScalar = ({
       if (item.enum) {
         // By default the value isn't a reference, so we don't have the object explicitly defined.
         // So we have to create an array with the enum values and force them to be a const.
-        let enumValue =
-          "['" + item.enum.map((e) => escape(e)).join("','") + "'] as const";
+        const joindEnumValues = item.enum
+          .filter(Boolean)
+          .map((e) => escape(e))
+          .join("','");
+
+        let enumValue = `['${joindEnumValues}'] as const`;
 
         // But if the value is a reference, we can use the object directly via the imports and using Object.values.
         if (item.isRef) {

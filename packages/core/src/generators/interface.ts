@@ -1,4 +1,4 @@
-import { SchemaObject } from 'openapi3-ts';
+import { SchemaObject } from 'openapi3-ts/oas30';
 import { generalJSTypesWithArray } from '../constants';
 import { getScalar } from '../getters';
 import { ContextSpecs } from '../types';
@@ -34,7 +34,7 @@ export const generateInterface = ({
   model += jsDoc(schema);
 
   if (isEmptyObject) {
-    if (context.tslint) {
+    if (context.output.tslint) {
       model += '// tslint:disable-next-line:no-empty-interface\n';
     } else {
       model +=
@@ -43,8 +43,8 @@ export const generateInterface = ({
   }
 
   if (
-    !generalJSTypesWithArray.includes(scalar.value) &&
-    !context?.override?.useTypeOverInterfaces
+    scalar.type === 'object' &&
+    !context?.output.override?.useTypeOverInterfaces
   ) {
     model += `export interface ${name} ${scalar.value}\n`;
   } else {

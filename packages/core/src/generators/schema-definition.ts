@@ -1,5 +1,5 @@
 import isEmpty from 'lodash.isempty';
-import { SchemaObject, SchemasObject } from 'openapi3-ts';
+import { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
 import { getEnum, resolveDiscriminators } from '../getters';
 import { resolveRef, resolveValue } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
@@ -59,7 +59,7 @@ export const generateSchemasDefinition = (
             resolvedValue.value,
             schemaName,
             resolvedValue.originalSchema?.['x-enumNames'],
-            context.override.useNativeEnums,
+            context.output.override.useNativeEnums,
           );
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
           // Don't add type if schema has same name and the referred schema will be an interface

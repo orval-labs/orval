@@ -4,7 +4,7 @@ import {
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
-} from 'openapi3-ts';
+} from 'openapi3-ts/oas30';
 import { getResReqTypes } from '../getters';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';

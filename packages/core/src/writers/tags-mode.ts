@@ -50,24 +50,27 @@ export const writeTagsMode = async ({
           ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : './' + filename + '.schemas';
 
+        const importsForBuilder = [
+          {
+            exports: imports.filter(
+              (imp) =>
+                !importsMock.some((impMock) => imp.name === impMock.name),
+            ),
+            dependency: schemasPathRelative,
+          },
+        ];
+
         data += builder.imports({
           client: output.client,
           implementation,
-          imports: [
-            {
-              exports: imports.filter(
-                (imp) =>
-                  !importsMock.some((impMock) => imp.name === impMock.name),
-              ),
-              dependency: schemasPathRelative,
-            },
-          ],
+          imports: importsForBuilder,
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
           hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
+          output,
         });
 
         if (output.mock) {

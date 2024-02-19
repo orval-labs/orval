@@ -11,6 +11,7 @@ import {
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
+import uniqBy from 'lodash.uniqby';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -52,25 +53,29 @@ export const writeSplitTagsMode = async ({
             upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
           : '../' + filename + '.schemas';
 
+        const importsForBuilder =
+          output.schemas && !output.indexFiles
+            ? uniqBy(imports, 'name').map((i) => ({
+                exports: [i],
+                dependency: upath.join(relativeSchemasPath, camel(i.name)),
+              }))
+            : [{ exports: imports, dependency: relativeSchemasPath }];
+
         implementationData += builder.imports({
           client: output.client,
           implementation,
-          imports: [{ exports: imports, dependency: relativeSchemasPath }],
+          imports: importsForBuilder,
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
           hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
+          output,
         });
         mockData += builder.importsMock({
           implementation: implementationMock,
-          imports: [
-            {
-              exports: importsMock,
-              dependency: relativeSchemasPath,
-            },
-          ],
+          imports: [{ exports: importsMock, dependency: relativeSchemasPath }],
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,

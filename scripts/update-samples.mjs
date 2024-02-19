@@ -1,18 +1,25 @@
 #!/usr/bin/env zx
 
-await $`cd ./samples/angular-app && yarn && yarn generate-api`;
-await $`cd ./samples/basic && yarn && yarn example`;
-await $`cd ./samples/react-app && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/basic && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/custom-client && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/form-data && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/form-data-mutator && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/form-url-encoded && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/form-url-encoded-mutator && yarn && yarn generate-api`;
-await $`cd ./samples/react-query/hook-mutator && yarn && yarn generate-api`;
-await $`cd ./samples/react-app-with-swr && yarn && yarn generate-api`;
-// await $`cd ./samples/svelte-query && yarn && yarn generate-api`; // TODO: Fix error `Cannot find base config file "./.svelte-kit/tsconfig.json" [tsconfig.json]` and re-enable
-await $`cd ./samples/vue-query && yarn && yarn generate-api`;
+let result = '';
+result += await $`cd ./samples/angular-app && yarn && yarn generate-api`;
+result += await $`cd ./samples/basic && yarn && yarn example`;
+result += await $`cd ./samples/react-app && yarn && yarn generate-api`;
+result += await $`cd ./samples/react-query/basic && yarn && yarn generate-api`;
+result +=
+  await $`cd ./samples/react-query/custom-client && yarn && yarn generate-api`;
+result +=
+  await $`cd ./samples/react-query/form-data && yarn && yarn generate-api`;
+result +=
+  await $`cd ./samples/react-query/form-data-mutator && yarn && yarn generate-api`;
+result +=
+  await $`cd ./samples/react-query/form-url-encoded && yarn && yarn generate-api`;
+result +=
+  await $`cd ./samples/react-query/form-url-encoded-mutator && yarn && yarn generate-api`;
+result +=
+  await $`cd ./samples/react-query/hook-mutator && yarn && yarn generate-api`;
+result += await $`cd ./samples/react-app-with-swr && yarn && yarn generate-api`;
+result += await $`cd ./samples/svelte-query && yarn && yarn generate-api`;
+result += await $`cd ./samples/vue-query && yarn && yarn generate-api`;
 
 /** NOTE: use below to create a sample for `useNamedParameters: true` with code that is supposed to work and pass tests, but it will require changes in Orval code generation
  * // clean ./samples/vue-query-useNamedParameters
@@ -28,6 +35,10 @@ await $`cd ./samples/vue-query && yarn && yarn generate-api`;
  * // and replace `useShowPetById(petId)` in `samples/vue-query-useNamedParameters/src/components/pet.vue` with `useShowPetById({ version: 1 }, petId)`
  * await $`sed -i 's/useShowPetById(petId)/useShowPetById({ version: 1 }, petId)/' ./samples/vue-query-useNamedParameters/src/components/pet.vue`;
  */
-// await $`cd ./samples/vue-query-useNamedParameters && yarn && yarn generate-api`; // TODO: enable this once useNamedParameters actually works with vue-query reactivity
+// result += await $`cd ./samples/vue-query-useNamedParameters && yarn && yarn generate-api`; // TODO: enable this once useNamedParameters actually works with vue-query reactivity
 
-// await $`cd ./samples/nx-fastify-react && yarn && yarn generate-api`; // TODO: Fix error `Cannot send the message - the message port has been closed for the process 5163` and re-enable
+// result += await $`cd ./samples/nx-fastify-react && yarn && yarn generate-api`; // TODO: Fix error `Cannot send the message - the message port has been closed for the process 5163` and re-enable
+
+if (result.includes('🛑')) {
+  throw new Error('Unable to update some samples, see log above for details.');
+}

@@ -6,13 +6,16 @@
     "build": "vite build",
     "serve": "vite preview",
     "generate-api": "node ../../packages/orval/dist/bin/orval.js",
-    "test": "vue-tsc --noEmit && vitest"
+    "generate-types": "vue-tsc --declaration --emitDeclarationOnly --module amd --outFile dist/index.d.ts",
+    "pretest-types": "yarn generate-types",
+    "test-types": "tsd --typings dist --files **/*.test-d.ts",
+    "test": "vue-tsc --noEmit && vitest --run && yarn test-types"
   },
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
     "@tanstack/vue-query": "4.29.5",
     "axios": "^0.26.1",
-    "vue": "3.2.36"
+    "vue": "^3.3.4"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.0.1",
@@ -22,6 +25,7 @@
     "msw": "^2.0.2",
     "orval": "link:../../packages/orval/dist",
     "prettier": "^3.0.3",
+    "tsd": "^0.29.0",
     "typescript": "^5.3.2",
     "vite": "^4.4.11",
     "vitest": "^0.34.6",

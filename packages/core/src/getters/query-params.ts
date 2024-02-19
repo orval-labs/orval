@@ -1,4 +1,4 @@
-import { ContentObject, SchemaObject } from 'openapi3-ts';
+import { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveValue } from '../resolvers';
 import {
   ContextSpecs,
@@ -72,7 +72,7 @@ const getQueryParamsTypes = (
         resolvedValue.value,
         enumName,
         resolvedValue.originalSchema?.['x-enumNames'],
-        context.override.useNativeEnums,
+        context.output.override.useNativeEnums,
       );
 
       return {

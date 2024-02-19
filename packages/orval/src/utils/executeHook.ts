@@ -1,8 +1,11 @@
 import {
   Hook,
+  HookOption,
   isFunction,
+  isObject,
   isString,
   log,
+  logError,
   NormalizedHookCommand,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -17,16 +20,34 @@ export const executeHook = async (
   log(chalk.white(`Running ${name} hook...`));
 
   for (const command of commands) {
-    if (isString(command)) {
-      const [cmd, ..._args] = [...parseArgsStringToArgv(command), ...args];
-
-      try {
-        await execa(cmd, _args);
-      } catch (e) {
-        log(chalk.red(`🛑 Failed to run ${name} hook: ${e}`));
+    try {
+      if (isString(command)) {
+        await executeCommand(command, args);
+      } else if (isFunction(command)) {
+        await command(args);
+      } else if (isObject(command)) {
+        await executeObjectCommand(command as HookOption, args);
       }
-    } else if (isFunction(command)) {
-      await command(args);
+    } catch (e) {
+      logError(e, `Failed to run ${name} hook`);
     }
   }
 };
+
+async function executeCommand(command: string, args: string[]) {
+  const [cmd, ..._args] = [...parseArgsStringToArgv(command), ...args];
+
+  await execa(cmd, _args);
+}
+
+async function executeObjectCommand(command: HookOption, args: string[]) {
+  if (command.injectGeneratedDirsAndFiles === false) {
+    args = [];
+  }
+
+  if (isString(command.command)) {
+    await executeCommand(command.command, args);
+  } else if (isFunction(command.command)) {
+    await command.command();
+  }
+}

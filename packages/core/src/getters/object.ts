@@ -1,10 +1,14 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
 import { ContextSpecs, ScalarValue, SchemaType } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
+
+interface SchemaWithConst extends SchemaObject {
+  const: string;
+}
 
 /**
  * Return the output type from an object
@@ -51,7 +55,12 @@ export const getObject = ({
 
   if (item.type instanceof Array) {
     return combineSchemas({
-      schema: { anyOf: item.type.map((type) => ({ type })) },
+      schema: {
+        anyOf: item.type.map((type) => ({
+          ...item,
+          type,
+        })),
+      },
       name,
       separator: 'anyOf',
       context,
@@ -180,10 +189,29 @@ export const getObject = ({
     };
   }
 
+  const itemWithConst = item as SchemaWithConst;
+  if (itemWithConst.const) {
+    return {
+      value: `'${itemWithConst.const}'` + nullable,
+      imports: [],
+      schemas: [],
+      isEnum: false,
+      type: 'string',
+      isRef: false,
+      hasReadonlyProps: item.readOnly || false,
+    };
+  }
+
+  const useTypeOverInterfaces = context?.output.override?.useTypeOverInterfaces;
+  const blankValue =
+    item.type === 'object'
+      ? '{ [key: string]: any }'
+      : useTypeOverInterfaces
+        ? 'unknown'
+        : '{}';
+
   return {
-    value:
-      (item.type === 'object' ? '{ [key: string]: any }' : 'unknown') +
-      nullable,
+    value: blankValue + nullable,
     imports: [],
     schemas: [],
     isEnum: false,

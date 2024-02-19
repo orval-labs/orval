@@ -20,3 +20,18 @@ module.exports = {
   },
 };
 ```
+
+If you don't want to inject the generated files into the command, you can use `afterAllFilesWrite` with an object:
+
+```js
+module.exports = {
+  petstore: {
+    hooks: {
+      afterAllFilesWrite: {
+        command: 'prettier --write .',
+        injectGeneratedDirsAndFiles: false,
+      },
+    },
+  },
+};
+```

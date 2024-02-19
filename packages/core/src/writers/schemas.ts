@@ -2,7 +2,6 @@ import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema } from '../types';
 import { camel, upath } from '../utils';
-import { getOrvalGeneratedTypes } from './types';
 
 const getSchema = ({
   schema: { imports, model },
