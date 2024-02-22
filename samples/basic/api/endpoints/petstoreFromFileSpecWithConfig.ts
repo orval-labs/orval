@@ -24,11 +24,31 @@ export interface Error {
 }
 
 export interface Pet {
+  /**
+   * @minimum 0
+   * @maximum 30
+   * @exclusiveMinimum
+   * @exclusiveMaximum
+   */
+  age?: number;
   id: number;
+  /**
+   * Name of pet
+   * @minLength 40
+   * @maxLength 0
+   */
   name: string;
-  tag?: string;
+  /**
+   * @nullable
+   * @pattern ^\\d{3}-\\d{2}-\\d{4}$
+   */
+  tag?: string | null;
 }
 
+/**
+ * @minItems 1
+ * @maxItems 20
+ */
 export type Pets = Pet[];
 
 /**

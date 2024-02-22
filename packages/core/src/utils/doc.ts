@@ -8,10 +8,30 @@ export function jsDoc(
     description,
     deprecated,
     summary,
+    minLength,
+    maxLength,
+    minimum,
+    maximum,
+    exclusiveMinimum,
+    exclusiveMaximum,
+    minItems,
+    maxItems,
+    nullable,
+    pattern,
   }: {
     description?: string[] | string;
     deprecated?: boolean;
     summary?: string;
+    minLength?: number;
+    maxLength?: number;
+    minimum?: number;
+    maximum?: number;
+    exclusiveMinimum?: boolean;
+    exclusiveMaximum?: boolean;
+    minItems?: number;
+    maxItems?: number;
+    nullable?: boolean;
+    pattern?: string;
   },
   tryOneLine = false,
 ): string {
@@ -22,10 +42,21 @@ export function jsDoc(
       : [description || '']
   ).map((line) => line.replace(regex, replacement));
 
-  const count = [description, deprecated, summary].reduce(
-    (acc, it) => (it ? acc + 1 : acc),
-    0,
-  );
+  const count = [
+    description,
+    deprecated,
+    summary,
+    minLength?.toString(),
+    maxLength?.toString(),
+    minimum?.toString(),
+    maximum?.toString(),
+    exclusiveMinimum?.toString(),
+    exclusiveMaximum?.toString(),
+    minItems?.toString(),
+    maxItems?.toString(),
+    nullable?.toString(),
+    pattern,
+  ].reduce((acc, it) => (it ? acc + 1 : acc), 0);
 
   if (!count) {
     return '';
@@ -46,19 +77,45 @@ export function jsDoc(
     doc += ` ${lines.join('\n * ')}`;
   }
 
-  if (deprecated) {
+  function appendPrefix() {
     if (!oneLine) {
       doc += `\n${tryOneLine ? '  ' : ''} *`;
     }
-    doc += ' @deprecated';
   }
 
-  if (summary) {
-    if (!oneLine) {
-      doc += `\n${tryOneLine ? '  ' : ''} *`;
+  function tryAppendStringDocLine(key: string, value?: string) {
+    if (value) {
+      appendPrefix();
+      doc += ` @${key} ${value}`;
     }
-    doc += ` @summary ${summary.replace(regex, replacement)}`;
   }
+
+  function tryAppendBooleanDocLine(key: string, value?: boolean) {
+    if (value === true) {
+      appendPrefix();
+      doc += ` @${key}`;
+    }
+  }
+
+  function tryAppendNumberDocLine(key: string, value?: number) {
+    if (value !== undefined) {
+      appendPrefix();
+      doc += ` @${key} ${value}`;
+    }
+  }
+
+  tryAppendBooleanDocLine('deprecated', deprecated);
+  tryAppendStringDocLine('summary', summary?.replace(regex, replacement));
+  tryAppendNumberDocLine('minLength', minLength);
+  tryAppendNumberDocLine('maxLength', maxLength);
+  tryAppendNumberDocLine('minimum', minimum);
+  tryAppendNumberDocLine('maximum', maximum);
+  tryAppendBooleanDocLine('exclusiveMinimum', exclusiveMinimum);
+  tryAppendBooleanDocLine('exclusiveMaximum', exclusiveMaximum);
+  tryAppendNumberDocLine('minItems', minItems);
+  tryAppendNumberDocLine('maxItems', maxItems);
+  tryAppendBooleanDocLine('nullable', nullable);
+  tryAppendStringDocLine('pattern', pattern);
 
   doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';
 
