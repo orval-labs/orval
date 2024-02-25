@@ -1075,7 +1075,7 @@ ${doc}export const ${camel(
   return ${queryResultVarName};
 }\n
 ${
-  usePrefetch
+  usePrefetch && (type === QueryType.QUERY || type === QueryType.INFINITE)
     ? `${doc}export const ${camel(
         `prefetch-${name}`,
       )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
