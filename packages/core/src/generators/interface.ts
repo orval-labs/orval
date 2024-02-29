@@ -47,9 +47,10 @@ export const generateInterface = ({
     !context?.output.override?.useTypeOverInterfaces
   ) {
     // If `scalar.value` is 'unknown', replace it with `{}` to avoid type error
-    const blankIntefaceValue = scalar.value === 'unknown' ? '{}' : scalar.value;
+    const blankInterfaceValue =
+      scalar.value === 'unknown' ? '{}' : scalar.value;
 
-    model += `export interface ${name} ${blankIntefaceValue}\n`;
+    model += `export interface ${name} ${blankInterfaceValue}\n`;
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
   }
