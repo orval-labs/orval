@@ -19,7 +19,7 @@ $ orval
 
 ### Input
 
-The `--input` option, shorthand `-i`, can be used to set the path or link to your OpenApi specification.
+The `--input` option, shorthand `-i`, can be used to set the path or link to your OpenAPI specification.
 
 ```bash
 $ orval --input ./petstore.yaml
