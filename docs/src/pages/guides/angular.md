@@ -3,7 +3,7 @@ id: angular
 title: Angular
 ---
 
-You should have an OpenApi specification and an Orval config where you define the mode as Angular.
+You should have an OpenAPI specification and an Orval config where you define the mode as Angular.
 
 #### Example with angular
 

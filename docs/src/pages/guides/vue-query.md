@@ -3,7 +3,7 @@ id: vue-query
 title: Vue query
 ---
 
-You should have an OpenApi specification and an Orval config where you define the mode as vue-query.
+You should have an OpenAPI specification and an Orval config where you define the mode as vue-query.
 
 #### Example with Vue query
 
@@ -26,7 +26,7 @@ module.exports = {
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The Vue query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
+The Vue query model will generate an implementation file with one custom hook per path in your OpenAPI Specification.
 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/vue-query/petstore.yaml" target="_blank">swagger</a>:
 
