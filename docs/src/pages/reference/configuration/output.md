@@ -800,9 +800,6 @@ module.exports = {
       override: {
         swr: {
           useInfinite: true,
-          options: {
-            dedupingInterval: 10000,
-          },
         },
       },
     },
