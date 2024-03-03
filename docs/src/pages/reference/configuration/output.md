@@ -865,6 +865,30 @@ module.exports = {
 };
 ```
 
+##### swrInfiniteOptions
+
+Type: `Object`.
+
+Use to override the `useSWRInfinite` options. Check available options [here](https://swr.vercel.app/docs/pagination#parameters)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrInfiniteOptions: {
+            initialSize: 10,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 #### mock
 
 Type: `Object`.
