@@ -363,9 +363,9 @@ ${doc}export const ${camel(
   });
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
-    swrOptions.options
+    swrOptions.swrInfiniteOptions
       ? `{
-    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ${stringify(swrOptions.swrInfiniteOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
