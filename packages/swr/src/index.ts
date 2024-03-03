@@ -378,8 +378,6 @@ ${doc}export const ${camel(
 }\n`
     : '';
 
-  const defaultSwrOptions = { ...swrOptions.swrOptions, ...swrOptions.options };
-
   const useSwrImplementation = `
 export type ${pascal(
     operationName,
@@ -420,9 +418,9 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   });
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
-    defaultSwrOptions
+    swrOptions.swrOptions
       ? `{
-    ${stringify(defaultSwrOptions)?.slice(1, -1)}
+    ${stringify(swrOptions.swrOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
