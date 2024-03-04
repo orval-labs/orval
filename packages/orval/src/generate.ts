@@ -13,7 +13,6 @@ import {
   NormalizedConfig,
   removeFiles,
 } from '@orval/core';
-import chalk from 'chalk';
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
