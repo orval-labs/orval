@@ -1208,7 +1208,7 @@ const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query?.useInfinite
+      ...(query?.useInfinite || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -1218,7 +1218,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useQuery
+      ...(operationQueryOptions?.useQuery || query.useQuery
         ? [
             {
               name: operationName,
@@ -1227,7 +1227,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useSuspenseQuery
+      ...(query?.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -1236,7 +1236,8 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useSuspenseInfiniteQuery
+      ...(query?.useSuspenseInfiniteQuery ||
+      operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
