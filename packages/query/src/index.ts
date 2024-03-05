@@ -1218,7 +1218,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(operationQueryOptions?.useQuery || query.useQuery
+      ...(query?.useQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
