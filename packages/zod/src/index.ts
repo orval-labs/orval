@@ -42,8 +42,6 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
   switch (schemaTypeValue) {
     case 'integer':
       return 'number';
-    case 'null':
-      return 'mixed';
     default:
       return schemaTypeValue ?? 'any';
   }
