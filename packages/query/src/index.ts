@@ -92,6 +92,7 @@ const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseQueryStoreResult' },
       { name: 'UseInfiniteQueryStoreResult' },
       { name: 'QueryKey' },
+      { name: 'CreateMutationResult' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -113,6 +114,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'CreateInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'InfiniteData' },
+      { name: 'CreateMutationResult' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -743,6 +745,14 @@ const generateMutatorReturnType = ({
 }) => {
   if (outputClient === OutputClient.REACT_QUERY) {
     return `: UseMutationResult<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
+  if (outputClient === OutputClient.SVELTE_QUERY) {
+    return `: CreateMutationResult<
         Awaited<ReturnType<${dataType}>>,
         TError,
         ${variableType},
