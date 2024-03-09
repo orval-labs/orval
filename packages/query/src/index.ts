@@ -233,6 +233,7 @@ const VUE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'UseMutationReturnType' },
     ],
     dependency: 'vue-query/types',
   },
@@ -264,6 +265,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryReturnType' },
       { name: 'UseInfiniteQueryReturnType' },
       { name: 'InfiniteData' },
+      { name: 'UseMutationReturnType' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -739,16 +741,23 @@ const generateMutatorReturnType = ({
   dataType: unknown;
   variableType: unknown;
 }) => {
-  if (outputClient !== OutputClient.REACT_QUERY) {
-    return '';
-  }
-
-  return `: UseMutationResult<
+  if (outputClient === OutputClient.REACT_QUERY) {
+    return `: UseMutationResult<
         Awaited<ReturnType<${dataType}>>,
         TError,
         ${variableType},
         TContext
       >`;
+  }
+  if (outputClient === OutputClient.VUE_QUERY) {
+    return `: UseMutationReturnType<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
+  return '';
 };
 
 const getQueryOptions = ({
