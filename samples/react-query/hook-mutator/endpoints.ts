@@ -10,6 +10,7 @@ import type {
   QueryFunction,
   QueryKey,
   UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from 'react-query';
@@ -167,7 +168,12 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
     { data: CreatePetsBody },
     TContext
   >;
-}) => {
+}): UseMutationResult<
+  Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
+  TError,
+  { data: CreatePetsBody },
+  TContext
+> => {
   const mutationOptions = useCreatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
