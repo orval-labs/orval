@@ -15,6 +15,42 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/swr/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/swr/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'swr',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/swr/split/endpoints.ts',
+      schemas: '../generated/swr/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'swr',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/swr/tags/endpoints.ts',
+      schemas: '../generated/swr/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'swr',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/swr/mutator/endpoints.ts',
@@ -69,6 +105,30 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  petstoreOverrideSwr: {
+    output: {
+      target: '../generated/swr/petstore-override-swr/endpoints.ts',
+      schemas: '../generated/swr/petstore-override-swr/model',
+      client: 'swr',
+      override: {
+        swr: {
+          useInfinite: true,
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+          swrMutationOptions: {
+            revalidate: true,
+          },
+          swrInfiniteOptions: {
+            initialSize: 10,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
 });

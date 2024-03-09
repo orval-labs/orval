@@ -153,7 +153,7 @@ For Angular:
 
 #### Value: tags
 
-Use this mode if you want one file by tag. Tag is a reference of the OpenApi specification tag. If you have a `pets` tag for all your pet calls then Orval will generate a file pets.ts in the target folder
+Use this mode if you want one file by tag. Tag is a reference of the OpenAPI specification tag. If you have a `pets` tag for all your pet calls then Orval will generate a file pets.ts in the target folder
 
 ```js
 module.exports = {
@@ -800,9 +800,6 @@ module.exports = {
       override: {
         swr: {
           useInfinite: true,
-          options: {
-            dedupingInterval: 10000,
-          },
         },
       },
     },
@@ -816,6 +813,78 @@ module.exports = {
 Type: `Boolean`.
 
 Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
+
+##### swrOptions
+
+Type: `Object`.
+
+Use to override the `useSwr` options. Check available options [here](https://swr.vercel.app/docs/api#options)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+##### swrMutationOptions
+
+Type: `Object`.
+
+Use to override the `useSWRMutation` options. Check available options [here](https://swr.vercel.app/docs/mutation#useswrmutation-parameters)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrMutationOptions: {
+            revalidate: true,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+##### swrInfiniteOptions
+
+Type: `Object`.
+
+Use to override the `useSWRInfinite` options. Check available options [here](https://swr.vercel.app/docs/pagination#parameters)
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrInfiniteOptions: {
+            initialSize: 10,
+          },
+        },
+      },
+    },
+  },
+};
+```
 
 #### mock
 

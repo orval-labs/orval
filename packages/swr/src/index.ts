@@ -363,9 +363,9 @@ ${doc}export const ${camel(
   });
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
-    swrOptions.options
+    swrOptions.swrInfiniteOptions
       ? `{
-    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ${stringify(swrOptions.swrInfiniteOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
@@ -418,9 +418,9 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   });
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
-    swrOptions.options
+    swrOptions.swrOptions
       ? `{
-    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ${stringify(swrOptions.swrOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
@@ -516,9 +516,9 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   });
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
-    swrOptions.options
+    swrOptions.swrMutationOptions
       ? `{
-    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ${stringify(swrOptions.swrMutationOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'

@@ -22,6 +22,42 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/vue-query/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/vue-query/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/vue-query/split/endpoints.ts',
+      schemas: '../generated/vue-query/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/vue-query/tags/endpoints.ts',
+      schemas: '../generated/vue-query/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/vue-query/mutator/endpoints.ts',

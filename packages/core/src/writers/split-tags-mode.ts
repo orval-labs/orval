@@ -75,10 +75,7 @@ export const writeSplitTagsMode = async ({
         });
         mockData += builder.importsMock({
           implementation: implementationMock,
-          imports: [
-            ...importsForBuilder,
-            { exports: importsMock, dependency: relativeSchemasPath },
-          ],
+          imports: [{ exports: importsMock, dependency: relativeSchemasPath }],
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,

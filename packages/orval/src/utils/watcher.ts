@@ -1,5 +1,4 @@
 import { log, logError } from '@orval/core';
-import chalk from 'chalk';
 
 export const startWatcher = async (
   watchOptions: boolean | string | (string | boolean)[],

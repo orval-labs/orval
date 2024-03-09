@@ -1,5 +1,4 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
-import { generalJSTypesWithArray } from '../constants';
 import { getScalar } from '../getters';
 import { ContextSpecs } from '../types';
 import { jsDoc } from '../utils';
@@ -46,7 +45,11 @@ export const generateInterface = ({
     scalar.type === 'object' &&
     !context?.output.override?.useTypeOverInterfaces
   ) {
-    model += `export interface ${name} ${scalar.value}\n`;
+    // If `scalar.value` is 'unknown', replace it with `{}` to avoid type error
+    const blankInterfaceValue =
+      scalar.value === 'unknown' ? '{}' : scalar.value;
+
+    model += `export interface ${name} ${blankInterfaceValue}\n`;
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
   }

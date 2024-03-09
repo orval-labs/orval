@@ -1098,7 +1098,7 @@ ${doc}export const ${camel(
   return ${queryResultVarName};
 }\n
 ${
-  usePrefetch
+  usePrefetch && (type === QueryType.QUERY || type === QueryType.INFINITE)
     ? `${doc}export const ${camel(
         `prefetch-${name}`,
       )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
@@ -1163,16 +1163,24 @@ const generateQueryHook = async (
   let implementation = '';
   let mutators = undefined;
 
-  const isQuery =
-    (Verbs.GET === verb &&
-      (override.query.useQuery ||
-        override.query.useSuspenseQuery ||
-        override.query.useInfinite ||
-        override.query.useSuspenseInfiniteQuery)) ||
-    operationQueryOptions?.useInfinite ||
-    operationQueryOptions?.useSuspenseInfiniteQuery ||
-    operationQueryOptions?.useQuery ||
-    operationQueryOptions?.useSuspenseQuery;
+  let isQuery =
+    Verbs.GET === verb &&
+    (override.query.useQuery ||
+      override.query.useSuspenseQuery ||
+      override.query.useInfinite ||
+      override.query.useSuspenseInfiniteQuery);
+  if (operationQueryOptions?.useInfinite !== undefined) {
+    isQuery = operationQueryOptions.useInfinite;
+  }
+  if (operationQueryOptions?.useSuspenseInfiniteQuery !== undefined) {
+    isQuery = operationQueryOptions.useSuspenseInfiniteQuery;
+  }
+  if (operationQueryOptions?.useQuery !== undefined) {
+    isQuery = operationQueryOptions.useQuery;
+  }
+  if (operationQueryOptions?.useSuspenseQuery !== undefined) {
+    isQuery = operationQueryOptions.useSuspenseQuery;
+  }
 
   if (isQuery) {
     const queryKeyMutator = query.queryKey
@@ -1223,7 +1231,7 @@ const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query?.useInfinite
+      ...(query?.useInfinite || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -1233,7 +1241,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useQuery
+      ...(query?.useQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
@@ -1242,7 +1250,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useSuspenseQuery
+      ...(query?.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -1251,7 +1259,8 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useSuspenseInfiniteQuery
+      ...(query?.useSuspenseInfiniteQuery ||
+      operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),

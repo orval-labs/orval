@@ -22,6 +22,42 @@ export default defineConfig({
       },
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/svelte-query/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/svelte-query/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'svelte-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/svelte-query/split/endpoints.ts',
+      schemas: '../generated/svelte-query/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'svelte-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/svelte-query/tags/endpoints.ts',
+      schemas: '../generated/svelte-query/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'svelte-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/svelte-query/mutator/endpoints.ts',

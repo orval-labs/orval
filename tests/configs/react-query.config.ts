@@ -13,6 +13,42 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/react-query/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/react-query/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/react-query/split/endpoints.ts',
+      schemas: '../generated/react-query/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/react-query/tags/endpoints.ts',
+      schemas: '../generated/react-query/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/react-query/mutator/endpoints.ts',
