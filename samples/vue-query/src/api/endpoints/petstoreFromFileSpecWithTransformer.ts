@@ -12,6 +12,7 @@ import type {
   UseInfiniteQueryOptions,
   UseInfiniteQueryReturnType,
   UseMutationOptions,
+  UseMutationReturnType,
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query';
@@ -257,7 +258,12 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
     { data: CreatePetsBody; version?: number },
     TContext
   >;
-}) => {
+}): UseMutationReturnType<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
   const mutationOptions = getCreatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
@@ -479,7 +485,12 @@ export const usePostApiV1UserLogout = <
     void,
     TContext
   >;
-}) => {
+}): UseMutationReturnType<
+  Awaited<ReturnType<typeof postApiV1UserLogout>>,
+  TError,
+  void,
+  TContext
+> => {
   const mutationOptions = getPostApiV1UserLogoutMutationOptions(options);
 
   return useMutation(mutationOptions);
