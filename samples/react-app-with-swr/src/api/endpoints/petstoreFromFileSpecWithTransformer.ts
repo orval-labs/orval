@@ -64,9 +64,7 @@ export const useListPets = <TError = Error>(
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
     swrKey,
     swrFn,
-    {
-      ...swrOptions,
-    },
+    swrOptions,
   );
 
   return {
@@ -173,9 +171,7 @@ export const useShowPetById = <TError = Error>(
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
     swrKey,
     swrFn,
-    {
-      ...swrOptions,
-    },
+    swrOptions,
   );
 
   return {
