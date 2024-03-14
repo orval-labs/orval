@@ -693,9 +693,15 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherOptions =
       !mutator && isRequestOptions ? 'options?: AxiosRequestConfig' : '';
 
+    const swrMutationFetcherArg = props.some(
+      (prop) => prop.type === GetterPropType.BODY,
+    )
+      ? '{ arg }'
+      : '__';
+
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
+  return (_: string, ${swrMutationFetcherArg}: { arg: Arguments }): ${swrMutationFetcherType} => {
     return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length ? ', options' : ''
     });
