@@ -3,6 +3,7 @@ import axios from '@orval/axios';
 import {
   asyncReduce,
   ClientFileBuilder,
+  ContextSpecs,
   generateDependencyImports,
   GeneratorClientFooter,
   GeneratorClientHeader,
@@ -269,6 +270,7 @@ export const generateExtraFiles = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
+  context: ContextSpecs,
 ): Promise<ClientFileBuilder[]> => {
   const { extraFiles: generateExtraFiles } = getGeneratorClient(
     outputClient,
@@ -279,5 +281,5 @@ export const generateExtraFiles = (
     return Promise.resolve([]);
   }
 
-  return generateExtraFiles(verbsOptions, output);
+  return generateExtraFiles(verbsOptions, output, context);
 };

@@ -582,6 +582,8 @@ export type GeneratorOperation = {
 
 export type GeneratorVerbOptions = {
   verb: Verbs;
+  route: string;
+  pathRoute: string;
   summary?: string;
   doc: string;
   tags: string[];
@@ -649,6 +651,7 @@ export type ClientFileBuilder = {
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
+  context: ContextSpecs,
 ) => Promise<ClientFileBuilder[]>;
 
 export type ClientHeaderBuilder = (params: {

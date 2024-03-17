@@ -1,12 +1,14 @@
 import { createFactory } from 'hono/factory';
 import { zValidator } from '@hono/zod-validator';
-import { UpdatePetsContext, updatePetsBody } from '../petstore';
+import { UpdatePetsContext } from '../petstore.context';
+import { updatePetsBody } from '../petstore.zod';
 
 const factory = createFactory();
 
+
 export const updatePetsHandlers = factory.createHandlers(
-  zValidator('json', updatePetsBody),
-  (c: UpdatePetsContext) => {
-    return c.json({ message: 'updatePets handler' });
+zValidator('json', updatePetsBody),
+(c: UpdatePetsContext) => {
+  
   },
 );

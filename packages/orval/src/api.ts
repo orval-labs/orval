@@ -60,6 +60,7 @@ export const getApiBuilder = async ({
         input,
         output,
         route,
+        pathRoute,
         context: resolvedContext,
       });
 
@@ -137,6 +138,7 @@ export const getApiBuilder = async ({
     output.client,
     api.verbOptions,
     output,
+    context,
   );
 
   return {
