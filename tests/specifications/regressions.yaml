@@ -19,6 +19,11 @@ components:
             items:
               type: string
               nullable: true
+    BlankSchema: {}
+    NotDifinedType:
+      properties:
+        id:
+          description: not defined type schema
 paths:
   /endpointA:
     get:

@@ -128,9 +128,7 @@ export type NormalizedOperationOptions = {
   contentType?: OverrideOutputContentType;
   query?: NormalizedQueryOptions;
   angular?: Required<AngularOptions>;
-  swr?: {
-    options?: any;
-  };
+  swr?: SwrOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -372,10 +370,10 @@ export type AngularOptions = {
 };
 
 export type SwrOptions = {
-  options?: any;
   useInfinite?: boolean;
   swrOptions?: any;
   swrMutationOptions?: any;
+  swrInfiniteOptions?: any;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

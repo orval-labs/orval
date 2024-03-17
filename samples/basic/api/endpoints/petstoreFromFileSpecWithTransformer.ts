@@ -58,13 +58,17 @@ export const getListPetsResponseMock = (overrideResponse: any = {}): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
+    age: faker.helpers.arrayElement([
+      faker.number.int({ min: 0, max: 30 }),
+      undefined,
+    ]),
     id: faker.number.int({ min: undefined, max: undefined }),
     name: 'jon',
-    tag: 'jon',
+    tag: faker.helpers.arrayElement(['jon', null]),
     ...overrideResponse,
   }));
 
-export const getShowPetByIdResponseMock = (): Pet =>
+export const getShowPetByIdResponseMock = () =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),

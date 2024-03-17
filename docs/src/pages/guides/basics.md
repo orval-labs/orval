@@ -3,7 +3,7 @@ id: basics
 title: Basics
 ---
 
-You should define a OpenApi specification (example <a href="https://github.com/anymaniax/orval/blob/master/samples/basic/petstore.yaml" target="_blank"> petstore.yaml</a>).
+You should define a OpenAPI specification (example <a href="https://github.com/anymaniax/orval/blob/master/samples/basic/petstore.yaml" target="_blank"> petstore.yaml</a>).
 
 And then create a file `orval.config.js` at root of your project:
 

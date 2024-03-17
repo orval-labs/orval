@@ -92,6 +92,7 @@ const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseQueryStoreResult' },
       { name: 'UseInfiniteQueryStoreResult' },
       { name: 'QueryKey' },
+      { name: 'CreateMutationResult' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -113,6 +114,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'CreateInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'InfiniteData' },
+      { name: 'CreateMutationResult' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -160,6 +162,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'QueryClient' },
+      { name: 'UseMutationResult' },
     ],
     dependency: 'react-query',
   },
@@ -186,6 +189,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryKey' },
       { name: 'QueryClient' },
       { name: 'InfiniteData' },
+      { name: 'UseMutationResult' },
     ],
     dependency: '@tanstack/react-query',
   },
@@ -231,6 +235,7 @@ const VUE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
+      { name: 'UseMutationReturnType' },
     ],
     dependency: 'vue-query/types',
   },
@@ -262,6 +267,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryReturnType' },
       { name: 'UseInfiniteQueryReturnType' },
       { name: 'InfiniteData' },
+      { name: 'UseMutationReturnType' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -728,6 +734,42 @@ const generateQueryReturnType = ({
   }
 };
 
+const generateMutatorReturnType = ({
+  outputClient,
+  dataType,
+  variableType,
+}: {
+  outputClient: OutputClient | OutputClientFunc;
+  dataType: unknown;
+  variableType: unknown;
+}) => {
+  if (outputClient === OutputClient.REACT_QUERY) {
+    return `: UseMutationResult<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
+  if (outputClient === OutputClient.SVELTE_QUERY) {
+    return `: CreateMutationResult<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
+  if (outputClient === OutputClient.VUE_QUERY) {
+    return `: UseMutationReturnType<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
+  return '';
+};
+
 const getQueryOptions = ({
   isRequestOptions,
   mutator,
@@ -1075,7 +1117,7 @@ ${doc}export const ${camel(
   return ${queryResultVarName};
 }\n
 ${
-  usePrefetch
+  usePrefetch && (type === QueryType.QUERY || type === QueryType.INFINITE)
     ? `${doc}export const ${camel(
         `prefetch-${name}`,
       )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
@@ -1208,7 +1250,7 @@ const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query?.useInfinite
+      ...(query?.useInfinite || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
@@ -1218,7 +1260,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useQuery
+      ...(query?.useQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
@@ -1227,7 +1269,7 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useSuspenseQuery
+      ...(query?.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
@@ -1236,7 +1278,8 @@ const generateQueryHook = async (
             },
           ]
         : []),
-      ...(query?.useSuspenseInfiniteQuery
+      ...(query?.useSuspenseInfiniteQuery ||
+      operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
@@ -1381,17 +1424,17 @@ const generateQueryHook = async (
 
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
- ${
-   isRequestOptions
-     ? `const {mutation: mutationOptions${
-         !mutator
-           ? `, axios: axiosOptions`
-           : mutator?.hasSecondArg
-             ? ', request: requestOptions'
-             : ''
-       }} = options ?? {};`
-     : ''
- }
+${
+  isRequestOptions
+    ? `const {mutation: mutationOptions${
+        !mutator
+          ? `, axios: axiosOptions`
+          : mutator?.hasSecondArg
+            ? ', request: requestOptions'
+            : ''
+      }} = options ?? {};`
+    : ''
+}
 
       ${
         mutator?.isHook
@@ -1429,11 +1472,11 @@ const generateQueryHook = async (
         }
 
 
-   return  ${
-     !mutationOptionsMutator
-       ? '{ mutationFn, ...mutationOptions }'
-       : 'customOptions'
-   }}`;
+  return  ${
+    !mutationOptionsMutator
+      ? '{ mutationFn, ...mutationOptions }'
+      : 'customOptions'
+  }}`;
 
     const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
@@ -1457,7 +1500,11 @@ ${mutationOptionsFn}
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
     )} = <TError = ${errorType},
-    TContext = unknown>(${mutationArguments}) => {
+    TContext = unknown>(${mutationArguments})${generateMutatorReturnType({
+      outputClient,
+      dataType,
+      variableType: definitions ? `{${definitions}}` : 'void',
+    })} => {
 
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
         isRequestOptions ? 'options' : 'mutationOptions'
