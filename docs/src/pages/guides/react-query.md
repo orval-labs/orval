@@ -3,7 +3,7 @@ id: react-query
 title: React query
 ---
 
-You should have an OpenApi specification and an Orval config where you define the mode as react-query.
+You should have an OpenAPI specification and an Orval config where you define the mode as react-query.
 
 #### Example with React query
 
@@ -26,7 +26,7 @@ module.exports = {
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
 
-The React query model will generate an implementation file with one custom hook per path in your OpenApi Specification.
+The React query model will generate an implementation file with one custom hook per path in your OpenAPI Specification.
 
 Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/react-query/basic/petstore.yaml" target="_blank">swagger</a>:
 

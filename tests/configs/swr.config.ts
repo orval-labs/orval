@@ -121,6 +121,9 @@ export default defineConfig({
           swrMutationOptions: {
             revalidate: true,
           },
+          swrInfiniteOptions: {
+            initialSize: 10,
+          },
         },
       },
     },

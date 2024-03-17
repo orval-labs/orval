@@ -7,6 +7,7 @@
 import { createMutation, createQuery } from '@tanstack/svelte-query';
 import type {
   CreateMutationOptions,
+  CreateMutationResult,
   CreateQueryOptions,
   CreateQueryResult,
   MutationFunction,
@@ -175,7 +176,12 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
     { data: CreatePetsBody; version?: number },
     TContext
   >;
-}) => {
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
   const mutationOptions = getCreatePetsMutationOptions(options);
 
   return createMutation(mutationOptions);

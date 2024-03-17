@@ -111,10 +111,25 @@ components:
           format: int64
         name:
           type: string
+          description: 'Name of pet'
+          maxLength: 0
+          minLength: 40
+        age:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 30
+          exclusiveMinimum: true
+          exclusiveMaximum: true
         tag:
           type: string
+          pattern: '^\\d{3}-\\d{2}-\\d{4}$'
+          nullable: true
+
     Pets:
       type: array
+      minItems: 1
+      maxItems: 20
       items:
         $ref: '#/components/schemas/Pet'
     Error:

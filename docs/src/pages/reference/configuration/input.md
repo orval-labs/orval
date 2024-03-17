@@ -90,7 +90,7 @@ Type: `Object`.
 
 Default Value: `{}`.
 
-Orval convert Swagger 2.0 definitions into OpenApi 3.0.x. You can use the converterOptions property to provide custom config for that. Check [here](https://github.com/anymaniax/orval/blob/next/src/types/swagger2openapi.d.ts#L10) available options.
+Orval convert Swagger 2.0 definitions into OpenAPI 3.0.x. You can use the converterOptions property to provide custom config for that. Check [here](https://github.com/anymaniax/orval/blob/next/src/types/swagger2openapi.d.ts#L10) available options.
 
 ```js
 module.exports = {

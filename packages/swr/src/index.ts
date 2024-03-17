@@ -363,9 +363,9 @@ ${doc}export const ${camel(
   });
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
-    swrOptions.options
+    swrOptions.swrInfiniteOptions
       ? `{
-    ${stringify(swrOptions.options)?.slice(1, -1)}
+    ${stringify(swrOptions.swrInfiniteOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
@@ -377,8 +377,6 @@ ${doc}export const ${camel(
   }
 }\n`
     : '';
-
-  const defaultSwrOptions = { ...swrOptions.swrOptions, ...swrOptions.options };
 
   const useSwrImplementation = `
 export type ${pascal(
@@ -420,9 +418,9 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   });
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
-    defaultSwrOptions
+    swrOptions.swrOptions
       ? `{
-    ${stringify(defaultSwrOptions)?.slice(1, -1)}
+    ${stringify(swrOptions.swrOptions)?.slice(1, -1)}
     ...swrOptions
   }`
       : 'swrOptions'
@@ -695,9 +693,15 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherOptions =
       !mutator && isRequestOptions ? 'options?: AxiosRequestConfig' : '';
 
+    const swrMutationFetcherArg = props.some(
+      (prop) => prop.type === GetterPropType.BODY,
+    )
+      ? '{ arg }'
+      : '__';
+
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: string, { arg }: { arg: Arguments }): ${swrMutationFetcherType} => {
+  return (_: string, ${swrMutationFetcherArg}: { arg: Arguments }): ${swrMutationFetcherType} => {
     return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length ? ', options' : ''
     });

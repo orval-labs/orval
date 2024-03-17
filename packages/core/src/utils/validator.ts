@@ -17,11 +17,11 @@ export const ibmOpenapiValidator = async (specs: OpenAPIObject) => {
   spectral.setRuleset(ibmOpenapiRuleset);
   const { errors, warnings } = await spectral.run(specs);
 
-  if (warnings.length) {
+  if (warnings && warnings.length) {
     ibmOpenapiValidatorWarnings(warnings);
   }
 
-  if (errors.length) {
+  if (errors && errors.length) {
     ibmOpenapiValidatorErrors(errors);
   }
 };

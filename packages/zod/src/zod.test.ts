@@ -10,6 +10,7 @@ const queryParams: ZodValidationSchemaDefinitionInput = {
     functions: [
       ['number', undefined],
       ['optional', undefined],
+      ['null', undefined],
     ],
     consts: [],
   },
@@ -36,7 +37,7 @@ describe('parseZodValidationSchemaDefinition', () => {
       const parseResult = parseZodValidationSchemaDefinition(queryParams);
 
       expect(parseResult.zod).toBe(
-        'zod.object({\n  "limit": zod.number().optional(),\n  "q": zod.array(zod.string()).optional()\n})',
+        'zod.object({\n  "limit": zod.number().optional().null(),\n  "q": zod.array(zod.string()).optional()\n})',
       );
     });
   });
@@ -46,7 +47,7 @@ describe('parseZodValidationSchemaDefinition', () => {
       const parseResult = parseZodValidationSchemaDefinition(queryParams, true);
 
       expect(parseResult.zod).toBe(
-        'zod.object({\n  "limit": zod.coerce.number().optional(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
+        'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
       );
     });
   });

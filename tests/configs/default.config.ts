@@ -102,4 +102,24 @@ export default defineConfig({
       target: '../generated/default/example-v3-1/endpoints.ts',
     },
   },
+  'override-mock': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      mode: 'split',
+      mock: true,
+      schemas: '../generated/default/override-mock/model',
+      target: '../generated/default/override-mock/endpoints.ts',
+      override: {
+        operations: {
+          listPets: {
+            mock: {
+              data: () => {
+                return {};
+              },
+            },
+          },
+        },
+      },
+    },
+  },
 });
