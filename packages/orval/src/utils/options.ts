@@ -2,6 +2,7 @@ import {
   ConfigExternal,
   createLogger,
   GlobalOptions,
+  HonoOptions,
   Hook,
   HookFunction,
   HookOption,
@@ -14,6 +15,7 @@ import {
   isUrl,
   mergeDeep,
   Mutator,
+  NormalizedHonoOptions,
   NormalizedHookOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
@@ -179,8 +181,8 @@ export const normalizeOptions = async (
           outputOptions.override?.header === false
             ? false
             : isFunction(outputOptions.override?.header)
-              ? outputOptions.override?.header!
-              : getDefaultFilesHeader,
+            ? outputOptions.override?.header!
+            : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
           schemas: {
@@ -202,6 +204,7 @@ export const normalizeOptions = async (
             ...(outputOptions.override?.components?.requestBodies ?? {}),
           },
         },
+        hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
         query: {
           useQuery: true,
           useMutation: true,
@@ -395,6 +398,17 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
 
     return acc;
   }, {} as NormalizedHookOptions);
+};
+
+const normalizeHonoOptions = (
+  hono: HonoOptions = {},
+  workspace: string,
+): NormalizedHonoOptions => {
+  return {
+    ...(hono.handlers
+      ? { handlers: upath.resolve(workspace, hono.handlers) }
+      : {}),
+  };
 };
 
 const normalizeQueryOptions = (

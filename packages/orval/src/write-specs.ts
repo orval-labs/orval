@@ -14,6 +14,7 @@ import {
   writeSplitTagsMode,
   writeTagsMode,
   getMockFileExtensionByTypeName,
+  writeOperationMode,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
@@ -45,17 +46,14 @@ export const writeSpecs = async (
   const { output } = options;
   const projectTitle = projectName || info.title;
 
-  const specsName = Object.keys(schemas).reduce(
-    (acc, specKey) => {
-      const basePath = upath.getSpecName(specKey, target);
-      const name = basePath.slice(1).split('/').join('-');
+  const specsName = Object.keys(schemas).reduce((acc, specKey) => {
+    const basePath = upath.getSpecName(specKey, target);
+    const name = basePath.slice(1).split('/').join('-');
 
-      acc[specKey] = name;
+    acc[specKey] = name;
 
-      return acc;
-    },
-    {} as Record<keyof typeof schemas, string>,
-  );
+    return acc;
+  }, {} as Record<keyof typeof schemas, string>);
 
   const header = getHeader(output.override.header, info as InfoObject);
 
@@ -142,6 +140,19 @@ export const writeSpecs = async (
     }
   }
 
+  if (builder.extraFiles.length) {
+    await Promise.all(
+      builder.extraFiles.map(async (file) =>
+        fs.outputFile(file.path, file.content),
+      ),
+    );
+
+    implementationPaths = [
+      ...implementationPaths,
+      ...builder.extraFiles.map((file) => file.path),
+    ];
+  }
+
   const paths = [
     ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
     ...implementationPaths,
@@ -172,6 +183,8 @@ export const writeSpecs = async (
 
 const getWriteMode = (mode: OutputMode) => {
   switch (mode) {
+    case OutputMode.OPERATION:
+      return writeOperationMode;
     case OutputMode.SPLIT:
       return writeSplitMode;
     case OutputMode.TAGS:

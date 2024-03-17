@@ -2,6 +2,7 @@ import angular from '@orval/angular';
 import axios from '@orval/axios';
 import {
   asyncReduce,
+  ClientFileBuilder,
   generateDependencyImports,
   GeneratorClientFooter,
   GeneratorClientHeader,
@@ -22,6 +23,7 @@ import * as mock from '@orval/mock';
 import query from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
+import hono from '@orval/hono';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -38,6 +40,7 @@ const getGeneratorClient = (
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),
     zod: zod()(),
+    hono: hono()(),
   };
 
   const generator = isFunction(outputClient)
@@ -91,6 +94,9 @@ export const generateClientHeader: GeneratorClientHeader = ({
   hasAwaitedType,
   titles,
   output,
+  verbOptions,
+  tag,
+  clientImplementation,
 }) => {
   const { header } = getGeneratorClient(outputClient, output);
   return {
@@ -102,6 +108,10 @@ export const generateClientHeader: GeneratorClientHeader = ({
           isMutator,
           provideIn,
           hasAwaitedType,
+          output,
+          verbOptions,
+          tag,
+          clientImplementation,
         })
       : '',
     implementationMock: `export const ${titles.implementationMock} = () => [\n`,
@@ -226,11 +236,12 @@ export const generateOperations = (
         output,
       );
       const client = await generatorClient(verbOption, options, outputClient);
-      const generatedMock = generateMock(verbOption, options);
 
       if (!client.implementation) {
         return acc;
       }
+
+      const generatedMock = generateMock(verbOption, options);
 
       acc[verbOption.operationId] = {
         implementation: verbOption.doc + client.implementation,
@@ -252,4 +263,21 @@ export const generateOperations = (
     },
     {} as GeneratorOperations,
   );
+};
+
+export const generateExtraFiles = (
+  outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
+  verbsOptions: Record<string, GeneratorVerbOptions>,
+  output: NormalizedOutputOptions,
+): Promise<ClientFileBuilder[]> => {
+  const { extraFiles: generateExtraFiles } = getGeneratorClient(
+    outputClient,
+    output,
+  );
+
+  if (!generateExtraFiles) {
+    return Promise.resolve([]);
+  }
+
+  return generateExtraFiles(verbsOptions, output);
 };
