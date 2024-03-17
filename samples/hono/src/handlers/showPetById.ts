@@ -5,10 +5,7 @@ import { showPetByIdParams } from '../petstore.zod';
 
 const factory = createFactory();
 
-
 export const showPetByIdHandlers = factory.createHandlers(
-zValidator('param', showPetByIdParams),
-(c: ShowPetByIdContext) => {
-  
-  },
+  zValidator('param', showPetByIdParams),
+  (c: ShowPetByIdContext) => {},
 );

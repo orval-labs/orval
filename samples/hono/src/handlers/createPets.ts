@@ -5,10 +5,7 @@ import { createPetsBody } from '../petstore.zod';
 
 const factory = createFactory();
 
-
 export const createPetsHandlers = factory.createHandlers(
-zValidator('json', createPetsBody),
-(c: CreatePetsContext) => {
-  
-  },
+  zValidator('json', createPetsBody),
+  (c: CreatePetsContext) => {},
 );

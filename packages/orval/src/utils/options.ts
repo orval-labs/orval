@@ -181,8 +181,8 @@ export const normalizeOptions = async (
           outputOptions.override?.header === false
             ? false
             : isFunction(outputOptions.override?.header)
-            ? outputOptions.override?.header!
-            : getDefaultFilesHeader,
+              ? outputOptions.override?.header!
+              : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
           schemas: {

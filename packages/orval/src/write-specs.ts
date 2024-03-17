@@ -46,14 +46,17 @@ export const writeSpecs = async (
   const { output } = options;
   const projectTitle = projectName || info.title;
 
-  const specsName = Object.keys(schemas).reduce((acc, specKey) => {
-    const basePath = upath.getSpecName(specKey, target);
-    const name = basePath.slice(1).split('/').join('-');
+  const specsName = Object.keys(schemas).reduce(
+    (acc, specKey) => {
+      const basePath = upath.getSpecName(specKey, target);
+      const name = basePath.slice(1).split('/').join('-');
 
-    acc[specKey] = name;
+      acc[specKey] = name;
 
-    return acc;
-  }, {} as Record<keyof typeof schemas, string>);
+      return acc;
+    },
+    {} as Record<keyof typeof schemas, string>,
+  );
 
   const header = getHeader(output.override.header, info as InfoObject);
 

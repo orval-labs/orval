@@ -5,10 +5,7 @@ import { listPetsQueryParams } from '../petstore.zod';
 
 const factory = createFactory();
 
-
 export const listPetsHandlers = factory.createHandlers(
-zValidator('query', listPetsQueryParams),
-(c: ListPetsContext) => {
-  
-  },
+  zValidator('query', listPetsQueryParams),
+  (c: ListPetsContext) => {},
 );
