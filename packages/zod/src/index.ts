@@ -129,8 +129,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
@@ -373,7 +373,7 @@ const deference = (
 };
 
 const generateZodRoute = (
-  { operationName, body, verb }: GeneratorVerbOptions,
+  { operationName, verb }: GeneratorVerbOptions,
   { pathRoute, context, override }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
@@ -393,15 +393,15 @@ const generateZodRoute = (
   const resolvedResponseJsonSchema = resolvedResponse?.content?.[
     'application/json'
   ]?.schema
-    ? resolveRef<SchemaObject>(
-        resolvedResponse.content['application/json'].schema,
-        context,
-      ).schema
+    ? deference(resolvedResponse.content['application/json'].schema, context)
     : undefined;
 
   const zodDefinitionsResponseProperties =
     resolvedResponseJsonSchema?.properties ??
+    (resolvedResponseJsonSchema?.items as SchemaObject)?.properties ??
     ({} as { [p: string]: SchemaObject | ReferenceObject });
+
+  const isZodDefinitionResponseArray = !!resolvedResponseJsonSchema?.items;
 
   const zodDefinitionsResponse = Object.entries(
     zodDefinitionsResponseProperties,
@@ -428,15 +428,15 @@ const generateZodRoute = (
   const resolvedRequestBodyJsonSchema = resolvedRequestBody?.content?.[
     'application/json'
   ]?.schema
-    ? resolveRef<SchemaObject>(
-        resolvedRequestBody.content['application/json'].schema,
-        context,
-      ).schema
+    ? deference(resolvedRequestBody.content['application/json'].schema, context)
     : undefined;
 
   const zodDefinitionsBodyProperties =
     resolvedRequestBodyJsonSchema?.properties ??
+    (resolvedRequestBodyJsonSchema?.items as SchemaObject)?.properties ??
     ({} as { [p: string]: SchemaObject | ReferenceObject });
+
+  const isZodDefinitionBodyArray = !!resolvedRequestBodyJsonSchema?.items;
 
   const zodDefinitionsBody = Object.entries(zodDefinitionsBodyProperties)
     .map(([key, body]) => {
@@ -543,11 +543,21 @@ const generateZodRoute = (
       : []),
     ...(inputBody.consts ? [inputBody.consts] : []),
     ...(inputBody.zod
-      ? [`export const ${operationName}Body = ${inputBody.zod}`]
+      ? [
+          isZodDefinitionBodyArray
+            ? `export const ${operationName}BodyItem = ${inputBody.zod}
+export const ${operationName}Body = zod.array(${operationName}BodyItem)`
+            : `export const ${operationName}Body = ${inputBody.zod}`,
+        ]
       : []),
     ...(inputResponse.consts ? [inputResponse.consts] : []),
     ...(inputResponse.zod
-      ? [`export const ${operationName}Response = ${inputResponse.zod}`]
+      ? [
+          isZodDefinitionResponseArray
+            ? `export const ${operationName}ResponseItem = ${inputResponse.zod}
+export const ${operationName}Response = zod.array(${operationName}ResponseItem)`
+            : `export const ${operationName}Response = ${inputResponse.zod}`,
+        ]
       : []),
   ].join('\n\n');
 };
