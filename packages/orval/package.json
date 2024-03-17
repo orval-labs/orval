@@ -30,7 +30,8 @@
     "vue-query",
     "vue",
     "swr",
-    "zod"
+    "zod",
+    "hono"
   ],
   "author": {
     "name": "Victor Bury",
