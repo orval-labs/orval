@@ -1110,9 +1110,9 @@ ${doc}export const ${camel(
     `${operationPrefix}-${type}`,
   )}(${queryOptionsVarName}) as ${returnType};
 
-  ${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey ${
-    isVue(outputClient) ? 'as QueryKey' : ''
-  };
+  ${queryResultVarName}.queryKey = ${
+    isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName
+  }.queryKey ${isVue(outputClient) ? 'as QueryKey' : ''};
 
   return ${queryResultVarName};
 }\n
