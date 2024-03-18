@@ -131,4 +131,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  blobFile: {
+    output: {
+      target: '../generated/swr/blob-file/endpoints.ts',
+      schemas: '../generated/swr/blob-file/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/blob-file.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });
