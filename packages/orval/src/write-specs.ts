@@ -142,6 +142,19 @@ export const writeSpecs = async (
     }
   }
 
+  if (builder.extraFiles.length) {
+    await Promise.all(
+      builder.extraFiles.map(async (file) =>
+        fs.outputFile(file.path, file.content),
+      ),
+    );
+
+    implementationPaths = [
+      ...implementationPaths,
+      ...builder.extraFiles.map((file) => file.path),
+    ];
+  }
+
   const paths = [
     ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
     ...implementationPaths,

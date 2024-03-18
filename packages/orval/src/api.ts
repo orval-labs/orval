@@ -19,6 +19,7 @@ import {
   generateClientHeader,
   generateClientImports,
   generateClientTitle,
+  generateExtraFiles,
   generateOperations,
 } from './client';
 
@@ -59,6 +60,7 @@ export const getApiBuilder = async ({
         input,
         output,
         route,
+        pathRoute,
         context: resolvedContext,
       });
 
@@ -117,6 +119,9 @@ export const getApiBuilder = async ({
         output,
       );
 
+      verbsOptions.forEach((verbOption) => {
+        acc.verbOptions[verbOption.operationId] = verbOption;
+      });
       acc.schemas.push(...schemas);
       acc.operations = { ...acc.operations, ...pathOperations };
 
@@ -124,17 +129,27 @@ export const getApiBuilder = async ({
     },
     {
       operations: {},
+      verbOptions: {},
       schemas: [],
     } as GeneratorApiOperations,
+  );
+
+  const extraFiles = await generateExtraFiles(
+    output.client,
+    api.verbOptions,
+    output,
+    context,
   );
 
   return {
     operations: api.operations,
     schemas: api.schemas,
+    verbOptions: api.verbOptions,
     title: generateClientTitle,
     header: generateClientHeader,
     footer: generateClientFooter,
     imports: generateClientImports,
     importsMock: generateMockImports,
+    extraFiles,
   };
 };

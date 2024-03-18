@@ -76,6 +76,8 @@ export const generateTarget = (
           hasAwaitedType,
           titles,
           output: options,
+          verbOptions: builder.verbOptions,
+          clientImplementation: acc.implementation,
         });
 
         acc.implementation = header.implementation + acc.implementation;

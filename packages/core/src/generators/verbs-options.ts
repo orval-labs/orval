@@ -43,6 +43,7 @@ const generateVerbOptions = async ({
   output,
   operation,
   route,
+  pathRoute,
   verbParameters = [],
   context,
 }: {
@@ -50,6 +51,7 @@ const generateVerbOptions = async ({
   output: NormalizedOutputOptions;
   operation: OperationObject;
   route: string;
+  pathRoute: string;
   verbParameters?: Array<ReferenceObject | ParameterObject>;
   components?: ComponentsObject;
   context: ContextSpecs;
@@ -183,6 +185,8 @@ const generateVerbOptions = async ({
   const verbOption: GeneratorVerbOptions = {
     verb: verb as Verbs,
     tags,
+    route,
+    pathRoute,
     summary: operation.summary,
     operationId: operationId!,
     operationName,
@@ -215,12 +219,14 @@ export const generateVerbsOptions = ({
   input,
   output,
   route,
+  pathRoute,
   context,
 }: {
   verbs: PathItemObject;
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   route: string;
+  pathRoute: string;
   context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>
   asyncReduce(
@@ -232,6 +238,7 @@ export const generateVerbsOptions = ({
           output,
           verbParameters: verbs.parameters,
           route,
+          pathRoute,
           operation,
           context,
         });

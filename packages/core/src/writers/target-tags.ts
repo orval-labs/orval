@@ -146,6 +146,9 @@ export const generateTargetForTags = (
               hasAwaitedType,
               titles,
               output: options,
+              verbOptions: builder.verbOptions,
+              tag,
+              clientImplementation: target.implementation,
             });
 
             acc[tag] = {

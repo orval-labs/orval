@@ -92,6 +92,7 @@ export type NormalizedOverrideOutput = {
       suffix: string;
     };
   };
+  hono: NormalizedHonoOptions;
   query: NormalizedQueryOptions;
   angular: Required<AngularOptions>;
   swr: SwrOptions;
@@ -200,6 +201,7 @@ export const OutputClient = {
   VUE_QUERY: 'vue-query',
   SWR: 'swr',
   ZOD: 'zod',
+  HONO: 'hono',
 } as const;
 
 export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
@@ -297,6 +299,7 @@ export type OverrideOutput = {
       suffix?: string;
     };
   };
+  hono?: HonoOptions;
   query?: QueryOptions;
   swr?: SwrOptions;
   angular?: AngularOptions;
@@ -317,6 +320,14 @@ export type OverrideOutput = {
 export type OverrideOutputContentType = {
   include?: string[];
   exclude?: string[];
+};
+
+export type NormalizedHonoOptions = {
+  handlers?: string;
+};
+
+export type HonoOptions = {
+  handlers?: string;
 };
 
 export type NormalizedQueryOptions = {
@@ -570,6 +581,8 @@ export type GeneratorOperation = {
 
 export type GeneratorVerbOptions = {
   verb: Verbs;
+  route: string;
+  pathRoute: string;
   summary?: string;
   doc: string;
   tags: string[];
@@ -630,6 +643,16 @@ export type ClientBuilder = (
   output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
+export type ClientFileBuilder = {
+  path: string;
+  content: string;
+};
+export type ClientExtraFilesBuilder = (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  output: NormalizedOutputOptions,
+  context: ContextSpecs,
+) => Promise<ClientFileBuilder[]>;
+
 export type ClientHeaderBuilder = (params: {
   title: string;
   isRequestOptions: boolean;
@@ -638,6 +661,10 @@ export type ClientHeaderBuilder = (params: {
   isGlobalMutator: boolean;
   provideIn: boolean | 'root' | 'any';
   hasAwaitedType: boolean;
+  output: NormalizedOutputOptions;
+  verbOptions: Record<string, GeneratorVerbOptions>;
+  tag?: string;
+  clientImplementation: string;
 }) => string;
 
 export type ClientFooterBuilder = (params: {
@@ -670,6 +697,7 @@ export interface ClientGeneratorsBuilder {
   dependencies?: ClientDependenciesBuilder;
   footer?: ClientFooterBuilder;
   title?: ClientTitleBuilder;
+  extraFiles?: ClientExtraFilesBuilder;
 }
 
 export type GeneratorClients = Record<OutputClient, ClientGeneratorsBuilder>;
@@ -808,11 +836,13 @@ export type ResReqTypesValue = ScalarValue & {
 export type WriteSpecsBuilder = {
   operations: GeneratorOperations;
   schemas: Record<string, GeneratorSchema[]>;
+  verbOptions: Record<string, GeneratorVerbOptions>;
   title: GeneratorClientTitle;
   header: GeneratorClientHeader;
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  extraFiles: ClientFileBuilder[];
   info: InfoObject;
   target: string;
 };
@@ -827,6 +857,7 @@ export type WriteModeProps = {
 };
 
 export type GeneratorApiOperations = {
+  verbOptions: Record<string, GeneratorVerbOptions>;
   operations: GeneratorOperations;
   schemas: GeneratorSchema[];
 };
@@ -852,6 +883,9 @@ export type GeneratorClientHeader = (data: {
   hasAwaitedType: boolean;
   titles: GeneratorClientExtra;
   output: NormalizedOutputOptions;
+  verbOptions: Record<string, GeneratorVerbOptions>;
+  tag?: string;
+  clientImplementation: string;
 }) => GeneratorClientExtra;
 
 export type GeneratorClientFooter = (data: {
@@ -897,4 +931,5 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
+  extraFiles: ClientFileBuilder[];
 };

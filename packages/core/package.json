@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "build": "tsup ./src/index.ts --clean --sourcemap --dts",
-    "dev": "tsup ./src/index.ts --clean --sourcemap --watch src",
+    "dev": "tsup ./src/index.ts --clean --sourcemap --watch src --dts",
     "lint": "eslint src/**/*.ts",
     "test": "vitest --global test.ts"
   },
