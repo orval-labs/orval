@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+  title: Blob File
+  description: 'Blobs'
+  version: 1.0.0
+tags:
+  - name: blobs
+    description: Blobs
+servers:
+  - url: http://localhost
+paths:
+  /binary-blob:
+    get:
+      tags:
+        - blobs
+      summary: Binary Blob response
+      operationId: getBinaryBlob
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                type: 'string'
+                format: 'binary'
