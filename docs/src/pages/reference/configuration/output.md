@@ -684,6 +684,35 @@ Type: `Object`.
 
 Use to override the query config. Check available options <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">here</a>
 
+##### queryKey
+
+Type: `String` or `Object`.
+
+Valid values: path of the `queryKey` function or object with a path and name.
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        query: {
+          queryKey: {
+            path: './api/query/custom-query-key.ts',
+            name: 'customQueryKeyFn',
+            // default: true
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+
 ##### queryOptions
 
 Type: `String` or `Object`.
