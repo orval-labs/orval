@@ -703,7 +703,9 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
   return (_: string, ${swrMutationFetcherArg}: { arg: Arguments }): ${swrMutationFetcherType} => {
     return ${operationName}(${httpFnProperties}${
-      swrMutationFetcherOptions.length ? ', options' : ''
+      swrMutationFetcherOptions.length
+        ? (httpFnProperties.length ? ', ' : '') + 'options'
+        : ''
     });
   }
 }\n`;
