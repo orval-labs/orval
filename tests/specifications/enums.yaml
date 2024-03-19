@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: Arrays
+  version: 1.0.0
+paths:
+  /api/cat:
+    get:
+      summary: sample cat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cat'
+  /api/required-cat:
+    get:
+      summary: sample required cat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequiredCat'
+  /api/dog:
+    get:
+      summary: sample dog
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dog'
+  /api/required-dog:
+    get:
+      summary: sample required dog
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequiredDog'
+  /api/duck:
+    get:
+      summary: sample duck
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Duck'
+components:
+  schemas:
+    Siamese:
+      type: object
+      properties:
+        colours:
+          type: array
+          items:
+            type: string
+            enum:
+              - BLACK
+              - BROWN
+              - WHITE
+              - GREY
+    RequiredSiamese:
+      type: object
+      required: ['colours']
+      properties:
+        colours:
+          type: array
+          items:
+            type: string
+            enum:
+              - BLACK
+              - BROWN
+              - WHITE
+              - GREY
+    Cat:
+      type: object
+      properties:
+        petsRequested:
+          type: array
+          items:
+            $ref: '#/components/schemas/Siamese'
+    RequiredCat:
+      type: object
+      properties:
+        petsRequested:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequiredSiamese'
+    Bulldog:
+      type: object
+      properties:
+        colour:
+          type: string
+          enum:
+            - BLACK
+            - BROWN
+    RequiredBulldog:
+      type: object
+      required: ['colour']
+      properties:
+        colour:
+          type: string
+          enum:
+            - BLACK
+            - BROWN
+    Dog:
+      type: object
+      properties:
+        petsRequested:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bulldog'
+    RequiredDog:
+      type: object
+      properties:
+        petsRequested:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequiredBulldog'
+    Duck:
+      type: object
+      properties:
+        petsRequested:
+          type: array
+          items:
+            type: string
