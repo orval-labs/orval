@@ -232,7 +232,9 @@ export const getMockScalar = ({
           ];
         }
 
-        value = `faker.helpers.arrayElement(${enumValue})`;
+        value = item.path?.endsWith('[]')
+          ? `faker.helpers.arrayElements(${enumValue})`
+          : `faker.helpers.arrayElement(${enumValue})`;
       }
 
       return {
