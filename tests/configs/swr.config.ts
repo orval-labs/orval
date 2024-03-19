@@ -145,4 +145,15 @@ export default defineConfig({
       },
     },
   },
+  nestedArrays: {
+    output: {
+      target: '../generated/swr/nested-arrays/endpoints.ts',
+      schemas: '../generated/swr/nested-arrays/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/arrays.yaml',
+    },
+  },
 });
