@@ -712,7 +712,6 @@ module.exports = {
 };
 ```
 
-
 ##### queryOptions
 
 Type: `String` or `Object`.
