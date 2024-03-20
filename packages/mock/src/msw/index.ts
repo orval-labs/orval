@@ -107,7 +107,16 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
 
   const includeResponseImports =
     isReturnHttpResponse && !isTextPlain
-      ? [...imports, ...response.imports]
+      ? [
+          ...imports,
+          ...response.imports.filter((r) => {
+            // Only include imports which are actually used in mock.
+            const reg = new RegExp(`\\b${r.name}\\b`);
+            return (
+              reg.test(handlerImplementation) || reg.test(mockImplementation)
+            );
+          }),
+        ]
       : imports;
 
   return {
