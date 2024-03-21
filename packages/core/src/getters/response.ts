@@ -37,6 +37,7 @@ export const getResponse = ({
     operationName,
     context,
     'void',
+    (type) => type.key.startsWith('2') + type.value,
   );
 
   const filteredTypes = contentType
