@@ -1,5 +1,7 @@
 import { keyword } from 'esutils';
+import type { ValueIteratee } from 'lodash';
 import uniqBy from 'lodash.uniqby';
+
 import {
   MediaTypeObject,
   ReferenceObject,
@@ -48,6 +50,7 @@ export const getResReqTypes = (
   name: string,
   context: ContextSpecs,
   defaultType = 'unknown',
+  uniqueKey: ValueIteratee<ResReqTypesValue> = 'value',
 ): ResReqTypesValue[] => {
   const typesArray = responsesOrRequests
     .filter(([_, res]) => Boolean(res))
@@ -213,7 +216,7 @@ export const getResReqTypes = (
 
   return uniqBy(
     typesArray.flatMap((it) => it),
-    'value',
+    uniqueKey,
   );
 };
 

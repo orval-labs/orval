@@ -167,4 +167,15 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  errors: {
+    output: {
+      target: '../generated/swr/errors/endpoints.ts',
+      schemas: '../generated/swr/errors/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/errors.yaml',
+    },
+  },
 });
