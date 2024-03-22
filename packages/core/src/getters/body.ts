@@ -1,7 +1,8 @@
 import { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 import { generalJSTypesWithArray } from '../constants';
+import { resolveRef } from '../resolvers';
 import { ContextSpecs, GetterBody, OverrideOutputContentType } from '../types';
-import { camel, sanitize } from '../utils';
+import { camel, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 export const getBody = ({
@@ -53,6 +54,7 @@ export const getBody = ({
         context.output.override.components.requestBodies.suffix
       : camel(definition);
 
+  let isOptional = true;
   if (implementation) {
     implementation = sanitize(implementation, {
       underscore: '_',
@@ -61,6 +63,15 @@ export const getBody = ({
       es5keyword: true,
       es5IdentifierName: true,
     });
+    if (isReference(requestBody)) {
+      const { schema: bodySchema } = resolveRef<RequestBodyObject>(
+        requestBody,
+        context,
+      );
+      isOptional = !bodySchema.required;
+    } else {
+      isOptional = !requestBody.required;
+    }
   }
 
   return {
@@ -69,6 +80,7 @@ export const getBody = ({
     implementation,
     imports,
     schemas,
+    isOptional,
     ...(filteredBodyTypes.length === 1
       ? {
           formData: filteredBodyTypes[0].formData,

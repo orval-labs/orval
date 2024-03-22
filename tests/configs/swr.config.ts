@@ -178,4 +178,15 @@ export default defineConfig({
       target: '../specifications/errors.yaml',
     },
   },
+  optionalRequestBody: {
+    output: {
+      target: '../generated/swr/optional-request-body/endpoints.ts',
+      schemas: '../generated/swr/optional-request-body/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/optional-request-body.yaml',
+    },
+  },
 });
