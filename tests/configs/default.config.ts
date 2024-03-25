@@ -122,4 +122,16 @@ export default defineConfig({
       },
     },
   },
+  'runtime-mock-delay': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      mock: {
+        delay: () => 400,
+        delayCalcRuntime: true,
+        type: 'msw',
+      },
+      schemas: '../generated/default/runtime-mock-delay/model',
+      target: '../generated/default/runtime-mock-delay/endpoints.ts',
+    },
+  },
 });
