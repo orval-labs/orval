@@ -122,7 +122,7 @@ export type NormalizedOperationOptions = {
   transformer?: OutputTransformer;
   mutator?: NormalizedMutator;
   mock?: {
-    data?: MockProperties;
+    data?: MockData;
     properties?: MockProperties;
   };
   contentType?: OverrideOutputContentType;
@@ -250,9 +250,30 @@ export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
   tags?: Record<string, { properties: Record<string, unknown> }>;
 };
 
-export type MockProperties =
-  | { [key: string]: unknown }
-  | ((specs: OpenAPIObject) => { [key: string]: unknown });
+export type MockPropertiesObject = {
+  [key: string]: unknown;
+};
+export type MockPropertiesObjectFn = (
+  specs: OpenAPIObject,
+) => MockPropertiesObject;
+
+export type MockProperties = MockPropertiesObject | MockPropertiesObjectFn;
+
+export type MockDataObject = {
+  [key: string]: unknown;
+};
+
+export type MockDataObjectFn = (specs: OpenAPIObject) => MockDataObject;
+
+export type MockDataArray = unknown[];
+
+export type MockDataArrayFn = (specs: OpenAPIObject) => MockDataArray;
+
+export type MockData =
+  | MockDataObject
+  | MockDataObjectFn
+  | MockDataArray
+  | MockDataArrayFn;
 
 type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
@@ -387,7 +408,7 @@ export type OperationOptions = {
   transformer?: OutputTransformer;
   mutator?: Mutator;
   mock?: {
-    data?: MockProperties;
+    data?: MockData;
     properties?: MockProperties;
   };
   query?: QueryOptions;
