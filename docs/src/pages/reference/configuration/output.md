@@ -300,12 +300,12 @@ Default Value: `1000`.
 
 Use to specify the delay time for the mock. It can either be a fixed number or a function that returns a number.
 
-#### delayCalcRuntime
+#### delayMockFunction
 
 Type: `boolean`.
 
 Gives you the possibility to have functions that are passed to `delay` to be
-executed at runtime rather than at build time.
+executed at runtime rather than when the mocks are generated.
 
 #### useExamples
 
@@ -1017,12 +1017,12 @@ module.exports = {
 };
 ```
 
-#### delayCalcRuntime
+#### delayMockFunction
 
 Type: `boolean`.
 
 Gives you the possibility to have functions that are passed to `delay` to be
-executed at runtime rather than at build time.
+executed at runtime rather than when the mocks are generated.
 
 ##### arrayMin
 

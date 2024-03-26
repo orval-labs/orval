@@ -8,11 +8,11 @@ export const getDelay = (
     typeof override?.mock?.delay === 'number'
       ? override?.mock?.delay
       : options?.delay;
-  const delayCalcRuntime =
-    override?.mock?.delayCalcRuntime ?? options?.delayCalcRuntime;
+  const delayMockFunction =
+    override?.mock?.delayMockFunction ?? options?.delayMockFunction;
   switch (typeof overrideDelay) {
     case 'function':
-      return delayCalcRuntime ? overrideDelay : overrideDelay();
+      return delayMockFunction ? overrideDelay : overrideDelay();
     case 'number':
       return overrideDelay;
     default:
