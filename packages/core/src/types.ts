@@ -749,6 +749,7 @@ export type GetterBody = {
   formData?: string;
   formUrlEncoded?: string;
   contentType: string;
+  isOptional: boolean;
 };
 
 export type GetterParameters = {

@@ -25,10 +25,10 @@ export const getProps = ({
 }): GetterProps => {
   const bodyProp = {
     name: body.implementation,
-    definition: `${body.implementation}: ${body.definition}`,
-    implementation: `${body.implementation}: ${body.definition}`,
+    definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
+    implementation: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
     default: false,
-    required: true,
+    required: !body.isOptional,
     type: GetterPropType.BODY,
   };
 
