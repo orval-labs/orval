@@ -54,7 +54,7 @@ export const getBody = ({
         context.output.override.components.requestBodies.suffix
       : camel(definition);
 
-  let isOptional = true;
+  let isOptional = false;
   if (implementation) {
     implementation = sanitize(implementation, {
       underscore: '_',
@@ -68,8 +68,10 @@ export const getBody = ({
         requestBody,
         context,
       );
-      isOptional = !bodySchema.required;
-    } else {
+      if (bodySchema.required !== undefined) {
+        isOptional = !bodySchema.required;
+      }
+    } else if (requestBody.required !== undefined) {
       isOptional = !requestBody.required;
     }
   }

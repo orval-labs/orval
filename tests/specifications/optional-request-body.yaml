@@ -2,184 +2,35 @@ openapi: '3.0.0'
 info:
   version: 1.0.0
   title: Swagger Petstore
-  license:
-    name: MIT
-servers:
-  - url: http://petstore.swagger.io/v1
 paths:
   /pets:
     post:
-      summary: Create a pet
       operationId: createPets
-      tags:
-        - pets
-      parameters:
-        - name: limit
-          in: query
-          description: How many items to return at one time (max 100)
-          required: false
-          schema:
-            type: string
-        - name: sort
-          in: query
-          description: |
-            Which property to sort by?
-            Example: name sorts ASC while -name sorts DESC.
-          required: true
-          schema:
-            type: string
-            enum:
-              - name
-              - -name
-              - email
-              - -email
-        - description: Header parameters
-          in: header
-          name: X-EXAMPLE
-          required: true
-          schema:
-            type: string
-            enum:
-              - ONE
-              - TWO
-              - THREE
       requestBody:
         $ref: '#/components/requestBodies/RequiredPetBody'
       responses:
-        '200':
-          description: Created Pet
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
+        '204':
+          description: Ok
     put:
-      summary: Update a pet
       operationId: updatePets
-      tags:
-        - pets
-      parameters:
-        - name: limit
-          in: query
-          description: How many items to return at one time (max 100)
-          required: false
-          schema:
-            type: string
-        - name: sort
-          in: query
-          description: |
-            Which property to sort by?
-            Example: name sorts ASC while -name sorts DESC.
-          required: true
-          schema:
-            type: string
-            enum:
-              - name
-              - -name
-              - email
-              - -email
-        - description: Header parameters
-          in: header
-          name: X-EXAMPLE
-          required: true
-          schema:
-            type: string
-            enum:
-              - ONE
-              - TWO
-              - THREE
       requestBody:
         $ref: '#/components/requestBodies/OptionalPetBody'
       responses:
-        '200':
-          description: Updated Pet
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Pet'
+        '204':
+          description: Ok
   /cookies:
     post:
-      summary: Create a cookie
       operationId: createCookies
-      tags:
-        - cookies
-      parameters:
-        - name: limit
-          in: query
-          description: How many items to return at one time (max 100)
-          required: false
-          schema:
-            type: string
-        - name: sort
-          in: query
-          description: |
-            Which property to sort by?
-            Example: name sorts ASC while -name sorts DESC.
-          required: true
-          schema:
-            type: string
-            enum:
-              - name
-              - -name
-              - email
-              - -email
-        - description: Header parameters
-          in: header
-          name: X-EXAMPLE
-          required: true
-          schema:
-            type: string
-            enum:
-              - ONE
-              - TWO
-              - THREE
       requestBody:
-        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/Cookie'
       responses:
-        '200':
-          description: Created Cookie
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cookie'
+        '204':
+          description: Ok
     put:
-      summary: Update a cookie
       operationId: updateCookies
-      tags:
-        - cookies
-      parameters:
-        - name: limit
-          in: query
-          description: How many items to return at one time (max 100)
-          required: false
-          schema:
-            type: string
-        - name: sort
-          in: query
-          description: |
-            Which property to sort by?
-            Example: name sorts ASC while -name sorts DESC.
-          required: true
-          schema:
-            type: string
-            enum:
-              - name
-              - -name
-              - email
-              - -email
-        - description: Header parameters
-          in: header
-          name: X-EXAMPLE
-          required: true
-          schema:
-            type: string
-            enum:
-              - ONE
-              - TWO
-              - THREE
       requestBody:
         required: false
         content:
@@ -187,23 +38,17 @@ paths:
             schema:
               $ref: '#/components/schemas/Cookie'
       responses:
-        '200':
-          description: Updated Cookie
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cookie'
+        '204':
+          description: Ok
 components:
   requestBodies:
     OptionalPetBody:
-      description: A JSON object containing pet information
+      required: false
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/Pet'
     RequiredPetBody:
-      description: A JSON object containing pet information
-      required: true
       content:
         application/json:
           schema:
@@ -211,13 +56,5 @@ components:
   schemas:
     Pet:
       type: object
-      properties:
-        id:
-          type: integer
-          format: int64
     Cookie:
       type: object
-      properties:
-        id:
-          type: integer
-          format: int64
