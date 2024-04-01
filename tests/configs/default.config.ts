@@ -127,7 +127,7 @@ export default defineConfig({
     output: {
       mock: {
         delay: () => 400,
-        delayMockFunction: true,
+        delayFunctionLazyExecute: true,
         type: 'msw',
       },
       schemas: '../generated/default/runtime-mock-delay/model',

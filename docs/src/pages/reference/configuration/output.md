@@ -300,7 +300,7 @@ Default Value: `1000`.
 
 Use to specify the delay time for the mock. It can either be a fixed number or a function that returns a number.
 
-#### delayMockFunction
+#### delayFunctionLazyExecute
 
 Type: `boolean`.
 
@@ -1017,7 +1017,7 @@ module.exports = {
 };
 ```
 
-#### delayMockFunction
+#### delayFunctionLazyExecute
 
 Type: `boolean`.
 
