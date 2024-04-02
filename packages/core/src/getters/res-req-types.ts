@@ -287,7 +287,11 @@ const getSchemaFormDataAndUrlEncoded = ({
     return `${form}${propName}.forEach(value => ${variableName}.append('data', value))\n`;
   }
 
-  if (schema.type === 'number' || schema.type === 'boolean') {
+  if (
+    schema.type === 'number' ||
+    schema.type === 'integer' ||
+    schema.type === 'boolean'
+  ) {
     return `${form}${variableName}.append('data', ${propName}.toString())\n`;
   }
 
