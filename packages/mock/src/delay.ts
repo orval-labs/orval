@@ -3,14 +3,17 @@ import { GlobalMockOptions, NormalizedOverrideOutput } from '@orval/core';
 export const getDelay = (
   override?: NormalizedOverrideOutput,
   options?: GlobalMockOptions,
-): number => {
+): GlobalMockOptions['delay'] => {
   const overrideDelay =
     typeof override?.mock?.delay === 'number'
       ? override?.mock?.delay
       : options?.delay;
+  const delayFunctionLazyExecute =
+    override?.mock?.delayFunctionLazyExecute ??
+    options?.delayFunctionLazyExecute;
   switch (typeof overrideDelay) {
     case 'function':
-      return overrideDelay();
+      return delayFunctionLazyExecute ? overrideDelay : overrideDelay();
     case 'number':
       return overrideDelay;
     default:

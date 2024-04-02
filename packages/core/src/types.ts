@@ -230,6 +230,9 @@ export type GlobalMockOptions = {
   useExamples?: boolean;
   // This is used to set the delay to your own custom value
   delay?: number | (() => number);
+  // This is used to execute functions that are passed to the 'delay' argument
+  // at runtime rather than build time.
+  delayFunctionLazyExecute?: boolean;
   // This is used to set the base url to your own custom value
   baseUrl?: string;
   // This is used to set the locale of the faker library

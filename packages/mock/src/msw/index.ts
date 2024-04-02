@@ -84,10 +84,11 @@ export const generateMSW = (
     ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : '';
 
+  const delayTime = getDelay(override, !isFunction(mock) ? mock : undefined);
   const handlerImplementation = `
 export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
   return http.${verb}('${route}', async () => {
-    await delay(${getDelay(override, !isFunction(mock) ? mock : undefined)});
+    await delay(${isFunction(delayTime) ? `(${delayTime})()` : delayTime});
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain
