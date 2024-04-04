@@ -313,6 +313,12 @@ Type: `Boolean`.
 
 Gives you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
 
+#### generateEachHttpStatus
+
+Type: `Boolean`.
+
+Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification.
+
 #### baseUrl
 
 Type: `String`.
@@ -1023,6 +1029,12 @@ Type: `boolean`.
 
 Gives you the possibility to have functions that are passed to `delay` to be
 executed at runtime rather than when the mocks are generated.
+
+#### generateEachHttpStatus
+
+Type: `Boolean`.
+
+Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification.
 
 ##### arrayMin
 

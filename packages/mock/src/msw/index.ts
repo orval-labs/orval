@@ -169,28 +169,34 @@ export const generateMSW = (
 
   const mockImplementations = [baseDefinition.implementation.function];
   const handlerImplementations = [baseDefinition.implementation.handler];
-  let imports = [...baseDefinition.imports];
+  const imports = [...baseDefinition.imports];
 
-  [...response.types.success, ...response.types.errors].forEach(
-    (statusResponse) => {
-      const definition = generateDefinition(
-        statusResponse.key,
-        route,
-        getResponseMockFunctionName,
-        handlerName,
-        generatorVerbOptions,
-        generatorOptions,
-        statusResponse.value,
-        statusResponse.key,
-        response.imports,
-        [statusResponse],
-        [statusResponse.contentType],
-      );
-      mockImplementations.push(definition.implementation.function);
-      handlerImplementations.push(definition.implementation.handler);
-      imports.push(...definition.imports);
-    },
-  );
+  if (
+    generatorOptions.mock &&
+    'generateEachHttpStatus' in generatorOptions.mock &&
+    generatorOptions.mock.generateEachHttpStatus
+  ) {
+    [...response.types.success, ...response.types.errors].forEach(
+      (statusResponse) => {
+        const definition = generateDefinition(
+          statusResponse.key,
+          route,
+          getResponseMockFunctionName,
+          handlerName,
+          generatorVerbOptions,
+          generatorOptions,
+          statusResponse.value,
+          statusResponse.key,
+          response.imports,
+          [statusResponse],
+          [statusResponse.contentType],
+        );
+        mockImplementations.push(definition.implementation.function);
+        handlerImplementations.push(definition.implementation.handler);
+        imports.push(...definition.imports);
+      },
+    );
+  }
 
   return {
     implementation: {
