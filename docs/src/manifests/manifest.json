@@ -69,6 +69,11 @@
           "title": "SWR",
           "path": "/guides/swr",
           "editUrl": "/guides/swr.md"
+        },
+        {
+          "title": "MSW",
+          "path": "/guides/msw",
+          "editUrl": "/guides/msw.md"
         }
       ]
     },
