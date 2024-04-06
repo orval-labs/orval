@@ -29,7 +29,7 @@ The mock definition consists of the following three functions.
 2. A function that returns the value of binding the mock object to the http request handler of `MSW`
 3. A function that returns an `Array` that aggregates all handlers in the file.
 
-####　A function that returns a mocked value of a schema object
+#### A function that returns a mocked value of a schema object
 
 A function that returns a mock object will be generated as shown below:
 
