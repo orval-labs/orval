@@ -6,6 +6,7 @@ import {
   GeneratorOptions,
   GeneratorVerbOptions,
   isFunction,
+  isObject,
   pascal,
   ResReqTypesValue,
 } from '@orval/core';
@@ -173,7 +174,7 @@ export const generateMSW = (
 
   if (
     generatorOptions.mock &&
-    'generateEachHttpStatus' in generatorOptions.mock &&
+    isObject(generatorOptions.mock) &&
     generatorOptions.mock.generateEachHttpStatus
   ) {
     [...response.types.success, ...response.types.errors].forEach(
