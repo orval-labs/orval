@@ -2,10 +2,13 @@ import {
   generateDependencyImports,
   GenerateMockImports,
   GeneratorDependency,
+  GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
   isFunction,
+  isObject,
   pascal,
+  ResReqTypesValue,
 } from '@orval/core';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -43,23 +46,30 @@ export const generateMSWImports: GenerateMockImports = ({
   );
 };
 
-export const generateMSW = (
+const generateDefinition = (
+  name: string,
+  route: string,
+  getResponseMockFunctionNameBase: string,
+  handlerNameBase: string,
   { operationId, response, verb, tags }: GeneratorVerbOptions,
-  { pathRoute, override, context, mock }: GeneratorOptions,
+  { override, context, mock }: GeneratorOptions,
+  returnType: string,
+  status: string,
+  responseImports: GeneratorImport[],
+  responses: ResReqTypesValue[],
+  contentTypes: string[],
 ) => {
   const { definitions, definition, imports } = getMockDefinition({
     operationId,
     tags,
-    response,
+    returnType,
+    responses,
+    imports: responseImports,
     override,
     context,
     mockOptions: !isFunction(mock) ? mock : undefined,
   });
 
-  const route = getRouteMSW(
-    pathRoute,
-    override?.mock?.baseUrl ?? (!isFunction(mock) ? mock?.baseUrl : undefined),
-  );
   const mockData = getMockOptionsDataOverride(operationId, override);
 
   let value = '';
@@ -73,12 +83,11 @@ export const generateMSW = (
   }
 
   const isResponseOverridable = value.includes(overrideVarName);
-  const isTextPlain = response.contentTypes.includes('text/plain');
+  const isTextPlain = contentTypes.includes('text/plain');
   const isReturnHttpResponse = value && value !== 'undefined';
 
-  const returnType = response.definition.success;
-  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
-  const handlerName = `get${pascal(operationId)}MockHandler`;
+  const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(name)}`;
+  const handlerName = `${handlerNameBase}${pascal(name)}`;
 
   const mockImplementation = isReturnHttpResponse
     ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
@@ -97,7 +106,7 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
         : null
     },
       {
-        status: 200,
+        status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
         headers: {
           'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
         }
@@ -127,5 +136,75 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
       handler: handlerImplementation,
     },
     imports: includeResponseImports,
+  };
+};
+
+export const generateMSW = (
+  generatorVerbOptions: GeneratorVerbOptions,
+  generatorOptions: GeneratorOptions,
+) => {
+  const { pathRoute, override, mock } = generatorOptions;
+  const { operationId, response } = generatorVerbOptions;
+
+  const route = getRouteMSW(
+    pathRoute,
+    override?.mock?.baseUrl ?? (!isFunction(mock) ? mock?.baseUrl : undefined),
+  );
+
+  const handlerName = `get${pascal(operationId)}MockHandler`;
+  const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
+
+  const baseDefinition = generateDefinition(
+    '',
+    route,
+    getResponseMockFunctionName,
+    handlerName,
+    generatorVerbOptions,
+    generatorOptions,
+    response.definition.success,
+    '200',
+    response.imports,
+    response.types.success,
+    response.contentTypes,
+  );
+
+  const mockImplementations = [baseDefinition.implementation.function];
+  const handlerImplementations = [baseDefinition.implementation.handler];
+  const imports = [...baseDefinition.imports];
+
+  if (
+    generatorOptions.mock &&
+    isObject(generatorOptions.mock) &&
+    generatorOptions.mock.generateEachHttpStatus
+  ) {
+    [...response.types.success, ...response.types.errors].forEach(
+      (statusResponse) => {
+        const definition = generateDefinition(
+          statusResponse.key,
+          route,
+          getResponseMockFunctionName,
+          handlerName,
+          generatorVerbOptions,
+          generatorOptions,
+          statusResponse.value,
+          statusResponse.key,
+          response.imports,
+          [statusResponse],
+          [statusResponse.contentType],
+        );
+        mockImplementations.push(definition.implementation.function);
+        handlerImplementations.push(definition.implementation.handler);
+        imports.push(...definition.imports);
+      },
+    );
+  }
+
+  return {
+    implementation: {
+      function: mockImplementations.join('\n'),
+      handlerName: handlerName,
+      handler: handlerImplementations.join('\n'),
+    },
+    imports: imports,
   };
 };

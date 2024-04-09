@@ -2,12 +2,12 @@ import {
   ContextSpecs,
   generalJSTypesWithArray,
   GeneratorImport,
-  GetterResponse,
   GlobalMockOptions,
   isFunction,
   MockOptions,
   NormalizedOverrideOutput,
   resolveRef,
+  ResReqTypesValue,
   stringify,
 } from '@orval/core';
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
@@ -116,7 +116,9 @@ const getMockScalarJsTypes = (
 export const getResponsesMockDefinition = ({
   operationId,
   tags,
-  response,
+  returnType,
+  responses,
+  imports: responseImports,
   mockOptionsWithoutFunc,
   transformer,
   context,
@@ -124,13 +126,15 @@ export const getResponsesMockDefinition = ({
 }: {
   operationId: string;
   tags: string[];
-  response: GetterResponse;
+  returnType: string;
+  responses: ResReqTypesValue[];
+  imports: GeneratorImport[];
   mockOptionsWithoutFunc: { [key: string]: unknown };
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
 }) => {
-  return response.types.success.reduce(
+  return responses.reduce(
     (
       acc,
       { value: definition, originalSchema, example, examples, imports, isRef },
@@ -147,7 +151,7 @@ export const getResponsesMockDefinition = ({
         if (exampleValue) {
           acc.definitions.push(
             transformer
-              ? transformer(exampleValue, response.definition.success)
+              ? transformer(exampleValue, returnType)
               : JSON.stringify(exampleValue),
           );
           return acc;
@@ -157,7 +161,7 @@ export const getResponsesMockDefinition = ({
         const value = getMockScalarJsTypes(definition, mockOptionsWithoutFunc);
 
         acc.definitions.push(
-          transformer ? transformer(value, response.definition.success) : value,
+          transformer ? transformer(value, returnType) : value,
         );
 
         return acc;
@@ -181,7 +185,7 @@ export const getResponsesMockDefinition = ({
         context: isRef
           ? {
               ...context,
-              specKey: response.imports[0]?.specKey ?? context.specKey,
+              specKey: responseImports[0]?.specKey ?? context.specKey,
             }
           : context,
         existingReferencedProperties: [],
@@ -190,7 +194,7 @@ export const getResponsesMockDefinition = ({
       acc.imports.push(...scalar.imports);
       acc.definitions.push(
         transformer
-          ? transformer(scalar.value, response.definition.success)
+          ? transformer(scalar.value, returnType)
           : scalar.value.toString(),
       );
 
@@ -206,7 +210,9 @@ export const getResponsesMockDefinition = ({
 export const getMockDefinition = ({
   operationId,
   tags,
-  response,
+  returnType,
+  responses,
+  imports: responseImports,
   override,
   transformer,
   context,
@@ -214,7 +220,9 @@ export const getMockDefinition = ({
 }: {
   operationId: string;
   tags: string[];
-  response: GetterResponse;
+  returnType: string;
+  responses: ResReqTypesValue[];
+  imports: GeneratorImport[];
   override: NormalizedOverrideOutput;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
@@ -228,7 +236,9 @@ export const getMockDefinition = ({
   const { definitions, imports } = getResponsesMockDefinition({
     operationId,
     tags,
-    response,
+    returnType,
+    responses,
+    imports: responseImports,
     mockOptionsWithoutFunc,
     transformer,
     context,

@@ -134,4 +134,15 @@ export default defineConfig({
       target: '../generated/default/runtime-mock-delay/endpoints.ts',
     },
   },
+  'http-status-mocks': {
+    input: '../specifications/petstore.yaml',
+    output: {
+      mock: {
+        generateEachHttpStatus: true,
+        type: 'msw',
+      },
+      schemas: '../generated/default/http-status-mocks/model',
+      target: '../generated/default/http-status-mocks/endpoints.ts',
+    },
+  },
 });
