@@ -34,7 +34,11 @@ const queryParams: ZodValidationSchemaDefinitionInput = {
 describe('parseZodValidationSchemaDefinition', () => {
   describe('with `override.coerceTypes = false` (default)', () => {
     it('does not emit coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(queryParams);
+      const parseResult = parseZodValidationSchemaDefinition(
+        queryParams,
+        false,
+        false,
+      );
 
       expect(parseResult.zod).toBe(
         'zod.object({\n  "limit": zod.number().optional().null(),\n  "q": zod.array(zod.string()).optional()\n})',
@@ -44,10 +48,24 @@ describe('parseZodValidationSchemaDefinition', () => {
 
   describe('with `override.coerceTypes = true`', () => {
     it('emits coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(queryParams, true);
+      const parseResult = parseZodValidationSchemaDefinition(
+        queryParams,
+        false,
+        true,
+      );
 
       expect(parseResult.zod).toBe(
         'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
+      );
+    });
+  });
+
+  describe('with `strict = true`', () => {
+    it('emits coerced zod property schemas', () => {
+      const parseResult = parseZodValidationSchemaDefinition(queryParams, true);
+
+      expect(parseResult.zod).toBe(
+        'zod.object({\n  "limit": zod.number().optional().null(),\n  "q": zod.array(zod.string()).optional()\n}).strict()',
       );
     });
   });

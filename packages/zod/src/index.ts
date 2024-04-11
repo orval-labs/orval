@@ -128,8 +128,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
@@ -306,7 +306,7 @@ export const parseZodValidationSchemaDefinition = (
     }
 
     if (fn === 'object') {
-      const parsed = parseZodValidationSchemaDefinition(args, false, strict);
+      const parsed = parseZodValidationSchemaDefinition(args, strict);
       consts += parsed.consts;
       return ` ${parsed.zod}`;
     }
