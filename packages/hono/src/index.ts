@@ -20,7 +20,6 @@ import {
 import { getRoute } from './route';
 import fs from 'fs-extra';
 import { generateZod } from '@orval/zod';
-import { getDefaultFilesHeader } from 'orval/src/utils';
 import { InfoObject } from 'openapi3-ts/oas30';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
@@ -55,22 +54,25 @@ export const getHonoHeader: ClientHeaderBuilder = ({
 
   if (output.override.hono?.handlers) {
     const handlerFileInfo = getFileInfo(output.override.hono.handlers);
-    handlers = Object.keys(verbOptions)
-      .filter((operationName) =>
-        clientImplementation.includes(`${operationName}Handlers`),
+    handlers = Object.values(verbOptions)
+      .filter((verbOption) =>
+        clientImplementation.includes(`${verbOption.operationName}Handlers`),
       )
-      .map((operationName) => {
+      .map((verbOption) => {
         const handlersPath = upath.relativeSafe(
           targetInfo.dirname ?? '',
-          upath.join(handlerFileInfo.dirname ?? '', `./${operationName}`),
+          upath.join(
+            handlerFileInfo.dirname ?? '',
+            `./${verbOption.operationName}`,
+          ),
         );
 
-        return `import { ${operationName}Handlers } from '${handlersPath}';`;
+        return `import { ${verbOption.operationName}Handlers } from '${handlersPath}';`;
       })
       .join('\n');
   } else {
-    handlers = `import {\n${Object.keys(verbOptions)
-      .map((operationName) => ` ${operationName}Handlers`)
+    handlers = `import {\n${Object.values(verbOptions)
+      .map((verbOption) => ` ${verbOption.operationName}Handlers`)
       .join(`, \n`)}\n} from './${tag ?? targetInfo.filename}.handlers';`;
   }
 
