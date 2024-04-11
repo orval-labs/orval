@@ -941,7 +941,7 @@ module.exports = {
       override: {
         zod: {
           strict: {
-            response: true, 
+            response: true,
             query: true,
             param: true,
             header: true,
@@ -962,7 +962,6 @@ Type: `Object`.
 Default Value: `false`.
 
 Use to set the strict mode for the zod schema. If you set it to true, the schema will be generated with the strict mode.
-
 
 #### mock
 
