@@ -71,7 +71,7 @@ export default defineConfig({
   },
   strictMode: {
     output: {
-      target: '../generated/zod',
+      target: '../generated/zod/strict-mode.ts',
       client: 'zod',
       override: {
         zod: {
