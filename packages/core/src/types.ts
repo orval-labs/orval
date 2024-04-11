@@ -96,6 +96,7 @@ export type NormalizedOverrideOutput = {
   query: NormalizedQueryOptions;
   angular: Required<AngularOptions>;
   swr: SwrOptions;
+  zod: NormalizedZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -129,6 +130,7 @@ export type NormalizedOperationOptions = {
   query?: NormalizedQueryOptions;
   angular?: Required<AngularOptions>;
   swr?: SwrOptions;
+  zod?: NormalizedZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -329,6 +331,7 @@ export type OverrideOutput = {
   query?: QueryOptions;
   swr?: SwrOptions;
   angular?: AngularOptions;
+  zod?: ZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -350,6 +353,26 @@ export type OverrideOutputContentType = {
 
 export type NormalizedHonoOptions = {
   handlers?: string;
+};
+
+export type ZodOptions = {
+  strict?: {
+    param?: boolean;
+    query?: boolean;
+    header?: boolean;
+    body?: boolean;
+    response?: boolean;
+  };
+};
+
+export type NormalizedZodOptions = {
+  strict: {
+    param: boolean;
+    query: boolean;
+    header: boolean;
+    body: boolean;
+    response: boolean;
+  };
 };
 
 export type HonoOptions = {
@@ -419,6 +442,7 @@ export type OperationOptions = {
   query?: QueryOptions;
   angular?: Required<AngularOptions>;
   swr?: SwrOptions;
+  zod?: ZodOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
