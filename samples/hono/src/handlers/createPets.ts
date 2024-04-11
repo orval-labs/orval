@@ -1,11 +1,16 @@
 import { createFactory } from 'hono/factory';
-import { zValidator } from '@hono/zod-validator';
+import { zValidator } from '../petstore.validator';
 import { CreatePetsContext } from '../petstore.context';
-import { createPetsBody } from '../petstore.zod';
+import { createPetsBody,
+createPetsResponse } from '../petstore.zod';
 
 const factory = createFactory();
 
+
 export const createPetsHandlers = factory.createHandlers(
-  zValidator('json', createPetsBody),
-  (c: CreatePetsContext) => {},
+zValidator('json', createPetsBody),
+zValidator('response', createPetsResponse),
+(c: CreatePetsContext) => {
+  
+  },
 );

@@ -39,15 +39,6 @@ const HONO_DEPENDENCIES: GeneratorDependency[] = [
     ],
     dependency: 'hono',
   },
-  {
-    exports: [
-      {
-        name: 'zValidator',
-        values: true,
-      },
-    ],
-    dependency: '@hono/zod-validator',
-  },
 ];
 
 export const getHonoDependencies = () => HONO_DEPENDENCIES;
@@ -58,28 +49,29 @@ export const getHonoHeader: ClientHeaderBuilder = ({
   tag,
   clientImplementation,
 }) => {
-  const targetFileName = getFileInfo(output.target)?.filename;
+  const targetInfo = getFileInfo(output.target);
 
   let handlers = '';
 
   if (output.override.hono?.handlers) {
+    const handlerFileInfo = getFileInfo(output.override.hono.handlers);
     handlers = Object.keys(verbOptions)
       .filter((operationName) =>
         clientImplementation.includes(`${operationName}Handlers`),
       )
       .map((operationName) => {
-        const handlersPath = upath.getSpecName(
-          upath.join(output.override.hono.handlers ?? '', `./${operationName}`),
-          output.target ?? '',
+        const handlersPath = upath.relativeSafe(
+          targetInfo.dirname ?? '',
+          upath.join(handlerFileInfo.dirname ?? '', `./${operationName}`),
         );
 
-        return `import { ${operationName}Handlers } from '.${handlersPath}';`;
+        return `import { ${operationName}Handlers } from '${handlersPath}';`;
       })
       .join('\n');
   } else {
     handlers = `import {\n${Object.keys(verbOptions)
       .map((operationName) => ` ${operationName}Handlers`)
-      .join(`, \n`)}\n} from './${tag ?? targetFileName}.handlers';`;
+      .join(`, \n`)}\n} from './${tag ?? targetInfo.filename}.handlers';`;
   }
 
   return `${handlers}\n\n
@@ -89,7 +81,7 @@ const app = new Hono()\n\n`;
 export const getHonoFooter: ClientFooterBuilder = () => 'export default app';
 
 const generateHonoRoute = (
-  { operationName, verb, queryParams, params, body }: GeneratorVerbOptions,
+  { operationName, verb }: GeneratorVerbOptions,
   { pathRoute }: GeneratorOptions,
 ) => {
   const path = getRoute(pathRoute);
@@ -144,6 +136,11 @@ ${
     verbOption.body.definition
       ? `zValidator('json', ${verbOption.operationName}Body),\n`
       : ''
+  }${
+    verbOption.response.contentTypes.length === 1 &&
+    verbOption.response.contentTypes[0] === 'application/json'
+      ? `zValidator('response', ${verbOption.operationName}Response),\n`
+      : ''
   }(c: ${contextTypeName}) => {
   
   },
@@ -169,26 +166,27 @@ const getZvalidatorImports = (verbOption: GeneratorVerbOptions) => {
     imports.push(`${verbOption.operationName}Body`);
   }
 
+  if (
+    verbOption.response.contentTypes.length === 1 &&
+    verbOption.response.contentTypes[0] === 'application/json'
+  ) {
+    imports.push(`${verbOption.operationName}Response`);
+  }
+
   return imports.join(',\n');
 };
 
 const getHandlerFix = ({
   rawFile,
   content,
-  hasZValidator,
 }: {
   rawFile: string;
   content: string;
-  hasZValidator: boolean;
 }) => {
   let newContent = content;
 
   if (!rawFile.includes("import { createFactory } from 'hono/factory';")) {
     newContent = `import { createFactory } from 'hono/factory';\n${newContent}`;
-  }
-
-  if (!rawFile.includes('@hono/zod-validator') && hasZValidator) {
-    newContent = `import { zValidator } from '@hono/zod-validator';\n${newContent}`;
   }
 
   if (!rawFile.includes('const factory = createFactory();')) {
@@ -201,17 +199,14 @@ const getHandlerFix = ({
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {} as Record<string, GeneratorVerbOptions[]>);
 };
 
 const generateHandlers = async (
@@ -254,7 +249,6 @@ const generateHandlers = async (
           let content = getHandlerFix({
             rawFile,
             content: rawFile,
-            hasZValidator,
           });
 
           if (!rawFile.includes(handlerName)) {
@@ -273,7 +267,7 @@ const generateHandlers = async (
 
         const content = `import { createFactory } from 'hono/factory';${
           hasZValidator
-            ? `\nimport { zValidator } from '@hono/zod-validator';`
+            ? `\nimport { zValidator } from '${outputPath}.validator';`
             : ''
         }
 import { ${contextTypeName} } from '${outputPath}.context';
@@ -321,7 +315,6 @@ ${getHonoHandlers({
           let content = getHandlerFix({
             rawFile,
             content: rawFile,
-            hasZValidator,
           });
 
           content += Object.values(verbs).reduce((acc, verbOption) => {
@@ -351,7 +344,7 @@ ${getHonoHandlers({
 
         let content = `import { createFactory } from 'hono/factory';${
           hasZValidator
-            ? `\nimport { zValidator } from '@hono/zod-validator';`
+            ? `\nimport { zValidator } from '${outputRelativePath}.validator';`
             : ''
         }
 import { ${Object.values(verbs)
@@ -389,7 +382,9 @@ const factory = createFactory();`;
       !!verb.headers ||
       !!verb.params.length ||
       !!verb.queryParams ||
-      !!verb.body,
+      !!verb.body ||
+      (verb.response.contentTypes.length === 1 &&
+        verb.response.contentTypes[0] === 'application/json'),
   );
 
   const handlerPath = upath.join(dirname, `${filename}.handlers${extension}`);
@@ -401,7 +396,6 @@ const factory = createFactory();`;
     let content = getHandlerFix({
       rawFile,
       content: rawFile,
-      hasZValidator,
     });
 
     content += Object.values(verbOptions).reduce((acc, verbOption) => {
@@ -430,7 +424,9 @@ const factory = createFactory();`;
   const outputRelativePath = `./${filename}`;
 
   let content = `import { createFactory } from 'hono/factory';${
-    hasZValidator ? `\nimport { zValidator } from '@hono/zod-validator';` : ''
+    hasZValidator
+      ? `\nimport { zValidator } from '${outputRelativePath}.validator';`
+      : ''
   }
 import { ${Object.values(verbOptions)
     .map((verb) => `${pascal(verb.operationName)}Context`)
@@ -479,9 +475,9 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
 
   return `export type ${pascal(
     verbOption.operationName,
-  )}Context<E extends Env = any> = Context<E, '${verbOption.pathRoute}', ${
-    hasIn ? `{ in: { ${paramType}${queryType}${bodyType} }}` : ''
-  }>`;
+  )}Context<E extends Env = any> = Context<E, '${getRoute(
+    verbOption.pathRoute,
+  )}', ${hasIn ? `{ in: { ${paramType}${queryType}${bodyType} }}` : ''}>`;
 };
 
 const getHeader = (
@@ -704,18 +700,171 @@ const generateZodFiles = async (
   ];
 };
 
+const generateZvalidator = (
+  output: NormalizedOutputOptions,
+  context: ContextSpecs,
+) => {
+  const header = getHeader(
+    output.override.header,
+    context.specs[context.specKey].info,
+  );
+
+  const { extension, dirname, filename } = getFileInfo(output.target);
+  const content = `
+// based on https://github.com/honojs/middleware/blob/main/packages/zod-validator/src/index.ts
+import type { z, ZodSchema, ZodError } from 'zod';
+import {
+  Context,
+  Env,
+  Input,
+  MiddlewareHandler,
+  TypedResponse,
+  ValidationTargets,
+} from 'hono';
+
+type HasUndefined<T> = undefined extends T ? true : false;
+
+type Hook<T, E extends Env, P extends string, O = {}> = (
+  result:
+    | { success: true; data: T }
+    | { success: false; error: ZodError; data: T },
+  c: Context<E, P>,
+) =>
+  | Response
+  | Promise<Response>
+  | void
+  | Promise<Response | void>
+  | TypedResponse<O>;
+import { zValidator as zValidatorBase } from '@hono/zod-validator';
+
+type ValidationTargetsWithResponse = ValidationTargets & { response: any };
+
+export const zValidator =
+  <
+    T extends ZodSchema,
+    Target extends keyof ValidationTargetsWithResponse,
+    E extends Env,
+    P extends string,
+    In = z.input<T>,
+    Out = z.output<T>,
+    I extends Input = {
+      in: HasUndefined<In> extends true
+        ? {
+            [K in Target]?: K extends 'json'
+              ? In
+              : HasUndefined<
+                  keyof ValidationTargetsWithResponse[K]
+                > extends true
+              ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
+              : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
+          }
+        : {
+            [K in Target]: K extends 'json'
+              ? In
+              : HasUndefined<
+                  keyof ValidationTargetsWithResponse[K]
+                > extends true
+              ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
+              : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
+          };
+      out: { [K in Target]: Out };
+    },
+    V extends I = I,
+  >(
+    target: Target,
+    schema: T,
+    hook?: Hook<z.infer<T>, E, P>,
+  ): MiddlewareHandler<E, P, V> =>
+  async (c, next) => {
+    if (target !== 'response') {
+      const value = await zValidatorBase<
+        T,
+        keyof ValidationTargets,
+        E,
+        P,
+        In,
+        Out,
+        I,
+        V
+      >(
+        target,
+        schema,
+        hook,
+      )(c, next);
+
+      if (value instanceof Response) {
+        return value;
+      }
+    } else {
+      await next();
+
+      const clonedResponse = c.res.clone();
+
+      let value: unknown;
+      try {
+        value = await clonedResponse.json();
+      } catch {
+        const message = 'Malformed JSON in response';
+        c.res = new Response(message, { status: 400 });
+      }
+
+      const result = await schema.safeParseAsync(value);
+
+      if (hook) {
+        const hookResult = hook({ data: value, ...result }, c);
+        if (hookResult) {
+          if (hookResult instanceof Response || hookResult instanceof Promise) {
+            const hookResponse = await hookResult;
+
+            if (hookResponse instanceof Response) {
+              c.res = new Response(hookResponse.body, hookResponse);
+            }
+          }
+          if (
+            'response' in hookResult &&
+            hookResult.response instanceof Response
+          ) {
+            c.res = new Response(hookResult.response.body, hookResult.response);
+          }
+        }
+      }
+
+      if (!result.success) {
+        c.res = new Response(JSON.stringify(result), {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    }
+  };
+`;
+
+  const validatorPath = upath.join(
+    dirname,
+    `${filename}.validator${extension}`,
+  );
+
+  return {
+    content: `${header}${content}`,
+    path: validatorPath,
+  };
+};
+
 export const generateExtraFiles: ClientExtraFilesBuilder = async (
   verbOptions,
   output,
   context,
 ) => {
-  const [handlers, contexts, zods] = await Promise.all([
+  const [handlers, contexts, zods, validator] = await Promise.all([
     generateHandlers(verbOptions, output),
     generateContext(verbOptions, output, context),
     generateZodFiles(verbOptions, output, context),
+    generateZvalidator(output, context),
   ]);
 
-  return [...handlers, ...contexts, ...zods];
+  return [...handlers, ...contexts, ...zods, validator];
 };
 
 const honoClientBuilder: ClientGeneratorsBuilder = {
