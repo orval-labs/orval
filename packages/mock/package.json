@@ -1,6 +1,6 @@
 {
   "name": "@orval/mock",
-  "version": "6.26.0",
+  "version": "6.27.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.26.0",
+    "@orval/core": "6.27.0",
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
     "openapi3-ts": "^4.2.2"
