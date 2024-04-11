@@ -69,4 +69,24 @@ export default defineConfig({
       target: '../specifications/arrays.yaml',
     },
   },
+  strictMode: {
+    output: {
+      target: '../generated/zod',
+      client: 'zod',
+      override: {
+        zod: {
+          strict: {
+            response: true,
+            query: true,
+            header: true,
+            param: true,
+            body: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/circular.yaml',
+    },
+  },
 });
