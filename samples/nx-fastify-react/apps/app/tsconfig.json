@@ -7,16 +7,16 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
   },
   "files": [],
   "include": [],
   "references": [
     {
-      "path": "./tsconfig.app.json"
+      "path": "./tsconfig.app.json",
     },
     {
-      "path": "./tsconfig.spec.json"
-    }
-  ]
+      "path": "./tsconfig.spec.json",
+    },
+  ],
 }

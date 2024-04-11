@@ -47,19 +47,19 @@ export const zValidator =
             [K in Target]?: K extends 'json'
               ? In
               : HasUndefined<
-                  keyof ValidationTargetsWithResponse[K]
-                > extends true
-              ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
-              : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
+                    keyof ValidationTargetsWithResponse[K]
+                  > extends true
+                ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
+                : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
           }
         : {
             [K in Target]: K extends 'json'
               ? In
               : HasUndefined<
-                  keyof ValidationTargetsWithResponse[K]
-                > extends true
-              ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
-              : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
+                    keyof ValidationTargetsWithResponse[K]
+                  > extends true
+                ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
+                : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
           };
       out: { [K in Target]: Out };
     },
