@@ -181,8 +181,8 @@ export const normalizeOptions = async (
           outputOptions.override?.header === false
             ? false
             : isFunction(outputOptions.override?.header)
-              ? outputOptions.override?.header!
-              : getDefaultFilesHeader,
+            ? outputOptions.override?.header!
+            : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         components: {
           schemas: {
@@ -211,6 +211,15 @@ export const normalizeOptions = async (
           signal: true,
           shouldExportMutatorHooks: true,
           ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+        },
+        zod: {
+          strict: {
+            param: outputOptions.override?.zod?.strict?.param ?? false,
+            query: outputOptions.override?.zod?.strict?.query ?? false,
+            header: outputOptions.override?.zod?.strict?.header ?? false,
+            body: outputOptions.override?.zod?.strict?.body ?? false,
+            response: outputOptions.override?.zod?.strict?.response ?? false,
+          },
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -310,6 +319,7 @@ const normalizeOperationsAndTags = (
           formUrlEncoded,
           paramsSerializer,
           query,
+          zod,
           ...rest
         },
       ]) => {
@@ -320,6 +330,19 @@ const normalizeOperationsAndTags = (
             ...(query
               ? {
                   query: normalizeQueryOptions(query, workspace),
+                }
+              : {}),
+            ...(zod
+              ? {
+                  zod: {
+                    strict: {
+                      param: zod.strict?.param ?? false,
+                      query: zod.strict?.query ?? false,
+                      header: zod.strict?.header ?? false,
+                      body: zod.strict?.body ?? false,
+                      response: zod.strict?.response ?? false,
+                    },
+                  },
                 }
               : {}),
             ...(transformer

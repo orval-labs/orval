@@ -57,6 +57,7 @@ const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   _required: boolean | undefined,
   name: string,
+  strict: boolean,
 ): { functions: [string, any][]; consts: string[] } => {
   if (!schema) return { functions: [], consts: [] };
 
@@ -84,7 +85,7 @@ const generateZodValidationSchemaDefinition = (
       const items = schema.items as SchemaObject | undefined;
       functions.push([
         'array',
-        generateZodValidationSchemaDefinition(items, true, camel(name)),
+        generateZodValidationSchemaDefinition(items, true, camel(name), strict),
       ]);
       break;
     case 'string': {
@@ -127,8 +128,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
@@ -142,6 +143,7 @@ const generateZodValidationSchemaDefinition = (
               schema as SchemaObject,
               true,
               camel(name),
+              strict,
             ),
           ),
         ]);
@@ -157,10 +159,15 @@ const generateZodValidationSchemaDefinition = (
                 schema.properties?.[key] as any,
                 schema.required?.includes(key),
                 camel(`${name}-${key}`),
+                strict,
               ),
             }))
             .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
         ]);
+
+        if (strict) {
+          functions.push(['strict', undefined]);
+        }
 
         break;
       }
@@ -174,6 +181,7 @@ const generateZodValidationSchemaDefinition = (
                 schema.additionalProperties as SchemaObject,
                 true,
                 name,
+                strict,
               ),
         ]);
 
@@ -181,6 +189,7 @@ const generateZodValidationSchemaDefinition = (
       }
 
       functions.push([type as string, undefined]);
+
       break;
     }
   }
@@ -240,6 +249,7 @@ export type ZodValidationSchemaDefinitionInput = Record<
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
+  strict: boolean,
   coerceTypes = false,
 ): { zod: string; consts: string } => {
   if (!Object.keys(input).length) {
@@ -296,7 +306,7 @@ export const parseZodValidationSchemaDefinition = (
     }
 
     if (fn === 'object') {
-      const parsed = parseZodValidationSchemaDefinition(args);
+      const parsed = parseZodValidationSchemaDefinition(args, false, strict);
       consts += parsed.consts;
       return ` ${parsed.zod}`;
     }
@@ -308,6 +318,10 @@ export const parseZodValidationSchemaDefinition = (
         consts += args.consts.join('\n');
       }
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
+    }
+
+    if (fn === 'strict') {
+      return '.strict()';
     }
 
     if (coerceTypes && COERCEABLE_TYPES.includes(fn)) {
@@ -328,7 +342,7 @@ ${Object.entries(input)
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
-})`;
+})${strict ? '.strict()' : ''}`;
 
   return { zod, consts };
 };
@@ -371,8 +385,8 @@ const deference = (
 };
 
 const generateZodRoute = (
-  { operationName, verb }: GeneratorVerbOptions,
-  { pathRoute, context, override }: GeneratorOptions,
+  { operationName, verb, override }: GeneratorVerbOptions,
+  { pathRoute, context }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
@@ -414,6 +428,7 @@ const generateZodRoute = (
             (requiredKey: string) => requiredKey === key,
           ),
           camel(`${operationName}-response-${key}`),
+          override.zod.strict.response,
         ),
       };
     })
@@ -447,6 +462,7 @@ const generateZodRoute = (
             (requiredKey: string) => requiredKey === key,
           ),
           camel(`${operationName}-body-${key}`),
+          override.zod.strict.body,
         ),
       };
     })
@@ -462,10 +478,17 @@ const generateZodRoute = (
 
       const schema = deference(parameter.schema, context);
 
+      const strict = {
+        path: override.zod.strict.param,
+        query: override.zod.strict.query,
+        header: override.zod.strict.header,
+      };
+
       const definition = generateZodValidationSchemaDefinition(
         schema,
         parameter.required,
         camel(`${operationName}-${parameter.in}-${parameter.name}`),
+        strict[parameter.in as 'path' | 'query' | 'header'] ?? false,
       );
 
       if (parameter.in === 'header') {
@@ -503,17 +526,24 @@ const generateZodRoute = (
 
   const inputParams = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.params,
+    override.zod.strict.param,
   );
   const inputQueryParams = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.queryParams,
+    override.zod.strict.query,
     override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.headers,
+    override.zod.strict.header,
   );
-  const inputBody = parseZodValidationSchemaDefinition(zodDefinitionsBody);
+  const inputBody = parseZodValidationSchemaDefinition(
+    zodDefinitionsBody,
+    override.zod.strict.body,
+  );
   const inputResponse = parseZodValidationSchemaDefinition(
     zodDefinitionsResponse,
+    override.zod.strict.response,
   );
 
   if (

@@ -10,6 +10,11 @@ export default defineConfig({
         hono: {
           handlers: 'src/handlers',
         },
+        zod: {
+          strict: {
+            response: true,
+          },
+        },
       },
     },
     input: {

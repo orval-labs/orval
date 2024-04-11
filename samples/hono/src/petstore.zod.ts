@@ -18,7 +18,7 @@ export const listPetsResponseItem = zod.object({
   "email": zod.string().email().optional(),
   "callingCode": zod.enum(['+33', '+420', '+33']).optional(),
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
-})
+}).strict()
 export const listPetsResponse = zod.array(listPetsResponseItem)
 
 
@@ -36,7 +36,7 @@ export const createPetsResponse = zod.object({
   "email": zod.string().email().optional(),
   "callingCode": zod.enum(['+33', '+420', '+33']).optional(),
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
-})
+}).strict()
 
 
 export const updatePetsBody = zod.object({
@@ -57,7 +57,7 @@ export const updatePetsResponse = zod.object({
   "email": zod.string().email().optional(),
   "callingCode": zod.enum(['+33', '+420', '+33']).optional(),
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
-})
+}).strict()
 
 
 export const showPetByIdParams = zod.object({
@@ -73,5 +73,5 @@ export const showPetByIdResponse = zod.object({
   "email": zod.string().email().optional(),
   "callingCode": zod.enum(['+33', '+420', '+33']).optional(),
   "country": zod.enum(['People\'s Republic of China', 'Uruguay']).optional()
-})
+}).strict()
 
