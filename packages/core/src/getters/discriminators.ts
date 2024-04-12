@@ -36,7 +36,7 @@ export const resolveDiscriminators = (
           [propertyName]: {
             type: 'string',
             enum: [
-              ...(property && property.enum ? property.enum : []),
+              ...(property.enum ?? []),
               mappingKey,
             ],
           },
