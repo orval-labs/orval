@@ -1,4 +1,4 @@
-import { SchemasObject } from 'openapi3-ts/oas30';
+import { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
 import { ContextSpecs } from '../types';
 import { getRefInfo } from './ref';
 import { pascal } from '../utils';
@@ -28,12 +28,17 @@ export const resolveDiscriminators = (
         if (!subTypeSchema) {
           continue;
         }
-
+        const property = subTypeSchema.properties?.[
+          propertyName
+        ] as SchemaObject;
         subTypeSchema.properties = {
           ...subTypeSchema.properties,
           [propertyName]: {
             type: 'string',
-            enum: [mappingKey],
+            enum: [
+              ...(property.enum ?? []),
+              mappingKey,
+            ],
           },
         };
         subTypeSchema.required = [
