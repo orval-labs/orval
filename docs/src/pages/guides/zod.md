@@ -3,7 +3,7 @@ id: zod
 title: zod
 ---
 
-If you want to generate a `zod` schema, define the `client` property to `zod` and will be generated in the target file. You can check <a href="https://zod.dev/" target="_blank">Zod</a> to configure `zod` correctly in your project.
+To create a zod schema, specify the client property as zod, and it will automatically generate in the target file. Ensure to configure zod properly in your project by referring to <a href="https://zod.dev/" target="_blank">Zod</a>.
 
 #### Example of orval.config.js
 
@@ -22,7 +22,7 @@ module.exports = {
 };
 ```
 
-Will generate an implementation file with the `zod` object per schema in your OpenAPI Specification like a bellow:
+An implementation file will be created, containing a zod object for each schema in your OpenAPI Specification, as illustrated below:
 
 ```ts
 export const createPetsBody = zod.object({
@@ -34,7 +34,7 @@ export const createPetsBody = zod.object({
 
 ### How use generated `zod` object
 
-The automatically generated `zod` object can be used as usual.
+The zod object generated automatically can be utilized in the usual manner.
 
 ```ts
 import type { z } from 'zod';
