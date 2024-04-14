@@ -74,6 +74,11 @@
           "title": "MSW",
           "path": "/guides/msw",
           "editUrl": "/guides/msw.md"
+        },
+        {
+          "title": "Zod",
+          "path": "/guides/zod",
+          "editUrl": "/guides/zod.md"
         }
       ]
     },
