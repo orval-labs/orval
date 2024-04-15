@@ -477,7 +477,11 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
     verbOption.operationName,
   )}Context<E extends Env = any> = Context<E, '${getRoute(
     verbOption.pathRoute,
-  )}', ${hasIn ? `{ in: { ${paramType}${queryType}${bodyType} }}` : ''}>`;
+  )}'${
+    hasIn
+      ? `, { in: { ${paramType}${queryType}${bodyType} }, out: { ${paramType}${queryType}${bodyType} } }`
+      : ''
+  }>`;
 };
 
 const getHeader = (
