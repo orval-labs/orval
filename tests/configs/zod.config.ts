@@ -89,4 +89,24 @@ export default defineConfig({
       target: '../specifications/circular.yaml',
     },
   },
+  coerce: {
+    output: {
+      target: '../generated/zod/coerce.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          coerce: {
+            response: true,
+            query: true,
+            header: true,
+            param: true,
+            body: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/circular.yaml',
+    },
+  },
 });

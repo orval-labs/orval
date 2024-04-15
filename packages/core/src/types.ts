@@ -104,7 +104,7 @@ export type NormalizedOverrideOutput = {
   ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
-  coerceTypes?: boolean;
+  coerceTypes?: boolean; // deprecated
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -363,10 +363,24 @@ export type ZodOptions = {
     body?: boolean;
     response?: boolean;
   };
+  coerce?: {
+    param?: boolean;
+    query?: boolean;
+    header?: boolean;
+    body?: boolean;
+    response?: boolean;
+  };
 };
 
 export type NormalizedZodOptions = {
   strict: {
+    param: boolean;
+    query: boolean;
+    header: boolean;
+    body: boolean;
+    response: boolean;
+  };
+  coerce: {
     param: boolean;
     query: boolean;
     header: boolean;

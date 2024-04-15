@@ -543,23 +543,34 @@ const generateZodRoute = (
   const inputParams = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.params,
     override.zod.strict.param,
+    override.zod.coerce.param,
   );
+
+  if (override.coerceTypes) {
+    console.warn(
+      'override.coerceTypes is deprecated, please use override.zod.coerce instead.',
+    );
+  }
+
   const inputQueryParams = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.queryParams,
     override.zod.strict.query,
-    override.coerceTypes,
+    override.zod.coerce.query ?? override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
     zodDefinitionsParameters.headers,
     override.zod.strict.header,
+    override.zod.coerce.header,
   );
   const inputBody = parseZodValidationSchemaDefinition(
     zodDefinitionsBody,
     override.zod.strict.body,
+    override.zod.coerce.body,
   );
   const inputResponse = parseZodValidationSchemaDefinition(
     zodDefinitionsResponse,
     override.zod.strict.response,
+    override.zod.coerce.response,
   );
 
   if (
