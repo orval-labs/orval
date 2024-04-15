@@ -38,12 +38,26 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getZodDependencies = () => ZOD_DEPENDENCIES;
 
+const possibleSchemaTypes = [
+  'integer',
+  'number',
+  'string',
+  'boolean',
+  'object',
+  'null',
+  'array',
+];
+
 const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
-  switch (schemaTypeValue) {
+  const type = Array.isArray(schemaTypeValue)
+    ? schemaTypeValue.find((t) => possibleSchemaTypes.includes(t))
+    : schemaTypeValue;
+
+  switch (type) {
     case 'integer':
       return 'number';
     default:
-      return schemaTypeValue ?? 'any';
+      return type ?? 'any';
   }
 };
 
@@ -65,7 +79,9 @@ const generateZodValidationSchemaDefinition = (
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
   const required = schema.default !== undefined ? false : _required ?? false;
-  const nullable = schema.nullable ?? false;
+  const nullable =
+    schema.nullable ??
+    (Array.isArray(schema.type) && schema.type.includes('null'));
   const min =
     schema.minimum ??
     schema.exclusiveMinimum ??
@@ -128,8 +144,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
