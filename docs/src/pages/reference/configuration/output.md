@@ -947,6 +947,13 @@ module.exports = {
             header: true,
             body: true
           },
+          coerce: {
+            response: true,
+              query: true,
+              param: true,
+              header: true,
+              body: true
+          },
         },
       },
     },
@@ -962,6 +969,14 @@ Type: `Object`.
 Default Value: `false`.
 
 Use to set the strict mode for the zod schema. If you set it to true, the schema will be generated with the strict mode.
+
+##### coerce
+
+Type: `Object`.
+
+Default Value: `false`.
+
+Use to set the coerce for the zod schema. If you set it to true, the schema will be generated with the coerce on possible types.
 
 #### mock
 
@@ -1465,6 +1480,8 @@ module.exports = {
 #### coerceTypes
 
 Type: `Boolean`
+
+Deprecated: Use `zod.coerce` instead.
 
 Valid values: true or false. Defaults to false.
 
