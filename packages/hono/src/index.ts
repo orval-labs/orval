@@ -139,8 +139,7 @@ ${
       ? `zValidator('json', ${verbOption.operationName}Body),\n`
       : ''
   }${
-    verbOption.response.contentTypes.length === 1 &&
-    verbOption.response.contentTypes[0] === 'application/json'
+    !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
       ? `zValidator('response', ${verbOption.operationName}Response),\n`
       : ''
   }(c: ${contextTypeName}) => {
@@ -169,8 +168,7 @@ const getZvalidatorImports = (verbOption: GeneratorVerbOptions) => {
   }
 
   if (
-    verbOption.response.contentTypes.length === 1 &&
-    verbOption.response.contentTypes[0] === 'application/json'
+    !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
   ) {
     imports.push(`${verbOption.operationName}Response`);
   }
@@ -201,17 +199,14 @@ const getHandlerFix = ({
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {} as Record<string, GeneratorVerbOptions[]>);
 };
 
 const generateHandlers = async (
