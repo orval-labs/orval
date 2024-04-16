@@ -102,7 +102,7 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
       isReturnHttpResponse
         ? isTextPlain
           ? `${getResponseMockFunctionName}()`
-          : `JSON.stringify(overrideResponse ? overrideResponse : ${getResponseMockFunctionName}())`
+          : `JSON.stringify(overrideResponse !== undefined ? overrideResponse : ${getResponseMockFunctionName}())`
         : null
     },
       {
