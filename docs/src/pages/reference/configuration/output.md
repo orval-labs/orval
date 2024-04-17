@@ -1013,7 +1013,7 @@ module.exports = {
 
 Type: `Object`.
 
-Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property Orval will automatically generate a random email for you. See <a href="https://github.com/anymaniax/orval/blob/next/src/constants/format.mock.ts" target="_blank">here</a> the default available format.
+Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property Orval will automatically generate a random email for you. See the default available format <a href="https://github.com/anymaniax/orval/blob/master/packages/mock/src/faker/constants.ts" target="_blank">here</a>.
 
 ```js
 module.exports = {
@@ -1074,14 +1074,14 @@ module.exports = {
 };
 ```
 
-#### delayFunctionLazyExecute
+##### delayFunctionLazyExecute
 
 Type: `boolean`.
 
 Gives you the possibility to have functions that are passed to `delay` to be
 executed at runtime rather than when the mocks are generated.
 
-#### generateEachHttpStatus
+##### generateEachHttpStatus
 
 Type: `Boolean`.
 
