@@ -795,6 +795,15 @@ Default Value: `true`.
 
 Use to stop the export of mutator hooks. Useful if you want to rely soley on useQuery, useSuspenseQuery, etc.
 
+##### version
+
+Type: `number`.
+
+Default Value: `Detect from package json`.
+
+Use to specify a version for the generated hooks. This is useful if you want to force a version for the hooks.
+
+
 #### angular
 
 Type: `Object`.
