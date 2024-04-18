@@ -21,6 +21,7 @@ export const writeSingleMode = async ({
   try {
     const { path, dirname } = getFileInfo(output.target, {
       backupFilename: camel(builder.info.title),
+      extension: output.extension,
     });
 
     const {
@@ -38,7 +39,10 @@ export const writeSingleMode = async ({
     let data = header;
 
     const schemasPath = output.schemas
-      ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+      ? upath.relativeSafe(
+          dirname,
+          getFileInfo(output.schemas, { extension: output.extension }).dirname,
+        )
       : undefined;
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(

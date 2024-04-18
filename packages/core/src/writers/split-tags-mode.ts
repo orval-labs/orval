@@ -22,6 +22,7 @@ export const writeSplitTagsMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
+    extension: output.extension,
   });
 
   const target = generateTargetForTags(builder, output);
@@ -50,7 +51,11 @@ export const writeSplitTagsMode = async ({
 
         const relativeSchemasPath = output.schemas
           ? '../' +
-            upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+            upath.relativeSafe(
+              dirname,
+              getFileInfo(output.schemas, { extension: output.extension })
+                .dirname,
+            )
           : '../' + filename + '.schemas';
 
         const importsForBuilder =
