@@ -102,6 +102,8 @@ export const normalizeOptions = async (
     };
   }
 
+  const defaultExtension = '.ts';
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: globalOptions.input
@@ -126,6 +128,7 @@ export const normalizeOptions = async (
         ? normalizePath(globalOptions.output, process.cwd())
         : normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
+      extension: outputOptions.extension || defaultExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),

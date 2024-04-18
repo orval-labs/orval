@@ -43,6 +43,7 @@ export type NormalizedOutputOptions = {
   workspace?: string;
   target?: string;
   schemas?: string;
+  extension: string;
   mode: OutputMode;
   mock?: GlobalMockOptions | ClientMockBuilder;
   override: NormalizedOverrideOutput;
@@ -161,6 +162,7 @@ export type OutputOptions = {
   workspace?: string;
   target?: string;
   schemas?: string;
+  extension?: string;
   mode?: OutputMode;
   // If mock is a boolean, it will use the default mock options (type: msw)
   mock?: boolean | GlobalMockOptions | ClientMockBuilder;
