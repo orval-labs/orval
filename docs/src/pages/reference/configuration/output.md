@@ -57,6 +57,36 @@ module.exports = {
 };
 ```
 
+### fileExtension
+
+Type: `String`.
+
+Default Value: `.ts`.
+
+Specify the file extension for files generated automatically. Modes such as `tags`, `tags-split`, and `split` do not alter `schema` files; they only pertain to `client` files.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      mode: 'split'
+      target: './/gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.gen.ts'
+    },
+  },
+};
+```
+
+```
+src/gen/
+├── endpoints
+│   └── swaggerPetstore.gen.ts
+└── model
+    ├── listPetsParams.ts
+    └── pets.ts
+```
+
 ### workspace
 
 Type: `String`.
@@ -802,7 +832,6 @@ Type: `number`.
 Default Value: `Detect from package json`.
 
 Use to specify a version for the generated hooks. This is useful if you want to force a version for the hooks.
-
 
 #### angular
 

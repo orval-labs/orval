@@ -21,6 +21,7 @@ export const writeTagsMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
+    extension: output.fileExtension,
   });
 
   const target = generateTargetForTags(builder, output);
@@ -47,7 +48,11 @@ export const writeTagsMode = async ({
         let data = header;
 
         const schemasPathRelative = output.schemas
-          ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+          ? upath.relativeSafe(
+              dirname,
+              getFileInfo(output.schemas, { extension: output.fileExtension })
+                .dirname,
+            )
           : './' + filename + '.schemas';
 
         const importsForBuilder = [

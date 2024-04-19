@@ -22,6 +22,7 @@ export const writeSplitMode = async ({
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: camel(builder.info.title),
+      extension: output.fileExtension,
     });
 
     const {
@@ -40,7 +41,11 @@ export const writeSplitMode = async ({
     let mockData = header;
 
     const relativeSchemasPath = output.schemas
-      ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+      ? upath.relativeSafe(
+          dirname,
+          getFileInfo(output.schemas, { extension: output.fileExtension })
+            .dirname,
+        )
       : './' + filename + '.schemas';
 
     const isAllowSyntheticDefaultImports = isSyntheticDefaultImportsAllow(
