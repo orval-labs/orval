@@ -21,7 +21,7 @@ export const writeSingleMode = async ({
   try {
     const { path, dirname } = getFileInfo(output.target, {
       backupFilename: camel(builder.info.title),
-      extension: output.extension,
+      extension: output.fileExtension,
     });
 
     const {
@@ -41,7 +41,8 @@ export const writeSingleMode = async ({
     const schemasPath = output.schemas
       ? upath.relativeSafe(
           dirname,
-          getFileInfo(output.schemas, { extension: output.extension }).dirname,
+          getFileInfo(output.schemas, { extension: output.fileExtension })
+            .dirname,
         )
       : undefined;
 

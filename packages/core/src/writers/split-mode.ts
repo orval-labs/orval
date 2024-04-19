@@ -22,7 +22,7 @@ export const writeSplitMode = async ({
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: camel(builder.info.title),
-      extension: output.extension,
+      extension: output.fileExtension,
     });
 
     const {
@@ -43,7 +43,8 @@ export const writeSplitMode = async ({
     const relativeSchemasPath = output.schemas
       ? upath.relativeSafe(
           dirname,
-          getFileInfo(output.schemas, { extension: output.extension }).dirname,
+          getFileInfo(output.schemas, { extension: output.fileExtension })
+            .dirname,
         )
       : './' + filename + '.schemas';
 

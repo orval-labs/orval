@@ -57,13 +57,13 @@ module.exports = {
 };
 ```
 
-### extension
+### fileExtension
 
 Type: `String`.
 
 Default Value: `.ts`.
 
-Specify the extension of automatically generated files. `tags`, `tags-split`, `split` modes do not affect `schema` files, only `client` files.
+Specify the file extension of automatically generated files. `tags`, `tags-split`, `split` modes do not affect `schema` files, only `client` files.
 
 ```js
 module.exports = {
@@ -72,7 +72,7 @@ module.exports = {
       mode: 'split'
       target: './/gen/endpoints',
       schemas: './gen/model',
-      extension: '.gen.ts'
+      fileExtension: '.gen.ts'
     },
   },
 };
