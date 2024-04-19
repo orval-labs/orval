@@ -63,7 +63,7 @@ Type: `String`.
 
 Default Value: `.ts`.
 
-Specify the file extension of automatically generated files. `tags`, `tags-split`, `split` modes do not affect `schema` files, only `client` files.
+Specify the file extension for files generated automatically. Modes such as `tags`, `tags-split`, and `split` do not alter `schema` files; they only pertain to `client` files.
 
 ```js
 module.exports = {
