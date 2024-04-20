@@ -180,6 +180,19 @@ export const writeSpecs = async (
     }
   }
 
+  if (output.biome) {
+    try {
+      await execa('biome', ['check', '--apply', ...paths]);
+    } catch (e: any) {
+      const message =
+        e.exitCode === 1
+          ? e.stderr
+          : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
+
+      log(chalk.yellow(message));
+    }
+  }
+
   createSuccessMessage(projectTitle);
 };
 
