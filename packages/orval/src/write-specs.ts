@@ -186,7 +186,7 @@ export const writeSpecs = async (
     } catch (e: any) {
       const message =
         e.exitCode === 1
-          ? e.stderr
+          ? e.stdout + e.stderr
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
 
       log(chalk.yellow(message));
