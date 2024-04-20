@@ -389,6 +389,16 @@ Default Value: `false`.
 
 Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
 
+### biome
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+You can apply `lint` and `format` of [`biome`](https://biomejs.dev/) to the generated file. You need to have `@biomejs/biome` in your dependencies.
+
+The automatically generated source code does not comply with some lint rules included in the default ruleset for `biome`, so please control them in the your `biome` configuration file.
+
 ### headers
 
 Type: `Boolean`.
