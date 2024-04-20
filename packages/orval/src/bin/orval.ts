@@ -38,6 +38,7 @@ cli
   .option('--clean [path]', 'Clean output directory')
   .option('--prettier [path]', 'Prettier generated files')
   .option('--tslint [path]', 'tslint generated files')
+  .option('--biome [path]', 'biome generated files')
   .option('--tsconfig [path]', 'path to your tsconfig file')
   .action(async (paths, cmd) => {
     if (!cmd.config && isString(cmd.input) && isString(cmd.output)) {
@@ -48,6 +49,7 @@ cli
           clean: cmd.clean,
           prettier: cmd.prettier,
           tslint: cmd.tslint,
+          biome: cmd.biome,
           mock: cmd.mock,
           client: cmd.client,
           mode: cmd.mode,
@@ -81,6 +83,7 @@ cli
         clean: cmd.clean,
         prettier: cmd.prettier,
         tslint: cmd.tslint,
+        biome: cmd.biome,
         mock: cmd.mock,
         client: cmd.client,
         mode: cmd.mode,
