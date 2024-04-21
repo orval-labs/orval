@@ -51,6 +51,7 @@ export type NormalizedOutputOptions = {
   clean: boolean | string[];
   prettier: boolean;
   tslint: boolean;
+  biome: boolean;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
@@ -171,6 +172,7 @@ export type OutputOptions = {
   clean?: boolean | string[];
   prettier?: boolean;
   tslint?: boolean;
+  biome?: boolean;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
@@ -527,6 +529,7 @@ export interface GlobalOptions {
   clean?: boolean | string[];
   prettier?: boolean;
   tslint?: boolean;
+  biome?: boolean;
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   mode?: OutputMode;
