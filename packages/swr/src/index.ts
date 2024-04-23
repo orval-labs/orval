@@ -248,12 +248,14 @@ const generateSwrMutationArguments = ({
   operationName,
   isRequestOptions,
   mutator,
+  swrBodyType,
 }: {
   operationName: string;
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
+  swrBodyType: string;
 }) => {
-  const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, Arguments, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
+  const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, ${swrBodyType}, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -448,6 +450,7 @@ const generateSwrMutationImplementation = ({
   mutator,
   swrOptions,
   doc,
+  swrBodyType,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -461,6 +464,7 @@ const generateSwrMutationImplementation = ({
   mutator?: GeneratorMutator;
   swrOptions: SwrOptions;
   doc?: string;
+  swrBodyType: string;
 }) => {
   const hasParamReservedWord = props.some(
     (prop: GetterProp) => prop.name === 'query',
@@ -488,6 +492,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     operationName,
     isRequestOptions,
     mutator,
+    swrBodyType,
   })}) => {
 
   ${
@@ -659,7 +664,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
         if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
           return prop.destructured;
         } else if (prop.type === GetterPropType.BODY) {
-          return `arg as ${prop.implementation.split(': ')[1]}`;
+          return `arg`;
         } else {
           return prop.name;
         }
@@ -699,9 +704,14 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       ? '{ arg }'
       : '__';
 
+    const swrBodyType =
+      props
+        .find((prop) => prop.type === GetterPropType.BODY)
+        ?.implementation.split(': ')[1] ?? 'Arguments';
+
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: string, ${swrMutationFetcherArg}: { arg: Arguments }): ${swrMutationFetcherType} => {
+  return (_: string, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }): ${swrMutationFetcherType} => {
     return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length
         ? (httpFnProperties.length ? ', ' : '') + 'options'
@@ -723,6 +733,7 @@ export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOption
       mutator,
       swrOptions: override.swr,
       doc,
+      swrBodyType,
     });
 
     return swrMutationFetcherFn + swrMutationKeyFn + swrImplementation;
