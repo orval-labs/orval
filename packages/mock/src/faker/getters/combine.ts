@@ -103,9 +103,9 @@ export const combineSchemasMock = ({
     let currentValue = resolvedValue.value;
 
     if (itemResolvedValue?.value && separator === 'oneOf') {
-      currentValue = `${resolvedValue.value.slice(0, -1)},${
-        itemResolvedValue.value
-      }}`;
+      const s = resolvedValue.value.split('},{');
+      const joined = s.join(`,${itemResolvedValue.value}},{`);
+      currentValue = `${joined.slice(0, -1)},${itemResolvedValue.value}}`;
     }
 
     if (itemResolvedValue?.value && separator !== 'oneOf' && isLastElement) {
