@@ -103,8 +103,8 @@ export const combineSchemasMock = ({
     let currentValue = resolvedValue.value;
 
     if (itemResolvedValue?.value && separator === 'oneOf') {
-      const s = resolvedValue.value.split('},{');
-      const joined = s.join(`,${itemResolvedValue.value}},{`);
+      const splitValues = resolvedValue.value.split('},{');
+      const joined = splitValues.join(`,${itemResolvedValue.value}},{`);
       currentValue = `${joined.slice(0, -1)},${itemResolvedValue.value}}`;
     }
 
