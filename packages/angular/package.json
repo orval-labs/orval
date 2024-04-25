@@ -1,6 +1,6 @@
 {
   "name": "@orval/angular",
-  "version": "6.28.1",
+  "version": "6.28.2",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,6 +13,6 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.28.1"
+    "@orval/core": "6.28.2"
   }
 }

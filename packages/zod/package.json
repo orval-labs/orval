@@ -1,6 +1,6 @@
 {
   "name": "@orval/zod",
-  "version": "6.28.1",
+  "version": "6.28.2",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,7 @@
     "test": "vitest --global test.ts"
   },
   "dependencies": {
-    "@orval/core": "6.28.1",
+    "@orval/core": "6.28.2",
     "lodash.uniq": "^4.5.0"
   },
   "devDependencies": {
