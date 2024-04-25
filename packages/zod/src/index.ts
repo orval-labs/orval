@@ -282,7 +282,6 @@ export type ZodValidationSchemaDefinitionInput = {
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
-  strict: boolean,
   coerceTypes = false,
 ): { zod: string; consts: string } => {
   if (!input.functions.length) {
@@ -349,7 +348,7 @@ ${Object.entries(args)
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
-})${strict ? '.strict()' : ''}`;
+})`;
     }
     if (fn === 'array') {
       const value = args.functions.map(parseProperty).join('');
@@ -657,7 +656,6 @@ const generateZodRoute = (
 
   const inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
-    override.zod.strict.param,
     override.zod.coerce.param,
   );
 
@@ -669,24 +667,20 @@ const generateZodRoute = (
 
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
-    override.zod.strict.query,
     override.zod.coerce.query ?? override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
     parsedParameters.headers,
-    override.zod.strict.header,
     override.zod.coerce.header,
   );
 
   const inputBody = parseZodValidationSchemaDefinition(
     parsedPody.input,
-    override.zod.strict.body,
     override.zod.coerce.body,
   );
 
   const inputResponse = parseZodValidationSchemaDefinition(
     parsedResponse.input,
-    override.zod.strict.response,
     override.zod.coerce.response,
   );
 
