@@ -1,6 +1,6 @@
 {
   "name": "@orval/hono",
-  "version": "6.28.0",
+  "version": "6.28.1",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,8 +13,8 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.28.0",
-    "@orval/zod": "6.28.0",
+    "@orval/core": "6.28.1",
+    "@orval/zod": "6.28.1",
     "lodash.uniq": "^4.5.0"
   },
   "devDependencies": {
