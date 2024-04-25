@@ -20,6 +20,8 @@ import {
   isObject,
   isBoolean,
   jsStringEscape,
+  getNumberWord,
+  pascal,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 
@@ -61,8 +63,7 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
   }
 };
 
-// counter for unique naming
-let counter = 0;
+let constsUniqueCounter: Record<string, number> = {};
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
@@ -76,6 +77,17 @@ const generateZodValidationSchemaDefinition = (
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
+  const constsCounter =
+    typeof constsUniqueCounter[name] === 'number'
+      ? constsUniqueCounter[name] + 1
+      : 0;
+
+  const constsCounterValue = constsCounter
+    ? pascal(getNumberWord(constsCounter))
+    : '';
+
+  constsUniqueCounter[name] = constsCounter;
+
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
   const required = schema.default !== undefined ? false : _required ?? false;
@@ -101,7 +113,12 @@ const generateZodValidationSchemaDefinition = (
       const items = schema.items as SchemaObject | undefined;
       functions.push([
         'array',
-        generateZodValidationSchemaDefinition(items, true, camel(name), strict),
+        generateZodValidationSchemaDefinition(
+          items,
+          true,
+          camel(`${name}-item`),
+          strict,
+        ),
       ]);
       break;
     case 'string': {
@@ -144,8 +161,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
@@ -214,15 +231,13 @@ const generateZodValidationSchemaDefinition = (
     if (min === 1) {
       functions.push(['min', `${min}`]);
     } else {
-      counter++;
-      consts.push(`export const ${name}Min${counter} = ${min};\n`);
-      functions.push(['min', `${name}Min${counter}`]);
+      consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
+      functions.push(['min', `${name}Min${constsCounterValue}`]);
     }
   }
   if (max !== undefined) {
-    counter++;
-    consts.push(`export const ${name}Max${counter} = ${max};\n`);
-    functions.push(['max', `${name}Max${counter}`]);
+    consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
+    functions.push(['max', `${name}Max${constsCounterValue}`]);
   }
   if (matches) {
     const isStartWithSlash = matches.startsWith('/');
@@ -232,8 +247,10 @@ const generateZodValidationSchemaDefinition = (
       matches.slice(isStartWithSlash ? 1 : 0, isEndWithSlash ? -1 : undefined),
     )}')`;
 
-    consts.push(`export const ${name}RegExp = ${regexp};\n`);
-    functions.push(['regex', `${name}RegExp`]);
+    consts.push(
+      `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
+    );
+    functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
 
   if (schema.enum && type !== 'number') {
@@ -258,17 +275,17 @@ const generateZodValidationSchemaDefinition = (
   return { functions, consts: uniq(consts) };
 };
 
-export type ZodValidationSchemaDefinitionInput = Record<
-  string,
-  { functions: [string, any][]; consts: string[] }
->;
+export type ZodValidationSchemaDefinitionInput = {
+  functions: [string, any][];
+  consts: string[];
+};
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
   strict: boolean,
   coerceTypes = false,
 ): { zod: string; consts: string } => {
-  if (!Object.keys(input).length) {
+  if (!input.functions.length) {
     return { zod: '', consts: '' };
   }
 
@@ -322,9 +339,17 @@ export const parseZodValidationSchemaDefinition = (
     }
 
     if (fn === 'object') {
-      const parsed = parseZodValidationSchemaDefinition(args, strict);
-      consts += parsed.consts;
-      return ` ${parsed.zod}`;
+      return `zod.object({
+${Object.entries(args)
+  .map(([key, schema]) => {
+    const value = (schema as ZodValidationSchemaDefinitionInput).functions
+      .map(parseProperty)
+      .join('');
+    consts += (schema as ZodValidationSchemaDefinitionInput).consts.join('\n');
+    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+  })
+  .join(',\n')}
+})${strict ? '.strict()' : ''}`;
     }
     if (fn === 'array') {
       const value = args.functions.map(parseProperty).join('');
@@ -347,18 +372,9 @@ export const parseZodValidationSchemaDefinition = (
     return `.${fn}(${args})`;
   };
 
-  consts += Object.entries(input).reduce((acc, [key, schema]) => {
-    return acc + schema.consts.join('\n');
-  }, '');
+  consts += input.consts.join('\n');
 
-  const zod = `zod.object({
-${Object.entries(input)
-  .map(([key, schema]) => {
-    const value = schema.functions.map(parseProperty).join('');
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
-  })
-  .join(',\n')}
-})${strict ? '.strict()' : ''}`;
+  const zod = input.functions.map(parseProperty).join('');
 
   return { zod, consts };
 };
@@ -400,91 +416,107 @@ const deference = (
   }, {} as any);
 };
 
-const generateZodRoute = (
-  { operationName, verb, override }: GeneratorVerbOptions,
-  { pathRoute, context }: GeneratorOptions,
-) => {
-  const spec = context.specs[context.specKey].paths[pathRoute] as
-    | PathItemObject
-    | undefined;
+const parseBodyAndResponse = ({
+  data,
+  context,
+  name,
+  strict,
+}: {
+  data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
+  context: ContextSpecs;
+  name: string;
+  strict: boolean;
+}): {
+  input: ZodValidationSchemaDefinitionInput;
+  isArray: boolean;
+} => {
+  if (!data) {
+    return {
+      input: { functions: [], consts: [] },
+      isArray: false,
+    };
+  }
 
-  const parameters = spec?.[verb]?.parameters;
-  const requestBody = spec?.[verb]?.requestBody;
-  const response = spec?.[verb]?.responses?.['200'] as
-    | ResponseObject
-    | ReferenceObject;
+  const resolvedRef = resolveRef<ResponseObject | RequestBodyObject>(
+    data,
+    context,
+  ).schema;
 
-  const resolvedResponse = response
-    ? resolveRef<ResponseObject>(response, context).schema
-    : undefined;
+  if (!resolvedRef.content?.['application/json']?.schema) {
+    return {
+      input: { functions: [], consts: [] },
+      isArray: false,
+    };
+  }
 
-  const resolvedResponseJsonSchema = resolvedResponse?.content?.[
-    'application/json'
-  ]?.schema
-    ? deference(resolvedResponse.content['application/json'].schema, context)
-    : undefined;
+  const resolvedJsonSchema = deference(
+    resolvedRef.content['application/json'].schema,
+    context,
+  );
 
-  const zodDefinitionsResponseProperties =
-    resolvedResponseJsonSchema?.properties ??
-    (resolvedResponseJsonSchema?.items as SchemaObject)?.properties ??
-    ({} as { [p: string]: SchemaObject | ReferenceObject });
+  // keep the same behaviour for array
+  if (resolvedJsonSchema.items) {
+    return {
+      input: generateZodValidationSchemaDefinition(
+        resolvedJsonSchema,
+        true,
+        name,
+        strict,
+      ),
+      isArray: true,
+    };
+  }
 
-  const isZodDefinitionResponseArray = !!resolvedResponseJsonSchema?.items;
+  return {
+    input: generateZodValidationSchemaDefinition(
+      resolvedJsonSchema,
+      true,
+      name,
+      strict,
+    ),
+    isArray: false,
+  };
+};
 
-  const zodDefinitionsResponse = Object.entries(
-    zodDefinitionsResponseProperties,
-  )
-    .map(([key, response]) => {
-      const schema = deference(response, context);
+const parseParameters = ({
+  data,
+  context,
+  operationName,
+  strict,
+}: {
+  data: (ParameterObject | ReferenceObject)[] | undefined;
+  context: ContextSpecs;
+  operationName: string;
+  strict: {
+    param: boolean;
+    query: boolean;
+    header: boolean;
+    body: boolean;
+    response: boolean;
+  };
+}): {
+  headers: ZodValidationSchemaDefinitionInput;
+  queryParams: ZodValidationSchemaDefinitionInput;
+  params: ZodValidationSchemaDefinitionInput;
+} => {
+  if (!data) {
+    return {
+      headers: {
+        functions: [],
+        consts: [],
+      },
+      queryParams: {
+        functions: [],
+        consts: [],
+      },
+      params: {
+        functions: [],
+        consts: [],
+      },
+    };
+  }
 
-      return {
-        [key]: generateZodValidationSchemaDefinition(
-          schema,
-          !!resolvedResponseJsonSchema?.required?.find(
-            (requiredKey: string) => requiredKey === key,
-          ),
-          camel(`${operationName}-response-${key}`),
-          override.zod.strict.response,
-        ),
-      };
-    })
-    .reduce((acc, curr) => ({ ...acc, ...curr }), {});
-
-  const resolvedRequestBody = requestBody
-    ? resolveRef<RequestBodyObject>(requestBody, context).schema
-    : undefined;
-
-  const resolvedRequestBodyJsonSchema = resolvedRequestBody?.content?.[
-    'application/json'
-  ]?.schema
-    ? deference(resolvedRequestBody.content['application/json'].schema, context)
-    : undefined;
-
-  const zodDefinitionsBodyProperties =
-    resolvedRequestBodyJsonSchema?.properties ??
-    (resolvedRequestBodyJsonSchema?.items as SchemaObject)?.properties ??
-    ({} as { [p: string]: SchemaObject | ReferenceObject });
-
-  const isZodDefinitionBodyArray = !!resolvedRequestBodyJsonSchema?.items;
-
-  const zodDefinitionsBody = Object.entries(zodDefinitionsBodyProperties)
-    .map(([key, body]) => {
-      const schema = deference(body, context);
-
-      return {
-        [key]: generateZodValidationSchemaDefinition(
-          schema,
-          !!resolvedRequestBodyJsonSchema?.required?.find(
-            (requiredKey: string) => requiredKey === key,
-          ),
-          camel(`${operationName}-body-${key}`),
-          override.zod.strict.body,
-        ),
-      };
-    })
-    .reduce((acc, curr) => ({ ...acc, ...curr }), {});
-
-  const zodDefinitionsParameters = (parameters ?? []).reduce(
+  const defintionsByParameters = data.reduce(
     (acc, val) => {
       const { schema: parameter } = resolveRef<ParameterObject>(val, context);
 
@@ -494,17 +526,17 @@ const generateZodRoute = (
 
       const schema = deference(parameter.schema, context);
 
-      const strict = {
-        path: override.zod.strict.param,
-        query: override.zod.strict.query,
-        header: override.zod.strict.header,
+      const mapStrict = {
+        path: strict.param,
+        query: strict.query,
+        header: strict.header,
       };
 
       const definition = generateZodValidationSchemaDefinition(
         schema,
         parameter.required,
         camel(`${operationName}-${parameter.in}-${parameter.name}`),
-        strict[parameter.in as 'path' | 'query' | 'header'] ?? false,
+        mapStrict[parameter.in as 'path' | 'query' | 'header'] ?? false,
       );
 
       if (parameter.in === 'header') {
@@ -540,8 +572,89 @@ const generateZodRoute = (
     >,
   );
 
+  const headers: ZodValidationSchemaDefinitionInput = {
+    functions: [],
+    consts: [],
+  };
+
+  if (Object.keys(defintionsByParameters.headers).length) {
+    headers.functions.push(['object', defintionsByParameters.headers]);
+
+    if (strict.header) {
+      headers.functions.push(['strict', undefined]);
+    }
+  }
+
+  const queryParams: ZodValidationSchemaDefinitionInput = {
+    functions: [],
+    consts: [],
+  };
+
+  if (Object.keys(defintionsByParameters.queryParams).length) {
+    queryParams.functions.push(['object', defintionsByParameters.queryParams]);
+
+    if (strict.query) {
+      queryParams.functions.push(['strict', undefined]);
+    }
+  }
+
+  const params: ZodValidationSchemaDefinitionInput = {
+    functions: [],
+    consts: [],
+  };
+
+  if (Object.keys(defintionsByParameters.params).length) {
+    params.functions.push(['object', defintionsByParameters.params]);
+
+    if (strict.param) {
+      params.functions.push(['strict', undefined]);
+    }
+  }
+
+  return {
+    headers,
+    queryParams,
+    params,
+  };
+};
+
+const generateZodRoute = (
+  { operationName, verb, override }: GeneratorVerbOptions,
+  { pathRoute, context }: GeneratorOptions,
+) => {
+  const spec = context.specs[context.specKey].paths[pathRoute] as
+    | PathItemObject
+    | undefined;
+
+  const parameters = spec?.[verb]?.parameters;
+  const requestBody = spec?.[verb]?.requestBody;
+  const response = spec?.[verb]?.responses?.['200'] as
+    | ResponseObject
+    | ReferenceObject;
+
+  const parsedResponse = parseBodyAndResponse({
+    data: response,
+    context,
+    name: camel(`${operationName}-response`),
+    strict: override.zod.strict.response,
+  });
+
+  const parsedPody = parseBodyAndResponse({
+    data: requestBody,
+    context,
+    name: camel(`${operationName}-body`),
+    strict: override.zod.strict.body,
+  });
+
+  const parsedParameters = parseParameters({
+    data: parameters,
+    context,
+    operationName,
+    strict: override.zod.strict,
+  });
+
   const inputParams = parseZodValidationSchemaDefinition(
-    zodDefinitionsParameters.params,
+    parsedParameters.params,
     override.zod.strict.param,
     override.zod.coerce.param,
   );
@@ -553,22 +666,24 @@ const generateZodRoute = (
   }
 
   const inputQueryParams = parseZodValidationSchemaDefinition(
-    zodDefinitionsParameters.queryParams,
+    parsedParameters.queryParams,
     override.zod.strict.query,
     override.zod.coerce.query ?? override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
-    zodDefinitionsParameters.headers,
+    parsedParameters.headers,
     override.zod.strict.header,
     override.zod.coerce.header,
   );
+
   const inputBody = parseZodValidationSchemaDefinition(
-    zodDefinitionsBody,
+    parsedPody.input,
     override.zod.strict.body,
     override.zod.coerce.body,
   );
+
   const inputResponse = parseZodValidationSchemaDefinition(
-    zodDefinitionsResponse,
+    parsedResponse.input,
     override.zod.strict.response,
     override.zod.coerce.response,
   );
@@ -599,7 +714,7 @@ const generateZodRoute = (
     ...(inputBody.consts ? [inputBody.consts] : []),
     ...(inputBody.zod
       ? [
-          isZodDefinitionBodyArray
+          parsedPody.isArray
             ? `export const ${operationName}BodyItem = ${inputBody.zod}
 export const ${operationName}Body = zod.array(${operationName}BodyItem)`
             : `export const ${operationName}Body = ${inputBody.zod}`,
@@ -608,7 +723,7 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)`
     ...(inputResponse.consts ? [inputResponse.consts] : []),
     ...(inputResponse.zod
       ? [
-          isZodDefinitionResponseArray
+          parsedResponse.isArray
             ? `export const ${operationName}ResponseItem = ${inputResponse.zod}
 export const ${operationName}Response = zod.array(${operationName}ResponseItem)`
             : `export const ${operationName}Response = ${inputResponse.zod}`,
