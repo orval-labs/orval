@@ -5,30 +5,38 @@ import {
 } from '.';
 
 const queryParams: ZodValidationSchemaDefinitionInput = {
-  // limit = non-required integer schema (coerce-able)
-  limit: {
-    functions: [
-      ['number', undefined],
-      ['optional', undefined],
-      ['null', undefined],
-    ],
-    consts: [],
-  },
-
-  // q = non-required string array schema (not coerce-able)
-  q: {
-    functions: [
-      [
-        'array',
-        {
-          functions: [['string', undefined]],
+  functions: [
+    [
+      'object',
+      {
+        // limit = non-required integer schema (coerce-able)
+        limit: {
+          functions: [
+            ['number', undefined],
+            ['optional', undefined],
+            ['null', undefined],
+          ],
           consts: [],
         },
-      ],
-      ['optional', undefined],
+
+        // q = non-required string array schema (not coerce-able)
+        q: {
+          functions: [
+            [
+              'array',
+              {
+                functions: [['string', undefined]],
+                consts: [],
+              },
+            ],
+            ['optional', undefined],
+          ],
+          consts: [],
+        },
+      },
     ],
-    consts: [],
-  },
+  ],
+  consts: [],
 };
 
 describe('parseZodValidationSchemaDefinition', () => {
