@@ -161,8 +161,8 @@ const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
@@ -374,7 +374,9 @@ ${Object.entries(args)
 
   consts += input.consts.join('\n');
 
-  const zod = input.functions.map(parseProperty).join('');
+  const value = input.functions.map(parseProperty).join('');
+
+  const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
   return { zod, consts };
 };
