@@ -460,7 +460,7 @@ const parseBodyAndResponse = ({
   if (resolvedJsonSchema.items) {
     return {
       input: generateZodValidationSchemaDefinition(
-        resolvedJsonSchema,
+        resolvedJsonSchema.items as SchemaObject,
         true,
         name,
         strict,
