@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   type ZodValidationSchemaDefinitionInput,
   parseZodValidationSchemaDefinition,
+  generateZodValidationSchemaDefinition,
 } from '.';
+import { SchemaObject } from 'openapi3-ts/oas30';
 
 const queryParams: ZodValidationSchemaDefinitionInput = {
   functions: [
@@ -60,6 +62,134 @@ describe('parseZodValidationSchemaDefinition', () => {
       expect(parseResult.zod).toBe(
         'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
       );
+    });
+  });
+});
+
+const objectIntoObjectSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    pet: {
+      type: 'object',
+      properties: {
+        name: {
+          type: 'string',
+        },
+        tag: {
+          type: 'string',
+        },
+      },
+    },
+  },
+};
+
+const deepRequiredSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    pet: {
+      type: 'object',
+      required: ['name'],
+      properties: {
+        name: {
+          type: 'string',
+        },
+        tag: {
+          type: 'string',
+        },
+      },
+    },
+  },
+};
+
+describe('generateZodValidationSchemaDefinition`', () => {
+  it('required', () => {
+    const result = generateZodValidationSchemaDefinition(
+      deepRequiredSchema,
+      true,
+      'strict',
+      true,
+    );
+
+    expect(result).toEqual({
+      functions: [
+        [
+          'object',
+          {
+            pet: {
+              functions: [
+                [
+                  'object',
+                  {
+                    name: {
+                      functions: [['string', undefined]],
+                      consts: [],
+                    },
+                    tag: {
+                      functions: [
+                        ['string', undefined],
+                        ['optional', undefined],
+                      ],
+                      consts: [],
+                    },
+                  },
+                ],
+                ['strict', undefined],
+                ['optional', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+        ['strict', undefined],
+      ],
+      consts: [],
+    });
+  });
+
+  it('generates a strict zod schema', () => {
+    const result = generateZodValidationSchemaDefinition(
+      objectIntoObjectSchema,
+      true,
+      'strict',
+      true,
+    );
+
+    expect(result).toEqual({
+      functions: [
+        [
+          'object',
+          {
+            pet: {
+              functions: [
+                [
+                  'object',
+                  {
+                    name: {
+                      functions: [
+                        ['string', undefined],
+                        ['optional', undefined],
+                      ],
+                      consts: [],
+                    },
+                    tag: {
+                      functions: [
+                        ['string', undefined],
+                        ['optional', undefined],
+                      ],
+                      consts: [],
+                    },
+                  },
+                ],
+                ['strict', undefined],
+                ['optional', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+        ['strict', undefined],
+      ],
+      consts: [],
     });
   });
 });
