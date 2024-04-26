@@ -466,7 +466,7 @@ const generateQueryRequestFunction = (
     `;
     }
 
-    return `export const ${operationName} = (\n    ${propsImplementation}\n ${
+    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options?: SecondParameter<typeof ${mutator.name}>,`
         : ''
@@ -1302,7 +1302,7 @@ const generateQueryHook = async (
       : `\`${route}\``;
 
     // Note: do not unref() params in Vue - this will make key lose reactivity
-    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => {
+    const queryKeyFn = `${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryKeyFnName} = (${queryKeyProps}) => {
     return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
     }] as const;
