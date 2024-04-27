@@ -47,7 +47,7 @@ export const generateImports = ({
         } } from \'./${upath.join(path, camel(name))}\';`;
       }
 
-      return `import ${!values ? 'type ' : ''}{ ${name}${
+      return `import { create${name}, ${name}${
         alias ? ` as ${alias}` : ''
       } } from \'./${camel(name)}\';`;
     })

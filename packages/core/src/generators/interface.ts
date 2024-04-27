@@ -53,6 +53,7 @@ export const generateInterface = ({
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
   }
+  model += `export function create${name}(): ${name} ${scalar.factoryMethodValue}\n`;
 
   // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
   const externalModulesImportsOnly = scalar.imports.filter(
