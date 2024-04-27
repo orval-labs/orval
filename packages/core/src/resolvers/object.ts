@@ -30,6 +30,7 @@ const resolveObjectOriginal = ({
   ) {
     return {
       value: propName,
+      factoryMethodValue: `{}`,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
@@ -57,6 +58,7 @@ const resolveObjectOriginal = ({
 
     return {
       value: propName,
+      factoryMethodValue: `${propName}[${resolvedValue.value.split(' | ')[0]}]`,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
