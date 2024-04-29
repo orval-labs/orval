@@ -284,7 +284,24 @@ const getSchemaFormDataAndUrlEncoded = ({
   }
 
   if (schema.type === 'array') {
-    return `${form}${propName}.forEach(value => ${variableName}.append('data', value))\n`;
+    let valueStr = 'value';
+    if (schema.items) {
+      const { schema: itemSchema } = resolveRef<SchemaObject>(
+        schema.items,
+        context,
+      );
+      if (itemSchema.type === 'object' || itemSchema.type === 'array') {
+        valueStr = 'JSON.stringify(value)';
+      } else if (
+        itemSchema.type === 'number' ||
+        itemSchema.type === 'integer' ||
+        itemSchema.type === 'boolean'
+      ) {
+        valueStr = 'value.toString()';
+      }
+    }
+
+    return `${form}${propName}.forEach(value => ${variableName}.append('data', ${valueStr}))\n`;
   }
 
   if (
@@ -324,7 +341,23 @@ const resolveSchemaPropertiesToFormData = ({
       if (property.type === 'object') {
         formDataValue = `${variableName}.append('${key}', JSON.stringify(${valueKey}));\n`;
       } else if (property.type === 'array') {
-        formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
+        let valueStr = 'value';
+        if (property.items) {
+          const { schema: itemSchema } = resolveRef<SchemaObject>(
+            property.items,
+            context,
+          );
+          if (itemSchema.type === 'object' || itemSchema.type === 'array') {
+            valueStr = 'JSON.stringify(value)';
+          } else if (
+            itemSchema.type === 'number' ||
+            itemSchema.type === 'integer' ||
+            itemSchema.type === 'boolean'
+          ) {
+            valueStr = 'value.toString()';
+          }
+        }
+        formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', ${valueStr}));\n`;
       } else if (
         property.type === 'number' ||
         property.type === 'integer' ||
