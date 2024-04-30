@@ -368,13 +368,15 @@ export type ZodOptions = {
     response?: boolean;
   };
   coerce?: {
-    param?: boolean;
-    query?: boolean;
-    header?: boolean;
-    body?: boolean;
-    response?: boolean;
+    param?: boolean | ZodCoerceType[];
+    query?: boolean | ZodCoerceType[];
+    header?: boolean | ZodCoerceType[];
+    body?: boolean | ZodCoerceType[];
+    response?: boolean | ZodCoerceType[];
   };
 };
+
+export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
 
 export type NormalizedZodOptions = {
   strict: {
@@ -385,11 +387,11 @@ export type NormalizedZodOptions = {
     response: boolean;
   };
   coerce: {
-    param: boolean;
-    query: boolean;
-    header: boolean;
-    body: boolean;
-    response: boolean;
+    param: boolean | ZodCoerceType[];
+    query: boolean | ZodCoerceType[];
+    header: boolean | ZodCoerceType[];
+    body: boolean | ZodCoerceType[];
+    response: boolean | ZodCoerceType[];
   };
 };
 
