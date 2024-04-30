@@ -199,17 +199,14 @@ const getHandlerFix = ({
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {} as Record<string, GeneratorVerbOptions[]>);
 };
 
 const generateHandlers = async (
@@ -843,6 +840,8 @@ export const zValidator =
             'Content-Type': 'application/json',
           },
         });
+      } else {
+        c.res = new Response(JSON.stringify(result.data), c.res);
       }
     }
   };
