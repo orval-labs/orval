@@ -157,7 +157,7 @@ export const combineSchemas = ({
 
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
-  let resolvedValue;
+  let resolvedValue: ScalarValue | undefined;
 
   if (schema.properties) {
     resolvedValue = getScalar({ item: omit(schema, separator), name, context });
@@ -173,17 +173,22 @@ export const combineSchemas = ({
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
       name,
-    )} = ${getCombineEnumValue(resolvedData)}`;
+    )} = ${getCombineEnumValue(resolvedData)}\n`;
 
     return {
-      value:
-        `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable};` +
-        newEnum,
+      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable};`,
       imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
         ...toImport,
         values: true,
       })),
-      schemas: resolvedData.schemas,
+      schemas: [
+        ...resolvedData.schemas,
+        {
+          imports: [],
+          model: newEnum,
+          name: pascal(name),
+        },
+      ],
       isEnum: false,
       type: 'object' as SchemaType,
       isRef: false,
