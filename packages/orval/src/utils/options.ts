@@ -215,11 +215,11 @@ export const normalizeOptions = async (
           useMutation: outputOptions.override?.query?.useMutation ?? true,
           signal: outputOptions.override?.query?.signal ?? true,
           shouldExportMutatorHooks:
-              outputOptions.override?.query?.shouldExportMutatorHooks ?? true,
+            outputOptions.override?.query?.shouldExportMutatorHooks ?? true,
           shouldExportHttpClient:
-              outputOptions.override?.query?.shouldExportHttpClient ?? true,
+            outputOptions.override?.query?.shouldExportHttpClient ?? true,
           shouldExportQueryKey:
-              outputOptions.override?.query?.shouldExportQueryKey ?? true,
+            outputOptions.override?.query?.shouldExportQueryKey ?? true,
           ...normalizeQueryOptions(outputOptions.override?.query, workspace),
         },
         zod: {
