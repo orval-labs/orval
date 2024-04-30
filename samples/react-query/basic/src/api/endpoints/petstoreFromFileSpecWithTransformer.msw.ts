@@ -6,111 +6,46 @@
  */
 import { faker } from '@faker-js/faker';
 import { HttpResponse, delay, http } from 'msw';
-import type { Pet, Pets } from '../model';
+import type { Pet, PetsArray, PetsNestedArray } from '../model';
 
-export const getListPetsResponseMock = (overrideResponse: any = {}): Pets =>
+export const getListPetsResponseMock = (): PetsArray =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
-  ).map(() =>
-    faker.helpers.arrayElement([
-      {
-        breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-        cuteness: faker.number.int({ min: undefined, max: undefined }),
-        ...overrideResponse,
-        barksPerMinute: faker.helpers.arrayElement([
-          faker.number.int({ min: undefined, max: undefined }),
-          undefined,
-        ]),
-        type: faker.helpers.arrayElement(['dog'] as const),
-        ...overrideResponse,
-        '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-        callingCode: faker.helpers.arrayElement([
-          faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-          undefined,
-        ]),
-        country: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            "People's Republic of China",
-            'Uruguay',
-          ] as const),
-          undefined,
-        ]),
-        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-        id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-        name: (() => faker.person.lastName())(),
-        tag: (() => faker.person.lastName())(),
-        ...overrideResponse,
-      },
-      {
-        breed: faker.helpers.arrayElement(['Dachshund'] as const),
-        length: faker.number.int({ min: undefined, max: undefined }),
-        ...overrideResponse,
-        barksPerMinute: faker.helpers.arrayElement([
-          faker.number.int({ min: undefined, max: undefined }),
-          undefined,
-        ]),
-        type: faker.helpers.arrayElement(['dog'] as const),
-        ...overrideResponse,
-        '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-        callingCode: faker.helpers.arrayElement([
-          faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-          undefined,
-        ]),
-        country: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            "People's Republic of China",
-            'Uruguay',
-          ] as const),
-          undefined,
-        ]),
-        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-        id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-        name: (() => faker.person.lastName())(),
-        tag: (() => faker.person.lastName())(),
-        ...overrideResponse,
-      },
-      {
-        petsRequested: faker.helpers.arrayElement([
-          faker.number.int({ min: undefined, max: undefined }),
-          undefined,
-        ]),
-        type: faker.helpers.arrayElement(['cat'] as const),
-        ...overrideResponse,
-        '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-        callingCode: faker.helpers.arrayElement([
-          faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-          undefined,
-        ]),
-        country: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            "People's Republic of China",
-            'Uruguay',
-          ] as const),
-          undefined,
-        ]),
-        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-        id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-        name: (() => faker.person.lastName())(),
-        tag: (() => faker.person.lastName())(),
-        ...overrideResponse,
-      },
+  ).map(() => ({
+    age: faker.helpers.arrayElement([
+      faker.number.int({ min: 0, max: 30 }),
+      undefined,
     ]),
-  );
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      undefined,
+    ]),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
+    name: (() => faker.person.lastName())(),
+    tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]),
+  }));
 
-export const getCreatePetsResponseMock = (overrideResponse: any = {}): Pet =>
-  faker.helpers.arrayElement([
-    {
-      breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-      cuteness: faker.number.int({ min: undefined, max: undefined }),
-      ...overrideResponse,
-      barksPerMinute: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
+export const getListPetsNestedArrayResponseMock = (
+  overrideResponse: Partial<PetsNestedArray> = {},
+): PetsNestedArray => ({
+  data: faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => ({
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
         undefined,
       ]),
-      type: faker.helpers.arrayElement(['dog'] as const),
-      ...overrideResponse,
-      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -125,148 +60,15 @@ export const getCreatePetsResponseMock = (overrideResponse: any = {}): Pet =>
       email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       id: faker.number.int({ min: undefined, max: undefined }),
       name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
-      ...overrideResponse,
-    },
-    {
-      breed: faker.helpers.arrayElement(['Dachshund'] as const),
-      length: faker.number.int({ min: undefined, max: undefined }),
-      ...overrideResponse,
-      barksPerMinute: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
-        undefined,
+      tag: faker.helpers.arrayElement([
+        (() => faker.person.lastName())(),
+        null,
       ]),
-      type: faker.helpers.arrayElement(['dog'] as const),
-      ...overrideResponse,
-      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
-      ...overrideResponse,
-    },
-    {
-      petsRequested: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
-        undefined,
-      ]),
-      type: faker.helpers.arrayElement(['cat'] as const),
-      ...overrideResponse,
-      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
-      ...overrideResponse,
-    },
-  ]);
-
-export const getUpdatePetsResponseMock = (overrideResponse: any = {}): Pet =>
-  faker.helpers.arrayElement([
-    {
-      breed: faker.helpers.arrayElement(['Labradoodle'] as const),
-      cuteness: faker.number.int({ min: undefined, max: undefined }),
-      ...overrideResponse,
-      barksPerMinute: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
-        undefined,
-      ]),
-      type: faker.helpers.arrayElement(['dog'] as const),
-      ...overrideResponse,
-      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
-      ...overrideResponse,
-    },
-    {
-      breed: faker.helpers.arrayElement(['Dachshund'] as const),
-      length: faker.number.int({ min: undefined, max: undefined }),
-      ...overrideResponse,
-      barksPerMinute: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
-        undefined,
-      ]),
-      type: faker.helpers.arrayElement(['dog'] as const),
-      ...overrideResponse,
-      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
-      ...overrideResponse,
-    },
-    {
-      petsRequested: faker.helpers.arrayElement([
-        faker.number.int({ min: undefined, max: undefined }),
-        undefined,
-      ]),
-      type: faker.helpers.arrayElement(['cat'] as const),
-      ...overrideResponse,
-      '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      tag: (() => faker.person.lastName())(),
-      ...overrideResponse,
-    },
-  ]);
+    })),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
 
 export const getShowPetByIdResponseMock = () =>
   (() => ({
@@ -275,7 +77,7 @@ export const getShowPetByIdResponseMock = () =>
     tag: faker.helpers.arrayElement([faker.word.sample(), void 0]),
   }))();
 
-export const getListPetsMockHandler = (overrideResponse?: Pets) => {
+export const getListPetsMockHandler = (overrideResponse?: PetsArray) => {
   return http.get('*/v:version/pets', async () => {
     await delay(1000);
     return new HttpResponse(
@@ -294,33 +96,28 @@ export const getListPetsMockHandler = (overrideResponse?: Pets) => {
   });
 };
 
-export const getCreatePetsMockHandler = (overrideResponse?: Pet) => {
+export const getCreatePetsMockHandler = () => {
   return http.post('*/v:version/pets', async () => {
     await delay(1000);
-    return new HttpResponse(
-      JSON.stringify(
-        overrideResponse !== undefined
-          ? overrideResponse
-          : getCreatePetsResponseMock(),
-      ),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+    return new HttpResponse(null, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
       },
-    );
+    });
   });
 };
 
-export const getUpdatePetsMockHandler = (overrideResponse?: Pet) => {
-  return http.put('*/v:version/pets', async () => {
+export const getListPetsNestedArrayMockHandler = (
+  overrideResponse?: PetsNestedArray,
+) => {
+  return http.get('*/v:version/pets-nested-array', async () => {
     await delay(1000);
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
           ? overrideResponse
-          : getUpdatePetsResponseMock(),
+          : getListPetsNestedArrayResponseMock(),
       ),
       {
         status: 200,
@@ -353,6 +150,6 @@ export const getShowPetByIdMockHandler = (overrideResponse?: Pet) => {
 export const getSwaggerPetstoreMock = () => [
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
-  getUpdatePetsMockHandler(),
+  getListPetsNestedArrayMockHandler(),
   getShowPetByIdMockHandler(),
 ];

@@ -17,9 +17,11 @@ import type {
 import type {
   CreatePetsBody,
   Error,
+  ListPetsNestedArrayParams,
   ListPetsParams,
   Pet,
-  Pets,
+  PetsArray,
+  PetsNestedArray,
 } from '../model';
 import { useCustomClient } from '../mutator/custom-client';
 import type { ErrorType, BodyType } from '../mutator/custom-client';
@@ -32,7 +34,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
  * @summary List all pets
  */
 export const useListPetsHook = () => {
-  const listPets = useCustomClient<Pets>();
+  const listPets = useCustomClient<PetsArray>();
 
   return (
     params?: ListPetsParams,
@@ -129,7 +131,7 @@ export const useListPets = <
  * @summary Create a pet
  */
 export const useCreatePetsHook = () => {
-  const createPets = useCustomClient<Pet>();
+  const createPets = useCustomClient<void>();
 
   return (createPetsBody: BodyType<CreatePetsBody>, version: number = 1) => {
     return createPets({
@@ -201,6 +203,110 @@ export const useCreatePets = <
   const mutationOptions = useCreatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
+};
+
+/**
+ * @summary List all pets as nested array
+ */
+export const useListPetsNestedArrayHook = () => {
+  const listPetsNestedArray = useCustomClient<PetsNestedArray>();
+
+  return (
+    params?: ListPetsNestedArrayParams,
+    version: number = 1,
+    signal?: AbortSignal,
+  ) => {
+    return listPetsNestedArray({
+      url: `/v${version}/pets-nested-array`,
+      method: 'GET',
+      params,
+      signal,
+    });
+  };
+};
+
+export const getListPetsNestedArrayQueryKey = (
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+) => {
+  return [
+    `/v${version}/pets-nested-array`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const useListPetsNestedArrayQueryOptions = <
+  TData = Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+      TError,
+      TData
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsNestedArrayQueryKey(params, version);
+
+  const listPetsNestedArray = useListPetsNestedArrayHook();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>
+  > = ({ signal }) => listPetsNestedArray(params, version, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPetsNestedArrayQueryResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>
+>;
+export type ListPetsNestedArrayQueryError = ErrorType<Error>;
+
+/**
+ * @summary List all pets as nested array
+ */
+export const useListPetsNestedArray = <
+  TData = Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+      TError,
+      TData
+    >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const queryOptions = useListPetsNestedArrayQueryOptions(
+    params,
+    version,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
 };
 
 /**

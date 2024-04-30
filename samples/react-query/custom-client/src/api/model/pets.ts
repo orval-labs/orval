@@ -6,4 +6,6 @@
  */
 import type { Pet } from './pet';
 
-export type Pets = Pet[];
+export interface Pets {
+  pets: Pet[];
+}
