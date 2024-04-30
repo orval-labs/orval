@@ -843,6 +843,8 @@ export const zValidator =
             'Content-Type': 'application/json',
           },
         });
+      } else {
+        c.res = new Response(JSON.stringify(result.data), c.res);
       }
     }
   };
