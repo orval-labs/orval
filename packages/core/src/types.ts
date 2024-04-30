@@ -410,6 +410,8 @@ export type NormalizedQueryOptions = {
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   shouldExportMutatorHooks?: boolean;
+  shouldExportHttpClient?: boolean;
+  shouldExportQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -427,6 +429,8 @@ export type QueryOptions = {
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   shouldExportMutatorHooks?: boolean;
+  shouldExportHttpClient?: boolean;
+  shouldExportQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };

@@ -211,10 +211,15 @@ export const normalizeOptions = async (
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
         query: {
-          useQuery: true,
-          useMutation: true,
-          signal: true,
-          shouldExportMutatorHooks: true,
+          useQuery: outputOptions.override?.query?.useQuery ?? true,
+          useMutation: outputOptions.override?.query?.useMutation ?? true,
+          signal: outputOptions.override?.query?.signal ?? true,
+          shouldExportMutatorHooks:
+              outputOptions.override?.query?.shouldExportMutatorHooks ?? true,
+          shouldExportHttpClient:
+              outputOptions.override?.query?.shouldExportHttpClient ?? true,
+          shouldExportQueryKey:
+              outputOptions.override?.query?.shouldExportQueryKey ?? true,
           ...normalizeQueryOptions(outputOptions.override?.query, workspace),
         },
         zod: {
@@ -509,6 +514,12 @@ const normalizeQueryOptions = (
       : {}),
     ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
       ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportQueryKey)
+      ? { shouldExportQueryKey: queryOptions.shouldExportQueryKey }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportHttpClient)
+      ? { shouldExportHttpClient: queryOptions.shouldExportHttpClient }
       : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
