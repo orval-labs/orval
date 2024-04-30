@@ -47,10 +47,16 @@ export const normalizeQueryOptions = (
           ),
         }
       : {}),
+    ...(queryOptions.signal ? { signal: true } : {}),
     ...(queryOptions.shouldExportMutatorHooks
       ? { shouldExportMutatorHooks: true }
       : {}),
-    ...(queryOptions.signal ? { signal: true } : {}),
+    ...(queryOptions.shouldExportQueryKey
+      ? { shouldExportQueryKey: true }
+      : {}),
+    ...(queryOptions.shouldExportHttpClient
+      ? { shouldExportHttpClient: true }
+      : {}),
   };
 };
 
