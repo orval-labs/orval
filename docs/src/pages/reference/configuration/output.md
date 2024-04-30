@@ -1026,6 +1026,29 @@ Default Value: `false`.
 
 Use to set the coerce for the zod schema. If you set it to true, the schema will be generated with the coerce on possible types.
 
+You can also provide an array of coerce types to only generate the coerce types for the specified types.
+
+example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        zod: {
+          coerce: {
+            response: [ 'boolean'],
+            query: ['string', 'number', 'boolean', 'bigint', 'date'],
+          }
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
 #### mock
 
 Type: `Object`.

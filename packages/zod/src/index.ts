@@ -22,6 +22,7 @@ import {
   jsStringEscape,
   getNumberWord,
   pascal,
+  ZodCoerceType,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 
@@ -282,7 +283,7 @@ export type ZodValidationSchemaDefinitionInput = {
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
-  coerceTypes = false,
+  coerceTypes: boolean | ZodCoerceType[] = false,
 ): { zod: string; consts: string } => {
   if (!input.functions.length) {
     return { zod: '', consts: '' };
@@ -364,7 +365,12 @@ ${Object.entries(args)
       return '.strict()';
     }
 
-    if (coerceTypes && COERCEABLE_TYPES.includes(fn)) {
+    if (
+      coerceTypes &&
+      (Array.isArray(coerceTypes)
+        ? coerceTypes.includes(fn as ZodCoerceType)
+        : COERCEABLE_TYPES.includes(fn))
+    ) {
       return `.coerce.${fn}(${args})`;
     }
 
