@@ -212,6 +212,7 @@ export const OutputClient = {
   SWR: 'swr',
   ZOD: 'zod',
   HONO: 'hono',
+  FETCH: 'fetch',
 } as const;
 
 export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
