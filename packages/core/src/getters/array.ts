@@ -61,7 +61,9 @@ export const getArray = ({
       context,
     });
     return {
-      value: `${schema.readOnly === true ? 'readonly ' : ''}${
+      value: `${schema.readOnly === true
+        && !context.output.override.suppressReadonlyModifier 
+        ? 'readonly ' : ''}${
         resolvedObject.value.includes('|')
           ? `(${resolvedObject.value})[]`
           : `${resolvedObject.value}[]`

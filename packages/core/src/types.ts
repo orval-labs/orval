@@ -112,6 +112,7 @@ export type NormalizedOverrideOutput = {
   useBigInt?: boolean;
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
+  suppressReadonlyModifier?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -348,6 +349,7 @@ export type OverrideOutput = {
   useBigInt?: boolean;
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
+  suppressReadonlyModifier?: boolean;
 };
 
 export type OverrideOutputContentType = {
