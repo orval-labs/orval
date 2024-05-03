@@ -6,7 +6,7 @@
  */
 import { faker } from '@faker-js/faker';
 import { HttpResponse, delay, http } from 'msw';
-import type { Pet, Pets } from '.././models';
+import type { Pet, Pets } from '../models';
 
 export const getListPetsResponseMock = (overrideResponse: any = {}): Pets =>
   Array.from(

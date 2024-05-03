@@ -4,12 +4,7 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type {
-  CreatePetsBodyItem,
-  ListPetsParams,
-  Pet,
-  Pets,
-} from '.././models';
+import type { CreatePetsBodyItem, ListPetsParams, Pet, Pets } from '../models';
 
 type IsAny<T> = 0 extends 1 & T ? true : false;
 type IsUnknown<T> =
