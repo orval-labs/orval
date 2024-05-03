@@ -46,7 +46,7 @@ export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
 ): Promise<Pets> => {
-  const res = await fetch(`/pets`, {
+  const res = await fetch(`http://localhost:3000/pets`, {
     ...options,
     method: 'GET',
     body: JSON.stringify(params),
@@ -61,7 +61,7 @@ export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
   options?: RequestInit,
 ): Promise<Pet> => {
-  const res = await fetch(`/pets`, {
+  const res = await fetch(`http://localhost:3000/pets`, {
     ...options,
     method: 'POST',
     body: JSON.stringify(createPetsBodyItem),
@@ -76,7 +76,7 @@ export const updatePets = async (
   pet: NonReadonly<Pet>,
   options?: RequestInit,
 ): Promise<Pet> => {
-  const res = await fetch(`/pets`, {
+  const res = await fetch(`http://localhost:3000/pets`, {
     ...options,
     method: 'PUT',
     body: JSON.stringify(pet),
@@ -91,7 +91,7 @@ export const showPetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<Pet> => {
-  const res = await fetch(`/pets/${petId}`, {
+  const res = await fetch(`http://localhost:3000/pets/${petId}`, {
     ...options,
     method: 'GET',
   });
