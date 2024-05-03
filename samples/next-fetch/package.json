@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate-api": "node ../../packages/orval/dist/bin/orval.js"
   },
   "dependencies": {
     "react": "^18",
