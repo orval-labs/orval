@@ -121,7 +121,9 @@ export const getObject = ({
           acc.hasReadonlyProps ||= isReadOnly || false;
           acc.imports.push(...resolvedValue.imports);
           acc.value += `\n  ${doc ? `${doc}  ` : ''}${
-            isReadOnly ? 'readonly ' : ''
+            isReadOnly && !context.output.override.suppressReadonlyModifier
+              ? 'readonly '
+              : ''
           }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
           acc.schemas.push(...resolvedValue.schemas);
 

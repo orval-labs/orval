@@ -248,6 +248,8 @@ export const normalizeOptions = async (
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
+        suppressReadonlyModifier:
+          outputOptions.override?.suppressReadonlyModifier || false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
