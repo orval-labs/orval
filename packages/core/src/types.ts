@@ -760,13 +760,21 @@ export type ClientDependenciesBuilder = (
   packageJson?: PackageJson,
 ) => GeneratorDependency[];
 
+export type ClientMockGeneratorImplementation = {
+  function: string;
+  handlerName: string;
+  handler: string;
+};
+
+export type ClientMockGeneratorBuilder = {
+  imports: GeneratorImport[];
+  implementation: ClientMockGeneratorImplementation;
+};
+
 export type ClientMockBuilder = (
   verbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
-) => {
-  imports: string[];
-  implementation: string;
-};
+) => ClientMockGeneratorBuilder;
 
 export interface ClientGeneratorsBuilder {
   client: ClientBuilder;

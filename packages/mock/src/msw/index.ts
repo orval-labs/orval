@@ -9,6 +9,7 @@ import {
   isObject,
   pascal,
   ResReqTypesValue,
+  ClientMockGeneratorBuilder,
 } from '@orval/core';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
@@ -142,7 +143,7 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
 export const generateMSW = (
   generatorVerbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
-) => {
+): ClientMockGeneratorBuilder => {
   const { pathRoute, override, mock } = generatorOptions;
   const { operationId, response } = generatorVerbOptions;
 
