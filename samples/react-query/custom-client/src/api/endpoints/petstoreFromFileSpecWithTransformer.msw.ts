@@ -52,7 +52,7 @@ export const getCreatePetsResponseMock = (overrideResponse: any = {}): Pet => ({
   ...overrideResponse,
 });
 
-export const getShowPetByIdResponseMock = () =>
+export const getShowPetByIdResponseMock = (): Pet =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
