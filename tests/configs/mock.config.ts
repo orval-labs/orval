@@ -1,0 +1,107 @@
+import { faker } from '@faker-js/faker';
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: '../generated/mock/petstore/endpoints.ts',
+      schemas: '../generated/mock/petstore/model',
+      client: 'axios',
+      mock: true,
+      override: {
+        mock: {
+          properties: {
+            name: 'jon',
+          },
+          format: {
+            email: () => faker.internet.email(),
+          },
+          required: true,
+          delay: 500,
+          arrayMin: 3,
+          arrayMax: 5,
+          useExamples: true,
+          baseUrl: 'https://petstore.swagger.io/v1',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreEachHttpStatus: {
+    output: {
+      target: '../generated/mock/petstore-each-http-status/endpoints.ts',
+      schemas: '../generated/mock/petstore-each-http-status/model',
+      client: 'axios',
+      mock: true,
+      override: {
+        mock: {
+          generateEachHttpStatus: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/default-status.yaml',
+    },
+  },
+  petstoreCustomMockBuilder: {
+    output: {
+      target: '../generated/mock/petstore-custom-mock-builder/endpoints.ts',
+      schemas: '../generated/mock/petstore-custom-mock-builder/model',
+      client: 'axios',
+      mock: (verbOptions, _) => {
+        const imports = [];
+        const handlerName = `${verbOptions.operationId}MockHandler`;
+
+        return {
+          imports: imports,
+          implementation: {
+            function: '',
+            handlerName: handlerName,
+            handler: `const ${handlerName} = () => { return { data: { id: 1, name: "myName" } } }\n`,
+          },
+        };
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/mock/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/mock/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/mock/split/endpoints.ts',
+      schemas: '../generated/mock/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/mock/tags/endpoints.ts',
+      schemas: '../generated/mock/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+});
