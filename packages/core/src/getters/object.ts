@@ -123,7 +123,9 @@ export const getObject = ({
 
           acc.hasReadonlyProps ||= isReadOnly || false;
           acc.imports.push(...resolvedValue.imports);
-          acc.factoryMethodValue += `\n    ${getKey(key)}: ${resolvedValue.factoryMethodValue},`;
+          if (!isReadOnly || isRequired) {
+            acc.factoryMethodValue += `\n    ${getKey(key)}: ${resolvedValue.factoryMethodValue},`;
+          }
           acc.value += `\n  ${doc ? `${doc}  ` : ''}${
             isReadOnly && !context.output.override.suppressReadonlyModifier
               ? 'readonly '
