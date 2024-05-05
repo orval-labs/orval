@@ -50,9 +50,9 @@ If you want to overwrite part of the object, you can write the mock value by spe
 ```typescript
 import { getShowPetByIdMock } from 'pets.msw';
 
-const pet = getShowPetByIdMock({ name: 'orverride' });
+const pet = getShowPetByIdMock({ name: 'override' });
 console.log(pet);
-// => { id: 7272122785202176, ​name: "orverride", tag: undefined }
+// => { id: 7272122785202176, ​name: "override", tag: undefined }
 ```
 
 #### A function that returns the value of binding the mock object to the http request handler of `MSW`
