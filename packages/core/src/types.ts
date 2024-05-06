@@ -60,6 +60,7 @@ export type NormalizedOutputOptions = {
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
+  optionsParamRequired: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -182,6 +183,7 @@ export type OutputOptions = {
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
+  optionsParamRequired?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {

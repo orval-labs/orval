@@ -1720,3 +1720,22 @@ module.exports = {
   },
 };
 ```
+
+### optionsParamRequired
+
+Type: `Boolean`
+
+Valid Values: `true` or `false`.
+
+Default Value: `false`.
+Use this property to make the second `options` parameter required (such as when using a custom axios instance)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      optionsParamRequired: true,
+    },
+  },
+};
+```

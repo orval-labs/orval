@@ -453,7 +453,7 @@ const generateQueryRequestFunction = (
 
         return (\n    ${propsImplementation}\n ${
           isRequestOptions && mutator.hasSecondArg
-            ? `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
         }${
           !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
@@ -468,7 +468,7 @@ const generateQueryRequestFunction = (
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options?: SecondParameter<typeof ${mutator.name}>,`
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
     }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
       ${isVue(outputClient) ? vueUnRefParams(props) : ''}

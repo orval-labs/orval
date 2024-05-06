@@ -253,6 +253,7 @@ export const normalizeOptions = async (
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
+      optionsParamRequired: outputOptions.optionsParamRequired ?? false,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
