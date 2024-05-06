@@ -249,7 +249,6 @@ export const generateOperations = (
         imports: client.imports,
         // @ts-expect-error // FIXME
         implementationMock: generatedMock.implementation,
-        // @ts-expect-error // FIXME
         importsMock: generatedMock.imports,
         tags: verbOption.tags,
         mutator: verbOption.mutator,
