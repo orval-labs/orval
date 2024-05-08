@@ -100,7 +100,7 @@ const getMockScalarJsTypes = (
             `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
             `max: ${mockOptionsWithoutFunc.arrayMax}}` +
             `)}, () => faker.number.int())`
-        : 'faker.number.int().toString()';
+        : 'faker.number.int()';
     case 'string':
       return isArray
         ? `Array.from({length: faker.number.int({` +
