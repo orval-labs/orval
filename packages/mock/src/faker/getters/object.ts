@@ -149,6 +149,14 @@ export const getMockObject = ({
     if (isBoolean(item.additionalProperties)) {
       return { value: `{}`, imports: [], name: item.name };
     }
+    if (
+      isReference(item.additionalProperties) &&
+      existingReferencedProperties.includes(
+        item.additionalProperties.$ref.split('/').pop()!,
+      )
+    ) {
+      return { value: `{}`, imports: [], name: item.name };
+    }
 
     const resolvedValue = resolveMockValue({
       schema: {
