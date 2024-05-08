@@ -136,6 +136,7 @@ const generateVerbOptions = async ({
     headers,
     operationName,
     context,
+    output,
   });
 
   const mutator = await generateMutator({

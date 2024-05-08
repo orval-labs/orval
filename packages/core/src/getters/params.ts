@@ -91,16 +91,20 @@ export const getParams = ({
     });
 
     let paramType = resolvedValue.value;
-    if (output.allParamsOptional) {
-      paramType = `${paramType} | undefined | null`; // TODO: maybe check that `paramType` isn't already undefined or null
-    }
 
     const definition = `${name}${
-      !required || resolvedValue.originalSchema!.default ? '?' : ''
+      !required ||
+      resolvedValue.originalSchema!.default ||
+      output.allParamsOptional
+        ? '?'
+        : ''
     }: ${resolvedValue.value}`;
 
     const implementation = `${name}${
-      !required && !resolvedValue.originalSchema!.default ? '?' : ''
+      (!required && !resolvedValue.originalSchema!.default) ||
+      output.allParamsOptional
+        ? '?'
+        : ''
     }${
       !resolvedValue.originalSchema!.default
         ? `: ${paramType}`

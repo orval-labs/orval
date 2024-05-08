@@ -5,6 +5,7 @@ import {
   GetterProps,
   GetterPropType,
   GetterQueryParam,
+  NormalizedOutputOptions,
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
@@ -15,6 +16,7 @@ export const getProps = ({
   operationName,
   headers,
   context,
+  output,
 }: {
   body: GetterBody;
   queryParams?: GetterQueryParam;
@@ -22,41 +24,48 @@ export const getProps = ({
   operationName: string;
   headers?: GetterQueryParam;
   context: ContextSpecs;
+  output: NormalizedOutputOptions;
 }): GetterProps => {
   const bodyProp = {
     name: body.implementation,
-    definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
-    implementation: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
+    definition: `${body.implementation}${body.isOptional || output.allParamsOptional ? '?' : ''}: ${body.definition}`,
+    implementation: `${body.implementation}${body.isOptional || output.allParamsOptional ? '?' : ''}: ${body.definition}`,
     default: false,
-    required: !body.isOptional,
+    required: output.allParamsOptional ? false : !body.isOptional,
     type: GetterPropType.BODY,
   };
 
   const queryParamsProp = {
     name: 'params',
-    definition: `params${queryParams?.isOptional ? '?' : ''}: ${
+    definition: `params${queryParams?.isOptional || output.allParamsOptional ? '?' : ''}: ${
       queryParams?.schema.name
     }`,
-    implementation: `params${queryParams?.isOptional ? '?' : ''}: ${
+    implementation: `params${queryParams?.isOptional || output.allParamsOptional ? '?' : ''}: ${
       queryParams?.schema.name
     }`,
     default: false,
-    required: !isUndefined(queryParams?.isOptional)
-      ? !queryParams?.isOptional
-      : false,
+    required: output.allParamsOptional
+      ? false
+      : !isUndefined(queryParams?.isOptional)
+        ? !queryParams?.isOptional
+        : false,
     type: GetterPropType.QUERY_PARAM,
   };
 
   const headersProp = {
     name: 'headers',
-    definition: `headers${headers?.isOptional ? '?' : ''}: ${
+    definition: `headers${headers?.isOptional || output.allParamsOptional ? '?' : ''}: ${
       headers?.schema.name
     }`,
-    implementation: `headers${headers?.isOptional ? '?' : ''}: ${
+    implementation: `headers${headers?.isOptional || output.allParamsOptional ? '?' : ''}: ${
       headers?.schema.name
     }`,
     default: false,
-    required: !isUndefined(headers?.isOptional) ? !headers?.isOptional : false,
+    required: output.allParamsOptional
+      ? false
+      : !isUndefined(headers?.isOptional)
+        ? !headers?.isOptional
+        : false,
     type: GetterPropType.HEADER,
   };
 
