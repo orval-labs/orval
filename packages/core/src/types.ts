@@ -239,8 +239,8 @@ export type GlobalMockOptions = {
   useExamples?: boolean;
   // This is used to generate mocks for all http responses defined in the OpenAPI specification
   generateEachHttpStatus?: boolean;
-  // This is used to set the delay to your own custom value
-  delay?: number | (() => number);
+  // This is used to set the delay to your own custom value, or pass false to disable delay
+  delay?: false | number | (() => number);
   // This is used to execute functions that are passed to the 'delay' argument
   // at runtime rather than build time.
   delayFunctionLazyExecute?: boolean;

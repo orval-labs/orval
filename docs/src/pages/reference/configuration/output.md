@@ -324,11 +324,12 @@ Use to specify the mock type you want to generate.
 
 #### delay
 
-Type: `Number | Function`.
+Type: `Number | Function | false`.
 
 Default Value: `1000`.
 
-Use to specify the delay time for the mock. It can either be a fixed number or a function that returns a number.
+Use to specify the delay time for the mock. It can either be a fixed number, false or a function that returns a number.
+Setting delay to false removes the delay call completely.
 
 #### delayFunctionLazyExecute
 
@@ -1125,9 +1126,10 @@ module.exports = {
 
 ##### delay
 
-Type: `number` or `Function`.
+Type: `number`, `Function` or `false`.
 
-Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
+Give you the possibility to set delay time for mock. It can either be a fixed number, false or a function that returns a number.
+Setting delay to false removes the delay call completely.
 
 Default Value: `1000`
 
