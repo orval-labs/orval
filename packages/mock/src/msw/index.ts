@@ -94,11 +94,15 @@ const generateDefinition = (
     ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : '';
 
-  const delayTime = getDelay(override, !isFunction(mock) ? mock : undefined);
+  const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
   const handlerImplementation = `
 export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
-  return http.${verb}('${route}', async () => {
-    await delay(${isFunction(delayTime) ? `(${delayTime})()` : delayTime});
+  return http.${verb}('${route}', ${
+    delay === false
+      ? '() => {'
+      : `async () => {
+    await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+  }
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain

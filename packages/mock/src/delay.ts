@@ -5,7 +5,7 @@ export const getDelay = (
   options?: GlobalMockOptions,
 ): GlobalMockOptions['delay'] => {
   const overrideDelay =
-    typeof override?.mock?.delay === 'number'
+    override?.mock?.delay !== undefined
       ? override?.mock?.delay
       : options?.delay;
   const delayFunctionLazyExecute =
@@ -15,6 +15,7 @@ export const getDelay = (
     case 'function':
       return delayFunctionLazyExecute ? overrideDelay : overrideDelay();
     case 'number':
+    case 'boolean':
       return overrideDelay;
     default:
       return 1000;
