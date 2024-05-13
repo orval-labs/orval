@@ -1050,6 +1050,35 @@ module.exports = {
 };
 ```
 
+##### preprocess
+
+Type: `Object`.
+
+Use to add preprocess function to a zod schema. You can use a custom mutator to preprocess the data before it is validated.
+
+example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        zod: {
+          preprocess: {
+            response: {
+              name: 'stripNill',
+              path: './src/mutators.ts',
+            },
+          },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
 #### mock
 
 Type: `Object`.
