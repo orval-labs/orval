@@ -378,6 +378,13 @@ export type ZodOptions = {
     body?: boolean | ZodCoerceType[];
     response?: boolean | ZodCoerceType[];
   };
+  preprocess?: {
+    param?: Mutator;
+    query?: Mutator;
+    header?: Mutator;
+    body?: Mutator;
+    response?: Mutator;
+  };
 };
 
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
@@ -396,6 +403,13 @@ export type NormalizedZodOptions = {
     header: boolean | ZodCoerceType[];
     body: boolean | ZodCoerceType[];
     response: boolean | ZodCoerceType[];
+  };
+  preprocess: {
+    param?: NormalizedMutator;
+    query?: NormalizedMutator;
+    header?: NormalizedMutator;
+    body?: NormalizedMutator;
+    response?: NormalizedMutator;
   };
 };
 

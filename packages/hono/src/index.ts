@@ -16,6 +16,8 @@ import {
   GeneratorImport,
   getOrvalGeneratedTypes,
   jsDoc,
+  generateMutatorImports,
+  GeneratorMutator,
 } from '@orval/core';
 import { getRoute } from './route';
 import fs from 'fs-extra';
@@ -642,13 +644,6 @@ const generateZodFiles = async (
 
     return Promise.all(
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
-        let content = `${header}import { z as zod } from 'zod';\n\n`;
-
-        const zodPath =
-          output.mode === 'tags'
-            ? upath.join(dirname, `${kebab(tag)}.zod${extension}`)
-            : upath.join(dirname, tag, tag + '.zod' + extension);
-
         const zods = await Promise.all(
           verbs.map((verbOption) =>
             generateZod(
@@ -666,6 +661,27 @@ const generateZodFiles = async (
           ),
         );
 
+        const allMutators = zods.reduce(
+          (acc, z) => {
+            (z.mutators ?? []).forEach((mutator) => {
+              acc[mutator.name] = mutator;
+            });
+            return acc;
+          },
+          {} as Record<string, GeneratorMutator>,
+        );
+
+        const mutatorsImports = generateMutatorImports({
+          mutators: Object.values(allMutators),
+        });
+
+        let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+
+        const zodPath =
+          output.mode === 'tags'
+            ? upath.join(dirname, `${kebab(tag)}.zod${extension}`)
+            : upath.join(dirname, tag, tag + '.zod' + extension);
+
         content += zods.map((zod) => zod.implementation).join('\n');
 
         return {
@@ -675,10 +691,6 @@ const generateZodFiles = async (
       }),
     );
   }
-
-  let content = `${header}import { z as zod } from 'zod';\n\n`;
-
-  const zodPath = upath.join(dirname, `${filename}.zod${extension}`);
 
   const zods = await Promise.all(
     Object.values(verbOptions).map((verbOption) =>
@@ -696,6 +708,24 @@ const generateZodFiles = async (
       ),
     ),
   );
+
+  const allMutators = zods.reduce(
+    (acc, z) => {
+      (z.mutators ?? []).forEach((mutator) => {
+        acc[mutator.name] = mutator;
+      });
+      return acc;
+    },
+    {} as Record<string, GeneratorMutator>,
+  );
+
+  const mutatorsImports = generateMutatorImports({
+    mutators: Object.values(allMutators),
+  });
+
+  let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+
+  const zodPath = upath.join(dirname, `${filename}.zod${extension}`);
 
   content += zods.map((zod) => zod.implementation).join('\n');
 
