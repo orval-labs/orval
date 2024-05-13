@@ -18,7 +18,7 @@ export const getListPetsResponseMock = (): Pets =>
     tag: (() => faker.person.lastName())(),
   }));
 
-export const getShowPetByIdResponseMock = (): Pet =>
+export const getShowPetByIdResponseMock = () =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
