@@ -25,6 +25,7 @@ export const getMockScalar = ({
   combine,
   context,
   existingReferencedProperties,
+  functions,
 }: {
   item: MockSchemaObject;
   imports: GeneratorImport[];
@@ -40,6 +41,7 @@ export const getMockScalar = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  functions: string[];
 }): MockDefinition => {
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
@@ -141,6 +143,7 @@ export const getMockScalar = ({
         enums,
         imports: resolvedImports,
         name,
+        functions: funcs,
       } = resolveMockValue({
         schema: {
           ...item.items,
@@ -154,6 +157,7 @@ export const getMockScalar = ({
         context,
         imports,
         existingReferencedProperties,
+        functions,
       });
 
       if (enums) {
@@ -201,6 +205,7 @@ export const getMockScalar = ({
           `}, (_, i) => i + 1).map(() => (${mapValue}))`,
         imports: resolvedImports,
         name: item.name,
+        functions: funcs,
       };
     }
 
@@ -256,6 +261,7 @@ export const getMockScalar = ({
         context,
         imports,
         existingReferencedProperties,
+        functions,
       });
     }
   }

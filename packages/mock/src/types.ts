@@ -8,6 +8,7 @@ export interface MockDefinition {
   name: string;
   overrided?: boolean;
   includedProperties?: string[];
+  functions: string[];
 }
 
 export type MockSchemaObject = SchemaObject & {

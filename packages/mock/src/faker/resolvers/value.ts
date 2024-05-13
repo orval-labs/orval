@@ -4,11 +4,13 @@ import {
   getRefInfo,
   isReference,
   MockOptions,
+  pascal,
 } from '@orval/core';
 import get from 'lodash.get';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { getMockScalar } from '../getters/scalar';
 import { MockDefinition, MockSchemaObject } from '../../types';
+import { overrideVarName } from '../getters';
 
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
@@ -56,6 +58,7 @@ export const resolveMockValue = ({
   context,
   imports,
   existingReferencedProperties,
+  functions,
 }: {
   schema: MockSchemaObject;
   operationId: string;
@@ -70,6 +73,7 @@ export const resolveMockValue = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  functions: string[];
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
     const {
@@ -99,7 +103,24 @@ export const resolveMockValue = ({
       },
       imports,
       existingReferencedProperties,
+      functions,
     });
+    if (newSchema.allOf) {
+      const hasOverride = scalar.value.includes(overrideVarName);
+      const funcName = `get${pascal(operationId)}Response${pascal(scalar.name)}Mock`;
+      const originalValue = scalar.value;
+      scalar.value = `${funcName}(${hasOverride ? `${overrideVarName}` : ''})`;
+      if (
+        scalar.functions.some((f) => f.includes(`export const ${funcName}`))
+      ) {
+        scalar.value = `...${scalar.value}`;
+      } else {
+        const args = hasOverride ? `${overrideVarName}: any` : '';
+        const func = `export const ${funcName} = (${args}): ${scalar.name} => (${originalValue});`;
+        scalar.functions.push(func);
+      }
+      scalar.imports.push({ name: scalar.name });
+    }
 
     return {
       ...scalar,
@@ -116,6 +137,7 @@ export const resolveMockValue = ({
     context,
     imports,
     existingReferencedProperties,
+    functions,
   });
 
   return {

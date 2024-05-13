@@ -1,4 +1,5 @@
 import {
+  ClientMockGeneratorBuilder,
   generateDependencyImports,
   GenerateMockImports,
   GeneratorDependency,
@@ -9,11 +10,10 @@ import {
   isObject,
   pascal,
   ResReqTypesValue,
-  ClientMockGeneratorBuilder,
 } from '@orval/core';
+import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
-import { getDelay } from '../delay';
 
 const getMSWDependencies = (locale?: string): GeneratorDependency[] => [
   {
@@ -60,7 +60,7 @@ const generateDefinition = (
   responses: ResReqTypesValue[],
   contentTypes: string[],
 ) => {
-  const { definitions, definition, imports } = getMockDefinition({
+  const { definitions, definition, imports, functions } = getMockDefinition({
     operationId,
     tags,
     returnType,
@@ -90,9 +90,11 @@ const generateDefinition = (
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(name)}`;
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
+  const mockFunctions = functions.length ? `${functions.join('\n\n')}\n\n` : '';
+
   const mockImplementation = isReturnHttpResponse
-    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
-    : '';
+    ? `${mockFunctions}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+    : mockFunctions;
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
   const handlerImplementation = `

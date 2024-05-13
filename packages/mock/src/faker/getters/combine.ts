@@ -5,8 +5,8 @@ import {
   MockOptions,
 } from '@orval/core';
 import omit from 'lodash.omit';
+import { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
-import { MockSchemaObject } from '../../types';
 
 export const combineSchemasMock = ({
   item,
@@ -18,6 +18,7 @@ export const combineSchemasMock = ({
   context,
   imports,
   existingReferencedProperties,
+  functions,
 }: {
   item: MockSchemaObject;
   separator: 'allOf' | 'oneOf' | 'anyOf';
@@ -33,7 +34,8 @@ export const combineSchemasMock = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
-}) => {
+  functions: string[];
+}): MockDefinition => {
   let combineImports: GeneratorImport[] = [];
   let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
     0,
@@ -56,6 +58,7 @@ export const combineSchemasMock = ({
           context,
           imports,
           existingReferencedProperties,
+          functions,
         })
       : undefined;
 
@@ -93,6 +96,7 @@ export const combineSchemasMock = ({
       context,
       imports,
       existingReferencedProperties,
+      functions,
     });
 
     combineImports.push(...resolvedValue.imports);
@@ -165,5 +169,6 @@ export const combineSchemasMock = ({
     imports: combineImports,
     name: item.name,
     includedProperties,
+    functions,
   };
 };

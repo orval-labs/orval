@@ -23,6 +23,7 @@ export const getMockObject = ({
   context,
   imports,
   existingReferencedProperties,
+  functions,
 }: {
   item: MockSchemaObject;
   operationId: string;
@@ -37,6 +38,7 @@ export const getMockObject = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  functions: string[];
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
@@ -51,6 +53,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
+      functions,
     });
   }
 
@@ -66,6 +69,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
+      functions,
     });
   }
 
@@ -113,6 +117,7 @@ export const getMockObject = ({
           context,
           imports,
           existingReferencedProperties,
+          functions,
         });
 
         imports.push(...resolvedValue.imports);
@@ -170,6 +175,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
+      functions,
     });
 
     return {

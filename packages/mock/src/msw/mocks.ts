@@ -189,6 +189,7 @@ export const getResponsesMockDefinition = ({
             }
           : context,
         existingReferencedProperties: [],
+        functions: [],
       });
 
       acc.imports.push(...scalar.imports);
@@ -197,11 +198,15 @@ export const getResponsesMockDefinition = ({
           ? transformer(scalar.value, returnType)
           : scalar.value.toString(),
       );
+      if (scalar.functions) {
+        acc.functions.push(...scalar.functions);
+      }
 
       return acc;
     },
     {
       definitions: [] as string[],
+      functions: [] as string[],
       imports: [] as GeneratorImport[],
     },
   );
@@ -233,7 +238,7 @@ export const getMockDefinition = ({
     override,
   );
 
-  const { definitions, imports } = getResponsesMockDefinition({
+  const { definitions, imports, functions } = getResponsesMockDefinition({
     operationId,
     tags,
     returnType,
@@ -249,6 +254,7 @@ export const getMockDefinition = ({
     definition: '[' + definitions.join(', ') + ']',
     definitions,
     imports,
+    functions,
   };
 };
 
