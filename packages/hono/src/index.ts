@@ -178,26 +178,6 @@ const getZvalidatorImports = (verbOption: GeneratorVerbOptions) => {
   return imports.join(',\n');
 };
 
-const getHandlerFix = ({
-  rawFile,
-  content,
-}: {
-  rawFile: string;
-  content: string;
-}) => {
-  let newContent = content;
-
-  if (!rawFile.includes("import { createFactory } from 'hono/factory';")) {
-    newContent = `import { createFactory } from 'hono/factory';\n${newContent}`;
-  }
-
-  if (!rawFile.includes('const factory = createFactory();')) {
-    newContent += '\nconst factory = createFactory();';
-  }
-
-  return newContent;
-};
-
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
@@ -251,10 +231,7 @@ const generateHandlers = async (
 
         if (isExist) {
           const rawFile = await fs.readFile(handlerPath, 'utf8');
-          let content = getHandlerFix({
-            rawFile,
-            content: rawFile,
-          });
+          let content = rawFile;
 
           if (!rawFile.includes(handlerName)) {
             content += getHonoHandlers({
@@ -317,10 +294,7 @@ ${getHonoHandlers({
 
         if (isExist) {
           const rawFile = await fs.readFile(handlerPath, 'utf8');
-          let content = getHandlerFix({
-            rawFile,
-            content: rawFile,
-          });
+          let content = rawFile;
 
           content += Object.values(verbs).reduce((acc, verbOption) => {
             const handlerName = `${verbOption.operationName}Handlers`;
@@ -398,10 +372,7 @@ const factory = createFactory();`;
 
   if (isExist) {
     const rawFile = await fs.readFile(handlerPath, 'utf8');
-    let content = getHandlerFix({
-      rawFile,
-      content: rawFile,
-    });
+    let content = rawFile;
 
     content += Object.values(verbOptions).reduce((acc, verbOption) => {
       const handlerName = `${verbOption.operationName}Handlers`;
