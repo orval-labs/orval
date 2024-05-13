@@ -142,7 +142,7 @@ ${
     !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
       ? `zValidator('response', ${verbOption.operationName}Response),\n`
       : ''
-  }(c: ${contextTypeName}) => {
+  }async (c: ${contextTypeName}) => {
   
   },
 );`;
@@ -199,17 +199,14 @@ const getHandlerFix = ({
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {} as Record<string, GeneratorVerbOptions[]>);
 };
 
 const generateHandlers = async (
