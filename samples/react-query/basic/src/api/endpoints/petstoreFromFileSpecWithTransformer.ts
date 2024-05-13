@@ -72,7 +72,7 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 /**
  * @summary List all pets
  */
-export const listPets = (params?: ListPetsParams, version: number = 1) => {
+const listPets = (params?: ListPetsParams, version: number = 1) => {
   return customInstance<Pets>({
     url: `/v${version}/pets`,
     method: 'GET',
@@ -80,10 +80,7 @@ export const listPets = (params?: ListPetsParams, version: number = 1) => {
   });
 };
 
-export const getListPetsQueryKey = (
-  params?: ListPetsParams,
-  version: number = 1,
-) => {
+const getListPetsQueryKey = (params?: ListPetsParams, version: number = 1) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 

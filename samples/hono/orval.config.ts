@@ -14,6 +14,12 @@ export default defineConfig({
           strict: {
             response: true,
           },
+          preprocess: {
+            response: {
+              name: 'stripNill',
+              path: './src/mutators.ts',
+            },
+          },
         },
       },
     },

@@ -23,6 +23,8 @@ import {
   getNumberWord,
   pascal,
   ZodCoerceType,
+  generateMutator,
+  GeneratorMutator,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 
@@ -162,8 +164,8 @@ export const generateZodValidationSchemaDefinition = (
         const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
+          ? 'oneOf'
+          : 'anyOf';
 
         const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
           | SchemaObject
@@ -284,6 +286,7 @@ export type ZodValidationSchemaDefinitionInput = {
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
   coerceTypes: boolean | ZodCoerceType[] = false,
+  preprocessResponse?: GeneratorMutator,
 ): { zod: string; consts: string } => {
   if (!input.functions.length) {
     return { zod: '', consts: '' };
@@ -379,7 +382,12 @@ ${Object.entries(args)
 
   consts += input.consts.join('\n');
 
-  const value = input.functions.map(parseProperty).join('');
+  const schema = input.functions.map(parseProperty).join('');
+  const value = preprocessResponse
+    ? `.preprocess(${preprocessResponse.name}, ${
+        schema.startsWith('.') ? 'zod' : ''
+      }${schema})`
+    : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
@@ -625,9 +633,9 @@ const parseParameters = ({
   };
 };
 
-const generateZodRoute = (
+const generateZodRoute = async (
   { operationName, verb, override }: GeneratorVerbOptions,
-  { pathRoute, context }: GeneratorOptions,
+  { pathRoute, context, output }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
@@ -685,9 +693,20 @@ const generateZodRoute = (
     override.zod.coerce.body,
   );
 
+  const preprocessResponse = override.zod.preprocess?.response
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessResponse`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
   const inputResponse = parseZodValidationSchemaDefinition(
     parsedResponse.input,
     override.zod.coerce.response,
+    preprocessResponse,
   );
 
   if (
@@ -697,49 +716,59 @@ const generateZodRoute = (
     !inputBody.zod &&
     !inputResponse.zod
   ) {
-    return '';
+    return {
+      implemtation: '',
+      mutators: [],
+    };
   }
 
-  return [
-    ...(inputParams.consts ? [inputParams.consts] : []),
-    ...(inputParams.zod
-      ? [`export const ${operationName}Params = ${inputParams.zod}`]
-      : []),
-    ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
-    ...(inputQueryParams.zod
-      ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
-      : []),
-    ...(inputHeaders.consts ? [inputHeaders.consts] : []),
-    ...(inputHeaders.zod
-      ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
-      : []),
-    ...(inputBody.consts ? [inputBody.consts] : []),
-    ...(inputBody.zod
-      ? [
-          parsedPody.isArray
-            ? `export const ${operationName}BodyItem = ${inputBody.zod}
+  return {
+    implementation: [
+      ...(inputParams.consts ? [inputParams.consts] : []),
+      ...(inputParams.zod
+        ? [`export const ${operationName}Params = ${inputParams.zod}`]
+        : []),
+      ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
+      ...(inputQueryParams.zod
+        ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
+        : []),
+      ...(inputHeaders.consts ? [inputHeaders.consts] : []),
+      ...(inputHeaders.zod
+        ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
+        : []),
+      ...(inputBody.consts ? [inputBody.consts] : []),
+      ...(inputBody.zod
+        ? [
+            parsedPody.isArray
+              ? `export const ${operationName}BodyItem = ${inputBody.zod}
 export const ${operationName}Body = zod.array(${operationName}BodyItem)`
-            : `export const ${operationName}Body = ${inputBody.zod}`,
-        ]
-      : []),
-    ...(inputResponse.consts ? [inputResponse.consts] : []),
-    ...(inputResponse.zod
-      ? [
-          parsedResponse.isArray
-            ? `export const ${operationName}ResponseItem = ${inputResponse.zod}
+              : `export const ${operationName}Body = ${inputBody.zod}`,
+          ]
+        : []),
+      ...(inputResponse.consts ? [inputResponse.consts] : []),
+      ...(inputResponse.zod
+        ? [
+            parsedResponse.isArray
+              ? `export const ${operationName}ResponseItem = ${inputResponse.zod}
 export const ${operationName}Response = zod.array(${operationName}ResponseItem)`
-            : `export const ${operationName}Response = ${inputResponse.zod}`,
-        ]
-      : []),
-  ].join('\n\n');
+              : `export const ${operationName}Response = ${inputResponse.zod}`,
+          ]
+        : []),
+    ].join('\n\n'),
+    mutators: preprocessResponse ? [preprocessResponse] : [],
+  };
 };
 
-export const generateZod: ClientBuilder = (verbOptions, options) => {
-  const routeImplementation = generateZodRoute(verbOptions, options);
+export const generateZod: ClientBuilder = async (verbOptions, options) => {
+  const { implementation, mutators } = await generateZodRoute(
+    verbOptions,
+    options,
+  );
 
   return {
-    implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
+    implementation: implementation ? `${implementation}\n\n` : '',
     imports: [],
+    mutators,
   };
 };
 
