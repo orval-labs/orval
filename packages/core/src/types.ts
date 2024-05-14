@@ -361,6 +361,7 @@ export type OverrideOutputContentType = {
 
 export type NormalizedHonoOptions = {
   handlers?: string;
+  validator: boolean | 'hono';
 };
 
 export type ZodOptions = {
@@ -377,6 +378,13 @@ export type ZodOptions = {
     header?: boolean | ZodCoerceType[];
     body?: boolean | ZodCoerceType[];
     response?: boolean | ZodCoerceType[];
+  };
+  preprocess?: {
+    param?: Mutator;
+    query?: Mutator;
+    header?: Mutator;
+    body?: Mutator;
+    response?: Mutator;
   };
 };
 
@@ -397,10 +405,18 @@ export type NormalizedZodOptions = {
     body: boolean | ZodCoerceType[];
     response: boolean | ZodCoerceType[];
   };
+  preprocess: {
+    param?: NormalizedMutator;
+    query?: NormalizedMutator;
+    header?: NormalizedMutator;
+    body?: NormalizedMutator;
+    response?: NormalizedMutator;
+  };
 };
 
 export type HonoOptions = {
   handlers?: string;
+  validator?: boolean | 'hono';
 };
 
 export type NormalizedQueryOptions = {

@@ -31,7 +31,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pets'
+                $ref: '#/components/schemas/PetsArray'
         default:
           description: unexpected error
           content:
@@ -58,12 +58,39 @@ paths:
                 tag:
                   type: string
       responses:
-        '200':
-          description: Created Pet
+        '201':
+          description: Null response
+        default:
+          description: unexpected error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Pet'
+                $ref: '#/components/schemas/Error'
+  /pets-nested-array:
+    get:
+      summary: List all pets as nested array
+      operationId: listPetsNestedArray
+      tags:
+        - pets
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A paged array of pets
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetsNestedArray'
         default:
           description: unexpected error
           content:
@@ -110,16 +137,25 @@ components:
         - id
         - name
       properties:
-        '@id':
-          type: string
-          format: iri-reference
         id:
           type: integer
           format: int64
         name:
           type: string
+          description: 'Name of pet'
+          maxLength: 0
+          minLength: 40
+        age:
+          type: integer
+          format: int32
+          minimum: 0
+          maximum: 30
+          exclusiveMinimum: true
+          exclusiveMaximum: true
         tag:
           type: string
+          pattern: '^\\d{3}-\\d{2}-\\d{4}$'
+          nullable: true
         email:
           type: string
           format: email
@@ -129,8 +165,19 @@ components:
         country:
           type: string
           enum: ["People's Republic of China", 'Uruguay']
-    Pets:
+    PetsNestedArray:
+      type: object
+      required:
+        - pets
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+    PetsArray:
       type: array
+      minItems: 1
+      maxItems: 20
       items:
         $ref: '#/components/schemas/Pet'
     Error:

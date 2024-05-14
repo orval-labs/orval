@@ -21,6 +21,7 @@ import {
   NormalizedOperationOptions,
   NormalizedOptions,
   NormalizedQueryOptions,
+  NormalizedZodOptions,
   OperationOptions,
   OptionsExport,
   OutputClient,
@@ -29,6 +30,7 @@ import {
   RefComponentSuffix,
   SwaggerParserOptions,
   upath,
+  ZodOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
@@ -237,6 +239,48 @@ export const normalizeOptions = async (
             body: outputOptions.override?.zod?.coerce?.body ?? false,
             response: outputOptions.override?.zod?.coerce?.response ?? false,
           },
+          preprocess: {
+            ...(outputOptions.override?.zod?.preprocess?.param
+              ? {
+                  param: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.param,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.query
+              ? {
+                  query: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.query,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.header
+              ? {
+                  header: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.header,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.body
+              ? {
+                  body: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.body,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.response
+              ? {
+                  response: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.response,
+                  ),
+                }
+              : {}),
+          },
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -369,6 +413,48 @@ const normalizeOperationsAndTags = (
                       body: zod.coerce?.body ?? false,
                       response: zod.coerce?.response ?? false,
                     },
+                    preprocess: {
+                      ...(zod.preprocess?.param
+                        ? {
+                            param: normalizeMutator(
+                              workspace,
+                              zod.preprocess.param,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.query
+                        ? {
+                            query: normalizeMutator(
+                              workspace,
+                              zod.preprocess.query,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.header
+                        ? {
+                            header: normalizeMutator(
+                              workspace,
+                              zod.preprocess.header,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.body
+                        ? {
+                            body: normalizeMutator(
+                              workspace,
+                              zod.preprocess.body,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.response
+                        ? {
+                            response: normalizeMutator(
+                              workspace,
+                              zod.preprocess.response,
+                            ),
+                          }
+                        : {}),
+                    },
                   },
                 }
               : {}),
@@ -458,6 +544,7 @@ const normalizeHonoOptions = (
     ...(hono.handlers
       ? { handlers: upath.resolve(workspace, hono.handlers) }
       : {}),
+    validator: hono.validator ?? true,
   };
 };
 

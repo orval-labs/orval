@@ -36,7 +36,7 @@ A function that returns a mock object will be generated as shown below:
 ```typescript
 import { faker } from '@faker-js/faker';
 
-export const getShowPetByIdMock = (overrideResponse?: any) => ({
+export const getShowPetByIdMock = (overrideResponse?: Partial<Type>): Type => ({
   id: faker.number.int({ min: undefined, max: undefined }),
   name: faker.word.sample(),
   tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),

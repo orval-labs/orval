@@ -59,6 +59,7 @@ export const resolveMockValue = ({
   imports,
   existingReferencedProperties,
   functions,
+  allowOverride,
 }: {
   schema: MockSchemaObject;
   operationId: string;
@@ -74,6 +75,7 @@ export const resolveMockValue = ({
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
   functions: string[];
+  allowOverride?: boolean;
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
     const {
@@ -104,20 +106,20 @@ export const resolveMockValue = ({
       imports,
       existingReferencedProperties,
       functions,
+      allowOverride,
     });
     if (newSchema.allOf) {
-      const hasOverride = scalar.value.includes(overrideVarName);
       const funcName = `get${pascal(operationId)}Response${pascal(scalar.name)}Mock`;
       const originalValue = scalar.value;
-      scalar.value = `${funcName}(${hasOverride ? `${overrideVarName}` : ''})`;
+      scalar.value = `${funcName}(${allowOverride ? `${overrideVarName}` : ''})`;
       if (
-        scalar.functions.some((f) => f.includes(`export const ${funcName}`))
+        scalar.functions?.some((f) => f.includes(`export const ${funcName}`))
       ) {
         scalar.value = `...${scalar.value}`;
       } else {
-        const args = hasOverride ? `${overrideVarName}: any` : '';
-        const func = `export const ${funcName} = (${args}): ${scalar.name} => (${originalValue});`;
-        scalar.functions.push(func);
+        const args = `${overrideVarName}: Partial<${scalar.name}> = {}`;
+        const func = `export const ${funcName} = (${args}): ${scalar.name} => ({...${originalValue}, ...${overrideVarName}});`;
+        scalar.functions?.push(func);
       }
       scalar.imports.push({ name: scalar.name });
     }
@@ -138,6 +140,7 @@ export const resolveMockValue = ({
     imports,
     existingReferencedProperties,
     functions,
+    allowOverride,
   });
 
   return {

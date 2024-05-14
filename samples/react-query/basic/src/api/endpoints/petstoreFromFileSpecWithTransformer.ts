@@ -30,40 +30,14 @@ import type {
 import type {
   CreatePetsBody,
   Error,
+  ListPetsNestedArrayParams,
   ListPetsParams,
   Pet,
-  Pets,
+  PetsArray,
+  PetsNestedArray,
 } from '../model';
 import { customInstance } from '../mutator/custom-instance';
 import type { ErrorType } from '../mutator/custom-instance';
-
-// https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
-type IfEquals<X, Y, A = X, B = never> =
-  (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? A : B;
-
-type WritableKeys<T> = {
-  [P in keyof T]-?: IfEquals<
-    { [Q in P]: T[P] },
-    { -readonly [Q in P]: T[P] },
-    P
-  >;
-}[keyof T];
-
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I,
-) => void
-  ? I
-  : never;
-type DistributeReadOnlyOverUnions<T> = T extends any ? NonReadonly<T> : never;
-
-type Writable<T> = Pick<T, WritableKeys<T>>;
-type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
-  ? {
-      [P in keyof Writable<T>]: T[P] extends object
-        ? NonReadonly<NonNullable<T[P]>>
-        : T[P];
-    }
-  : DistributeReadOnlyOverUnions<T>;
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -72,18 +46,15 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 /**
  * @summary List all pets
  */
-export const listPets = (params?: ListPetsParams, version: number = 1) => {
-  return customInstance<Pets>({
+const listPets = (params?: ListPetsParams, version: number = 1) => {
+  return customInstance<PetsArray>({
     url: `/v${version}/pets`,
     method: 'GET',
     params,
   });
 };
 
-export const getListPetsQueryKey = (
-  params?: ListPetsParams,
-  version: number = 1,
-) => {
+const getListPetsQueryKey = (params?: ListPetsParams, version: number = 1) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 
@@ -420,7 +391,7 @@ export const createPets = (
   createPetsBody: CreatePetsBody,
   version: number = 1,
 ) => {
-  return customInstance<Pet>({
+  return customInstance<void>({
     url: `/v${version}/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -489,75 +460,105 @@ export const useCreatePets = <
 };
 
 /**
- * @summary Update a pet
+ * @summary List all pets as nested array
  */
-export const updatePets = (pet: NonReadonly<Pet>, version: number = 1) => {
-  return customInstance<Pet>({
-    url: `/v${version}/pets`,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    data: pet,
+export const listPetsNestedArray = (
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+  signal?: AbortSignal,
+) => {
+  return customInstance<PetsNestedArray>({
+    url: `/v${version}/pets-nested-array`,
+    method: 'GET',
+    params,
+    signal,
   });
 };
 
-export const getUpdatePetsMutationOptions = <
-  TError = ErrorType<Error>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updatePets>>,
-    TError,
-    { data: NonReadonly<Pet>; version?: number },
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updatePets>>,
-  TError,
-  { data: NonReadonly<Pet>; version?: number },
-  TContext
-> => {
-  const { mutation: mutationOptions } = options ?? {};
-
-  const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof updatePets>>,
-    { data: NonReadonly<Pet>; version?: number }
-  > = (props) => {
-    const { data, version } = props ?? {};
-
-    return updatePets(data, version);
-  };
-
-  return { mutationFn, ...mutationOptions };
+export const getListPetsNestedArrayQueryKey = (
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+) => {
+  return [
+    `/v${version}/pets-nested-array`,
+    ...(params ? [params] : []),
+  ] as const;
 };
 
-export type UpdatePetsMutationResult = NonNullable<
-  Awaited<ReturnType<typeof updatePets>>
+export const getListPetsNestedArrayQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listPetsNestedArray>>,
+        TError,
+        TData
+      >
+    >;
+  },
+) => {
+  const { query: queryOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsNestedArrayQueryKey(params, version);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listPetsNestedArray>>
+  > = ({ signal }) => listPetsNestedArray(params, version, signal);
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listPetsNestedArray>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListPetsNestedArrayQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPetsNestedArray>>
 >;
-export type UpdatePetsMutationBody = NonReadonly<Pet>;
-export type UpdatePetsMutationError = ErrorType<Error>;
+export type ListPetsNestedArrayQueryError = ErrorType<Error>;
 
 /**
- * @summary Update a pet
+ * @summary List all pets as nested array
  */
-export const useUpdatePets = <
+export const useListPetsNestedArray = <
+  TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = ErrorType<Error>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updatePets>>,
-    TError,
-    { data: NonReadonly<Pet>; version?: number },
-    TContext
-  >;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof updatePets>>,
-  TError,
-  { data: NonReadonly<Pet>; version?: number },
-  TContext
-> => {
-  const mutationOptions = getUpdatePetsMutationOptions(options);
+>(
+  params?: ListPetsNestedArrayParams,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listPetsNestedArray>>,
+        TError,
+        TData
+      >
+    >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+  const queryOptions = getListPetsNestedArrayQueryOptions(
+    params,
+    version,
+    options,
+  );
 
-  return useMutation(mutationOptions);
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  query.queryKey = queryOptions.queryKey;
+
+  return query;
 };
 
 /**

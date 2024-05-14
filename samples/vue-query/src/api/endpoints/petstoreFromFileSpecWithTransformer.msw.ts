@@ -8,7 +8,7 @@ import { faker } from '@faker-js/faker';
 import { HttpResponse, delay, http } from 'msw';
 import type { Pet, Pets } from '../model';
 
-export const getListPetsResponseMock = (overrideResponse: any = {}): Pets =>
+export const getListPetsResponseMock = (): Pets =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
@@ -17,10 +17,11 @@ export const getListPetsResponseMock = (overrideResponse: any = {}): Pets =>
     id: (() => faker.number.int({ min: 1, max: 99999 }))(),
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
-    ...overrideResponse,
   }));
 
-export const getCreatePetsResponseMock = (overrideResponse: any = {}): Pet => ({
+export const getCreatePetsResponseMock = (
+  overrideResponse: Partial<Pet> = {},
+): Pet => ({
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   id: faker.number.int({ min: undefined, max: undefined }),
   name: (() => faker.person.lastName())(),

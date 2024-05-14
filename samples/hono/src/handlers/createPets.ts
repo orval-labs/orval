@@ -8,5 +8,5 @@ const factory = createFactory();
 export const createPetsHandlers = factory.createHandlers(
   zValidator('json', createPetsBody),
   zValidator('response', createPetsResponse),
-  (c: CreatePetsContext) => {},
+  async (c: CreatePetsContext) => {},
 );

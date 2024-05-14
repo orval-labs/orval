@@ -93,7 +93,7 @@ const generateDefinition = (
   const mockFunctions = functions.length ? `${functions.join('\n\n')}\n\n` : '';
 
   const mockImplementation = isReturnHttpResponse
-    ? `${mockFunctions}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+    ? `${mockFunctions}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: Partial< ${returnType} > = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : mockFunctions;
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);

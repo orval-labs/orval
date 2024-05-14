@@ -190,6 +190,7 @@ export const getResponsesMockDefinition = ({
           : context,
         existingReferencedProperties: [],
         functions: [],
+        allowOverride: true,
       });
 
       acc.imports.push(...scalar.imports);

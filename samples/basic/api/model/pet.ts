@@ -4,6 +4,8 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
+import type { PetCallingCode } from './petCallingCode';
+import type { PetCountry } from './petCountry';
 
 export interface Pet {
   /**
@@ -13,6 +15,9 @@ export interface Pet {
    * @exclusiveMaximum
    */
   age?: number;
+  callingCode?: PetCallingCode;
+  country?: PetCountry;
+  email?: string;
   id: number;
   /**
    * Name of pet
