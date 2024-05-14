@@ -178,10 +178,6 @@ export const combineSchemas = ({
     return {
       value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
       imports: [
-        ...resolvedData.imports.map<GeneratorImport>((toImport) => ({
-          ...toImport,
-          values: true,
-        })),
         {
           name: pascal(name),
         },
@@ -189,7 +185,10 @@ export const combineSchemas = ({
       schemas: [
         ...resolvedData.schemas,
         {
-          imports: [],
+          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
+            ...toImport,
+            values: true,
+          })),
           model: newEnum,
           name: pascal(name),
         },

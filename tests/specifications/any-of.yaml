@@ -14,9 +14,14 @@ paths:
           in: query
           schema:
             anyOf:
-              - type: string
-                enum: ['A']
+              - $ref: '#/components/schemas/A'
               - type: string
                 enum: ['B']
               - type: string
                 enum: ['C']
+components:
+  schemas:
+    A:
+      type: string
+      enum:
+        - A
