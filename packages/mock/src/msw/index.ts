@@ -91,7 +91,7 @@ const generateDefinition = (
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
   const mockImplementation = isReturnHttpResponse
-    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: Partial< ${returnType} > = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : '';
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);

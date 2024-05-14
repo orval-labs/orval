@@ -37,8 +37,6 @@ components:
     ParentType:
       type: object
       properties:
-        value:
-          type: object
         key:
           type: string
         type:

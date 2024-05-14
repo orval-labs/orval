@@ -56,6 +56,7 @@ export const resolveMockValue = ({
   context,
   imports,
   existingReferencedProperties,
+  allowOverride,
 }: {
   schema: MockSchemaObject;
   operationId: string;
@@ -70,6 +71,7 @@ export const resolveMockValue = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  allowOverride?: boolean;
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
     const {
@@ -99,6 +101,7 @@ export const resolveMockValue = ({
       },
       imports,
       existingReferencedProperties,
+      allowOverride,
     });
 
     return {
@@ -116,6 +119,7 @@ export const resolveMockValue = ({
     context,
     imports,
     existingReferencedProperties,
+    allowOverride,
   });
 
   return {
