@@ -451,7 +451,7 @@ const generateQueryRequestFunction = (
           response.definition.success || 'unknown'
         }>();
 
-        return (\n    ${propsImplementation}\n ${
+        return useCallback((\n    ${propsImplementation}\n ${
           isRequestOptions && mutator.hasSecondArg
             ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
@@ -462,7 +462,7 @@ const generateQueryRequestFunction = (
           ${mutatorConfig},
           ${requestOptions});
         }
-      }
+      }, [${operationName}])
     `;
     }
 
