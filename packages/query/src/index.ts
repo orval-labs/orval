@@ -45,6 +45,17 @@ import {
   vueUnRefParams,
 } from './utils';
 
+const REACT_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { 
+        name: 'useCallback', values: true 
+      } 
+    ], 
+    dependency: 'react',
+  }
+]
+
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -208,11 +219,13 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.devDependencies?.['@tanstack/react-query'];
 
   return [
+    ...(hasGlobalMutator ? REACT_DEPENDENCIES : []),
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasReactQuery && !hasReactQueryV4
       ? REACT_QUERY_DEPENDENCIES_V3
       : REACT_QUERY_DEPENDENCIES),
+      
   ];
 };
 
@@ -461,8 +474,8 @@ const generateQueryRequestFunction = (
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
-        }
-      }, [${operationName}])
+        }, [${operationName}])
+      }
     `;
     }
 
