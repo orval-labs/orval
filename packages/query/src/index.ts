@@ -48,13 +48,14 @@ import {
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
-      { 
-        name: 'useCallback', values: true 
-      } 
-    ], 
+      {
+        name: 'useCallback',
+        values: true,
+      },
+    ],
     dependency: 'react',
-  }
-]
+  },
+];
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -225,7 +226,6 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     ...(hasReactQuery && !hasReactQueryV4
       ? REACT_QUERY_DEPENDENCIES_V3
       : REACT_QUERY_DEPENDENCIES),
-      
   ];
 };
 
