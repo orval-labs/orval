@@ -65,7 +65,6 @@ export const importSpecs = async (
   if (isObject(input.target)) {
     return importOpenApi({
       data: { [workspace]: input.target },
-      // @ts-expect-error // FIXME
       input,
       output,
       target: workspace,
@@ -86,7 +85,6 @@ export const importSpecs = async (
 
   return importOpenApi({
     data,
-    // @ts-expect-error // FIXME
     input,
     output,
     // @ts-expect-error // FIXME
