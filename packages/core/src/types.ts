@@ -361,6 +361,7 @@ export type OverrideOutputContentType = {
 
 export type NormalizedHonoOptions = {
   handlers?: string;
+  validator: boolean | 'hono';
 };
 
 export type ZodOptions = {
@@ -415,6 +416,7 @@ export type NormalizedZodOptions = {
 
 export type HonoOptions = {
   handlers?: string;
+  validator?: boolean | 'hono';
 };
 
 export type NormalizedQueryOptions = {

@@ -92,6 +92,13 @@ export const zValidator =
     } else {
       await next();
 
+      if (
+        c.res.status !== 200 ||
+        c.res.headers.get('Content-Type') !== 'application/json'
+      ) {
+        return;
+      }
+
       const clonedResponse = c.res.clone();
 
       let value: unknown;
@@ -100,6 +107,8 @@ export const zValidator =
       } catch {
         const message = 'Malformed JSON in response';
         c.res = new Response(message, { status: 400 });
+
+        return;
       }
 
       const result = await schema.safeParseAsync(value);

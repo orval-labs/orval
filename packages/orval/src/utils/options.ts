@@ -544,6 +544,7 @@ const normalizeHonoOptions = (
     ...(hono.handlers
       ? { handlers: upath.resolve(workspace, hono.handlers) }
       : {}),
+    validator: hono.validator ?? true,
   };
 };
 
