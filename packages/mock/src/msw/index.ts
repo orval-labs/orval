@@ -95,19 +95,23 @@ const generateDefinition = (
     : '';
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
+  const handlerHasOverride = isReturnHttpResponse && !isTextPlain;
+  const infoParam = handlerHasOverride ? 'info' : '';
   const handlerImplementation = `
-export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
+export const ${handlerName} = (${handlerHasOverride ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => ${returnType})` : ''}) => {
   return http.${verb}('${route}', ${
     delay === false
-      ? '() => {'
-      : `async () => {
+      ? `(${infoParam}) => {`
+      : `async (${infoParam}) => {
     await delay(${isFunction(delay) ? `(${delay})()` : delay});`
   }
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain
           ? `${getResponseMockFunctionName}()`
-          : `JSON.stringify(overrideResponse !== undefined ? overrideResponse : ${getResponseMockFunctionName}())`
+          : `JSON.stringify(overrideResponse !== undefined 
+            ? (typeof overrideResponse === "function" ? overrideResponse(${infoParam}) : overrideResponse) 
+            : ${getResponseMockFunctionName}())`
         : null
     },
       {
