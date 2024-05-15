@@ -95,10 +95,10 @@ const generateDefinition = (
     : '';
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
-  const handlerHasOverride = isReturnHttpResponse && !isTextPlain;
-  const infoParam = handlerHasOverride ? 'info' : '';
+  const isHandlerOverridden = isReturnHttpResponse && !isTextPlain;
+  const infoParam = isHandlerOverridden ? 'info' : '';
   const handlerImplementation = `
-export const ${handlerName} = (${handlerHasOverride ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => ${returnType})` : ''}) => {
+export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => ${returnType})` : ''}) => {
   return http.${verb}('${route}', ${
     delay === false
       ? `(${infoParam}) => {`
