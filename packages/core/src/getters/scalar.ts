@@ -1,5 +1,10 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
-import { ContextSpecs, ScalarValue, OutputClient } from '../types';
+import {
+  ContextSpecs,
+  ScalarValue,
+  OutputClient,
+  SchemaWithConst,
+} from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -25,6 +30,9 @@ export const getScalar = ({
   const nullable = item.nullable && !isAngularClient ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
+
+  const itemWithConst = item as SchemaWithConst;
+  const isConst = itemWithConst.const !== undefined;
 
   if (!item.type && item.items) {
     item.type = 'array';
@@ -101,6 +109,10 @@ export const getScalar = ({
 
       if (item.format === 'binary') {
         value = 'Blob';
+      }
+
+      if (isConst) {
+        value = `'${itemWithConst.const}'`;
       }
 
       if (context.output.override.useDates) {

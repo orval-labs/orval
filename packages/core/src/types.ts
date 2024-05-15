@@ -1037,3 +1037,7 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   importsMock: GenerateMockImports;
   extraFiles: ClientFileBuilder[];
 };
+
+export interface SchemaWithConst extends SchemaObject {
+  const: string;
+}

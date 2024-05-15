@@ -1,14 +1,15 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
-import { ContextSpecs, ScalarValue, SchemaType } from '../types';
+import {
+  ContextSpecs,
+  ScalarValue,
+  SchemaType,
+  SchemaWithConst,
+} from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
-
-interface SchemaWithConst extends SchemaObject {
-  const: string;
-}
 
 /**
  * Return the output type from an object
