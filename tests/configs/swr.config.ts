@@ -189,4 +189,15 @@ export default defineConfig({
       target: '../specifications/optional-request-body.yaml',
     },
   },
+  constants: {
+    output: {
+      target: '../generated/swr/constants/endpoints.ts',
+      schemas: '../generated/swr/constants/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/constants.yaml',
+    },
+  },
 });

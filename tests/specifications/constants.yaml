@@ -1,0 +1,60 @@
+openapi: 3.1.0
+info:
+  title: Constants
+  version: 1.0.0
+paths:
+  /api/cat:
+    get:
+      summary: sample cat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cat'
+  /api/nullable-cat:
+    get:
+      summary: sample nullable cat
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableCat'
+  /api/dog:
+    get:
+      summary: sample dog
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dog'
+components:
+  schemas:
+    Cat:
+      type: object
+      required: ['type']
+      properties:
+        type:
+          type: string
+          const: cat
+    NullableCat:
+      type: object
+      required: ['type']
+      properties:
+        type:
+          type:
+            - string
+            - 'null'
+          const: cat
+    Dog:
+      type: object
+      required: ['type']
+      properties:
+        type:
+          type: string
+          const: dog
