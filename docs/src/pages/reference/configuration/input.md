@@ -67,17 +67,25 @@ Example of transformer <a href="https://github.com/anymaniax/orval/blob/master/s
 
 Type: `Object`.
 
-If specified, Orval only generates the endpoints after applying the filter.
-It is possible to filter on `tags`.
+Default Value: `{}`.
 
-For instance the example below only generates the endpoints that contain the tag `pets`.
+If specified, Orval only generates the endpoints after applying the filter.
+
+#### tags
+
+Type: Array of `string` or `RegExp`.
+
+Default Value: `[]`.
+
+It is possible to filter on `tags`.
+For instance the example below only generates the endpoints that contain the tag `pets` or matches the regular expression `/health/`.
 
 ```js
 module.exports = {
   petstore: {
     input: {
       filters: {
-        tags: ['pets'],
+        tags: ['pets', /health/],
       },
     },
   },

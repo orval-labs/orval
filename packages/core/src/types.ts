@@ -197,7 +197,7 @@ export type InputOptions = {
   converterOptions?: swagger2openapi.Options;
   parserOptions?: SwaggerParserOptions;
   filters?: {
-    tags?: string[];
+    tags?: (string | RegExp)[];
   };
 };
 
