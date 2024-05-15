@@ -113,9 +113,7 @@ export const combineSchemasMock = ({
     }
 
     if (itemResolvedValue?.value && separator !== 'oneOf' && isLastElement) {
-      currentValue = `${currentValue ? `${currentValue},` : ''}
-        ${itemResolvedValue.value}
-      `;
+      currentValue = `${currentValue ? `${currentValue},` : ''}${itemResolvedValue.value}`;
     }
 
     const isObjectBounds =
