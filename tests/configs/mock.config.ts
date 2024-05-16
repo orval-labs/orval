@@ -104,4 +104,14 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  nullType: {
+    output: {
+      schemas: '../generated/mock/null-type/model',
+      target: '../generated/mock/null-type/endpoints.ts',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/null-type.yaml',
+    },
+  },
 });

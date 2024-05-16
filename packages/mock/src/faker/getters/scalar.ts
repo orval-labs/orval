@@ -248,7 +248,13 @@ export const getMockScalar = ({
       };
     }
 
-    case 'object':
+    case 'null':
+      return {
+        value: 'null',
+        imports: [],
+        name: item.name,
+      };
+
     default: {
       return getMockObject({
         item,
