@@ -59,9 +59,9 @@ const generateDefinition = (
   responseImports: GeneratorImport[],
   responses: ResReqTypesValue[],
   contentTypes: string[],
-  allSplitMockImplementations: string[],
+  splitMockImplementations: string[],
 ) => {
-  const splitMockImplementations = [...allSplitMockImplementations];
+  const oldSplitMockImplementations = [...splitMockImplementations];
   const { definitions, definition, imports } = getMockDefinition({
     operationId,
     tags,
@@ -71,7 +71,7 @@ const generateDefinition = (
     override,
     context,
     mockOptions: !isFunction(mock) ? mock : undefined,
-    allSplitMockImplementations: splitMockImplementations,
+    splitMockImplementations,
   });
 
   const mockData = getMockOptionsDataOverride(operationId, override);
@@ -94,9 +94,9 @@ const generateDefinition = (
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
   const addedSplitMockImplementations = splitMockImplementations.slice(
-    allSplitMockImplementations.length,
+    oldSplitMockImplementations.length,
   );
-  allSplitMockImplementations.push(...addedSplitMockImplementations);
+  splitMockImplementations.push(...addedSplitMockImplementations);
   const mockImplementations = addedSplitMockImplementations.length
     ? `//#region ${getResponseMockFunctionName} sub functions\n${addedSplitMockImplementations.join('\n\n')}\n//#endregion\n\n`
     : '';

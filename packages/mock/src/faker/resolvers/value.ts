@@ -3,14 +3,15 @@ import {
   GeneratorImport,
   getRefInfo,
   isReference,
+  isRootKey,
   MockOptions,
   pascal,
 } from '@orval/core';
 import get from 'lodash.get';
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { getMockScalar } from '../getters/scalar';
+import { SchemaObject } from 'openapi3-ts/oas30';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
+import { getMockScalar } from '../getters/scalar';
 
 const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
 
@@ -58,7 +59,7 @@ export const resolveMockValue = ({
   context,
   imports,
   existingReferencedProperties,
-  allSplitMockImplementations,
+  splitMockImplementations,
   allowOverride,
 }: {
   schema: MockSchemaObject;
@@ -74,7 +75,7 @@ export const resolveMockValue = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
-  allSplitMockImplementations: string[];
+  splitMockImplementations: string[];
   allowOverride?: boolean;
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
@@ -105,7 +106,7 @@ export const resolveMockValue = ({
       },
       imports,
       existingReferencedProperties,
-      allSplitMockImplementations,
+      splitMockImplementations,
       allowOverride,
     });
     if (
@@ -115,12 +116,12 @@ export const resolveMockValue = ({
     ) {
       const funcName = `get${pascal(operationId)}Response${pascal(newSchema.name)}Mock`;
       if (
-        !allSplitMockImplementations?.some((f) =>
+        !splitMockImplementations?.some((f) =>
           f.includes(`export const ${funcName}`),
         )
       ) {
         const discriminatedProperty = newSchema.discriminator?.propertyName;
-        if (newSchema.name === 'CaseCanceledReason') console.log(newSchema);
+
         let type = `Partial<${newSchema.name}>`;
         if (discriminatedProperty) {
           type = `Omit<${type}, '${discriminatedProperty}'>`;
@@ -131,10 +132,13 @@ export const resolveMockValue = ({
           ? `faker.helpers.arrayElement([${scalar.value}])`
           : scalar.value;
         const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({...${value}, ...${overrideVarName}});`;
-        allSplitMockImplementations?.push(func);
+        splitMockImplementations?.push(func);
       }
       scalar.value = `{...${funcName}()}`;
-      scalar.imports.push({ name: newSchema.name, specKey });
+      scalar.imports.push({
+        name: newSchema.name,
+        specKey: isRootKey(specKey, context.target) ? undefined : specKey,
+      });
     }
 
     return {
@@ -152,7 +156,7 @@ export const resolveMockValue = ({
     context,
     imports,
     existingReferencedProperties,
-    allSplitMockImplementations: allSplitMockImplementations,
+    splitMockImplementations,
     allowOverride,
   });
 

@@ -18,7 +18,7 @@ export const combineSchemasMock = ({
   context,
   imports,
   existingReferencedProperties,
-  allSplitMockImplementations,
+  splitMockImplementations,
 }: {
   item: MockSchemaObject;
   separator: 'allOf' | 'oneOf' | 'anyOf';
@@ -34,7 +34,7 @@ export const combineSchemasMock = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
-  allSplitMockImplementations: string[];
+  splitMockImplementations: string[];
 }): MockDefinition => {
   let combineImports: GeneratorImport[] = [];
   let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
@@ -58,7 +58,7 @@ export const combineSchemasMock = ({
           context,
           imports,
           existingReferencedProperties,
-          allSplitMockImplementations: allSplitMockImplementations,
+          splitMockImplementations,
         })
       : undefined;
 
@@ -96,7 +96,7 @@ export const combineSchemasMock = ({
       context,
       imports,
       existingReferencedProperties,
-      allSplitMockImplementations: allSplitMockImplementations,
+      splitMockImplementations,
     });
 
     combineImports.push(...resolvedValue.imports);
