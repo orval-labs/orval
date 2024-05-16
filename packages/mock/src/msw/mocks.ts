@@ -123,6 +123,7 @@ export const getResponsesMockDefinition = ({
   transformer,
   context,
   mockOptions,
+  allSplitMockImplementations,
 }: {
   operationId: string;
   tags: string[];
@@ -133,6 +134,7 @@ export const getResponsesMockDefinition = ({
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
+  allSplitMockImplementations: string[];
 }) => {
   // console.log(responses);
   return responses.reduce(
@@ -190,7 +192,7 @@ export const getResponsesMockDefinition = ({
             }
           : context,
         existingReferencedProperties: [],
-        splitMockImplementions: acc.functions,
+        allSplitMockImplementations: allSplitMockImplementations,
         allowOverride: true,
       });
 
@@ -205,7 +207,6 @@ export const getResponsesMockDefinition = ({
     },
     {
       definitions: [] as string[],
-      functions: [] as string[],
       imports: [] as GeneratorImport[],
     },
   );
@@ -221,6 +222,7 @@ export const getMockDefinition = ({
   transformer,
   context,
   mockOptions,
+  allSplitMockImplementations,
 }: {
   operationId: string;
   tags: string[];
@@ -231,13 +233,14 @@ export const getMockDefinition = ({
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
+  allSplitMockImplementations: string[];
 }) => {
   const mockOptionsWithoutFunc = getMockWithoutFunc(
     context.specs[context.specKey],
     override,
   );
 
-  const { definitions, imports, functions } = getResponsesMockDefinition({
+  const { definitions, imports } = getResponsesMockDefinition({
     operationId,
     tags,
     returnType,
@@ -247,13 +250,13 @@ export const getMockDefinition = ({
     transformer,
     context,
     mockOptions,
+    allSplitMockImplementations,
   });
 
   return {
     definition: '[' + definitions.join(', ') + ']',
     definitions,
     imports,
-    functions,
   };
 };
 

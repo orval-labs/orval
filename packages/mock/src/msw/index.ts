@@ -59,8 +59,10 @@ const generateDefinition = (
   responseImports: GeneratorImport[],
   responses: ResReqTypesValue[],
   contentTypes: string[],
+  allSplitMockImplementations: string[],
 ) => {
-  const { definitions, definition, imports, functions } = getMockDefinition({
+  const splitMockImplementations = [...allSplitMockImplementations];
+  const { definitions, definition, imports } = getMockDefinition({
     operationId,
     tags,
     returnType,
@@ -69,6 +71,7 @@ const generateDefinition = (
     override,
     context,
     mockOptions: !isFunction(mock) ? mock : undefined,
+    allSplitMockImplementations: splitMockImplementations,
   });
 
   const mockData = getMockOptionsDataOverride(operationId, override);
@@ -90,13 +93,17 @@ const generateDefinition = (
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(name)}`;
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
-  const mockFunctions = functions.length
-    ? `//#region ${getResponseMockFunctionName} sub functions\n${functions.join('\n\n')}\n//#endregion\n\n`
+  const addedSplitMockImplementations = splitMockImplementations.slice(
+    allSplitMockImplementations.length,
+  );
+  allSplitMockImplementations.push(...addedSplitMockImplementations);
+  const mockImplementations = addedSplitMockImplementations.length
+    ? `//#region ${getResponseMockFunctionName} sub functions\n${addedSplitMockImplementations.join('\n\n')}\n//#endregion\n\n`
     : '';
 
   const mockImplementation = isReturnHttpResponse
-    ? `${mockFunctions}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: Partial< ${returnType} > = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
-    : mockFunctions;
+    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: Partial< ${returnType} > = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+    : mockImplementations;
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
   const handlerImplementation = `
@@ -163,6 +170,8 @@ export const generateMSW = (
   const handlerName = `get${pascal(operationId)}MockHandler`;
   const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
 
+  const splitMockImplementations: string[] = [];
+
   const baseDefinition = generateDefinition(
     '',
     route,
@@ -175,6 +184,7 @@ export const generateMSW = (
     response.imports,
     response.types.success,
     response.contentTypes,
+    splitMockImplementations,
   );
 
   const mockImplementations = [baseDefinition.implementation.function];
@@ -200,6 +210,7 @@ export const generateMSW = (
           response.imports,
           [statusResponse],
           [statusResponse.contentType],
+          splitMockImplementations,
         );
         mockImplementations.push(definition.implementation.function);
         handlerImplementations.push(definition.implementation.handler);

@@ -58,7 +58,7 @@ export const resolveMockValue = ({
   context,
   imports,
   existingReferencedProperties,
-  splitMockImplementions,
+  allSplitMockImplementations,
   allowOverride,
 }: {
   schema: MockSchemaObject;
@@ -74,7 +74,7 @@ export const resolveMockValue = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
-  splitMockImplementions: string[];
+  allSplitMockImplementations: string[];
   allowOverride?: boolean;
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
@@ -105,7 +105,7 @@ export const resolveMockValue = ({
       },
       imports,
       existingReferencedProperties,
-      splitMockImplementions,
+      allSplitMockImplementations,
       allowOverride,
     });
     if (
@@ -115,7 +115,7 @@ export const resolveMockValue = ({
     ) {
       const funcName = `get${pascal(operationId)}Response${pascal(newSchema.name)}Mock`;
       if (
-        !splitMockImplementions?.some((f) =>
+        !allSplitMockImplementations?.some((f) =>
           f.includes(`export const ${funcName}`),
         )
       ) {
@@ -131,7 +131,7 @@ export const resolveMockValue = ({
           ? `faker.helpers.arrayElement([${scalar.value}])`
           : scalar.value;
         const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({...${value}, ...${overrideVarName}});`;
-        splitMockImplementions?.push(func);
+        allSplitMockImplementations?.push(func);
       }
       scalar.value = `{...${funcName}()}`;
       scalar.imports.push({ name: newSchema.name });
@@ -152,7 +152,7 @@ export const resolveMockValue = ({
     context,
     imports,
     existingReferencedProperties,
-    splitMockImplementions,
+    allSplitMockImplementations: allSplitMockImplementations,
     allowOverride,
   });
 
