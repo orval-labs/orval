@@ -134,7 +134,7 @@ export const resolveMockValue = ({
         allSplitMockImplementations?.push(func);
       }
       scalar.value = `{...${funcName}()}`;
-      scalar.imports.push({ name: newSchema.name });
+      scalar.imports.push({ name: newSchema.name, specKey });
     }
 
     return {
