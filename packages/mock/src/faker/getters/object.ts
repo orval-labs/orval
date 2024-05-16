@@ -72,6 +72,23 @@ export const getMockObject = ({
     });
   }
 
+  if (Array.isArray(item.type)) {
+    return combineSchemasMock({
+      item: {
+        anyOf: item.type.map((type) => ({ type })),
+        name: item.name,
+      },
+      separator: 'anyOf',
+      mockOptions,
+      operationId,
+      tags,
+      combine,
+      context,
+      imports,
+      existingReferencedProperties,
+    });
+  }
+
   if (item.properties) {
     let value =
       !combine ||
