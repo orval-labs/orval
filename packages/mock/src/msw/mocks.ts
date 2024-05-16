@@ -134,6 +134,7 @@ export const getResponsesMockDefinition = ({
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
 }) => {
+  // console.log(responses);
   return responses.reduce(
     (
       acc,
@@ -189,7 +190,7 @@ export const getResponsesMockDefinition = ({
             }
           : context,
         existingReferencedProperties: [],
-        functions: [],
+        splitMockImplementions: acc.functions,
         allowOverride: true,
       });
 
@@ -199,9 +200,6 @@ export const getResponsesMockDefinition = ({
           ? transformer(scalar.value, returnType)
           : scalar.value.toString(),
       );
-      if (scalar.functions) {
-        acc.functions.push(...scalar.functions);
-      }
 
       return acc;
     },

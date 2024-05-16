@@ -23,7 +23,7 @@ export const getMockObject = ({
   context,
   imports,
   existingReferencedProperties,
-  functions,
+  splitMockImplementions,
   allowOverride = false,
 }: {
   item: MockSchemaObject;
@@ -39,7 +39,7 @@ export const getMockObject = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
-  functions: string[];
+  splitMockImplementions: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
 }): MockDefinition => {
@@ -56,7 +56,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
-      functions,
+      splitMockImplementions,
     });
   }
 
@@ -72,7 +72,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
-      functions,
+      splitMockImplementions,
     });
   }
 
@@ -120,7 +120,7 @@ export const getMockObject = ({
           context,
           imports,
           existingReferencedProperties,
-          functions,
+          splitMockImplementions,
         });
 
         imports.push(...resolvedValue.imports);
@@ -180,7 +180,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
-      functions,
+      splitMockImplementions,
     });
 
     return {

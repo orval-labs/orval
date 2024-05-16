@@ -90,7 +90,9 @@ const generateDefinition = (
   const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(name)}`;
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
-  const mockFunctions = functions.length ? `${functions.join('\n\n')}\n\n` : '';
+  const mockFunctions = functions.length
+    ? `//#region ${getResponseMockFunctionName} sub functions\n${functions.join('\n\n')}\n//#endregion\n\n`
+    : '';
 
   const mockImplementation = isReturnHttpResponse
     ? `${mockFunctions}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: Partial< ${returnType} > = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
