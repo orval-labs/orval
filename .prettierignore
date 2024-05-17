@@ -6,3 +6,5 @@ node_modules
 # Build
 .next
 **/dist
+.husky
+mockServiceWorker.js
