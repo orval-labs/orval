@@ -136,7 +136,6 @@ export const getResponsesMockDefinition = ({
   mockOptions?: GlobalMockOptions;
   splitMockImplementations: string[];
 }) => {
-  // console.log(responses);
   return responses.reduce(
     (
       acc,

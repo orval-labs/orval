@@ -98,7 +98,7 @@ const generateDefinition = (
   );
   splitMockImplementations.push(...addedSplitMockImplementations);
   const mockImplementations = addedSplitMockImplementations.length
-    ? `//#region ${getResponseMockFunctionName} sub functions\n${addedSplitMockImplementations.join('\n\n')}\n//#endregion\n\n`
+    ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
     : '';
 
   const mockImplementation = isReturnHttpResponse
