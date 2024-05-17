@@ -864,7 +864,7 @@ export const zValidator =
       
       if (
         c.res.status !== 200 ||
-        c.res.headers.get('Content-Type') !== 'application/json'
+       !c.res.headers.get('Content-Type')?.includes('application/json')
       ) {
         return;
       }

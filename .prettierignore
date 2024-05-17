@@ -9,3 +9,4 @@ node_modules
 .husky
 mockServiceWorker.js
 yarn.lock
+.svelte-kit
