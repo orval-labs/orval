@@ -109,6 +109,13 @@ export const getScalar = ({
         }
       }
 
+      if (context.output.override.customStringFormatResolver && item?.format) {
+        const type = context.output.override.customStringFormatResolver(item.format);
+        if (type) {
+          value = type;
+        }
+      }
+
       return {
         value: value + nullable,
         isEnum,
