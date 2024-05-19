@@ -68,7 +68,9 @@ ${
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== null && value !== undefined) {
+    if (value === null) {
+      normalizedParams.append(key, 'null');
+    } else if (value !== undefined) {
       normalizedParams.append(key, value.toString());
     }
   });`
