@@ -25,6 +25,7 @@ export const getMockScalar = ({
   combine,
   context,
   existingReferencedProperties,
+  splitMockImplementations,
   allowOverride = false,
 }: {
   item: MockSchemaObject;
@@ -41,6 +42,7 @@ export const getMockScalar = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
 }): MockDefinition => {
@@ -157,6 +159,7 @@ export const getMockScalar = ({
         context,
         imports,
         existingReferencedProperties,
+        splitMockImplementations,
       });
 
       if (enums) {
@@ -265,6 +268,7 @@ export const getMockScalar = ({
         context,
         imports,
         existingReferencedProperties,
+        splitMockImplementations,
         allowOverride,
       });
     }
