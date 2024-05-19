@@ -1,4 +1,5 @@
 import {
+  camel,
   ClientBuilder,
   ClientDependenciesBuilder,
   ClientGeneratorsBuilder,
@@ -7,6 +8,7 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
+  GetterPropType,
   stringify,
   toObjectString,
   generateBodyOptions,
@@ -49,13 +51,47 @@ const generateRequestFunction = (
   const isFormData = override?.formData !== false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
-  const bodyForm = generateFormDataAndUrlEncodedFunction({
-    formData,
-    formUrlEncoded,
-    body,
-    isFormData,
-    isFormUrlEncoded,
-  });
+  const getUrlFnName = camel(`get-${operationName}-url`);
+  const getUrlFnProps = toObjectString(
+    props.filter(
+      (prop) =>
+        prop.type === GetterPropType.PARAM ||
+        prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+        prop.type === GetterPropType.QUERY_PARAM,
+    ),
+    'implementation',
+  );
+  const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
+${
+  queryParams
+    ? `
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== null && value !== undefined) {
+      normalizedParams.append(key, value.toString());
+    }
+  });`
+    : ''
+}
+
+  return \`${route}${queryParams ? '?${new URLSearchParams(normalizedParams).toString()}' : ''}\`
+}\n`;
+  const getUrlFnProperties = props
+    .filter(
+      (prop) =>
+        prop.type === GetterPropType.PARAM ||
+        prop.type === GetterPropType.QUERY_PARAM ||
+        prop.type === GetterPropType.NAMED_PATH_PARAMS,
+    )
+    .map((param) => {
+      if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
+        return param.destructured;
+      } else {
+        return param.name;
+      }
+    })
+    .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
   const retrunType = `Promise<${response.definition.success || 'unknown'}>`;
@@ -70,22 +106,12 @@ const generateRequestFunction = (
     isFormData,
     isFormUrlEncoded,
   );
-  const mergeRequestBodyImplementation =
-    requestBodyParams && queryParams
-      ? `const body = {...${requestBodyParams} ...params}`
-      : '';
-
-  let fetchBodyOption = '';
-  if (requestBodyParams && queryParams) {
-    fetchBodyOption = 'body: JSON.stringify(body)';
-  } else if (requestBodyParams) {
-    fetchBodyOption = `body: JSON.stringify(${requestBodyParams})`;
-  } else if (queryParams) {
-    fetchBodyOption = `body: JSON.stringify(params)`;
-  }
+  const fetchBodyOption = requestBodyParams
+    ? `body: JSON.stringify(${requestBodyParams})`
+    : '';
 
   const fetchResponseImplementation = `const res = await fetch(
-    \`${route}\`,
+    ${getUrlFnName}(${getUrlFnProperties}),
     {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
       ${isRequestOptions ? '...options,' : ''}
       ${fetchMethodOption}${fetchBodyOption ? ',' : ''}
@@ -96,12 +122,22 @@ const generateRequestFunction = (
   return res.json()
 `;
 
-  const implementationBody =
-    `${bodyForm ? `  ${bodyForm}\n` : ''}` +
-    `${mergeRequestBodyImplementation ? `  ${mergeRequestBodyImplementation}\n` : ''}` +
-    `  ${fetchResponseImplementation}`;
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
+    formData,
+    formUrlEncoded,
+    body,
+    isFormData,
+    isFormUrlEncoded,
+  });
 
-  return `export const ${operationName} = async (${args}): ${retrunType} => {\n${implementationBody}}`;
+  const fetchImplementationBody =
+    `${bodyForm ? `  ${bodyForm}\n` : ''}` + `  ${fetchResponseImplementation}`;
+  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {\n${fetchImplementationBody}}`;
+
+  const implementation =
+    `${getUrlFnImplementation}\n` + `${fetchImplementation}\n`;
+
+  return implementation;
 };
 
 export const generateClient: ClientBuilder = (verbOptions, options) => {
