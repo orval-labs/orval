@@ -38,12 +38,12 @@ The `zod` object generated automatically can be utilized in the usual manner.
 
 ```ts
 import type { z } from 'zod';
-import { createPetsBody } from './src/gen/zod/swaggerPetstore.ts';
+import { createPetsBodyItem } from './src/gen/zod/swaggerPetstore.ts';
 
 const pet = { id: 1, name: 'pet name', tag: 'tag' };
 
 // parsing
-const parsedPet = createPetsBodyItem.parse();
+const parsedPet = createPetsBodyItem.parse(pet);
 console.log(parsedPet);
 // => Object { id: 1, name: "pet name", tag: "tag" }
 
