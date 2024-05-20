@@ -121,7 +121,7 @@ export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${ret
         ? isTextPlain
           ? `${getResponseMockFunctionName}()`
           : `JSON.stringify(overrideResponse !== undefined 
-            ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
+            ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse) 
             : ${getResponseMockFunctionName}())`
         : null
     },
