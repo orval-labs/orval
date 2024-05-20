@@ -1579,6 +1579,33 @@ module.exports = {
 };
 ```
 
+#### customStringFormatResolver
+
+Type: `Function`
+
+When the examples above are not enough, and you want more control on how a format is deserialized to Javascript, you can use a resolver. The resolve is a function which takes an OpenAPI format and returns the type.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        customStringFormatResolver: (format: string) => {
+          if (format === 'date') {
+            return 'LocalDate' // This should exist in a 
+          } 
+        },
+      },
+    },
+  },
+};
+```
+
+**Note:** You will still need to serialise values to match these types by providing an Axios converter to convert to the 
+correct type at the API boundary. Follow the example under [useDates](#usedates)
+
 #### coerceTypes
 
 Type: `Boolean`
