@@ -89,6 +89,14 @@ The `--tslint`, can be used to specify `tslint` ([TSLint is deprecated in favour
 $ orval --tslint
 ```
 
+### biome
+
+The `--biome`, can be used to [`Biome`](https://biomejs.dev/) generated files. You need to have `Biome` in your global dependencies.
+
+```bash
+$ orval --biome
+```
+
 ### tsconfig
 
 The `--tsconfig`, can be used to specify the path to your `tsconfig`.
