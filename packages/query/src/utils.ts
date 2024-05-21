@@ -11,6 +11,7 @@ import {
   upath,
   GetterProps,
   GetterPropType,
+  TEMPLATE_TAG_REGEX,
 } from '@orval/core';
 import chalk from 'chalk';
 
@@ -122,7 +123,7 @@ export const wrapRouteParameters = (
   route: string,
   prepend: string,
   append: string,
-): string => route.replaceAll(/\${(.+?)}/g, `\${${prepend}$1${append}}`);
+): string => route.replaceAll(TEMPLATE_TAG_REGEX, `\${${prepend}$1${append}}`);
 
 export const makeRouteSafe = (route: string): string =>
   wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
