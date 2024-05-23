@@ -46,15 +46,23 @@ type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 /**
  * @summary List all pets
  */
-const listPets = (params?: ListPetsParams, version: number = 1) => {
+export const listPets = (
+  params?: ListPetsParams,
+  version: number = 1,
+  signal?: AbortSignal,
+) => {
   return customInstance<PetsArray>({
     url: `/v${version}/pets`,
     method: 'GET',
     params,
+    signal,
   });
 };
 
-const getListPetsQueryKey = (params?: ListPetsParams, version: number = 1) => {
+export const getListPetsQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
+) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
 
@@ -89,8 +97,12 @@ export const getListPetsInfiniteQueryOptions = <
     Awaited<ReturnType<typeof listPets>>,
     QueryKey,
     ListPetsParams['limit']
-  > = ({ pageParam }) =>
-    listPets({ ...params, limit: pageParam || params?.['limit'] }, version);
+  > = ({ signal, pageParam }) =>
+    listPets(
+      { ...params, limit: pageParam || params?.['limit'] },
+      version,
+      signal,
+    );
 
   return {
     queryKey,
@@ -170,8 +182,9 @@ export const getListPetsQueryOptions = <
   const queryKey =
     queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = () =>
-    listPets(params, version);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    signal,
+  }) => listPets(params, version, signal);
 
   return {
     queryKey,
@@ -235,8 +248,9 @@ export const getListPetsSuspenseQueryOptions = <
   const queryKey =
     queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
 
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = () =>
-    listPets(params, version);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    signal,
+  }) => listPets(params, version, signal);
 
   return {
     queryKey,
@@ -321,8 +335,12 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
     Awaited<ReturnType<typeof listPets>>,
     QueryKey,
     ListPetsParams['limit']
-  > = ({ pageParam }) =>
-    listPets({ ...params, limit: pageParam || params?.['limit'] }, version);
+  > = ({ signal, pageParam }) =>
+    listPets(
+      { ...params, limit: pageParam || params?.['limit'] },
+      version,
+      signal,
+    );
 
   return {
     queryKey,
