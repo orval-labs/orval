@@ -7,14 +7,14 @@ import {
   mergeDeep,
   MockOptions,
 } from '@orval/core';
+import { MockDefinition, MockSchemaObject } from '../../types';
+import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
-import { MockDefinition, MockSchemaObject } from '../../types';
 import { getMockObject } from './object';
-import { DEFAULT_FORMAT_MOCK } from '../constants';
 
 export const getMockScalar = ({
   item,
@@ -241,6 +241,8 @@ export const getMockScalar = ({
         value = item.path?.endsWith('[]')
           ? `faker.helpers.arrayElements(${enumValue})`
           : `faker.helpers.arrayElement(${enumValue})`;
+      } else if (item.pattern) {
+        value = `faker.helpers.fromRegExp('${item.pattern}')`;
       }
 
       return {
