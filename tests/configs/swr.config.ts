@@ -189,4 +189,18 @@ export default defineConfig({
       target: '../specifications/optional-request-body.yaml',
     },
   },
+  pattern: {
+    output: {
+      target: '../generated/swr/pattern/endpoints.ts',
+      schemas: '../generated/swr/pattern/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/pattern.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });
