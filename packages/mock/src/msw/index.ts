@@ -184,7 +184,7 @@ export const generateMSW = (
     generatorVerbOptions,
     generatorOptions,
     response.definition.success,
-    '200',
+    response.types.success[0].key,
     response.imports,
     response.types.success,
     response.contentTypes,
