@@ -109,7 +109,7 @@ const generateDefinition = (
   const isHandlerOverridden = isReturnHttpResponse && !isTextPlain;
   const infoParam = isHandlerOverridden ? 'info' : '';
   const handlerImplementation = `
-export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => ${returnType})` : ''}) => {
+export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})` : ''}) => {
   return http.${verb}('${route}', ${
     delay === false
       ? `(${infoParam}) => {`
@@ -121,7 +121,7 @@ export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${ret
         ? isTextPlain
           ? `${getResponseMockFunctionName}()`
           : `JSON.stringify(overrideResponse !== undefined 
-            ? (typeof overrideResponse === "function" ? overrideResponse(${infoParam}) : overrideResponse) 
+            ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse) 
             : ${getResponseMockFunctionName}())`
         : null
     },
