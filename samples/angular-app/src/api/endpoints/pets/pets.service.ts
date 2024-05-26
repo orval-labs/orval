@@ -39,7 +39,8 @@ type HttpClientOptions = {
 
 @Injectable({ providedIn: 'root' })
 export class PetsService {
-  constructor(private http: HttpClient) {} /**
+  constructor(private http: HttpClient) {}
+  /**
    * @summary List all pets
    */
   listPets<TData = Pets>(params?: ListPetsParams, version: number = 1) {

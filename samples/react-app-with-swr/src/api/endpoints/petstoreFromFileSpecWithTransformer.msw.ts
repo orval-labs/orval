@@ -41,7 +41,9 @@ export const getShowPetByIdResponseMock = () =>
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Pets),
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Pets> | Pets),
 ) => {
   return http.get('*/v:version/pets', async (info) => {
     await delay(1000);
@@ -49,7 +51,7 @@ export const getListPetsMockHandler = (
       JSON.stringify(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
-            ? overrideResponse(info)
+            ? await overrideResponse(info)
             : overrideResponse
           : getListPetsResponseMock(),
       ),
@@ -66,7 +68,9 @@ export const getListPetsMockHandler = (
 export const getCreatePetsMockHandler = (
   overrideResponse?:
     | Pet
-    | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Pet),
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<Pet> | Pet),
 ) => {
   return http.post('*/v:version/pets', async (info) => {
     await delay(1000);
@@ -74,7 +78,7 @@ export const getCreatePetsMockHandler = (
       JSON.stringify(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
-            ? overrideResponse(info)
+            ? await overrideResponse(info)
             : overrideResponse
           : getCreatePetsResponseMock(),
       ),
@@ -91,7 +95,9 @@ export const getCreatePetsMockHandler = (
 export const getShowPetByIdMockHandler = (
   overrideResponse?:
     | Pet
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Pet),
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Pet> | Pet),
 ) => {
   return http.get('*/v:version/pets/:petId', async (info) => {
     await delay(1000);
@@ -99,7 +105,7 @@ export const getShowPetByIdMockHandler = (
       JSON.stringify(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
-            ? overrideResponse(info)
+            ? await overrideResponse(info)
             : overrideResponse
           : getShowPetByIdResponseMock(),
       ),
