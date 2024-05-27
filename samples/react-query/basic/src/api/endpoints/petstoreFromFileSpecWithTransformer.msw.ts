@@ -80,7 +80,9 @@ export const getShowPetByIdResponseMock = () =>
 export const getListPetsMockHandler = (
   overrideResponse?:
     | PetsArray
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => PetsArray),
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<PetsArray> | PetsArray),
 ) => {
   return http.get('*/v:version/pets', async (info) => {
     await delay(1000);
@@ -88,7 +90,7 @@ export const getListPetsMockHandler = (
       JSON.stringify(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
-            ? overrideResponse(info)
+            ? await overrideResponse(info)
             : overrideResponse
           : getListPetsResponseMock(),
       ),
@@ -106,7 +108,7 @@ export const getCreatePetsMockHandler = () => {
   return http.post('*/v:version/pets', async () => {
     await delay(1000);
     return new HttpResponse(null, {
-      status: 200,
+      status: 201,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -119,7 +121,7 @@ export const getListPetsNestedArrayMockHandler = (
     | PetsNestedArray
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => PetsNestedArray),
+      ) => Promise<PetsNestedArray> | PetsNestedArray),
 ) => {
   return http.get('*/v:version/pets-nested-array', async (info) => {
     await delay(1000);
@@ -127,7 +129,7 @@ export const getListPetsNestedArrayMockHandler = (
       JSON.stringify(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
-            ? overrideResponse(info)
+            ? await overrideResponse(info)
             : overrideResponse
           : getListPetsNestedArrayResponseMock(),
       ),
@@ -144,7 +146,9 @@ export const getListPetsNestedArrayMockHandler = (
 export const getShowPetByIdMockHandler = (
   overrideResponse?:
     | Pet
-    | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Pet),
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Pet> | Pet),
 ) => {
   return http.get('*/v:version/pets/:petId', async (info) => {
     await delay(1000);
@@ -152,7 +156,7 @@ export const getShowPetByIdMockHandler = (
       JSON.stringify(
         overrideResponse !== undefined
           ? typeof overrideResponse === 'function'
-            ? overrideResponse(info)
+            ? await overrideResponse(info)
             : overrideResponse
           : getShowPetByIdResponseMock(),
       ),

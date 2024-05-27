@@ -86,7 +86,7 @@ export const getListPetsInfiniteQueryOptions = <
     ListPetsParams['limit']
   > = ({ signal, pageParam }) =>
     listPets(
-      { ...params, limit: pageParam || unref(params)?.['limit'] },
+      { ...unref(params), limit: pageParam || unref(params)?.['limit'] },
       version,
       signal,
     );
@@ -298,9 +298,7 @@ export const showPetById = (
   version = unref(version);
 
   return customInstance<Pet>({
-    url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(
-      String(petId),
-    )}`,
+    url: `/v${encodeURIComponent(String(version))}/pets/${encodeURIComponent(String(petId))}`,
     method: 'GET',
     signal,
   });
