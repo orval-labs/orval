@@ -105,6 +105,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('required', () => {
     const result = generateZodValidationSchemaDefinition(
       deepRequiredSchema,
+      {
+        output: undefined,
+        specKey: '',
+        specs: undefined,
+        target: '',
+        workspace: '',
+      },
       true,
       'strict',
       true,
@@ -149,6 +156,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('generates a strict zod schema', () => {
     const result = generateZodValidationSchemaDefinition(
       objectIntoObjectSchema,
+      {
+        output: undefined,
+        specKey: '',
+        specs: undefined,
+        target: '',
+        workspace: '',
+      },
       true,
       'strict',
       true,

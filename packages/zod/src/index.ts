@@ -73,6 +73,7 @@ const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
 
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
+  context: ContextSpecs,
   _required: boolean | undefined,
   name: string,
   strict: boolean,
@@ -118,6 +119,7 @@ export const generateZodValidationSchemaDefinition = (
         'array',
         generateZodValidationSchemaDefinition(
           items,
+          context,
           true,
           camel(`${name}-item`),
           strict,
@@ -130,16 +132,23 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'date') {
+        if (!context.output.override.useDates) {
+          functions.push([type as string, undefined]);
+        }
         functions.push(['date', undefined]);
         break;
       }
 
-      functions.push([type as string, undefined]);
-
       if (schema.format === 'date-time') {
-        functions.push(['datetime', undefined]);
+        if (!context.output.override.useDates) {
+          functions.push([type as string, undefined], ['datetime', undefined]);
+        } else {
+          functions.push(['date', undefined]);
+        }
         break;
       }
+
+      functions.push([type as string, undefined]);
 
       if (schema.format === 'email') {
         functions.push(['email', undefined]);
@@ -177,6 +186,7 @@ export const generateZodValidationSchemaDefinition = (
           schemas.map((schema) =>
             generateZodValidationSchemaDefinition(
               schema as SchemaObject,
+              context,
               true,
               camel(name),
               strict,
@@ -193,6 +203,7 @@ export const generateZodValidationSchemaDefinition = (
             .map((key) => ({
               [key]: generateZodValidationSchemaDefinition(
                 schema.properties?.[key] as any,
+                context,
                 schema.required?.includes(key),
                 camel(`${name}-${key}`),
                 strict,
@@ -215,6 +226,7 @@ export const generateZodValidationSchemaDefinition = (
             ? schema.additionalProperties
             : generateZodValidationSchemaDefinition(
                 schema.additionalProperties as SchemaObject,
+                context,
                 true,
                 name,
                 strict,
@@ -474,6 +486,7 @@ const parseBodyAndResponse = ({
     return {
       input: generateZodValidationSchemaDefinition(
         resolvedJsonSchema.items as SchemaObject,
+        context,
         true,
         name,
         strict,
@@ -485,6 +498,7 @@ const parseBodyAndResponse = ({
   return {
     input: generateZodValidationSchemaDefinition(
       resolvedJsonSchema,
+      context,
       true,
       name,
       strict,
@@ -549,6 +563,7 @@ const parseParameters = ({
 
       const definition = generateZodValidationSchemaDefinition(
         schema,
+        context,
         parameter.required,
         camel(`${operationName}-${parameter.in}-${parameter.name}`),
         mapStrict[parameter.in as 'path' | 'query' | 'header'] ?? false,
@@ -654,7 +669,7 @@ const generateZodRoute = async (
     strict: override.zod.strict.response,
   });
 
-  const parsedPody = parseBodyAndResponse({
+  const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
     name: camel(`${operationName}-body`),
@@ -689,7 +704,7 @@ const generateZodRoute = async (
   );
 
   const inputBody = parseZodValidationSchemaDefinition(
-    parsedPody.input,
+    parsedBody.input,
     override.zod.coerce.body,
   );
 
@@ -739,7 +754,7 @@ const generateZodRoute = async (
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
-            parsedPody.isArray
+            parsedBody.isArray
               ? `export const ${operationName}BodyItem = ${inputBody.zod}
 export const ${operationName}Body = zod.array(${operationName}BodyItem)`
               : `export const ${operationName}Body = ${inputBody.zod}`,
