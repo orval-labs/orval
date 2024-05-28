@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.html",
   "scripts": {
-    "generate": "run-p generate:*",
+    "generate": "run-p 'generate:*'",
     "orval": "node ../packages/orval/dist/bin/orval.js",
     "generate:cli": "yarn orval --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",
     "generate:default": "yarn orval --config ./configs/default.config.ts",
