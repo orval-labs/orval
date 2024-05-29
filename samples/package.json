@@ -10,6 +10,6 @@
     "turbo": "^1.13.3"
   },
   "scripts": {
-    "generate-api": "turbo run generate-api --filter=!nx-fastify-react"
+    "generate-api": "turbo run generate-api"
   }
 }
