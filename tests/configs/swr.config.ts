@@ -59,7 +59,7 @@ export default defineConfig({
       mock: true,
       override: {
         mutator: {
-          path: '../mutators/custom-instance.ts',
+          path: '../mutators/multi-arguments.ts',
           name: 'customInstance',
         },
       },
@@ -73,8 +73,8 @@ export default defineConfig({
   },
   customClient: {
     output: {
-      target: '../generated/swr/mutator/endpoints.ts',
-      schemas: '../generated/swr/mutator/model',
+      target: '../generated/swr/custom-client/endpoints.ts',
+      schemas: '../generated/swr/custom-client/model',
       client: 'swr',
       mock: true,
       override: {
