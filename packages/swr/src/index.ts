@@ -552,7 +552,7 @@ const generateSwrHook = (
     summary,
     deprecated,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const doc = jsDoc({ summary, deprecated });
@@ -695,8 +695,15 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = mutator
       ? `Promise<${response.definition.success || 'unknown'}>`
       : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
+    const swrMutationFetcherOptionType = !mutator
+      ? 'AxiosRequestConfig'
+      : mutator.hasSecondArg
+        ? `SecondParameter<typeof ${mutator.name}>`
+        : '';
     const swrMutationFetcherOptions =
-      !mutator && isRequestOptions ? 'options?: AxiosRequestConfig' : '';
+      isRequestOptions && swrMutationFetcherOptionType
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: ${swrMutationFetcherOptionType}`
+        : '';
 
     const swrMutationFetcherArg = props.some(
       (prop) => prop.type === GetterPropType.BODY,
