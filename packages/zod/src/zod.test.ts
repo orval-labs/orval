@@ -5,6 +5,7 @@ import {
   generateZodValidationSchemaDefinition,
 } from '.';
 import { SchemaObject } from 'openapi3-ts/oas30';
+import { ContextSpecs } from '@orval/core';
 
 const queryParams: ZodValidationSchemaDefinitionInput = {
   functions: [
@@ -46,6 +47,13 @@ describe('parseZodValidationSchemaDefinition', () => {
     it('does not emit coerced zod property schemas', () => {
       const parseResult = parseZodValidationSchemaDefinition(
         queryParams,
+        {
+          output: {
+            override: {
+              useDates: false,
+            },
+          },
+        } as ContextSpecs,
         false,
       );
 
@@ -57,7 +65,17 @@ describe('parseZodValidationSchemaDefinition', () => {
 
   describe('with `override.coerceTypes = true`', () => {
     it('emits coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(queryParams, true);
+      const parseResult = parseZodValidationSchemaDefinition(
+        queryParams,
+        {
+          output: {
+            override: {
+              useDates: false,
+            },
+          },
+        } as ContextSpecs,
+        true,
+      );
 
       expect(parseResult.zod).toBe(
         'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
@@ -105,6 +123,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('required', () => {
     const result = generateZodValidationSchemaDefinition(
       deepRequiredSchema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
       true,
       'strict',
       true,
@@ -149,6 +174,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('generates a strict zod schema', () => {
     const result = generateZodValidationSchemaDefinition(
       objectIntoObjectSchema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
       true,
       'strict',
       true,
