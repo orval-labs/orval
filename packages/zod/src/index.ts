@@ -131,24 +131,25 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
+      if (
+        context.output.override.useDates &&
+        (schema.format === 'date' || schema.format === 'date-time')
+      ) {
+        functions.push(['date', undefined]);
+        break;
+      }
+
+      functions.push([type as string, undefined]);
+
       if (schema.format === 'date') {
-        if (!context.output.override.useDates) {
-          functions.push([type as string, undefined]);
-        }
         functions.push(['date', undefined]);
         break;
       }
 
       if (schema.format === 'date-time') {
-        if (!context.output.override.useDates) {
-          functions.push([type as string, undefined], ['datetime', undefined]);
-        } else {
-          functions.push(['date', undefined]);
-        }
+        functions.push(['datetime', undefined]);
         break;
       }
-
-      functions.push([type as string, undefined]);
 
       if (schema.format === 'email') {
         functions.push(['email', undefined]);
@@ -297,6 +298,7 @@ export type ZodValidationSchemaDefinitionInput = {
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
+  contex: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
   preprocessResponse?: GeneratorMutator,
 ): { zod: string; consts: string } => {
@@ -380,11 +382,15 @@ ${Object.entries(args)
       return '.strict()';
     }
 
-    if (
+    const shouldCoerceType =
       coerceTypes &&
       (Array.isArray(coerceTypes)
         ? coerceTypes.includes(fn as ZodCoerceType)
-        : COERCEABLE_TYPES.includes(fn))
+        : COERCEABLE_TYPES.includes(fn));
+
+    if (
+      (fn !== 'date' && shouldCoerceType) ||
+      (fn === 'date' && shouldCoerceType && contex.output.override.useDates)
     ) {
       return `.coerce.${fn}(${args})`;
     }
@@ -656,6 +662,8 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
+  override.useDates;
+
   const parameters = spec?.[verb]?.parameters;
   const requestBody = spec?.[verb]?.requestBody;
   const response = spec?.[verb]?.responses?.['200'] as
@@ -685,6 +693,7 @@ const generateZodRoute = async (
 
   const inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
+    context,
     override.zod.coerce.param,
   );
 
@@ -696,15 +705,18 @@ const generateZodRoute = async (
 
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
+    context,
     override.zod.coerce.query ?? override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
     parsedParameters.headers,
+    context,
     override.zod.coerce.header,
   );
 
   const inputBody = parseZodValidationSchemaDefinition(
     parsedBody.input,
+    context,
     override.zod.coerce.body,
   );
 
@@ -720,6 +732,7 @@ const generateZodRoute = async (
 
   const inputResponse = parseZodValidationSchemaDefinition(
     parsedResponse.input,
+    context,
     override.zod.coerce.response,
     preprocessResponse,
   );
