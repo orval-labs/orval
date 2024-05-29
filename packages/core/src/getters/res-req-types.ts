@@ -95,6 +95,9 @@ export const getResReqTypes = (
                 ...context,
                 specKey: specKey || context.specKey,
               },
+              isRequestBodyOptional:
+                // Even though required is false by default, we only consider required to be false if specified. (See pull 1277)
+                'required' in bodySchema && bodySchema.required === false,
               isRef: true,
             })
           : undefined;
@@ -107,6 +110,8 @@ export const getResReqTypes = (
                 ...context,
                 specKey: specKey || context.specKey,
               },
+              isRequestBodyOptional:
+                'required' in bodySchema && bodySchema.required === false,
               isUrlEncoded: true,
               isRef: true,
             })
@@ -170,6 +175,8 @@ export const getResReqTypes = (
                   name: propName,
                   schemaObject: mediaType.schema!,
                   context,
+                  isRequestBodyOptional:
+                    'required' in res && res.required === false,
                 })
               : undefined;
 
@@ -179,6 +186,8 @@ export const getResReqTypes = (
                   schemaObject: mediaType.schema!,
                   context,
                   isUrlEncoded: true,
+                  isRequestBodyOptional:
+                    'required' in res && res.required === false,
                 })
               : undefined;
 
@@ -224,12 +233,14 @@ const getSchemaFormDataAndUrlEncoded = ({
   name,
   schemaObject,
   context,
+  isRequestBodyOptional,
   isUrlEncoded,
   isRef,
 }: {
   name: string;
   schemaObject: SchemaObject | ReferenceObject;
   context: ContextSpecs;
+  isRequestBodyOptional: boolean;
   isUrlEncoded?: boolean;
   isRef?: boolean;
 }) => {
@@ -256,12 +267,22 @@ const getSchemaFormDataAndUrlEncoded = ({
             context,
           );
 
-          return resolveSchemaPropertiesToFormData({
-            schema: combinedSchema,
-            variableName,
-            propName: shouldCast ? `(${propName} as any)` : propName,
-            context,
-          });
+          const newPropName = shouldCast
+            ? `${propName}${pascal(imports[0].name)}`
+            : propName;
+          const newPropDefinition = shouldCast
+            ? `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`
+            : '';
+          return (
+            newPropDefinition +
+            resolveSchemaPropertiesToFormData({
+              schema: combinedSchema,
+              variableName,
+              propName: newPropName,
+              context,
+              isRequestBodyOptional,
+            })
+          );
         })
         .filter((x) => x)
         .join('\n');
@@ -275,6 +296,7 @@ const getSchemaFormDataAndUrlEncoded = ({
         variableName,
         propName,
         context,
+        isRequestBodyOptional,
       });
 
       form += formDataValues;
@@ -303,11 +325,13 @@ const resolveSchemaPropertiesToFormData = ({
   variableName,
   propName,
   context,
+  isRequestBodyOptional,
 }: {
   schema: SchemaObject;
   variableName: string;
   propName: string;
   context: ContextSpecs;
+  isRequestBodyOptional: boolean;
 }) => {
   const formDataValues = Object.entries(schema.properties ?? {}).reduce(
     (acc, [key, value]) => {
@@ -315,27 +339,34 @@ const resolveSchemaPropertiesToFormData = ({
 
       let formDataValue = '';
 
-      const formatedKey = !keyword.isIdentifierNameES5(key)
+      const formattedKeyPrefix = !isRequestBodyOptional
+        ? ''
+        : !keyword.isIdentifierNameES5(key)
+          ? '?.'
+          : '?';
+      const formattedKey = !keyword.isIdentifierNameES5(key)
         ? `['${key}']`
         : `.${key}`;
 
-      const valueKey = `${propName}${formatedKey}`;
+      const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
+      const nonOptionalValueKey = `${propName}${formattedKey}`;
 
       if (property.type === 'object') {
-        formDataValue = `${variableName}.append('${key}', JSON.stringify(${valueKey}));\n`;
+        formDataValue = `${variableName}.append('${key}', JSON.stringify(${nonOptionalValueKey}));\n`;
       } else if (property.type === 'array') {
-        formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
+        formDataValue = `${nonOptionalValueKey}.forEach(value => ${variableName}.append('${key}', value));\n`;
       } else if (
         property.type === 'number' ||
         property.type === 'integer' ||
         property.type === 'boolean'
       ) {
-        formDataValue = `${variableName}.append('${key}', ${valueKey}.toString())\n`;
+        formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
       } else {
-        formDataValue = `${variableName}.append('${key}', ${valueKey})\n`;
+        formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey})\n`;
       }
 
-      const isRequired = schema.required?.includes(key);
+      const isRequired =
+        schema.required?.includes(key) && !isRequestBodyOptional;
 
       if (property.nullable) {
         if (isRequired) {
@@ -344,7 +375,7 @@ const resolveSchemaPropertiesToFormData = ({
 
         return (
           acc +
-          `if(${valueKey} !== undefined && ${valueKey} !== null) {\n ${formDataValue} }\n`
+          `if(${valueKey} !== undefined && ${nonOptionalValueKey} !== null) {\n ${formDataValue} }\n`
         );
       }
 

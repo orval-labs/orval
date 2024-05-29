@@ -203,4 +203,18 @@ export default defineConfig({
       },
     },
   },
+  formData: {
+    output: {
+      target: '../generated/swr/form-data-optional-request/endpoints.ts',
+      schemas: '../generated/swr/form-data-optional-request/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/form-data-optional-request.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });
