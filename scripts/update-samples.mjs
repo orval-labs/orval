@@ -37,8 +37,6 @@ result += await $`cd ./samples/vue-query && yarn && yarn generate-api`;
  */
 // result += await $`cd ./samples/vue-query-useNamedParameters && yarn && yarn generate-api`; // TODO: enable this once useNamedParameters actually works with vue-query reactivity
 
-// result += await $`cd ./samples/nx-fastify-react && yarn && yarn generate-api`; // TODO: Fix error `Cannot send the message - the message port has been closed for the process 5163` and re-enable
-
 if (result.includes('🛑')) {
   throw new Error('Unable to update some samples, see log above for details.');
 }
