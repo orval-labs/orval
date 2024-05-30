@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "generate-api": "node ../../packages/orval/dist/bin/orval.js",
-    "example": "run-p example:*",
+    "example": "run-p 'example:*'",
     "example:basic": "node ../../packages/orval/dist/bin/orval.js --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
     "example:config": "node ../../packages/orval/dist/bin/orval.js"
   },
