@@ -113,10 +113,12 @@ const getApiSchemas = ({
         output,
       };
 
+      const parsedSchemas = spec.openapi
+        ? (spec.components?.schemas as SchemasObject)
+        : getAllSchemas(spec, specKey);
+
       const schemaDefinition = generateSchemasDefinition(
-        !spec.openapi
-          ? getAllSchemas(spec, specKey)
-          : (spec.components?.schemas as SchemasObject),
+        parsedSchemas,
         context,
         output.override.components.schemas.suffix,
       );
