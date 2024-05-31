@@ -154,6 +154,7 @@ export type NormalizedInputOptions = {
   parserOptions: SwaggerParserOptions;
   filters?: {
     tags?: (string | RegExp)[];
+    schemas?: (string | RegExp)[];
   };
 };
 
@@ -198,6 +199,7 @@ export type InputOptions = {
   parserOptions?: SwaggerParserOptions;
   filters?: {
     tags?: (string | RegExp)[];
+    schemas?: (string | RegExp)[];
   };
 };
 
