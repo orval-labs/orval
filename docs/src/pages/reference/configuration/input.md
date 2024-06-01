@@ -92,6 +92,25 @@ module.exports = {
 };
 ```
 
+#### schemas
+
+Type: Array of `string` or `RegExp`.
+
+Only schemas names match the specified `string` or `RegExp` will be automatically generated.
+For instance the example below only generates the `schema` object that matches string `Error` or regular expression `/Cat/`.
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      filters: {
+        schemas: ['Error', /Cat/],
+      },
+    },
+  },
+};
+```
+
 ### converterOptions
 
 Type: `Object`.

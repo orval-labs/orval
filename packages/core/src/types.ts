@@ -152,9 +152,7 @@ export type NormalizedInputOptions = {
   override: OverrideInput;
   converterOptions: swagger2openapi.Options;
   parserOptions: SwaggerParserOptions;
-  filters?: {
-    tags?: (string | RegExp)[];
-  };
+  filters?: InputFiltersOption;
 };
 
 export type OutputClientFunc = (
@@ -190,15 +188,18 @@ export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
   validate?: boolean;
 };
 
+export type InputFiltersOption = {
+  tags?: (string | RegExp)[];
+  schemas?: (string | RegExp)[];
+};
+
 export type InputOptions = {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation?: boolean;
   override?: OverrideInput;
   converterOptions?: swagger2openapi.Options;
   parserOptions?: SwaggerParserOptions;
-  filters?: {
-    tags?: (string | RegExp)[];
-  };
+  filters?: InputFiltersOption;
 };
 
 export const OutputClient = {
