@@ -11,7 +11,7 @@
     "build": "tsup ./src/index.ts --target node12 --clean --dts --sourcemap",
     "dev": "tsup ./src/index.ts --target node12 --clean --watch --sourcemap src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest --global test.ts"
+    "test": "vitest run test.ts --global"
   },
   "dependencies": {
     "@orval/core": "6.29.1",
