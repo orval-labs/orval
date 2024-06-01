@@ -25,6 +25,7 @@ import {
   ZodCoerceType,
   generateMutator,
   GeneratorMutator,
+  GlobalMockOptions,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 
@@ -662,21 +663,15 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
-  override.useDates;
-
   const parameters = spec?.[verb]?.parameters;
-  const requestBody = spec?.[verb]?.requestBody;
-  const response = spec?.[verb]?.responses?.['200'] as
-    | ResponseObject
-    | ReferenceObject;
-
-  const parsedResponse = parseBodyAndResponse({
-    data: response,
+  const parsedParameters = parseParameters({
+    data: parameters,
     context,
-    name: camel(`${operationName}-response`),
-    strict: override.zod.strict.response,
+    operationName,
+    strict: override.zod.strict,
   });
 
+  const requestBody = spec?.[verb]?.requestBody;
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
@@ -684,12 +679,19 @@ const generateZodRoute = async (
     strict: override.zod.strict.body,
   });
 
-  const parsedParameters = parseParameters({
-    data: parameters,
-    context,
-    operationName,
-    strict: override.zod.strict,
-  });
+  const responses = (
+    (context.output.mock as GlobalMockOptions)?.generateEachHttpStatus
+      ? Object.entries(spec?.[verb]?.responses ?? {})
+      : [['', spec?.[verb]?.responses[200]]]
+  ) as [string, ResponseObject | ReferenceObject][];
+  const parsedResponses = responses.map(([code, response]) =>
+    parseBodyAndResponse({
+      data: response,
+      context,
+      name: camel(`${operationName}-${code}-response`),
+      strict: override.zod.strict.response,
+    }),
+  );
 
   const inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
@@ -730,11 +732,13 @@ const generateZodRoute = async (
       })
     : undefined;
 
-  const inputResponse = parseZodValidationSchemaDefinition(
-    parsedResponse.input,
-    context,
-    override.zod.coerce.response,
-    preprocessResponse,
+  const inputResponses = parsedResponses.map((parsedResponse) =>
+    parseZodValidationSchemaDefinition(
+      parsedResponse.input,
+      context,
+      override.zod.coerce.response,
+      preprocessResponse,
+    ),
   );
 
   if (
@@ -742,7 +746,7 @@ const generateZodRoute = async (
     !inputQueryParams.zod &&
     !inputHeaders.zod &&
     !inputBody.zod &&
-    !inputResponse.zod
+    !inputResponses.some((inputResponse) => inputResponse.zod)
   ) {
     return {
       implemtation: '',
@@ -773,15 +777,24 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)`
               : `export const ${operationName}Body = ${inputBody.zod}`,
           ]
         : []),
-      ...(inputResponse.consts ? [inputResponse.consts] : []),
-      ...(inputResponse.zod
-        ? [
-            parsedResponse.isArray
-              ? `export const ${operationName}ResponseItem = ${inputResponse.zod}
-export const ${operationName}Response = zod.array(${operationName}ResponseItem)`
-              : `export const ${operationName}Response = ${inputResponse.zod}`,
-          ]
-        : []),
+      ...inputResponses
+        .map((inputResponse, index) => {
+          const operationResponse = camel(
+            `${operationName}-${responses[index][0]}-response`,
+          );
+          return [
+            ...(inputResponse.consts ? [inputResponse.consts] : []),
+            ...(inputResponse.zod
+              ? [
+                  parsedResponses[index].isArray
+                    ? `export const ${operationResponse}Item = ${inputResponse.zod}
+export const ${operationResponse} = zod.array(${operationResponse}Item)`
+                    : `export const ${operationResponse} = ${inputResponse.zod}`,
+                ]
+              : []),
+          ];
+        })
+        .flat(),
     ].join('\n\n'),
     mutators: preprocessResponse ? [preprocessResponse] : [],
   };
