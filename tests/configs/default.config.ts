@@ -6,6 +6,16 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: '../generated/default/petstore/endpoints.ts',
   },
+  'petstore-filter': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        tags: ['health'],
+        schemas: ['Error', /Cat/],
+      },
+    },
+    output: '../generated/default/petstore-filter/endpoints.ts',
+  },
   'petstore-transfomer': {
     output: {
       target: '../generated/default/petstore-transformer/endpoints.ts',
