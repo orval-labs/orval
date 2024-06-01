@@ -30,7 +30,7 @@ export const importOpenApi = async ({
 }: ImportOpenApi): Promise<WriteSpecsBuilder> => {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
 
-  const schemas = getApiSchemas({ output, target, workspace, specs });
+  const schemas = getApiSchemas({ input, output, target, workspace, specs });
 
   const api = await getApiBuilder({
     // @ts-expect-error // FIXME
@@ -93,11 +93,13 @@ const generateInputSpecs = async ({
 };
 
 const getApiSchemas = ({
+  input,
   output,
   target,
   workspace,
   specs,
 }: {
+  input: InputOptions;
   output: NormalizedOutputOptions;
   workspace: string;
   target: string;
@@ -121,6 +123,7 @@ const getApiSchemas = ({
         parsedSchemas,
         context,
         output.override.components.schemas.suffix,
+        input.filters?.schemas,
       );
 
       const responseDefinition = generateComponentDefinition(
