@@ -41,7 +41,7 @@
     "@release-it/conventional-changelog": "^5.0.0",
     "@types/node": "^20.13.0",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
-    "@typescript-eslint/parser": "^5.33.0",
+    "@typescript-eslint/parser": "^7.11.0",
     "dotenv-cli": "^7.4.1",
     "esbuild-plugin-alias": "^0.2.1",
     "eslint": "^8.56.0",
