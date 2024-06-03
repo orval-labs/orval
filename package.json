@@ -17,7 +17,7 @@
     "postrelease": "yarn build && yarn update-samples",
     "prepare": "husky",
     "commitlint": "commitlint",
-    "update-samples": "zx ./scripts/update-samples.mjs",
+    "update-samples": "cd ./samples && yarn && yarn generate-api",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:ci": "yarn test -- -- --run && yarn run-s 'test:samples:*'",
