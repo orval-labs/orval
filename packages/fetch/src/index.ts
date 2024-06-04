@@ -15,24 +15,6 @@ import {
   isObject,
 } from '@orval/core';
 
-const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      {
-        name: 'qs',
-        default: true,
-        values: true,
-        syntheticDefaultImport: true,
-      },
-    ],
-    dependency: 'qs',
-  },
-];
-
-export const getDependencies: ClientDependenciesBuilder = (
-  hasParamsSerializerOptions: boolean,
-) => [...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : [])];
-
 const generateRequestFunction = (
   {
     queryParams,
@@ -154,7 +136,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
-  dependencies: getDependencies,
+  dependencies: () => [],
 };
 
 export const builder = () => () => fetchClientBuilder;
