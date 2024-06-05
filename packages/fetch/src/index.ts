@@ -59,7 +59,7 @@ ${
     : ''
 }
 
-  return \`${route}${queryParams ? '?${new URLSearchParams(normalizedParams).toString()}' : ''}\`
+  return \`${route}${queryParams ? '?${normalizedParams.toString()}' : ''}\`
 }\n`;
   const getUrlFnProperties = props
     .filter(
