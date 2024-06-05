@@ -909,6 +909,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@orval/fetch@npm:6.29.1, @orval/fetch@workspace:packages/fetch":
+  version: 0.0.0-use.local
+  resolution: "@orval/fetch@workspace:packages/fetch"
+  dependencies:
+    "@orval/core": "npm:6.29.1"
+  languageName: unknown
+  linkType: soft
+
 "@orval/hono@npm:6.29.1, @orval/hono@workspace:packages/hono":
   version: 0.0.0-use.local
   resolution: "@orval/hono@workspace:packages/hono"
@@ -7136,6 +7144,7 @@ __metadata:
     "@orval/angular": "npm:6.29.1"
     "@orval/axios": "npm:6.29.1"
     "@orval/core": "npm:6.29.1"
+    "@orval/fetch": "npm:6.29.1"
     "@orval/hono": "npm:6.29.1"
     "@orval/mock": "npm:6.29.1"
     "@orval/query": "npm:6.29.1"
