@@ -17,6 +17,7 @@
     "generate:multi-file": "yarn orval --config ./configs/multi-file.config.ts",
     "generate:zod": "yarn orval --config ./configs/zod.config.ts",
     "generate:mock": "yarn orval --config ./configs/mock.config.ts",
+    "generate:fetch": "yarn orval --config ./configs/fetch.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",

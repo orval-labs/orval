@@ -58,6 +58,7 @@
     "@orval/angular": "6.29.1",
     "@orval/axios": "6.29.1",
     "@orval/core": "6.29.1",
+    "@orval/fetch": "6.29.1",
     "@orval/hono": "6.29.1",
     "@orval/mock": "6.29.1",
     "@orval/query": "6.29.1",

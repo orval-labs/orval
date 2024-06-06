@@ -23,7 +23,7 @@ module.exports = {
 
 Type: `String | Function`.
 
-Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`.
+Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `fetch`.
 
 Default Value: `axios-functions`.
 
