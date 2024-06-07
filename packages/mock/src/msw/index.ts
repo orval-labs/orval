@@ -110,11 +110,10 @@ const generateDefinition = (
   const infoParam = isHandlerOverridden ? 'info' : '';
   const handlerImplementation = `
 export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})` : ''}) => {
-  return http.${verb}('${route}', ${
-    delay === false
-      ? `(${infoParam}) => {`
-      : `async (${infoParam}) => {
-    await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+  return http.${verb}('${route}', ${(isReturnHttpResponse && !isTextPlain) || delay !== false ? 'async' : ''} (${infoParam}) => {${
+    delay !== false
+      ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+      : ''
   }
     return new HttpResponse(${
       isReturnHttpResponse
