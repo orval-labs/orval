@@ -1,6 +1,6 @@
 {
   "name": "@orval/fetch",
-  "version": "6.29.1",
+  "version": "6.30.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,6 +13,6 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "6.29.1"
+    "@orval/core": "6.30.0"
   }
 }
