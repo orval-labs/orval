@@ -87,7 +87,7 @@ export const getResReqTypes = (
           ] as ResReqTypesValue[];
         }
 
-        const [formData, additionalFormDataImports] = isFormData
+        const formData = isFormData
           ? getSchemaFormDataAndUrlEncoded({
               name,
               schemaObject: mediaType?.schema,
@@ -100,32 +100,35 @@ export const getResReqTypes = (
                 'required' in bodySchema && bodySchema.required === false,
               isRef: true,
             })
-          : [undefined, []];
+          : undefined;
 
-        const [formUrlEncoded, additionalFormUrlEncodedImports] =
-          isFormUrlEncoded
-            ? getSchemaFormDataAndUrlEncoded({
-                name,
-                schemaObject: mediaType?.schema,
-                context: {
-                  ...context,
-                  specKey: specKey || context.specKey,
-                },
-                isRequestBodyOptional:
-                  'required' in bodySchema && bodySchema.required === false,
-                isUrlEncoded: true,
-                isRef: true,
-              })
-            : [undefined, []];
+        const formUrlEncoded = isFormUrlEncoded
+          ? getSchemaFormDataAndUrlEncoded({
+              name,
+              schemaObject: mediaType?.schema,
+              context: {
+                ...context,
+                specKey: specKey || context.specKey,
+              },
+              isRequestBodyOptional:
+                'required' in bodySchema && bodySchema.required === false,
+              isUrlEncoded: true,
+              isRef: true,
+            })
+          : undefined;
+
+        const additionalImports = getFormDataAdditionalImports({
+          schemaObject: mediaType?.schema,
+          context: {
+            ...context,
+            specKey: specKey || context.specKey,
+          },
+        });
 
         return [
           {
             value: name,
-            imports: [
-              { name, specKey, schemaName },
-              ...additionalFormDataImports,
-              ...additionalFormUrlEncodedImports,
-            ],
+            imports: [{ name, specKey, schemaName }, ...additionalImports],
             schemas: [],
             type: 'unknown',
             isEnum: false,
@@ -175,7 +178,7 @@ export const getResReqTypes = (
               };
             }
 
-            const [formData, additionalFormDataImports] = isFormData
+            const formData = isFormData
               ? getSchemaFormDataAndUrlEncoded({
                   name: propName,
                   schemaObject: mediaType.schema!,
@@ -183,27 +186,26 @@ export const getResReqTypes = (
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
                 })
-              : [undefined, []];
+              : undefined;
 
-            const [formUrlEncoded, additionalFormUrlEncodedImports] =
-              isFormUrlEncoded
-                ? getSchemaFormDataAndUrlEncoded({
-                    name: propName,
-                    schemaObject: mediaType.schema!,
-                    context,
-                    isUrlEncoded: true,
-                    isRequestBodyOptional:
-                      'required' in res && res.required === false,
-                  })
-                : [undefined, []];
+            const formUrlEncoded = isFormUrlEncoded
+              ? getSchemaFormDataAndUrlEncoded({
+                  name: propName,
+                  schemaObject: mediaType.schema!,
+                  context,
+                  isUrlEncoded: true,
+                  isRequestBodyOptional:
+                    'required' in res && res.required === false,
+                })
+              : undefined;
 
+            const additionalImports = getFormDataAdditionalImports({
+              schemaObject: mediaType.schema!,
+              context,
+            });
             return {
               ...resolvedValue,
-              imports: [
-                ...resolvedValue.imports,
-                ...additionalFormDataImports,
-                ...additionalFormUrlEncodedImports,
-              ],
+              imports: [...resolvedValue.imports, ...additionalImports],
               formData,
               formUrlEncoded,
               contentType,
@@ -239,6 +241,27 @@ export const getResReqTypes = (
   );
 };
 
+const getFormDataAdditionalImports = ({
+  schemaObject,
+  context,
+}: {
+  schemaObject: SchemaObject | ReferenceObject;
+  context: ContextSpecs;
+}): GeneratorImport[] => {
+  const { schema } = resolveRef<SchemaObject>(schemaObject, context);
+  if (schema.type === 'object') {
+    if (schema.oneOf || schema.anyOf) {
+      const combinedSchemas = schema.oneOf || schema.anyOf;
+
+      return combinedSchemas!.map((schema) => {
+        const { imports } = resolveRef<SchemaObject>(schema, context);
+        return imports[0];
+      });
+    }
+  }
+  return [];
+};
+
 const getSchemaFormDataAndUrlEncoded = ({
   name,
   schemaObject,
@@ -253,7 +276,7 @@ const getSchemaFormDataAndUrlEncoded = ({
   isRequestBodyOptional: boolean;
   isUrlEncoded?: boolean;
   isRef?: boolean;
-}): [string, GeneratorImport[]] => {
+}): string => {
   const { schema, imports } = resolveRef<SchemaObject>(schemaObject, context);
   const propName = camel(
     !isRef && isReference(schemaObject) ? imports[0].name : name,
@@ -315,14 +338,11 @@ const getSchemaFormDataAndUrlEncoded = ({
       form += formDataValues;
     }
 
-    return [form, additionalImports];
+    return form;
   }
 
   if (schema.type === 'array') {
-    return [
-      `${form}${propName}.forEach(value => ${variableName}.append('data', value))\n`,
-      additionalImports,
-    ];
+    return `${form}${propName}.forEach(value => ${variableName}.append('data', value))\n`;
   }
 
   if (
@@ -330,16 +350,10 @@ const getSchemaFormDataAndUrlEncoded = ({
     schema.type === 'integer' ||
     schema.type === 'boolean'
   ) {
-    return [
-      `${form}${variableName}.append('data', ${propName}.toString())\n`,
-      additionalImports,
-    ];
+    return `${form}${variableName}.append('data', ${propName}.toString())\n`;
   }
 
-  return [
-    `${form}${variableName}.append('data', ${propName})\n`,
-    additionalImports,
-  ];
+  return `${form}${variableName}.append('data', ${propName})\n`;
 };
 
 const resolveSchemaPropertiesToFormData = ({
