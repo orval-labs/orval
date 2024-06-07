@@ -107,6 +107,19 @@ export const normalizeOptions = async (
 
   const defaultFileExtension = '.ts';
 
+  const globalQueryOptions = {
+    useQuery: outputOptions.override?.query?.useQuery ?? true,
+    useMutation: outputOptions.override?.query?.useMutation ?? true,
+    signal: outputOptions.override?.query?.signal ?? true,
+    shouldExportMutatorHooks:
+      outputOptions.override?.query?.shouldExportMutatorHooks ?? true,
+    shouldExportHttpClient:
+      outputOptions.override?.query?.shouldExportHttpClient ?? true,
+    shouldExportQueryKey:
+      outputOptions.override?.query?.shouldExportQueryKey ?? true,
+    ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+  };
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: globalOptions.input
@@ -157,10 +170,16 @@ export const normalizeOptions = async (
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations ?? {},
           outputWorkspace,
+          {
+            query: globalQueryOptions,
+          },
         ),
         tags: normalizeOperationsAndTags(
           outputOptions.override?.tags ?? {},
           outputWorkspace,
+          {
+            query: globalQueryOptions,
+          },
         ),
         mutator: normalizeMutator(
           outputWorkspace,
@@ -369,6 +388,9 @@ const normalizeOperationsAndTags = (
     [key: string]: OperationOptions;
   },
   workspace: string,
+  global: {
+    query: NormalizedQueryOptions;
+  },
 ): {
   [key: string]: NormalizedOperationOptions;
 } => {
@@ -393,7 +415,7 @@ const normalizeOperationsAndTags = (
             ...rest,
             ...(query
               ? {
-                  query: normalizeQueryOptions(query, workspace),
+                  query: normalizeQueryOptions(query, workspace, global.query),
                 }
               : {}),
             ...(zod
@@ -551,6 +573,7 @@ const normalizeHonoOptions = (
 const normalizeQueryOptions = (
   queryOptions: QueryOptions = {},
   outputWorkspace: string,
+  globalOptions: NormalizedQueryOptions = {},
 ): NormalizedQueryOptions => {
   if (queryOptions.options) {
     console.warn(
@@ -581,9 +604,19 @@ const normalizeQueryOptions = (
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
+    ...(globalOptions.queryKey
+      ? {
+          queryKey: globalOptions.queryKey,
+        }
+      : {}),
     ...(queryOptions?.queryKey
       ? {
           queryKey: normalizeMutator(outputWorkspace, queryOptions?.queryKey),
+        }
+      : {}),
+    ...(globalOptions.queryOptions
+      ? {
+          queryOptions: globalOptions.queryOptions,
         }
       : {}),
     ...(queryOptions?.queryOptions
@@ -594,6 +627,11 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
+    ...(globalOptions.mutationOptions
+      ? {
+          mutationOptions: globalOptions.mutationOptions,
+        }
+      : {}),
     ...(queryOptions?.mutationOptions
       ? {
           mutationOptions: normalizeMutator(
@@ -602,17 +640,19 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
-    ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
-      ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
-      : {}),
-    ...(!isUndefined(queryOptions.shouldExportQueryKey)
-      ? { shouldExportQueryKey: queryOptions.shouldExportQueryKey }
-      : {}),
-    ...(!isUndefined(queryOptions.shouldExportHttpClient)
-      ? { shouldExportHttpClient: queryOptions.shouldExportHttpClient }
-      : {}),
-    ...(!isUndefined(queryOptions.signal)
-      ? { signal: queryOptions.signal }
+    shouldExportQueryKey:
+      queryOptions.shouldExportQueryKey ?? globalOptions.shouldExportQueryKey,
+    shouldExportHttpClient:
+      queryOptions.shouldExportHttpClient ??
+      globalOptions.shouldExportHttpClient,
+    shouldExportMutatorHooks:
+      queryOptions.shouldExportMutatorHooks ??
+      globalOptions.shouldExportMutatorHooks,
+    signal: queryOptions.signal ?? globalOptions.signal,
+    ...(!isUndefined(globalOptions.version)
+      ? {
+          version: globalOptions.version,
+        }
       : {}),
     ...(!isUndefined(queryOptions.version)
       ? { version: queryOptions.version }
