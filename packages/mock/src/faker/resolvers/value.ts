@@ -111,7 +111,7 @@ export const resolveMockValue = ({
     });
     if (
       scalar.value &&
-      newSchema.type === 'object' &&
+      (newSchema.type === 'object' || newSchema.allOf) &&
       combine?.separator === 'oneOf'
     ) {
       const funcName = `get${pascal(operationId)}Response${pascal(newSchema.name)}Mock`;
