@@ -90,7 +90,9 @@ const generateDefinition = (
   const isTextPlain = contentTypes.includes('text/plain');
   const isReturnHttpResponse = value && value !== 'undefined';
 
-  const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(name)}`;
+  const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
+    name,
+  )}`;
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
   const addedSplitMockImplementations = splitMockImplementations.slice(
@@ -102,15 +104,25 @@ const generateDefinition = (
     : '';
 
   const mockImplementation = isReturnHttpResponse
-    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: Partial< ${returnType} > = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
+        isResponseOverridable
+          ? `overrideResponse: Partial< ${returnType} > = {}`
+          : ''
+      })${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
   const isHandlerOverridden = isReturnHttpResponse && !isTextPlain;
   const infoParam = isHandlerOverridden ? 'info' : '';
   const handlerImplementation = `
-export const ${handlerName} = (${isHandlerOverridden ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})` : ''}) => {
-  return http.${verb}('${route}', ${(isReturnHttpResponse && !isTextPlain) || delay !== false ? 'async' : ''} (${infoParam}) => {${
+export const ${handlerName} = (${
+    isHandlerOverridden
+      ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})`
+      : ''
+  }) => {
+  return http.${verb}('${route}', ${
+    (isReturnHttpResponse && !isTextPlain) || delay !== false ? 'async' : ''
+  } (${infoParam}) => {${
     delay !== false
       ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
       : ''
@@ -183,7 +195,7 @@ export const generateMSW = (
     generatorVerbOptions,
     generatorOptions,
     response.definition.success,
-    response.types.success[0].key,
+    response.types.success[0]?.key ?? '200',
     response.imports,
     response.types.success,
     response.contentTypes,
