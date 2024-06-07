@@ -74,10 +74,11 @@ const generateVerbOptions = async ({
     {} as NormalizedOperationOptions,
   );
 
-  const override: NormalizedOverrideOutput = mergeDeep(
-    mergeDeep(output.override, overrideTag),
-    overrideOperation,
-  );
+  const override: NormalizedOverrideOutput = {
+    ...output.override,
+    ...overrideTag,
+    ...overrideOperation,
+  };
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
