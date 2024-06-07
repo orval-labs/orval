@@ -107,16 +107,13 @@ export const normalizeOptions = async (
 
   const defaultFileExtension = '.ts';
 
-  const globalQueryOptions = {
-    useQuery: outputOptions.override?.query?.useQuery ?? true,
-    useMutation: outputOptions.override?.query?.useMutation ?? true,
-    signal: outputOptions.override?.query?.signal ?? true,
-    shouldExportMutatorHooks:
-      outputOptions.override?.query?.shouldExportMutatorHooks ?? true,
-    shouldExportHttpClient:
-      outputOptions.override?.query?.shouldExportHttpClient ?? true,
-    shouldExportQueryKey:
-      outputOptions.override?.query?.shouldExportQueryKey ?? true,
+  const globalQueryOptions: NormalizedQueryOptions = {
+    useQuery: true,
+    useMutation: true,
+    signal: true,
+    shouldExportMutatorHooks: true,
+    shouldExportHttpClient: true,
+    shouldExportQueryKey: true,
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
 
@@ -231,18 +228,7 @@ export const normalizeOptions = async (
           },
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
-        query: {
-          useQuery: outputOptions.override?.query?.useQuery ?? true,
-          useMutation: outputOptions.override?.query?.useMutation ?? true,
-          signal: outputOptions.override?.query?.signal ?? true,
-          shouldExportMutatorHooks:
-            outputOptions.override?.query?.shouldExportMutatorHooks ?? true,
-          shouldExportHttpClient:
-            outputOptions.override?.query?.shouldExportHttpClient ?? true,
-          shouldExportQueryKey:
-            outputOptions.override?.query?.shouldExportQueryKey ?? true,
-          ...normalizeQueryOptions(outputOptions.override?.query, workspace),
-        },
+        query: globalQueryOptions,
         zod: {
           strict: {
             param: outputOptions.override?.zod?.strict?.param ?? false,
@@ -640,15 +626,38 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
-    shouldExportQueryKey:
-      queryOptions.shouldExportQueryKey ?? globalOptions.shouldExportQueryKey,
-    shouldExportHttpClient:
-      queryOptions.shouldExportHttpClient ??
-      globalOptions.shouldExportHttpClient,
-    shouldExportMutatorHooks:
-      queryOptions.shouldExportMutatorHooks ??
-      globalOptions.shouldExportMutatorHooks,
-    signal: queryOptions.signal ?? globalOptions.signal,
+    ...(!isUndefined(globalOptions.shouldExportQueryKey)
+      ? {
+          shouldExportQueryKey: globalOptions.shouldExportQueryKey,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportQueryKey)
+      ? { shouldExportQueryKey: queryOptions.shouldExportQueryKey }
+      : {}),
+    ...(!isUndefined(globalOptions.shouldExportHttpClient)
+      ? {
+          shouldExportHttpClient: globalOptions.shouldExportHttpClient,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportHttpClient)
+      ? { shouldExportHttpClient: queryOptions.shouldExportHttpClient }
+      : {}),
+    ...(!isUndefined(globalOptions.shouldExportMutatorHooks)
+      ? {
+          shouldExportMutatorHooks: globalOptions.shouldExportMutatorHooks,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
+      ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
+      : {}),
+    ...(!isUndefined(globalOptions.signal)
+      ? {
+          signal: globalOptions.signal,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.signal)
+      ? { signal: queryOptions.signal }
+      : {}),
     ...(!isUndefined(globalOptions.version)
       ? {
           version: globalOptions.version,
