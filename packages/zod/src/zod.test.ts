@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  type ZodValidationSchemaDefinitionInput,
+  type ZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   generateZodValidationSchemaDefinition,
 } from '.';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { ContextSpecs } from '@orval/core';
 
-const queryParams: ZodValidationSchemaDefinitionInput = {
+const queryParams: ZodValidationSchemaDefinition = {
   functions: [
     [
       'object',

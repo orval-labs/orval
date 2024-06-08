@@ -72,13 +72,18 @@ let constsUniqueCounter: Record<string, number> = {};
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
 
+export type ZodValidationSchemaDefinition = {
+  functions: [string, any][];
+  consts: string[];
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   context: ContextSpecs,
   _required: boolean | undefined,
   name: string,
   strict: boolean,
-): { functions: [string, any][]; consts: string[] } => {
+): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
@@ -292,13 +297,8 @@ export const generateZodValidationSchemaDefinition = (
   return { functions, consts: uniq(consts) };
 };
 
-export type ZodValidationSchemaDefinitionInput = {
-  functions: [string, any][];
-  consts: string[];
-};
-
 export const parseZodValidationSchemaDefinition = (
-  input: ZodValidationSchemaDefinitionInput,
+  input: ZodValidationSchemaDefinition,
   context: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
   preprocessResponse?: GeneratorMutator,
@@ -360,10 +360,10 @@ export const parseZodValidationSchemaDefinition = (
       return `zod.object({
 ${Object.entries(args)
   .map(([key, schema]) => {
-    const value = (schema as ZodValidationSchemaDefinitionInput).functions
+    const value = (schema as ZodValidationSchemaDefinition).functions
       .map(parseProperty)
       .join('');
-    consts += (schema as ZodValidationSchemaDefinitionInput).consts.join('\n');
+    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
@@ -461,7 +461,7 @@ const parseBodyAndResponse = ({
   name: string;
   strict: boolean;
 }): {
-  input: ZodValidationSchemaDefinitionInput;
+  input: ZodValidationSchemaDefinition;
   isArray: boolean;
 } => {
   if (!data) {
@@ -531,9 +531,9 @@ const parseParameters = ({
     response: boolean;
   };
 }): {
-  headers: ZodValidationSchemaDefinitionInput;
-  queryParams: ZodValidationSchemaDefinitionInput;
-  params: ZodValidationSchemaDefinitionInput;
+  headers: ZodValidationSchemaDefinition;
+  queryParams: ZodValidationSchemaDefinition;
+  params: ZodValidationSchemaDefinition;
 } => {
   if (!data) {
     return {
@@ -609,7 +609,7 @@ const parseParameters = ({
     >,
   );
 
-  const headers: ZodValidationSchemaDefinitionInput = {
+  const headers: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -622,7 +622,7 @@ const parseParameters = ({
     }
   }
 
-  const queryParams: ZodValidationSchemaDefinitionInput = {
+  const queryParams: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -635,7 +635,7 @@ const parseParameters = ({
     }
   }
 
-  const params: ZodValidationSchemaDefinitionInput = {
+  const params: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
