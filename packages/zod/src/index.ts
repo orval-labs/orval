@@ -70,7 +70,7 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
 let constsUniqueCounter: Record<string, number> = {};
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
-const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
 
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
@@ -299,7 +299,7 @@ export type ZodValidationSchemaDefinitionInput = {
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinitionInput,
-  contex: ContextSpecs,
+  context: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
   preprocessResponse?: GeneratorMutator,
 ): { zod: string; consts: string } => {
@@ -387,11 +387,11 @@ ${Object.entries(args)
       coerceTypes &&
       (Array.isArray(coerceTypes)
         ? coerceTypes.includes(fn as ZodCoerceType)
-        : COERCEABLE_TYPES.includes(fn));
+        : COERCIBLE_TYPES.includes(fn));
 
     if (
       (fn !== 'date' && shouldCoerceType) ||
-      (fn === 'date' && shouldCoerceType && contex.output.override.useDates)
+      (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
       return `.coerce.${fn}(${args})`;
     }
