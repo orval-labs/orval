@@ -229,15 +229,15 @@ export const generateZodValidationSchemaDefinition = (
       if (schema.additionalProperties) {
         functions.push([
           'additionalProperties',
-          isBoolean(schema.additionalProperties)
-            ? schema.additionalProperties
-            : generateZodValidationSchemaDefinition(
-                schema.additionalProperties as SchemaObject,
-                context,
-                true,
-                name,
-                strict,
-              ),
+          generateZodValidationSchemaDefinition(
+            isBoolean(schema.additionalProperties)
+              ? {}
+              : (schema.additionalProperties as SchemaObject),
+            context,
+            true,
+            name,
+            strict,
+          ),
         ]);
 
         break;
