@@ -388,6 +388,7 @@ export type ZodOptions = {
     body?: Mutator;
     response?: Mutator;
   };
+  generateEachHttpStatus?: boolean;
 };
 
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
@@ -414,6 +415,7 @@ export type NormalizedZodOptions = {
     body?: NormalizedMutator;
     response?: NormalizedMutator;
   };
+  generateEachHttpStatus: boolean;
 };
 
 export type HonoOptions = {

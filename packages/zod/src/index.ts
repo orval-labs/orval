@@ -25,7 +25,6 @@ import {
   ZodCoerceType,
   generateMutator,
   GeneratorMutator,
-  GlobalMockOptions,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 
@@ -680,7 +679,7 @@ const generateZodRoute = async (
   });
 
   const responses = (
-    (context.output.mock as GlobalMockOptions)?.generateEachHttpStatus
+    context.output.override.zod.generateEachHttpStatus
       ? Object.entries(spec?.[verb]?.responses ?? {})
       : [['', spec?.[verb]?.responses[200]]]
   ) as [string, ResponseObject | ReferenceObject][];

@@ -286,6 +286,7 @@ export const normalizeOptions = async (
                 }
               : {}),
           },
+          generateEachHttpStatus: outputOptions.override?.zod?.generateEachHttpStatus ?? false,
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -463,6 +464,7 @@ const normalizeOperationsAndTags = (
                           }
                         : {}),
                     },
+                    generateEachHttpStatus: zod?.generateEachHttpStatus ?? false,
                   },
                 }
               : {}),
