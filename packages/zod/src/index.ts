@@ -69,7 +69,12 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
 let constsUniqueCounter: Record<string, number> = {};
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
-const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+
+export type ZodValidationSchemaDefinition = {
+  functions: [string, any][];
+  consts: string[];
+};
 
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
@@ -77,7 +82,7 @@ export const generateZodValidationSchemaDefinition = (
   _required: boolean | undefined,
   name: string,
   strict: boolean,
-): { functions: [string, any][]; consts: string[] } => {
+): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
@@ -223,15 +228,15 @@ export const generateZodValidationSchemaDefinition = (
       if (schema.additionalProperties) {
         functions.push([
           'additionalProperties',
-          isBoolean(schema.additionalProperties)
-            ? schema.additionalProperties
-            : generateZodValidationSchemaDefinition(
-                schema.additionalProperties as SchemaObject,
-                context,
-                true,
-                name,
-                strict,
-              ),
+          generateZodValidationSchemaDefinition(
+            isBoolean(schema.additionalProperties)
+              ? {}
+              : (schema.additionalProperties as SchemaObject),
+            context,
+            true,
+            name,
+            strict,
+          ),
         ]);
 
         break;
@@ -291,14 +296,9 @@ export const generateZodValidationSchemaDefinition = (
   return { functions, consts: uniq(consts) };
 };
 
-export type ZodValidationSchemaDefinitionInput = {
-  functions: [string, any][];
-  consts: string[];
-};
-
 export const parseZodValidationSchemaDefinition = (
-  input: ZodValidationSchemaDefinitionInput,
-  contex: ContextSpecs,
+  input: ZodValidationSchemaDefinition,
+  context: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
   preprocessResponse?: GeneratorMutator,
 ): { zod: string; consts: string } => {
@@ -359,10 +359,10 @@ export const parseZodValidationSchemaDefinition = (
       return `zod.object({
 ${Object.entries(args)
   .map(([key, schema]) => {
-    const value = (schema as ZodValidationSchemaDefinitionInput).functions
+    const value = (schema as ZodValidationSchemaDefinition).functions
       .map(parseProperty)
       .join('');
-    consts += (schema as ZodValidationSchemaDefinitionInput).consts.join('\n');
+    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
@@ -386,11 +386,11 @@ ${Object.entries(args)
       coerceTypes &&
       (Array.isArray(coerceTypes)
         ? coerceTypes.includes(fn as ZodCoerceType)
-        : COERCEABLE_TYPES.includes(fn));
+        : COERCIBLE_TYPES.includes(fn));
 
     if (
       (fn !== 'date' && shouldCoerceType) ||
-      (fn === 'date' && shouldCoerceType && contex.output.override.useDates)
+      (fn === 'date' && shouldCoerceType && context.output.override.useDates)
     ) {
       return `.coerce.${fn}(${args})`;
     }
@@ -460,7 +460,7 @@ const parseBodyAndResponse = ({
   name: string;
   strict: boolean;
 }): {
-  input: ZodValidationSchemaDefinitionInput;
+  input: ZodValidationSchemaDefinition;
   isArray: boolean;
 } => {
   if (!data) {
@@ -530,9 +530,9 @@ const parseParameters = ({
     response: boolean;
   };
 }): {
-  headers: ZodValidationSchemaDefinitionInput;
-  queryParams: ZodValidationSchemaDefinitionInput;
-  params: ZodValidationSchemaDefinitionInput;
+  headers: ZodValidationSchemaDefinition;
+  queryParams: ZodValidationSchemaDefinition;
+  params: ZodValidationSchemaDefinition;
 } => {
   if (!data) {
     return {
@@ -608,7 +608,7 @@ const parseParameters = ({
     >,
   );
 
-  const headers: ZodValidationSchemaDefinitionInput = {
+  const headers: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -621,7 +621,7 @@ const parseParameters = ({
     }
   }
 
-  const queryParams: ZodValidationSchemaDefinitionInput = {
+  const queryParams: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -634,7 +634,7 @@ const parseParameters = ({
     }
   }
 
-  const params: ZodValidationSchemaDefinitionInput = {
+  const params: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
