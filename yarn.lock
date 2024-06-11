@@ -880,23 +880,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@orval/angular@npm:6.29.1, @orval/angular@workspace:packages/angular":
+"@orval/angular@npm:6.30.2, @orval/angular@workspace:packages/angular":
   version: 0.0.0-use.local
   resolution: "@orval/angular@workspace:packages/angular"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
   languageName: unknown
   linkType: soft
 
-"@orval/axios@npm:6.29.1, @orval/axios@workspace:packages/axios":
+"@orval/axios@npm:6.30.2, @orval/axios@workspace:packages/axios":
   version: 0.0.0-use.local
   resolution: "@orval/axios@workspace:packages/axios"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
   languageName: unknown
   linkType: soft
 
-"@orval/core@npm:6.29.1, @orval/core@workspace:packages/core":
+"@orval/core@npm:6.30.2, @orval/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
@@ -934,60 +934,60 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@orval/fetch@npm:6.29.1, @orval/fetch@workspace:packages/fetch":
+"@orval/fetch@npm:6.30.2, @orval/fetch@workspace:packages/fetch":
   version: 0.0.0-use.local
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
   languageName: unknown
   linkType: soft
 
-"@orval/hono@npm:6.29.1, @orval/hono@workspace:packages/hono":
+"@orval/hono@npm:6.30.2, @orval/hono@workspace:packages/hono":
   version: 0.0.0-use.local
   resolution: "@orval/hono@workspace:packages/hono"
   dependencies:
-    "@orval/core": "npm:6.29.1"
-    "@orval/zod": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
+    "@orval/zod": "npm:6.30.2"
     "@types/lodash.uniq": "npm:^4.5.7"
     lodash.uniq: "npm:^4.5.0"
   languageName: unknown
   linkType: soft
 
-"@orval/mock@npm:6.29.1, @orval/mock@workspace:packages/mock":
+"@orval/mock@npm:6.30.2, @orval/mock@workspace:packages/mock":
   version: 0.0.0-use.local
   resolution: "@orval/mock@workspace:packages/mock"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
     lodash.get: "npm:^4.4.2"
     lodash.omit: "npm:^4.5.0"
     openapi3-ts: "npm:^4.2.2"
   languageName: unknown
   linkType: soft
 
-"@orval/query@npm:6.29.1, @orval/query@workspace:packages/query":
+"@orval/query@npm:6.30.2, @orval/query@workspace:packages/query":
   version: 0.0.0-use.local
   resolution: "@orval/query@workspace:packages/query"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
     "@types/lodash.omitby": "npm:^4.6.7"
     lodash.omitby: "npm:^4.6.0"
     vitest: "npm:^0.34.6"
   languageName: unknown
   linkType: soft
 
-"@orval/swr@npm:6.29.1, @orval/swr@workspace:packages/swr":
+"@orval/swr@npm:6.30.2, @orval/swr@workspace:packages/swr":
   version: 0.0.0-use.local
   resolution: "@orval/swr@workspace:packages/swr"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
   languageName: unknown
   linkType: soft
 
-"@orval/zod@npm:6.29.1, @orval/zod@workspace:packages/zod":
+"@orval/zod@npm:6.30.2, @orval/zod@workspace:packages/zod":
   version: 0.0.0-use.local
   resolution: "@orval/zod@workspace:packages/zod"
   dependencies:
-    "@orval/core": "npm:6.29.1"
+    "@orval/core": "npm:6.30.2"
     "@types/lodash.uniq": "npm:^4.5.7"
     lodash.uniq: "npm:^4.5.0"
   languageName: unknown
@@ -6807,15 +6807,15 @@ __metadata:
   resolution: "orval@workspace:packages/orval"
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.0"
-    "@orval/angular": "npm:6.29.1"
-    "@orval/axios": "npm:6.29.1"
-    "@orval/core": "npm:6.29.1"
-    "@orval/fetch": "npm:6.29.1"
-    "@orval/hono": "npm:6.29.1"
-    "@orval/mock": "npm:6.29.1"
-    "@orval/query": "npm:6.29.1"
-    "@orval/swr": "npm:6.29.1"
-    "@orval/zod": "npm:6.29.1"
+    "@orval/angular": "npm:6.30.2"
+    "@orval/axios": "npm:6.30.2"
+    "@orval/core": "npm:6.30.2"
+    "@orval/fetch": "npm:6.30.2"
+    "@orval/hono": "npm:6.30.2"
+    "@orval/mock": "npm:6.30.2"
+    "@orval/query": "npm:6.30.2"
+    "@orval/swr": "npm:6.30.2"
+    "@orval/zod": "npm:6.30.2"
     "@types/inquirer": "npm:^9.0.6"
     "@types/js-yaml": "npm:^4.0.8"
     "@types/lodash.uniq": "npm:^4.5.8"
