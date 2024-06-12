@@ -1720,9 +1720,12 @@ module.exports = {
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false. Applies to all clients, but probably only makes sense for Tanstack Query.
+Valid Values: `true` or `false`.
 
-Use this property to make all parameters optional. This is useful to take advantage of the Orval's auto-enable feature for Tanstack Query, see https://github.com/anymaniax/orval/pull/894
+Default Value: `false`.
+
+Applies to all clients, but probably only makes sense for `Tanstack Query`.
+Use this property to make all parameters optional except the path parameter. This is useful to take advantage of the `Orval`'s auto-enable feature for `Tanstack Query`, see https://github.com/anymaniax/orval/pull/894
 
 ```js
 module.exports = {
