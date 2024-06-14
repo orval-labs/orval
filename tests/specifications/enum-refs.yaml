@@ -1,0 +1,115 @@
+openapi: 3.0.1
+info:
+  title: Sample API
+  description: 'A sample api'
+  version: '1.0'
+paths:
+  '/sampleApi':
+    get:
+      tags:
+        - Sample
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SampleStepsResponse'
+components:
+  schemas:
+    SampleAccountStatus:
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+      type: integer
+      format: int32
+      x-enumNames:
+        - Unknown
+        - NotStarted
+        - InProgress
+        - Completed
+    SampleStepResponse:
+      type: object
+      properties:
+        stepKey:
+          type: string
+          nullable: true
+        groupKey:
+          type: string
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        staffInstructions:
+          type: string
+          nullable: true
+        clientInstructions:
+          type: string
+          nullable: true
+        lastModifiedOn:
+          type: string
+          format: date-time
+        lastModifiedBy:
+          type: string
+          nullable: true
+        stepStatus:
+          $ref: '#/components/schemas/SampleStepStatus'
+        statusChanges:
+          type: array
+          items:
+            $ref: '#/components/schemas/SampleStepStatusChangeResponse'
+          nullable: true
+      additionalProperties: false
+    SampleStepStatus:
+      enum:
+        - 0
+        - 1
+        - 2
+        - 3
+        - 4
+        - 5
+        - 6
+      type: integer
+      format: int32
+      x-enumNames:
+        - Unknown
+        - NotStarted
+        - InProgress
+        - Completed
+        - Skipped
+        - Waiting
+        - ReadyForReview
+    SampleStepStatusChangeResponse:
+      type: object
+      properties:
+        oldStatus:
+          $ref: '#/components/schemas/SampleStepStatus'
+        newStatus:
+          $ref: '#/components/schemas/SampleStepStatus'
+        stepKey:
+          type: string
+          nullable: true
+        modifiedOn:
+          type: string
+          format: date-time
+        modifiedBy:
+          type: string
+          nullable: true
+      additionalProperties: false
+    SampleStepsResponse:
+      type: object
+      properties:
+        organizationId:
+          type: string
+          format: uuid
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/SampleStepResponse'
+          nullable: true
+      additionalProperties: false
