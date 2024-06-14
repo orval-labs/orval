@@ -114,4 +114,16 @@ export default defineConfig({
       target: '../specifications/null-type.yaml',
     },
   },
+  enumRefs: {
+    output: {
+      mode: 'tags',
+      schemas: '../generated/mock/enumRefs/model',
+      target: '../generated/mock/enumRefs/endpoints.ts',
+      client: 'axios',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/enum-refs.yaml',
+    },
+  },
 });
