@@ -115,17 +115,18 @@ export const getMockScalar = ({
         `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
         item.nullable,
       );
+      let numberImports: GeneratorImport[] = [];
       if (item.enum) {
         // By default the value isn't a reference, so we don't have the object explicitly defined.
         // So we have to create an array with the enum values and force them to be a const.
-        const joindEnumValues = item.enum.filter(Boolean).join(',');
+        const joinedEnumValues = item.enum.filter(Boolean).join(',');
 
-        let enumValue = `[${joindEnumValues}] as const`;
+        let enumValue = `[${joinedEnumValues}] as const`;
 
         // But if the value is a reference, we can use the object directly via the imports and using Object.values.
         if (item.isRef) {
           enumValue = `Object.values(${item.name})`;
-          imports = [
+          numberImports = [
             {
               name: item.name,
               values: true,
@@ -142,7 +143,7 @@ export const getMockScalar = ({
       }
       return {
         value,
-        imports: [],
+        imports: numberImports,
         name: item.name,
       };
     }
