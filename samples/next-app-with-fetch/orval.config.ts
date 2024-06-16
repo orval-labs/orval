@@ -7,17 +7,15 @@ export default defineConfig({
       target: 'app/gen/petstore.ts',
       schemas: 'app/gen/models',
       client: 'fetch',
-      // client: 'axios',
       baseUrl: 'http://localhost:3000',
       mock: true,
       prettier: true,
-      // override: {
-      //   mutator: {
-      //     path: './custom-fetch.ts',
-      //     // name: 'customInstance',
-      //     name: 'customFetch',
-      //   },
-      // },
+      override: {
+        mutator: {
+          path: './custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
     },
     input: {
       target: './petstore.yaml',
