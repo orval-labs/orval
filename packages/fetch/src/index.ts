@@ -20,6 +20,7 @@ const generateRequestFunction = (
     queryParams,
     operationName,
     response,
+    mutator,
     body,
     props,
     verb,
@@ -94,17 +95,15 @@ ${
     ? `body: JSON.stringify(${requestBodyParams})`
     : '';
 
-  const fetchResponseImplementation = `const res = await fetch(
-    ${getUrlFnName}(${getUrlFnProperties}),
-    {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
-      ${isRequestOptions ? '...options,' : ''}
-      ${fetchMethodOption}${fetchBodyOption ? ',' : ''}
-      ${fetchBodyOption}
-    }
-  )
-  
-  return res.json()
+  const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
+  {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
+    ${isRequestOptions ? '...options,' : ''}
+    ${fetchMethodOption}${fetchBodyOption ? ',' : ''}
+    ${fetchBodyOption}
+  }
 `;
+  const fetchResponseImplementation = `const res = await fetch(${fetchFnOptions})\n\nreturn res.json()`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -114,8 +113,10 @@ ${
     isFormUrlEncoded,
   });
 
-  const fetchImplementationBody =
-    `${bodyForm ? `  ${bodyForm}\n` : ''}` + `  ${fetchResponseImplementation}`;
+  const fetchImplementationBody = mutator
+    ? customFetchResponseImplementation
+    : `${bodyForm ? `  ${bodyForm}\n` : ''}` +
+      `  ${fetchResponseImplementation}`;
   const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {\n${fetchImplementationBody}}`;
 
   const implementation =
