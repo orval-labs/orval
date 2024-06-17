@@ -145,11 +145,12 @@ export const getResponsesMockDefinition = ({
         context.output.override?.mock?.useExamples ||
         mockOptions?.useExamples
       ) {
-        const exampleValue =
+        let exampleValue =
           example ||
           originalSchema?.example ||
-          Object.values(examples || {})[0]?.value ||
+          Object.values(examples || {})[0] ||
           originalSchema?.examples?.[0];
+        exampleValue = exampleValue?.value ?? exampleValue;
         if (exampleValue) {
           acc.definitions.push(
             transformer
