@@ -217,4 +217,22 @@ export default defineConfig({
       },
     },
   },
+  examples: {
+    output: {
+      target: '../generated/swr/examples/endpoints.ts',
+      schemas: '../generated/swr/examples/model',
+      client: 'swr',
+      mock: {
+        generateEachHttpStatus: true,
+        type: 'msw',
+        useExamples: true,
+      },
+    },
+    input: {
+      target: '../specifications/examples.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
 });
