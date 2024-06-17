@@ -12,6 +12,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  mutator: {
+    output: {
+      target: '../generated/fetch/mutator/endpoints.ts',
+      schemas: '../generated/fetch/mutator/model',
+      mock: true,
+      client: 'fetch',
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   multiArguments: {
     output: {
       target: '../generated/fetch/multi-arguments/endpoints.ts',
