@@ -10,6 +10,12 @@ export default defineConfig({
       baseUrl: 'http://localhost:3000',
       mock: true,
       prettier: true,
+      override: {
+        mutator: {
+          path: './custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
     },
     input: {
       target: './petstore.yaml',
