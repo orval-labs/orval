@@ -130,7 +130,7 @@ export const getObject = ({
           if (arr.length - 1 === index) {
             if (item.additionalProperties) {
               if (isBoolean(item.additionalProperties)) {
-                acc.value += `\n  [key: string]: any;\n }`;
+                acc.value += `\n  [key: string]: unknown;\n }`;
               } else {
                 const resolvedValue = resolveValue({
                   schema: item.additionalProperties,
@@ -166,7 +166,7 @@ export const getObject = ({
   if (item.additionalProperties) {
     if (isBoolean(item.additionalProperties)) {
       return {
-        value: `{ [key: string]: any }` + nullable,
+        value: `{ [key: string]: unknown }` + nullable,
         imports: [],
         schemas: [],
         isEnum: false,
@@ -206,7 +206,7 @@ export const getObject = ({
 
   return {
     value:
-      (item.type === 'object' ? '{ [key: string]: any }' : 'unknown') +
+      (item.type === 'object' ? '{ [key: string]: unknown }' : 'unknown') +
       nullable,
     imports: [],
     schemas: [],
