@@ -1716,6 +1716,28 @@ module.exports = {
 };
 ```
 
+#### suppressReadonlyModifier
+
+Type: `Boolean`
+
+Valid Values: `true` or `false`.
+
+Default Value: `false`.
+
+When the `readonly` field is specified in `OpenAPI`, specify `readonly` in the `type` and `interface` fields output from the schema.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        suppressReadonlyModifier: true,
+      }
+    },
+  },
+};
+```
+
 ### allParamsOptional
 
 Type: `Boolean`
@@ -1769,26 +1791,6 @@ module.exports = {
   petstore: {
     output: {
       optionsParamRequired: true,
-    },
-  },
-};
-```
-
-### suppressReadonlyModifier
-
-Type: `Boolean`
-
-Valid Values: `true` or `false`.
-
-Default Value: `false`.
-
-When the `readonly` field is specified in `OpenAPI`, specify `readonly` in the `type` and `interface` fields output from the schema.
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      suppressReadonlyModifier: true,
     },
   },
 };
