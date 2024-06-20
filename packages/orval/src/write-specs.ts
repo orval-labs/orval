@@ -62,9 +62,9 @@ export const writeSpecs = async (
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
 
-    const fileExtension =
-      ['tags', 'tags-split', 'split'].includes(output.mode) ?
-      '.ts' : (output.fileExtension ?? '.ts');
+    const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
+      ? '.ts'
+      : output.fileExtension ?? '.ts';
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {

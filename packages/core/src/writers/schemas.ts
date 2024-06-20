@@ -35,7 +35,7 @@ const getSchema = ({
   return file;
 };
 
-const getPath = (path: string, name: string, fileExtension : string): string =>
+const getPath = (path: string, name: string, fileExtension: string): string =>
   upath.join(path, `/${name}${fileExtension}`);
 
 export const writeModelInline = (acc: string, model: string): string =>
@@ -144,13 +144,19 @@ export const writeSchemas = async ({
 
       const stringData = data.toString();
 
-      const ext = fileExtension.endsWith('.ts') ? fileExtension.slice(0, -3) : fileExtension;
+      const ext = fileExtension.endsWith('.ts')
+        ? fileExtension.slice(0, -3)
+        : fileExtension;
 
       const importStatements = schemas
         .filter((schema) => {
           return (
-        !stringData.includes(`export * from './${camel(schema.name)}${ext}'`) &&
-        !stringData.includes(`export * from "./${camel(schema.name)}${ext}"`)
+            !stringData.includes(
+              `export * from './${camel(schema.name)}${ext}'`,
+            ) &&
+            !stringData.includes(
+              `export * from "./${camel(schema.name)}${ext}"`,
+            )
           );
         })
         .map((schema) => `export * from './${camel(schema.name)}${ext}';`);
