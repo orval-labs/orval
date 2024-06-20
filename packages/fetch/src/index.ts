@@ -62,6 +62,13 @@ ${
 
   return \`${route}${queryParams ? '?${normalizedParams.toString()}' : ''}\`
 }\n`;
+
+  const responseTypeName = `${operationName}Response`;
+  const responseTypeImplementation = `export type ${operationName}Response = {
+  data: ${response.definition.success || 'unknown'};
+  status: number;
+}`;
+
   const getUrlFnProperties = props
     .filter(
       (prop) =>
@@ -79,7 +86,7 @@ ${
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const retrunType = `Promise<${response.definition.success || 'unknown'}>`;
+  const retrunType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
@@ -102,7 +109,12 @@ ${
     ${fetchBodyOption}
   }
 `;
-  const fetchResponseImplementation = `const res = await fetch(${fetchFnOptions})\n\nreturn res.json()`;
+  const fetchResponseImplementation = `const res = await fetch(${fetchFnOptions}
+  )
+  const data = await res.json()
+
+  return { status: res.status, data }
+`;
   const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -120,7 +132,9 @@ ${
   const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {\n${fetchImplementationBody}}`;
 
   const implementation =
-    `${getUrlFnImplementation}\n` + `${fetchImplementation}\n`;
+    `${responseTypeImplementation}\n\n` +
+    `${getUrlFnImplementation}\n` +
+    `${fetchImplementation}\n`;
 
   return implementation;
 };
