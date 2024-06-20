@@ -35,8 +35,8 @@ const getSchema = ({
   return file;
 };
 
-const getPath = (path: string, name: string): string =>
-  upath.join(path, `/${name}.ts`);
+const getPath = (path: string, name: string, fileExtension : string): string =>
+  upath.join(path, `/${name}${fileExtension}`);
 
 export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n`;
@@ -48,6 +48,7 @@ export const writeSchema = async ({
   path,
   schema,
   target,
+  fileExtension,
   specKey,
   isRootKey,
   specsName,
@@ -56,6 +57,7 @@ export const writeSchema = async ({
   path: string;
   schema: GeneratorSchema;
   target: string;
+  fileExtension: string;
   specKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
@@ -65,7 +67,7 @@ export const writeSchema = async ({
 
   try {
     await fs.outputFile(
-      getPath(path, name),
+      getPath(path, name, fileExtension),
       getSchema({ schema, target, isRootKey, specsName, header, specKey }),
     );
   } catch (e) {
@@ -77,6 +79,7 @@ export const writeSchemas = async ({
   schemaPath,
   schemas,
   target,
+  fileExtension,
   specKey,
   isRootKey,
   specsName,
@@ -86,6 +89,7 @@ export const writeSchemas = async ({
   schemaPath: string;
   schemas: GeneratorSchema[];
   target: string;
+  fileExtension: string;
   specKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
@@ -98,6 +102,7 @@ export const writeSchemas = async ({
         path: schemaPath,
         schema,
         target,
+        fileExtension,
         specKey,
         isRootKey,
         specsName,
@@ -107,7 +112,7 @@ export const writeSchemas = async ({
   );
 
   if (indexFiles) {
-    const schemaFilePath = upath.join(schemaPath, '/index.ts');
+    const schemaFilePath = upath.join(schemaPath, `/index${fileExtension}`);
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
@@ -139,14 +144,16 @@ export const writeSchemas = async ({
 
       const stringData = data.toString();
 
+      const ext = fileExtension.endsWith('.ts') ? fileExtension.slice(0, -3) : fileExtension;
+
       const importStatements = schemas
         .filter((schema) => {
           return (
-            !stringData.includes(`export * from './${camel(schema.name)}'`) &&
-            !stringData.includes(`export * from "./${camel(schema.name)}"`)
+        !stringData.includes(`export * from './${camel(schema.name)}${ext}'`) &&
+        !stringData.includes(`export * from "./${camel(schema.name)}${ext}"`)
           );
         })
-        .map((schema) => `export * from './${camel(schema.name)}';`);
+        .map((schema) => `export * from './${camel(schema.name)}${ext}';`);
 
       const currentFileExports = (stringData
         .match(/export \* from(.*)('|")/g)
