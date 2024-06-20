@@ -43,6 +43,11 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
 /**
  * @summary List all pets
  */
+export type listPetsResponse = {
+  data: Pets;
+  status: number;
+};
+
 export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -60,8 +65,8 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
 export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
-): Promise<Pets> => {
-  return customFetch<Promise<Pets>>(getListPetsUrl(params), {
+): Promise<listPetsResponse> => {
+  return customFetch<Promise<listPetsResponse>>(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -70,6 +75,11 @@ export const listPets = async (
 /**
  * @summary Create a pet
  */
+export type createPetsResponse = {
+  data: Pet;
+  status: number;
+};
+
 export const getCreatePetsUrl = () => {
   return `http://localhost:3000/pets`;
 };
@@ -77,8 +87,8 @@ export const getCreatePetsUrl = () => {
 export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
   options?: RequestInit,
-): Promise<Pet> => {
-  return customFetch<Promise<Pet>>(getCreatePetsUrl(), {
+): Promise<createPetsResponse> => {
+  return customFetch<Promise<createPetsResponse>>(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     body: JSON.stringify(createPetsBodyItem),
@@ -88,6 +98,11 @@ export const createPets = async (
 /**
  * @summary Update a pet
  */
+export type updatePetsResponse = {
+  data: Pet;
+  status: number;
+};
+
 export const getUpdatePetsUrl = () => {
   return `http://localhost:3000/pets`;
 };
@@ -95,8 +110,8 @@ export const getUpdatePetsUrl = () => {
 export const updatePets = async (
   pet: NonReadonly<Pet>,
   options?: RequestInit,
-): Promise<Pet> => {
-  return customFetch<Promise<Pet>>(getUpdatePetsUrl(), {
+): Promise<updatePetsResponse> => {
+  return customFetch<Promise<updatePetsResponse>>(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     body: JSON.stringify(pet),
@@ -106,6 +121,11 @@ export const updatePets = async (
 /**
  * @summary Info for a specific pet
  */
+export type showPetByIdResponse = {
+  data: Pet;
+  status: number;
+};
+
 export const getShowPetByIdUrl = (petId: string) => {
   return `http://localhost:3000/pets/${petId}`;
 };
@@ -113,8 +133,8 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
-): Promise<Pet> => {
-  return customFetch<Promise<Pet>>(getShowPetByIdUrl(petId), {
+): Promise<showPetByIdResponse> => {
+  return customFetch<Promise<showPetByIdResponse>>(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });
