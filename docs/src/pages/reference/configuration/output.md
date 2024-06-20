@@ -1732,7 +1732,7 @@ module.exports = {
     output: {
       override: {
         suppressReadonlyModifier: true,
-      }
+      },
     },
   },
 };
