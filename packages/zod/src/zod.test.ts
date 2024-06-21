@@ -185,9 +185,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
           },
         },
       } as ContextSpecs,
-      true,
       'strict',
       true,
+      {
+        required: true,
+      },
     );
 
     expect(result).toEqual({
@@ -236,9 +238,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
           },
         },
       } as ContextSpecs,
-      true,
       'strict',
       true,
+      {
+        required: true,
+      },
     );
 
     expect(result).toEqual({
@@ -290,9 +294,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
           },
         },
       } as ContextSpecs,
-      true,
       'strict',
       true,
+      {
+        required: true,
+      },
     );
 
     expect(result).toEqual({
