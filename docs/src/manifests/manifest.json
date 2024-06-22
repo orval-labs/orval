@@ -46,6 +46,11 @@
           "editUrl": "/guides/basics.md"
         },
         {
+          "title": "Fetch API",
+          "path": "/guides/fetch",
+          "editUrl": "/guides/fetch.md"
+        },
+        {
           "title": "React query",
           "path": "/guides/react-query",
           "editUrl": "/guides/react-query.md"
