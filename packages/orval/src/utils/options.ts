@@ -237,6 +237,13 @@ export const normalizeOptions = async (
             body: outputOptions.override?.zod?.strict?.body ?? false,
             response: outputOptions.override?.zod?.strict?.response ?? false,
           },
+          generate: {
+            param: outputOptions.override?.zod?.strict?.param ?? true,
+            query: outputOptions.override?.zod?.strict?.query ?? true,
+            header: outputOptions.override?.zod?.strict?.header ?? true,
+            body: outputOptions.override?.zod?.strict?.body ?? true,
+            response: outputOptions.override?.zod?.strict?.response ?? true,
+          },
           coerce: {
             param: outputOptions.override?.zod?.coerce?.param ?? false,
             query: outputOptions.override?.zod?.coerce?.query ?? false,
@@ -415,6 +422,13 @@ const normalizeOperationsAndTags = (
                       header: zod.strict?.header ?? false,
                       body: zod.strict?.body ?? false,
                       response: zod.strict?.response ?? false,
+                    },
+                    generate: {
+                      param: zod.strict?.param ?? true,
+                      query: zod.strict?.query ?? true,
+                      header: zod.strict?.header ?? true,
+                      body: zod.strict?.body ?? true,
+                      response: zod.strict?.response ?? true,
                     },
                     coerce: {
                       param: zod.coerce?.param ?? false,
