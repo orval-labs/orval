@@ -53,12 +53,7 @@ export const getListPetsMockHandler = (
             : overrideResponse
           : getListPetsResponseMock(),
       ),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   });
 };
@@ -80,12 +75,7 @@ export const getCreatePetsMockHandler = (
             : overrideResponse
           : getCreatePetsResponseMock(),
       ),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   });
 };
@@ -107,12 +97,7 @@ export const getShowPetByIdMockHandler = (
             : overrideResponse
           : getShowPetByIdResponseMock(),
       ),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      },
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   });
 };
@@ -120,12 +105,7 @@ export const getShowPetByIdMockHandler = (
 export const getPostApiV1UserLogoutMockHandler = () => {
   return http.post('*/api/v1/user/logout', async () => {
     await delay(1000);
-    return new HttpResponse(JSON.stringify(null), {
-      status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    return new HttpResponse(null, { status: 200 });
   });
 };
 export const getSwaggerPetstoreMock = () => [

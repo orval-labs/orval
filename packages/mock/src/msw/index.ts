@@ -134,15 +134,15 @@ export const ${handlerName} = (${
           : `JSON.stringify(overrideResponse !== undefined 
             ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse) 
             : ${getResponseMockFunctionName}())`
-        : `JSON.stringify(null)`
+        : null
     },
-      {
-        status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
-        headers: {
-          'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+      { status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
+        ${
+          isReturnHttpResponse
+            ? `headers: { 'Content-Type': ${isTextPlain ? "'text/plain'" : "'application/json'"} }`
+            : ''
         }
-      }
-    )
+      })
   })
 }\n`;
 
