@@ -739,7 +739,7 @@ const generateZodRoute = async (
       context,
       name: camel(`${operationName}-${code}-response`),
       strict: override.zod.strict.response,
-      generate: override.zod.generate.response
+      generate: override.zod.generate.response,
     }),
   );
 

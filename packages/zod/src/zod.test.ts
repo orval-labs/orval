@@ -542,7 +542,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      "export const testBody = zod.object({\n  \"name\": zod.string().optional()\n})\n\n",
+      'export const testBody = zod.object({\n  "name": zod.string().optional()\n})\n\n',
     );
   });
 
@@ -582,7 +582,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      "export const testQueryParams = zod.object({\n  \"page\": zod.number().optional()\n})\n\n",
+      'export const testQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\n',
     );
   });
 
@@ -622,7 +622,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      "export const testParams = zod.object({\n  \"id\": zod.string()\n})\n\n",
+      'export const testParams = zod.object({\n  "id": zod.string()\n})\n\n',
     );
   });
 
@@ -662,7 +662,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      "export const testHeader = zod.object({\n  \"x-header\": zod.string()\n})\n\n",
+      'export const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
     );
   });
 });
