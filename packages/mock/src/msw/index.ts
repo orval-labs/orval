@@ -134,7 +134,7 @@ export const ${handlerName} = (${
           : `JSON.stringify(overrideResponse !== undefined 
             ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse) 
             : ${getResponseMockFunctionName}())`
-        : null
+        : `JSON.stringify(null)`
     },
       {
         status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
