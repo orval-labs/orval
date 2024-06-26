@@ -147,6 +147,7 @@ export const getListPetsMockHandler = (
 ) => {
   return http.get('*/v:version/pets', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -160,9 +161,18 @@ export const getListPetsMockHandler = (
   });
 };
 
-export const getCreatePetsMockHandler = () => {
-  return http.post('*/v:version/pets', async () => {
+export const getCreatePetsMockHandler = (
+  overrideResponse?:
+    | void
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<void> | void),
+) => {
+  return http.post('*/v:version/pets', async (info) => {
     await delay(1000);
+    if (typeof overrideResponse === 'function') {
+      await overrideResponse(info);
+    }
     return new HttpResponse(null, { status: 201 });
   });
 };
@@ -176,6 +186,7 @@ export const getListPetsNestedArrayMockHandler = (
 ) => {
   return http.get('*/v:version/pets-nested-array', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -198,6 +209,7 @@ export const getShowPetByIdMockHandler = (
 ) => {
   return http.get('*/v:version/pets/:petId', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
