@@ -418,6 +418,7 @@ export const getListPetsMockHandler = (
 ) => {
   return http.get('*/pets', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -440,6 +441,7 @@ export const getCreatePetsMockHandler = (
 ) => {
   return http.post('*/pets', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -462,6 +464,7 @@ export const getUpdatePetsMockHandler = (
 ) => {
   return http.put('*/pets', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -484,6 +487,7 @@ export const getShowPetByIdMockHandler = (
 ) => {
   return http.get('*/pets/:petId', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined

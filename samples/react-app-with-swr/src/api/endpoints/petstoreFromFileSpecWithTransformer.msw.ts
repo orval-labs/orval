@@ -47,6 +47,7 @@ export const getListPetsMockHandler = (
 ) => {
   return http.get('*/v:version/pets', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -69,6 +70,7 @@ export const getCreatePetsMockHandler = (
 ) => {
   return http.post('*/v:version/pets', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
@@ -91,6 +93,7 @@ export const getShowPetByIdMockHandler = (
 ) => {
   return http.get('*/v:version/pets/:petId', async (info) => {
     await delay(1000);
+
     return new HttpResponse(
       JSON.stringify(
         overrideResponse !== undefined
