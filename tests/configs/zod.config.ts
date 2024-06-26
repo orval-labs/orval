@@ -109,16 +109,32 @@ export default defineConfig({
       target: '../specifications/circular.yaml',
     },
   },
-  coerceParameters: {
+  preprocess: {
     output: {
-      target: '../generated/zod/coerceParameters.ts',
+      target: '../generated/zod/preprocess.ts',
       client: 'zod',
       override: {
-        coerceTypes: true,
+        zod: {
+          preprocess: {
+            response: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+          },
+        },
       },
     },
     input: {
-      target: '../specifications/parameters.yaml',
+      target: '../specifications/circular.yaml',
+    },
+  },
+  additionalProperties: {
+    output: {
+      target: '../generated/zod',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/additional-properties.yaml',
     },
   },
 });

@@ -8,5 +8,5 @@ const factory = createFactory();
 export const listPetsHandlers = factory.createHandlers(
   zValidator('query', listPetsQueryParams),
   zValidator('response', listPetsResponse),
-  (c: ListPetsContext) => {},
+  async (c: ListPetsContext) => {},
 );

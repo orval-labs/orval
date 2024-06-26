@@ -1,0 +1,31 @@
+{
+  "name": "next-app-with-fetch",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "generate-api": "node ../../packages/orval/dist/bin/orval.js",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^18",
+    "react-dom": "^18"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.3",
+    "msw": "^2.2.14",
+    "orval": "link:../../packages/orval/dist",
+    "postcss": "^8",
+    "prettier": "^3.0.3",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

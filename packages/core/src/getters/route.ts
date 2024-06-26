@@ -1,6 +1,6 @@
 import { camel, sanitize } from '../utils';
+import { TEMPLATE_TAG_REGEX } from '../constants';
 
-const TEMPLATE_TAG_REGEX = /\${(\w+)}/g; // For replace of 'thing' ${thing}
 const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path
 
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);

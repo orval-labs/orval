@@ -16,6 +16,9 @@ import {
   GeneratorImport,
   getOrvalGeneratedTypes,
   jsDoc,
+  generateMutatorImports,
+  GeneratorMutator,
+  NormalizedMutator,
 } from '@orval/core';
 import { getRoute } from './route';
 import fs from 'fs-extra';
@@ -52,7 +55,7 @@ export const getHonoHeader: ClientHeaderBuilder = ({
 
   let handlers = '';
 
-  if (output.override.hono?.handlers) {
+  if (output.override.hono.handlers) {
     const handlerFileInfo = getFileInfo(output.override.hono.handlers);
     handlers = Object.values(verbOptions)
       .filter((verbOption) =>
@@ -115,40 +118,48 @@ const getHonoHandlers = ({
   handlerName,
   contextTypeName,
   verbOption,
+  validator,
 }: {
   handlerName: string;
   contextTypeName: string;
   verbOption: GeneratorVerbOptions;
+  validator: boolean | 'hono' | NormalizedMutator;
 }) => {
+  let currentValidator = '';
+
+  if (validator) {
+    if (verbOption.headers) {
+      currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
+    }
+    if (verbOption.params.length) {
+      currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
+    }
+    if (verbOption.queryParams) {
+      currentValidator += `zValidator('query', ${verbOption.operationName}QueryParams),\n`;
+    }
+    if (verbOption.body.definition) {
+      currentValidator += `zValidator('json', ${verbOption.operationName}Body),\n`;
+    }
+    if (
+      validator !== 'hono' &&
+      verbOption.response.originalSchema?.['200']?.content?.['application/json']
+    ) {
+      currentValidator += `zValidator('response', ${verbOption.operationName}Response),\n`;
+    }
+  }
+
   return `
 export const ${handlerName} = factory.createHandlers(
-${
-  verbOption.headers
-    ? `zValidator('header', ${verbOption.operationName}Header),\n`
-    : ''
-}${
-    verbOption.params.length
-      ? `zValidator('param', ${verbOption.operationName}Params),\n`
-      : ''
-  }${
-    verbOption.queryParams
-      ? `zValidator('query', ${verbOption.operationName}QueryParams),\n`
-      : ''
-  }${
-    verbOption.body.definition
-      ? `zValidator('json', ${verbOption.operationName}Body),\n`
-      : ''
-  }${
-    !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
-      ? `zValidator('response', ${verbOption.operationName}Response),\n`
-      : ''
-  }(c: ${contextTypeName}) => {
+${currentValidator}async (c: ${contextTypeName}) => {
   
   },
 );`;
 };
 
-const getZvalidatorImports = (verbOption: GeneratorVerbOptions) => {
+const getZvalidatorImports = (
+  verbOption: GeneratorVerbOptions,
+  isHonoValidator: boolean,
+) => {
   let imports = [];
 
   if (verbOption.headers) {
@@ -168,32 +179,13 @@ const getZvalidatorImports = (verbOption: GeneratorVerbOptions) => {
   }
 
   if (
+    !isHonoValidator &&
     !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
   ) {
     imports.push(`${verbOption.operationName}Response`);
   }
 
   return imports.join(',\n');
-};
-
-const getHandlerFix = ({
-  rawFile,
-  content,
-}: {
-  rawFile: string;
-  content: string;
-}) => {
-  let newContent = content;
-
-  if (!rawFile.includes("import { createFactory } from 'hono/factory';")) {
-    newContent = `import { createFactory } from 'hono/factory';\n${newContent}`;
-  }
-
-  if (!rawFile.includes('const factory = createFactory();')) {
-    newContent += '\nconst factory = createFactory();';
-  }
-
-  return newContent;
 };
 
 const getVerbOptionGroupByTag = (
@@ -249,16 +241,14 @@ const generateHandlers = async (
 
         if (isExist) {
           const rawFile = await fs.readFile(handlerPath, 'utf8');
-          let content = getHandlerFix({
-            rawFile,
-            content: rawFile,
-          });
+          let content = rawFile;
 
           if (!rawFile.includes(handlerName)) {
             content += getHonoHandlers({
               handlerName,
               contextTypeName,
               verbOption,
+              validator: output.override.hono.validator,
             });
           }
 
@@ -268,13 +258,26 @@ const generateHandlers = async (
           };
         }
 
-        const content = `import { createFactory } from 'hono/factory';${
-          hasZValidator
-            ? `\nimport { zValidator } from '${outputPath}.validator';`
-            : ''
+        let validatorImport = '';
+
+        if (hasZValidator) {
+          if (output.override.hono.validator === true) {
+            validatorImport = `\nimport { zValidator } from '${outputPath}.validator';`;
+          } else if (output.override.hono.validator === 'hono') {
+            validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
+          }
         }
+
+        const zodImports = output.override.hono.validator
+          ? `import { ${getZvalidatorImports(
+              verbOption,
+              output.override.hono.validator === 'hono',
+            )} } from '${outputPath}.zod';`
+          : '';
+
+        const content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${contextTypeName} } from '${outputPath}.context';
-import { ${getZvalidatorImports(verbOption)} } from '${outputPath}.zod';
+${zodImports}
 
 const factory = createFactory();
 
@@ -282,6 +285,7 @@ ${getHonoHandlers({
   handlerName,
   contextTypeName,
   verbOption,
+  validator: output.override.hono.validator,
 })}
 `;
 
@@ -315,10 +319,7 @@ ${getHonoHandlers({
 
         if (isExist) {
           const rawFile = await fs.readFile(handlerPath, 'utf8');
-          let content = getHandlerFix({
-            rawFile,
-            content: rawFile,
-          });
+          let content = rawFile;
 
           content += Object.values(verbs).reduce((acc, verbOption) => {
             const handlerName = `${verbOption.operationName}Handlers`;
@@ -331,6 +332,7 @@ ${getHonoHandlers({
                 handlerName,
                 contextTypeName,
                 verbOption,
+                validator: output.override.hono.validator,
               });
             }
 
@@ -345,17 +347,32 @@ ${getHonoHandlers({
 
         const outputRelativePath = `./${kebab(tag)}`;
 
-        let content = `import { createFactory } from 'hono/factory';${
-          hasZValidator
-            ? `\nimport { zValidator } from '${outputRelativePath}.validator';`
-            : ''
+        let validatorImport = '';
+
+        if (hasZValidator) {
+          if (output.override.hono.validator === true) {
+            validatorImport = `\nimport { zValidator } from '${outputRelativePath}.validator';`;
+          } else if (output.override.hono.validator === 'hono') {
+            validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
+          }
         }
+
+        const zodImports = output.override.hono.validator
+          ? `import { ${Object.values(verbs)
+              .map((verb) =>
+                getZvalidatorImports(
+                  verb,
+                  output.override.hono.validator === 'hono',
+                ),
+              )
+              .join(',\n')} } from '${outputRelativePath}.zod'`
+          : '';
+
+        let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbs)
           .map((verb) => `${pascal(verb.operationName)}Context`)
           .join(',\n')} } from '${outputRelativePath}.context';
-import { ${Object.values(verbs)
-          .map((verb) => getZvalidatorImports(verb))
-          .join(',\n')} } from '${outputRelativePath}.zod';
+${zodImports};
 
 const factory = createFactory();`;
 
@@ -367,6 +384,7 @@ const factory = createFactory();`;
             handlerName,
             contextTypeName,
             verbOption,
+            validator: output.override.hono.validator,
           });
 
           return acc;
@@ -396,10 +414,7 @@ const factory = createFactory();`;
 
   if (isExist) {
     const rawFile = await fs.readFile(handlerPath, 'utf8');
-    let content = getHandlerFix({
-      rawFile,
-      content: rawFile,
-    });
+    let content = rawFile;
 
     content += Object.values(verbOptions).reduce((acc, verbOption) => {
       const handlerName = `${verbOption.operationName}Handlers`;
@@ -410,6 +425,7 @@ const factory = createFactory();`;
           handlerName,
           contextTypeName,
           verbOption,
+          validator: output.override.hono.validator,
         });
       }
 
@@ -426,17 +442,29 @@ const factory = createFactory();`;
 
   const outputRelativePath = `./${filename}`;
 
-  let content = `import { createFactory } from 'hono/factory';${
-    hasZValidator
-      ? `\nimport { zValidator } from '${outputRelativePath}.validator';`
-      : ''
+  let validatorImport = '';
+
+  if (hasZValidator) {
+    if (output.override.hono.validator === true) {
+      validatorImport = `\nimport { zValidator } from '${outputRelativePath}.validator';`;
+    } else if (output.override.hono.validator === 'hono') {
+      validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
+    }
   }
+
+  const zodImports = output.override.hono.validator
+    ? `import { ${Object.values(verbOptions)
+        .map((verb) =>
+          getZvalidatorImports(verb, output.override.hono.validator === 'hono'),
+        )
+        .join(',\n')} } from '${outputRelativePath}.zod';`
+    : '';
+
+  let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbOptions)
     .map((verb) => `${pascal(verb.operationName)}Context`)
     .join(',\n')} } from '${outputRelativePath}.context';
-import { ${Object.values(verbOptions)
-    .map((verb) => getZvalidatorImports(verb))
-    .join(',\n')} } from '${outputRelativePath}.zod';
+${zodImports}
 
 const factory = createFactory();`;
 
@@ -448,6 +476,7 @@ const factory = createFactory();`;
       handlerName,
       contextTypeName,
       verbOption,
+      validator: output.override.hono.validator,
     });
 
     return acc;
@@ -642,13 +671,6 @@ const generateZodFiles = async (
 
     return Promise.all(
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
-        let content = `${header}import { z as zod } from 'zod';\n\n`;
-
-        const zodPath =
-          output.mode === 'tags'
-            ? upath.join(dirname, `${kebab(tag)}.zod${extension}`)
-            : upath.join(dirname, tag, tag + '.zod' + extension);
-
         const zods = await Promise.all(
           verbs.map((verbOption) =>
             generateZod(
@@ -666,6 +688,27 @@ const generateZodFiles = async (
           ),
         );
 
+        const allMutators = zods.reduce(
+          (acc, z) => {
+            (z.mutators ?? []).forEach((mutator) => {
+              acc[mutator.name] = mutator;
+            });
+            return acc;
+          },
+          {} as Record<string, GeneratorMutator>,
+        );
+
+        const mutatorsImports = generateMutatorImports({
+          mutators: Object.values(allMutators),
+        });
+
+        let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+
+        const zodPath =
+          output.mode === 'tags'
+            ? upath.join(dirname, `${kebab(tag)}.zod${extension}`)
+            : upath.join(dirname, tag, tag + '.zod' + extension);
+
         content += zods.map((zod) => zod.implementation).join('\n');
 
         return {
@@ -675,10 +718,6 @@ const generateZodFiles = async (
       }),
     );
   }
-
-  let content = `${header}import { z as zod } from 'zod';\n\n`;
-
-  const zodPath = upath.join(dirname, `${filename}.zod${extension}`);
 
   const zods = await Promise.all(
     Object.values(verbOptions).map((verbOption) =>
@@ -696,6 +735,24 @@ const generateZodFiles = async (
       ),
     ),
   );
+
+  const allMutators = zods.reduce(
+    (acc, z) => {
+      (z.mutators ?? []).forEach((mutator) => {
+        acc[mutator.name] = mutator;
+      });
+      return acc;
+    },
+    {} as Record<string, GeneratorMutator>,
+  );
+
+  const mutatorsImports = generateMutatorImports({
+    mutators: Object.values(allMutators),
+  });
+
+  let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
+
+  const zodPath = upath.join(dirname, `${filename}.zod${extension}`);
 
   content += zods.map((zod) => zod.implementation).join('\n');
 
@@ -804,6 +861,13 @@ export const zValidator =
       }
     } else {
       await next();
+      
+      if (
+        c.res.status !== 200 ||
+       !c.res.headers.get('Content-Type')?.includes('application/json')
+      ) {
+        return;
+      }
 
       const clonedResponse = c.res.clone();
 
@@ -813,6 +877,8 @@ export const zValidator =
       } catch {
         const message = 'Malformed JSON in response';
         c.res = new Response(message, { status: 400 });
+        
+        return;
       }
 
       const result = await schema.safeParseAsync(value);
@@ -843,6 +909,8 @@ export const zValidator =
             'Content-Type': 'application/json',
           },
         });
+      } else {
+        c.res = new Response(JSON.stringify(result.data), c.res);
       }
     }
   };
@@ -871,7 +939,15 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     generateZvalidator(output, context),
   ]);
 
-  return [...handlers, ...contexts, ...zods, validator];
+  return [
+    ...handlers,
+    ...contexts,
+    ...zods,
+    ...(output.override.hono.validator &&
+    output.override.hono.validator !== 'hono'
+      ? [validator]
+      : []),
+  ];
 };
 
 const honoClientBuilder: ClientGeneratorsBuilder = {

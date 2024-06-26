@@ -25,6 +25,7 @@ import query from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
 import hono from '@orval/hono';
+import fetchClient from '@orval/fetch';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -42,6 +43,7 @@ const getGeneratorClient = (
     swr: swr()(),
     zod: zod()(),
     hono: hono()(),
+    fetch: fetchClient()(),
   };
 
   const generator = isFunction(outputClient)
@@ -249,7 +251,6 @@ export const generateOperations = (
         imports: client.imports,
         // @ts-expect-error // FIXME
         implementationMock: generatedMock.implementation,
-        // @ts-expect-error // FIXME
         importsMock: generatedMock.imports,
         tags: verbOption.tags,
         mutator: verbOption.mutator,

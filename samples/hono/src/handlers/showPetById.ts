@@ -8,5 +8,5 @@ const factory = createFactory();
 export const showPetByIdHandlers = factory.createHandlers(
   zValidator('param', showPetByIdParams),
   zValidator('response', showPetByIdResponse),
-  (c: ShowPetByIdContext) => {},
+  async (c: ShowPetByIdContext) => {},
 );

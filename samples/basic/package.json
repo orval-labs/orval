@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.html",
   "scripts": {
-    "example": "run-p example:*",
+    "generate-api": "node ../../packages/orval/dist/bin/orval.js",
+    "example": "run-p 'example:*'",
     "example:basic": "node ../../packages/orval/dist/bin/orval.js --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
     "example:config": "node ../../packages/orval/dist/bin/orval.js"
   },

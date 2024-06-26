@@ -23,7 +23,7 @@ module.exports = {
 
 Type: `String | Function`.
 
-Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`.
+Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `fetch`.
 
 Default Value: `axios-functions`.
 
@@ -324,11 +324,12 @@ Use to specify the mock type you want to generate.
 
 #### delay
 
-Type: `Number | Function`.
+Type: `Number | Function | false`.
 
 Default Value: `1000`.
 
-Use to specify the delay time for the mock. It can either be a fixed number or a function that returns a number.
+Use to specify the delay time for the mock. It can either be a fixed number, false or a function that returns a number.
+Setting delay to false removes the delay call completely.
 
 #### delayFunctionLazyExecute
 
@@ -1026,6 +1027,58 @@ Default Value: `false`.
 
 Use to set the coerce for the zod schema. If you set it to true, the schema will be generated with the coerce on possible types.
 
+You can also provide an array of coerce types to only generate the coerce types for the specified types.
+
+example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        zod: {
+          coerce: {
+            response: [ 'boolean'],
+            query: ['string', 'number', 'boolean', 'bigint', 'date'],
+          }
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### preprocess
+
+Type: `Object`.
+
+Use to add preprocess function to a zod schema. You can use a custom mutator to preprocess the data before it is validated.
+
+example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        zod: {
+          preprocess: {
+            response: {
+              name: 'stripNill',
+              path: './src/mutators.ts',
+            },
+          },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
 #### mock
 
 Type: `Object`.
@@ -1102,9 +1155,10 @@ module.exports = {
 
 ##### delay
 
-Type: `number` or `Function`.
+Type: `number`, `Function` or `false`.
 
-Give you the possibility to set delay time for mock. It can either be a fixed number or a function that returns a number.
+Give you the possibility to set delay time for mock. It can either be a fixed number, false or a function that returns a number.
+Setting delay to false removes the delay call completely.
 
 Default Value: `1000`
 
@@ -1662,13 +1716,38 @@ module.exports = {
 };
 ```
 
+#### suppressReadonlyModifier
+
+Type: `Boolean`
+
+Valid Values: `true` or `false`.
+
+Default Value: `false`.
+
+When the `readonly` field is specified in `OpenAPI`, specify `readonly` in the `type` and `interface` fields output from the schema.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        suppressReadonlyModifier: true,
+      },
+    },
+  },
+};
+```
+
 ### allParamsOptional
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false. Applies to all clients, but probably only makes sense for Tanstack Query.
+Valid Values: `true` or `false`.
 
-Use this property to make all parameters optional. This is useful to take advantage of the Orval's auto-enable feature for Tanstack Query, see https://github.com/anymaniax/orval/pull/894
+Default Value: `false`.
+
+Applies to all clients, but probably only makes sense for `Tanstack Query`.
+Use this property to make all parameters optional except the path parameter. This is useful to take advantage of the `Orval`'s auto-enable feature for `Tanstack Query`, see https://github.com/anymaniax/orval/pull/894
 
 ```js
 module.exports = {
@@ -1693,6 +1772,25 @@ module.exports = {
   petstore: {
     output: {
       urlEncodeParameters: true,
+    },
+  },
+};
+```
+
+### optionsParamRequired
+
+Type: `Boolean`
+
+Valid Values: `true` or `false`.
+
+Default Value: `false`.
+Use this property to make the second `options` parameter required (such as when using a custom axios instance)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      optionsParamRequired: true,
     },
   },
 };

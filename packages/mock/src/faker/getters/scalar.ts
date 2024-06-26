@@ -7,14 +7,14 @@ import {
   mergeDeep,
   MockOptions,
 } from '@orval/core';
+import { MockDefinition, MockSchemaObject } from '../../types';
+import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
 } from '../resolvers';
-import { MockDefinition, MockSchemaObject } from '../../types';
 import { getMockObject } from './object';
-import { DEFAULT_FORMAT_MOCK } from '../constants';
 
 export const getMockScalar = ({
   item,
@@ -25,6 +25,8 @@ export const getMockScalar = ({
   combine,
   context,
   existingReferencedProperties,
+  splitMockImplementations,
+  allowOverride = false,
 }: {
   item: MockSchemaObject;
   imports: GeneratorImport[];
@@ -40,6 +42,9 @@ export const getMockScalar = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  splitMockImplementations: string[];
+  // This is used to add the overrideResponse to the object
+  allowOverride?: boolean;
 }): MockDefinition => {
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
@@ -106,12 +111,39 @@ export const getMockScalar = ({
   switch (item.type) {
     case 'number':
     case 'integer': {
+      let value = getNullable(
+        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
+        item.nullable,
+      );
+      let numberImports: GeneratorImport[] = [];
+      if (item.enum) {
+        // By default the value isn't a reference, so we don't have the object explicitly defined.
+        // So we have to create an array with the enum values and force them to be a const.
+        const joinedEnumValues = item.enum.filter(Boolean).join(',');
+
+        let enumValue = `[${joinedEnumValues}] as const`;
+
+        // But if the value is a reference, we can use the object directly via the imports and using Object.values.
+        if (item.isRef) {
+          enumValue = `Object.values(${item.name})`;
+          numberImports = [
+            {
+              name: item.name,
+              values: true,
+              ...(!isRootKey(context.specKey, context.target)
+                ? { specKey: context.specKey }
+                : {}),
+            },
+          ];
+        }
+
+        value = item.path?.endsWith('[]')
+          ? `faker.helpers.arrayElements(${enumValue})`
+          : `faker.helpers.arrayElement(${enumValue})`;
+      }
       return {
-        value: getNullable(
-          `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
-          item.nullable,
-        ),
-        imports: [],
+        value,
+        imports: numberImports,
         name: item.name,
       };
     }
@@ -154,6 +186,7 @@ export const getMockScalar = ({
         context,
         imports,
         existingReferencedProperties,
+        splitMockImplementations,
       });
 
       if (enums) {
@@ -235,6 +268,8 @@ export const getMockScalar = ({
         value = item.path?.endsWith('[]')
           ? `faker.helpers.arrayElements(${enumValue})`
           : `faker.helpers.arrayElement(${enumValue})`;
+      } else if (item.pattern) {
+        value = `faker.helpers.fromRegExp('${item.pattern}')`;
       }
 
       return {
@@ -245,7 +280,13 @@ export const getMockScalar = ({
       };
     }
 
-    case 'object':
+    case 'null':
+      return {
+        value: 'null',
+        imports: [],
+        name: item.name,
+      };
+
     default: {
       return getMockObject({
         item,
@@ -256,6 +297,8 @@ export const getMockScalar = ({
         context,
         imports,
         existingReferencedProperties,
+        splitMockImplementations,
+        allowOverride,
       });
     }
   }

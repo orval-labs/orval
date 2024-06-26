@@ -24,6 +24,6 @@ You can find below some samples
 - [svelte query](https://github.com/anymaniax/orval/tree/master/samples/svelte-query)
 - [vue query](https://github.com/anymaniax/orval/tree/master/samples/vue-query)
 - [react app with swr](https://github.com/anymaniax/orval/tree/master/samples/react-app-with-swr)
-- [nx fastify react](https://github.com/anymaniax/orval/tree/master/samples/nx-fastify-react)
 - [angular app](https://github.com/anymaniax/orval/tree/master/samples/angular-app)
 - [hono](https://github.com/anymaniax/orval/tree/master/samples/hono)
+- [next app with fetch](https://github.com/anymaniax/orval/tree/master/samples/next-app-with-fetch)

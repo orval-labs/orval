@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-  type ZodValidationSchemaDefinitionInput,
+  type ZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   generateZodValidationSchemaDefinition,
 } from '.';
 import { SchemaObject } from 'openapi3-ts/oas30';
+import { ContextSpecs } from '@orval/core';
 
-const queryParams: ZodValidationSchemaDefinitionInput = {
+const queryParams: ZodValidationSchemaDefinition = {
   functions: [
     [
       'object',
@@ -41,11 +42,41 @@ const queryParams: ZodValidationSchemaDefinitionInput = {
   consts: [],
 };
 
+const record: ZodValidationSchemaDefinition = {
+  functions: [
+    [
+      'object',
+      {
+        queryParams: {
+          functions: [
+            [
+              'additionalProperties',
+              {
+                functions: [['any', undefined]],
+                consts: [],
+              },
+            ],
+          ],
+          consts: [],
+        },
+      },
+    ],
+  ],
+  consts: [],
+};
+
 describe('parseZodValidationSchemaDefinition', () => {
   describe('with `override.coerceTypes = false` (default)', () => {
     it('does not emit coerced zod property schemas', () => {
       const parseResult = parseZodValidationSchemaDefinition(
         queryParams,
+        {
+          output: {
+            override: {
+              useDates: false,
+            },
+          },
+        } as ContextSpecs,
         false,
       );
 
@@ -57,12 +88,40 @@ describe('parseZodValidationSchemaDefinition', () => {
 
   describe('with `override.coerceTypes = true`', () => {
     it('emits coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(queryParams, true);
+      const parseResult = parseZodValidationSchemaDefinition(
+        queryParams,
+        {
+          output: {
+            override: {
+              useDates: false,
+            },
+          },
+        } as ContextSpecs,
+        true,
+      );
 
       expect(parseResult.zod).toBe(
         'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
       );
     });
+  });
+
+  it('treats additionalProperties properly', () => {
+    const parseResult = parseZodValidationSchemaDefinition(
+      record,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+    );
+
+    expect(parseResult.zod).toBe(
+      'zod.object({\n  "queryParams": zod.record(zod.string(), zod.any())\n})',
+    );
   });
 });
 
@@ -101,13 +160,36 @@ const deepRequiredSchema: SchemaObject = {
   },
 };
 
+const additionalPropertiesSchema: SchemaObject = {
+  type: 'object',
+  properties: {
+    any: {
+      type: 'object',
+      additionalProperties: {},
+    },
+    true: {
+      type: 'object',
+      additionalProperties: true,
+    },
+  },
+};
+
 describe('generateZodValidationSchemaDefinition`', () => {
   it('required', () => {
     const result = generateZodValidationSchemaDefinition(
       deepRequiredSchema,
-      true,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
       'strict',
       true,
+      {
+        required: true,
+      },
     );
 
     expect(result).toEqual({
@@ -149,9 +231,18 @@ describe('generateZodValidationSchemaDefinition`', () => {
   it('generates a strict zod schema', () => {
     const result = generateZodValidationSchemaDefinition(
       objectIntoObjectSchema,
-      true,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
       'strict',
       true,
+      {
+        required: true,
+      },
     );
 
     expect(result).toEqual({
@@ -181,6 +272,62 @@ describe('generateZodValidationSchemaDefinition`', () => {
                   },
                 ],
                 ['strict', undefined],
+                ['optional', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+        ['strict', undefined],
+      ],
+      consts: [],
+    });
+  });
+
+  it('additionalProperties', () => {
+    const result = generateZodValidationSchemaDefinition(
+      additionalPropertiesSchema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'strict',
+      true,
+      {
+        required: true,
+      },
+    );
+
+    expect(result).toEqual({
+      functions: [
+        [
+          'object',
+          {
+            any: {
+              functions: [
+                [
+                  'additionalProperties',
+                  {
+                    functions: [['any', undefined]],
+                    consts: [],
+                  },
+                ],
+                ['optional', undefined],
+              ],
+              consts: [],
+            },
+            true: {
+              functions: [
+                [
+                  'additionalProperties',
+                  {
+                    functions: [['any', undefined]],
+                    consts: [],
+                  },
+                ],
                 ['optional', undefined],
               ],
               consts: [],

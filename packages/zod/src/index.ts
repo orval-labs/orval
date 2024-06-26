@@ -1,4 +1,25 @@
 import {
+  ClientBuilder,
+  ClientGeneratorsBuilder,
+  ContextSpecs,
+  GeneratorDependency,
+  GeneratorMutator,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  ZodCoerceType,
+  camel,
+  escape,
+  generateMutator,
+  getNumberWord,
+  isBoolean,
+  isObject,
+  isString,
+  jsStringEscape,
+  pascal,
+  resolveRef,
+} from '@orval/core';
+import uniq from 'lodash.uniq';
+import {
   ParameterObject,
   PathItemObject,
   ReferenceObject,
@@ -6,24 +27,6 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
-import {
-  camel,
-  ClientBuilder,
-  ClientGeneratorsBuilder,
-  escape,
-  GeneratorDependency,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  isString,
-  resolveRef,
-  ContextSpecs,
-  isObject,
-  isBoolean,
-  jsStringEscape,
-  getNumberWord,
-  pascal,
-} from '@orval/core';
-import uniq from 'lodash.uniq';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -66,14 +69,24 @@ const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
 let constsUniqueCounter: Record<string, number> = {};
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
-const COERCEABLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+
+export type ZodValidationSchemaDefinition = {
+  functions: [string, any][];
+  consts: string[];
+};
+
+const minAndMaxTypes = ['number', 'string', 'array'];
 
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
-  _required: boolean | undefined,
+  context: ContextSpecs,
   name: string,
   strict: boolean,
-): { functions: [string, any][]; consts: string[] } => {
+  rules?: {
+    required?: boolean;
+  },
+): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
   const consts: string[] = [];
@@ -90,22 +103,13 @@ export const generateZodValidationSchemaDefinition = (
 
   const functions: [string, any][] = [];
   const type = resolveZodType(schema.type);
-  const required = schema.default !== undefined ? false : _required ?? false;
+  const required =
+    schema.default !== undefined ? false : rules?.required ?? false;
   const nullable =
     schema.nullable ??
     (Array.isArray(schema.type) && schema.type.includes('null'));
-  const min =
-    schema.minimum ??
-    schema.exclusiveMinimum ??
-    schema.minLength ??
-    schema.minItems ??
-    undefined;
-  const max =
-    schema.maximum ??
-    schema.exclusiveMaximum ??
-    schema.maxLength ??
-    schema.maxItems ??
-    undefined;
+  const min = schema.minimum ?? schema.minLength ?? schema.minItems;
+  const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
   const matches = schema.pattern ?? undefined;
 
   switch (type) {
@@ -115,9 +119,12 @@ export const generateZodValidationSchemaDefinition = (
         'array',
         generateZodValidationSchemaDefinition(
           items,
-          true,
+          context,
           camel(`${name}-item`),
           strict,
+          {
+            required: true,
+          },
         ),
       ]);
       break;
@@ -126,12 +133,20 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
-      if (schema.format === 'date') {
+      if (
+        context.output.override.useDates &&
+        (schema.format === 'date' || schema.format === 'date-time')
+      ) {
         functions.push(['date', undefined]);
         break;
       }
 
       functions.push([type as string, undefined]);
+
+      if (schema.format === 'date') {
+        functions.push(['date', undefined]);
+        break;
+      }
 
       if (schema.format === 'date-time') {
         functions.push(['datetime', undefined]);
@@ -174,9 +189,12 @@ export const generateZodValidationSchemaDefinition = (
           schemas.map((schema) =>
             generateZodValidationSchemaDefinition(
               schema as SchemaObject,
-              true,
+              context,
               camel(name),
               strict,
+              {
+                required: true,
+              },
             ),
           ),
         ]);
@@ -190,9 +208,12 @@ export const generateZodValidationSchemaDefinition = (
             .map((key) => ({
               [key]: generateZodValidationSchemaDefinition(
                 schema.properties?.[key] as any,
-                schema.required?.includes(key),
+                context,
                 camel(`${name}-${key}`),
                 strict,
+                {
+                  required: schema.required?.includes(key),
+                },
               ),
             }))
             .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
@@ -208,14 +229,17 @@ export const generateZodValidationSchemaDefinition = (
       if (schema.additionalProperties) {
         functions.push([
           'additionalProperties',
-          isBoolean(schema.additionalProperties)
-            ? schema.additionalProperties
-            : generateZodValidationSchemaDefinition(
-                schema.additionalProperties as SchemaObject,
-                true,
-                name,
-                strict,
-              ),
+          generateZodValidationSchemaDefinition(
+            isBoolean(schema.additionalProperties)
+              ? {}
+              : (schema.additionalProperties as SchemaObject),
+            context,
+            name,
+            strict,
+            {
+              required: true,
+            },
+          ),
         ]);
 
         break;
@@ -227,18 +251,21 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (min !== undefined) {
-    if (min === 1) {
-      functions.push(['min', `${min}`]);
-    } else {
-      consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
-      functions.push(['min', `${name}Min${constsCounterValue}`]);
+  if (minAndMaxTypes.includes(type)) {
+    if (min !== undefined) {
+      if (min === 1) {
+        functions.push(['min', `${min}`]);
+      } else {
+        consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
+        functions.push(['min', `${name}Min${constsCounterValue}`]);
+      }
+    }
+    if (max !== undefined) {
+      consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
+      functions.push(['max', `${name}Max${constsCounterValue}`]);
     }
   }
-  if (max !== undefined) {
-    consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
-    functions.push(['max', `${name}Max${constsCounterValue}`]);
-  }
+
   if (matches) {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
@@ -275,14 +302,11 @@ export const generateZodValidationSchemaDefinition = (
   return { functions, consts: uniq(consts) };
 };
 
-export type ZodValidationSchemaDefinitionInput = {
-  functions: [string, any][];
-  consts: string[];
-};
-
 export const parseZodValidationSchemaDefinition = (
-  input: ZodValidationSchemaDefinitionInput,
-  coerceTypes = false,
+  input: ZodValidationSchemaDefinition,
+  context: ContextSpecs,
+  coerceTypes: boolean | ZodCoerceType[] = false,
+  preprocessResponse?: GeneratorMutator,
 ): { zod: string; consts: string } => {
   if (!input.functions.length) {
     return { zod: '', consts: '' };
@@ -341,10 +365,10 @@ export const parseZodValidationSchemaDefinition = (
       return `zod.object({
 ${Object.entries(args)
   .map(([key, schema]) => {
-    const value = (schema as ZodValidationSchemaDefinitionInput).functions
+    const value = (schema as ZodValidationSchemaDefinition).functions
       .map(parseProperty)
       .join('');
-    consts += (schema as ZodValidationSchemaDefinitionInput).consts.join('\n');
+    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
   })
   .join(',\n')}
@@ -364,7 +388,16 @@ ${Object.entries(args)
       return '.strict()';
     }
 
-    if (coerceTypes && COERCEABLE_TYPES.includes(fn)) {
+    const shouldCoerceType =
+      coerceTypes &&
+      (Array.isArray(coerceTypes)
+        ? coerceTypes.includes(fn as ZodCoerceType)
+        : COERCIBLE_TYPES.includes(fn));
+
+    if (
+      (fn !== 'date' && shouldCoerceType) ||
+      (fn === 'date' && shouldCoerceType && context.output.override.useDates)
+    ) {
       return `.coerce.${fn}(${args})`;
     }
 
@@ -373,7 +406,12 @@ ${Object.entries(args)
 
   consts += input.consts.join('\n');
 
-  const value = input.functions.map(parseProperty).join('');
+  const schema = input.functions.map(parseProperty).join('');
+  const value = preprocessResponse
+    ? `.preprocess(${preprocessResponse.name}, ${
+        schema.startsWith('.') ? 'zod' : ''
+      }${schema})`
+    : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
 
@@ -428,8 +466,12 @@ const parseBodyAndResponse = ({
   name: string;
   strict: boolean;
 }): {
-  input: ZodValidationSchemaDefinitionInput;
+  input: ZodValidationSchemaDefinition;
   isArray: boolean;
+  rules?: {
+    min?: number;
+    max?: number;
+  };
 } => {
   if (!data) {
     return {
@@ -457,23 +499,42 @@ const parseBodyAndResponse = ({
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
+    const min =
+      resolvedJsonSchema.minimum ??
+      resolvedJsonSchema.minLength ??
+      resolvedJsonSchema.minItems;
+    const max =
+      resolvedJsonSchema.maximum ??
+      resolvedJsonSchema.maxLength ??
+      resolvedJsonSchema.maxItems;
+
     return {
       input: generateZodValidationSchemaDefinition(
         resolvedJsonSchema.items as SchemaObject,
-        true,
+        context,
         name,
         strict,
+        {
+          required: true,
+        },
       ),
       isArray: true,
+      rules: {
+        ...(typeof min !== 'undefined' ? { min } : {}),
+        ...(typeof max !== 'undefined' ? { max } : {}),
+      },
     };
   }
 
   return {
     input: generateZodValidationSchemaDefinition(
       resolvedJsonSchema,
-      true,
+      context,
       name,
       strict,
+      {
+        required: true,
+      },
     ),
     isArray: false,
   };
@@ -496,9 +557,9 @@ const parseParameters = ({
     response: boolean;
   };
 }): {
-  headers: ZodValidationSchemaDefinitionInput;
-  queryParams: ZodValidationSchemaDefinitionInput;
-  params: ZodValidationSchemaDefinitionInput;
+  headers: ZodValidationSchemaDefinition;
+  queryParams: ZodValidationSchemaDefinition;
+  params: ZodValidationSchemaDefinition;
 } => {
   if (!data) {
     return {
@@ -535,9 +596,12 @@ const parseParameters = ({
 
       const definition = generateZodValidationSchemaDefinition(
         schema,
-        parameter.required,
+        context,
         camel(`${operationName}-${parameter.in}-${parameter.name}`),
         mapStrict[parameter.in as 'path' | 'query' | 'header'] ?? false,
+        {
+          required: parameter.required,
+        },
       );
 
       if (parameter.in === 'header') {
@@ -573,7 +637,7 @@ const parseParameters = ({
     >,
   );
 
-  const headers: ZodValidationSchemaDefinitionInput = {
+  const headers: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -586,7 +650,7 @@ const parseParameters = ({
     }
   }
 
-  const queryParams: ZodValidationSchemaDefinitionInput = {
+  const queryParams: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -599,7 +663,7 @@ const parseParameters = ({
     }
   }
 
-  const params: ZodValidationSchemaDefinitionInput = {
+  const params: ZodValidationSchemaDefinition = {
     functions: [],
     consts: [],
   };
@@ -619,34 +683,15 @@ const parseParameters = ({
   };
 };
 
-const generateZodRoute = (
+const generateZodRoute = async (
   { operationName, verb, override }: GeneratorVerbOptions,
-  { pathRoute, context }: GeneratorOptions,
+  { pathRoute, context, output }: GeneratorOptions,
 ) => {
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
     | undefined;
 
   const parameters = spec?.[verb]?.parameters;
-  const requestBody = spec?.[verb]?.requestBody;
-  const response = spec?.[verb]?.responses?.['200'] as
-    | ResponseObject
-    | ReferenceObject;
-
-  const parsedResponse = parseBodyAndResponse({
-    data: response,
-    context,
-    name: camel(`${operationName}-response`),
-    strict: override.zod.strict.response,
-  });
-
-  const parsedPody = parseBodyAndResponse({
-    data: requestBody,
-    context,
-    name: camel(`${operationName}-body`),
-    strict: override.zod.strict.body,
-  });
-
   const parsedParameters = parseParameters({
     data: parameters,
     context,
@@ -654,8 +699,31 @@ const generateZodRoute = (
     strict: override.zod.strict,
   });
 
+  const requestBody = spec?.[verb]?.requestBody;
+  const parsedBody = parseBodyAndResponse({
+    data: requestBody,
+    context,
+    name: camel(`${operationName}-body`),
+    strict: override.zod.strict.body,
+  });
+
+  const responses = (
+    context.output.override.zod.generateEachHttpStatus
+      ? Object.entries(spec?.[verb]?.responses ?? {})
+      : [['', spec?.[verb]?.responses[200]]]
+  ) as [string, ResponseObject | ReferenceObject][];
+  const parsedResponses = responses.map(([code, response]) =>
+    parseBodyAndResponse({
+      data: response,
+      context,
+      name: camel(`${operationName}-${code}-response`),
+      strict: override.zod.strict.response,
+    }),
+  );
+
   const inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
+    context,
     override.zod.coerce.param,
   );
 
@@ -667,21 +735,38 @@ const generateZodRoute = (
 
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
+    context,
     override.zod.coerce.query ?? override.coerceTypes,
   );
   const inputHeaders = parseZodValidationSchemaDefinition(
     parsedParameters.headers,
+    context,
     override.zod.coerce.header,
   );
 
   const inputBody = parseZodValidationSchemaDefinition(
-    parsedPody.input,
+    parsedBody.input,
+    context,
     override.zod.coerce.body,
   );
 
-  const inputResponse = parseZodValidationSchemaDefinition(
-    parsedResponse.input,
-    override.zod.coerce.response,
+  const preprocessResponse = override.zod.preprocess?.response
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessResponse`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
+  const inputResponses = parsedResponses.map((parsedResponse) =>
+    parseZodValidationSchemaDefinition(
+      parsedResponse.input,
+      context,
+      override.zod.coerce.response,
+      preprocessResponse,
+    ),
   );
 
   if (
@@ -689,51 +774,84 @@ const generateZodRoute = (
     !inputQueryParams.zod &&
     !inputHeaders.zod &&
     !inputBody.zod &&
-    !inputResponse.zod
+    !inputResponses.some((inputResponse) => inputResponse.zod)
   ) {
-    return '';
+    return {
+      implemtation: '',
+      mutators: [],
+    };
   }
 
-  return [
-    ...(inputParams.consts ? [inputParams.consts] : []),
-    ...(inputParams.zod
-      ? [`export const ${operationName}Params = ${inputParams.zod}`]
-      : []),
-    ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
-    ...(inputQueryParams.zod
-      ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
-      : []),
-    ...(inputHeaders.consts ? [inputHeaders.consts] : []),
-    ...(inputHeaders.zod
-      ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
-      : []),
-    ...(inputBody.consts ? [inputBody.consts] : []),
-    ...(inputBody.zod
-      ? [
-          parsedPody.isArray
-            ? `export const ${operationName}BodyItem = ${inputBody.zod}
-export const ${operationName}Body = zod.array(${operationName}BodyItem)`
-            : `export const ${operationName}Body = ${inputBody.zod}`,
-        ]
-      : []),
-    ...(inputResponse.consts ? [inputResponse.consts] : []),
-    ...(inputResponse.zod
-      ? [
-          parsedResponse.isArray
-            ? `export const ${operationName}ResponseItem = ${inputResponse.zod}
-export const ${operationName}Response = zod.array(${operationName}ResponseItem)`
-            : `export const ${operationName}Response = ${inputResponse.zod}`,
-        ]
-      : []),
-  ].join('\n\n');
+  return {
+    implementation: [
+      ...(inputParams.consts ? [inputParams.consts] : []),
+      ...(inputParams.zod
+        ? [`export const ${operationName}Params = ${inputParams.zod}`]
+        : []),
+      ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
+      ...(inputQueryParams.zod
+        ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
+        : []),
+      ...(inputHeaders.consts ? [inputHeaders.consts] : []),
+      ...(inputHeaders.zod
+        ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
+        : []),
+      ...(inputBody.consts ? [inputBody.consts] : []),
+      ...(inputBody.zod
+        ? [
+            parsedBody.isArray
+              ? `export const ${operationName}BodyItem = ${inputBody.zod}
+export const ${operationName}Body = zod.array(${operationName}BodyItem)${
+                  parsedBody.rules?.min ? `.min(${parsedBody.rules?.min})` : ''
+                }${
+                  parsedBody.rules?.max ? `.max(${parsedBody.rules?.max})` : ''
+                }`
+              : `export const ${operationName}Body = ${inputBody.zod}`,
+          ]
+        : []),
+      ...inputResponses
+        .map((inputResponse, index) => {
+          const operationResponse = camel(
+            `${operationName}-${responses[index][0]}-response`,
+          );
+          return [
+            ...(inputResponse.consts ? [inputResponse.consts] : []),
+            ...(inputResponse.zod
+              ? [
+                  parsedResponses[index].isArray
+                    ? `export const ${operationResponse}Item = ${
+                        inputResponse.zod
+                      }
+export const ${operationResponse} = zod.array(${operationResponse}Item)${
+                        parsedResponses[index].rules?.min
+                          ? `.min(${parsedResponses[index].rules?.min})`
+                          : ''
+                      }${
+                        parsedResponses[index].rules?.max
+                          ? `.max(${parsedResponses[index].rules?.max})`
+                          : ''
+                      }`
+                    : `export const ${operationResponse} = ${inputResponse.zod}`,
+                ]
+              : []),
+          ];
+        })
+        .flat(),
+    ].join('\n\n'),
+    mutators: preprocessResponse ? [preprocessResponse] : [],
+  };
 };
 
-export const generateZod: ClientBuilder = (verbOptions, options) => {
-  const routeImplementation = generateZodRoute(verbOptions, options);
+export const generateZod: ClientBuilder = async (verbOptions, options) => {
+  const { implementation, mutators } = await generateZodRoute(
+    verbOptions,
+    options,
+  );
 
   return {
-    implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
+    implementation: implementation ? `${implementation}\n\n` : '',
     imports: [],
+    mutators,
   };
 };
 

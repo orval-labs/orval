@@ -1,4 +1,5 @@
 import {
+  ClientMockGeneratorBuilder,
   generateDependencyImports,
   GenerateMockImports,
   GeneratorDependency,
@@ -10,9 +11,9 @@ import {
   pascal,
   ResReqTypesValue,
 } from '@orval/core';
+import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
-import { getDelay } from '../delay';
 
 const getMSWDependencies = (locale?: string): GeneratorDependency[] => [
   {
@@ -58,7 +59,9 @@ const generateDefinition = (
   responseImports: GeneratorImport[],
   responses: ResReqTypesValue[],
   contentTypes: string[],
+  splitMockImplementations: string[],
 ) => {
+  const oldSplitMockImplementations = [...splitMockImplementations];
   const { definitions, definition, imports } = getMockDefinition({
     operationId,
     tags,
@@ -68,6 +71,7 @@ const generateDefinition = (
     override,
     context,
     mockOptions: !isFunction(mock) ? mock : undefined,
+    splitMockImplementations,
   });
 
   const mockData = getMockOptionsDataOverride(operationId, override);
@@ -86,32 +90,56 @@ const generateDefinition = (
   const isTextPlain = contentTypes.includes('text/plain');
   const isReturnHttpResponse = value && value !== 'undefined';
 
-  const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(name)}`;
+  const getResponseMockFunctionName = `${getResponseMockFunctionNameBase}${pascal(
+    name,
+  )}`;
   const handlerName = `${handlerNameBase}${pascal(name)}`;
 
-  const mockImplementation = isReturnHttpResponse
-    ? `export const ${getResponseMockFunctionName} = (${isResponseOverridable ? `overrideResponse: any = {}` : ''})${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+  const addedSplitMockImplementations = splitMockImplementations.slice(
+    oldSplitMockImplementations.length,
+  );
+  splitMockImplementations.push(...addedSplitMockImplementations);
+  const mockImplementations = addedSplitMockImplementations.length
+    ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
     : '';
 
-  const delayTime = getDelay(override, !isFunction(mock) ? mock : undefined);
+  const mockImplementation = isReturnHttpResponse
+    ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
+        isResponseOverridable
+          ? `overrideResponse: Partial< ${returnType} > = {}`
+          : ''
+      })${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+    : mockImplementations;
+
+  const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
+  const isHandlerOverridden = isReturnHttpResponse && !isTextPlain;
+  const infoParam = 'info';
   const handlerImplementation = `
-export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrideResponse?: ${returnType}` : ''}) => {
-  return http.${verb}('${route}', async () => {
-    await delay(${isFunction(delayTime) ? `(${delayTime})()` : delayTime});
+export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
+  return http.${verb}('${route}', ${
+    (isReturnHttpResponse && !isTextPlain) || delay !== false ? 'async' : ''
+  } (${infoParam}) => {${
+    delay !== false
+      ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+      : ''
+  }
+  ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain
           ? `${getResponseMockFunctionName}()`
-          : `JSON.stringify(overrideResponse !== undefined ? overrideResponse : ${getResponseMockFunctionName}())`
+          : `JSON.stringify(overrideResponse !== undefined 
+            ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse) 
+            : ${getResponseMockFunctionName}())`
         : null
     },
-      {
-        status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
-        headers: {
-          'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+      { status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
+        ${
+          isReturnHttpResponse
+            ? `headers: { 'Content-Type': ${isTextPlain ? "'text/plain'" : "'application/json'"} }`
+            : ''
         }
-      }
-    )
+      })
   })
 }\n`;
 
@@ -142,7 +170,7 @@ export const ${handlerName} = (${isReturnHttpResponse && !isTextPlain ? `overrid
 export const generateMSW = (
   generatorVerbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
-) => {
+): ClientMockGeneratorBuilder => {
   const { pathRoute, override, mock } = generatorOptions;
   const { operationId, response } = generatorVerbOptions;
 
@@ -154,6 +182,8 @@ export const generateMSW = (
   const handlerName = `get${pascal(operationId)}MockHandler`;
   const getResponseMockFunctionName = `get${pascal(operationId)}ResponseMock`;
 
+  const splitMockImplementations: string[] = [];
+
   const baseDefinition = generateDefinition(
     '',
     route,
@@ -162,10 +192,11 @@ export const generateMSW = (
     generatorVerbOptions,
     generatorOptions,
     response.definition.success,
-    '200',
+    response.types.success[0]?.key ?? '200',
     response.imports,
     response.types.success,
     response.contentTypes,
+    splitMockImplementations,
   );
 
   const mockImplementations = [baseDefinition.implementation.function];
@@ -191,6 +222,7 @@ export const generateMSW = (
           response.imports,
           [statusResponse],
           [statusResponse.contentType],
+          splitMockImplementations,
         );
         mockImplementations.push(definition.implementation.function);
         handlerImplementations.push(definition.implementation.handler);

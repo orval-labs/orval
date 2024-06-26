@@ -6,6 +6,16 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: '../generated/default/petstore/endpoints.ts',
   },
+  'petstore-filter': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        tags: ['health'],
+        schemas: ['Error', /Cat/],
+      },
+    },
+    output: '../generated/default/petstore-filter/endpoints.ts',
+  },
   'petstore-transfomer': {
     output: {
       target: '../generated/default/petstore-transformer/endpoints.ts',
@@ -84,6 +94,14 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/circular-v2/model',
       target: '../generated/default/circular-v2/endpoints.ts',
+      mock: true,
+    },
+  },
+  'any-of': {
+    input: '../specifications/any-of.yaml',
+    output: {
+      schemas: '../generated/default/any-of/model',
+      target: '../generated/default/any-of/endpoints.ts',
       mock: true,
     },
   },

@@ -59,7 +59,7 @@ export default defineConfig({
       mock: true,
       override: {
         mutator: {
-          path: '../mutators/custom-instance.ts',
+          path: '../mutators/multi-arguments.ts',
           name: 'customInstance',
         },
       },
@@ -73,8 +73,8 @@ export default defineConfig({
   },
   customClient: {
     output: {
-      target: '../generated/swr/mutator/endpoints.ts',
-      schemas: '../generated/swr/mutator/model',
+      target: '../generated/swr/custom-client/endpoints.ts',
+      schemas: '../generated/swr/custom-client/model',
       client: 'swr',
       mock: true,
       override: {
@@ -187,6 +187,52 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/optional-request-body.yaml',
+    },
+  },
+  pattern: {
+    output: {
+      target: '../generated/swr/pattern/endpoints.ts',
+      schemas: '../generated/swr/pattern/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/pattern.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  formData: {
+    output: {
+      target: '../generated/swr/form-data-optional-request/endpoints.ts',
+      schemas: '../generated/swr/form-data-optional-request/model',
+      client: 'swr',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/form-data-optional-request.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  examples: {
+    output: {
+      target: '../generated/swr/examples/endpoints.ts',
+      schemas: '../generated/swr/examples/model',
+      client: 'swr',
+      mock: {
+        generateEachHttpStatus: true,
+        type: 'msw',
+        useExamples: true,
+      },
+    },
+    input: {
+      target: '../specifications/examples.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
     },
   },
 });

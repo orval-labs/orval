@@ -36,7 +36,7 @@ A function that returns a mock object will be generated as shown below:
 ```typescript
 import { faker } from '@faker-js/faker';
 
-export const getShowPetByIdMock = (overrideResponse?: any) => ({
+export const getShowPetByIdMock = (overrideResponse?: Partial<Type>): Type => ({
   id: faker.number.int({ min: undefined, max: undefined }),
   name: faker.word.sample(),
   tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
@@ -50,9 +50,9 @@ If you want to overwrite part of the object, you can write the mock value by spe
 ```typescript
 import { getShowPetByIdMock } from 'pets.msw';
 
-const pet = getShowPetByIdMock({ name: 'orverride' });
+const pet = getShowPetByIdMock({ name: 'override' });
 console.log(pet);
-// => { id: 7272122785202176, ​name: "orverride", tag: undefined }
+// => { id: 7272122785202176, ​name: "override", tag: undefined }
 ```
 
 #### A function that returns the value of binding the mock object to the http request handler of `MSW`

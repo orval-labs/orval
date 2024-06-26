@@ -1,6 +1,6 @@
 {
   "name": "@orval/zod",
-  "version": "6.28.2",
+  "version": "6.31.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,10 +11,10 @@
     "build": "tsup ./src/index.ts --target node12 --clean --dts --sourcemap",
     "dev": "tsup ./src/index.ts --target node12 --clean --watch --sourcemap src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest --global test.ts"
+    "test": "vitest run test.ts --global"
   },
   "dependencies": {
-    "@orval/core": "6.28.2",
+    "@orval/core": "6.31.0",
     "lodash.uniq": "^4.5.0"
   },
   "devDependencies": {

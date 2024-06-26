@@ -21,6 +21,7 @@ import {
   NormalizedOperationOptions,
   NormalizedOptions,
   NormalizedQueryOptions,
+  NormalizedZodOptions,
   OperationOptions,
   OptionsExport,
   OutputClient,
@@ -29,6 +30,7 @@ import {
   RefComponentSuffix,
   SwaggerParserOptions,
   upath,
+  ZodOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
@@ -105,6 +107,16 @@ export const normalizeOptions = async (
 
   const defaultFileExtension = '.ts';
 
+  const globalQueryOptions: NormalizedQueryOptions = {
+    useQuery: true,
+    useMutation: true,
+    signal: true,
+    shouldExportMutatorHooks: true,
+    shouldExportHttpClient: true,
+    shouldExportQueryKey: true,
+    ...normalizeQueryOptions(outputOptions.override?.query, workspace),
+  };
+
   const normalizedOptions: NormalizedOptions = {
     input: {
       target: globalOptions.input
@@ -155,10 +167,16 @@ export const normalizeOptions = async (
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations ?? {},
           outputWorkspace,
+          {
+            query: globalQueryOptions,
+          },
         ),
         tags: normalizeOperationsAndTags(
           outputOptions.override?.tags ?? {},
           outputWorkspace,
+          {
+            query: globalQueryOptions,
+          },
         ),
         mutator: normalizeMutator(
           outputWorkspace,
@@ -210,13 +228,7 @@ export const normalizeOptions = async (
           },
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
-        query: {
-          useQuery: true,
-          useMutation: true,
-          signal: true,
-          shouldExportMutatorHooks: true,
-          ...normalizeQueryOptions(outputOptions.override?.query, workspace),
-        },
+        query: globalQueryOptions,
         zod: {
           strict: {
             param: outputOptions.override?.zod?.strict?.param ?? false,
@@ -232,6 +244,50 @@ export const normalizeOptions = async (
             body: outputOptions.override?.zod?.coerce?.body ?? false,
             response: outputOptions.override?.zod?.coerce?.response ?? false,
           },
+          preprocess: {
+            ...(outputOptions.override?.zod?.preprocess?.param
+              ? {
+                  param: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.param,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.query
+              ? {
+                  query: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.query,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.header
+              ? {
+                  header: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.header,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.body
+              ? {
+                  body: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.body,
+                  ),
+                }
+              : {}),
+            ...(outputOptions.override?.zod?.preprocess?.response
+              ? {
+                  response: normalizeMutator(
+                    workspace,
+                    outputOptions.override.zod.preprocess.response,
+                  ),
+                }
+              : {}),
+          },
+          generateEachHttpStatus:
+            outputOptions.override?.zod?.generateEachHttpStatus ?? false,
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -243,9 +299,12 @@ export const normalizeOptions = async (
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
+        suppressReadonlyModifier:
+          outputOptions.override?.suppressReadonlyModifier || false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
+      optionsParamRequired: outputOptions.optionsParamRequired ?? false,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
@@ -317,6 +376,9 @@ const normalizeOperationsAndTags = (
     [key: string]: OperationOptions;
   },
   workspace: string,
+  global: {
+    query: NormalizedQueryOptions;
+  },
 ): {
   [key: string]: NormalizedOperationOptions;
 } => {
@@ -341,7 +403,7 @@ const normalizeOperationsAndTags = (
             ...rest,
             ...(query
               ? {
-                  query: normalizeQueryOptions(query, workspace),
+                  query: normalizeQueryOptions(query, workspace, global.query),
                 }
               : {}),
             ...(zod
@@ -361,6 +423,50 @@ const normalizeOperationsAndTags = (
                       body: zod.coerce?.body ?? false,
                       response: zod.coerce?.response ?? false,
                     },
+                    preprocess: {
+                      ...(zod.preprocess?.param
+                        ? {
+                            param: normalizeMutator(
+                              workspace,
+                              zod.preprocess.param,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.query
+                        ? {
+                            query: normalizeMutator(
+                              workspace,
+                              zod.preprocess.query,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.header
+                        ? {
+                            header: normalizeMutator(
+                              workspace,
+                              zod.preprocess.header,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.body
+                        ? {
+                            body: normalizeMutator(
+                              workspace,
+                              zod.preprocess.body,
+                            ),
+                          }
+                        : {}),
+                      ...(zod.preprocess?.response
+                        ? {
+                            response: normalizeMutator(
+                              workspace,
+                              zod.preprocess.response,
+                            ),
+                          }
+                        : {}),
+                    },
+                    generateEachHttpStatus:
+                      zod?.generateEachHttpStatus ?? false,
                   },
                 }
               : {}),
@@ -450,12 +556,14 @@ const normalizeHonoOptions = (
     ...(hono.handlers
       ? { handlers: upath.resolve(workspace, hono.handlers) }
       : {}),
+    validator: hono.validator ?? true,
   };
 };
 
 const normalizeQueryOptions = (
   queryOptions: QueryOptions = {},
   outputWorkspace: string,
+  globalOptions: NormalizedQueryOptions = {},
 ): NormalizedQueryOptions => {
   if (queryOptions.options) {
     console.warn(
@@ -486,9 +594,19 @@ const normalizeQueryOptions = (
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
+    ...(globalOptions.queryKey
+      ? {
+          queryKey: globalOptions.queryKey,
+        }
+      : {}),
     ...(queryOptions?.queryKey
       ? {
           queryKey: normalizeMutator(outputWorkspace, queryOptions?.queryKey),
+        }
+      : {}),
+    ...(globalOptions.queryOptions
+      ? {
+          queryOptions: globalOptions.queryOptions,
         }
       : {}),
     ...(queryOptions?.queryOptions
@@ -499,6 +617,11 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
+    ...(globalOptions.mutationOptions
+      ? {
+          mutationOptions: globalOptions.mutationOptions,
+        }
+      : {}),
     ...(queryOptions?.mutationOptions
       ? {
           mutationOptions: normalizeMutator(
@@ -507,11 +630,42 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
+    ...(!isUndefined(globalOptions.shouldExportQueryKey)
+      ? {
+          shouldExportQueryKey: globalOptions.shouldExportQueryKey,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportQueryKey)
+      ? { shouldExportQueryKey: queryOptions.shouldExportQueryKey }
+      : {}),
+    ...(!isUndefined(globalOptions.shouldExportHttpClient)
+      ? {
+          shouldExportHttpClient: globalOptions.shouldExportHttpClient,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldExportHttpClient)
+      ? { shouldExportHttpClient: queryOptions.shouldExportHttpClient }
+      : {}),
+    ...(!isUndefined(globalOptions.shouldExportMutatorHooks)
+      ? {
+          shouldExportMutatorHooks: globalOptions.shouldExportMutatorHooks,
+        }
+      : {}),
     ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
       ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
       : {}),
+    ...(!isUndefined(globalOptions.signal)
+      ? {
+          signal: globalOptions.signal,
+        }
+      : {}),
     ...(!isUndefined(queryOptions.signal)
       ? { signal: queryOptions.signal }
+      : {}),
+    ...(!isUndefined(globalOptions.version)
+      ? {
+          version: globalOptions.version,
+        }
       : {}),
     ...(!isUndefined(queryOptions.version)
       ? { version: queryOptions.version }

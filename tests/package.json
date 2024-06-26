@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.html",
   "scripts": {
-    "generate": "run-p generate:*",
+    "generate": "run-p 'generate:*'",
     "orval": "node ../packages/orval/dist/bin/orval.js",
     "generate:cli": "yarn orval --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",
     "generate:default": "yarn orval --config ./configs/default.config.ts",
@@ -16,6 +16,8 @@
     "generate:swr": "yarn orval --config ./configs/swr.config.ts",
     "generate:multi-file": "yarn orval --config ./configs/multi-file.config.ts",
     "generate:zod": "yarn orval --config ./configs/zod.config.ts",
+    "generate:mock": "yarn orval --config ./configs/mock.config.ts",
+    "generate:fetch": "yarn orval --config ./configs/fetch.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
@@ -32,10 +34,12 @@
     "@tanstack/react-query": "^4.22.0",
     "@tanstack/svelte-query": "^4.24.9",
     "@tanstack/vue-query": "^4.22.0",
+    "@types/react": "18.3.2",
     "axios": "^0.26.1",
     "msw": "^2.0.2",
+    "react": "^18.3.1",
     "swr": "^2.2.4",
     "vue": "^3.3.4",
-    "zod": "^3.21.4"
+    "zod": "^3.23.8"
   }
 }

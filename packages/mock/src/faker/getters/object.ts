@@ -23,6 +23,8 @@ export const getMockObject = ({
   context,
   imports,
   existingReferencedProperties,
+  splitMockImplementations,
+  allowOverride = false,
 }: {
   item: MockSchemaObject;
   operationId: string;
@@ -37,6 +39,9 @@ export const getMockObject = ({
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
+  splitMockImplementations: string[];
+  // This is used to add the overrideResponse to the object
+  allowOverride?: boolean;
 }): MockDefinition => {
   if (isReference(item)) {
     return resolveMockValue({
@@ -51,6 +56,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
+      splitMockImplementations,
     });
   }
 
@@ -59,6 +65,24 @@ export const getMockObject = ({
     return combineSchemasMock({
       item,
       separator,
+      mockOptions,
+      operationId,
+      tags,
+      combine,
+      context,
+      imports,
+      existingReferencedProperties,
+      splitMockImplementations,
+    });
+  }
+
+  if (Array.isArray(item.type)) {
+    return combineSchemasMock({
+      item: {
+        anyOf: item.type.map((type) => ({ type })),
+        name: item.name,
+      },
+      separator: 'anyOf',
       mockOptions,
       operationId,
       tags,
@@ -113,6 +137,7 @@ export const getMockObject = ({
           context,
           imports,
           existingReferencedProperties,
+          splitMockImplementations,
         });
 
         imports.push(...resolvedValue.imports);
@@ -127,7 +152,9 @@ export const getMockObject = ({
       })
       .filter(Boolean);
 
-    properyScalars.push(`...${overrideVarName}`);
+    if (allowOverride) {
+      properyScalars.push(`...${overrideVarName}`);
+    }
 
     value += properyScalars.join(', ');
     value +=
@@ -149,6 +176,14 @@ export const getMockObject = ({
     if (isBoolean(item.additionalProperties)) {
       return { value: `{}`, imports: [], name: item.name };
     }
+    if (
+      isReference(item.additionalProperties) &&
+      existingReferencedProperties.includes(
+        item.additionalProperties.$ref.split('/').pop()!,
+      )
+    ) {
+      return { value: `{}`, imports: [], name: item.name };
+    }
 
     const resolvedValue = resolveMockValue({
       schema: {
@@ -162,6 +197,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
+      splitMockImplementations,
     });
 
     return {

@@ -6,3 +6,7 @@ node_modules
 # Build
 .next
 **/dist
+.husky
+mockServiceWorker.js
+yarn.lock
+.svelte-kit

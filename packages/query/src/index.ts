@@ -45,6 +45,18 @@ import {
   vueUnRefParams,
 } from './utils';
 
+const REACT_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'useCallback',
+        values: true,
+      },
+    ],
+    dependency: 'react',
+  },
+];
+
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -208,6 +220,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.devDependencies?.['@tanstack/react-query'];
 
   return [
+    ...(hasGlobalMutator ? REACT_DEPENDENCIES : []),
     ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasReactQuery && !hasReactQueryV4
@@ -451,9 +464,9 @@ const generateQueryRequestFunction = (
           response.definition.success || 'unknown'
         }>();
 
-        return (\n    ${propsImplementation}\n ${
+        return useCallback((\n    ${propsImplementation}\n ${
           isRequestOptions && mutator.hasSecondArg
-            ? `options?: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
         }${
           !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
@@ -461,14 +474,14 @@ const generateQueryRequestFunction = (
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
-        }
+        }, [${operationName}])
       }
     `;
     }
 
-    return `export const ${operationName} = (\n    ${propsImplementation}\n ${
+    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options?: SecondParameter<typeof ${mutator.name}>,`
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
     }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
       ${isVue(outputClient) ? vueUnRefParams(props) : ''}
@@ -918,7 +931,7 @@ const generateQueryImplementation = ({
           )
             return param.destructured;
           return param.name === 'params'
-            ? `{...params, ${queryParam}: pageParam || ${
+            ? `{...${isVue(outputClient) ? `unref(params)` : 'params'}, ${queryParam}: pageParam || ${
                 isVue(outputClient)
                   ? `unref(params)?.['${queryParam}']`
                   : `params?.['${queryParam}']`
@@ -1302,7 +1315,7 @@ const generateQueryHook = async (
       : `\`${route}\``;
 
     // Note: do not unref() params in Vue - this will make key lose reactivity
-    const queryKeyFn = `export const ${queryKeyFnName} = (${queryKeyProps}) => {
+    const queryKeyFn = `${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryKeyFnName} = (${queryKeyProps}) => {
     return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
     }] as const;

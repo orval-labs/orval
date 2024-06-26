@@ -1,0 +1,15 @@
+{
+  "name": "samples",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "./**/*",
+    "!./node_modules"
+  ],
+  "devDependencies": {
+    "turbo": "^1.13.3"
+  },
+  "scripts": {
+    "generate-api": "turbo run generate-api"
+  }
+}

@@ -35,7 +35,11 @@ export const resolveDiscriminators = (
           ...subTypeSchema.properties,
           [propertyName]: {
             type: 'string',
-            enum: [...(property?.enum ?? []), mappingKey],
+            enum: [
+              ...(property?.enum?.filter((value) => value !== mappingKey) ??
+                []),
+              mappingKey,
+            ],
           },
         };
         subTypeSchema.required = [

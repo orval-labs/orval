@@ -1,0 +1,30 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: AnyOf Schema
+  license:
+    name: MIT
+paths:
+  /test:
+    get:
+      summary: Gets one of the items
+      operationId: getItems
+      parameters:
+        - name: test
+          in: query
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/A'
+              - type: string
+                enum: ['B']
+              - type: string
+                enum: ['C']
+      responses:
+        '204':
+          description: Ok
+components:
+  schemas:
+    A:
+      type: string
+      enum:
+        - A

@@ -100,7 +100,7 @@ const getMockScalarJsTypes = (
             `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
             `max: ${mockOptionsWithoutFunc.arrayMax}}` +
             `)}, () => faker.number.int())`
-        : 'faker.number.int().toString()';
+        : 'faker.number.int()';
     case 'string':
       return isArray
         ? `Array.from({length: faker.number.int({` +
@@ -123,6 +123,7 @@ export const getResponsesMockDefinition = ({
   transformer,
   context,
   mockOptions,
+  splitMockImplementations,
 }: {
   operationId: string;
   tags: string[];
@@ -133,6 +134,7 @@ export const getResponsesMockDefinition = ({
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
+  splitMockImplementations: string[];
 }) => {
   return responses.reduce(
     (
@@ -143,11 +145,12 @@ export const getResponsesMockDefinition = ({
         context.output.override?.mock?.useExamples ||
         mockOptions?.useExamples
       ) {
-        const exampleValue =
+        let exampleValue =
           example ||
           originalSchema?.example ||
-          Object.values(examples || {})[0]?.value ||
+          Object.values(examples || {})[0] ||
           originalSchema?.examples?.[0];
+        exampleValue = exampleValue?.value ?? exampleValue;
         if (exampleValue) {
           acc.definitions.push(
             transformer
@@ -189,6 +192,8 @@ export const getResponsesMockDefinition = ({
             }
           : context,
         existingReferencedProperties: [],
+        splitMockImplementations,
+        allowOverride: true,
       });
 
       acc.imports.push(...scalar.imports);
@@ -217,6 +222,7 @@ export const getMockDefinition = ({
   transformer,
   context,
   mockOptions,
+  splitMockImplementations,
 }: {
   operationId: string;
   tags: string[];
@@ -227,6 +233,7 @@ export const getMockDefinition = ({
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
+  splitMockImplementations: string[];
 }) => {
   const mockOptionsWithoutFunc = getMockWithoutFunc(
     context.specs[context.specKey],
@@ -243,6 +250,7 @@ export const getMockDefinition = ({
     transformer,
     context,
     mockOptions,
+    splitMockImplementations,
   });
 
   return {

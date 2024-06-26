@@ -60,6 +60,7 @@ export type NormalizedOutputOptions = {
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
+  optionsParamRequired: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -112,6 +113,7 @@ export type NormalizedOverrideOutput = {
   useBigInt?: boolean;
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
+  suppressReadonlyModifier?: boolean;
 };
 
 export type NormalizedMutator = {
@@ -150,9 +152,7 @@ export type NormalizedInputOptions = {
   override: OverrideInput;
   converterOptions: swagger2openapi.Options;
   parserOptions: SwaggerParserOptions;
-  filters?: {
-    tags?: (string | RegExp)[];
-  };
+  filters?: InputFiltersOption;
 };
 
 export type OutputClientFunc = (
@@ -181,10 +181,16 @@ export type OutputOptions = {
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
+  optionsParamRequired?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
   validate?: boolean;
+};
+
+export type InputFiltersOption = {
+  tags?: (string | RegExp)[];
+  schemas?: (string | RegExp)[];
 };
 
 export type InputOptions = {
@@ -193,9 +199,7 @@ export type InputOptions = {
   override?: OverrideInput;
   converterOptions?: swagger2openapi.Options;
   parserOptions?: SwaggerParserOptions;
-  filters?: {
-    tags?: string[];
-  };
+  filters?: InputFiltersOption;
 };
 
 export const OutputClient = {
@@ -208,6 +212,7 @@ export const OutputClient = {
   SWR: 'swr',
   ZOD: 'zod',
   HONO: 'hono',
+  FETCH: 'fetch',
 } as const;
 
 export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
@@ -236,8 +241,8 @@ export type GlobalMockOptions = {
   useExamples?: boolean;
   // This is used to generate mocks for all http responses defined in the OpenAPI specification
   generateEachHttpStatus?: boolean;
-  // This is used to set the delay to your own custom value
-  delay?: number | (() => number);
+  // This is used to set the delay to your own custom value, or pass false to disable delay
+  delay?: false | number | (() => number);
   // This is used to execute functions that are passed to the 'delay' argument
   // at runtime rather than build time.
   delayFunctionLazyExecute?: boolean;
@@ -348,6 +353,7 @@ export type OverrideOutput = {
   useBigInt?: boolean;
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
+  suppressReadonlyModifier?: boolean;
 };
 
 export type OverrideOutputContentType = {
@@ -357,6 +363,7 @@ export type OverrideOutputContentType = {
 
 export type NormalizedHonoOptions = {
   handlers?: string;
+  validator: boolean | 'hono';
 };
 
 export type ZodOptions = {
@@ -368,13 +375,23 @@ export type ZodOptions = {
     response?: boolean;
   };
   coerce?: {
-    param?: boolean;
-    query?: boolean;
-    header?: boolean;
-    body?: boolean;
-    response?: boolean;
+    param?: boolean | ZodCoerceType[];
+    query?: boolean | ZodCoerceType[];
+    header?: boolean | ZodCoerceType[];
+    body?: boolean | ZodCoerceType[];
+    response?: boolean | ZodCoerceType[];
   };
+  preprocess?: {
+    param?: Mutator;
+    query?: Mutator;
+    header?: Mutator;
+    body?: Mutator;
+    response?: Mutator;
+  };
+  generateEachHttpStatus?: boolean;
 };
+
+export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
 
 export type NormalizedZodOptions = {
   strict: {
@@ -385,16 +402,25 @@ export type NormalizedZodOptions = {
     response: boolean;
   };
   coerce: {
-    param: boolean;
-    query: boolean;
-    header: boolean;
-    body: boolean;
-    response: boolean;
+    param: boolean | ZodCoerceType[];
+    query: boolean | ZodCoerceType[];
+    header: boolean | ZodCoerceType[];
+    body: boolean | ZodCoerceType[];
+    response: boolean | ZodCoerceType[];
   };
+  preprocess: {
+    param?: NormalizedMutator;
+    query?: NormalizedMutator;
+    header?: NormalizedMutator;
+    body?: NormalizedMutator;
+    response?: NormalizedMutator;
+  };
+  generateEachHttpStatus: boolean;
 };
 
 export type HonoOptions = {
   handlers?: string;
+  validator?: boolean | 'hono';
 };
 
 export type NormalizedQueryOptions = {
@@ -410,6 +436,8 @@ export type NormalizedQueryOptions = {
   queryOptions?: NormalizedMutator;
   mutationOptions?: NormalizedMutator;
   shouldExportMutatorHooks?: boolean;
+  shouldExportHttpClient?: boolean;
+  shouldExportQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -427,6 +455,8 @@ export type QueryOptions = {
   queryOptions?: Mutator;
   mutationOptions?: Mutator;
   shouldExportMutatorHooks?: boolean;
+  shouldExportHttpClient?: boolean;
+  shouldExportQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -752,13 +782,21 @@ export type ClientDependenciesBuilder = (
   packageJson?: PackageJson,
 ) => GeneratorDependency[];
 
+export type ClientMockGeneratorImplementation = {
+  function: string;
+  handlerName: string;
+  handler: string;
+};
+
+export type ClientMockGeneratorBuilder = {
+  imports: GeneratorImport[];
+  implementation: ClientMockGeneratorImplementation;
+};
+
 export type ClientMockBuilder = (
   verbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
-) => {
-  imports: string[];
-  implementation: string;
-};
+) => ClientMockGeneratorBuilder;
 
 export interface ClientGeneratorsBuilder {
   client: ClientBuilder;
