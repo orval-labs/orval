@@ -173,26 +173,20 @@ export const combineSchemas = ({
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
       name,
-    )} = ${getCombineEnumValue(resolvedData)};\n`;
+    )} = ${getCombineEnumValue(resolvedData)}`;
 
     return {
-      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
+      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}\n\n${newEnum}`,
       imports: [
         {
           name: pascal(name),
         },
+        ...resolvedData.imports.map<GeneratorImport>((toImport) => ({
+          ...toImport,
+          values: true,
+        })),
       ],
-      schemas: [
-        ...resolvedData.schemas,
-        {
-          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
-            ...toImport,
-            values: true,
-          })),
-          model: newEnum,
-          name: pascal(name),
-        },
-      ],
+      schemas: [...resolvedData.schemas],
       isEnum: false,
       type: 'object' as SchemaType,
       isRef: false,
