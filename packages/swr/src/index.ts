@@ -27,6 +27,7 @@ import {
   getSwrRequestOptions,
   getSwrErrorType,
   getSwrRequestSecondArg,
+  getHttpRequestSecondArg,
   getSwrMutationFetcherOptionType,
   getSwrMutationFetcherType,
 } from './client';
@@ -182,6 +183,7 @@ const generateSwrImplementation = ({
 
   const errorType = getSwrErrorType(response, mutator);
   const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
+  const httpRequestSecondArg = getHttpRequestSecondArg(mutator);
 
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
@@ -208,8 +210,8 @@ ${doc}export const ${camel(
   ${enabledImplementation}
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
-    httpFunctionProps ? ', ' : ''
-  }${isRequestOptions ? swrRequestSecondArg : ''});
+    httpFunctionProps && httpRequestSecondArg ? ', ' : ''
+  }${httpRequestSecondArg})
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
     swrOptions.swrInfiniteOptions
@@ -242,15 +244,15 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   })}) => {
   ${
     isRequestOptions
-      ? `const {swr: swrOptions${swrRequestSecondArg}} = options ?? {}`
+      ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
       : ''
   }
 
   ${enabledImplementation}
   ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
-    httpFunctionProps ? ', ' : ''
-  }${isRequestOptions ? swrRequestSecondArg : ''});
+    httpFunctionProps && httpRequestSecondArg ? ', ' : ''
+  }${httpRequestSecondArg})
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
     swrOptions.swrOptions
@@ -308,6 +310,7 @@ const generateSwrMutationImplementation = ({
 
   const errorType = getSwrErrorType(response, mutator);
   const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
+  const httpRequestSecondArg = getHttpRequestSecondArg(mutator);
 
   const useSwrImplementation = `
 export type ${pascal(
@@ -323,12 +326,12 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     swrBodyType,
   })}) => {
 
-  ${isRequestOptions ? `const {swr: swrOptions${swrRequestSecondArg}} = options ?? {}` : ''}
+  ${isRequestOptions ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}` : ''}
 
   ${swrKeyImplementation}
   const swrFn = ${swrMutationFetcherName}(${swrMutationFetcherProperties}${
-    swrMutationFetcherProperties && isRequestOptions ? ',' : ''
-  }${isRequestOptions ? swrRequestSecondArg : ''});
+    swrMutationFetcherProperties && httpRequestSecondArg ? ', ' : ''
+  }${httpRequestSecondArg});
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
     swrOptions.swrMutationOptions

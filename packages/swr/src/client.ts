@@ -163,9 +163,19 @@ export const getSwrErrorType = (
 
 export const getSwrRequestSecondArg = (mutator?: GeneratorMutator) => {
   if (!mutator) {
-    return `, axios: axiosOptions`;
+    return `axios: axiosOptions`;
   } else if (mutator?.hasSecondArg) {
-    return ', request: requestOptions';
+    return 'request: requestOptions';
+  } else {
+    return '';
+  }
+};
+
+export const getHttpRequestSecondArg = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return `axiosOptions`;
+  } else if (mutator?.hasSecondArg) {
+    return 'requestOptions';
   } else {
     return '';
   }
