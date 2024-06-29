@@ -170,3 +170,22 @@ export const getSwrRequestSecondArg = (mutator?: GeneratorMutator) => {
     return '';
   }
 };
+
+export const getSwrMutationFetcherOptionType = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return 'AxiosRequestConfig';
+  } else if (mutator.hasSecondArg) {
+    return `SecondParameter<typeof ${mutator.name}>`;
+  } else {
+    return '';
+  }
+};
+
+export const getSwrMutationFetcherType = (
+  response: GetterResponse,
+  mutator?: GeneratorMutator,
+) => {
+  return mutator
+    ? `Promise<${response.definition.success || 'unknown'}>`
+    : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
+};

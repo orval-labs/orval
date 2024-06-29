@@ -27,6 +27,8 @@ import {
   getSwrRequestOptions,
   getSwrErrorType,
   getSwrRequestSecondArg,
+  getSwrMutationFetcherOptionType,
+  getSwrMutationFetcherType,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -500,14 +502,11 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherName = camel(
       `get-${operationName}-mutation-fetcher`,
     );
-    const swrMutationFetcherType = mutator
-      ? `Promise<${response.definition.success || 'unknown'}>`
-      : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
-    const swrMutationFetcherOptionType = !mutator
-      ? 'AxiosRequestConfig'
-      : mutator.hasSecondArg
-        ? `SecondParameter<typeof ${mutator.name}>`
-        : '';
+
+    const swrMutationFetcherType = getSwrMutationFetcherType(response, mutator);
+    const swrMutationFetcherOptionType =
+      getSwrMutationFetcherOptionType(mutator);
+
     const swrMutationFetcherOptions =
       isRequestOptions && swrMutationFetcherOptionType
         ? `options${context.output.optionsParamRequired ? '' : '?'}: ${swrMutationFetcherOptionType}`
