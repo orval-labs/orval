@@ -4,6 +4,7 @@ import {
   GeneratorImport,
   isReference,
   isRootKey,
+  isString,
   mergeDeep,
   MockOptions,
 } from '@orval/core';
@@ -108,7 +109,9 @@ export const getMockScalar = ({
     };
   }
 
-  switch (item.type) {
+  const type = getItemType(item);
+
+  switch (type) {
     case 'number':
     case 'integer': {
       let value = getNullable(
@@ -303,3 +306,15 @@ export const getMockScalar = ({
     }
   }
 };
+
+function getItemType(item: MockSchemaObject) {
+  if (item.type) return item.type;
+  if (!item.enum) return;
+
+  const uniqTypes = new Set(item.enum.map((value) => typeof value));
+  if (uniqTypes.size > 1) return;
+
+  const type = Array.from(uniqTypes.values()).at(0);
+  if (!type) return;
+  return ['string', 'number'].includes(type) ? type : undefined;
+}
