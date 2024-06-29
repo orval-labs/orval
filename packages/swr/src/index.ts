@@ -25,6 +25,7 @@ import {
   AXIOS_DEPENDENCIES,
   generateSwrRequestFunction,
   getSwrRequestOptions,
+  getSwrErrorType,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -176,13 +177,7 @@ const generateSwrImplementation = ({
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
   const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
-  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
-
-  if (mutator) {
-    errorType = mutator.hasErrorType
-      ? `ErrorType<${response.definition.errors || 'unknown'}>`
-      : response.definition.errors || 'unknown';
-  }
+  const errorType = getSwrErrorType(response, mutator);
 
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `

@@ -10,6 +10,7 @@ import {
   toObjectString,
   VERBS_WITH_BODY,
   GeneratorMutator,
+  GetterResponse,
 } from '@orval/core';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -144,5 +145,18 @@ export const getSwrRequestOptions = (mutator?: GeneratorMutator) => {
     return `request?: SecondParameter<typeof ${mutator.name}>`;
   } else {
     return '';
+  }
+};
+
+export const getSwrErrorType = (
+  response: GetterResponse,
+  mutator?: GeneratorMutator,
+) => {
+  if (mutator) {
+    return mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  } else {
+    return `AxiosError<${response.definition.errors || 'unknown'}>`;
   }
 };
