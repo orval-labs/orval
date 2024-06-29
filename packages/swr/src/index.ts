@@ -304,13 +304,8 @@ const generateSwrMutationImplementation = ({
 
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? ${swrKeyFnName}(${swrKeyProperties});`;
 
-  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
-
-  if (mutator) {
-    errorType = mutator.hasErrorType
-      ? `ErrorType<${response.definition.errors || 'unknown'}>`
-      : response.definition.errors || 'unknown';
-  }
+  const errorType = getSwrErrorType(response, mutator);
+  const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
 
   const useSwrImplementation = `
 export type ${pascal(
@@ -326,30 +321,12 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     swrBodyType,
   })}) => {
 
-  ${
-    isRequestOptions
-      ? `const {swr: swrOptions${
-          !mutator
-            ? `, axios: axiosOptions`
-            : mutator?.hasSecondArg
-              ? ', request: requestOptions'
-              : ''
-        }} = options ?? {}`
-      : ''
-  }
+  ${isRequestOptions ? `const {swr: swrOptions${swrRequestSecondArg}} = options ?? {}` : ''}
 
   ${swrKeyImplementation}
   const swrFn = ${swrMutationFetcherName}(${swrMutationFetcherProperties}${
     swrMutationFetcherProperties && isRequestOptions ? ',' : ''
-  }${
-    isRequestOptions
-      ? !mutator
-        ? `axiosOptions`
-        : mutator?.hasSecondArg
-          ? 'requestOptions'
-          : ''
-      : ''
-  });
+  }${isRequestOptions ? swrRequestSecondArg : ''});
 
   const ${queryResultVarName} = useSWRMutation(swrKey, swrFn, ${
     swrOptions.swrMutationOptions
