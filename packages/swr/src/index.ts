@@ -26,6 +26,7 @@ import {
   generateSwrRequestFunction,
   getSwrRequestOptions,
   getSwrErrorType,
+  getSwrRequestSecondArg,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -178,6 +179,7 @@ const generateSwrImplementation = ({
   const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
   const errorType = getSwrErrorType(response, mutator);
+  const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
 
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
@@ -197,13 +199,7 @@ ${doc}export const ${camel(
   })}) => {
   ${
     isRequestOptions
-      ? `const {swr: swrOptions${
-          !mutator
-            ? `, axios: axiosOptions`
-            : mutator?.hasSecondArg
-              ? ', request: requestOptions'
-              : ''
-        }} = options ?? {}`
+      ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
       : ''
   }
 
@@ -211,15 +207,7 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
-  }${
-    isRequestOptions
-      ? !mutator
-        ? `axiosOptions`
-        : mutator?.hasSecondArg
-          ? 'requestOptions'
-          : ''
-      : ''
-  });
+  }${isRequestOptions ? swrRequestSecondArg : ''});
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
     swrOptions.swrInfiniteOptions
@@ -252,13 +240,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   })}) => {
   ${
     isRequestOptions
-      ? `const {swr: swrOptions${
-          !mutator
-            ? `, axios: axiosOptions`
-            : mutator?.hasSecondArg
-              ? ', request: requestOptions'
-              : ''
-        }} = options ?? {}`
+      ? `const {swr: swrOptions${swrRequestSecondArg}} = options ?? {}`
       : ''
   }
 
@@ -266,15 +248,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps ? ', ' : ''
-  }${
-    isRequestOptions
-      ? !mutator
-        ? `axiosOptions`
-        : mutator?.hasSecondArg
-          ? 'requestOptions'
-          : ''
-      : ''
-  });
+  }${isRequestOptions ? swrRequestSecondArg : ''});
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
     swrOptions.swrOptions

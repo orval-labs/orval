@@ -160,3 +160,13 @@ export const getSwrErrorType = (
     return `AxiosError<${response.definition.errors || 'unknown'}>`;
   }
 };
+
+export const getSwrRequestSecondArg = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return `, axios: axiosOptions`;
+  } else if (mutator?.hasSecondArg) {
+    return ', request: requestOptions';
+  } else {
+    return '';
+  }
+};
