@@ -9,6 +9,7 @@ import {
   isSyntheticDefaultImportsAllow,
   toObjectString,
   VERBS_WITH_BODY,
+  GeneratorMutator,
 } from '@orval/core';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -134,4 +135,14 @@ export const generateSwrRequestFunction = (
     }.${verb}(${options});
   }
 `;
+};
+
+export const getSwrRequestOptions = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return `axios?: AxiosRequestConfig`;
+  } else if (mutator?.hasSecondArg) {
+    return `request?: SecondParameter<typeof ${mutator.name}>`;
+  } else {
+    return '';
+  }
 };

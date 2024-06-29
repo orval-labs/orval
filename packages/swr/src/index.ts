@@ -21,7 +21,11 @@ import {
   jsDoc,
   SwrOptions,
 } from '@orval/core';
-import { AXIOS_DEPENDENCIES, generateSwrRequestFunction } from './client';
+import {
+  AXIOS_DEPENDENCIES,
+  generateSwrRequestFunction,
+  getSwrRequestOptions,
+} from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -105,13 +109,7 @@ const generateSwrArguments = ({
     return `swrOptions?: ${definition}`;
   }
 
-  return `options?: { swr?:${definition}, ${
-    !mutator
-      ? `axios?: AxiosRequestConfig`
-      : mutator?.hasSecondArg
-        ? `request?: SecondParameter<typeof ${mutator.name}>`
-        : ''
-  } }\n`;
+  return `options?: { swr?:${definition}, ${getSwrRequestOptions(mutator)} }\n`;
 };
 
 const generateSwrMutationArguments = ({
@@ -131,13 +129,7 @@ const generateSwrMutationArguments = ({
     return `swrOptions?: ${definition}`;
   }
 
-  return `options?: { swr?:${definition}, ${
-    !mutator
-      ? `axios?: AxiosRequestConfig`
-      : mutator?.hasSecondArg
-        ? `request?: SecondParameter<typeof ${mutator.name}>`
-        : ''
-  } }\n`;
+  return `options?: { swr?:${definition}, ${getSwrRequestOptions(mutator)}}\n`;
 };
 
 const generateSwrImplementation = ({
