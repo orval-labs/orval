@@ -791,6 +791,7 @@ export type ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
   packageJson?: PackageJson,
+  httpClient?: OutputHttpClient,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {

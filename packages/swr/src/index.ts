@@ -20,6 +20,7 @@ import {
   Verbs,
   jsDoc,
   SwrOptions,
+  OutputHttpClient,
 } from '@orval/core';
 import {
   AXIOS_DEPENDENCIES,
@@ -83,8 +84,12 @@ const SWR_MUTATION_DEPENDENCIES: GeneratorDependency[] = [
 export const getSwrDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
+  _packageJson,
+  httpClient?: OutputHttpClient,
 ) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
+    ? AXIOS_DEPENDENCIES
+    : []),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
   ...SWR_DEPENDENCIES,
   ...SWR_INFINITE_DEPENDENCIES,
