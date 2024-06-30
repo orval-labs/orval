@@ -155,6 +155,7 @@ const generateSwrImplementation = ({
   swrOptions,
   props,
   doc,
+  httpClient,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -168,6 +169,7 @@ const generateSwrImplementation = ({
   mutator?: GeneratorMutator;
   swrOptions: SwrOptions;
   doc?: string;
+  httpClient: OutputHttpClient;
 }) => {
   const swrProps = toObjectString(props, 'implementation');
 
@@ -186,7 +188,7 @@ const generateSwrImplementation = ({
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
   const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
-  const errorType = getSwrErrorType(response, mutator);
+  const errorType = getSwrErrorType(response, httpClient, mutator);
   const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(mutator);
 
@@ -291,6 +293,7 @@ const generateSwrMutationImplementation = ({
   swrOptions,
   doc,
   swrBodyType,
+  httpClient,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -305,6 +308,7 @@ const generateSwrMutationImplementation = ({
   swrOptions: SwrOptions;
   doc?: string;
   swrBodyType: string;
+  httpClient: OutputHttpClient;
 }) => {
   const hasParamReservedWord = props.some(
     (prop: GetterProp) => prop.name === 'query',
@@ -313,7 +317,7 @@ const generateSwrMutationImplementation = ({
 
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? ${swrKeyFnName}(${swrKeyProperties});`;
 
-  const errorType = getSwrErrorType(response, mutator);
+  const errorType = getSwrErrorType(response, httpClient, mutator);
   const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(mutator);
 
@@ -437,6 +441,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       response,
       swrOptions: override.swr,
       doc,
+      httpClient: context.output.httpClient,
     });
 
     return swrKeyFn + swrKeyLoader + swrImplementation;
@@ -556,6 +561,7 @@ export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOption
       swrOptions: override.swr,
       doc,
       swrBodyType,
+      httpClient: context.output.httpClient,
     });
 
     return swrMutationFetcherFn + swrMutationKeyFn + swrImplementation;

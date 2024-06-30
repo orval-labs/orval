@@ -166,6 +166,18 @@ export const getSwrRequestOptions = (mutator?: GeneratorMutator) => {
 
 export const getSwrErrorType = (
   response: GetterResponse,
+  httpClient: OutputHttpClient,
+  mutator?: GeneratorMutator,
+) => {
+  if (httpClient === OutputHttpClient.AXIOS) {
+    return getSwrAxiosErrorType(response, mutator);
+  } else {
+    return getSwrFetchErrorType(response, mutator);
+  }
+};
+
+const getSwrAxiosErrorType = (
+  response: GetterResponse,
   mutator?: GeneratorMutator,
 ) => {
   if (mutator) {
@@ -174,6 +186,19 @@ export const getSwrErrorType = (
       : response.definition.errors || 'unknown';
   } else {
     return `AxiosError<${response.definition.errors || 'unknown'}>`;
+  }
+};
+
+const getSwrFetchErrorType = (
+  response: GetterResponse,
+  mutator?: GeneratorMutator,
+) => {
+  if (mutator) {
+    return mutator.hasErrorType
+      ? `ErrorType<${response.definition.errors || 'unknown'}>`
+      : response.definition.errors || 'unknown';
+  } else {
+    return `Promise<${response.definition.errors || 'unknown'}>`;
   }
 };
 
