@@ -11,7 +11,10 @@ import {
   VERBS_WITH_BODY,
   GeneratorMutator,
   GetterResponse,
+  OutputHttpClient,
 } from '@orval/core';
+
+import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -31,6 +34,17 @@ export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 export const generateSwrRequestFunction = (
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+) => {
+  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
+    return generateAxiosRequestFunction(verbOptions, options);
+  } else {
+    return generateFetchRequestFunction(verbOptions, options);
+  }
+};
+
+const generateAxiosRequestFunction = (
   {
     headers,
     queryParams,

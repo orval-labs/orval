@@ -980,6 +980,7 @@ __metadata:
   resolution: "@orval/swr@workspace:packages/swr"
   dependencies:
     "@orval/core": "npm:6.31.0"
+    "@orval/fetch": "npm:6.31.0"
   languageName: unknown
   linkType: soft
 

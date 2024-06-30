@@ -13,7 +13,7 @@ import {
   isObject,
 } from '@orval/core';
 
-const generateRequestFunction = (
+export const generateRequestFunction = (
   {
     queryParams,
     operationName,
