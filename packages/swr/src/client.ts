@@ -109,16 +109,18 @@ const generateAxiosRequestFunction = (
         )
       : '';
 
-    return `export const ${operationName} = (\n    ${propsImplementation}\n ${
+    const requestImplementation = `export const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>`
         : ''
     }) => {${bodyForm}
-      return ${mutator.name}<${response.definition.success || 'unknown'}>(
-      ${mutatorConfig},
-      ${requestOptions});
-    }
-  `;
+    return ${mutator.name}<${response.definition.success || 'unknown'}>(
+    ${mutatorConfig},
+    ${requestOptions});
+  }
+`;
+
+    return requestImplementation;
   }
 
   const options = generateOptions({
