@@ -158,26 +158,10 @@ export const getSwrRequestOptions = (
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
-  if (httpClient === OutputHttpClient.AXIOS) {
-    return getSwrAxiosRequestOptions(mutator);
-  } else {
-    return getSwrFetchRequestOptions(mutator);
-  }
-};
-
-const getSwrAxiosRequestOptions = (mutator?: GeneratorMutator) => {
   if (!mutator) {
-    return `axios?: AxiosRequestConfig`;
-  } else if (mutator?.hasSecondArg) {
-    return `request?: SecondParameter<typeof ${mutator.name}>`;
-  } else {
-    return '';
-  }
-};
-
-const getSwrFetchRequestOptions = (mutator?: GeneratorMutator) => {
-  if (!mutator) {
-    return `fetch?: RequestInit`;
+    return httpClient === OutputHttpClient.AXIOS
+      ? 'axios?: AxiosRequestConfig'
+      : 'fetch?: RequestInit';
   } else if (mutator?.hasSecondArg) {
     return `request?: SecondParameter<typeof ${mutator.name}>`;
   } else {
@@ -190,36 +174,15 @@ export const getSwrErrorType = (
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
-  if (httpClient === OutputHttpClient.AXIOS) {
-    return getSwrAxiosErrorType(response, mutator);
-  } else {
-    return getSwrFetchErrorType(response, mutator);
-  }
-};
-
-const getSwrAxiosErrorType = (
-  response: GetterResponse,
-  mutator?: GeneratorMutator,
-) => {
   if (mutator) {
     return mutator.hasErrorType
       ? `ErrorType<${response.definition.errors || 'unknown'}>`
       : response.definition.errors || 'unknown';
   } else {
-    return `AxiosError<${response.definition.errors || 'unknown'}>`;
-  }
-};
+    const errorType =
+      httpClient === OutputHttpClient.AXIOS ? 'AxiosError' : 'Promise';
 
-const getSwrFetchErrorType = (
-  response: GetterResponse,
-  mutator?: GeneratorMutator,
-) => {
-  if (mutator) {
-    return mutator.hasErrorType
-      ? `ErrorType<${response.definition.errors || 'unknown'}>`
-      : response.definition.errors || 'unknown';
-  } else {
-    return `Promise<${response.definition.errors || 'unknown'}>`;
+    return `${errorType}<${response.definition.errors || 'unknown'}>`;
   }
 };
 
