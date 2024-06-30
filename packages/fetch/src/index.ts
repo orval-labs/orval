@@ -1,11 +1,9 @@
 import {
   camel,
   ClientBuilder,
-  ClientDependenciesBuilder,
   ClientGeneratorsBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
-  GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterPropType,
