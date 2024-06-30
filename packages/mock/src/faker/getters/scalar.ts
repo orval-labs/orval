@@ -4,7 +4,6 @@ import {
   GeneratorImport,
   isReference,
   isRootKey,
-  isString,
   mergeDeep,
   MockOptions,
 } from '@orval/core';
