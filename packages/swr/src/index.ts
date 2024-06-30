@@ -193,8 +193,8 @@ const generateSwrImplementation = ({
   const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
 
   const errorType = getSwrErrorType(response, httpClient, mutator);
-  const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
-  const httpRequestSecondArg = getHttpRequestSecondArg(mutator);
+  const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
+  const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
@@ -324,8 +324,8 @@ const generateSwrMutationImplementation = ({
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? ${swrKeyFnName}(${swrKeyProperties});`;
 
   const errorType = getSwrErrorType(response, httpClient, mutator);
-  const swrRequestSecondArg = getSwrRequestSecondArg(mutator);
-  const httpRequestSecondArg = getHttpRequestSecondArg(mutator);
+  const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
+  const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
   const useSwrImplementation = `
 export type ${pascal(

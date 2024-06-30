@@ -223,9 +223,14 @@ const getSwrFetchErrorType = (
   }
 };
 
-export const getSwrRequestSecondArg = (mutator?: GeneratorMutator) => {
+export const getSwrRequestSecondArg = (
+  httpClient: OutputHttpClient,
+  mutator?: GeneratorMutator,
+) => {
   if (!mutator) {
-    return `axios: axiosOptions`;
+    return httpClient === OutputHttpClient.AXIOS
+      ? 'axios: axiosOptions'
+      : 'fetch: fetchOptions';
   } else if (mutator?.hasSecondArg) {
     return 'request: requestOptions';
   } else {
@@ -233,9 +238,14 @@ export const getSwrRequestSecondArg = (mutator?: GeneratorMutator) => {
   }
 };
 
-export const getHttpRequestSecondArg = (mutator?: GeneratorMutator) => {
+export const getHttpRequestSecondArg = (
+  httpClient: OutputHttpClient,
+  mutator?: GeneratorMutator,
+) => {
   if (!mutator) {
-    return `axiosOptions`;
+    return httpClient === OutputHttpClient.AXIOS
+      ? `axiosOptions`
+      : `fetchOptions`;
   } else if (mutator?.hasSecondArg) {
     return 'requestOptions';
   } else {
