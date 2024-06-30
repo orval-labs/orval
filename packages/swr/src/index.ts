@@ -101,11 +101,13 @@ const generateSwrArguments = ({
   mutator,
   isRequestOptions,
   isInfinite,
+  httpClient,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
   isInfinite: boolean;
+  httpClient: OutputHttpClient;
 }) => {
   const configType = isInfinite
     ? 'SWRInfiniteConfiguration'
@@ -119,7 +121,7 @@ const generateSwrArguments = ({
     return `swrOptions?: ${definition}`;
   }
 
-  return `options?: { swr?:${definition}, ${getSwrRequestOptions(mutator)} }\n`;
+  return `options?: { swr?:${definition}, ${getSwrRequestOptions(httpClient, mutator)} }\n`;
 };
 
 const generateSwrMutationArguments = ({
@@ -127,11 +129,13 @@ const generateSwrMutationArguments = ({
   isRequestOptions,
   mutator,
   swrBodyType,
+  httpClient,
 }: {
   operationName: string;
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
   swrBodyType: string;
+  httpClient: OutputHttpClient;
 }) => {
   const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, ${swrBodyType}, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
 
@@ -139,7 +143,7 @@ const generateSwrMutationArguments = ({
     return `swrOptions?: ${definition}`;
   }
 
-  return `options?: { swr?:${definition}, ${getSwrRequestOptions(mutator)}}\n`;
+  return `options?: { swr?:${definition}, ${getSwrRequestOptions(httpClient, mutator)}}\n`;
 };
 
 const generateSwrImplementation = ({
@@ -207,6 +211,7 @@ ${doc}export const ${camel(
     mutator,
     isRequestOptions,
     isInfinite: true,
+    httpClient,
   })}) => {
   ${
     isRequestOptions
@@ -248,6 +253,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     mutator,
     isRequestOptions,
     isInfinite: false,
+    httpClient,
   })}) => {
   ${
     isRequestOptions
@@ -333,6 +339,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     isRequestOptions,
     mutator,
     swrBodyType,
+    httpClient,
   })}) => {
 
   ${isRequestOptions ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}` : ''}

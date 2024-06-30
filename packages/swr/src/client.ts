@@ -154,9 +154,30 @@ const generateAxiosRequestFunction = (
 `;
 };
 
-export const getSwrRequestOptions = (mutator?: GeneratorMutator) => {
+export const getSwrRequestOptions = (
+  httpClient: OutputHttpClient,
+  mutator?: GeneratorMutator,
+) => {
+  if (httpClient === OutputHttpClient.AXIOS) {
+    return getSwrAxiosRequestOptions(mutator);
+  } else {
+    return getSwrFetchRequestOptions(mutator);
+  }
+};
+
+const getSwrAxiosRequestOptions = (mutator?: GeneratorMutator) => {
   if (!mutator) {
     return `axios?: AxiosRequestConfig`;
+  } else if (mutator?.hasSecondArg) {
+    return `request?: SecondParameter<typeof ${mutator.name}>`;
+  } else {
+    return '';
+  }
+};
+
+const getSwrFetchRequestOptions = (mutator?: GeneratorMutator) => {
+  if (!mutator) {
+    return `fetch?: RequestInit`;
   } else if (mutator?.hasSecondArg) {
     return `request?: SecondParameter<typeof ${mutator.name}>`;
   } else {
