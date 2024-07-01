@@ -1,3 +1,4 @@
+import { el } from '@faker-js/faker';
 import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
@@ -14,7 +15,10 @@ import {
   OutputHttpClient,
 } from '@orval/core';
 
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
+import {
+  generateRequestFunction as generateFetchRequestFunction,
+  fetchResponseTypeName,
+} from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -234,11 +238,15 @@ export const getSwrMutationFetcherOptionType = (
 export const getSwrMutationFetcherType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
+  operationName: string,
   mutator?: GeneratorMutator,
 ) => {
-  return mutator
-    ? `Promise<${response.definition.success || 'unknown'}>`
-    : httpClient === OutputHttpClient.AXIOS
-      ? `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`
-      : `Promise<${response.definition.success || 'unknown'}>`;
+  if (mutator) {
+    return `Promise<${response.definition.success || 'unknown'}>`;
+  } else if (httpClient === OutputHttpClient.AXIOS) {
+    return `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
+  } else {
+    const responseType = fetchResponseTypeName(operationName);
+    return `Promise<${responseType}>`;
+  }
 };
