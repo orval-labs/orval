@@ -216,9 +216,14 @@ export const getHttpRequestSecondArg = (
   }
 };
 
-export const getSwrMutationFetcherOptionType = (mutator?: GeneratorMutator) => {
+export const getSwrMutationFetcherOptionType = (
+  httpClient: OutputHttpClient,
+  mutator?: GeneratorMutator,
+) => {
   if (!mutator) {
-    return 'AxiosRequestConfig';
+    return httpClient === OutputHttpClient.AXIOS
+      ? 'AxiosRequestConfig'
+      : 'RequestInit';
   } else if (mutator.hasSecondArg) {
     return `SecondParameter<typeof ${mutator.name}>`;
   } else {
@@ -228,9 +233,12 @@ export const getSwrMutationFetcherOptionType = (mutator?: GeneratorMutator) => {
 
 export const getSwrMutationFetcherType = (
   response: GetterResponse,
+  httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
   return mutator
     ? `Promise<${response.definition.success || 'unknown'}>`
-    : `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
+    : httpClient === OutputHttpClient.AXIOS
+      ? `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`
+      : `Promise<${response.definition.success || 'unknown'}>`;
 };
