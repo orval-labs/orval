@@ -53,5 +53,5 @@ export const customFetch = async <T>(
   const response = await fetch(request);
   const data = await getBody<T>(response);
 
-  return data;
+  return { status: response.status, data } as T;
 };
