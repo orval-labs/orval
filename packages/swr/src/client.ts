@@ -241,12 +241,13 @@ export const getSwrMutationFetcherType = (
   operationName: string,
   mutator?: GeneratorMutator,
 ) => {
-  if (mutator) {
-    return `Promise<${response.definition.success || 'unknown'}>`;
-  } else if (httpClient === OutputHttpClient.AXIOS) {
-    return `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
-  } else {
+  if (httpClient === OutputHttpClient.FETCH) {
     const responseType = fetchResponseTypeName(operationName);
+
     return `Promise<${responseType}>`;
+  } else if (mutator) {
+    return `Promise<${response.definition.success || 'unknown'}>`;
+  } else {
+    return `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
   }
 };
