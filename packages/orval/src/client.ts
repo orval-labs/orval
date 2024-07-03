@@ -78,6 +78,7 @@ export const generateClientImports: GeneratorClientImports = ({
             hasGlobalMutator,
             hasParamsSerializerOptions,
             packageJson,
+            output.httpClient,
           ),
           ...imports,
         ]

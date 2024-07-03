@@ -1,11 +1,9 @@
 import {
   camel,
   ClientBuilder,
-  ClientDependenciesBuilder,
   ClientGeneratorsBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
-  GeneratorDependency,
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterPropType,
@@ -15,7 +13,7 @@ import {
   isObject,
 } from '@orval/core';
 
-const generateRequestFunction = (
+export const generateRequestFunction = (
   {
     queryParams,
     operationName,
@@ -63,8 +61,8 @@ ${
   return \`${route}${queryParams ? '?${normalizedParams.toString()}' : ''}\`
 }\n`;
 
-  const responseTypeName = `${operationName}Response`;
-  const responseTypeImplementation = `export type ${operationName}Response = {
+  const responseTypeName = fetchResponseTypeName(operationName);
+  const responseTypeImplementation = `export type ${responseTypeName} = {
   data: ${response.definition.success || 'unknown'};
   status: number;
 }`;
@@ -138,6 +136,9 @@ ${
 
   return implementation;
 };
+
+export const fetchResponseTypeName = (operationName: string) =>
+  `${operationName}Response`;
 
 export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);

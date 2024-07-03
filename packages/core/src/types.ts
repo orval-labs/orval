@@ -48,6 +48,7 @@ export type NormalizedOutputOptions = {
   mock?: GlobalMockOptions | ClientMockBuilder;
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
+  httpClient: OutputHttpClient;
   clean: boolean | string[];
   prettier: boolean;
   tslint: boolean;
@@ -169,6 +170,7 @@ export type OutputOptions = {
   mock?: boolean | GlobalMockOptions | ClientMockBuilder;
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
+  httpClient?: OutputHttpClient;
   clean?: boolean | string[];
   prettier?: boolean;
   tslint?: boolean;
@@ -216,6 +218,14 @@ export const OutputClient = {
 } as const;
 
 export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
+
+export const OutputHttpClient = {
+  AXIOS: 'axios',
+  FETCH: 'fetch',
+} as const;
+
+export type OutputHttpClient =
+  (typeof OutputHttpClient)[keyof typeof OutputHttpClient];
 
 export const OutputMode = {
   SINGLE: 'single',
@@ -562,6 +572,7 @@ export interface GlobalOptions {
   biome?: boolean;
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
+  httpClient?: OutputHttpClient;
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
@@ -780,6 +791,7 @@ export type ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
   packageJson?: PackageJson,
+  httpClient?: OutputHttpClient,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {
