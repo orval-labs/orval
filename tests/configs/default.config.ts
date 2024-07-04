@@ -163,4 +163,12 @@ export default defineConfig({
       target: '../generated/default/http-status-mocks/endpoints.ts',
     },
   },
+  'combined-enum': {
+    input: '../specifications/combined-enum.yaml',
+    output: {
+      schemas: '../generated/default/combine-enum/schemas',
+      target: '../generated/default/combine-enum',
+      mock: true,
+    },
+  },
 });
