@@ -37,7 +37,7 @@
     "esbuild": "^0.19.11",
     "esutils": "2.0.3",
     "fs-extra": "^11.2.0",
-    "globby": "11.1.0",
+    "globby": "14.0.2",
     "lodash.get": "^4.4.2",
     "lodash.isempty": "^4.4.0",
     "lodash.omit": "^4.5.0",
