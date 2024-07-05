@@ -49,16 +49,27 @@ ${
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value === null) {
-      normalizedParams.append(key, 'null');
-    } else if (value !== undefined) {
-      normalizedParams.append(key, value.toString());
+    if (value === undefined) {
+      return;
     }
+    if (value === null) {
+      return normalizedParams.append(key, "null");
+    }
+    if (Array.isArray(value)) {
+      return value.forEach((v) => {
+        if (value === null) {
+          return normalizedParams.append(key, "null");
+        }
+        return normalizedParams.append(key, v.toString());
+      });
+    }
+
+    return normalizedParams.append(key, value.toString());
   });`
     : ''
 }
 
-  return \`${route}${queryParams ? '?${normalizedParams.toString()}' : ''}\`
+  return \`${route}${queryParams && normalizedParams.size ? '?${normalizedParams.toString()}' : ''}\`
 }\n`;
 
   const responseTypeName = fetchResponseTypeName(operationName);
