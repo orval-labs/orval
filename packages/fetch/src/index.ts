@@ -57,7 +57,7 @@ ${
     }
     if (Array.isArray(value)) {
       return value.forEach((v) => {
-        if (value === null) {
+        if (v === null) {
           return normalizedParams.append(key, "null");
         }
         return normalizedParams.append(key, v.toString());
