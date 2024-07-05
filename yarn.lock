@@ -575,28 +575,28 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ibm-cloud/openapi-ruleset-utilities@npm:1.3.2":
-  version: 1.3.2
-  resolution: "@ibm-cloud/openapi-ruleset-utilities@npm:1.3.2"
-  checksum: 10c0/972fa430d1341029d41e47e52e50c9c35b71c68aea34617cc325985fa62071fdeae88364ea679f63516faa9c7d77adc031a51a7c7b7e6bcdd3ae19f47c368aeb
+"@ibm-cloud/openapi-ruleset-utilities@npm:1.3.0":
+  version: 1.3.0
+  resolution: "@ibm-cloud/openapi-ruleset-utilities@npm:1.3.0"
+  checksum: 10c0/591344633cce39c98359bb5b1afd87a53150667aa27184332e8131456bc4c617a4725ce929c0ad8c30a9569b7b9f0bca1381602db492006c233f1c3fb15c91ea
   languageName: node
   linkType: hard
 
-"@ibm-cloud/openapi-ruleset@npm:^1.18.2":
-  version: 1.18.2
-  resolution: "@ibm-cloud/openapi-ruleset@npm:1.18.2"
+"@ibm-cloud/openapi-ruleset@npm:^1.14.2":
+  version: 1.14.2
+  resolution: "@ibm-cloud/openapi-ruleset@npm:1.14.2"
   dependencies:
-    "@ibm-cloud/openapi-ruleset-utilities": "npm:1.3.2"
-    "@stoplight/spectral-formats": "npm:^1.6.0"
-    "@stoplight/spectral-functions": "npm:^1.8.0"
-    "@stoplight/spectral-rulesets": "npm:^1.19.1"
-    chalk: "npm:^4.1.2"
+    "@ibm-cloud/openapi-ruleset-utilities": "npm:1.3.0"
+    "@stoplight/spectral-formats": "npm:^1.5.0"
+    "@stoplight/spectral-functions": "npm:^1.7.2"
+    "@stoplight/spectral-rulesets": "npm:^1.16.0"
+    chalk: "npm:^4.1.1"
     lodash: "npm:^4.17.21"
-    loglevel: "npm:^1.9.1"
+    loglevel: "npm:^1.8.1"
     loglevel-plugin-prefix: "npm:0.8.4"
-    minimatch: "npm:^6.2.0"
-    validator: "npm:^13.11.0"
-  checksum: 10c0/3c7b8e4a2e2e6a49f7da9c4ae621d23308744381cb9b5e941b78bc4c212eb8a9a666756cd0380f4004a62d356c51551f4988637af4d8427e474ba22b491e3995
+    minimatch: "npm:^6.1.6"
+    validator: "npm:^13.7.0"
+  checksum: 10c0/94fdd0e08096a7a47cf75b98a3e92c7cc7898e682c01d987a0ff1992a5faf617a210ca161f5f4257ae437df51ab510e488799772d32b7a2620c9dd22cbae1fcf
   languageName: node
   linkType: hard
 
@@ -902,7 +902,7 @@ __metadata:
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.0"
     "@faker-js/faker": "npm:^8.4.0"
-    "@ibm-cloud/openapi-ruleset": "npm:^1.18.2"
+    "@ibm-cloud/openapi-ruleset": "npm:^1.14.2"
     "@types/debug": "npm:^4.1.12"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/inquirer": "npm:^9.0.7"
@@ -1268,7 +1268,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stoplight/spectral-formats@npm:^1.0.0, @stoplight/spectral-formats@npm:^1.5.0, @stoplight/spectral-formats@npm:^1.6.0":
+"@stoplight/spectral-formats@npm:^1.0.0, @stoplight/spectral-formats@npm:^1.5.0":
   version: 1.6.0
   resolution: "@stoplight/spectral-formats@npm:1.6.0"
   dependencies:
@@ -1280,7 +1280,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stoplight/spectral-functions@npm:^1.5.1":
+"@stoplight/spectral-functions@npm:^1.5.1, @stoplight/spectral-functions@npm:^1.7.2":
   version: 1.7.2
   resolution: "@stoplight/spectral-functions@npm:1.7.2"
   dependencies:
@@ -1296,25 +1296,6 @@ __metadata:
     lodash: "npm:~4.17.21"
     tslib: "npm:^2.3.0"
   checksum: 10c0/b404bf5a90afda2ac0db040d6e44f0e177279b6aae6b1691d0c0147ed887c2c637ffc0735950506f402a7fc0cca96bc1d964613998d6668ad7c4856f6d46792a
-  languageName: node
-  linkType: hard
-
-"@stoplight/spectral-functions@npm:^1.8.0":
-  version: 1.8.0
-  resolution: "@stoplight/spectral-functions@npm:1.8.0"
-  dependencies:
-    "@stoplight/better-ajv-errors": "npm:1.0.3"
-    "@stoplight/json": "npm:^3.17.1"
-    "@stoplight/spectral-core": "npm:^1.7.0"
-    "@stoplight/spectral-formats": "npm:^1.0.0"
-    "@stoplight/spectral-runtime": "npm:^1.1.0"
-    ajv: "npm:^8.6.3"
-    ajv-draft-04: "npm:~1.0.0"
-    ajv-errors: "npm:~3.0.0"
-    ajv-formats: "npm:~2.1.0"
-    lodash: "npm:~4.17.21"
-    tslib: "npm:^2.3.0"
-  checksum: 10c0/9b0100178334fff41bef7e047f158a5da334cbddd1d1d40daa6e7dd8c2a9fbefb2cabeb1fd2fd9657bc1a6faa9b1307aae052bf938dc295a6648b5e40a979a55
   languageName: node
   linkType: hard
 
@@ -1343,9 +1324,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@stoplight/spectral-rulesets@npm:^1.19.1":
-  version: 1.19.1
-  resolution: "@stoplight/spectral-rulesets@npm:1.19.1"
+"@stoplight/spectral-rulesets@npm:^1.16.0":
+  version: 1.18.0
+  resolution: "@stoplight/spectral-rulesets@npm:1.18.0"
   dependencies:
     "@asyncapi/specs": "npm:^4.1.0"
     "@stoplight/better-ajv-errors": "npm:1.0.3"
@@ -1356,13 +1337,12 @@ __metadata:
     "@stoplight/spectral-runtime": "npm:^1.1.1"
     "@stoplight/types": "npm:^13.6.0"
     "@types/json-schema": "npm:^7.0.7"
-    ajv: "npm:^8.12.0"
+    ajv: "npm:^8.8.2"
     ajv-formats: "npm:~2.1.0"
     json-schema-traverse: "npm:^1.0.0"
-    leven: "npm:3.1.0"
     lodash: "npm:~4.17.21"
     tslib: "npm:^2.3.0"
-  checksum: 10c0/50951baa2cfd83423cd26d3170ee1f8bd97b97bdd31ccd8c4395d501457dfbbac6313b698b170f1f2d4c2a9122fbf8e4b3fada1e1f040f285ca99c63cc50e9f0
+  checksum: 10c0/fff0f9588c8e3c8df731a9b64b3a5859b7d55fcd79fc7952978bb52206efc74c540ffc9e283c0ee1602e2c2d8cd99af4473d441b661de597fc9e469323d9c924
   languageName: node
   linkType: hard
 
@@ -2023,7 +2003,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ajv@npm:^8.0.0, ajv@npm:^8.11.0, ajv@npm:^8.12.0, ajv@npm:^8.6.0, ajv@npm:^8.6.3":
+"ajv@npm:^8.0.0, ajv@npm:^8.11.0, ajv@npm:^8.12.0, ajv@npm:^8.6.0, ajv@npm:^8.6.3, ajv@npm:^8.8.2":
   version: 8.12.0
   resolution: "ajv@npm:8.12.0"
   dependencies:
@@ -2495,7 +2475,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"chalk@npm:^4.0.0, chalk@npm:^4.1.0, chalk@npm:^4.1.2":
+"chalk@npm:^4.0.0, chalk@npm:^4.1.0, chalk@npm:^4.1.1, chalk@npm:^4.1.2":
   version: 4.1.2
   resolution: "chalk@npm:4.1.2"
   dependencies:
@@ -5692,7 +5672,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"leven@npm:3.1.0, leven@npm:^3.1.0":
+"leven@npm:^3.1.0":
   version: 3.1.0
   resolution: "leven@npm:3.1.0"
   checksum: 10c0/cd778ba3fbab0f4d0500b7e87d1f6e1f041507c56fdcd47e8256a3012c98aaee371d4c15e0a76e0386107af2d42e2b7466160a2d80688aaa03e66e49949f42df
@@ -5988,10 +5968,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"loglevel@npm:^1.9.1":
-  version: 1.9.1
-  resolution: "loglevel@npm:1.9.1"
-  checksum: 10c0/152f0501cea367cf998c844a38b19f0b5af555756ad7d8650214a1f8c6a5b045e31b8cf5dae27d28339a061624ce3f618aadb333aed386cac041d6ddc5101a39
+"loglevel@npm:^1.8.1":
+  version: 1.8.1
+  resolution: "loglevel@npm:1.8.1"
+  checksum: 10c0/21069436c97448a1801b154a77d19ada212225c513d94f0471bfe299c981ffd4dc0d21e6211f9250bd6209ba9837bfe0d40d9295c673d73e3c543ec6b1c5d9ef
   languageName: node
   linkType: hard
 
@@ -6185,7 +6165,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"minimatch@npm:^6.2.0":
+"minimatch@npm:^6.1.6":
   version: 6.2.0
   resolution: "minimatch@npm:6.2.0"
   dependencies:
@@ -9098,10 +9078,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"validator@npm:^13.11.0":
-  version: 13.12.0
-  resolution: "validator@npm:13.12.0"
-  checksum: 10c0/21d48a7947c9e8498790550f56cd7971e0e3d724c73388226b109c1bac2728f4f88caddfc2f7ed4b076f9b0d004316263ac786a17e9c4edf075741200718cd32
+"validator@npm:^13.7.0":
+  version: 13.11.0
+  resolution: "validator@npm:13.11.0"
+  checksum: 10c0/0107da3add5a4ebc6391dac103c55f6d8ed055bbcc29a4c9cbf89eacfc39ba102a5618c470bdc33c6487d30847771a892134a8c791f06ef0962dd4b7a60ae0f5
   languageName: node
   linkType: hard
 
