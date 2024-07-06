@@ -1095,7 +1095,9 @@ ${hookOptions}
   const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
-  const overrideTypes = `export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
+
+  const overrideTypes = `
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}`;
   return `
@@ -1106,7 +1108,7 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
-${hasQueryV5 ? overrideTypes : ''}
+${hasQueryV5 && OutputClient.REACT_QUERY === outputClient ? overrideTypes : ''}
 ${doc}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} {
 
