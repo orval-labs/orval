@@ -528,17 +528,13 @@ const generateQueryRequestFunction = (
 `;
 };
 
-type QueryType =
-  | 'infiniteQuery'
-  | 'query'
-  | 'suspenseQuery'
-  | 'suspenseInfiniteQuery';
+type QueryType = 'infiniteQuery' | 'query';
 
 const QueryType = {
-  INFINITE: 'infiniteQuery',
-  QUERY: 'query',
-  SUSPENSE_QUERY: 'suspenseQuery',
-  SUSPENSE_INFINITE: 'suspenseInfiniteQuery',
+  INFINITE: 'infiniteQuery' as QueryType,
+  QUERY: 'query' as QueryType,
+  SUSPENSE_QUERY: 'suspenseQuery' as QueryType,
+  SUSPENSE_INFINITE: 'suspenseInfiniteQuery' as QueryType,
 };
 
 const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
