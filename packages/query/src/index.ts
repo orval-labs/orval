@@ -180,7 +180,6 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseQueryOptions' },
       { name: 'DefinedInitialDataOptions' },
       { name: 'UndefinedInitialDataOptions' },
-      { name: 'UseQueryOptions' },
       { name: 'UseSuspenseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseSuspenseInfiniteQueryOptions' },
@@ -188,8 +187,10 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
       { name: 'UseQueryResult' },
+      { name: 'DefinedUseQueryResult' },
       { name: 'UseSuspenseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
+      { name: 'DefinedUseInfiniteQueryResult' },
       { name: 'UseSuspenseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'QueryClient' },
@@ -359,13 +360,185 @@ const getPackageByQueryClient = (
   }
 };
 
-type QueryType = 'infiniteQuery' | 'query';
+const generateRequestOptionsArguments = ({
+  isRequestOptions,
+  hasSignal,
+}: {
+  isRequestOptions: boolean;
+  hasSignal: boolean;
+}) => {
+  if (isRequestOptions) {
+    return 'options?: AxiosRequestConfig\n';
+  }
+
+  return hasSignal ? 'signal?: AbortSignal\n' : '';
+};
+
+const generateQueryRequestFunction = (
+  {
+    headers,
+    queryParams,
+    operationName,
+    response,
+    mutator,
+    body,
+    props: _props,
+    verb,
+    formData,
+    formUrlEncoded,
+    paramsSerializer,
+    override,
+  }: GeneratorVerbOptions,
+  { route: _route, context }: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
+  output?: NormalizedOutputOptions,
+) => {
+  let props = _props;
+  let route = _route;
+
+  if (isVue(outputClient)) {
+    props = vueWrapTypeWithMaybeRef(_props);
+  }
+
+  if (output?.urlEncodeParameters) {
+    route = makeRouteSafe(route);
+  }
+
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = override.formData !== false;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
+  const hasSignal = !!override.query.signal;
+
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    context.output.tsconfig,
+  );
+  const isExactOptionalPropertyTypes =
+    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
+
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
+    formData,
+    formUrlEncoded,
+    body,
+    isFormData,
+    isFormUrlEncoded,
+  });
+
+  if (mutator) {
+    const mutatorConfig = generateMutatorConfig({
+      route,
+      body,
+      headers,
+      queryParams,
+      response,
+      verb,
+      isFormData,
+      isFormUrlEncoded,
+      isBodyVerb,
+      hasSignal,
+      isExactOptionalPropertyTypes,
+      isVue: isVue(outputClient),
+    });
+
+    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
+    let propsImplementation =
+      mutator?.bodyTypeName && body.definition
+        ? toObjectString(props, 'implementation').replace(
+            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
+            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+          )
+        : toObjectString(props, 'implementation');
+
+    const requestOptions = isRequestOptions
+      ? generateMutatorRequestOptions(
+          override.requestOptions,
+          mutator.hasSecondArg,
+        )
+      : '';
+
+    if (mutator.isHook) {
+      return `${
+        override.query.shouldExportMutatorHooks ? 'export ' : ''
+      }const use${pascal(operationName)}Hook = () => {
+        const ${operationName} = ${mutator.name}<${
+          response.definition.success || 'unknown'
+        }>();
+
+        return useCallback((\n    ${propsImplementation}\n ${
+          isRequestOptions && mutator.hasSecondArg
+            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+            : ''
+        }${
+          !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
+        }) => {${bodyForm}
+        return ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions});
+        }, [${operationName}])
+      }
+    `;
+    }
+
+    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
+      isRequestOptions && mutator.hasSecondArg
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
+        : ''
+    }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
+      ${isVue(outputClient) ? vueUnRefParams(props) : ''}
+      ${bodyForm}
+      return ${mutator.name}<${response.definition.success || 'unknown'}>(
+      ${mutatorConfig},
+      ${requestOptions});
+    }
+  `;
+  }
+
+  const options = generateOptions({
+    route,
+    body,
+    headers,
+    queryParams,
+    response,
+    verb,
+    requestOptions: override?.requestOptions,
+    isFormData,
+    isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
+    isExactOptionalPropertyTypes,
+    hasSignal,
+    isVue: isVue(outputClient),
+  });
+
+  const optionsArgs = generateRequestOptionsArguments({
+    isRequestOptions,
+    hasSignal,
+  });
+
+  const queryProps = toObjectString(props, 'implementation');
+
+  return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
+    response.definition.success || 'unknown'
+  }>> => {${bodyForm}
+    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
+    return axios${
+      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+    }.${verb}(${options});
+  }
+`;
+};
+
+type QueryType =
+  | 'infiniteQuery'
+  | 'query'
+  | 'suspenseQuery'
+  | 'suspenseInfiniteQuery';
 
 const QueryType = {
-  INFINITE: 'infiniteQuery' as QueryType,
-  QUERY: 'query' as QueryType,
-  SUSPENSE_QUERY: 'suspenseQuery' as QueryType,
-  SUSPENSE_INFINITE: 'suspenseInfiniteQuery' as QueryType,
+  INFINITE: 'infiniteQuery',
+  QUERY: 'query',
+  SUSPENSE_QUERY: 'suspenseQuery',
+  SUSPENSE_INFINITE: 'suspenseInfiniteQuery',
 };
 
 const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
@@ -416,6 +589,10 @@ const generateQueryOptions = ({
   }${queryConfig} ...queryOptions`;
 };
 
+const isSuspenseQuery = (type: QueryType) => {
+  return [QueryType.SUSPENSE_INFINITE, QueryType.SUSPENSE_QUERY].includes(type);
+};
+
 const getQueryOptionsDefinition = ({
   operationName,
   definitions,
@@ -450,21 +627,35 @@ const getQueryOptionsDefinition = ({
         : `typeof ${operationName}`
     }>>`;
 
-    const optionTypePrefix = initialData
-      ? `${pascal(initialData)}InitialData`
-      : `${prefix}${pascal(type)}`;
-
-    const optionType = `${optionTypePrefix}Options<${funcReturnType}, TError, TData${
+    const optionTypeInitialDataPostfix =
+      initialData && !isSuspenseQuery(type)
+        ? ` & Pick<
+        ${pascal(initialData)}InitialDataOptions<
+          ${funcReturnType},
+          TError,
+          TData${
+            hasQueryV5 &&
+            (type === QueryType.INFINITE ||
+              type === QueryType.SUSPENSE_INFINITE) &&
+            queryParam &&
+            queryParams
+              ? `, QueryKey`
+              : ''
+          }
+        > , 'initialData'
+      >`
+        : '';
+    const optionType = `${prefix}${pascal(
+      type,
+    )}Options<${funcReturnType}, TError, TData${
       hasQueryV5 &&
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
       queryParams
-        ? initialData
-          ? `, QueryKey`
-          : `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
     }>`;
-    return `${partialOptions ? 'Partial<' : ''}${optionType}${partialOptions ? '>' : ''}`;
+    return `${partialOptions ? 'Partial<' : ''}${optionType}${partialOptions ? '>' : ''}${optionTypeInitialDataPostfix}`;
   }
 
   return `${prefix}MutationOptions<Awaited<ReturnType<${
@@ -530,6 +721,7 @@ const generateQueryReturnType = ({
   operationName,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  isInitialDataDefined,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   type: QueryType;
@@ -537,6 +729,7 @@ const generateQueryReturnType = ({
   operationName: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  isInitialDataDefined?: boolean;
 }) => {
   switch (outputClient) {
     case OutputClient.SVELTE_QUERY: {
@@ -567,7 +760,7 @@ const generateQueryReturnType = ({
     }
     case OutputClient.REACT_QUERY:
     default: {
-      return ` Use${pascal(
+      return ` ${isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''}Use${pascal(
         type,
       )}Result<TData, TError> & { queryKey: QueryKey }`;
     }
@@ -710,6 +903,15 @@ const generateQueryImplementation = ({
         .join(',')
     : queryProperties;
 
+  const definedInitialDataReturnType = generateQueryReturnType({
+    outputClient,
+    type,
+    isMutatorHook: mutator?.isHook,
+    operationName,
+    hasVueQueryV4,
+    hasSvelteQueryV4,
+    isInitialDataDefined: true,
+  });
   const returnType = generateQueryReturnType({
     outputClient,
     type,
@@ -906,7 +1108,7 @@ export type ${pascal(
 export type ${pascal(name)}QueryError = ${errorType}
 
 
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}
 ${doc}
