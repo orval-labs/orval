@@ -178,6 +178,9 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useSuspenseInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
       { name: 'UseQueryOptions' },
+      { name: 'DefinedInitialDataOptions' },
+      { name: 'UndefinedInitialDataOptions' },
+      { name: 'UseQueryOptions' },
       { name: 'UseSuspenseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseSuspenseInfiniteQueryOptions' },
@@ -423,6 +426,7 @@ const getQueryOptionsDefinition = ({
   queryParams,
   queryParam,
   isReturnType,
+  initialData,
 }: {
   operationName: string;
   definitions: string;
@@ -433,6 +437,7 @@ const getQueryOptionsDefinition = ({
   queryParams?: GetterQueryParam;
   queryParam?: string;
   isReturnType: boolean;
+  initialData?: 'defined' | 'undefined';
 }) => {
   const isMutatorHook = mutator?.isHook;
   const prefix = !hasSvelteQueryV4 ? 'Use' : 'Create';
@@ -445,16 +450,21 @@ const getQueryOptionsDefinition = ({
         : `typeof ${operationName}`
     }>>`;
 
-    return `${partialOptions ? 'Partial<' : ''}${prefix}${pascal(
-      type,
-    )}Options<${funcReturnType}, TError, TData${
+    const optionTypePrefix = initialData
+      ? `${pascal(initialData)}InitialData`
+      : `${prefix}${pascal(type)}`;
+
+    const optionType = `${optionTypePrefix}Options<${funcReturnType}, TError, TData${
       hasQueryV5 &&
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
       queryParams
-        ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        ? initialData
+          ? `, QueryKey`
+          : `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
-    }>${partialOptions ? '>' : ''}`;
+    }>`;
+    return `${partialOptions ? 'Partial<' : ''}${optionType}${partialOptions ? '>' : ''}`;
   }
 
   return `${prefix}MutationOptions<Awaited<ReturnType<${
@@ -474,6 +484,7 @@ const generateQueryArguments = ({
   hasQueryV5,
   queryParams,
   queryParam,
+  initialData,
   httpClient,
 }: {
   operationName: string;
@@ -485,6 +496,7 @@ const generateQueryArguments = ({
   hasQueryV5: boolean;
   queryParams?: GetterQueryParam;
   queryParam?: string;
+  initialData?: 'defined' | 'undefined';
   httpClient: OutputHttpClient;
 }) => {
   const definition = getQueryOptionsDefinition({
@@ -497,6 +509,7 @@ const generateQueryArguments = ({
     queryParams,
     queryParam,
     isReturnType: false,
+    initialData,
   });
 
   if (!isRequestOptions) {
@@ -673,6 +686,7 @@ const generateQueryImplementation = ({
   doc?: string;
   usePrefetch?: boolean;
 }) => {
+  const queryPropDefinitions = toObjectString(props, 'definition');
   const queryProps = toObjectString(props, 'implementation');
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
@@ -716,6 +730,30 @@ const generateQueryImplementation = ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
+  const definedInitialDataQueryArguments = generateQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
+    type,
+    hasSvelteQueryV4,
+    hasQueryV5,
+    queryParams,
+    queryParam,
+    initialData: 'defined',
+  });
+  const undefinedInitialDataQueryArguments = generateQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
+    type,
+    hasSvelteQueryV4,
+    hasQueryV5,
+    queryParams,
+    queryParam,
+    initialData: 'undefined',
+  });
   const queryArguments = generateQueryArguments({
     operationName,
     definitions: '',
@@ -858,6 +896,7 @@ ${hookOptions}
 
   const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
+  const queryHookName = camel(`${operationPrefix}-${name}`);
   return `
 ${queryOptionsFn}
 
@@ -866,9 +905,12 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
-${doc}export const ${camel(
-    `${operationPrefix}-${name}`,
-  )} = <TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
+
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}
+${doc}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} {
 
   const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
     queryProperties ? ',' : ''
