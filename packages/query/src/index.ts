@@ -1099,6 +1099,9 @@ ${hookOptions}
   const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
+  const overrideTypes = `export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}`;
   return `
 ${queryOptionsFn}
 
@@ -1107,10 +1110,7 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
-
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}
+${hasQueryV5 ? overrideTypes : ''}
 ${doc}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} {
 
