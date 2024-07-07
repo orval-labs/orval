@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema } from '../types';
-import { camel, upath } from '../utils';
+import { camel, pascal, upath } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -63,7 +63,7 @@ export const writeSchema = async ({
   specsName: Record<string, string>;
   header: string;
 }) => {
-  const name = camel(schema.name);
+  const name = pascal(schema.name);
 
   try {
     await fs.outputFile(

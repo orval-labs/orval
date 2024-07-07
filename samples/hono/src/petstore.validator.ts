@@ -47,19 +47,19 @@ export const zValidator =
             [K in Target]?: K extends 'json'
               ? In
               : HasUndefined<
-                    keyof ValidationTargetsWithResponse[K]
-                  > extends true
-                ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
-                : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
+                  keyof ValidationTargetsWithResponse[K]
+                > extends true
+              ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
+              : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
           }
         : {
             [K in Target]: K extends 'json'
               ? In
               : HasUndefined<
-                    keyof ValidationTargetsWithResponse[K]
-                  > extends true
-                ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
-                : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
+                  keyof ValidationTargetsWithResponse[K]
+                > extends true
+              ? { [K2 in keyof In]?: ValidationTargetsWithResponse[K][K2] }
+              : { [K2 in keyof In]: ValidationTargetsWithResponse[K][K2] };
           };
       out: { [K in Target]: Out };
     },
@@ -91,10 +91,10 @@ export const zValidator =
       }
     } else {
       await next();
-
+      
       if (
         c.res.status !== 200 ||
-        !c.res.headers.get('Content-Type')?.includes('application/json')
+       !c.res.headers.get('Content-Type')?.includes('application/json')
       ) {
         return;
       }
@@ -107,7 +107,7 @@ export const zValidator =
       } catch {
         const message = 'Malformed JSON in response';
         c.res = new Response(message, { status: 400 });
-
+        
         return;
       }
 
