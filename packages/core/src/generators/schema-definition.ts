@@ -102,6 +102,16 @@ export const generateSchemasDefinition = (
           }
         }
       } else {
+        resolvedValue.schemas = resolvedValue.schemas.filter((schema) => {
+          if (schema.name !== schemaName) {
+            return true;
+          }
+
+          output += `${schema.model}\n`;
+          imports = imports.concat(schema.imports);
+
+          return false;
+        });
         output += `export type ${schemaName} = ${resolvedValue.value};\n`;
       }
 
