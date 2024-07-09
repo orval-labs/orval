@@ -171,4 +171,12 @@ export default defineConfig({
       mock: true,
     },
   },
+  const: {
+    input: '../specifications/const.yaml',
+    output: {
+      schemas: '../generated/default/const/model',
+      target: '../generated/default/const',
+      mock: true,
+    },
+  },
 });
