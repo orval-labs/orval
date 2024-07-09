@@ -80,7 +80,7 @@ export const resolveMockValue = ({
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
     const {
-      name,
+      originalName,
       specKey = context.specKey,
       refPaths,
     } = getRefInfo(schema.$ref, context);
@@ -89,7 +89,7 @@ export const resolveMockValue = ({
 
     const newSchema = {
       ...schemaRef,
-      name,
+      name: originalName,
       path: schema.path,
       isRef: true,
     };
