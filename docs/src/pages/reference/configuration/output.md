@@ -39,6 +39,28 @@ module.exports = {
 
 if you want you can provide a function to extend or create you custom client generator and this function receive a [[GeneratorClients](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156)](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L652).
 
+### httpClient
+
+Type: `String`.
+
+Valid values: `fetch`, `axios`.
+
+Default Value: `axios`.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      client: 'swr',
+      httpClient: 'fetch',
+    },
+  },
+};
+```
+
+if you want you can use the `fetch` API as an http client with `Hooks` of `swr`, specify `fetch` in the `httpClient` option.
+Note that `httpClient` is currently only available when `swr` is specified as the `client` option.
+
 ### schemas
 
 Type: `String`.

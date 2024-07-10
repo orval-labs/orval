@@ -10,6 +10,7 @@
     "turbo": "^1.13.3"
   },
   "scripts": {
-    "generate-api": "turbo run generate-api"
+    "generate-api": "turbo run generate-api",
+    "test": "turbo test --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator"
   }
 }

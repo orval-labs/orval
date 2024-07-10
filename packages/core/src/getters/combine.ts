@@ -157,6 +157,40 @@ export const combineSchemas = ({
 
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
+  if (isAllEnums && name && items.length > 1) {
+    const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
+      name,
+    )} = ${getCombineEnumValue(resolvedData)}`;
+
+    return {
+      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
+      imports: [
+        {
+          name: pascal(name),
+        },
+      ],
+      schemas: [
+        ...resolvedData.schemas,
+        {
+          imports: [
+            ...resolvedData.imports.map<GeneratorImport>((toImport) => ({
+              ...toImport,
+              values: true,
+            })),
+          ],
+          model: newEnum,
+          name: name,
+        },
+      ],
+      isEnum: false,
+      type: 'object' as SchemaType,
+      isRef: false,
+      hasReadonlyProps: resolvedData.hasReadonlyProps,
+      example: schema.example,
+      examples: resolveExampleRefs(schema.examples, context),
+    };
+  }
+
   let resolvedValue: ScalarValue | undefined;
 
   if (schema.properties) {
@@ -169,38 +203,6 @@ export const combineSchemas = ({
     resolvedValue,
     context,
   });
-
-  if (isAllEnums && name && items.length > 1) {
-    const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
-      name,
-    )} = ${getCombineEnumValue(resolvedData)};\n`;
-
-    return {
-      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
-      imports: [
-        {
-          name: pascal(name),
-        },
-      ],
-      schemas: [
-        ...resolvedData.schemas,
-        {
-          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
-            ...toImport,
-            values: true,
-          })),
-          model: newEnum,
-          name: pascal(name),
-        },
-      ],
-      isEnum: false,
-      type: 'object' as SchemaType,
-      isRef: false,
-      hasReadonlyProps: resolvedData.hasReadonlyProps,
-      example: schema.example,
-      examples: resolveExampleRefs(schema.examples, context),
-    };
-  }
 
   return {
     value: value + nullable,

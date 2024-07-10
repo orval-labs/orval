@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "6.30.2",
+  "version": "6.31.0",
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -20,22 +20,14 @@
     "update-samples": "cd ./samples && yarn && yarn generate-api --force",
     "build": "turbo run build",
     "test": "turbo run test",
-    "test:ci": "yarn test -- -- --run && yarn run-s 'test:samples:*'",
-    "test:samples:vue-query": "cd ./samples/vue-query && yarn && yarn test",
-    "test:samples:svelte-query": "cd ./samples/svelte-query && yarn && yarn test",
-    "test:samples:react-query:basic": "cd ./samples/react-query/basic && yarn && yarn test",
-    "test:samples:react-query:custom-client": "cd ./samples/react-query/custom-client && yarn && yarn test",
-    "test:samples:react-query:form-data": "cd ./samples/react-query/form-data && yarn && yarn test",
-    "test:samples:react-query:form-data-mutator": "cd ./samples/react-query/form-data-mutator && yarn && yarn test",
-    "test:samples:react-query:form-url-encoded": "cd ./samples/react-query/form-url-encoded && yarn && yarn test",
-    "test:samples:react-query:form-url-encoded-mutator": "cd ./samples/react-query/form-url-encoded-mutator && yarn && yarn test",
-    "test:samples:react-query:hook-mutator": "cd ./samples/react-query/hook-mutator && yarn && yarn test",
+    "test:samples": "cd ./samples && yarn && yarn test",
+    "test:ci": "yarn test && yarn test:samples",
     "lint": "turbo run lint",
     "dev": "turbo run dev"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.3.0",
-    "@commitlint/config-conventional": "^19.1.0",
+    "@commitlint/config-conventional": "^19.2.2",
     "@faker-js/faker": "^8.4.0",
     "@release-it-plugins/workspaces": "^4.2.0",
     "@release-it/conventional-changelog": "^8.0.1",
@@ -52,7 +44,7 @@
     "lint-staged": "^15.2.2",
     "npm-run-all": "^4.1.5",
     "prettier": "3.2.5",
-    "release-it": "^17.3.0",
+    "release-it": "^17.4.0",
     "rimraf": "^5.0.5",
     "tsup": "^8.0.2",
     "turbo": "^1.13.3",

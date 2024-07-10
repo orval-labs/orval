@@ -137,13 +137,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/config-conventional@npm:^19.1.0":
-  version: 19.1.0
-  resolution: "@commitlint/config-conventional@npm:19.1.0"
+"@commitlint/config-conventional@npm:^19.2.2":
+  version: 19.2.2
+  resolution: "@commitlint/config-conventional@npm:19.2.2"
   dependencies:
     "@commitlint/types": "npm:^19.0.3"
     conventional-changelog-conventionalcommits: "npm:^7.0.2"
-  checksum: 10c0/540c30b7522e5772d4b7cc2abfa2d484933a40939d9896f9681117f35775f2fa350973ccddcd016ed520be515844581c6a687646707e097220b34e7d01bfff07
+  checksum: 10c0/2f2a07ee318ac42ffda488521bd84f28268a6d2ea10b332abcad6106559d8a64a765cc58ddea106fd67fce376228cb24059000a584f4986e0e8f972cedd85442
   languageName: node
   linkType: hard
 
@@ -600,7 +600,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@inquirer/figures@npm:^1.0.2":
+"@inquirer/figures@npm:^1.0.3":
   version: 1.0.3
   resolution: "@inquirer/figures@npm:1.0.3"
   checksum: 10c0/099e062f000baafb4010014ece443d0cd211f562194854dc52a128bfe514611f8cc3da4cdb5092d75440956aff201dcd8e893b8a71feb104f97b0b00c6a696cf
@@ -880,23 +880,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@orval/angular@npm:6.30.2, @orval/angular@workspace:packages/angular":
+"@orval/angular@npm:6.31.0, @orval/angular@workspace:packages/angular":
   version: 0.0.0-use.local
   resolution: "@orval/angular@workspace:packages/angular"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
   languageName: unknown
   linkType: soft
 
-"@orval/axios@npm:6.30.2, @orval/axios@workspace:packages/axios":
+"@orval/axios@npm:6.31.0, @orval/axios@workspace:packages/axios":
   version: 0.0.0-use.local
   resolution: "@orval/axios@workspace:packages/axios"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
   languageName: unknown
   linkType: soft
 
-"@orval/core@npm:6.30.2, @orval/core@workspace:packages/core":
+"@orval/core@npm:6.31.0, @orval/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
@@ -934,60 +934,61 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@orval/fetch@npm:6.30.2, @orval/fetch@workspace:packages/fetch":
+"@orval/fetch@npm:6.31.0, @orval/fetch@workspace:packages/fetch":
   version: 0.0.0-use.local
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
   languageName: unknown
   linkType: soft
 
-"@orval/hono@npm:6.30.2, @orval/hono@workspace:packages/hono":
+"@orval/hono@npm:6.31.0, @orval/hono@workspace:packages/hono":
   version: 0.0.0-use.local
   resolution: "@orval/hono@workspace:packages/hono"
   dependencies:
-    "@orval/core": "npm:6.30.2"
-    "@orval/zod": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
+    "@orval/zod": "npm:6.31.0"
     "@types/lodash.uniq": "npm:^4.5.7"
     lodash.uniq: "npm:^4.5.0"
   languageName: unknown
   linkType: soft
 
-"@orval/mock@npm:6.30.2, @orval/mock@workspace:packages/mock":
+"@orval/mock@npm:6.31.0, @orval/mock@workspace:packages/mock":
   version: 0.0.0-use.local
   resolution: "@orval/mock@workspace:packages/mock"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
     lodash.get: "npm:^4.4.2"
     lodash.omit: "npm:^4.5.0"
     openapi3-ts: "npm:^4.2.2"
   languageName: unknown
   linkType: soft
 
-"@orval/query@npm:6.30.2, @orval/query@workspace:packages/query":
+"@orval/query@npm:6.31.0, @orval/query@workspace:packages/query":
   version: 0.0.0-use.local
   resolution: "@orval/query@workspace:packages/query"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
     "@types/lodash.omitby": "npm:^4.6.7"
     lodash.omitby: "npm:^4.6.0"
     vitest: "npm:^0.34.6"
   languageName: unknown
   linkType: soft
 
-"@orval/swr@npm:6.30.2, @orval/swr@workspace:packages/swr":
+"@orval/swr@npm:6.31.0, @orval/swr@workspace:packages/swr":
   version: 0.0.0-use.local
   resolution: "@orval/swr@workspace:packages/swr"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
+    "@orval/fetch": "npm:6.31.0"
   languageName: unknown
   linkType: soft
 
-"@orval/zod@npm:6.30.2, @orval/zod@workspace:packages/zod":
+"@orval/zod@npm:6.31.0, @orval/zod@workspace:packages/zod":
   version: 0.0.0-use.local
   resolution: "@orval/zod@workspace:packages/zod"
   dependencies:
-    "@orval/core": "npm:6.30.2"
+    "@orval/core": "npm:6.31.0"
     "@types/lodash.uniq": "npm:^4.5.7"
     lodash.uniq: "npm:^4.5.0"
   languageName: unknown
@@ -4979,11 +4980,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"inquirer@npm:9.2.22":
-  version: 9.2.22
-  resolution: "inquirer@npm:9.2.22"
+"inquirer@npm:9.2.23":
+  version: 9.2.23
+  resolution: "inquirer@npm:9.2.23"
   dependencies:
-    "@inquirer/figures": "npm:^1.0.2"
+    "@inquirer/figures": "npm:^1.0.3"
     "@ljharb/through": "npm:^2.3.13"
     ansi-escapes: "npm:^4.3.2"
     chalk: "npm:^5.3.0"
@@ -4998,7 +4999,7 @@ __metadata:
     string-width: "npm:^4.2.3"
     strip-ansi: "npm:^6.0.1"
     wrap-ansi: "npm:^6.2.0"
-  checksum: 10c0/a7dc69a42b634a7222e75783d733a24d776bff43dcc77c6f0a47637dbc02a362de182b30165ede7978cd9fe7d22bae14fdd84e0cbfaec8c2b0a89d9131867bca
+  checksum: 10c0/6adf3a6a9c666ff2baf3e8aef841f3ae266506cf0256ef445de5ec9a456aec8d6ff38180cc436ad3f9045cbb018d11dca98ed3570c28fbf8a857f1e4712eddc7
   languageName: node
   linkType: hard
 
@@ -5421,16 +5422,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"issue-parser@npm:7.0.0":
-  version: 7.0.0
-  resolution: "issue-parser@npm:7.0.0"
+"issue-parser@npm:7.0.1":
+  version: 7.0.1
+  resolution: "issue-parser@npm:7.0.1"
   dependencies:
     lodash.capitalize: "npm:^4.2.1"
     lodash.escaperegexp: "npm:^4.1.2"
     lodash.isplainobject: "npm:^4.0.6"
     lodash.isstring: "npm:^4.0.1"
     lodash.uniqby: "npm:^4.7.0"
-  checksum: 10c0/b234d6045871557f1a4adbd7e62aae568179d0fac5d619d30e8c1e0ba5fcd2d273a394d668a7a95dbcded1e5e57d2c4dc24772220bf05d8fe313f5455ab91a63
+  checksum: 10c0/1b2dad16081ae423bb96143132701e89aa8f6345ab0a10f692594ddf5699b514adccaaaf24d7c59afc977c447895bdee15fff2dfc9d6015e177f6966b06f5dcb
   languageName: node
   linkType: hard
 
@@ -6768,7 +6769,7 @@ __metadata:
   resolution: "orval-workspaces@workspace:."
   dependencies:
     "@commitlint/cli": "npm:^19.3.0"
-    "@commitlint/config-conventional": "npm:^19.1.0"
+    "@commitlint/config-conventional": "npm:^19.2.2"
     "@faker-js/faker": "npm:^8.4.0"
     "@release-it-plugins/workspaces": "npm:^4.2.0"
     "@release-it/conventional-changelog": "npm:^8.0.1"
@@ -6785,7 +6786,7 @@ __metadata:
     lint-staged: "npm:^15.2.2"
     npm-run-all: "npm:^4.1.5"
     prettier: "npm:3.2.5"
-    release-it: "npm:^17.3.0"
+    release-it: "npm:^17.4.0"
     rimraf: "npm:^5.0.5"
     tsup: "npm:^8.0.2"
     turbo: "npm:^1.13.3"
@@ -6800,15 +6801,15 @@ __metadata:
   resolution: "orval@workspace:packages/orval"
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.0"
-    "@orval/angular": "npm:6.30.2"
-    "@orval/axios": "npm:6.30.2"
-    "@orval/core": "npm:6.30.2"
-    "@orval/fetch": "npm:6.30.2"
-    "@orval/hono": "npm:6.30.2"
-    "@orval/mock": "npm:6.30.2"
-    "@orval/query": "npm:6.30.2"
-    "@orval/swr": "npm:6.30.2"
-    "@orval/zod": "npm:6.30.2"
+    "@orval/angular": "npm:6.31.0"
+    "@orval/axios": "npm:6.31.0"
+    "@orval/core": "npm:6.31.0"
+    "@orval/fetch": "npm:6.31.0"
+    "@orval/hono": "npm:6.31.0"
+    "@orval/mock": "npm:6.31.0"
+    "@orval/query": "npm:6.31.0"
+    "@orval/swr": "npm:6.31.0"
+    "@orval/zod": "npm:6.31.0"
     "@types/inquirer": "npm:^9.0.6"
     "@types/js-yaml": "npm:^4.0.8"
     "@types/lodash.uniq": "npm:^4.5.8"
@@ -7494,9 +7495,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"release-it@npm:^17.3.0":
-  version: 17.3.0
-  resolution: "release-it@npm:17.3.0"
+"release-it@npm:^17.4.0":
+  version: 17.4.0
+  resolution: "release-it@npm:17.4.0"
   dependencies:
     "@iarna/toml": "npm:2.2.5"
     "@octokit/rest": "npm:20.1.1"
@@ -7507,9 +7508,9 @@ __metadata:
     git-url-parse: "npm:14.0.0"
     globby: "npm:14.0.1"
     got: "npm:13.0.0"
-    inquirer: "npm:9.2.22"
+    inquirer: "npm:9.2.23"
     is-ci: "npm:3.0.1"
-    issue-parser: "npm:7.0.0"
+    issue-parser: "npm:7.0.1"
     lodash: "npm:4.17.21"
     mime-types: "npm:2.1.35"
     new-github-release-url: "npm:2.0.0"
@@ -7527,7 +7528,7 @@ __metadata:
     yargs-parser: "npm:21.1.1"
   bin:
     release-it: bin/release-it.js
-  checksum: 10c0/aacef54c6acc444724ea7a59014f76faafc98a308269036d63e55585b4973e99e392df0f1e29a5ef1937469462918ac30c7589b95ed4ab774a43dae97cc96395
+  checksum: 10c0/021c72a9b3120eead3ad2e8ad1c7fff676b33ee95abe6ce68377ec2e615db4ed71302c94b0abaf89e0cb6d34675c87f982c0fbd39dab8355fad652be03c3a12c
   languageName: node
   linkType: hard
 

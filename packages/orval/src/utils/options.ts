@@ -24,6 +24,7 @@ import {
   OperationOptions,
   OptionsExport,
   OutputClient,
+  OutputHttpClient,
   OutputMode,
   QueryOptions,
   RefComponentSuffix,
@@ -77,7 +78,8 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, mode, tslint, biome } = globalOptions;
+  const { clean, prettier, client, httpClient, mode, tslint, biome } =
+    globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -141,6 +143,8 @@ export const normalizeOptions = async (
       fileExtension: outputOptions.fileExtension || defaultFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
+      httpClient:
+        outputOptions.httpClient ?? httpClient ?? OutputHttpClient.AXIOS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,

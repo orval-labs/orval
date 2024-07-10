@@ -126,4 +126,12 @@ export default defineConfig({
       target: '../specifications/enum-refs.yaml',
     },
   },
+  typelessEnum: {
+    input: '../specifications/typelessEnum.yaml',
+    output: {
+      schemas: '../generated/mock/typelessEnum/schemas',
+      target: '../generated/mock/typelessEnum',
+      mock: true,
+    },
+  },
 });

@@ -19,6 +19,9 @@ paths:
                 enum: ['B']
               - type: string
                 enum: ['C']
+      responses:
+        '204':
+          description: Ok
 components:
   schemas:
     A:

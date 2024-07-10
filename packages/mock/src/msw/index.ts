@@ -113,13 +113,9 @@ const generateDefinition = (
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
   const isHandlerOverridden = isReturnHttpResponse && !isTextPlain;
-  const infoParam = isHandlerOverridden ? 'info' : '';
+  const infoParam = 'info';
   const handlerImplementation = `
-export const ${handlerName} = (${
-    isHandlerOverridden
-      ? `overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})`
-      : ''
-  }) => {
+export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
   return http.${verb}('${route}', ${
     (isReturnHttpResponse && !isTextPlain) || delay !== false ? 'async' : ''
   } (${infoParam}) => {${
@@ -127,6 +123,7 @@ export const ${handlerName} = (${
       ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
       : ''
   }
+  ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain
@@ -136,13 +133,13 @@ export const ${handlerName} = (${
             : ${getResponseMockFunctionName}())`
         : null
     },
-      {
-        status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
-        headers: {
-          'Content-Type': '${isTextPlain ? 'text/plain' : 'application/json'}',
+      { status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
+        ${
+          isReturnHttpResponse
+            ? `headers: { 'Content-Type': ${isTextPlain ? "'text/plain'" : "'application/json'"} }`
+            : ''
         }
-      }
-    )
+      })
   })
 }\n`;
 
