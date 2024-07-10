@@ -7,7 +7,6 @@ import {
   generateMutator,
   generateMutatorConfig,
   generateMutatorRequestOptions,
-  generateOptions,
   generateVerbImports,
   GeneratorDependency,
   GeneratorMutator,
@@ -19,7 +18,6 @@ import {
   GetterPropType,
   GetterResponse,
   isObject,
-  isSyntheticDefaultImportsAllow,
   mergeDeep,
   OutputClient,
   OutputClientFunc,
@@ -44,6 +42,16 @@ import {
   vueWrapTypeWithMaybeRef,
   vueUnRefParams,
 } from './utils';
+import {
+  AXIOS_DEPENDENCIES,
+  getQueryArgumentsRequestType,
+  getQueryOptions,
+  getHookOptions,
+  getQueryErrorType,
+  getHooksOptionImplementation,
+  getMutationRequestArgs,
+  generateQueryHttpRequestFunction,
+} from './client';
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -54,23 +62,6 @@ const REACT_DEPENDENCIES: GeneratorDependency[] = [
       },
     ],
     dependency: 'react',
-  },
-];
-
-const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      {
-        name: 'axios',
-        default: true,
-        values: true,
-        syntheticDefaultImport: true,
-      },
-      { name: 'AxiosRequestConfig' },
-      { name: 'AxiosResponse' },
-      { name: 'AxiosError' },
-    ],
-    dependency: 'axios',
   },
 ];
 
@@ -360,22 +351,13 @@ const getPackageByQueryClient = (
   }
 };
 
-const generateRequestOptionsArguments = ({
-  isRequestOptions,
-  hasSignal,
-}: {
-  isRequestOptions: boolean;
-  hasSignal: boolean;
-}) => {
-  if (isRequestOptions) {
-    return 'options?: AxiosRequestConfig\n';
-  }
-
-  return hasSignal ? 'signal?: AbortSignal\n' : '';
-};
-
 const generateQueryRequestFunction = (
-  {
+  verbOptions: GeneratorVerbOptions,
+  { route: _route, context }: GeneratorOptions,
+  isVue: boolean,
+  output?: NormalizedOutputOptions,
+) => {
+  const {
     headers,
     queryParams,
     operationName,
@@ -386,17 +368,13 @@ const generateQueryRequestFunction = (
     verb,
     formData,
     formUrlEncoded,
-    paramsSerializer,
     override,
-  }: GeneratorVerbOptions,
-  { route: _route, context }: GeneratorOptions,
-  outputClient: OutputClient | OutputClientFunc,
-  output?: NormalizedOutputOptions,
-) => {
+  } = verbOptions;
+
   let props = _props;
   let route = _route;
 
-  if (isVue(outputClient)) {
+  if (isVue) {
     props = vueWrapTypeWithMaybeRef(_props);
   }
 
@@ -409,9 +387,6 @@ const generateQueryRequestFunction = (
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = !!override.query.signal;
 
-  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-    context.output.tsconfig,
-  );
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isBodyVerb = VERBS_WITH_BODY.includes(verb);
@@ -437,7 +412,7 @@ const generateQueryRequestFunction = (
       isBodyVerb,
       hasSignal,
       isExactOptionalPropertyTypes,
-      isVue: isVue(outputClient),
+      isVue,
     });
 
     let bodyDefinition = body.definition.replace('[]', '\\[\\]');
@@ -484,7 +459,7 @@ const generateQueryRequestFunction = (
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
     }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
-      ${isVue(outputClient) ? vueUnRefParams(props) : ''}
+      ${isVue ? vueUnRefParams(props) : ''}
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
@@ -493,39 +468,21 @@ const generateQueryRequestFunction = (
   `;
   }
 
-  const options = generateOptions({
+  const httpRequestFunctionImplementation = generateQueryHttpRequestFunction(
+    verbOptions,
+    context,
+    props,
     route,
-    body,
-    headers,
-    queryParams,
-    response,
-    verb,
-    requestOptions: override?.requestOptions,
+    isVue,
+    isRequestOptions,
     isFormData,
     isFormUrlEncoded,
-    paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    hasSignal,
     isExactOptionalPropertyTypes,
-    hasSignal,
-    isVue: isVue(outputClient),
-  });
+    bodyForm,
+  );
 
-  const optionsArgs = generateRequestOptionsArguments({
-    isRequestOptions,
-    hasSignal,
-  });
-
-  const queryProps = toObjectString(props, 'implementation');
-
-  return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
-    response.definition.success || 'unknown'
-  }>> => {${bodyForm}
-    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
-    return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(${options});
-  }
-`;
+  return httpRequestFunctionImplementation;
 };
 
 type QueryType = 'infiniteQuery' | 'query';
@@ -583,22 +540,6 @@ const generateQueryOptions = ({
         : `enabled: !!(${params.map(({ name }) => name).join(' && ')}),`
       : ''
   }${queryConfig} ...queryOptions`;
-};
-
-const getQueryArgumentsRequestType = (mutator?: GeneratorMutator) => {
-  if (!mutator) {
-    return `axios?: AxiosRequestConfig`;
-  }
-
-  if (mutator.hasSecondArg && !mutator.isHook) {
-    return `request?: SecondParameter<typeof ${mutator.name}>`;
-  }
-
-  if (mutator.hasSecondArg && mutator.isHook) {
-    return `request?: SecondParameter<ReturnType<typeof ${mutator.name}>>`;
-  }
-
-  return '';
 };
 
 const getQueryOptionsDefinition = ({
@@ -783,67 +724,6 @@ const generateMutatorReturnType = ({
   return '';
 };
 
-const getQueryOptions = ({
-  isRequestOptions,
-  mutator,
-  isExactOptionalPropertyTypes,
-  hasSignal,
-}: {
-  isRequestOptions: boolean;
-  mutator?: GeneratorMutator;
-  isExactOptionalPropertyTypes: boolean;
-  hasSignal: boolean;
-}) => {
-  if (!mutator && isRequestOptions) {
-    if (!hasSignal) {
-      return 'axiosOptions';
-    }
-    return `{ ${
-      isExactOptionalPropertyTypes ? '...(signal ? { signal } : {})' : 'signal'
-    }, ...axiosOptions }`;
-  }
-
-  if (mutator?.hasSecondArg && isRequestOptions) {
-    if (!hasSignal) {
-      return 'requestOptions';
-    }
-
-    return 'requestOptions, signal';
-  }
-
-  if (hasSignal) {
-    return 'signal';
-  }
-
-  return '';
-};
-
-const getHookOptions = ({
-  isRequestOptions,
-  mutator,
-}: {
-  isRequestOptions: boolean;
-  mutator?: GeneratorMutator;
-}) => {
-  if (!isRequestOptions) {
-    return '';
-  }
-
-  let value = 'const {query: queryOptions';
-
-  if (!mutator) {
-    value += ', axios: axiosOptions';
-  }
-
-  if (mutator?.hasSecondArg) {
-    value += ', request: requestOptions';
-  }
-
-  value += '} = options ?? {};';
-
-  return value;
-};
-
 const getQueryFnArguments = ({
   hasQueryParam,
   hasSignal,
@@ -950,15 +830,7 @@ const generateQueryImplementation = ({
     hasSvelteQueryV4,
   });
 
-  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
-
-  if (mutator) {
-    errorType = mutator.hasErrorType
-      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
-          response.definition.errors || 'unknown'
-        }>`
-      : response.definition.errors || 'unknown';
-  }
+  const errorType = getQueryErrorType(operationName, response, mutator);
 
   const dataType = mutator?.isHook
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
@@ -1393,15 +1265,7 @@ const generateQueryHook = async (
       .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
       .join(',');
 
-    let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
-
-    if (mutator) {
-      errorType = mutator.hasErrorType
-        ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
-            response.definition.errors || 'unknown'
-          }>`
-        : response.definition.errors || 'unknown';
-    }
+    let errorType = getQueryErrorType(operationName, response, mutator);
 
     const dataType = mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
@@ -1435,19 +1299,13 @@ const generateQueryHook = async (
       ? 'mutationOptions'
       : 'options';
 
+    const hooksOptionImplementation = getHooksOptionImplementation(
+      isRequestOptions,
+      mutator,
+    );
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
-${
-  isRequestOptions
-    ? `const {mutation: mutationOptions${
-        !mutator
-          ? `, axios: axiosOptions`
-          : mutator?.hasSecondArg
-            ? ', request: requestOptions'
-            : ''
-      }} = options ?? {};`
-    : ''
-}
+${hooksOptionImplementation}
 
       ${
         mutator?.isHook
@@ -1461,15 +1319,10 @@ ${
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${properties}${properties ? ',' : ''}${
-            isRequestOptions
-              ? !mutator
-                ? `axiosOptions`
-                : mutator?.hasSecondArg
-                  ? 'requestOptions'
-                  : ''
-              : ''
-          })
+          return  ${operationName}(${properties}${properties ? ',' : ''}${getMutationRequestArgs(
+            isRequestOptions,
+            mutator,
+          )})
         }
 
         ${
@@ -1567,7 +1420,7 @@ export const generateQuery: ClientBuilder = async (
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
-    outputClient,
+    isVue(outputClient),
     output,
   );
   const { implementation: hookImplementation, mutators } =
