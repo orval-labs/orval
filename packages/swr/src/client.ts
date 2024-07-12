@@ -1,4 +1,3 @@
-import { el } from '@faker-js/faker';
 import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
