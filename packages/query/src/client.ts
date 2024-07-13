@@ -145,9 +145,14 @@ export const generateAxiosRequestFunction = (
 `;
 };
 
-export const getQueryArgumentsRequestType = (mutator?: GeneratorMutator) => {
+export const getQueryArgumentsRequestType = (
+  httpClient: OutputHttpClient,
+  mutator?: GeneratorMutator,
+) => {
   if (!mutator) {
-    return `axios?: AxiosRequestConfig`;
+    return httpClient === OutputHttpClient.AXIOS
+      ? `axios?: AxiosRequestConfig`
+      : 'fetch?: RequestInit';
   }
 
   if (mutator.hasSecondArg && !mutator.isHook) {
@@ -166,19 +171,25 @@ export const getQueryOptions = ({
   mutator,
   isExactOptionalPropertyTypes,
   hasSignal,
+  httpClient,
 }: {
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  httpClient: OutputHttpClient;
 }) => {
   if (!mutator && isRequestOptions) {
+    const options =
+      httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
+
     if (!hasSignal) {
-      return 'axiosOptions';
+      return options;
     }
+
     return `{ ${
       isExactOptionalPropertyTypes ? '...(signal ? { signal } : {})' : 'signal'
-    }, ...axiosOptions }`;
+    }, ...${options} }`;
   }
 
   if (mutator?.hasSecondArg && isRequestOptions) {
@@ -198,9 +209,11 @@ export const getQueryOptions = ({
 
 export const getHookOptions = ({
   isRequestOptions,
+  httpClient,
   mutator,
 }: {
   isRequestOptions: boolean;
+  httpClient: OutputHttpClient;
   mutator?: GeneratorMutator;
 }) => {
   if (!isRequestOptions) {
@@ -210,7 +223,12 @@ export const getHookOptions = ({
   let value = 'const {query: queryOptions';
 
   if (!mutator) {
-    value += ', axios: axiosOptions';
+    const options =
+      httpClient === OutputHttpClient.AXIOS
+        ? ', axios: axiosOptions'
+        : ', fetch: fetchOptions';
+
+    value += options;
   }
 
   if (mutator?.hasSecondArg) {
@@ -225,19 +243,21 @@ export const getHookOptions = ({
 export const getQueryErrorType = (
   operationName: string,
   response: GetterResponse,
+  httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
-  let errorType = `AxiosError<${response.definition.errors || 'unknown'}>`;
-
   if (mutator) {
-    errorType = mutator.hasErrorType
+    return mutator.hasErrorType
       ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
           response.definition.errors || 'unknown'
         }>`
       : response.definition.errors || 'unknown';
-  }
+  } else {
+    const errorType =
+      httpClient === OutputHttpClient.AXIOS ? 'AxiosError' : 'Promise';
 
-  return errorType;
+    return `${errorType}<${response.definition.errors || 'unknown'}>`;
+  }
 };
 
 export const getHooksOptionImplementation = (

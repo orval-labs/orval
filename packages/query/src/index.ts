@@ -615,6 +615,7 @@ const generateQueryArguments = ({
   hasQueryV5,
   queryParams,
   queryParam,
+  httpClient,
 }: {
   operationName: string;
   definitions: string;
@@ -625,6 +626,7 @@ const generateQueryArguments = ({
   hasQueryV5: boolean;
   queryParams?: GetterQueryParam;
   queryParam?: string;
+  httpClient: OutputHttpClient;
 }) => {
   const definition = getQueryOptionsDefinition({
     operationName,
@@ -642,7 +644,7 @@ const generateQueryArguments = ({
     return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
   }
 
-  const requestType = getQueryArgumentsRequestType(mutator);
+  const requestType = getQueryArgumentsRequestType(httpClient, mutator);
 
   return `options?: { ${
     type ? 'query' : 'mutation'
@@ -773,6 +775,7 @@ const generateQueryImplementation = ({
   isRequestOptions,
   response,
   outputClient,
+  httpClient,
   isExactOptionalPropertyTypes,
   hasSignal,
   route,
@@ -801,6 +804,7 @@ const generateQueryImplementation = ({
   queryOptionsMutator?: GeneratorMutator;
   queryKeyMutator?: GeneratorMutator;
   outputClient: OutputClient | OutputClientFunc;
+  httpClient: OutputHttpClient;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   route: string;
@@ -842,7 +846,12 @@ const generateQueryImplementation = ({
     hasSvelteQueryV4,
   });
 
-  const errorType = getQueryErrorType(operationName, response, mutator);
+  const errorType = getQueryErrorType(
+    operationName,
+    response,
+    httpClient,
+    mutator,
+  );
 
   const dataType = mutator?.isHook
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
@@ -858,6 +867,7 @@ const generateQueryImplementation = ({
     hasQueryV5,
     queryParams,
     queryParam,
+    httpClient,
   });
 
   const queryOptions = getQueryOptions({
@@ -865,10 +875,12 @@ const generateQueryImplementation = ({
     isExactOptionalPropertyTypes,
     mutator,
     hasSignal,
+    httpClient,
   });
 
   const hookOptions = getHookOptions({
     isRequestOptions,
+    httpClient,
     mutator,
   });
 
@@ -1074,6 +1086,7 @@ const generateQueryHook = async (
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
+  const httpClient = context.output.httpClient;
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
@@ -1223,6 +1236,7 @@ const generateQueryHook = async (
           queryParams,
           response,
           outputClient,
+          httpClient,
           isExactOptionalPropertyTypes,
           hasSignal: !!query.signal,
           queryOptionsMutator,
@@ -1277,7 +1291,12 @@ const generateQueryHook = async (
       .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
       .join(',');
 
-    let errorType = getQueryErrorType(operationName, response, mutator);
+    let errorType = getQueryErrorType(
+      operationName,
+      response,
+      httpClient,
+      mutator,
+    );
 
     const dataType = mutator?.isHook
       ? `ReturnType<typeof use${pascal(operationName)}Hook>`
@@ -1299,6 +1318,7 @@ const generateQueryHook = async (
       isRequestOptions,
       hasSvelteQueryV4,
       hasQueryV5,
+      httpClient,
     });
 
     const mutationOptionsFnName = camel(
