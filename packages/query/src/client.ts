@@ -9,7 +9,14 @@ import {
   GetterProps,
   ContextSpecs,
   GeneratorDependency,
+  GeneratorOptions,
+  OutputHttpClient,
 } from '@orval/core';
+
+import {
+  generateRequestFunction as generateFetchRequestFunction,
+  fetchResponseTypeName,
+} from '@orval/fetch';
 
 import { vueUnRefParams } from './utils';
 
@@ -45,6 +52,39 @@ export const generateRequestOptionsArguments = ({
 };
 
 export const generateQueryHttpRequestFunction = (
+  verbOptions: GeneratorVerbOptions,
+  context: ContextSpecs,
+  options: GeneratorOptions,
+  props: GetterProps,
+  route: string,
+  isVue: boolean,
+  isRequestOptions: boolean,
+  isFormData: boolean,
+  isFormUrlEncoded: boolean,
+  hasSignal: boolean,
+  isExactOptionalPropertyTypes: boolean,
+  bodyForm: string,
+) => {
+  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
+    return generateAxiosRequestFunction(
+      verbOptions,
+      context,
+      props,
+      route,
+      isVue,
+      isRequestOptions,
+      isFormData,
+      isFormUrlEncoded,
+      hasSignal,
+      isExactOptionalPropertyTypes,
+      bodyForm,
+    );
+  } else {
+    return generateFetchRequestFunction(verbOptions, options);
+  }
+};
+
+export const generateAxiosRequestFunction = (
   {
     headers,
     queryParams,

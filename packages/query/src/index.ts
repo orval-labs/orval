@@ -33,6 +33,7 @@ import {
   compareVersions,
   getRouteAsArray,
   NormalizedOutputOptions,
+  OutputHttpClient,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
@@ -138,11 +139,14 @@ export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions,
   packageJson,
+  httpClient?: OutputHttpClient,
 ) => {
   const hasSvelteQueryV3 = isSvelteQueryV3(packageJson);
 
   return [
-    ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
+      ? AXIOS_DEPENDENCIES
+      : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasSvelteQueryV3
       ? SVELTE_QUERY_DEPENDENCIES_V3
@@ -202,6 +206,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions,
   packageJson,
+  httpClient,
 ) => {
   const hasReactQuery =
     packageJson?.dependencies?.['react-query'] ??
@@ -212,7 +217,9 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
 
   return [
     ...(hasGlobalMutator ? REACT_DEPENDENCIES : []),
-    ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
+      ? AXIOS_DEPENDENCIES
+      : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasReactQuery && !hasReactQueryV4
       ? REACT_QUERY_DEPENDENCIES_V3
@@ -300,11 +307,14 @@ export const getVueQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
   packageJson,
+  httpClient?: OutputHttpClient,
 ) => {
   const hasVueQueryV3 = isVueQueryV3(packageJson);
 
   return [
-    ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+    ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
+      ? AXIOS_DEPENDENCIES
+      : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...(hasVueQueryV3 ? VUE_QUERY_DEPENDENCIES_V3 : VUE_QUERY_DEPENDENCIES),
   ];
@@ -353,7 +363,7 @@ const getPackageByQueryClient = (
 
 const generateQueryRequestFunction = (
   verbOptions: GeneratorVerbOptions,
-  { route: _route, context }: GeneratorOptions,
+  options: GeneratorOptions,
   isVue: boolean,
   output?: NormalizedOutputOptions,
 ) => {
@@ -370,6 +380,7 @@ const generateQueryRequestFunction = (
     formUrlEncoded,
     override,
   } = verbOptions;
+  const { route: _route, context } = options;
 
   let props = _props;
   let route = _route;
@@ -471,6 +482,7 @@ const generateQueryRequestFunction = (
   const httpRequestFunctionImplementation = generateQueryHttpRequestFunction(
     verbOptions,
     context,
+    options,
     props,
     route,
     isVue,
