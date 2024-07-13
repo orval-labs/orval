@@ -1333,6 +1333,7 @@ const generateQueryHook = async (
 
     const hooksOptionImplementation = getHooksOptionImplementation(
       isRequestOptions,
+      httpClient,
       mutator,
     );
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
@@ -1353,6 +1354,7 @@ ${hooksOptionImplementation}
 
           return  ${operationName}(${properties}${properties ? ',' : ''}${getMutationRequestArgs(
             isRequestOptions,
+            httpClient,
             mutator,
           )})
         }

@@ -262,12 +262,18 @@ export const getQueryErrorType = (
 
 export const getHooksOptionImplementation = (
   isRequestOptions: boolean,
+  httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
+  const options =
+    httpClient === OutputHttpClient.AXIOS
+      ? ', axios: axiosOptions'
+      : ', fetch: fetchOptions';
+
   return isRequestOptions
     ? `const {mutation: mutationOptions${
         !mutator
-          ? `, axios: axiosOptions`
+          ? options
           : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
@@ -277,11 +283,15 @@ export const getHooksOptionImplementation = (
 
 export const getMutationRequestArgs = (
   isRequestOptions: boolean,
+  httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
+  const options =
+    httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
+
   return isRequestOptions
     ? !mutator
-      ? `axiosOptions`
+      ? options
       : mutator?.hasSecondArg
         ? 'requestOptions'
         : ''
