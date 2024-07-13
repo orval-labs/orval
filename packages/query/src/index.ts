@@ -3,10 +3,7 @@ import {
   ClientBuilder,
   ClientDependenciesBuilder,
   ClientHeaderBuilder,
-  generateFormDataAndUrlEncodedFunction,
   generateMutator,
-  generateMutatorConfig,
-  generateMutatorRequestOptions,
   generateVerbImports,
   GeneratorDependency,
   GeneratorMutator,
@@ -27,7 +24,6 @@ import {
   stringify,
   toObjectString,
   Verbs,
-  VERBS_WITH_BODY,
   jsDoc,
   GetterQueryParam,
   compareVersions,
@@ -39,7 +35,6 @@ import omitBy from 'lodash.omitby';
 import {
   normalizeQueryOptions,
   isVue,
-  makeRouteSafe,
   vueWrapTypeWithMaybeRef,
   vueUnRefParams,
 } from './utils';
@@ -51,7 +46,7 @@ import {
   getQueryErrorType,
   getHooksOptionImplementation,
   getMutationRequestArgs,
-  generateQueryHttpRequestFunction,
+  generateQueryRequestFunction,
 } from './client';
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
@@ -359,142 +354,6 @@ const getPackageByQueryClient = (
       );
     }
   }
-};
-
-const generateQueryRequestFunction = (
-  verbOptions: GeneratorVerbOptions,
-  options: GeneratorOptions,
-  isVue: boolean,
-  output?: NormalizedOutputOptions,
-) => {
-  const {
-    headers,
-    queryParams,
-    operationName,
-    response,
-    mutator,
-    body,
-    props: _props,
-    verb,
-    formData,
-    formUrlEncoded,
-    override,
-  } = verbOptions;
-  const { route: _route, context } = options;
-
-  let props = _props;
-  let route = _route;
-
-  if (isVue) {
-    props = vueWrapTypeWithMaybeRef(_props);
-  }
-
-  if (output?.urlEncodeParameters) {
-    route = makeRouteSafe(route);
-  }
-
-  const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData !== false;
-  const isFormUrlEncoded = override.formUrlEncoded !== false;
-  const hasSignal = !!override.query.signal;
-
-  const isExactOptionalPropertyTypes =
-    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
-
-  const bodyForm = generateFormDataAndUrlEncodedFunction({
-    formData,
-    formUrlEncoded,
-    body,
-    isFormData,
-    isFormUrlEncoded,
-  });
-
-  if (mutator) {
-    const mutatorConfig = generateMutatorConfig({
-      route,
-      body,
-      headers,
-      queryParams,
-      response,
-      verb,
-      isFormData,
-      isFormUrlEncoded,
-      isBodyVerb,
-      hasSignal,
-      isExactOptionalPropertyTypes,
-      isVue,
-    });
-
-    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
-    let propsImplementation =
-      mutator?.bodyTypeName && body.definition
-        ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
-            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
-          )
-        : toObjectString(props, 'implementation');
-
-    const requestOptions = isRequestOptions
-      ? generateMutatorRequestOptions(
-          override.requestOptions,
-          mutator.hasSecondArg,
-        )
-      : '';
-
-    if (mutator.isHook) {
-      return `${
-        override.query.shouldExportMutatorHooks ? 'export ' : ''
-      }const use${pascal(operationName)}Hook = () => {
-        const ${operationName} = ${mutator.name}<${
-          response.definition.success || 'unknown'
-        }>();
-
-        return useCallback((\n    ${propsImplementation}\n ${
-          isRequestOptions && mutator.hasSecondArg
-            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-            : ''
-        }${
-          !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
-        }) => {${bodyForm}
-        return ${operationName}(
-          ${mutatorConfig},
-          ${requestOptions});
-        }, [${operationName}])
-      }
-    `;
-    }
-
-    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
-      isRequestOptions && mutator.hasSecondArg
-        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
-        : ''
-    }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
-      ${isVue ? vueUnRefParams(props) : ''}
-      ${bodyForm}
-      return ${mutator.name}<${response.definition.success || 'unknown'}>(
-      ${mutatorConfig},
-      ${requestOptions});
-    }
-  `;
-  }
-
-  const httpRequestFunctionImplementation = generateQueryHttpRequestFunction(
-    verbOptions,
-    context,
-    options,
-    props,
-    route,
-    isVue,
-    isRequestOptions,
-    isFormData,
-    isFormUrlEncoded,
-    hasSignal,
-    isExactOptionalPropertyTypes,
-    bodyForm,
-  );
-
-  return httpRequestFunctionImplementation;
 };
 
 type QueryType = 'infiniteQuery' | 'query';
@@ -1448,14 +1307,12 @@ export const generateQuery: ClientBuilder = async (
   verbOptions,
   options,
   outputClient,
-  output,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
     isVue(outputClient),
-    output,
   );
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);
