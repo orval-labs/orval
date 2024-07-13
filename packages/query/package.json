@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@orval/core": "6.31.0",
+    "@orval/fetch": "6.31.0",
     "lodash.omitby": "^4.6.0"
   },
   "devDependencies": {

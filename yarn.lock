@@ -969,6 +969,7 @@ __metadata:
   resolution: "@orval/query@workspace:packages/query"
   dependencies:
     "@orval/core": "npm:6.31.0"
+    "@orval/fetch": "npm:6.31.0"
     "@types/lodash.omitby": "npm:^4.6.7"
     lodash.omitby: "npm:^4.6.0"
     vitest: "npm:^0.34.6"
