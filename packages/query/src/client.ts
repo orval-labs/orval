@@ -274,7 +274,9 @@ export const getQueryOptions = ({
       return 'requestOptions';
     }
 
-    return 'requestOptions, signal';
+    return httpClient === OutputHttpClient.AXIOS
+      ? 'requestOptions, signal'
+      : '{ signal, ...requestOptions }';
   }
 
   if (hasSignal) {
