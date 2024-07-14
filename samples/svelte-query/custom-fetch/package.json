@@ -1,0 +1,29 @@
+{
+  "name": "svelte-query-custom-fetch",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite  --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-check --tsconfig ./tsconfig.json && tsc -p tsconfig.node.json",
+    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "test": "yarn run check"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^3.1.1",
+    "@tsconfig/svelte": "^5.0.4",
+    "orval": "link:../../../packages/orval/dist",
+    "prettier": "^3.0.3",
+    "svelte": "^4.2.18",
+    "svelte-check": "^3.8.1",
+    "tslib": "^2.6.3",
+    "typescript": "^5.2.2",
+    "vite": "^5.3.1"
+  },
+  "dependencies": {
+    "@sveltestack/svelte-query": "^1.6.0",
+    "@tanstack/svelte-query": "^4.24.9"
+  }
+}

@@ -1,11 +1,11 @@
 {
-  "name": "vue-query",
+  "name": "vue-query-basic",
   "version": "0.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "generate-api": "node ../../packages/orval/dist/bin/orval.js",
+    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
     "generate-types": "vue-tsc --declaration --emitDeclarationOnly --module amd --outFile dist/index.d.ts",
     "test-types": "yarn generate-types && tsd --typings dist --files src/**/*.test-d.ts",
     "test": "vue-tsc --noEmit && vitest --run && yarn test-types"
