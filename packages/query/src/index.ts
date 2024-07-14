@@ -705,9 +705,10 @@ const generateQueryArguments = ({
 
   const requestType = getQueryArgumentsRequestType(httpClient, mutator);
 
-  return `options?: { ${
+  const isQueryRequired = initialData === 'defined';
+  return `options${isQueryRequired ? '' : '?'}: { ${
     type ? 'query' : 'mutation'
-  }?:${definition}, ${requestType}}\n`;
+  }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}\n`;
 };
 
 const generateQueryReturnType = ({
@@ -876,6 +877,23 @@ const generateQueryImplementation = ({
   usePrefetch?: boolean;
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
+  const definedInitialDataQueryPropsDefinitions = toObjectString(
+    props.map((prop: GetterProp) => {
+      if (prop.required && !Boolean(prop.originalSchema.default)) {
+        return prop;
+      }
+
+      const definitionWithUndefined = prop.definition.replace(
+        `${prop.name}?:`,
+        `${prop.name}: undefined | `,
+      );
+      return {
+        ...prop,
+        definition: definitionWithUndefined,
+      };
+    }),
+    'definition',
+  );
   const queryProps = toObjectString(props, 'implementation');
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
@@ -1097,7 +1115,7 @@ ${hookOptions}
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
   const overrideTypes = `
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}`;
   return `
