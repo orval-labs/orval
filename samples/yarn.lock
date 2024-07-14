@@ -17103,9 +17103,9 @@ __metadata:
   languageName: node
   linkType: soft
 
-"orval@link:../../packages/orval/dist::locator=svelte-query%40workspace%3Asvelte-query":
+"orval@link:../../packages/orval/dist::locator=svelte-query-basic%40workspace%3Asvelte-query%2Fbasic":
   version: 0.0.0-use.local
-  resolution: "orval@link:../../packages/orval/dist::locator=svelte-query%40workspace%3Asvelte-query"
+  resolution: "orval@link:../../packages/orval/dist::locator=svelte-query-basic%40workspace%3Asvelte-query%2Fbasic"
   languageName: node
   linkType: soft
 
@@ -21821,9 +21821,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"svelte-query@workspace:svelte-query":
+"svelte-query-basic@workspace:svelte-query/basic":
   version: 0.0.0-use.local
-  resolution: "svelte-query@workspace:svelte-query"
+  resolution: "svelte-query-basic@workspace:svelte-query/basic"
   dependencies:
     "@faker-js/faker": "npm:^8.0.2"
     "@sveltejs/adapter-auto": "npm:^2.0.0"
