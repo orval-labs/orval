@@ -178,6 +178,8 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useSuspenseInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
       { name: 'UseQueryOptions' },
+      { name: 'DefinedInitialDataOptions' },
+      { name: 'UndefinedInitialDataOptions' },
       { name: 'UseSuspenseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseSuspenseInfiniteQueryOptions' },
@@ -185,8 +187,10 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },
       { name: 'UseQueryResult' },
+      { name: 'DefinedUseQueryResult' },
       { name: 'UseSuspenseQueryResult' },
       { name: 'UseInfiniteQueryResult' },
+      { name: 'DefinedUseInfiniteQueryResult' },
       { name: 'UseSuspenseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'QueryClient' },
@@ -413,6 +417,10 @@ const generateQueryOptions = ({
   }${queryConfig} ...queryOptions`;
 };
 
+const isSuspenseQuery = (type: QueryType) => {
+  return [QueryType.SUSPENSE_INFINITE, QueryType.SUSPENSE_QUERY].includes(type);
+};
+
 const getQueryOptionsDefinition = ({
   operationName,
   definitions,
@@ -423,6 +431,7 @@ const getQueryOptionsDefinition = ({
   queryParams,
   queryParam,
   isReturnType,
+  initialData,
 }: {
   operationName: string;
   definitions: string;
@@ -433,6 +442,7 @@ const getQueryOptionsDefinition = ({
   queryParams?: GetterQueryParam;
   queryParam?: string;
   isReturnType: boolean;
+  initialData?: 'defined' | 'undefined';
 }) => {
   const isMutatorHook = mutator?.isHook;
   const prefix = !hasSvelteQueryV4 ? 'Use' : 'Create';
@@ -445,7 +455,25 @@ const getQueryOptionsDefinition = ({
         : `typeof ${operationName}`
     }>>`;
 
-    return `${partialOptions ? 'Partial<' : ''}${prefix}${pascal(
+    const optionTypeInitialDataPostfix =
+      initialData && !isSuspenseQuery(type)
+        ? ` & Pick<
+        ${pascal(initialData)}InitialDataOptions<
+          ${funcReturnType},
+          TError,
+          TData${
+            hasQueryV5 &&
+            (type === QueryType.INFINITE ||
+              type === QueryType.SUSPENSE_INFINITE) &&
+            queryParam &&
+            queryParams
+              ? `, QueryKey`
+              : ''
+          }
+        > , 'initialData'
+      >`
+        : '';
+    const optionType = `${prefix}${pascal(
       type,
     )}Options<${funcReturnType}, TError, TData${
       hasQueryV5 &&
@@ -454,7 +482,8 @@ const getQueryOptionsDefinition = ({
       queryParams
         ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
-    }>${partialOptions ? '>' : ''}`;
+    }>`;
+    return `${partialOptions ? 'Partial<' : ''}${optionType}${partialOptions ? '>' : ''}${optionTypeInitialDataPostfix}`;
   }
 
   return `${prefix}MutationOptions<Awaited<ReturnType<${
@@ -474,6 +503,7 @@ const generateQueryArguments = ({
   hasQueryV5,
   queryParams,
   queryParam,
+  initialData,
   httpClient,
 }: {
   operationName: string;
@@ -485,6 +515,7 @@ const generateQueryArguments = ({
   hasQueryV5: boolean;
   queryParams?: GetterQueryParam;
   queryParam?: string;
+  initialData?: 'defined' | 'undefined';
   httpClient: OutputHttpClient;
 }) => {
   const definition = getQueryOptionsDefinition({
@@ -497,6 +528,7 @@ const generateQueryArguments = ({
     queryParams,
     queryParam,
     isReturnType: false,
+    initialData,
   });
 
   if (!isRequestOptions) {
@@ -505,9 +537,10 @@ const generateQueryArguments = ({
 
   const requestType = getQueryArgumentsRequestType(httpClient, mutator);
 
-  return `options?: { ${
+  const isQueryRequired = initialData === 'defined';
+  return `options${isQueryRequired ? '' : '?'}: { ${
     type ? 'query' : 'mutation'
-  }?:${definition}, ${requestType}}\n`;
+  }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}\n`;
 };
 
 const generateQueryReturnType = ({
@@ -517,6 +550,7 @@ const generateQueryReturnType = ({
   operationName,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  isInitialDataDefined,
 }: {
   outputClient: OutputClient | OutputClientFunc;
   type: QueryType;
@@ -524,6 +558,7 @@ const generateQueryReturnType = ({
   operationName: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  isInitialDataDefined?: boolean;
 }) => {
   switch (outputClient) {
     case OutputClient.SVELTE_QUERY: {
@@ -554,7 +589,7 @@ const generateQueryReturnType = ({
     }
     case OutputClient.REACT_QUERY:
     default: {
-      return ` Use${pascal(
+      return ` ${isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''}Use${pascal(
         type,
       )}Result<TData, TError> & { queryKey: QueryKey }`;
     }
@@ -673,6 +708,26 @@ const generateQueryImplementation = ({
   doc?: string;
   usePrefetch?: boolean;
 }) => {
+  const queryPropDefinitions = toObjectString(props, 'definition');
+  const definedInitialDataQueryPropsDefinitions = toObjectString(
+    props.map((prop) => {
+      const regex = new RegExp(`^${prop.name}\\s*\\?:`);
+
+      if (!regex.test(prop.definition)) {
+        return prop;
+      }
+
+      const definitionWithUndefined = prop.definition.replace(
+        regex,
+        `${prop.name}: undefined | `,
+      );
+      return {
+        ...prop,
+        definition: definitionWithUndefined,
+      };
+    }),
+    'definition',
+  );
   const queryProps = toObjectString(props, 'implementation');
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
@@ -696,6 +751,15 @@ const generateQueryImplementation = ({
         .join(',')
     : queryProperties;
 
+  const definedInitialDataReturnType = generateQueryReturnType({
+    outputClient,
+    type,
+    isMutatorHook: mutator?.isHook,
+    operationName,
+    hasVueQueryV4,
+    hasSvelteQueryV4,
+    isInitialDataDefined: true,
+  });
   const returnType = generateQueryReturnType({
     outputClient,
     type,
@@ -716,6 +780,32 @@ const generateQueryImplementation = ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
+  const definedInitialDataQueryArguments = generateQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
+    type,
+    hasSvelteQueryV4,
+    hasQueryV5,
+    queryParams,
+    queryParam,
+    initialData: 'defined',
+    httpClient,
+  });
+  const undefinedInitialDataQueryArguments = generateQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
+    type,
+    hasSvelteQueryV4,
+    hasQueryV5,
+    queryParams,
+    queryParam,
+    initialData: 'undefined',
+    httpClient,
+  });
   const queryArguments = generateQueryArguments({
     operationName,
     definitions: '',
@@ -858,6 +948,12 @@ ${hookOptions}
 
   const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
+  const queryHookName = camel(`${operationPrefix}-${name}`);
+
+  const overrideTypes = `
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}`;
   return `
 ${queryOptionsFn}
 
@@ -866,9 +962,9 @@ export type ${pascal(
   )}QueryResult = NonNullable<Awaited<ReturnType<${dataType}>>>
 export type ${pascal(name)}QueryError = ${errorType}
 
-${doc}export const ${camel(
-    `${operationPrefix}-${name}`,
-  )} = <TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} => {
+${hasQueryV5 && OutputClient.REACT_QUERY === outputClient ? overrideTypes : ''}
+${doc}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} {
 
   const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
     queryProperties ? ',' : ''
