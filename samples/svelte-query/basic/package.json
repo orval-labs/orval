@@ -10,7 +10,7 @@
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
     "lint": "eslint .",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "generate-api": "svelte-kit sync && node ../../../packages/orval/dist/bin/orval.js",
     "test": "npm run check"
   },
   "scriptsComments": {
