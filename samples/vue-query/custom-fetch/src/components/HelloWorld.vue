@@ -7,10 +7,12 @@ const { mutate } = useCreatePets();
 
 const onButtonClick = () => {
   mutate({
-    data: {
-      name: 'testName',
-      tag: 'testTag',
-    },
+    data: [
+      {
+        name: 'testName',
+        tag: 'testTag',
+      },
+    ],
   });
 };
 </script>
