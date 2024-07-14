@@ -16954,9 +16954,9 @@ __metadata:
   languageName: node
   linkType: soft
 
-"orval@link:../../packages/orval/dist::locator=vue-query%40workspace%3Avue-query":
+"orval@link:../../packages/orval/dist::locator=vue-query-basic%40workspace%3Avue-query%2Fvue-query-basic":
   version: 0.0.0-use.local
-  resolution: "orval@link:../../packages/orval/dist::locator=vue-query%40workspace%3Avue-query"
+  resolution: "orval@link:../../packages/orval/dist::locator=vue-query-basic%40workspace%3Avue-query%2Fvue-query-basic"
   languageName: node
   linkType: soft
 
@@ -23204,9 +23204,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vue-query@workspace:vue-query":
+"vue-query-basic@workspace:vue-query/vue-query-basic":
   version: 0.0.0-use.local
-  resolution: "vue-query@workspace:vue-query"
+  resolution: "vue-query-basic@workspace:vue-query/vue-query-basic"
   dependencies:
     "@faker-js/faker": "npm:^8.0.2"
     "@tanstack/vue-query": "npm:^5.28.4"
