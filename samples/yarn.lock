@@ -17170,6 +17170,12 @@ __metadata:
   languageName: node
   linkType: soft
 
+"orval@link:../../../packages/orval/dist::locator=svelte-query-basic%40workspace%3Asvelte-query%2Fbasic":
+  version: 0.0.0-use.local
+  resolution: "orval@link:../../../packages/orval/dist::locator=svelte-query-basic%40workspace%3Asvelte-query%2Fbasic"
+  languageName: node
+  linkType: soft
+
 "orval@link:../../../packages/orval/dist::locator=svelte-query-custom-fetch%40workspace%3Asvelte-query%2Fcustom-fetch":
   version: 0.0.0-use.local
   resolution: "orval@link:../../../packages/orval/dist::locator=svelte-query-custom-fetch%40workspace%3Asvelte-query%2Fcustom-fetch"
@@ -17209,12 +17215,6 @@ __metadata:
 "orval@link:../../packages/orval/dist::locator=react-app%40workspace%3Areact-app":
   version: 0.0.0-use.local
   resolution: "orval@link:../../packages/orval/dist::locator=react-app%40workspace%3Areact-app"
-  languageName: node
-  linkType: soft
-
-"orval@link:../../packages/orval/dist::locator=svelte-query-basic%40workspace%3Asvelte-query%2Fbasic":
-  version: 0.0.0-use.local
-  resolution: "orval@link:../../packages/orval/dist::locator=svelte-query-basic%40workspace%3Asvelte-query%2Fbasic"
   languageName: node
   linkType: soft
 
@@ -21976,7 +21976,7 @@ __metadata:
     eslint: "npm:^8.28.0"
     eslint-plugin-svelte3: "npm:^4.0.0"
     msw: "npm:^2.0.2"
-    orval: "link:../../packages/orval/dist"
+    orval: "link:../../../packages/orval/dist"
     prettier: "npm:^3.0.3"
     svelte: "npm:^3.54.0"
     svelte-check: "npm:^3.0.1"
