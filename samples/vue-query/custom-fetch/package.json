@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",
-    "orval": "link:../../packages/orval/dist",
+    "orval": "link:../../../packages/orval/dist",
     "prettier": "^3.0.3",
     "typescript": "^5.2.2",
     "vite": "^5.3.1",
