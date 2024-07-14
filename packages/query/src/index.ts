@@ -360,174 +360,6 @@ const getPackageByQueryClient = (
   }
 };
 
-const generateRequestOptionsArguments = ({
-  isRequestOptions,
-  hasSignal,
-}: {
-  isRequestOptions: boolean;
-  hasSignal: boolean;
-}) => {
-  if (isRequestOptions) {
-    return 'options?: AxiosRequestConfig\n';
-  }
-
-  return hasSignal ? 'signal?: AbortSignal\n' : '';
-};
-
-const generateQueryRequestFunction = (
-  {
-    headers,
-    queryParams,
-    operationName,
-    response,
-    mutator,
-    body,
-    props: _props,
-    verb,
-    formData,
-    formUrlEncoded,
-    paramsSerializer,
-    override,
-  }: GeneratorVerbOptions,
-  { route: _route, context }: GeneratorOptions,
-  outputClient: OutputClient | OutputClientFunc,
-  output?: NormalizedOutputOptions,
-) => {
-  let props = _props;
-  let route = _route;
-
-  if (isVue(outputClient)) {
-    props = vueWrapTypeWithMaybeRef(_props);
-  }
-
-  if (output?.urlEncodeParameters) {
-    route = makeRouteSafe(route);
-  }
-
-  const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData !== false;
-  const isFormUrlEncoded = override.formUrlEncoded !== false;
-  const hasSignal = !!override.query.signal;
-
-  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-    context.output.tsconfig,
-  );
-  const isExactOptionalPropertyTypes =
-    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
-
-  const bodyForm = generateFormDataAndUrlEncodedFunction({
-    formData,
-    formUrlEncoded,
-    body,
-    isFormData,
-    isFormUrlEncoded,
-  });
-
-  if (mutator) {
-    const mutatorConfig = generateMutatorConfig({
-      route,
-      body,
-      headers,
-      queryParams,
-      response,
-      verb,
-      isFormData,
-      isFormUrlEncoded,
-      isBodyVerb,
-      hasSignal,
-      isExactOptionalPropertyTypes,
-      isVue: isVue(outputClient),
-    });
-
-    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
-    let propsImplementation =
-      mutator?.bodyTypeName && body.definition
-        ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
-            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
-          )
-        : toObjectString(props, 'implementation');
-
-    const requestOptions = isRequestOptions
-      ? generateMutatorRequestOptions(
-          override.requestOptions,
-          mutator.hasSecondArg,
-        )
-      : '';
-
-    if (mutator.isHook) {
-      return `${
-        override.query.shouldExportMutatorHooks ? 'export ' : ''
-      }const use${pascal(operationName)}Hook = () => {
-        const ${operationName} = ${mutator.name}<${
-          response.definition.success || 'unknown'
-        }>();
-
-        return useCallback((\n    ${propsImplementation}\n ${
-          isRequestOptions && mutator.hasSecondArg
-            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
-            : ''
-        }${
-          !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
-        }) => {${bodyForm}
-        return ${operationName}(
-          ${mutatorConfig},
-          ${requestOptions});
-        }, [${operationName}])
-      }
-    `;
-    }
-
-    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
-      isRequestOptions && mutator.hasSecondArg
-        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
-        : ''
-    }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
-      ${isVue(outputClient) ? vueUnRefParams(props) : ''}
-      ${bodyForm}
-      return ${mutator.name}<${response.definition.success || 'unknown'}>(
-      ${mutatorConfig},
-      ${requestOptions});
-    }
-  `;
-  }
-
-  const options = generateOptions({
-    route,
-    body,
-    headers,
-    queryParams,
-    response,
-    verb,
-    requestOptions: override?.requestOptions,
-    isFormData,
-    isFormUrlEncoded,
-    paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
-    isExactOptionalPropertyTypes,
-    hasSignal,
-    isVue: isVue(outputClient),
-  });
-
-  const optionsArgs = generateRequestOptionsArguments({
-    isRequestOptions,
-    hasSignal,
-  });
-
-  const queryProps = toObjectString(props, 'implementation');
-
-  return `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
-    response.definition.success || 'unknown'
-  }>> => {${bodyForm}
-    ${isVue(outputClient) ? vueUnRefParams(props) : ''}
-    return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(${options});
-  }
-`;
-};
-
 type QueryType = 'infiniteQuery' | 'query';
 
 const QueryType = {
@@ -878,13 +710,15 @@ const generateQueryImplementation = ({
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
-    props.map((prop: GetterProp) => {
-      if (prop.required && !Boolean(prop.originalSchema.default)) {
+    props.map((prop) => {
+      const regex = new RegExp(`^${prop.name}\\s*\\?:`);
+
+      if (!regex.test(prop.definition)) {
         return prop;
       }
 
       const definitionWithUndefined = prop.definition.replace(
-        `${prop.name}?:`,
+        regex,
         `${prop.name}: undefined | `,
       );
       return {
@@ -957,6 +791,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     initialData: 'defined',
+    httpClient,
   });
   const undefinedInitialDataQueryArguments = generateQueryArguments({
     operationName,
@@ -969,6 +804,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     initialData: 'undefined',
+    httpClient,
   });
   const queryArguments = generateQueryArguments({
     operationName,
