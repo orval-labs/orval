@@ -58,6 +58,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetch: {
+    output: {
+      target: '../generated/svelte-query/http-client-fetch/endpoints.ts',
+      schemas: '../generated/svelte-query/http-client-fetch/model',
+      mode: 'tags-split',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/svelte-query/mutator/endpoints.ts',
@@ -81,6 +93,26 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  httpClientFetchWithCustomFetch: {
+    output: {
+      target:
+        '../generated/svelte-query/http-client-fetch-with-custom-fetch/endpoints.ts',
+      schemas:
+        '../generated/svelte-query/http-client-fetch-with-custom-fetch/model',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
   namedParameters: {
