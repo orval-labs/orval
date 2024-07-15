@@ -58,8 +58,8 @@ module.exports = {
 };
 ```
 
-if you want you can use the `fetch` API as an http client with `Hooks` of `swr`, specify `fetch` in the `httpClient` option.
-Note that `httpClient` is currently only available when `swr` is specified as the `client` option.
+If you want you can use the `fetch` API as an http client by specifying `fetch` in the `httpClient` option.
+`httpClient` only available when `swr`, `react-query`, `vue-query`, and `svelte-query` are specified as the `client` option.
 
 ### schemas
 
