@@ -114,7 +114,7 @@ export const getListPetsQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, { signal, ...requestOptions });
+  }) => listPets(unref(params), { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -131,7 +131,8 @@ export type ListPetsQueryError = unknown;
 /**
  * @summary List all pets
  */
-export const useListPets = <
+
+export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = unknown,
 >(
@@ -142,7 +143,7 @@ export const useListPets = <
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
@@ -152,7 +153,7 @@ export const useListPets = <
   query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Create a pet
@@ -360,7 +361,7 @@ export const getShowPetByIdQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(petId, { signal, ...requestOptions });
+  }) => showPetById(unref(petId), { signal, ...requestOptions });
 
   return {
     queryKey,
@@ -378,7 +379,8 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-export const useShowPetById = <
+
+export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
@@ -389,7 +391,7 @@ export const useShowPetById = <
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
@@ -399,4 +401,4 @@ export const useShowPetById = <
   query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
-};
+}
