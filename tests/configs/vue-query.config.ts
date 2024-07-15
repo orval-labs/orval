@@ -58,6 +58,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetch: {
+    output: {
+      target: '../generated/vue-query/http-client-fetch/endpoints.ts',
+      schemas: '../generated/vue-query/http-client-fetch/model',
+      mode: 'tags-split',
+      client: 'vue-query',
+      httpClient: 'fetch',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/vue-query/mutator/endpoints.ts',
@@ -81,6 +93,26 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  httpClientFetchWithCustomFetch: {
+    output: {
+      target:
+        '../generated/vue-query/http-client-fetch-with-custom-fetch/endpoints.ts',
+      schemas:
+        '../generated/vue-query/http-client-fetch-with-custom-fetch/model',
+      client: 'vue-query',
+      httpClient: 'fetch',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
   allParamsOptional: {
