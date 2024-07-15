@@ -47,6 +47,7 @@ import {
   getHooksOptionImplementation,
   getMutationRequestArgs,
   generateQueryRequestFunction,
+  getHttpFunctionQueryProps,
 } from './client';
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
@@ -749,7 +750,11 @@ const generateQueryImplementation = ({
             : param.name;
         })
         .join(',')
-    : queryProperties;
+    : getHttpFunctionQueryProps(
+        isVue(outputClient),
+        httpClient,
+        queryProperties,
+      );
 
   const definedInitialDataReturnType = generateQueryReturnType({
     outputClient,

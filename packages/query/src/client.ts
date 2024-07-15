@@ -18,10 +18,12 @@ import {
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
 import {
+  isVue,
   makeRouteSafe,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
 } from './utils';
+import exp from 'constants';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -375,4 +377,16 @@ export const getMutationRequestArgs = (
         ? 'requestOptions'
         : ''
     : '';
+};
+
+export const getHttpFunctionQueryProps = (
+  isVue: boolean,
+  httpClient: OutputHttpClient,
+  queryProperties: string,
+) => {
+  if (isVue && httpClient === OutputHttpClient.FETCH && queryProperties) {
+    return `unref(${queryProperties})`;
+  }
+
+  return queryProperties;
 };
