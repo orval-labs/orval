@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: Const
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    StringConst:
+      type: object
+      required:
+        - value
+        - valueWithoutType
+        - valueNullable
+      properties:
+        value:
+          type: string
+          const: string
+        valueWithoutType:
+          const: string
+        valueNullable:
+          type:
+            - string
+            - 'null'
+          const: string
+    BooleanConst:
+      type: object
+      required:
+        - value
+        - valueNullable
+      properties:
+        value:
+          type: boolean
+          const: true
+        valueNullable:
+          type:
+            - boolean
+            - 'null'
+          const: true
+    IntegerConst:
+      type: object
+      required:
+        - value
+        - valueNullable
+      properties:
+        value:
+          type: number
+          const: 1
+        valueNullable:
+          type:
+            - number
+            - 'null'
+          const: 1

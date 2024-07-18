@@ -1,5 +1,10 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
-import { ContextSpecs, ScalarValue, OutputClient } from '../types';
+import {
+  ContextSpecs,
+  ScalarValue,
+  OutputClient,
+  SchemaWithConst,
+} from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
@@ -46,6 +51,11 @@ export const getScalar = ({
         isEnum = true;
       }
 
+      const itemWithConst = item as SchemaWithConst;
+      if (itemWithConst.const) {
+        value = itemWithConst.const;
+      }
+
       return {
         value: value + nullable,
         isEnum,
@@ -60,8 +70,15 @@ export const getScalar = ({
     }
 
     case 'boolean':
+      let value = 'boolean';
+
+      const itemWithConst = item as SchemaWithConst;
+      if (itemWithConst.const) {
+        value = itemWithConst.const;
+      }
+
       return {
-        value: 'boolean' + nullable,
+        value: value + nullable,
         type: 'boolean',
         isEnum: false,
         schemas: [],
@@ -107,6 +124,11 @@ export const getScalar = ({
         if (item.format === 'date' || item.format === 'date-time') {
           value = 'Date';
         }
+      }
+
+      const itemWithConst = item as SchemaWithConst;
+      if (itemWithConst.const) {
+        value = `'${itemWithConst.const}'`;
       }
 
       return {
