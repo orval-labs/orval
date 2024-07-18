@@ -114,7 +114,8 @@ export type ListPetsInfiniteQueryError = Error;
 /**
  * @summary List all pets
  */
-export const useListPetsInfinite = <
+
+export function useListPetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
     ListPetsParams['limit']
@@ -135,7 +136,7 @@ export const useListPetsInfinite = <
       >
     >;
   },
-): UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
+): UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsInfiniteQueryOptions(
     params,
     version,
@@ -150,7 +151,7 @@ export const useListPetsInfinite = <
   query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
-};
+}
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -188,7 +189,8 @@ export type ListPetsQueryError = Error;
 /**
  * @summary List all pets
  */
-export const useListPets = <
+
+export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
@@ -199,7 +201,7 @@ export const useListPets = <
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
@@ -209,7 +211,7 @@ export const useListPets = <
   query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Create a pet
@@ -355,7 +357,8 @@ export type ShowPetByIdInfiniteQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-export const useShowPetByIdInfinite = <
+
+export function useShowPetByIdInfinite<
   TData = InfiniteData<Awaited<ReturnType<typeof showPetById>>>,
   TError = Error,
 >(
@@ -370,7 +373,7 @@ export const useShowPetByIdInfinite = <
       >
     >;
   },
-): UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
+): UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdInfiniteQueryOptions(
     petId,
     version,
@@ -385,7 +388,7 @@ export const useShowPetByIdInfinite = <
   query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
-};
+}
 
 export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
@@ -423,7 +426,8 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-export const useShowPetById = <
+
+export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
@@ -434,7 +438,7 @@ export const useShowPetById = <
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
@@ -444,7 +448,7 @@ export const useShowPetById = <
   query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
-};
+}
 
 /**
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/anymaniax/orval/issues/857#issuecomment-1835317990
