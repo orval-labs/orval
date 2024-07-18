@@ -1,15 +1,14 @@
 import {
+  camel,
   ClientBuilder,
   ClientGeneratorsBuilder,
   ContextSpecs,
+  escape,
+  generateMutator,
   GeneratorDependency,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
-  ZodCoerceType,
-  camel,
-  escape,
-  generateMutator,
   getNumberWord,
   isBoolean,
   isObject,
@@ -17,6 +16,7 @@ import {
   jsStringEscape,
   pascal,
   resolveRef,
+  ZodCoerceType,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
 import {
@@ -460,11 +460,13 @@ const parseBodyAndResponse = ({
   context,
   name,
   strict,
+  generate,
 }: {
   data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
   context: ContextSpecs;
   name: string;
   strict: boolean;
+  generate: boolean;
 }): {
   input: ZodValidationSchemaDefinition;
   isArray: boolean;
@@ -473,7 +475,7 @@ const parseBodyAndResponse = ({
     max?: number;
   };
 } => {
-  if (!data) {
+  if (!data || !generate) {
     return {
       input: { functions: [], consts: [] },
       isArray: false,
@@ -545,11 +547,19 @@ const parseParameters = ({
   context,
   operationName,
   strict,
+  generate,
 }: {
   data: (ParameterObject | ReferenceObject)[] | undefined;
   context: ContextSpecs;
   operationName: string;
   strict: {
+    param: boolean;
+    query: boolean;
+    header: boolean;
+    body: boolean;
+    response: boolean;
+  };
+  generate: {
     param: boolean;
     query: boolean;
     header: boolean;
@@ -594,6 +604,12 @@ const parseParameters = ({
         header: strict.header,
       };
 
+      const mapGenerate = {
+        path: generate.param,
+        query: generate.query,
+        header: generate.header,
+      };
+
       const definition = generateZodValidationSchemaDefinition(
         schema,
         context,
@@ -604,21 +620,21 @@ const parseParameters = ({
         },
       );
 
-      if (parameter.in === 'header') {
+      if (parameter.in === 'header' && mapGenerate.header) {
         return {
           ...acc,
           headers: { ...acc.headers, [parameter.name]: definition },
         };
       }
 
-      if (parameter.in === 'query') {
+      if (parameter.in === 'query' && mapGenerate.query) {
         return {
           ...acc,
           queryParams: { ...acc.queryParams, [parameter.name]: definition },
         };
       }
 
-      if (parameter.in === 'path') {
+      if (parameter.in === 'path' && mapGenerate.path) {
         return {
           ...acc,
           params: { ...acc.params, [parameter.name]: definition },
@@ -691,12 +707,16 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters;
+  const parameters = spec?.[verb]?.parameters as (
+    | ParameterObject
+    | ReferenceObject
+  )[];
   const parsedParameters = parseParameters({
     data: parameters,
     context,
     operationName,
     strict: override.zod.strict,
+    generate: override.zod.generate,
   });
 
   const requestBody = spec?.[verb]?.requestBody;
@@ -705,6 +725,7 @@ const generateZodRoute = async (
     context,
     name: camel(`${operationName}-body`),
     strict: override.zod.strict.body,
+    generate: override.zod.generate.body,
   });
 
   const responses = (
@@ -718,6 +739,7 @@ const generateZodRoute = async (
       context,
       name: camel(`${operationName}-${code}-response`),
       strict: override.zod.strict.response,
+      generate: override.zod.generate.response,
     }),
   );
 

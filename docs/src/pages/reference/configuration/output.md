@@ -1041,6 +1041,40 @@ Default Value: `false`.
 
 Use to set the strict mode for the zod schema. If you set it to true, the schema will be generated with the strict mode.
 
+##### generate
+
+Type: `Object`.
+
+Default Value: `true`.
+
+Use to set the which type of schemas you want to generate for the zod schema.
+
+example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        zod: {
+          generate: {
+            param: true,
+            body: true,
+            response: false,
+            query: true,
+            header: true,
+          }
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+In the above example exclude response body validations not generated
+
 ##### coerce
 
 Type: `Object`.
