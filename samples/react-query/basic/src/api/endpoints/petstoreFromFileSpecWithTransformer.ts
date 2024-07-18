@@ -12,10 +12,14 @@ import {
   useSuspenseQuery,
 } from '@tanstack/react-query';
 import type {
+  DefinedInitialDataOptions,
+  DefinedUseInfiniteQueryResult,
+  DefinedUseQueryResult,
   InfiniteData,
   MutationFunction,
   QueryFunction,
   QueryKey,
+  UndefinedInitialDataOptions,
   UseInfiniteQueryOptions,
   UseInfiniteQueryResult,
   UseMutationOptions,
@@ -124,10 +128,95 @@ export type ListPetsInfiniteQueryResult = NonNullable<
 >;
 export type ListPetsInfiniteQueryError = ErrorType<Error>;
 
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = ErrorType<Error>,
+>(
+  params: undefined | ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey
+        >,
+        'initialData'
+      >;
+  },
+): DefinedUseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData,
+          QueryKey
+        >,
+        'initialData'
+      >;
+  },
+): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+  },
+): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
 /**
  * @summary List all pets
  */
-export const useListPetsInfinite = <
+
+export function useListPetsInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
     ListPetsParams['limit']
@@ -148,7 +237,7 @@ export const useListPetsInfinite = <
       >
     >;
   },
-): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsInfiniteQueryOptions(
     params,
     version,
@@ -163,7 +252,7 @@ export const useListPetsInfinite = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -201,10 +290,63 @@ export type ListPetsQueryResult = NonNullable<
 >;
 export type ListPetsQueryError = ErrorType<Error>;
 
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params: undefined | ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData
+        >,
+        'initialData'
+      >;
+  },
+): DefinedUseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPets>>,
+          TError,
+          TData
+        >,
+        'initialData'
+      >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey };
 /**
  * @summary List all pets
  */
-export const useListPets = <
+
+export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
 >(
@@ -215,7 +357,7 @@ export const useListPets = <
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -225,7 +367,7 @@ export const useListPets = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 export const getListPetsSuspenseQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -269,10 +411,59 @@ export type ListPetsSuspenseQueryResult = NonNullable<
 >;
 export type ListPetsSuspenseQueryError = ErrorType<Error>;
 
+export function useListPetsSuspense<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params: undefined | ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData
+      >
+    >;
+  },
+): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsSuspense<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData
+      >
+    >;
+  },
+): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsSuspense<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData
+      >
+    >;
+  },
+): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey };
 /**
  * @summary List all pets
  */
-export const useListPetsSuspense = <
+
+export function useListPetsSuspense<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
 >(
@@ -287,7 +478,7 @@ export const useListPetsSuspense = <
       >
     >;
   },
-): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseSuspenseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsSuspenseQueryOptions(
     params,
     version,
@@ -302,7 +493,7 @@ export const useListPetsSuspense = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 export const getListPetsSuspenseInfiniteQueryOptions = <
   TData = InfiniteData<
@@ -362,10 +553,77 @@ export type ListPetsSuspenseInfiniteQueryResult = NonNullable<
 >;
 export type ListPetsSuspenseInfiniteQueryError = ErrorType<Error>;
 
+export function useListPetsSuspenseInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = ErrorType<Error>,
+>(
+  params: undefined | ListPetsParams,
+  version: undefined | number,
+  options: {
+    query: Partial<
+      UseSuspenseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+  },
+): UseSuspenseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsSuspenseInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+  },
+): UseSuspenseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsSuspenseInfinite<
+  TData = InfiniteData<
+    Awaited<ReturnType<typeof listPets>>,
+    ListPetsParams['limit']
+  >,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseSuspenseInfiniteQueryOptions<
+        Awaited<ReturnType<typeof listPets>>,
+        TError,
+        TData,
+        Awaited<ReturnType<typeof listPets>>,
+        QueryKey,
+        ListPetsParams['limit']
+      >
+    >;
+  },
+): UseSuspenseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey };
 /**
  * @summary List all pets
  */
-export const useListPetsSuspenseInfinite = <
+
+export function useListPetsSuspenseInfinite<
   TData = InfiniteData<
     Awaited<ReturnType<typeof listPets>>,
     ListPetsParams['limit']
@@ -386,7 +644,7 @@ export const useListPetsSuspenseInfinite = <
       >
     >;
   },
-): UseSuspenseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseSuspenseInfiniteQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsSuspenseInfiniteQueryOptions(
     params,
     version,
@@ -400,7 +658,7 @@ export const useListPetsSuspenseInfinite = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Create a pet
@@ -545,10 +803,75 @@ export type ListPetsNestedArrayQueryResult = NonNullable<
 >;
 export type ListPetsNestedArrayQueryError = ErrorType<Error>;
 
+export function useListPetsNestedArray<
+  TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
+  TError = ErrorType<Error>,
+>(
+  params: undefined | ListPetsNestedArrayParams,
+  version: undefined | number,
+  options: {
+    query: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listPetsNestedArray>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPetsNestedArray>>,
+          TError,
+          TData
+        >,
+        'initialData'
+      >;
+  },
+): DefinedUseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsNestedArray<
+  TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsNestedArrayParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listPetsNestedArray>>,
+        TError,
+        TData
+      >
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listPetsNestedArray>>,
+          TError,
+          TData
+        >,
+        'initialData'
+      >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useListPetsNestedArray<
+  TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
+  TError = ErrorType<Error>,
+>(
+  params?: ListPetsNestedArrayParams,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<
+        Awaited<ReturnType<typeof listPetsNestedArray>>,
+        TError,
+        TData
+      >
+    >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey };
 /**
  * @summary List all pets as nested array
  */
-export const useListPetsNestedArray = <
+
+export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = ErrorType<Error>,
 >(
@@ -563,7 +886,7 @@ export const useListPetsNestedArray = <
       >
     >;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsNestedArrayQueryOptions(
     params,
     version,
@@ -577,7 +900,7 @@ export const useListPetsNestedArray = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Info for a specific pet
@@ -636,10 +959,63 @@ export type ShowPetByIdQueryResult = NonNullable<
 >;
 export type ShowPetByIdQueryError = ErrorType<Error>;
 
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = ErrorType<Error>,
+>(
+  petId: string,
+  version: undefined | number,
+  options: {
+    query: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    > &
+      Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >,
+        'initialData'
+      >;
+  },
+): DefinedUseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = ErrorType<Error>,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    > &
+      Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof showPetById>>,
+          TError,
+          TData
+        >,
+        'initialData'
+      >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+export function useShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = ErrorType<Error>,
+>(
+  petId: string,
+  version?: number,
+  options?: {
+    query?: Partial<
+      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey };
 /**
  * @summary Info for a specific pet
  */
-export const useShowPetById = <
+
+export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = ErrorType<Error>,
 >(
@@ -650,7 +1026,7 @@ export const useShowPetById = <
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -660,4 +1036,4 @@ export const useShowPetById = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}

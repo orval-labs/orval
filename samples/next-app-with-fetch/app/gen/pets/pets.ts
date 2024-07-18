@@ -59,7 +59,9 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     }
   });
 
-  return `http://localhost:3000/pets?${normalizedParams.toString()}`;
+  return normalizedParams.size
+    ? `http://localhost:3000/pets?${normalizedParams.toString()}`
+    : `http://localhost:3000/pets`;
 };
 
 export const listPets = async (

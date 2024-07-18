@@ -89,7 +89,8 @@ export type ListPetsQueryError = Error;
 /**
  * @summary List all pets
  */
-export const createListPets = <
+
+export function createListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
@@ -102,7 +103,7 @@ export const createListPets = <
       TData
     >;
   },
-): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
   const query = createQuery(queryOptions) as CreateQueryResult<
@@ -113,7 +114,7 @@ export const createListPets = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Create a pet
@@ -249,7 +250,8 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-export const createShowPetById = <
+
+export function createShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
@@ -262,7 +264,7 @@ export const createShowPetById = <
       TData
     >;
   },
-): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
   const query = createQuery(queryOptions) as CreateQueryResult<
@@ -273,4 +275,4 @@ export const createShowPetById = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}

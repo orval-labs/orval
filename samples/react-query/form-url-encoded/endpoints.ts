@@ -81,7 +81,8 @@ export type ListPetsQueryError = Error;
 /**
  * @summary List all pets
  */
-export const useListPets = <
+
+export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = Error,
 >(
@@ -93,7 +94,7 @@ export const useListPets = <
       TData
     >;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -103,7 +104,7 @@ export const useListPets = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Create a pet
@@ -232,7 +233,8 @@ export type ListPetsNestedArrayQueryError = Error;
 /**
  * @summary List all pets as nested array
  */
-export const useListPetsNestedArray = <
+
+export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
   TError = Error,
 >(
@@ -244,7 +246,7 @@ export const useListPetsNestedArray = <
       TData
     >;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsNestedArrayQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -254,7 +256,7 @@ export const useListPetsNestedArray = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Info for a specific pet
@@ -308,7 +310,8 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-export const useShowPetById = <
+
+export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
@@ -320,7 +323,7 @@ export const useShowPetById = <
       TData
     >;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -330,4 +333,4 @@ export const useShowPetById = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}

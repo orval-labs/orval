@@ -72,7 +72,9 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     }
   });
 
-  return `http://localhost:8000/pets?${normalizedParams.toString()}`;
+  return normalizedParams.size
+    ? `http://localhost:8000/pets?${normalizedParams.toString()}`
+    : `http://localhost:8000/pets`;
 };
 
 export const listPets = async (
@@ -126,7 +128,8 @@ export type ListPetsQueryError = unknown;
 /**
  * @summary List all pets
  */
-export const createListPets = <
+
+export function createListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = unknown,
 >(
@@ -139,7 +142,7 @@ export const createListPets = <
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = createQuery(queryOptions) as CreateQueryResult<
@@ -150,7 +153,7 @@ export const createListPets = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}
 
 /**
  * @summary Create a pet
@@ -382,7 +385,8 @@ export type ShowPetByIdQueryError = Error;
 /**
  * @summary Info for a specific pet
  */
-export const createShowPetById = <
+
+export function createShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
 >(
@@ -395,7 +399,7 @@ export const createShowPetById = <
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): CreateQueryResult<TData, TError> & { queryKey: QueryKey } => {
+): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = createQuery(queryOptions) as CreateQueryResult<
@@ -406,4 +410,4 @@ export const createShowPetById = <
   query.queryKey = queryOptions.queryKey;
 
   return query;
-};
+}

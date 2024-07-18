@@ -58,7 +58,11 @@ ${
     : ''
 }
 
-  return \`${route}${queryParams ? '?${normalizedParams.toString()}' : ''}\`
+  ${
+    queryParams
+      ? `return normalizedParams.size ? \`${route}${'?${normalizedParams.toString()}'}\` : \`${route}\``
+      : `return \`${route}\``
+  }
 }\n`;
 
   const responseTypeName = fetchResponseTypeName(operationName);
