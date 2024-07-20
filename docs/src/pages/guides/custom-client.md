@@ -55,3 +55,5 @@ export type ErrorType<Error> = AxiosError<Error>;
 // (if the custom instance is processing data before sending it, like changing the case for example)
 export type BodyType<BodyData> = CamelCase<BodyType>;
 ```
+
+Or, Please refer to the using custom fetch with Next.js sample app [here](https://github.com/anymaniax/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts).

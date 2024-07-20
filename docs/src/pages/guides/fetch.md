@@ -3,7 +3,7 @@ id: fetch
 title: Fetch
 ---
 
-<a href="https://developer.mozilla.org/en-US/docs/Web/API/fetch" target="_blank">The `fetch` API</a> has the advantage of reducing the bundle size of the application compared to using `Axios`. It can also act as an `http client` in server-side frameworks and edge computing runtimes such as `Cloudflare`, `Vercel Edge` and `Deno`.
+The `fetch` API has the advantage of reducing the bundle size of the application compared to using `Axios`. It can also act as an `http client` in server-side frameworks and edge computing runtimes such as `Cloudflare`, `Vercel Edge` and `Deno`.
 
 You should have an `OpenAPI` specification and an `Orval` config where you define the mode as `fetch`.
 
@@ -77,7 +77,7 @@ The `fetch` client will generate an implementation file with following per path 
 
 Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/next-app-with-fetch" target="_blank">here</a> the full example
 
-#### Custom instance
+#### Custom function
 
 You can add a custom `fetch` function to your config.
 

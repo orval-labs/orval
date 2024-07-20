@@ -46,6 +46,11 @@
           "editUrl": "/guides/basics.md"
         },
         {
+          "title": "Fetch client",
+          "path": "/guides/fetch-client",
+          "editUrl": "/guides/fetch-client.md"
+        },
+        {
           "title": "Fetch API",
           "path": "/guides/fetch",
           "editUrl": "/guides/fetch.md"
