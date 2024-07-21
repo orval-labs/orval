@@ -101,7 +101,7 @@ ${
     isFormUrlEncoded,
   );
   const fetchBodyOption = requestBodyParams
-    ? isFormData || isFormUrlEncoded
+    ? (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded)
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
