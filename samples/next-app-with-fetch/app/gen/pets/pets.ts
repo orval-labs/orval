@@ -93,6 +93,7 @@ export const createPets = async (
   return customFetch<Promise<createPetsResponse>>(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(createPetsBodyItem),
   });
 };
@@ -116,6 +117,7 @@ export const updatePets = async (
   return customFetch<Promise<updatePetsResponse>>(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(pet),
   });
 };

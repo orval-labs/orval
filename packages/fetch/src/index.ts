@@ -94,20 +94,25 @@ ${
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
-
+  const fetchHeadersOption = body.contentType
+    ? `headers: { 'Content-Type': '${body.contentType}' }`
+    : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
     isFormUrlEncoded,
   );
   const fetchBodyOption = requestBodyParams
-    ? `body: JSON.stringify(${requestBodyParams})`
+    ? (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded)
+      ? `body: ${requestBodyParams}`
+      : `body: JSON.stringify(${requestBodyParams})`
     : '';
 
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
-    ${fetchMethodOption}${fetchBodyOption ? ',' : ''}
+    ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
+    ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}
   }
 `;
@@ -129,9 +134,12 @@ ${
 
   const fetchImplementationBody = mutator
     ? customFetchResponseImplementation
-    : `${bodyForm ? `  ${bodyForm}\n` : ''}` +
-      `  ${fetchResponseImplementation}`;
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {\n${fetchImplementationBody}}`;
+    : fetchResponseImplementation;
+
+  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
+  ${bodyForm ? `  ${bodyForm}` : ''}
+  ${fetchImplementationBody}}
+`;
 
   const implementation =
     `${responseTypeImplementation}\n\n` +

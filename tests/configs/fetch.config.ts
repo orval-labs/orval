@@ -6,7 +6,7 @@ export default defineConfig({
       target: '../generated/fetch/petstore/endpoints.ts',
       schemas: '../generated/fetch/petstore/model',
       mock: true,
-      client: 'axios',
+      client: 'fetch',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -87,6 +87,69 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  formData: {
+    output: {
+      target: '../generated/fetch/form-data-optional-request/endpoints.ts',
+      schemas: '../generated/fetch/form-data-optional-request/model',
+      client: 'fetch',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/form-data-optional-request.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  formDataWithCustomFetch: {
+    output: {
+      target: '../generated/fetch/form-data-with-custom-fetch/endpoints.ts',
+      schemas: '../generated/fetch/form-data-with-custom-fetch/model',
+      client: 'fetch',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/form-data-optional-request.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  formUrlEncoded: {
+    output: {
+      target: '../generated/fetch/form-url-encoded/endpoints.ts',
+      schemas: '../generated/fetch/form-url-encoded/model',
+      client: 'fetch',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/form-url-encoded.yaml',
+    },
+  },
+  formUrlEncodedCustomFetch: {
+    output: {
+      target:
+        '../generated/fetch/form-url-encoded-with-custom-fetch/endpoints.ts',
+      schemas: '../generated/fetch/form-url-encoded-with-custom-fetch/model',
+      client: 'fetch',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/form-url-encoded.yaml',
     },
   },
 });
