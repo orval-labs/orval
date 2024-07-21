@@ -101,7 +101,9 @@ ${
     isFormUrlEncoded,
   );
   const fetchBodyOption = requestBodyParams
-    ? `body: JSON.stringify(${requestBodyParams})`
+    ? isFormData || isFormUrlEncoded
+      ? `body: ${requestBodyParams}`
+      : `body: JSON.stringify(${requestBodyParams})`
     : '';
 
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
