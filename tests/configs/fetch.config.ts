@@ -93,7 +93,7 @@ export default defineConfig({
     output: {
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',
       schemas: '../generated/fetch/form-data-optional-request/model',
-      client: 'swr',
+      client: 'fetch',
       mock: true,
     },
     input: {
