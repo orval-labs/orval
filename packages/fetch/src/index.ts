@@ -94,7 +94,9 @@ ${
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
-
+  const fetchHeadersOption = body.contentType
+    ? `headers: { 'Content-Type': '${body.contentType}' }`
+    : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
@@ -109,7 +111,8 @@ ${
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
-    ${fetchMethodOption}${fetchBodyOption ? ',' : ''}
+    ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
+    ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}
   }
 `;
