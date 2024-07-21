@@ -8,7 +8,7 @@ module.exports = {
     output: {
       ...
       client: 'swr',
-      httpClinet: 'fetch'
+      httpClient: 'fetch'
       ...
     },
   },
@@ -102,7 +102,7 @@ module.exports = {
     output: {
       ...
       client: 'swr',
-      httpClinet: 'fetch'
+      httpClient: 'fetch'
       override: {
         mutator: {
           path: './src/mutator.ts',
