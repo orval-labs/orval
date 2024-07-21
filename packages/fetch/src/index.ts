@@ -131,9 +131,12 @@ ${
 
   const fetchImplementationBody = mutator
     ? customFetchResponseImplementation
-    : `${bodyForm ? `  ${bodyForm}\n` : ''}` +
-      `  ${fetchResponseImplementation}`;
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {\n${fetchImplementationBody}}`;
+    : fetchResponseImplementation;
+
+  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
+  ${bodyForm ? `  ${bodyForm}` : ''}
+  ${fetchImplementationBody}}
+`;
 
   const implementation =
     `${responseTypeImplementation}\n\n` +
