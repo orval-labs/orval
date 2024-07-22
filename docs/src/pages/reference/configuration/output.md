@@ -37,7 +37,7 @@ module.exports = {
 };
 ```
 
-if you want you can provide a function to extend or create you custom client generator and this function receive a [[GeneratorClients](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156)](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L652).
+if you want you can provide a function to extend or create you custom client generator and this function receive a [[GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156)](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
 
 ### httpClient
 
@@ -330,7 +330,7 @@ module.exports = {
 };
 ```
 
-If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/anymaniax/orval/blob/master/src/types/generator.ts#L132) the type.
+If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/orval-labs/orval/blob/master/src/types/generator.ts#L132) the type.
 
 To discover all the available options, read below.
 
@@ -454,7 +454,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/anymaniax/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a>
 
 ```js
 module.exports = {
@@ -1170,7 +1170,7 @@ module.exports = {
 
 Type: `Object`.
 
-Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property Orval will automatically generate a random email for you. See the default available format <a href="https://github.com/anymaniax/orval/blob/master/packages/mock/src/faker/constants.ts" target="_blank">here</a>.
+Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property Orval will automatically generate a random email for you. See the default available format <a href="https://github.com/orval-labs/orval/blob/master/packages/mock/src/faker/constants.ts" target="_blank">here</a>.
 
 ```js
 module.exports = {
@@ -1803,7 +1803,7 @@ Valid Values: `true` or `false`.
 Default Value: `false`.
 
 Applies to all clients, but probably only makes sense for `Tanstack Query`.
-Use this property to make all parameters optional except the path parameter. This is useful to take advantage of the `Orval`'s auto-enable feature for `Tanstack Query`, see https://github.com/anymaniax/orval/pull/894
+Use this property to make all parameters optional except the path parameter. This is useful to take advantage of the `Orval`'s auto-enable feature for `Tanstack Query`, see https://github.com/orval-labs/orval/pull/894
 
 ```js
 module.exports = {
@@ -1821,7 +1821,7 @@ Type: `Boolean`
 
 Valid values: true or false. Defaults to false. **Note:** this only works for Tanstack Query clients for now.
 
-Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become a default in the future, see https://github.com/anymaniax/orval/pull/895
+Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become a default in the future, see https://github.com/orval-labs/orval/pull/895
 
 ```js
 module.exports = {

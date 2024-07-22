@@ -45,7 +45,7 @@ export const Footer = (props) => {
                 <ul className="mt-4">
                   <li className="mt-4">
                     <a
-                      href="https://github.com/anymaniax/orval/releases"
+                      href="https://github.com/orval-labs/orval/releases"
                       className="text-base leading-6 text-gray-500 hover:text-gray-900"
                     >
                       Releases
@@ -54,12 +54,12 @@ export const Footer = (props) => {
                   <li className="mt-4">
                     <a
                       className="github-button"
-                      href="https://github.com/anymaniax/orval"
+                      href="https://github.com/orval-labs/orval"
                       data-color-scheme="no-preference: light; light: light; dark: dark;"
                       data-icon="octicon-star"
                       data-size="large"
                       data-show-count="true"
-                      aria-label="Star anymaniax/orval on GitHub"
+                      aria-label="Star orval-labs/orval on GitHub"
                     >
                       Star
                     </a>
@@ -81,7 +81,7 @@ export const Footer = (props) => {
               </svg>
             </a>
             <a
-              href="https://github.com/anymaniax"
+              href="https://github.com/orval-labs"
               className="ml-6 text-gray-400 hover:text-gray-500"
             >
               <span className="sr-only">GitHub</span>

@@ -17,7 +17,7 @@ describe('throws when trying to use named parameters with vue-query client', () 
         'axios',
       ),
     ).toThrowErrorMatchingInlineSnapshot(
-      '"vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686"',
+      '"vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686"',
     );
   });
   it('vue-query output client', () => {
@@ -30,7 +30,7 @@ describe('throws when trying to use named parameters with vue-query client', () 
         'vue-query',
       ),
     ).toThrowErrorMatchingInlineSnapshot(
-      '"vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686"',
+      '"vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686"',
     );
   });
 });

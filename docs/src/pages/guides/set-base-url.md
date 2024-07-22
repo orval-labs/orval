@@ -77,7 +77,7 @@ export const customFetch = async <T>(
 };
 ```
 
-Please refer to the complete sample [here](https://github.com/anymaniax/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts)
+Please refer to the complete sample [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts)
 
 ### Angular http client
 

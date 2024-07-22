@@ -6,7 +6,7 @@ import Pet from './query-enabled-reactivity-version.vue';
 
 describe('Query `enabled` reactivity', () => {
   it('works for multiple arguments (version and petId)', async () => {
-    // this test is to ensure we don't use `unref(version && petId)` which is not correct, see https://github.com/anymaniax/orval/pull/944/files#r1347320242
+    // this test is to ensure we don't use `unref(version && petId)` which is not correct, see https://github.com/orval-labs/orval/pull/944/files#r1347320242
 
     const spy = vi.spyOn(customInstanceModule, 'customInstance');
 

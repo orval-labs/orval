@@ -110,7 +110,7 @@ paths:
                 $ref: '#/components/schemas/Error'
   /api/v1/user/logout:
     post:
-      summary: This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/anymaniax/orval/issues/857#issuecomment-1835317990
+      summary: This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
       responses:
         200:
           description: Success

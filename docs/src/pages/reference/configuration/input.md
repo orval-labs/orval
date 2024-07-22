@@ -61,7 +61,7 @@ module.exports = {
 };
 ```
 
-Example of transformer <a href="https://github.com/anymaniax/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
+Example of transformer <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
 
 ### filters
 
@@ -117,7 +117,7 @@ Type: `Object`.
 
 Default Value: `{}`.
 
-Orval convert Swagger 2.0 definitions into OpenAPI 3.0.x. You can use the converterOptions property to provide custom config for that. Check [here](https://github.com/anymaniax/orval/blob/next/src/types/swagger2openapi.d.ts#L10) available options.
+Orval convert Swagger 2.0 definitions into OpenAPI 3.0.x. You can use the converterOptions property to provide custom config for that. Check [here](https://github.com/orval-labs/orval/blob/next/src/types/swagger2openapi.d.ts#L10) available options.
 
 ```js
 module.exports = {

@@ -30,7 +30,7 @@ export default defineConfig({
 ```
 
 Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
-Like the following example from this <a href="https://github.com/anymaniax/orval/blob/master/samples/next-app-with-fetch/petstore.yaml" target="_blank">`OpenAPI` Specification</a>:
+Like the following example from this <a href="https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/petstore.yaml" target="_blank">`OpenAPI` Specification</a>:
 
 ```ts
 /**
@@ -75,7 +75,7 @@ The `fetch` client will generate an implementation file with following per path 
 2. A Function to generate request URL including query parameters and path parameters
 3. A function that call `fetch` API.
 
-Checkout <a href="https://github.com/anymaniax/orval/blob/master/samples/next-app-with-fetch" target="_blank">here</a> the full example
+Checkout <a href="https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch" target="_blank">here</a> the full example
 
 #### Custom function
 
@@ -98,7 +98,7 @@ module.exports = {
 };
 ```
 
-And, you prepare like the <a href="https://github.com/anymaniax/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts" target="_blank">sample implementation</a>
+And, you prepare like the <a href="https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts" target="_blank">sample implementation</a>
 Then, you can generate a `fetch` client that calls the `customFetch` function like bellow:
 
 ```ts

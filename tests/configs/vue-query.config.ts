@@ -153,7 +153,7 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  // Unsupported for now, see for context: https://github.com/anymaniax/orval/pull/931#issuecomment-1752355686
+  // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {
   //     target: '../generated/vue-query/named-parameters/endpoints.ts',

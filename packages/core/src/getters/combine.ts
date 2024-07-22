@@ -24,7 +24,7 @@ type CombinedData = {
   hasReadonlyProps: boolean;
   /**
    * List of all properties in all subschemas
-   * - used to add missing properties in subschemas to avoid TS error described in @see https://github.com/anymaniax/orval/issues/935
+   * - used to add missing properties in subschemas to avoid TS error described in @see https://github.com/orval-labs/orval/issues/935
    */
   allProperties: string[];
 };
