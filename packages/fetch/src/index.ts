@@ -94,7 +94,7 @@ ${
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
-  const fetchHeadersOption = body.contentType
+  const fetchHeadersOption = body.contentType && !isFormData
     ? `headers: { 'Content-Type': '${body.contentType}' }`
     : '';
   const requestBodyParams = generateBodyOptions(
