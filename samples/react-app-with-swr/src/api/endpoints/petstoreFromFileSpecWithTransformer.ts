@@ -89,12 +89,12 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationFetcher = (version: number = 1) => {
-  return (_: string, { arg }: { arg: CreatePetsBody }): Promise<Pet> => {
+  return (_: Key, { arg }: { arg: CreatePetsBody }): Promise<Pet> => {
     return createPets(arg, version);
   };
 };
 export const getCreatePetsMutationKey = (version: number = 1) =>
-  `/v${version}/pets` as const;
+  [`/v${version}/pets`] as const;
 
 export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
@@ -110,7 +110,7 @@ export const useCreatePets = <TError = Error>(
     swr?: SWRMutationConfiguration<
       Awaited<ReturnType<typeof createPets>>,
       TError,
-      string,
+      Key,
       CreatePetsBody,
       Awaited<ReturnType<typeof createPets>>
     > & { swrKey?: string };
