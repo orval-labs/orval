@@ -418,7 +418,7 @@ const generateSwrHook = (
     const swrKeyFn = `
 export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
-    }${body.implementation ? `, ${body.implementation}` : ''}] as const;
+    }] as const;
 \n`;
 
     const swrKeyLoaderFnName = camel(
