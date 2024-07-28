@@ -458,7 +458,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       props.filter(
         (prop) =>
           prop.type === GetterPropType.PARAM ||
-          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+          prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+          prop.type === GetterPropType.QUERY_PARAM,
       ),
       'implementation',
     );
@@ -506,7 +507,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       .filter(
         (prop) =>
           prop.type === GetterPropType.PARAM ||
-          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+          prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+          prop.type === GetterPropType.QUERY_PARAM,
       )
       .map((prop) => {
         if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
@@ -518,7 +520,10 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       .join(',');
 
     const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
-    const swrMutationKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => \`${route}\` as const;\n`;
+    const swrMutationKeyFn = `export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
+      queryParams ? ', ...(params ? [params]: [])' : ''
+    }] as const;
+`;
 
     const swrMutationFetcherName = camel(
       `get-${operationName}-mutation-fetcher`,
