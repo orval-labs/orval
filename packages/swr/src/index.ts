@@ -137,7 +137,7 @@ const generateSwrMutationArguments = ({
   swrBodyType: string;
   httpClient: OutputHttpClient;
 }) => {
-  const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, string, ${swrBodyType}, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
+  const definition = `SWRMutationConfiguration<Awaited<ReturnType<typeof ${operationName}>>, TError, Key, ${swrBodyType}, Awaited<ReturnType<typeof ${operationName}>>> & { swrKey?: string }`;
 
   if (!isRequestOptions) {
     return `swrOptions?: ${definition}`;
@@ -419,7 +419,7 @@ const generateSwrHook = (
 export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParams ? ', ...(params ? [params]: [])' : ''
     }] as const;
-\n`;
+`;
 
     const swrKeyLoaderFnName = camel(
       `get-${operationName}-infinite-key-loader`,
@@ -558,7 +558,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
 
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: string, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }): ${swrMutationFetcherType} => {
+  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }): ${swrMutationFetcherType} => {
     return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length
         ? (httpFnProperties.length ? ', ' : '') + 'options'
