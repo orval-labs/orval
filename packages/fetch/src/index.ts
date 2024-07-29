@@ -94,9 +94,11 @@ ${
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
-  const fetchHeadersOption = body.contentType
-    ? `headers: { 'Content-Type': '${body.contentType}' }`
-    : '';
+  const ignoreContentTypes = ['multipart/form-data'];
+  const fetchHeadersOption =
+    body.contentType && !ignoreContentTypes.includes(body.contentType)
+      ? `headers: { 'Content-Type': '${body.contentType}' }`
+      : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
