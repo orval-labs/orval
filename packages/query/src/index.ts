@@ -3,52 +3,52 @@ import {
   ClientBuilder,
   ClientDependenciesBuilder,
   ClientHeaderBuilder,
+  compareVersions,
   generateMutator,
   generateVerbImports,
   GeneratorDependency,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
+  getRouteAsArray,
   GetterParams,
   GetterProp,
   GetterProps,
   GetterPropType,
+  GetterQueryParam,
   GetterResponse,
   isObject,
+  jsDoc,
   mergeDeep,
+  NormalizedOutputOptions,
   OutputClient,
   OutputClientFunc,
+  OutputHttpClient,
   PackageJson,
   pascal,
   QueryOptions,
   stringify,
   toObjectString,
   Verbs,
-  jsDoc,
-  GetterQueryParam,
-  compareVersions,
-  getRouteAsArray,
-  NormalizedOutputOptions,
-  OutputHttpClient,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
-  normalizeQueryOptions,
-  isVue,
-  vueWrapTypeWithMaybeRef,
-  vueUnRefParams,
-} from './utils';
-import {
   AXIOS_DEPENDENCIES,
-  getQueryArgumentsRequestType,
-  getQueryOptions,
-  getHookOptions,
-  getQueryErrorType,
-  getHooksOptionImplementation,
-  getMutationRequestArgs,
   generateQueryRequestFunction,
+  getHookOptions,
+  getHooksOptionImplementation,
   getHttpFunctionQueryProps,
+  getMutationRequestArgs,
+  getQueryArgumentsRequestType,
+  getQueryErrorType,
+  getQueryOptions,
 } from './client';
+import {
+  isVue,
+  normalizeQueryOptions,
+  vueUnRefParams,
+  vueWrapTypeWithMaybeRef,
+} from './utils';
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -300,7 +300,7 @@ const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
   const hasVueQuery =
     packageJson?.dependencies?.['vue-query'] ??
     packageJson?.devDependencies?.['vue-query'] ??
-    packageJson?.peerDependencies?.['vue-query']
+    packageJson?.peerDependencies?.['vue-query'];
   const hasVueQueryV4 =
     packageJson?.dependencies?.['@tanstack/vue-query'] ??
     packageJson?.devDependencies?.['@tanstack/vue-query'] ??
