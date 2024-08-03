@@ -65,11 +65,17 @@ ${
   }
 }\n`;
 
-  const responseTypeName = fetchResponseTypeName(operationName);
-  const responseTypeImplementation = `export type ${responseTypeName} = {
+  const responseTypeName = fetchResponseTypeName(
+    override.fetch.includeHttpStatusReturnType,
+    response.definition.success,
+    operationName,
+  );
+  const responseTypeImplementation = override.fetch.includeHttpStatusReturnType
+    ? `export type ${responseTypeName} = {
   data: ${response.definition.success || 'unknown'};
   status: number;
-}`;
+}\n\n`
+    : '';
 
   const getUrlFnProperties = props
     .filter(
@@ -122,7 +128,7 @@ ${
   )
   const data = await res.json()
 
-  return { status: res.status, data }
+  ${override.fetch.includeHttpStatusReturnType ? 'return { status: res.status, data }' : `return data as ${responseTypeName}`}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
 
@@ -144,15 +150,22 @@ ${
 `;
 
   const implementation =
-    `${responseTypeImplementation}\n\n` +
+    `${responseTypeImplementation}` +
     `${getUrlFnImplementation}\n` +
     `${fetchImplementation}\n`;
 
   return implementation;
 };
 
-export const fetchResponseTypeName = (operationName: string) =>
-  `${operationName}Response`;
+export const fetchResponseTypeName = (
+  includeHttpStatusReturnType: boolean,
+  definitionSuccessResponse: string,
+  operationName: string,
+) => {
+  return includeHttpStatusReturnType
+    ? `${operationName}Response`
+    : definitionSuccessResponse;
+};
 
 export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
