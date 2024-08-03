@@ -670,6 +670,36 @@ module.exports = {
 };
 ```
 
+#### fetch
+
+Type: `Object`.
+
+Give options to the generated `fetch` client.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### includeHttpStatusReturnType
+
+Type: `Boolean`.
+Default: `true`
+
+When using `fetch` for `client` or `httpClient`, the `fetch` response type includes http status for easier processing by the application.
+If you want to return a defined return type instead of an automatically generated return type, set this value to `false`.
+
 #### query
 
 Type: `Object`.

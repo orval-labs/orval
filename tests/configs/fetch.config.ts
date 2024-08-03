@@ -76,6 +76,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  includeHttpStatusReturnType: {
+    output: {
+      target: '../generated/fetch/include-http-status-return-type/endpoints.ts',
+      schemas: '../generated/fetch/include-http-status-return-type/model',
+      mock: true,
+      client: 'fetch',
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   namedParameters: {
     output: {
       target: '../generated/fetch/named-parameters/endpoints.ts',

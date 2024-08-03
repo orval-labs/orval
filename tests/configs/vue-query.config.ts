@@ -70,6 +70,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetchWithIncludeHttpStatusReturnType: {
+    output: {
+      target:
+        '../generated/vue-query/http-client-fetch-with-include-http-status-return-type/endpoints.ts',
+      schemas:
+        '../generated/vue-query/http-client-fetch-with-include-http-status-return-type/model',
+      mode: 'tags-split',
+      client: 'vue-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/vue-query/mutator/endpoints.ts',

@@ -101,6 +101,7 @@ export type NormalizedOverrideOutput = {
   angular: Required<AngularOptions>;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
+  fetch: FetchOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -141,6 +142,7 @@ export type NormalizedOperationOptions = {
     route: string,
     verb: Verbs,
   ) => string;
+  fetch?: FetchOptions;
   formData?: boolean | NormalizedMutator;
   formUrlEncoded?: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
@@ -356,6 +358,7 @@ export type OverrideOutput = {
     route: string,
     verb: Verbs,
   ) => string;
+  fetch?: FetchOptions;
   requestOptions?: Record<string, any> | boolean;
   useDates?: boolean;
   useTypeOverInterfaces?: boolean;
@@ -496,6 +499,10 @@ export type SwrOptions = {
   swrInfiniteOptions?: any;
 };
 
+export type FetchOptions = {
+  includeHttpStatusReturnType: boolean;
+};
+
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
 
 type InputTransformer = string | InputTransformerFn;
@@ -520,6 +527,7 @@ export type OperationOptions = {
     route: string,
     verb: Verbs,
   ) => string;
+  fetch?: FetchOptions;
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
