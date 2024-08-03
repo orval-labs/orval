@@ -94,6 +94,54 @@ export const useListPets = <TError = Promise<Pets | Error>>(
 };
 ```
 
+#### return original defined return type
+
+When using `fetch` as an `httpClient`, by default the `fetch` response type includes http status.
+If use `swr` or queries, i will be accessing things like `data.data`, which will be noisy so if you want to return a defined return type instead of an automatically generated return type, set `override.fetch.includeHttpStatusReturnType` value to `false`.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+```diff
+/**
+ * @summary List all pets
+ */
+- export type listPetsResponse = {
+-   data: Pets;
+-   status: number;
+- };
+
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+- ): Promise<listPetsResponse> => {
++ ): Promise<Pet> => {
+  const res = await fetch(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+  const data = await res.json();
+
+-  return { status: res.status, data };
++  return data as Pet;
+};
+```
+
+#### custom fetch client
+
 Also, if you want to use to the custom fetch client, you can set in the override option.
 
 ```js
