@@ -14,8 +14,8 @@ function App() {
     <>
       <h1>SWR with fetch client</h1>
       <div>
-        {data?.data &&
-          data.data.map((pet: Pet, index: number) => (
+        {data &&
+          data.map((pet: Pet, index: number) => (
             <div key={index}>
               <p>id: {pet.id}</p>
               <p>name: {pet.name}</p>

@@ -11,6 +11,11 @@ export default defineConfig({
       client: 'swr',
       httpClient: 'fetch',
       mock: true,
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
     },
     input: {
       target: './petstore.yaml',

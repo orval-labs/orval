@@ -19,11 +19,6 @@ import type {
 /**
  * @summary List all pets
  */
-export type listPetsResponse = {
-  data: Pets;
-  status: number;
-};
-
 export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -43,14 +38,14 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
 export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
-): Promise<listPetsResponse> => {
+): Promise<Pets> => {
   const res = await fetch(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return data as Pets;
 };
 
 export const getListPetsKey = (params?: ListPetsParams) =>
@@ -96,11 +91,6 @@ export const useListPets = <TError = Promise<Error>>(
 /**
  * @summary Create a pet
  */
-export type createPetsResponse = {
-  data: Pet;
-  status: number;
-};
-
 export const getCreatePetsUrl = () => {
   return `http://localhost:8000/pets`;
 };
@@ -108,7 +98,7 @@ export const getCreatePetsUrl = () => {
 export const createPets = async (
   createPetsBody: CreatePetsBody,
   options?: RequestInit,
-): Promise<createPetsResponse> => {
+): Promise<Pet> => {
   const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
@@ -117,14 +107,11 @@ export const createPets = async (
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return data as Pet;
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
-  return (
-    _: Key,
-    { arg }: { arg: CreatePetsBody },
-  ): Promise<createPetsResponse> => {
+  return (_: Key, { arg }: { arg: CreatePetsBody }): Promise<Pet> => {
     return createPets(arg, options);
   };
 };
@@ -165,11 +152,6 @@ export const useCreatePets = <TError = Promise<Error>>(options?: {
 /**
  * @summary Info for a specific pet
  */
-export type showPetByIdResponse = {
-  data: Pet;
-  status: number;
-};
-
 export const getShowPetByIdUrl = (petId: string) => {
   return `http://localhost:8000/pets/${petId}`;
 };
@@ -177,14 +159,14 @@ export const getShowPetByIdUrl = (petId: string) => {
 export const showPetById = async (
   petId: string,
   options?: RequestInit,
-): Promise<showPetByIdResponse> => {
+): Promise<Pet> => {
   const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return data as Pet;
 };
 
 export const getShowPetByIdKey = (petId: string) =>
