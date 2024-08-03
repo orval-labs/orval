@@ -3,52 +3,52 @@ import {
   ClientBuilder,
   ClientDependenciesBuilder,
   ClientHeaderBuilder,
+  compareVersions,
   generateMutator,
   generateVerbImports,
   GeneratorDependency,
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
+  getRouteAsArray,
   GetterParams,
   GetterProp,
   GetterProps,
   GetterPropType,
+  GetterQueryParam,
   GetterResponse,
   isObject,
+  jsDoc,
   mergeDeep,
+  NormalizedOutputOptions,
   OutputClient,
   OutputClientFunc,
+  OutputHttpClient,
   PackageJson,
   pascal,
   QueryOptions,
   stringify,
   toObjectString,
   Verbs,
-  jsDoc,
-  GetterQueryParam,
-  compareVersions,
-  getRouteAsArray,
-  NormalizedOutputOptions,
-  OutputHttpClient,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
 import {
-  normalizeQueryOptions,
-  isVue,
-  vueWrapTypeWithMaybeRef,
-  vueUnRefParams,
-} from './utils';
-import {
   AXIOS_DEPENDENCIES,
-  getQueryArgumentsRequestType,
-  getQueryOptions,
-  getHookOptions,
-  getQueryErrorType,
-  getHooksOptionImplementation,
-  getMutationRequestArgs,
   generateQueryRequestFunction,
+  getHookOptions,
+  getHooksOptionImplementation,
   getHttpFunctionQueryProps,
+  getMutationRequestArgs,
+  getQueryArgumentsRequestType,
+  getQueryErrorType,
+  getQueryOptions,
 } from './client';
+import {
+  isVue,
+  normalizeQueryOptions,
+  vueUnRefParams,
+  vueWrapTypeWithMaybeRef,
+} from './utils';
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -121,14 +121,16 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
-  const hasVueQuery =
+  const hasSvelteQuery =
     packageJson?.dependencies?.['@sveltestack/svelte-query'] ??
-    packageJson?.devDependencies?.['@sveltestack/svelte-query'];
-  const hasVueQueryV4 =
+    packageJson?.devDependencies?.['@sveltestack/svelte-query'] ??
+    packageJson?.peerDependencies?.['@sveltestack/svelte-query'];
+  const hasSvelteQueryV4 =
     packageJson?.dependencies?.['@tanstack/svelte-query'] ??
-    packageJson?.devDependencies?.['@tanstack/svelte-query'];
+    packageJson?.devDependencies?.['@tanstack/svelte-query'] ??
+    packageJson?.peerDependencies?.['@tanstack/svelte-query'];
 
-  return !!hasVueQuery && !hasVueQueryV4;
+  return !!hasSvelteQuery && !hasSvelteQueryV4;
 };
 
 export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
@@ -210,10 +212,12 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
 ) => {
   const hasReactQuery =
     packageJson?.dependencies?.['react-query'] ??
-    packageJson?.devDependencies?.['react-query'];
+    packageJson?.devDependencies?.['react-query'] ??
+    packageJson?.peerDependencies?.['react-query'];
   const hasReactQueryV4 =
     packageJson?.dependencies?.['@tanstack/react-query'] ??
-    packageJson?.devDependencies?.['@tanstack/react-query'];
+    packageJson?.devDependencies?.['@tanstack/react-query'] ??
+    packageJson?.peerDependencies?.['@tanstack/react-query'];
 
   return [
     ...(hasGlobalMutator ? REACT_DEPENDENCIES : []),
@@ -295,10 +299,12 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
 const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
   const hasVueQuery =
     packageJson?.dependencies?.['vue-query'] ??
-    packageJson?.devDependencies?.['vue-query'];
+    packageJson?.devDependencies?.['vue-query'] ??
+    packageJson?.peerDependencies?.['vue-query'];
   const hasVueQueryV4 =
     packageJson?.dependencies?.['@tanstack/vue-query'] ??
-    packageJson?.devDependencies?.['@tanstack/vue-query'];
+    packageJson?.devDependencies?.['@tanstack/vue-query'] ??
+    packageJson?.peerDependencies?.['@tanstack/vue-query'];
 
   return !!hasVueQuery && !hasVueQueryV4;
 };
@@ -343,19 +349,22 @@ const getPackageByQueryClient = (
     case 'react-query': {
       return (
         packageJson?.dependencies?.['@tanstack/react-query'] ??
-        packageJson?.devDependencies?.['@tanstack/react-query']
+        packageJson?.devDependencies?.['@tanstack/react-query'] ??
+        packageJson?.peerDependencies?.['@tanstack/react-query']
       );
     }
     case 'svelte-query': {
       return (
         packageJson?.dependencies?.['@tanstack/svelte-query'] ??
-        packageJson?.devDependencies?.['@tanstack/svelte-query']
+        packageJson?.devDependencies?.['@tanstack/svelte-query'] ??
+        packageJson?.peerDependencies?.['@tanstack/svelte-query']
       );
     }
     case 'vue-query': {
       return (
         packageJson?.dependencies?.['@tanstack/vue-query'] ??
-        packageJson?.devDependencies?.['@tanstack/vue-query']
+        packageJson?.devDependencies?.['@tanstack/vue-query'] ??
+        packageJson?.peerDependencies?.['@tanstack/vue-query']
       );
     }
   }
