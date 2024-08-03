@@ -17306,6 +17306,12 @@ __metadata:
   languageName: node
   linkType: soft
 
+"orval@link:../../../packages/orval/dist::locator=swr-with-fetch-client%40workspace%3Areact-app-with-swr%2Ffetch-client":
+  version: 0.0.0-use.local
+  resolution: "orval@link:../../../packages/orval/dist::locator=swr-with-fetch-client%40workspace%3Areact-app-with-swr%2Ffetch-client"
+  languageName: node
+  linkType: soft
+
 "orval@link:../../../packages/orval/dist::locator=vue-query-custom-fetch%40workspace%3Avue-query%2Fcustom-fetch":
   version: 0.0.0-use.local
   resolution: "orval@link:../../../packages/orval/dist::locator=vue-query-custom-fetch%40workspace%3Avue-query%2Fcustom-fetch"
@@ -22224,6 +22230,27 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"swr-with-fetch-client@workspace:react-app-with-swr/fetch-client":
+  version: 0.0.0-use.local
+  resolution: "swr-with-fetch-client@workspace:react-app-with-swr/fetch-client"
+  dependencies:
+    "@types/react": "npm:^18.3.3"
+    "@types/react-dom": "npm:^18.3.0"
+    "@typescript-eslint/eslint-plugin": "npm:^7.15.0"
+    "@typescript-eslint/parser": "npm:^7.15.0"
+    "@vitejs/plugin-react": "npm:^4.3.1"
+    eslint: "npm:^8.57.0"
+    eslint-plugin-react-hooks: "npm:^4.6.2"
+    eslint-plugin-react-refresh: "npm:^0.4.7"
+    orval: "link:../../../packages/orval/dist"
+    react: "npm:^18.3.1"
+    react-dom: "npm:^18.3.1"
+    swr: "npm:^2.2.5"
+    typescript: "npm:^5.2.2"
+    vite: "npm:^5.3.4"
+  languageName: unknown
+  linkType: soft
+
 "swr-with-zod@workspace:swr-with-zod":
   version: 0.0.0-use.local
   resolution: "swr-with-zod@workspace:swr-with-zod"
@@ -22246,7 +22273,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"swr@npm:2.2.5":
+"swr@npm:2.2.5, swr@npm:^2.2.5":
   version: 2.2.5
   resolution: "swr@npm:2.2.5"
   dependencies:
