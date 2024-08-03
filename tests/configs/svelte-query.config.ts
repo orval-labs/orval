@@ -70,6 +70,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetchWithIncludeHttpStatusReturnType: {
+    output: {
+      target:
+        '../generated/svelte-query/http-client-fetch-with-include-http-status-return-type/endpoints.ts',
+      schemas:
+        '../generated/svelte-query/http-client-fetch-with-include-http-status-return-type/model',
+      mode: 'tags-split',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/svelte-query/mutator/endpoints.ts',

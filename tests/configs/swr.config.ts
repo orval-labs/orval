@@ -63,6 +63,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetchWithIncludeHttpStatusReturnType: {
+    output: {
+      target:
+        '../generated/swr/http-client-fetch-with-include-http_status_return-type/endpoints.ts',
+      schemas:
+        '../generated/swr/http-client-fetch-with-include-http_status_return-type/model',
+      mode: 'tags-split',
+      client: 'swr',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          includeHttpStatusReturnType: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/swr/mutator/endpoints.ts',
