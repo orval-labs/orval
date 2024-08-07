@@ -116,9 +116,7 @@ const generateDefinition = (
   const infoParam = 'info';
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
-  return http.${verb}('${route}', ${
-    (isReturnHttpResponse && !isTextPlain) || delay !== false ? 'async' : ''
-  } (${infoParam}) => {${
+  return http.${verb}('${route}', async (${infoParam}) => {${
     delay !== false
       ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
       : ''
