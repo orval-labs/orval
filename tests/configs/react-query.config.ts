@@ -367,6 +367,20 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  mockWithoutDelay: {
+    output: {
+      target: '../generated/react-query/mockWithoutDelay/endpoints.ts',
+      schemas: '../generated/react-query/mockWithoutDelay/model',
+      client: 'react-query',
+      mock: {
+        type: 'msw',
+        delay: false,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   polymorphic: {
     output: {
       target: '../generated/react-query/polymorphic/endpoints.ts',
