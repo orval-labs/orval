@@ -334,10 +334,9 @@ export const getQueryErrorType = (
         }>`
       : response.definition.errors || 'unknown';
   } else {
-    const errorType =
-      httpClient === OutputHttpClient.AXIOS ? 'AxiosError' : 'Promise';
-
-    return `${errorType}<${response.definition.errors || 'unknown'}>`;
+    return httpClient === OutputHttpClient.AXIOS
+      ? `AxiosError<${response.definition.errors || 'unknown'}>`
+      : `${response.definition.errors || 'unknown'}`;
   }
 };
 
