@@ -62,8 +62,12 @@ export const getHonoHeader: ClientHeaderBuilder = ({
         clientImplementation.includes(`${verbOption.operationName}Handlers`),
       )
       .map((verbOption) => {
+        const isTagMode =
+          output.mode === 'tags' || output.mode === 'tags-split';
+        const tag = kebab(verbOption.tags[0] ?? 'default');
+
         const handlersPath = upath.relativeSafe(
-          targetInfo.dirname ?? '',
+          upath.join(targetInfo.dirname ?? '', isTagMode ? tag : ''),
           upath.join(
             handlerFileInfo.dirname ?? '',
             `./${verbOption.operationName}`,
@@ -151,7 +155,7 @@ const getHonoHandlers = ({
   return `
 export const ${handlerName} = factory.createHandlers(
 ${currentValidator}async (c: ${contextTypeName}) => {
-  
+
   },
 );`;
 };
@@ -861,7 +865,7 @@ export const zValidator =
       }
     } else {
       await next();
-      
+
       if (
         c.res.status !== 200 ||
        !c.res.headers.get('Content-Type')?.includes('application/json')
@@ -877,7 +881,7 @@ export const zValidator =
       } catch {
         const message = 'Malformed JSON in response';
         c.res = new Response(message, { status: 400 });
-        
+
         return;
       }
 
