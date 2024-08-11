@@ -89,6 +89,11 @@
           "title": "Zod",
           "path": "/guides/zod",
           "editUrl": "/guides/zod.md"
+        },
+        {
+          "title": "Client with Zod",
+          "path": "/guides/client-with-zod",
+          "editUrl": "/guides/client-with-zod.md"
         }
       ]
     },
