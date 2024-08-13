@@ -24,4 +24,4 @@
 
 ## What versions are you using?
 
-Please execute `npx envinfo --system --npmPackages orval,zod,axios,msw,@tanstack/react-query` and paste the results here.
+Please execute `npx envinfo --system --npmPackages orval,zod,axios,msw,swr,@tanstack/react-query,@tanstack/vue-query,react,vue` and paste the results here.
