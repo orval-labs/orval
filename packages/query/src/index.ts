@@ -493,7 +493,9 @@ const getQueryOptionsDefinition = ({
         ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
     }>`;
-    return `${partialOptions ? 'Partial<' : ''}${optionType}${partialOptions ? '>' : ''}${optionTypeInitialDataPostfix}`;
+    return `${partialOptions ? 'Partial<' : ''}${optionType}${
+      partialOptions ? '>' : ''
+    }${optionTypeInitialDataPostfix}`;
   }
 
   return `${prefix}MutationOptions<Awaited<ReturnType<${
@@ -542,7 +544,9 @@ const generateQueryArguments = ({
   });
 
   if (!isRequestOptions) {
-    return `${type ? 'queryOptions' : 'mutationOptions'}?: ${definition}`;
+    return `${type ? 'queryOptions' : 'mutationOptions'}${
+      initialData !== 'defined' ? '?' : ''
+    }: ${definition}`;
   }
 
   const requestType = getQueryArgumentsRequestType(httpClient, mutator);
@@ -599,9 +603,9 @@ const generateQueryReturnType = ({
     }
     case OutputClient.REACT_QUERY:
     default: {
-      return ` ${isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''}Use${pascal(
-        type,
-      )}Result<TData, TError> & { queryKey: QueryKey }`;
+      return ` ${
+        isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''
+      }Use${pascal(type)}Result<TData, TError> & { queryKey: QueryKey }`;
     }
   }
 };
@@ -751,7 +755,9 @@ const generateQueryImplementation = ({
           )
             return param.destructured;
           return param.name === 'params'
-            ? `{...${isVue(outputClient) ? `unref(params)` : 'params'}, ${queryParam}: pageParam || ${
+            ? `{...${
+                isVue(outputClient) ? `unref(params)` : 'params'
+              }, ${queryParam}: pageParam || ${
                 isVue(outputClient)
                   ? `unref(params)?.['${queryParam}']`
                   : `params?.['${queryParam}']`
@@ -1181,7 +1187,9 @@ const generateQueryHook = async (
       : `\`${route}\``;
 
     // Note: do not unref() params in Vue - this will make key lose reactivity
-    const queryKeyFn = `${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryKeyFnName} = (${queryKeyProps}) => {
+    const queryKeyFn = `${
+      override.query.shouldExportQueryKey ? 'export ' : ''
+    }const ${queryKeyFnName} = (${queryKeyProps}) => {
     return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
     }] as const;
@@ -1321,11 +1329,9 @@ ${hooksOptionImplementation}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${properties}${properties ? ',' : ''}${getMutationRequestArgs(
-            isRequestOptions,
-            httpClient,
-            mutator,
-          )})
+          return  ${operationName}(${properties}${
+            properties ? ',' : ''
+          }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
 
         ${
