@@ -52,7 +52,11 @@ ${
     if (value === null) {
       normalizedParams.append(key, 'null');
     } else if (value !== undefined) {
-      normalizedParams.append(key, value.toString());
+      if (value instanceof Array) {
+        value.forEach((v) => normalizedParams.append(key, v.toString()));
+      } else {
+        normalizedParams.append(key, value.toString());
+      }
     }
   });`
     : ''
