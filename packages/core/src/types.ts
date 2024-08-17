@@ -882,6 +882,7 @@ export type GetterParameters = {
 export type GetterParam = {
   name: string;
   definition: string;
+  definedDefinition: string;
   implementation: string;
   default: boolean;
   required: boolean;
@@ -914,6 +915,7 @@ export const GetterPropType = {
 type GetterPropBase = {
   name: string;
   definition: string;
+  definedDefinition: string;
   implementation: string;
   default: boolean;
   required: boolean;

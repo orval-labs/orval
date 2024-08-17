@@ -724,24 +724,10 @@ const generateQueryImplementation = ({
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
-    props.map((prop) => {
-      const regex = new RegExp(`^${prop.name}\\s*\\?:`);
-
-      if (!regex.test(prop.definition)) {
-        return prop;
-      }
-
-      const definitionWithUndefined = prop.definition.replace(
-        regex,
-        `${prop.name}: undefined | `,
-      );
-      return {
-        ...prop,
-        definition: definitionWithUndefined,
-      };
-    }),
-    'definition',
+    props,
+    'definedDefinition',
   );
+
   const queryProps = toObjectString(props, 'implementation');
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
