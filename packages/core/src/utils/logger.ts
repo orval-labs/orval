@@ -48,27 +48,27 @@ export const createSuccessMessage = (backend?: string) =>
 
 export const ibmOpenapiValidatorWarnings = (
   warnings: {
-    path: string;
+    path: string[];
     message: string;
   }[],
 ) => {
   log(chalk.yellow('(!) Warnings'));
 
   warnings.forEach((i) =>
-    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path}`)),
+    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`)),
   );
 };
 
 export const ibmOpenapiValidatorErrors = (
   errors: {
-    path: string;
+    path: string[];
     message: string;
   }[],
 ) => {
   log(chalk.red('(!) Errors'));
 
   errors.forEach((i) =>
-    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path}`)),
+    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`)),
   );
 };
 
