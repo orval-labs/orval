@@ -12,7 +12,7 @@ export default defineConfig({
         query: {
           shouldSplitQueryKey: true,
         },
-      }
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -38,7 +38,6 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'react-query',
-
     },
     input: {
       target: '../specifications/petstore.yaml',
