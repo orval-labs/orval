@@ -1182,7 +1182,7 @@ const generateQueryHook = async (
       'implementation',
     );
 
-    const routeString = isVue(outputClient)
+    const routeString = isVue(outputClient) || override.query.shouldSplitQueryKey
       ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
       : `\`${route}\``;
 

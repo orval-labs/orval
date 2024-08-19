@@ -176,6 +176,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pets/status/{status}:
+    get:
+      summary: Finds Pets by status
+      operationId: findPetsByStatus
+      tags:
+        - pets
+      parameters:
+        - name: status
+          in: path
+          required: true
+          description: Status values that need to be considered for filter
+          schema:
+            type: string
+            enum:
+              - available
+              - pending
+              - sold
+      responses:
+        '200':
+          description: A paged array of pets
+          content:
   /health:
     get:
       summary: health check

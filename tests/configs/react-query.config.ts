@@ -8,6 +8,11 @@ export default defineConfig({
       client: 'react-query',
       mock: true,
       headers: true,
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+        },
+      }
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -25,6 +30,7 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+
   petstoreSplit: {
     output: {
       target: '../generated/react-query/split/endpoints.ts',
@@ -32,6 +38,7 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'react-query',
+
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -407,6 +414,23 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  splitedQueryKey: {
+    output: {
+      target: '../generated/react-query/splitedQueryKey/endpoints.ts',
+      schemas: '../generated/react-query/splitedQueryKey/model',
+      client: 'react-query',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
 });
