@@ -34,7 +34,7 @@ You can find below some samples:
 
 ### Playground
 
-Try Orval out for yourself using our [Playgound](https://orval.dev/playground) application!
+Try Orval out for yourself using our [Playground](https://orval.dev/playground) application!
 
 ## Star History
 
