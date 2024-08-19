@@ -370,7 +370,7 @@ Gives you the possibility to use the `example`/`examples` fields from your OpenA
 
 Type: `Boolean`.
 
-Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification.
+Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification. By default only the 200 OK response is generated.
 
 #### baseUrl
 
@@ -1157,6 +1157,28 @@ module.exports = {
               path: './src/mutators.ts',
             },
           },
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### generateEachHttpStatus
+
+Type: `Boolean`.
+
+Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification. By default only the 200 OK response is generated.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        zod: {
+          generateEachHttpStatus: true,
         },
       },
     },
