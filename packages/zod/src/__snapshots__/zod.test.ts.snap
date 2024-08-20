@@ -1,0 +1,44 @@
+// Vitest Snapshot v1
+
+exports[`parsePrefixItemsArrayAsTupleZod > generates correctly 1`] = `
+{
+  "consts": [],
+  "functions": [
+    [
+      "tuple",
+      [
+        {
+          "consts": [],
+          "functions": [
+            [
+              "string",
+              undefined,
+            ],
+          ],
+        },
+        {
+          "consts": [],
+          "functions": [
+            [
+              "any",
+              undefined,
+            ],
+          ],
+        },
+      ],
+    ],
+    [
+      "rest",
+      {
+        "consts": [],
+        "functions": [
+          [
+            "string",
+            undefined,
+          ],
+        ],
+      },
+    ],
+  ],
+}
+`;

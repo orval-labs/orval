@@ -6,7 +6,9 @@ import {
   type ZodValidationSchemaDefinition,
 } from '.';
 import { SchemaObject } from 'openapi3-ts/oas30';
-import { ContextSpecs } from '@orval/core';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+
+import { ContextSpecs, createLogger } from '@orval/core';
 import * as fs from 'node:fs';
 
 const queryParams: ZodValidationSchemaDefinition = {
@@ -666,3 +668,46 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
   });
 });
+
+const arrayWithPrefixItemsSchema: SchemaObject31 = {
+  type: "array",
+  prefixItems: [
+    {type: "string"},
+    {}
+  ],
+  items:
+    {type: "string"},
+}
+
+describe("parsePrefixItemsArrayAsTupleZod", ()=>{
+  it('generates correctly', async () => {
+    createLogger().info(`${arrayWithPrefixItemsSchema}`)
+    const result = generateZodValidationSchemaDefinition(
+      arrayWithPrefixItemsSchema as SchemaObject,
+      {
+        output: {
+          override: {
+            zod: {
+
+            }
+          }
+        }
+      } as ContextSpecs,
+      'example_tuple',
+      true,
+      {
+        required: true,
+      },
+    );
+    createLogger().info(`${result}`)
+
+    expect(result).toMatchSnapshot()
+    expect(result).toEqual({
+      functions: [
+        ["tuple", [["string", undefined], ["object", undefined]]],
+        ["rest", ["string", undefined]]
+      ],
+      consts: [],
+    });
+  });
+})
