@@ -137,4 +137,13 @@ export default defineConfig({
       target: '../specifications/additional-properties.yaml',
     },
   },
+  "example-v3-1": {
+    output: {
+      target: '../generated/zod/example-v3-1.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/example-v3-1.yaml',
+    },
+  }
 });
