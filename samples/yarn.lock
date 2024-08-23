@@ -13093,6 +13093,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"hono-with-next-fetch@workspace:hono/hono-with-next-fetch":
+  version: 0.0.0-use.local
+  resolution: "hono-with-next-fetch@workspace:hono/hono-with-next-fetch"
+  dependencies:
+    "@types/node": "npm:18.11.18"
+    "@types/react": "npm:18.0.26"
+    "@types/react-dom": "npm:18.0.10"
+    hono: "npm:^4.5.8"
+    next: "npm:14.2.5"
+    orval: "link:../../../packages/orval/dist"
+    react: "npm:18.2.0"
+    react-dom: "npm:18.2.0"
+    typescript: "npm:^5"
+  languageName: unknown
+  linkType: soft
+
 "hono-with-zod@workspace:hono/hono-with-zod":
   version: 0.0.0-use.local
   resolution: "hono-with-zod@workspace:hono/hono-with-zod"
@@ -17408,6 +17424,12 @@ __metadata:
   checksum: 10c0/10ff14aace236d0e2f044193362b22edce4784add08b779eccc8f8ef97195cae1248db8ec1ec5f5ff076f91acbe573f5f42a98c19b78dba8c54eefff983cae85
   languageName: node
   linkType: hard
+
+"orval@link:../../../packages/orval/dist::locator=hono-with-next-fetch%40workspace%3Ahono%2Fhono-with-next-fetch":
+  version: 0.0.0-use.local
+  resolution: "orval@link:../../../packages/orval/dist::locator=hono-with-next-fetch%40workspace%3Ahono%2Fhono-with-next-fetch"
+  languageName: node
+  linkType: soft
 
 "orval@link:../../../packages/orval/dist::locator=hono-with-zod%40workspace%3Ahono%2Fhono-with-zod":
   version: 0.0.0-use.local
