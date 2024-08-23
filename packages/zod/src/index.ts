@@ -1,4 +1,3 @@
-import { de } from '@faker-js/faker';
 import {
   camel,
   ClientBuilder,
@@ -30,7 +29,6 @@ import {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-import { parse } from 'path';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {

@@ -1,3 +1,5 @@
+import { SchemaObject } from 'openapi3-ts/oas30';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
 import {
   generateZod,
@@ -5,11 +7,8 @@ import {
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
 } from '.';
-import { SchemaObject } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
-import { ContextSpecs, createLogger } from '@orval/core';
-import * as fs from 'node:fs';
+import { ContextSpecs } from '@orval/core';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [
