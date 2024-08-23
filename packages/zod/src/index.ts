@@ -1,3 +1,4 @@
+import { de } from '@faker-js/faker';
 import {
   camel,
   ClientBuilder,
@@ -28,7 +29,8 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from "openapi3-ts/oas31"
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import { parse } from 'path';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -45,6 +47,9 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getZodDependencies = () => ZOD_DEPENDENCIES;
 
+/**
+ * values that may appear in "type". Equals SchemaObjectType
+ */
 const possibleSchemaTypes = [
   'integer',
   'number',
@@ -55,10 +60,16 @@ const possibleSchemaTypes = [
   'array',
 ];
 
-const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
+const resolveZodType = (schema: SchemaObject) => {
+  const schemaTypeValue = schema.type;
   const type = Array.isArray(schemaTypeValue)
     ? schemaTypeValue.find((t) => possibleSchemaTypes.includes(t))
     : schemaTypeValue;
+
+  // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
+  if (schema.type === 'array' && 'prefixItems' in schema) {
+    return 'tuple';
+  }
 
   switch (type) {
     case 'integer':
@@ -104,7 +115,7 @@ export const generateZodValidationSchemaDefinition = (
   constsUniqueCounter[name] = constsCounter;
 
   const functions: [string, any][] = [];
-  const type = resolveZodType(schema.type);
+  const type = resolveZodType(schema);
   const required =
     schema.default !== undefined ? false : rules?.required ?? false;
   const nullable =
@@ -115,50 +126,62 @@ export const generateZodValidationSchemaDefinition = (
   const matches = schema.pattern ?? undefined;
 
   switch (type) {
-    case 'array':
-      if ("prefixItems" in schema) {
-        /**
-         * 
-         * > 10.3.1.1. prefixItems
-         * > The value of "prefixItems" MUST be a non-empty array of valid JSON Schemas.
-         * > 
-         * > Validation succeeds if each element of the instance validates against the schema at the same position, if any. 
-         * > This keyword does not constrain the length of the array. If the array is longer than this keyword's value, 
-         * > this keyword validates only the prefix of matching length.
-         * > 
-         * > This keyword produces an annotation value which is the largest index to which this keyword applied a subschema. 
-         * > The value MAY be a boolean true if a subschema was applied to every index of the instance, such as is produced by the "items" keyword. 
-         * > This annotation affects the behavior of "items" and "unevaluatedItems".
-         * > 
-         * > Omitting this keyword has the same assertion behavior as an empty array.
-         */
-        const prefixItems = schema.prefixItems as SchemaObject31[]
+    case 'tuple':
+      /**
+       *
+       * > 10.3.1.1. prefixItems
+       * > The value of "prefixItems" MUST be a non-empty array of valid JSON Schemas.
+       * >
+       * > Validation succeeds if each element of the instance validates against the schema at the same position, if any.
+       * > This keyword does not constrain the length of the array. If the array is longer than this keyword's value,
+       * > this keyword validates only the prefix of matching length.
+       * >
+       * > This keyword produces an annotation value which is the largest index to which this keyword applied a subschema.
+       * > The value MAY be a boolean true if a subschema was applied to every index of the instance, such as is produced by the "items" keyword.
+       * > This annotation affects the behavior of "items" and "unevaluatedItems".
+       * >
+       * > Omitting this keyword has the same assertion behavior as an empty array.
+       */
+      if ('prefixItems' in schema) {
+        const schema31 = schema as SchemaObject31;
 
-        if (prefixItems.length > 0) {
-          functions.push(["tuple", prefixItems.map((item, idx) => generateZodValidationSchemaDefinition(item as SchemaObject, context, camel(`${name}-${idx}-item`), strict, {
-            required: true
-          }))]
-          )
+        if (schema31.prefixItems && schema31.prefixItems.length > 0) {
+          functions.push([
+            'tuple',
+            schema31.prefixItems.map((item, idx) =>
+              generateZodValidationSchemaDefinition(
+                deference(item as SchemaObject | ReferenceObject, context),
+                context,
+                camel(`${name}-${idx}-item`),
+                strict,
+                {
+                  required: true,
+                },
+              ),
+            ),
+          ]);
 
           if (schema.items) {
-            functions.push(['rest', generateZodValidationSchemaDefinition(
-              schema.items as SchemaObject | undefined,
-              context,
-              camel(`${name}-item`),
-              strict,
-              {
-                required: true,
-              },
-            ),
-            ])
+            createLogger().info(
+              `Parsing rest  ${JSON.stringify(schema.items, undefined, 2)}`,
+            );
+            functions.push([
+              'rest',
+              generateZodValidationSchemaDefinition(
+                schema.items as SchemaObject | undefined,
+                context,
+                camel(`${name}-item`),
+                strict,
+                {
+                  required: true,
+                },
+              ),
+            ]);
           }
         }
-        // break because tuple doesnt use min and max at all...
-        break;
       }
-
-
-
+      break;
+    case 'array':
       const items = schema.items as SchemaObject | undefined;
       functions.push([
         'array',
@@ -409,14 +432,14 @@ export const parseZodValidationSchemaDefinition = (
     if (fn === 'object') {
       return `zod.object({
 ${Object.entries(args)
-          .map(([key, schema]) => {
-            const value = (schema as ZodValidationSchemaDefinition).functions
-              .map(parseProperty)
-              .join('');
-            consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
-            return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
-          })
-          .join(',\n')}
+  .map(([key, schema]) => {
+    const value = (schema as ZodValidationSchemaDefinition).functions
+      .map(parseProperty)
+      .join('');
+    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
+    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+  })
+  .join(',\n')}
 })`;
     }
     if (fn === 'array') {
@@ -433,11 +456,13 @@ ${Object.entries(args)
       return '.strict()';
     }
 
-    if (fn === "tuple") {
-      createLogger().warn("Dancing in the rain with tuples")
+    if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
-        .map(x => "zod" + x.functions.map(parseProperty).join(","))
-        .join(",")}])`
+        .map((x) => 'zod' + x.functions.map(parseProperty).join(','))
+        .join(',\n')}])`;
+    }
+    if (fn === 'rest') {
+      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map(parseProperty)})`;
     }
     const shouldCoerceType =
       coerceTypes &&
@@ -459,8 +484,9 @@ ${Object.entries(args)
 
   const schema = input.functions.map(parseProperty).join('');
   const value = preprocessResponse
-    ? `.preprocess(${preprocessResponse.name}, ${schema.startsWith('.') ? 'zod' : ''
-    }${schema})`
+    ? `.preprocess(${preprocessResponse.name}, ${
+        schema.startsWith('.') ? 'zod' : ''
+      }${schema})`
     : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
@@ -824,12 +850,12 @@ const generateZodRoute = async (
 
   const preprocessResponse = override.zod.preprocess?.response
     ? await generateMutator({
-      output,
-      mutator: override.zod.preprocess.response,
-      name: `${operationName}PreprocessResponse`,
-      workspace: context.workspace,
-      tsconfig: context.output.tsconfig,
-    })
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessResponse`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
     : undefined;
 
   const inputResponses = parsedResponses.map((parsedResponse) =>
@@ -871,13 +897,15 @@ const generateZodRoute = async (
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
-          parsedBody.isArray
-            ? `export const ${operationName}BodyItem = ${inputBody.zod}
-export const ${operationName}Body = zod.array(${operationName}BodyItem)${parsedBody.rules?.min ? `.min(${parsedBody.rules?.min})` : ''
-            }${parsedBody.rules?.max ? `.max(${parsedBody.rules?.max})` : ''
-            }`
-            : `export const ${operationName}Body = ${inputBody.zod}`,
-        ]
+            parsedBody.isArray
+              ? `export const ${operationName}BodyItem = ${inputBody.zod}
+export const ${operationName}Body = zod.array(${operationName}BodyItem)${
+                  parsedBody.rules?.min ? `.min(${parsedBody.rules?.min})` : ''
+                }${
+                  parsedBody.rules?.max ? `.max(${parsedBody.rules?.max})` : ''
+                }`
+              : `export const ${operationName}Body = ${inputBody.zod}`,
+          ]
         : []),
       ...inputResponses
         .map((inputResponse, index) => {
@@ -888,18 +916,21 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)${parsedB
             ...(inputResponse.consts ? [inputResponse.consts] : []),
             ...(inputResponse.zod
               ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${inputResponse.zod
-                  }
-export const ${operationResponse} = zod.array(${operationResponse}Item)${parsedResponses[index].rules?.min
-                    ? `.min(${parsedResponses[index].rules?.min})`
-                    : ''
-                  }${parsedResponses[index].rules?.max
-                    ? `.max(${parsedResponses[index].rules?.max})`
-                    : ''
-                  }`
-                  : `export const ${operationResponse} = ${inputResponse.zod}`,
-              ]
+                  parsedResponses[index].isArray
+                    ? `export const ${operationResponse}Item = ${
+                        inputResponse.zod
+                      }
+export const ${operationResponse} = zod.array(${operationResponse}Item)${
+                        parsedResponses[index].rules?.min
+                          ? `.min(${parsedResponses[index].rules?.min})`
+                          : ''
+                      }${
+                        parsedResponses[index].rules?.max
+                          ? `.max(${parsedResponses[index].rules?.max})`
+                          : ''
+                      }`
+                    : `export const ${operationResponse} = ${inputResponse.zod}`,
+                ]
               : []),
           ];
         })
