@@ -3,7 +3,6 @@ import {
   ClientBuilder,
   ClientGeneratorsBuilder,
   ContextSpecs,
-  createLogger,
   escape,
   generateMutator,
   GeneratorDependency,
@@ -160,9 +159,6 @@ export const generateZodValidationSchemaDefinition = (
           ]);
 
           if (schema.items) {
-            createLogger().info(
-              `Parsing rest  ${JSON.stringify(schema.items, undefined, 2)}`,
-            );
             functions.push([
               'rest',
               generateZodValidationSchemaDefinition(
