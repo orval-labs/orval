@@ -12989,14 +12989,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hono-with-zod@workspace:hono":
+"hono-with-zod@workspace:hono/hono-with-zod":
   version: 0.0.0-use.local
-  resolution: "hono-with-zod@workspace:hono"
+  resolution: "hono-with-zod@workspace:hono/hono-with-zod"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20240208.0"
     "@hono/zod-validator": "npm:^0.2.0"
     hono: "npm:^4.0.4"
-    orval: "link:../../packages/orval/dist"
+    orval: "link:../../../packages/orval/dist"
     wrangler: "npm:^3.25.0"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -17240,6 +17240,12 @@ __metadata:
   languageName: node
   linkType: hard
 
+"orval@link:../../../packages/orval/dist::locator=hono-with-zod%40workspace%3Ahono%2Fhono-with-zod":
+  version: 0.0.0-use.local
+  resolution: "orval@link:../../../packages/orval/dist::locator=hono-with-zod%40workspace%3Ahono%2Fhono-with-zod"
+  languageName: node
+  linkType: soft
+
 "orval@link:../../../packages/orval/dist::locator=react-query-basic%40workspace%3Areact-query%2Fbasic":
   version: 0.0.0-use.local
   resolution: "orval@link:../../../packages/orval/dist::locator=react-query-basic%40workspace%3Areact-query%2Fbasic"
@@ -17327,12 +17333,6 @@ __metadata:
 "orval@link:../../packages/orval/dist::locator=basic%40workspace%3Abasic":
   version: 0.0.0-use.local
   resolution: "orval@link:../../packages/orval/dist::locator=basic%40workspace%3Abasic"
-  languageName: node
-  linkType: soft
-
-"orval@link:../../packages/orval/dist::locator=hono-with-zod%40workspace%3Ahono":
-  version: 0.0.0-use.local
-  resolution: "orval@link:../../packages/orval/dist::locator=hono-with-zod%40workspace%3Ahono"
   languageName: node
   linkType: soft
 
