@@ -124,13 +124,8 @@ components:
       required:
         - id
         - name
-      oneOf:
-        - $ref: '#/components/schemas/Dog'
-        - $ref: '#/components/schemas/Cat'
+        - tag
       properties:
-        '@id':
-          type: string
-          format: iri-reference
         id:
           type: integer
           format: int64
@@ -138,56 +133,6 @@ components:
           type: string
         tag:
           type: string
-        email:
-          type: string
-          format: email
-        callingCode:
-          type: string
-          enum: ['+33', '+420', '+33'] # intentional duplicated value
-        country:
-          type: string
-          enum: ["People's Republic of China", 'Uruguay']
-    Dog:
-      type: object
-      oneOf:
-        - $ref: '#/components/schemas/Labradoodle'
-        - $ref: '#/components/schemas/Dachshund'
-      required: ['type']
-      properties:
-        barksPerMinute:
-          type: integer
-        type:
-          type: string
-          enum:
-            - dog
-      discriminator:
-        propertyName: breed
-        mapping:
-          Labradoodle: '#/components/schemas/Labradoodle'
-          Dachshund: '#/components/schemas/Dachshund'
-    Labradoodle:
-      type: object
-      required: ['cuteness']
-      properties:
-        cuteness:
-          type: integer
-    Dachshund:
-      type: object
-      required: ['length']
-      properties:
-        length:
-          type: integer
-    Cat:
-      type: object
-      required: ['type']
-      properties:
-        petsRequested:
-          type: integer
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - cat
     Pets:
       type: array
       items:

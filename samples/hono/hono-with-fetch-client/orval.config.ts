@@ -8,10 +8,10 @@ export default defineConfig({
     output: {
       mode: 'tags-split',
       client: 'fetch',
-      target: 'next-app/app/gen/clients',
+      target: 'next-app/app/gen/',
       schemas: 'next-app/app/gen/models',
       clean: true,
-      baseUrl: 'http://localhost:8000',
+      baseUrl: 'http://localhost:8787',
       mock: true,
     },
   },

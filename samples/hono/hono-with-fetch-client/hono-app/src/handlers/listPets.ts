@@ -8,5 +8,12 @@ const factory = createFactory();
 export const listPetsHandlers = factory.createHandlers(
   zValidator('query', listPetsQueryParams),
   zValidator('response', listPetsResponse),
-  async (c: ListPetsContext) => {},
+  async (c: ListPetsContext) => {
+    return c.json([
+      {
+        id: 1,
+        name: 'doggie',
+      },
+    ]);
+  },
 );

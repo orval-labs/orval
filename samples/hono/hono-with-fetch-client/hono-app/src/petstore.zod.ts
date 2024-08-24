@@ -10,23 +10,11 @@ export const listPetsQueryParams = zod.object({
   limit: zod.string().optional(),
 });
 
-export const listPetsResponseItem = zod
-  .object({
-    cuteness: zod.number(),
-    breed: zod.enum(['Labradoodle']),
-  })
-  .or(
-    zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
-    }),
-  )
-  .or(
-    zod.object({
-      petsRequested: zod.number().optional(),
-      type: zod.enum(['cat']),
-    }),
-  );
+export const listPetsResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 export const listPetsResponse = zod.array(listPetsResponseItem);
 
 export const createPetsBodyItem = zod.object({
@@ -35,79 +23,31 @@ export const createPetsBodyItem = zod.object({
 });
 export const createPetsBody = zod.array(createPetsBodyItem);
 
-export const createPetsResponse = zod
-  .object({
-    cuteness: zod.number(),
-    breed: zod.enum(['Labradoodle']),
-  })
-  .or(
-    zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
-    }),
-  )
-  .or(
-    zod.object({
-      petsRequested: zod.number().optional(),
-      type: zod.enum(['cat']),
-    }),
-  );
+export const createPetsResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 
-export const updatePetsBody = zod
-  .object({
-    cuteness: zod.number(),
-    breed: zod.enum(['Labradoodle']),
-  })
-  .or(
-    zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
-    }),
-  )
-  .or(
-    zod.object({
-      petsRequested: zod.number().optional(),
-      type: zod.enum(['cat']),
-    }),
-  );
+export const updatePetsBody = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 
-export const updatePetsResponse = zod
-  .object({
-    cuteness: zod.number(),
-    breed: zod.enum(['Labradoodle']),
-  })
-  .or(
-    zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
-    }),
-  )
-  .or(
-    zod.object({
-      petsRequested: zod.number().optional(),
-      type: zod.enum(['cat']),
-    }),
-  );
+export const updatePetsResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
 
 export const showPetByIdParams = zod.object({
   petId: zod.string(),
   testId: zod.string(),
 });
 
-export const showPetByIdResponse = zod
-  .object({
-    cuteness: zod.number(),
-    breed: zod.enum(['Labradoodle']),
-  })
-  .or(
-    zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
-    }),
-  )
-  .or(
-    zod.object({
-      petsRequested: zod.number().optional(),
-      type: zod.enum(['cat']),
-    }),
-  );
+export const showPetByIdResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string(),
+});
