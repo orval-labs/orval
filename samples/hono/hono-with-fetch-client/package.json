@@ -1,0 +1,12 @@
+{
+  "name": "hono-with-fetch-client",
+  "packageManager": "yarn@4.2.2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
+  },
+  "devDependencies": {
+    "orval": "link:../../../packages/orval/dist"
+  }
+}

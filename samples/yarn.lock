@@ -13252,6 +13252,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"hono-with-fetch-client@workspace:hono/hono-with-fetch-client":
+  version: 0.0.0-use.local
+  resolution: "hono-with-fetch-client@workspace:hono/hono-with-fetch-client"
+  dependencies:
+    orval: "link:../../../packages/orval/dist"
+  languageName: unknown
+  linkType: soft
+
 "hono-with-next-fetch@workspace:hono/hono-with-next-fetch":
   version: 0.0.0-use.local
   resolution: "hono-with-next-fetch@workspace:hono/hono-with-next-fetch"
@@ -17686,6 +17694,12 @@ __metadata:
   checksum: 10c0/10ff14aace236d0e2f044193362b22edce4784add08b779eccc8f8ef97195cae1248db8ec1ec5f5ff076f91acbe573f5f42a98c19b78dba8c54eefff983cae85
   languageName: node
   linkType: hard
+
+"orval@link:../../../packages/orval/dist::locator=hono-with-fetch-client%40workspace%3Ahono%2Fhono-with-fetch-client":
+  version: 0.0.0-use.local
+  resolution: "orval@link:../../../packages/orval/dist::locator=hono-with-fetch-client%40workspace%3Ahono%2Fhono-with-fetch-client"
+  languageName: node
+  linkType: soft
 
 "orval@link:../../../packages/orval/dist::locator=hono-with-next-fetch%40workspace%3Ahono%2Fhono-with-next-fetch":
   version: 0.0.0-use.local
