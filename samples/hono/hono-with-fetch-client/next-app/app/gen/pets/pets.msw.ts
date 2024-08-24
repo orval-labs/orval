@@ -23,7 +23,6 @@ export const getCreatePetsResponseMock = (
 ): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
   name: faker.word.sample(),
-  tag: faker.word.sample(),
   ...overrideResponse,
 });
 
@@ -32,7 +31,6 @@ export const getUpdatePetsResponseMock = (
 ): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
   name: faker.word.sample(),
-  tag: faker.word.sample(),
   ...overrideResponse,
 });
 
@@ -41,7 +39,6 @@ export const getShowPetByIdResponseMock = (
 ): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
   name: faker.word.sample(),
-  tag: faker.word.sample(),
   ...overrideResponse,
 });
 
