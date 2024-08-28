@@ -94,6 +94,11 @@
           "title": "Client with Zod",
           "path": "/guides/client-with-zod",
           "editUrl": "/guides/client-with-zod.md"
+        },
+        {
+          "title": "Hono",
+          "path": "/guides/hono",
+          "editUrl": "/guides/hono.md"
         }
       ]
     },
