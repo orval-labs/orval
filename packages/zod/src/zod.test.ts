@@ -1,3 +1,5 @@
+import { SchemaObject } from 'openapi3-ts/oas30';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
 import {
   generateZod,
@@ -5,9 +7,8 @@ import {
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
 } from '.';
-import { SchemaObject } from 'openapi3-ts/oas30';
+
 import { ContextSpecs } from '@orval/core';
-import * as fs from 'node:fs';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [
@@ -664,5 +665,101 @@ describe('generatePartOfSchemaGenerateZod', () => {
     expect(result.implementation).toBe(
       'export const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
     );
+  });
+});
+
+describe('parsePrefixItemsArrayAsTupleZod', () => {
+  it('generates correctly', async () => {
+    const arrayWithPrefixItemsSchema: SchemaObject31 = {
+      type: 'array',
+      prefixItems: [{ type: 'string' }, {}],
+      items: { type: 'string' },
+    };
+    const result = generateZodValidationSchemaDefinition(
+      arrayWithPrefixItemsSchema as SchemaObject,
+      {
+        output: {
+          override: {
+            zod: {},
+          },
+        },
+      } as ContextSpecs,
+      'example_tuple',
+      true,
+      {
+        required: true,
+      },
+    );
+
+    expect(result).toEqual({
+      consts: [],
+      functions: [
+        [
+          'tuple',
+          [
+            {
+              consts: [],
+              functions: [['string', undefined]],
+            },
+            {
+              consts: [],
+              functions: [['any', undefined]],
+            },
+          ],
+        ],
+        [
+          'rest',
+          {
+            consts: [],
+            functions: [['string', undefined]],
+          },
+        ],
+      ],
+    });
+  });
+});
+
+describe('parsePrefixItemsArrayAsTupleZod', () => {
+  it('correctly omits rest', async () => {
+    const arrayWithPrefixItemsSchema: SchemaObject31 = {
+      type: 'array',
+      prefixItems: [{ type: 'string' }, {}],
+      items: { type: 'string' },
+      maxItems: 2,
+    };
+    const result = generateZodValidationSchemaDefinition(
+      arrayWithPrefixItemsSchema as SchemaObject,
+      {
+        output: {
+          override: {
+            zod: {},
+          },
+        },
+      } as ContextSpecs,
+      'example_tuple',
+      true,
+      {
+        required: true,
+      },
+    );
+
+    expect(result).toEqual({
+      consts: [],
+      functions: [
+        [
+          'tuple',
+          [
+            {
+              consts: [],
+              functions: [['string', undefined]],
+            },
+            {
+              consts: [],
+              functions: [['any', undefined]],
+            },
+          ],
+        ],
+      ],
+    });
   });
 });

@@ -27,6 +27,7 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -43,6 +44,9 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getZodDependencies = () => ZOD_DEPENDENCIES;
 
+/**
+ * values that may appear in "type". Equals SchemaObjectType
+ */
 const possibleSchemaTypes = [
   'integer',
   'number',
@@ -53,10 +57,16 @@ const possibleSchemaTypes = [
   'array',
 ];
 
-const resolveZodType = (schemaTypeValue: SchemaObject['type']) => {
+const resolveZodType = (schema: SchemaObject) => {
+  const schemaTypeValue = schema.type;
   const type = Array.isArray(schemaTypeValue)
     ? schemaTypeValue.find((t) => possibleSchemaTypes.includes(t))
     : schemaTypeValue;
+
+  // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
+  if (schema.type === 'array' && 'prefixItems' in schema) {
+    return 'tuple';
+  }
 
   switch (type) {
     case 'integer':
@@ -102,7 +112,7 @@ export const generateZodValidationSchemaDefinition = (
   constsUniqueCounter[name] = constsCounter;
 
   const functions: [string, any][] = [];
-  const type = resolveZodType(schema.type);
+  const type = resolveZodType(schema);
   const required =
     schema.default !== undefined ? false : rules?.required ?? false;
   const nullable =
@@ -113,6 +123,63 @@ export const generateZodValidationSchemaDefinition = (
   const matches = schema.pattern ?? undefined;
 
   switch (type) {
+    case 'tuple':
+      /**
+       *
+       * > 10.3.1.1. prefixItems
+       * > The value of "prefixItems" MUST be a non-empty array of valid JSON Schemas.
+       * >
+       * > Validation succeeds if each element of the instance validates against the schema at the same position, if any.
+       * > This keyword does not constrain the length of the array. If the array is longer than this keyword's value,
+       * > this keyword validates only the prefix of matching length.
+       * >
+       * > This keyword produces an annotation value which is the largest index to which this keyword applied a subschema.
+       * > The value MAY be a boolean true if a subschema was applied to every index of the instance, such as is produced by the "items" keyword.
+       * > This annotation affects the behavior of "items" and "unevaluatedItems".
+       * >
+       * > Omitting this keyword has the same assertion behavior as an empty array.
+       */
+      if ('prefixItems' in schema) {
+        const schema31 = schema as SchemaObject31;
+
+        if (schema31.prefixItems && schema31.prefixItems.length > 0) {
+          functions.push([
+            'tuple',
+            schema31.prefixItems.map((item, idx) =>
+              generateZodValidationSchemaDefinition(
+                deference(item as SchemaObject | ReferenceObject, context),
+                context,
+                camel(`${name}-${idx}-item`),
+                strict,
+                {
+                  required: true,
+                },
+              ),
+            ),
+          ]);
+
+          if (schema.items) {
+            if (
+              (max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length
+            ) {
+              // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
+              functions.push([
+                'rest',
+                generateZodValidationSchemaDefinition(
+                  schema.items as SchemaObject | undefined,
+                  context,
+                  camel(`${name}-item`),
+                  strict,
+                  {
+                    required: true,
+                  },
+                ),
+              ]);
+            }
+          }
+        }
+      }
+      break;
     case 'array':
       const items = schema.items as SchemaObject | undefined;
       functions.push([
@@ -388,6 +455,14 @@ ${Object.entries(args)
       return '.strict()';
     }
 
+    if (fn === 'tuple') {
+      return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
+        .map((x) => 'zod' + x.functions.map(parseProperty).join(','))
+        .join(',\n')}])`;
+    }
+    if (fn === 'rest') {
+      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map(parseProperty)})`;
+    }
     const shouldCoerceType =
       coerceTypes &&
       (Array.isArray(coerceTypes)

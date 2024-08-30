@@ -137,4 +137,13 @@ export default defineConfig({
       target: '../specifications/additional-properties.yaml',
     },
   },
+  typedArraysTuplesV31: {
+    output: {
+      target: '../generated/zod/typed-arrays-tuples-v3-1.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/typed-arrays-tuples-v3-1.yaml',
+    },
+  },
 });
