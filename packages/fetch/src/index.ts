@@ -51,12 +51,10 @@ ${
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value === null) {
       normalizedParams.append(key, 'null');
+    } else if (value instanceof Array) {
+      value.forEach((v) => normalizedParams.append(key, v.toString()));
     } else if (value !== undefined) {
-      if (value instanceof Array) {
-        value.forEach((v) => normalizedParams.append(key, v.toString()));
-      } else {
-        normalizedParams.append(key, value.toString());
-      }
+      normalizedParams.append(key, value.toString());
     }
   });`
     : ''
