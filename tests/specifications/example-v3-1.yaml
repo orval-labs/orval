@@ -4,7 +4,6 @@ info:
   description: 'OpenAPI 3.1 examples'
   version: 1.0.0
 paths: {}
-
 components:
   schemas:
     Test:
