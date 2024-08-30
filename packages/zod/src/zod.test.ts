@@ -668,14 +668,14 @@ describe('generatePartOfSchemaGenerateZod', () => {
   });
 });
 
-const arrayWithPrefixItemsSchema: SchemaObject31 = {
-  type: 'array',
-  prefixItems: [{ type: 'string' }, {}],
-  items: { type: 'string' },
-};
 
 describe('parsePrefixItemsArrayAsTupleZod', () => {
   it('generates correctly', async () => {
+    const arrayWithPrefixItemsSchema: SchemaObject31 = {
+      type: 'array',
+      prefixItems: [{ type: 'string' }, {}],
+      items: { type: 'string' },
+    };
     const result = generateZodValidationSchemaDefinition(
       arrayWithPrefixItemsSchema as SchemaObject,
       {
@@ -714,6 +714,52 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             consts: [],
             functions: [['string', undefined]],
           },
+        ],
+      ],
+    });
+  });
+});
+
+
+describe('parsePrefixItemsArrayAsTupleZod', () => {
+  it('correctly omits rest', async () => {
+    const arrayWithPrefixItemsSchema: SchemaObject31 = {
+      type: 'array',
+      prefixItems: [{ type: 'string' }, {}],
+      items: { type: 'string' },
+      maxItems: 2
+    };
+    const result = generateZodValidationSchemaDefinition(
+      arrayWithPrefixItemsSchema as SchemaObject,
+      {
+        output: {
+          override: {
+            zod: {},
+          },
+        },
+      } as ContextSpecs,
+      'example_tuple',
+      true,
+      {
+        required: true,
+      },
+    );
+
+    expect(result).toEqual({
+      consts: [],
+      functions: [
+        [
+          'tuple',
+          [
+            {
+              consts: [],
+              functions: [['string', undefined]],
+            },
+            {
+              consts: [],
+              functions: [['any', undefined]],
+            },
+          ],
         ],
       ],
     });
