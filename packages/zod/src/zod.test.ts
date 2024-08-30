@@ -668,7 +668,6 @@ describe('generatePartOfSchemaGenerateZod', () => {
   });
 });
 
-
 describe('parsePrefixItemsArrayAsTupleZod', () => {
   it('generates correctly', async () => {
     const arrayWithPrefixItemsSchema: SchemaObject31 = {
@@ -720,14 +719,13 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
   });
 });
 
-
 describe('parsePrefixItemsArrayAsTupleZod', () => {
   it('correctly omits rest', async () => {
     const arrayWithPrefixItemsSchema: SchemaObject31 = {
       type: 'array',
       prefixItems: [{ type: 'string' }, {}],
       items: { type: 'string' },
-      maxItems: 2
+      maxItems: 2,
     };
     const result = generateZodValidationSchemaDefinition(
       arrayWithPrefixItemsSchema as SchemaObject,

@@ -140,7 +140,7 @@ export default defineConfig({
   typedArraysTuplesV31: {
     output: {
       target: '../generated/zod/typed-arrays-tuples-v3-1.ts',
-      client: 'zod'
+      client: 'zod',
     },
     input: {
       target: '../specifications/typed-arrays-tuples-v3-1.yaml',

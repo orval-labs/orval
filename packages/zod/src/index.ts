@@ -159,7 +159,9 @@ export const generateZodValidationSchemaDefinition = (
           ]);
 
           if (schema.items) {
-            if ((max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length) {
+            if (
+              (max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length
+            ) {
               // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
               functions.push([
                 'rest',
@@ -429,14 +431,14 @@ export const parseZodValidationSchemaDefinition = (
     if (fn === 'object') {
       return `zod.object({
 ${Object.entries(args)
-          .map(([key, schema]) => {
-            const value = (schema as ZodValidationSchemaDefinition).functions
-              .map(parseProperty)
-              .join('');
-            consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
-            return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
-          })
-          .join(',\n')}
+  .map(([key, schema]) => {
+    const value = (schema as ZodValidationSchemaDefinition).functions
+      .map(parseProperty)
+      .join('');
+    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
+    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+  })
+  .join(',\n')}
 })`;
     }
     if (fn === 'array') {
@@ -481,8 +483,9 @@ ${Object.entries(args)
 
   const schema = input.functions.map(parseProperty).join('');
   const value = preprocessResponse
-    ? `.preprocess(${preprocessResponse.name}, ${schema.startsWith('.') ? 'zod' : ''
-    }${schema})`
+    ? `.preprocess(${preprocessResponse.name}, ${
+        schema.startsWith('.') ? 'zod' : ''
+      }${schema})`
     : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
@@ -846,12 +849,12 @@ const generateZodRoute = async (
 
   const preprocessResponse = override.zod.preprocess?.response
     ? await generateMutator({
-      output,
-      mutator: override.zod.preprocess.response,
-      name: `${operationName}PreprocessResponse`,
-      workspace: context.workspace,
-      tsconfig: context.output.tsconfig,
-    })
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessResponse`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
     : undefined;
 
   const inputResponses = parsedResponses.map((parsedResponse) =>
@@ -893,13 +896,15 @@ const generateZodRoute = async (
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
-          parsedBody.isArray
-            ? `export const ${operationName}BodyItem = ${inputBody.zod}
-export const ${operationName}Body = zod.array(${operationName}BodyItem)${parsedBody.rules?.min ? `.min(${parsedBody.rules?.min})` : ''
-            }${parsedBody.rules?.max ? `.max(${parsedBody.rules?.max})` : ''
-            }`
-            : `export const ${operationName}Body = ${inputBody.zod}`,
-        ]
+            parsedBody.isArray
+              ? `export const ${operationName}BodyItem = ${inputBody.zod}
+export const ${operationName}Body = zod.array(${operationName}BodyItem)${
+                  parsedBody.rules?.min ? `.min(${parsedBody.rules?.min})` : ''
+                }${
+                  parsedBody.rules?.max ? `.max(${parsedBody.rules?.max})` : ''
+                }`
+              : `export const ${operationName}Body = ${inputBody.zod}`,
+          ]
         : []),
       ...inputResponses
         .map((inputResponse, index) => {
@@ -910,18 +915,21 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)${parsedB
             ...(inputResponse.consts ? [inputResponse.consts] : []),
             ...(inputResponse.zod
               ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${inputResponse.zod
-                  }
-export const ${operationResponse} = zod.array(${operationResponse}Item)${parsedResponses[index].rules?.min
-                    ? `.min(${parsedResponses[index].rules?.min})`
-                    : ''
-                  }${parsedResponses[index].rules?.max
-                    ? `.max(${parsedResponses[index].rules?.max})`
-                    : ''
-                  }`
-                  : `export const ${operationResponse} = ${inputResponse.zod}`,
-              ]
+                  parsedResponses[index].isArray
+                    ? `export const ${operationResponse}Item = ${
+                        inputResponse.zod
+                      }
+export const ${operationResponse} = zod.array(${operationResponse}Item)${
+                        parsedResponses[index].rules?.min
+                          ? `.min(${parsedResponses[index].rules?.min})`
+                          : ''
+                      }${
+                        parsedResponses[index].rules?.max
+                          ? `.max(${parsedResponses[index].rules?.max})`
+                          : ''
+                      }`
+                    : `export const ${operationResponse} = ${inputResponse.zod}`,
+                ]
               : []),
           ];
         })
