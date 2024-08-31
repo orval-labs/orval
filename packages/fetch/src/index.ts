@@ -80,8 +80,7 @@ export const generateRequestFunction = (
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
   queryParams
-    ? `
-  const normalizedParams = new URLSearchParams();
+    ? `  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value === null) {
