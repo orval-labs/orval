@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{"content-encoding":"gzip","content-type":"application/json; charset=UTF-8","transfer-encoding":"chunked"},"body":"W3siaWQiOjEsIm5hbWUiOiJkb2dnaWUiLCJ0YWciOiJkb2cifV0=","status":200,"url":"http://localhost:8787/pets"},"revalidate":31536000,"tags":[]}
