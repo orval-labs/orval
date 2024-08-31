@@ -65,16 +65,10 @@ export const generateRequestFunction = (
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
-      ? ` else if (value instanceof Array) {
+      ? `if (value instanceof Array) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
-    }`
-      : '';
-
-  const normalParamsImplementation =
-    explodeParameters.length !== parameters.length
-      ? ` else if (value !== undefined) {
-      normalizedParams.append(key, value.toString());
-    }`
+    }
+      `
       : '';
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
@@ -83,9 +77,10 @@ ${
     ? `  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value === null) {
-      normalizedParams.append(key, 'null');
-    }${explodeArrayImplementation}${normalParamsImplementation}
+    ${explodeArrayImplementation}
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
   });`
     : ''
 }
