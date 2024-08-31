@@ -52,10 +52,8 @@ export const generateRequestFunction = (
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
     | undefined;
-  const parameters = spec?.[verb]?.parameters as (
-    | ParameterObject
-    | ReferenceObject
-  )[];
+  const parameters =
+    spec?.[verb]?.parameters || ([] as (ParameterObject | ReferenceObject)[]);
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
