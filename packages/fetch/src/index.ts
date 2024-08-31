@@ -65,6 +65,7 @@ export const generateRequestFunction = (
     explodeParameters.length > 0
       ? `if (value instanceof Array) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      return;
     }
       `
       : '';
