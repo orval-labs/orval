@@ -66,9 +66,15 @@ export const generateRequestFunction = (
       ? `if (value instanceof Array) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
       return;
-    }
-      `
+    }`
       : '';
+
+  const isExplodeParametersOnly =
+    explodeParameters.length === parameters.length;
+
+  const nomalParamsImplementation = `if (value !== undefined) {
+    normalizedParams.append(key, value === null ? 'null' : value.toString())
+  }`;
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
@@ -77,9 +83,7 @@ ${
 
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
-    }
+    ${!isExplodeParametersOnly ? nomalParamsImplementation : ''}
   });`
     : ''
 }
