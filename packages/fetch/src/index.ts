@@ -61,20 +61,29 @@ export const generateRequestFunction = (
     return schema.in === 'query' && schema.explode;
   });
 
+  const explodeParametersNames = explodeParameters.map((parameter) => {
+    const { schema } = resolveRef<ParameterObject>(parameter, context);
+
+    return schema.name;
+  });
+
   const explodeArrayImplementation =
     explodeParameters.length > 0
-      ? `if (value instanceof Array) {
+      ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
+      
+    if (value instanceof Array && explodeParameters.includes(key)) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
       return;
-    }`
+    }
+      `
       : '';
 
   const isExplodeParametersOnly =
     explodeParameters.length === parameters.length;
 
   const nomalParamsImplementation = `if (value !== undefined) {
-    normalizedParams.append(key, value === null ? 'null' : value.toString())
-  }`;
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }`;
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
