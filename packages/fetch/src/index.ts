@@ -62,8 +62,20 @@ export const generateRequestFunction = (
 
     return schema.in === 'query' && schema.explode;
   });
-  const isExplodeParametersOnly =
-    explodeParameters.length === parameters.length;
+
+  const explodeArrayImplementation =
+    explodeParameters.length > 0
+      ? ` else if (value instanceof Array) {
+      value.forEach((v) => normalizedParams.append(key, v.toString()));
+    }`
+      : '';
+
+  const normalParamsImplementation =
+    explodeParameters.length !== parameters.length
+      ? ` else if (value !== undefined) {
+      normalizedParams.append(key, value.toString());
+    }`
+      : '';
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
@@ -74,19 +86,7 @@ ${
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value === null) {
       normalizedParams.append(key, 'null');
-    }${
-      explodeParameters.length > 0
-        ? ` else if (value instanceof Array) {
-      value.forEach((v) => normalizedParams.append(key, v.toString()));
-    }`
-        : ''
-    }${
-      !isExplodeParametersOnly
-        ? ` else if (value !== undefined) {
-      normalizedParams.append(key, value.toString());
-    }`
-        : ''
-    }
+    }${explodeArrayImplementation}${normalParamsImplementation}
   });`
     : ''
 }
