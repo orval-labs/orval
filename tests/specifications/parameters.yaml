@@ -71,6 +71,15 @@ paths:
           required: false
           schema:
             type: boolean
+        - name: tag
+          in: query
+          description: include pets tag
+          required: false
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: A paged array of pets

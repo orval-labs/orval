@@ -11,7 +11,13 @@ import {
   toObjectString,
   generateBodyOptions,
   isObject,
+  resolveRef,
 } from '@orval/core';
+import {
+  PathItemObject,
+  ParameterObject,
+  ReferenceObject,
+} from 'openapi3-ts/oas30';
 
 export const generateRequestFunction = (
   {
@@ -26,7 +32,7 @@ export const generateRequestFunction = (
     formUrlEncoded,
     override,
   }: GeneratorVerbOptions,
-  { route }: GeneratorOptions,
+  { route, context, pathRoute }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData !== false;
@@ -42,18 +48,51 @@ export const generateRequestFunction = (
     ),
     'implementation',
   );
+
+  const spec = context.specs[context.specKey].paths[pathRoute] as
+    | PathItemObject
+    | undefined;
+  const parameters =
+    spec?.[verb]?.parameters || ([] as (ParameterObject | ReferenceObject)[]);
+
+  const explodeParameters = parameters.filter((parameter) => {
+    const { schema } = resolveRef<ParameterObject>(parameter, context);
+
+    return schema.in === 'query' && schema.explode;
+  });
+
+  const explodeParametersNames = explodeParameters.map((parameter) => {
+    const { schema } = resolveRef<ParameterObject>(parameter, context);
+
+    return schema.name;
+  });
+
+  const explodeArrayImplementation =
+    explodeParameters.length > 0
+      ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
+      
+    if (value instanceof Array && explodeParameters.includes(key)) {
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      return;
+    }
+      `
+      : '';
+
+  const isExplodeParametersOnly =
+    explodeParameters.length === parameters.length;
+
+  const nomalParamsImplementation = `if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }`;
+
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
 ${
   queryParams
-    ? `
-  const normalizedParams = new URLSearchParams();
+    ? `  const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value === null) {
-      normalizedParams.append(key, 'null');
-    } else if (value !== undefined) {
-      normalizedParams.append(key, value.toString());
-    }
+    ${explodeArrayImplementation}
+    ${!isExplodeParametersOnly ? nomalParamsImplementation : ''}
   });`
     : ''
 }

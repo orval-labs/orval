@@ -168,4 +168,14 @@ export default defineConfig({
       target: '../specifications/form-url-encoded.yaml',
     },
   },
+  parameters: {
+    output: {
+      target: '../generated/fetch/parameters/endpoints.ts',
+      schemas: '../generated/fetch/parameters/model',
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/parameters.yaml',
+    },
+  },
 });
