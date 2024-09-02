@@ -873,11 +873,9 @@ export const zValidator =
         return;
       }
 
-      const clonedResponse = c.res.clone();
-
       let value: unknown;
       try {
-        value = await clonedResponse.json();
+        value = await c.res.json();
       } catch {
         const message = 'Malformed JSON in response';
         c.res = new Response(message, { status: 400 });
