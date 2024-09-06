@@ -815,6 +815,7 @@ export type ClientDependenciesBuilder = (
   hasParamsSerializerOptions: boolean,
   packageJson?: PackageJson,
   httpClient?: OutputHttpClient,
+  hasTagsMutator?: boolean,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {
@@ -1051,6 +1052,7 @@ export type GeneratorClientImports = (data: {
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   hasGlobalMutator: boolean;
+  hasTagsMutator: boolean;
   hasParamsSerializerOptions: boolean;
   packageJson?: PackageJson;
   output: NormalizedOutputOptions;
