@@ -60,7 +60,9 @@ export const writeSplitMode = async ({
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
-      hasTagsMutator: Object.values(output.override.tags).some(tag => !!tag.mutator),
+      hasTagsMutator: Object.values(output.override.tags).some(
+        (tag) => !!tag.mutator,
+      ),
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
       output,
