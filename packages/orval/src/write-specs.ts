@@ -187,7 +187,7 @@ export const writeSpecs = async (
 
   if (output.biome) {
     try {
-      await execa('biome', ['check', '--apply', ...paths]);
+      await execa('biome', ['check', '--write', ...paths]);
     } catch (e: any) {
       const message =
         e.exitCode === 1
