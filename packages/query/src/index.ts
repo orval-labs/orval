@@ -209,6 +209,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
   hasParamsSerializerOptions,
   packageJson,
   httpClient,
+  hasTagsMutator,
 ) => {
   const hasReactQuery =
     packageJson?.dependencies?.['react-query'] ??
@@ -220,7 +221,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
   return [
-    ...(hasGlobalMutator ? REACT_DEPENDENCIES : []),
+    ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
     ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
       ? AXIOS_DEPENDENCIES
       : []),

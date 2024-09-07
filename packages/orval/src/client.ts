@@ -65,6 +65,7 @@ export const generateClientImports: GeneratorClientImports = ({
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   hasGlobalMutator,
+  hasTagsMutator,
   hasParamsSerializerOptions,
   packageJson,
   output,
@@ -79,6 +80,7 @@ export const generateClientImports: GeneratorClientImports = ({
             hasParamsSerializerOptions,
             packageJson,
             output.httpClient,
+            hasTagsMutator,
           ),
           ...imports,
         ]
