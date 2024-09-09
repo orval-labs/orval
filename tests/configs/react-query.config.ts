@@ -235,6 +235,26 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  tagHookMutator: {
+    output: {
+      target: '../generated/react-query/tag-hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/tag-hook-mutator/model',
+      client: 'react-query',
+      override: {
+        tags: {
+          pets: {
+            mutator: {
+              path: '../mutators/use-custom-instance.ts',
+              name: 'useCustomInstance',
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/react-query/form-data/endpoints.ts',
