@@ -12,12 +12,14 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
+  Verbs,
   getIsBodyVerb,
 } from '@orval/core';
 
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
 import {
+  getHasSignal,
   isVue,
   makeRouteSafe,
   vueUnRefParams,
@@ -86,7 +88,10 @@ export const generateAxiosRequestFunction = (
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
-  const hasSignal = !!override.query.signal;
+  const hasSignal = getHasSignal({
+    overrideQuerySignal: override.query.signal,
+    verb,
+  });
 
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
@@ -142,9 +147,7 @@ export const generateAxiosRequestFunction = (
           isRequestOptions && mutator.hasSecondArg
             ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
-        }${
-          !getIsBodyVerb(verb) && hasSignal ? 'signal?: AbortSignal\n' : ''
-        }) => {${bodyForm}
+        }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
@@ -157,7 +160,7 @@ export const generateAxiosRequestFunction = (
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${!getIsBodyVerb(verb) && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
+    }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
       ${isVue ? vueUnRefParams(props) : ''}
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(

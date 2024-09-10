@@ -1,4 +1,3 @@
-import { VERBS_WITH_BODY } from '../constants';
 import {
   GeneratorMutator,
   GeneratorSchema,
@@ -283,7 +282,7 @@ export const generateMutatorConfig = ({
       : '';
 
   return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
-    !getIsBodyVerb(verb) && hasSignal
+    hasSignal
       ? `, ${
           isExactOptionalPropertyTypes
             ? '...(signal ? { signal }: {})'
