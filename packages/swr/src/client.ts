@@ -69,7 +69,6 @@ const generateAxiosRequestFunction = (
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
     context.output.tsconfig,
   );
@@ -93,7 +92,6 @@ const generateAxiosRequestFunction = (
       isFormData,
       isFormUrlEncoded,
       hasSignal: false,
-      isBodyVerb,
       isExactOptionalPropertyTypes,
     });
 

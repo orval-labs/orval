@@ -8,7 +8,7 @@ import {
   ParamsSerializerOptions,
   Verbs,
 } from '../types';
-import { isObject, stringify } from '../utils';
+import { getIsBodyVerb, isObject, stringify } from '../utils';
 
 export const generateBodyOptions = (
   body: GetterBody,
@@ -156,8 +156,7 @@ export const generateOptions = ({
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
-  const bodyOptions = isBodyVerb
+  const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
     : '';
 
@@ -190,7 +189,7 @@ export const generateOptions = ({
   }
 
   return `\n      \`${route}\`,${
-    isBodyVerb ? bodyOptions || 'undefined,' : ''
+    getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : ''
   }${axiosOptions === 'options' ? axiosOptions : options}\n    `;
 };
 
@@ -249,7 +248,6 @@ export const generateMutatorConfig = ({
   verb,
   isFormData,
   isFormUrlEncoded,
-  isBodyVerb,
   hasSignal,
   isExactOptionalPropertyTypes,
   isVue,
@@ -262,12 +260,11 @@ export const generateMutatorConfig = ({
   verb: Verbs;
   isFormData: boolean;
   isFormUrlEncoded: boolean;
-  isBodyVerb: boolean;
   hasSignal: boolean;
   isExactOptionalPropertyTypes: boolean;
   isVue?: boolean;
 }) => {
-  const bodyOptions = isBodyVerb
+  const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
     : '';
 
@@ -286,7 +283,7 @@ export const generateMutatorConfig = ({
       : '';
 
   return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
-    !isBodyVerb && hasSignal
+    !getIsBodyVerb(verb) && hasSignal
       ? `, ${
           isExactOptionalPropertyTypes
             ? '...(signal ? { signal }: {})'

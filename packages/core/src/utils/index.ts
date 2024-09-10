@@ -17,3 +17,4 @@ export * from './sort';
 export * from './string';
 export * from './tsconfig';
 export * from './validator';
+export * from './is-body-verb'
