@@ -152,7 +152,23 @@ export const combineSchemasMock = ({
         return `${acc}${currentValue}${!combine ? '])' : ''}`;
       }
 
+      if (currentValue === '{}') {
+        currentValue = '';
+
+        if (acc.toString().endsWith(',')) {
+          acc = acc.toString().slice(0, -1);
+        }
+      }
+
       return `${acc}${currentValue}${isObjectBounds ? '}' : ''}`;
+    }
+
+    if (currentValue === '{}') {
+      currentValue = '';
+
+      if (acc.toString().endsWith(',')) {
+        acc = acc.toString().slice(0, -1);
+      }
     }
 
     if (!currentValue) {
