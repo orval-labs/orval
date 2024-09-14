@@ -88,6 +88,28 @@ export type ZodValidationSchemaDefinition = {
 
 const minAndMaxTypes = ['number', 'string', 'array'];
 
+const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
+  if (schema.properties) {
+    return {
+      ...schema,
+      properties: Object.entries(schema.properties).reduce<
+        Record<string, SchemaObject>
+      >((acc, [key, value]) => {
+        if ('readOnly' in value && value.readOnly) return acc;
+        acc[key] = value as SchemaObject;
+        return acc;
+      }, {}),
+    };
+  }
+  if (schema.items && 'properties' in schema.items) {
+    return {
+      ...schema,
+      items: removeReadOnlyProperties(schema.items as SchemaObject),
+    };
+  }
+  return schema;
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   context: ContextSpecs,
@@ -546,12 +568,14 @@ const parseBodyAndResponse = ({
   name,
   strict,
   generate,
+  parseType,
 }: {
   data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
   context: ContextSpecs;
   name: string;
   strict: boolean;
   generate: boolean;
+  parseType: 'body' | 'response';
 }): {
   input: ZodValidationSchemaDefinition;
   isArray: boolean;
@@ -597,7 +621,9 @@ const parseBodyAndResponse = ({
 
     return {
       input: generateZodValidationSchemaDefinition(
-        resolvedJsonSchema.items as SchemaObject,
+        parseType === 'body'
+          ? removeReadOnlyProperties(resolvedJsonSchema.items as SchemaObject)
+          : (resolvedJsonSchema.items as SchemaObject),
         context,
         name,
         strict,
@@ -615,7 +641,9 @@ const parseBodyAndResponse = ({
 
   return {
     input: generateZodValidationSchemaDefinition(
-      resolvedJsonSchema,
+      parseType === 'body'
+        ? removeReadOnlyProperties(resolvedJsonSchema)
+        : resolvedJsonSchema,
       context,
       name,
       strict,
@@ -811,6 +839,7 @@ const generateZodRoute = async (
     name: camel(`${operationName}-body`),
     strict: override.zod.strict.body,
     generate: override.zod.generate.body,
+    parseType: 'body',
   });
 
   const responses = (
@@ -825,6 +854,7 @@ const generateZodRoute = async (
       name: camel(`${operationName}-${code}-response`),
       strict: override.zod.strict.response,
       generate: override.zod.generate.response,
+      parseType: 'response',
     }),
   );
 
