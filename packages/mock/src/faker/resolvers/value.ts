@@ -134,7 +134,13 @@ export const resolveMockValue = ({
         const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({...${value}, ...${overrideVarName}});`;
         splitMockImplementations?.push(func);
       }
-      scalar.value = `{...${funcName}()}`;
+
+      if (newSchema.nullable) {
+        scalar.value = `${funcName}()`;
+      } else {
+        scalar.value = `{...${funcName}()}`;
+      }
+
       scalar.imports.push({
         name: newSchema.name,
         specKey: isRootKey(specKey, context.target) ? undefined : specKey,
