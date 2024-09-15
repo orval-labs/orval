@@ -100,7 +100,7 @@ export const createPets = async (
   const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(createPetsBody),
   });
   const data = await res.json();
