@@ -142,7 +142,7 @@ ${
   const ignoreContentTypes = ['multipart/form-data'];
   const fetchHeadersOption =
     body.contentType && !ignoreContentTypes.includes(body.contentType)
-      ? `headers: { 'Content-Type': '${body.contentType}' }`
+      ? `headers: { 'Content-Type': '${body.contentType}', ...options?.headers }`
       : '';
   const requestBodyParams = generateBodyOptions(
     body,
