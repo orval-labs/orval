@@ -12,6 +12,7 @@ import {
   generateBodyOptions,
   isObject,
   resolveRef,
+  pascal,
 } from '@orval/core';
 import {
   PathItemObject,
@@ -70,7 +71,7 @@ export const generateRequestFunction = (
   const explodeArrayImplementation =
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
-      
+
     if (value instanceof Array && explodeParameters.includes(key)) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
       return;
@@ -169,7 +170,6 @@ ${
 
   ${override.fetch.includeHttpStatusReturnType ? 'return { status: res.status, data }' : `return data as ${responseTypeName}`}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -179,14 +179,31 @@ ${
     isFormUrlEncoded,
   });
 
-  const fetchImplementationBody = mutator
-    ? customFetchResponseImplementation
-    : fetchResponseImplementation;
+  let fetchImplementation: string;
+  if (mutator?.isHook) {
+    const fetchImplementationBody = `return ${operationName}(${fetchFnOptions});`;
+    fetchImplementation = `export const use${pascal(operationName)}Hook = (): (${args}) => ${retrunType} => {
+      const ${operationName} = ${mutator.name}<Awaited<${retrunType}>>();
 
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
-  ${bodyForm ? `  ${bodyForm}` : ''}
-  ${fetchImplementationBody}}
-`;
+      return useCallback(
+        (${args}) => {
+          ${bodyForm ? `  ${bodyForm}` : ''}
+          ${fetchImplementationBody}
+        },
+        [${operationName}],
+      );
+    }
+  `;
+  } else {
+    const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
+    const fetchImplementationBody = mutator
+      ? customFetchResponseImplementation
+      : fetchResponseImplementation;
+    fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
+    ${bodyForm ? `  ${bodyForm}` : ''}
+    ${fetchImplementationBody}}
+  `;
+  }
 
   const implementation =
     `${responseTypeImplementation}` +
