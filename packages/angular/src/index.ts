@@ -27,6 +27,8 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'HttpHeaders' },
       { name: 'HttpParams' },
       { name: 'HttpContext' },
+      { name: 'HttpResponse', alias: 'AngularHttpResponse' }, // alias to prevent naming conflict with msw
+      { name: 'HttpEvent' },
     ],
     dependency: '@angular/common/http',
   },
@@ -212,7 +214,14 @@ const generateImplementation = (
     hasSignal: false,
   });
 
-  return ` ${operationName}<TData = ${dataType}>(\n    ${toObjectString(
+  const propsDefinition = toObjectString(props, 'definition');
+  const overloads = isRequestOptions
+    ? `${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }\n  ): Observable<TData>;
+    ${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }\n  ): Observable<AngularHttpResponse<TData>>;
+    ${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }\n  ): Observable<HttpEvent<TData>>;`
+    : '';
+
+  return ` ${overloads}${operationName}<TData = ${dataType}>(\n    ${toObjectString(
     props,
     'implementation',
   )} ${
