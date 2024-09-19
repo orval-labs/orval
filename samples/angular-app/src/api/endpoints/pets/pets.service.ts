@@ -7,8 +7,10 @@
 import { HttpClient } from '@angular/common/http';
 import type {
   HttpContext,
+  HttpEvent,
   HttpHeaders,
   HttpParams,
+  HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
@@ -53,6 +55,21 @@ export class PetsService {
    */
   createPets<TData = void>(
     createPetsBody: CreatePetsBody,
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
+  ): Observable<TData>;
+  createPets<TData = void>(
+    createPetsBody: CreatePetsBody,
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
+  ): Observable<AngularHttpResponse<TData>>;
+  createPets<TData = void>(
+    createPetsBody: CreatePetsBody,
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
+  ): Observable<HttpEvent<TData>>;
+  createPets<TData = void>(
+    createPetsBody: CreatePetsBody,
     version: number = 1,
     options?: HttpClientOptions,
   ): Observable<TData> {
@@ -61,6 +78,21 @@ export class PetsService {
   /**
    * @summary Info for a specific pet
    */
+  showPetById<TData = Pet>(
+    petId: string,
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
+  ): Observable<TData>;
+  showPetById<TData = Pet>(
+    petId: string,
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
+  ): Observable<AngularHttpResponse<TData>>;
+  showPetById<TData = Pet>(
+    petId: string,
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
+  ): Observable<HttpEvent<TData>>;
   showPetById<TData = Pet>(
     petId: string,
     version: number = 1,
