@@ -117,7 +117,8 @@ export const combineSchemasMock = ({
     }
 
     const isObjectBounds =
-      !combine || (combine.separator === 'oneOf' && separator === 'allOf');
+      !combine ||
+      (['oneOf', 'anyOf'].includes(combine.separator) && separator === 'allOf');
 
     if (!index && isObjectBounds) {
       if (
