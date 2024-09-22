@@ -22,9 +22,49 @@ paths:
       responses:
         '204':
           description: Ok
+  /any-of-included-all-of-pet:
+    get:
+      summary: Gets anyOf included allOf pets
+      operationId: getAnyOfIncludedAllOfPets
+      responses:
+        '200':
+          description: Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
 components:
   schemas:
     A:
       type: string
       enum:
         - A
+    Pet:
+      anyOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      required:
+        - color
+      properties:
+        color:
+          type: string
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/DogType'
+        - $ref: '#/components/schemas/DogDetail'
+    DogType:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+    DogDetail:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
