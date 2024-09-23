@@ -116,6 +116,14 @@ export const combineSchemasMock = ({
       currentValue = `${currentValue ? `${currentValue},` : ''}${itemResolvedValue.value}`;
     }
 
+    if (
+      resolvedValue.type === undefined &&
+      currentValue &&
+      separator === 'allOf'
+    ) {
+      currentValue = `...${currentValue}`;
+    }
+
     const isObjectBounds =
       !combine ||
       (['oneOf', 'anyOf'].includes(combine.separator) && separator === 'allOf');
