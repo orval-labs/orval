@@ -89,7 +89,7 @@ export const resolveMockValue = ({
 
     const newSchema = {
       ...schemaRef,
-      name: originalName,
+      name: pascal(originalName),
       path: schema.path,
       isRef: true,
     };
