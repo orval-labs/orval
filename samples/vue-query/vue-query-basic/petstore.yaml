@@ -116,6 +116,12 @@ paths:
           description: Success
 components:
   schemas:
+    Domain.Status.Enum:
+      type: string
+      enum:
+        - new
+        - sold
+        - uknown
     Pet:
       type: object
       required:
@@ -129,6 +135,8 @@ components:
           type: string
         tag:
           type: string
+        status:
+          $ref: '#/components/schemas/Domain.Status.Enum'
         email:
           type: string
           format: email
