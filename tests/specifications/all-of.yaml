@@ -27,6 +27,22 @@ paths:
                   - type: object
                     required:
                       - color
+  /rested-ref-in-all-of-pets:
+    get:
+      operationId: getNestedRefInAllOfPets
+      tags:
+        - pets
+      description: |-
+        Nested ref in allOf pets.
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PetRef'
+                  - $ref: '#/components/schemas/PetDetail'
 
 components:
   schemas:
@@ -48,3 +64,5 @@ components:
       properties:
         tag:
           type: string
+    PetRef:
+      $ref: '#/components/schemas/Pet'
