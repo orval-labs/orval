@@ -29,6 +29,19 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  endpointsNamedDelay: {
+    output: {
+      schemas: '../generated/mock/endpoints-named-delay/model',
+      target: '../generated/mock/endpoints-named-delay/endpoints.ts',
+      mock: {
+        type: 'msw',
+        delay: false,
+      },
+    },
+    input: {
+      target: '../specifications/endpoints-named-delay.yaml',
+    },
+  },
   petstoreEachHttpStatus: {
     output: {
       target: '../generated/mock/petstore-each-http-status/endpoints.ts',
