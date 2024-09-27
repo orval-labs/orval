@@ -5,7 +5,8 @@ import {
   GeneratorDependency,
   GeneratorImport,
   GeneratorOptions,
-  GeneratorVerbOptions, GlobalMockOptions,
+  GeneratorVerbOptions,
+  GlobalMockOptions,
   isFunction,
   isObject,
   pascal,
@@ -15,7 +16,9 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
-const getMSWDependencies = (options?: GlobalMockOptions): GeneratorDependency[] => {
+const getMSWDependencies = (
+  options?: GlobalMockOptions,
+): GeneratorDependency[] => {
   const hasDelay = options?.delay !== false;
   const locale = options?.locale;
 
@@ -30,9 +33,11 @@ const getMSWDependencies = (options?: GlobalMockOptions): GeneratorDependency[] 
     },
     {
       exports: [{ name: 'faker', values: true }],
-      dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
+      dependency: locale
+        ? `@faker-js/faker/locale/${locale}`
+        : '@faker-js/faker',
     },
-  ]
+  ];
 };
 
 export const generateMSWImports: GenerateMockImports = ({
