@@ -6,6 +6,7 @@ import {
   GeneratorImport,
   GeneratorOptions,
   GeneratorVerbOptions,
+  GlobalMockOptions,
   isFunction,
   isObject,
   pascal,
@@ -15,20 +16,34 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
-const getMSWDependencies = (locale?: string): GeneratorDependency[] => [
-  {
-    exports: [
-      { name: 'http', values: true },
-      { name: 'HttpResponse', values: true },
-      { name: 'delay', values: true },
-    ],
-    dependency: 'msw',
-  },
-  {
-    exports: [{ name: 'faker', values: true }],
-    dependency: locale ? `@faker-js/faker/locale/${locale}` : '@faker-js/faker',
-  },
-];
+const getMSWDependencies = (
+  options?: GlobalMockOptions,
+): GeneratorDependency[] => {
+  const hasDelay = options?.delay !== false;
+  const locale = options?.locale;
+
+  const exports = [
+    { name: 'http', values: true },
+    { name: 'HttpResponse', values: true },
+  ];
+
+  if (hasDelay) {
+    exports.push({ name: 'delay', values: true });
+  }
+
+  return [
+    {
+      exports,
+      dependency: 'msw',
+    },
+    {
+      exports: [{ name: 'faker', values: true }],
+      dependency: locale
+        ? `@faker-js/faker/locale/${locale}`
+        : '@faker-js/faker',
+    },
+  ];
+};
 
 export const generateMSWImports: GenerateMockImports = ({
   implementation,
@@ -40,7 +55,7 @@ export const generateMSWImports: GenerateMockImports = ({
 }) => {
   return generateDependencyImports(
     implementation,
-    [...getMSWDependencies(options?.locale), ...imports],
+    [...getMSWDependencies(options), ...imports],
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
@@ -112,7 +127,6 @@ const generateDefinition = (
     : mockImplementations;
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
-  const isHandlerOverridden = isReturnHttpResponse && !isTextPlain;
   const infoParam = 'info';
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
