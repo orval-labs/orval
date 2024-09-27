@@ -22,13 +22,18 @@ const getMSWDependencies = (
   const hasDelay = options?.delay !== false;
   const locale = options?.locale;
 
+  const exports = [
+    { name: 'http', values: true },
+    { name: 'HttpResponse', values: true },
+  ];
+
+  if (hasDelay) {
+    exports.push({ name: 'delay', values: true });
+  }
+
   return [
     {
-      exports: [
-        { name: 'http', values: true },
-        { name: 'HttpResponse', values: true },
-        { name: 'delay', values: hasDelay },
-      ],
+      exports,
       dependency: 'msw',
     },
     {
