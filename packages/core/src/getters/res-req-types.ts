@@ -437,7 +437,7 @@ const resolveSchemaPropertiesToFormData = ({
       const isRequired =
         schema.required?.includes(key) && !isRequestBodyOptional;
 
-      if (property.nullable) {
+      if (property.nullable || property.type?.includes('null')) {
         if (isRequired) {
           return acc + `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
         }
