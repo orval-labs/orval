@@ -147,4 +147,15 @@ export default defineConfig({
       mock: true,
     },
   },
+  useDates: {
+    input: '../specifications/format.yaml',
+    output: {
+      target: '../generated/mock/useDates/endpoints.ts',
+      schemas: '../generated/mock/useDates/model',
+      mock: true,
+      override: {
+        useDates: true,
+      },
+    },
+  },
 });
