@@ -4,10 +4,12 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
+import type { DomainStatusEnum } from './domainStatusEnum';
 
 export interface Pet {
   email?: string;
   id: number;
   name: string;
+  status?: DomainStatusEnum;
   tag?: string;
 }

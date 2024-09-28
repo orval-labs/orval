@@ -6,6 +6,7 @@
  */
 import { faker } from '@faker-js/faker';
 import { HttpResponse, delay, http } from 'msw';
+import { DomainStatusEnum } from '../model';
 import type { Pet, Pets } from '../model';
 
 export const getListPetsResponseMock = (): Pets =>
@@ -16,6 +17,10 @@ export const getListPetsResponseMock = (): Pets =>
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     id: (() => faker.number.int({ min: 1, max: 99999 }))(),
     name: (() => faker.person.lastName())(),
+    status: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(Object.values(DomainStatusEnum)),
+      undefined,
+    ]),
     tag: (() => faker.person.lastName())(),
   }));
 
@@ -25,6 +30,10 @@ export const getCreatePetsResponseMock = (
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   id: faker.number.int({ min: undefined, max: undefined }),
   name: (() => faker.person.lastName())(),
+  status: faker.helpers.arrayElement([
+    faker.helpers.arrayElement(Object.values(DomainStatusEnum)),
+    undefined,
+  ]),
   tag: (() => faker.person.lastName())(),
   ...overrideResponse,
 });

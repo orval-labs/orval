@@ -6,6 +6,7 @@
  */
 
 export * from './createPetsBody';
+export * from './domainStatusEnum';
 export * from './error';
 export * from './listPetsParams';
 export * from './pet';
