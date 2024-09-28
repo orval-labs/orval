@@ -100,8 +100,15 @@ export const getMockScalar = ({
   };
 
   if (item.format && ALL_FORMAT[item.format]) {
+    const dateFormats = ['date', 'date-time'];
+
+    const value =
+      context.output.override.useDates && dateFormats.includes(item.format)
+        ? `new Date(${ALL_FORMAT[item.format]})`
+        : `${ALL_FORMAT[item.format]}`;
+
     return {
-      value: getNullable(`${ALL_FORMAT[item.format]}`, item.nullable),
+      value: getNullable(value, item.nullable),
       imports: [],
       name: item.name,
       overrided: false,
