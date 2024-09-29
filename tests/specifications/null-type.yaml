@@ -37,6 +37,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/NullableObject'
+  /nullable-with-multipart-form-data:
+    post:
+      tags:
+        - nullables
+      summary: Nullable with multipart/form-data request
+      operationId: NullableWithMultipartFormRequest
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MultipartFormDataNullableRequest'
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                name:
+                  type:
+                    - 'string'
+                    - 'null'
 components:
   schemas:
     NullableObject:
@@ -62,3 +83,10 @@ components:
     BlankEnum:
       enum:
         - ''
+    MultipartFormDataNullableRequest:
+      type: object
+      properties:
+        name:
+          type:
+            - 'string'
+            - 'null'
