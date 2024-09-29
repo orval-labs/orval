@@ -416,18 +416,18 @@ const resolveSchemaPropertiesToFormData = ({
           if (itemSchema.type === 'object' || itemSchema.type === 'array') {
             valueStr = 'JSON.stringify(value)';
           } else if (
-            itemSchema.type === 'number' ||
-            itemSchema.type === 'integer' ||
-            itemSchema.type === 'boolean'
+            itemSchema.type === 'number' || itemSchema.type?.includes('number') ||
+            itemSchema.type === 'integer' || itemSchema.type?.includes('integer') ||
+            itemSchema.type === 'boolean' || itemSchema.type?.includes('boolean')
           ) {
             valueStr = 'value.toString()';
           }
         }
         formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', ${valueStr}));\n`;
       } else if (
-        property.type === 'number' ||
-        property.type === 'integer' ||
-        property.type === 'boolean'
+        property.type === 'number' || property.type?.includes('number') ||
+        property.type === 'integer' || property.type?.includes('integer') ||
+        property.type === 'boolean' || property.type?.includes('boolean')
       ) {
         formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
       } else {
