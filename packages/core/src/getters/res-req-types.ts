@@ -417,8 +417,11 @@ const resolveSchemaPropertiesToFormData = ({
             valueStr = 'JSON.stringify(value)';
           } else if (
             itemSchema.type === 'number' ||
+            itemSchema.type?.includes('number') ||
             itemSchema.type === 'integer' ||
-            itemSchema.type === 'boolean'
+            itemSchema.type?.includes('integer') ||
+            itemSchema.type === 'boolean' ||
+            itemSchema.type?.includes('boolean')
           ) {
             valueStr = 'value.toString()';
           }
@@ -426,18 +429,48 @@ const resolveSchemaPropertiesToFormData = ({
         formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', ${valueStr}));\n`;
       } else if (
         property.type === 'number' ||
+        property.type?.includes('number') ||
         property.type === 'integer' ||
-        property.type === 'boolean'
+        property.type?.includes('integer') ||
+        property.type === 'boolean' ||
+        property.type?.includes('boolean')
       ) {
         formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
       } else {
         formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey})\n`;
       }
 
+      let existSubSchemaNullable = false;
+      if (property.allOf || property.anyOf || property.oneOf) {
+        const combine = property.allOf || property.anyOf || property.oneOf;
+        const subSchemas = combine?.map((c) =>
+          resolveObject({ schema: c, combined: true, context: context }),
+        );
+        if (
+          subSchemas?.some((subSchema) => {
+            return ['number', 'integer', 'boolean'].includes(subSchema.type);
+          })
+        ) {
+          formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
+        }
+
+        if (
+          subSchemas?.some((subSchema) => {
+            return subSchema.type === 'null';
+          })
+        ) {
+          existSubSchemaNullable = true;
+        }
+      }
+
       const isRequired =
         schema.required?.includes(key) && !isRequestBodyOptional;
 
-      if (property.nullable) {
+      if (
+        property.nullable ||
+        property.type?.includes('null') ||
+        existSubSchemaNullable
+      ) {
         if (isRequired) {
           return acc + `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
         }
