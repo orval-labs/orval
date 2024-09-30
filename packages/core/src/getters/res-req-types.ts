@@ -416,37 +416,49 @@ const resolveSchemaPropertiesToFormData = ({
           if (itemSchema.type === 'object' || itemSchema.type === 'array') {
             valueStr = 'JSON.stringify(value)';
           } else if (
-            itemSchema.type === 'number' || itemSchema.type?.includes('number') ||
-            itemSchema.type === 'integer' || itemSchema.type?.includes('integer') ||
-            itemSchema.type === 'boolean' || itemSchema.type?.includes('boolean')
+            itemSchema.type === 'number' ||
+            itemSchema.type?.includes('number') ||
+            itemSchema.type === 'integer' ||
+            itemSchema.type?.includes('integer') ||
+            itemSchema.type === 'boolean' ||
+            itemSchema.type?.includes('boolean')
           ) {
             valueStr = 'value.toString()';
           }
         }
         formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', ${valueStr}));\n`;
       } else if (
-        property.type === 'number' || property.type?.includes('number') ||
-        property.type === 'integer' || property.type?.includes('integer') ||
-        property.type === 'boolean' || property.type?.includes('boolean')
+        property.type === 'number' ||
+        property.type?.includes('number') ||
+        property.type === 'integer' ||
+        property.type?.includes('integer') ||
+        property.type === 'boolean' ||
+        property.type?.includes('boolean')
       ) {
         formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
       } else {
         formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey})\n`;
       }
 
-      let existSubSchemaNullable = false
+      let existSubSchemaNullable = false;
       if (property.allOf || property.anyOf || property.oneOf) {
         const combine = property.allOf || property.anyOf || property.oneOf;
-        const subSchema = combine?.map((c) => resolveObject({schema: c, combined: true, context: context}))
-        if (subSchema?.some(schema => {
-          return ['number', 'integer', 'boolean'].includes(schema.type)
-        })) {
+        const subSchema = combine?.map((c) =>
+          resolveObject({ schema: c, combined: true, context: context }),
+        );
+        if (
+          subSchema?.some((schema) => {
+            return ['number', 'integer', 'boolean'].includes(schema.type);
+          })
+        ) {
           formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
         }
 
-        if (subSchema?.some(schema => {
-          return schema.type === 'null'
-        })) {
+        if (
+          subSchema?.some((schema) => {
+            return schema.type === 'null';
+          })
+        ) {
           existSubSchemaNullable = true;
         }
       }
@@ -454,7 +466,11 @@ const resolveSchemaPropertiesToFormData = ({
       const isRequired =
         schema.required?.includes(key) && !isRequestBodyOptional;
 
-      if (property.nullable || property.type?.includes('null') || existSubSchemaNullable) {
+      if (
+        property.nullable ||
+        property.type?.includes('null') ||
+        existSubSchemaNullable
+      ) {
         if (isRequired) {
           return acc + `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
         }
