@@ -443,20 +443,20 @@ const resolveSchemaPropertiesToFormData = ({
       let existSubSchemaNullable = false;
       if (property.allOf || property.anyOf || property.oneOf) {
         const combine = property.allOf || property.anyOf || property.oneOf;
-        const subSchema = combine?.map((c) =>
+        const subSchemas = combine?.map((c) =>
           resolveObject({ schema: c, combined: true, context: context }),
         );
         if (
-          subSchema?.some((schema) => {
-            return ['number', 'integer', 'boolean'].includes(schema.type);
+          subSchemas?.some((subSchema) => {
+            return ['number', 'integer', 'boolean'].includes(subSchema.type);
           })
         ) {
           formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
         }
 
         if (
-          subSchema?.some((schema) => {
-            return schema.type === 'null';
+          subSchemas?.some((subSchema) => {
+            return subSchema.type === 'null';
           })
         ) {
           existSubSchemaNullable = true;
