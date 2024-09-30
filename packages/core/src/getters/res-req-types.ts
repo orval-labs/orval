@@ -434,10 +434,27 @@ const resolveSchemaPropertiesToFormData = ({
         formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey})\n`;
       }
 
+      let existSubSchemaNullable = false
+      if (property.allOf || property.anyOf || property.oneOf) {
+        const combine = property.allOf || property.anyOf || property.oneOf;
+        const subSchema = combine?.map((c) => resolveObject({schema: c, combined: true, context: context}))
+        if (subSchema?.some(schema => {
+          return ['number', 'integer', 'boolean'].includes(schema.type)
+        })) {
+          formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
+        }
+
+        if (subSchema?.some(schema => {
+          return schema.type === 'null'
+        })) {
+          existSubSchemaNullable = true;
+        }
+      }
+
       const isRequired =
         schema.required?.includes(key) && !isRequestBodyOptional;
 
-      if (property.nullable || property.type?.includes('null')) {
+      if (property.nullable || property.type?.includes('null') || existSubSchemaNullable) {
         if (isRequired) {
           return acc + `if(${valueKey} !== null) {\n ${formDataValue} }\n`;
         }
