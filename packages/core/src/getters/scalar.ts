@@ -52,7 +52,7 @@ export const getScalar = ({
       }
 
       const itemWithConst = item as SchemaWithConst;
-      if (itemWithConst.const) {
+      if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
 
@@ -73,7 +73,7 @@ export const getScalar = ({
       let value = 'boolean';
 
       const itemWithConst = item as SchemaWithConst;
-      if (itemWithConst.const) {
+      if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
 
