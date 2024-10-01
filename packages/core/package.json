@@ -45,7 +45,7 @@
     "lodash.uniqby": "^4.7.0",
     "lodash.uniqwith": "^4.5.0",
     "micromatch": "^4.0.5",
-    "openapi3-ts": "4.2.2",
+    "openapi3-ts": "4.4.0",
     "swagger2openapi": "^7.0.8"
   }
 }

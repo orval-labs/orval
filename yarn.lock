@@ -1214,7 +1214,7 @@ __metadata:
     lodash.uniqby: "npm:^4.7.0"
     lodash.uniqwith: "npm:^4.5.0"
     micromatch: "npm:^4.0.5"
-    openapi3-ts: "npm:4.2.2"
+    openapi3-ts: "npm:4.4.0"
     swagger2openapi: "npm:^7.0.8"
   languageName: unknown
   linkType: soft
@@ -1245,7 +1245,7 @@ __metadata:
     "@orval/core": "npm:7.1.1"
     lodash.get: "npm:^4.4.2"
     lodash.omit: "npm:^4.5.0"
-    openapi3-ts: "npm:^4.2.2"
+    openapi3-ts: "npm:^4.4.0"
   languageName: unknown
   linkType: soft
 
@@ -7074,21 +7074,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openapi3-ts@npm:4.2.2":
-  version: 4.2.2
-  resolution: "openapi3-ts@npm:4.2.2"
+"openapi3-ts@npm:4.4.0, openapi3-ts@npm:^4.4.0":
+  version: 4.4.0
+  resolution: "openapi3-ts@npm:4.4.0"
   dependencies:
-    yaml: "npm:^2.3.4"
-  checksum: 10c0/8569c0cecf12353d57d7cebe28d495a2b33a06f6f9ebb1b9c808490f9ea87e7e480c62ffb9c3632f78647b09ca722bbc39b36804e73cea1f8fc7626785a23b99
-  languageName: node
-  linkType: hard
-
-"openapi3-ts@npm:^4.2.2":
-  version: 4.3.3
-  resolution: "openapi3-ts@npm:4.3.3"
-  dependencies:
-    yaml: "npm:^2.4.5"
-  checksum: 10c0/44090b7fe8d252740c55e6485e287bd1b1c6a32b3b0b9dfa7924c716a125e3c42daafbf4e6b3b8fdb4e2f9188c60e4b9211e4d474c861750919ca291b4bb855f
+    yaml: "npm:^2.5.0"
+  checksum: 10c0/900b834279fc8a43c545728ad75ec7c26934ec5344225b60d1e1c0df44d742d7e7379aea18d9034e03031f079d3308ba5a68600682eece3ed41cdbdd10346a9e
   languageName: node
   linkType: hard
 
@@ -7198,7 +7189,7 @@ __metadata:
     find-up: "npm:5.0.0"
     fs-extra: "npm:^11.2.0"
     lodash.uniq: "npm:^4.5.0"
-    openapi3-ts: "npm:4.2.2"
+    openapi3-ts: "npm:4.4.0"
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^2.0.1"
   bin:
@@ -9898,12 +9889,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"yaml@npm:^2.1.1, yaml@npm:^2.2.2, yaml@npm:^2.3.4, yaml@npm:^2.4.5, yaml@npm:~2.5.0":
+"yaml@npm:^2.1.1, yaml@npm:^2.2.2, yaml@npm:~2.5.0":
   version: 2.5.0
   resolution: "yaml@npm:2.5.0"
   bin:
     yaml: bin.mjs
   checksum: 10c0/771a1df083c8217cf04ef49f87244ae2dd7d7457094425e793b8f056159f167602ce172aa32d6bca21f787d24ec724aee3cecde938f6643564117bd151452631
+  languageName: node
+  linkType: hard
+
+"yaml@npm:^2.5.0":
+  version: 2.5.1
+  resolution: "yaml@npm:2.5.1"
+  bin:
+    yaml: bin.mjs
+  checksum: 10c0/40fba5682898dbeeb3319e358a968fe886509fab6f58725732a15f8dda3abac509f91e76817c708c9959a15f786f38ff863c1b88062d7c1162c5334a7d09cb4a
   languageName: node
   linkType: hard
 
