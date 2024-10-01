@@ -37,7 +37,7 @@ module.exports = {
 };
 ```
 
-if you want you can provide a function to extend or create you custom client generator and this function receive a [[GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156)](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
+If you want you can provide a function to extend or create you custom client generator and this function receive a [GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
 
 ### httpClient
 
