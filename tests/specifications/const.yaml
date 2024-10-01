@@ -26,11 +26,15 @@ components:
       type: object
       required:
         - value
+        - valueFalse
         - valueNullable
       properties:
         value:
           type: boolean
           const: true
+        valueFalse:
+          type: boolean
+          const: false
         valueNullable:
           type:
             - boolean
@@ -40,11 +44,15 @@ components:
       type: object
       required:
         - value
+        - valueZero
         - valueNullable
       properties:
         value:
           type: number
           const: 1
+        valueZero:
+          type: number
+          const: 0
         valueNullable:
           type:
             - number
