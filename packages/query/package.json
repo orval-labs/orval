@@ -20,6 +20,6 @@
   },
   "devDependencies": {
     "@types/lodash.omitby": "^4.6.7",
-    "vitest": "^0.34.6"
+    "vitest": "^2.1.1"
   }
 }
