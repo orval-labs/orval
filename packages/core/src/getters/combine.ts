@@ -113,6 +113,12 @@ export const combineSchemas = ({
         propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
       }
 
+      // the required fields in this schema need to be considered
+      // in the sub schema under the allOf key
+      if (separator === 'allOf') {
+        subSchema = {...subSchema, required: schema.required};
+      }
+
       const resolvedValue = resolveObject({
         schema: subSchema,
         propName,
