@@ -115,7 +115,7 @@ export const combineSchemas = ({
 
       // the required fields in this schema need to be considered
       // in the sub schema under the allOf key
-      if (separator === 'allOf') {
+      if (separator === 'allOf' && schema.required) {
         subSchema = { ...subSchema, required: schema.required };
       }
 

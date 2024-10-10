@@ -77,6 +77,12 @@ export const combineSchemasMock = ({
       return acc;
     }
 
+    // the required fields in this schema need to be considered
+    // in the sub schema under the allOf key
+    if (separator === 'allOf' && item.required) {
+      val = { ...val, required: item.required };
+    }
+
     const resolvedValue = resolveMockValue({
       schema: {
         ...val,
