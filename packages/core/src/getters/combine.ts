@@ -8,7 +8,7 @@ import {
   ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal } from '../utils';
+import { getNumberWord, pascal, isSchema } from '../utils';
 import { getEnumImplementation } from './enum';
 import { getScalar } from './scalar';
 import uniq from 'lodash.uniq';
@@ -116,7 +116,14 @@ export const combineSchemas = ({
       // the required fields in this schema need to be considered
       // in the sub schema under the allOf key
       if (separator === 'allOf' && schema.required) {
-        subSchema = { ...subSchema, required: schema.required };
+        if (isSchema(subSchema) && subSchema.required) {
+          subSchema = {
+            ...subSchema,
+            required: [...schema.required, ...subSchema.required],
+          };
+        } else {
+          subSchema = { ...subSchema, required: schema.required };
+        }
       }
 
       const resolvedValue = resolveObject({
