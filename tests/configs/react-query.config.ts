@@ -413,31 +413,6 @@ export default defineConfig({
       target: '../specifications/polymorphic.yaml',
     },
   },
-  polymorphicRequired: {
-    output: {
-      target: '../generated/react-query/polymorphic-required/endpoints.ts',
-      schemas: '../generated/react-query/polymorphic-required/model',
-      client: 'react-query',
-      mock: true,
-      headers: true,
-    },
-    input: {
-      target: '../specifications/polymorphic-required.yaml',
-    },
-  },
-  polymorphicRequiredNested: {
-    output: {
-      target:
-        '../generated/react-query/polymorphic-required-nested/endpoints.ts',
-      schemas: '../generated/react-query/polymorphic-required-nested/model',
-      client: 'react-query',
-      mock: true,
-      headers: true,
-    },
-    input: {
-      target: '../specifications/polymorphic-required-nested.yaml',
-    },
-  },
   namedParameters: {
     output: {
       target: '../generated/react-query/named-parameters/endpoints.ts',
