@@ -2,6 +2,7 @@ import {
   ContextSpecs,
   GeneratorImport,
   isReference,
+  isSchema,
   MockOptions,
 } from '@orval/core';
 import omit from 'lodash.omit';
@@ -75,6 +76,16 @@ export const combineSchemasMock = ({
       }
 
       return acc;
+    }
+
+    // the required fields in this schema need to be considered
+    // in the sub schema under the allOf key
+    if (separator === 'allOf' && item.required) {
+      if (isSchema(val) && val.required) {
+        val = { ...val, required: [...item.required, ...val.required] };
+      } else {
+        val = { ...val, required: item.required };
+      }
     }
 
     const resolvedValue = resolveMockValue({
