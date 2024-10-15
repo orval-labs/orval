@@ -12,6 +12,8 @@ import {
   GetterProps,
   GetterPropType,
   TEMPLATE_TAG_REGEX,
+  getIsBodyVerb,
+  Verbs,
 } from '@orval/core';
 import chalk from 'chalk';
 
@@ -130,3 +132,11 @@ export const makeRouteSafe = (route: string): string =>
 
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;
+
+export const getHasSignal = ({
+  overrideQuerySignal = false,
+  verb,
+}: {
+  verb: Verbs;
+  overrideQuerySignal?: boolean;
+}) => overrideQuerySignal && (!getIsBodyVerb(verb) || verb === Verbs.POST);
