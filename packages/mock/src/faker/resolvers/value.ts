@@ -94,12 +94,25 @@ export const resolveMockValue = ({
       isRef: true,
     };
 
+    const newSeparator = newSchema.allOf
+      ? 'allOf'
+      : newSchema.oneOf
+        ? 'oneOf'
+        : 'anyOf';
+
     const scalar = getMockScalar({
       item: newSchema,
       mockOptions,
       operationId,
       tags,
-      combine,
+      combine: combine
+        ? {
+            separator:
+              combine.separator === 'anyOf' ? newSeparator : combine.separator,
+            includedProperties:
+              newSeparator === 'allOf' ? [] : combine.includedProperties,
+          }
+        : undefined,
       context: {
         ...context,
         specKey,
@@ -145,6 +158,10 @@ export const resolveMockValue = ({
         name: newSchema.name,
         specKey: isRootKey(specKey, context.target) ? undefined : specKey,
       });
+    }
+
+    if (scalar.value && newSchema.allOf && combine?.separator === 'anyOf') {
+      scalar.value = `{${scalar.value}}`;
     }
 
     return {
