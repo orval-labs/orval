@@ -136,7 +136,6 @@ const generateImplementation = (
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
     formUrlEncoded,
@@ -165,7 +164,6 @@ const generateImplementation = (
       isFormData,
       isFormUrlEncoded,
       hasSignal: false,
-      isBodyVerb,
       isExactOptionalPropertyTypes,
     });
 
