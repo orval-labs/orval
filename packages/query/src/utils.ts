@@ -58,6 +58,7 @@ export const normalizeQueryOptions = (
     ...(queryOptions.shouldExportHttpClient
       ? { shouldExportHttpClient: true }
       : {}),
+    ...(queryOptions.shouldSplitQueryKey ? { shouldSplitQueryKey: true } : {}),
   };
 };
 
