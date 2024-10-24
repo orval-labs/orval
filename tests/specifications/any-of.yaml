@@ -33,6 +33,17 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
+  /any-of-included-all-of-and-shared-schema-pet:
+    get:
+      summary: Gets anyOf included allOf and shared schema pets
+      operationId: getAnyOfIncludedAllOfAndSharedSchemaPets
+      responses:
+        '200':
+          description: Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatDetail'
 components:
   schemas:
     A:
@@ -68,3 +79,21 @@ components:
       properties:
         name:
           type: string
+    CatDetail:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          anyOf:
+            - $ref: '#/components/schemas/Cat'
+            - $ref: '#/components/schemas/CatExpandDetail'
+    CatExpandDetail:
+      allOf:
+        - $ref: '#/components/schemas/Cat'
+        - type: object
+          required:
+            - url
+          properties:
+            url:
+              type: string

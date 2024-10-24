@@ -36,13 +36,16 @@ export const customInstance = async <T>({
   data?: BodyType<unknown>;
   responseType?: string;
 }): Promise<T> => {
-  const response = await fetch(
-    `${baseURL}${url}` + new URLSearchParams(params),
-    {
-      method,
-      ...(data ? { body: JSON.stringify(data) } : {}),
-    },
-  );
+  let targetUrl = `${baseURL}${url}`;
+
+  if (params) {
+    targetUrl += '?' + new URLSearchParams(params);
+  }
+
+  const response = await fetch(targetUrl, {
+    method,
+    ...(data ? { body: JSON.stringify(data) } : {}),
+  });
 
   return response.json();
 };
