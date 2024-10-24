@@ -115,6 +115,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryKey' },
       { name: 'InfiniteData' },
       { name: 'CreateMutationResult' },
+      { name: 'DataTag' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -199,6 +200,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'QueryClient' },
       { name: 'InfiniteData' },
       { name: 'UseMutationResult' },
+      { name: 'DataTag' },
     ],
     dependency: '@tanstack/react-query',
   },
@@ -284,6 +286,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryReturnType' },
       { name: 'InfiniteData' },
       { name: 'UseMutationReturnType' },
+      { name: 'DataTag' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -409,7 +412,7 @@ const generateQueryOptions = ({
       )?.slice(1, -1)}`
     : '';
 
-  if (!params.length) {
+  if (!params.length || isSuspenseQuery(type)) {
     if (options) {
       return `${queryConfig} ...queryOptions`;
     }
@@ -565,6 +568,7 @@ const generateQueryReturnType = ({
   operationName,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  hasQueryV5,
   isInitialDataDefined,
 }: {
   outputClient: OutputClient | OutputClientFunc;
@@ -573,6 +577,7 @@ const generateQueryReturnType = ({
   operationName: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  hasQueryV5: boolean;
   isInitialDataDefined?: boolean;
 }) => {
   switch (outputClient) {
@@ -582,31 +587,31 @@ const generateQueryReturnType = ({
           isMutatorHook
             ? `ReturnType<typeof use${pascal(operationName)}Hook>`
             : `typeof ${operationName}`
-        }>>, TError, TData, QueryKey> & { queryKey: QueryKey }`;
+        }>>, TError, TData, QueryKey> & { queryKey: QueryKey} }`;
       }
 
       return `Create${pascal(
         type,
-      )}Result<TData, TError> & { queryKey: QueryKey }`;
+      )}Result<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
     }
     case OutputClient.VUE_QUERY: {
       if (!hasVueQueryV4) {
         return ` UseQueryReturnType<TData, TError, Use${pascal(
           type,
-        )}Result<TData, TError>> & { queryKey: QueryKey }`;
+        )}Result<TData, TError>> & { queryKey: QueryKey} }`;
       }
 
       if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
-        return `UseQueryReturnType<TData, TError> & { queryKey: QueryKey }`;
+        return `UseQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
       }
 
-      return `UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey }`;
+      return `UseInfiniteQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
     }
     case OutputClient.REACT_QUERY:
     default: {
       return ` ${
         isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''
-      }Use${pascal(type)}Result<TData, TError> & { queryKey: QueryKey }`;
+      }Use${pascal(type)}Result<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
     }
   }
 };
@@ -779,6 +784,7 @@ const generateQueryImplementation = ({
     operationName,
     hasVueQueryV4,
     hasSvelteQueryV4,
+    hasQueryV5,
     isInitialDataDefined: true,
   });
   const returnType = generateQueryReturnType({
@@ -788,6 +794,7 @@ const generateQueryImplementation = ({
     operationName,
     hasVueQueryV4,
     hasSvelteQueryV4,
+    hasQueryV5,
   });
 
   const errorType = getQueryErrorType(
@@ -963,7 +970,9 @@ ${hookOptions}
        ? `{ queryKey, queryFn, ${queryOptionsImp}}`
        : 'customOptions'
    } as ${queryOptionFnReturnType} ${
-     isVue(outputClient) ? '' : '& { queryKey: QueryKey }'
+     isVue(outputClient)
+       ? ''
+       : `& { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`
    }
 }`;
 
@@ -997,7 +1006,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   ${queryResultVarName}.queryKey = ${
     isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName
-  }.queryKey ${isVue(outputClient) ? 'as QueryKey' : ''};
+  }.queryKey ${isVue(outputClient) ? `as ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'}` : ''};
 
   return ${queryResultVarName};
 }\n

@@ -8,8 +8,8 @@ import type {
   CreatePetsBodyItem,
   ListPetsParams,
   Pet,
-  Pets
-} from '.././models'
+  Pets,
+} from '.././models';
 
 /**
  * @summary List all pets
@@ -17,37 +17,34 @@ import type {
 export type listPetsResponse = {
   data: Pets;
   status: number;
-}
+};
 
-export const getListPetsUrl = (params?: ListPetsParams,) => {
+export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    
     if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : value.toString());
     }
   });
 
-  return normalizedParams.size ? `http://localhost:8787/pets?${normalizedParams.toString()}` : `http://localhost:8787/pets`
-}
+  return normalizedParams.size
+    ? `http://localhost:8787/pets?${normalizedParams.toString()}`
+    : `http://localhost:8787/pets`;
+};
 
-export const listPets = async (params?: ListPetsParams, options?: RequestInit): Promise<listPetsResponse> => {
-  
-  const res = await fetch(getListPetsUrl(params),
-  {      
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  const res = await fetch(getListPetsUrl(params), {
     ...options,
-    method: 'GET'
-    
-    
-  }
+    method: 'GET',
+  });
+  const data = await res.json();
 
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
-
+  return { status: res.status, data };
+};
 
 /**
  * @summary Create a pet
@@ -55,31 +52,26 @@ export const listPets = async (params?: ListPetsParams, options?: RequestInit): 
 export type createPetsResponse = {
   data: Pet;
   status: number;
-}
+};
 
 export const getCreatePetsUrl = () => {
+  return `http://localhost:8787/pets`;
+};
 
-
-  return `http://localhost:8787/pets`
-}
-
-export const createPets = async (createPetsBodyItem: CreatePetsBodyItem[], options?: RequestInit): Promise<createPetsResponse> => {
-  
-  const res = await fetch(getCreatePetsUrl(),
-  {      
+export const createPets = async (
+  createPetsBodyItem: CreatePetsBodyItem[],
+  options?: RequestInit,
+): Promise<createPetsResponse> => {
+  const res = await fetch(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      createPetsBodyItem,)
-  }
+    body: JSON.stringify(createPetsBodyItem),
+  });
+  const data = await res.json();
 
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
-
+  return { status: res.status, data };
+};
 
 /**
  * @summary Update a pet
@@ -87,31 +79,26 @@ export const createPets = async (createPetsBodyItem: CreatePetsBodyItem[], optio
 export type updatePetsResponse = {
   data: Pet;
   status: number;
-}
+};
 
 export const getUpdatePetsUrl = () => {
+  return `http://localhost:8787/pets`;
+};
 
-
-  return `http://localhost:8787/pets`
-}
-
-export const updatePets = async (pet: Pet, options?: RequestInit): Promise<updatePetsResponse> => {
-  
-  const res = await fetch(getUpdatePetsUrl(),
-  {      
+export const updatePets = async (
+  pet: Pet,
+  options?: RequestInit,
+): Promise<updatePetsResponse> => {
+  const res = await fetch(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
-    body: JSON.stringify(
-      pet,)
-  }
+    body: JSON.stringify(pet),
+  });
+  const data = await res.json();
 
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
-
+  return { status: res.status, data };
+};
 
 /**
  * @summary Info for a specific pet
@@ -119,28 +106,21 @@ export const updatePets = async (pet: Pet, options?: RequestInit): Promise<updat
 export type showPetByIdResponse = {
   data: Pet;
   status: number;
-}
+};
 
-export const getShowPetByIdUrl = (petId: string,) => {
+export const getShowPetByIdUrl = (petId: string) => {
+  return `http://localhost:8787/pets/${petId}`;
+};
 
-
-  return `http://localhost:8787/pets/${petId}`
-}
-
-export const showPetById = async (petId: string, options?: RequestInit): Promise<showPetByIdResponse> => {
-  
-  const res = await fetch(getShowPetByIdUrl(petId),
-  {      
+export const showPetById = async (
+  petId: string,
+  options?: RequestInit,
+): Promise<showPetByIdResponse> => {
+  const res = await fetch(getShowPetByIdUrl(petId), {
     ...options,
-    method: 'GET'
-    
-    
-  }
+    method: 'GET',
+  });
+  const data = await res.json();
 
-  )
-  const data = await res.json()
-
-  return { status: res.status, data }
-}
-
-
+  return { status: res.status, data };
+};

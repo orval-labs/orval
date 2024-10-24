@@ -6,6 +6,7 @@
  */
 import { useMutation, useQuery } from '@tanstack/react-query';
 import type {
+  DataTag,
   DefinedInitialDataOptions,
   DefinedUseQueryResult,
   MutationFunction,
@@ -116,7 +117,7 @@ export const getListPetsQueryOptions = <
     Awaited<ReturnType<typeof listPets>>,
     TError,
     TData
-  > & { queryKey: QueryKey };
+  > & { queryKey: DataTag<QueryKey, TData> };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -143,7 +144,9 @@ export function useListPets<
       >;
     request?: SecondParameter<typeof customFetch>;
   },
-): DefinedUseQueryResult<TData, TError> & { queryKey: QueryKey };
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData>;
+};
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = unknown,
@@ -163,7 +166,7 @@ export function useListPets<
       >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = unknown,
@@ -175,7 +178,7 @@ export function useListPets<
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary List all pets
  */
@@ -191,11 +194,11 @@ export function useListPets<
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
+    queryKey: DataTag<QueryKey, TData>;
   };
 
   query.queryKey = queryOptions.queryKey;
@@ -422,7 +425,7 @@ export const getShowPetByIdQueryOptions = <
     Awaited<ReturnType<typeof showPetById>>,
     TError,
     TData
-  > & { queryKey: QueryKey };
+  > & { queryKey: DataTag<QueryKey, TData> };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -449,7 +452,9 @@ export function useShowPetById<
       >;
     request?: SecondParameter<typeof customFetch>;
   },
-): DefinedUseQueryResult<TData, TError> & { queryKey: QueryKey };
+): DefinedUseQueryResult<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData>;
+};
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -469,7 +474,7 @@ export function useShowPetById<
       >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = Error,
@@ -481,7 +486,7 @@ export function useShowPetById<
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey };
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Info for a specific pet
  */
@@ -497,11 +502,11 @@ export function useShowPetById<
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: QueryKey;
+    queryKey: DataTag<QueryKey, TData>;
   };
 
   query.queryKey = queryOptions.queryKey;
