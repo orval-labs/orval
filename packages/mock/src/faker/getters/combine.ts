@@ -4,6 +4,7 @@ import {
   isReference,
   isSchema,
   MockOptions,
+  pascal,
 } from '@orval/core';
 import omit from 'lodash.omit';
 import { MockDefinition, MockSchemaObject } from '../../types';
@@ -69,7 +70,7 @@ export const combineSchemasMock = ({
   const value = (item[separator] ?? []).reduce((acc, val, index, arr) => {
     if (
       '$ref' in val &&
-      existingReferencedProperties.includes(val.$ref.split('/').pop()!)
+      existingReferencedProperties.includes(pascal(val.$ref.split('/').pop()!))
     ) {
       if (arr.length === 1) {
         return 'undefined';

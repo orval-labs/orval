@@ -5,6 +5,7 @@ import {
   isBoolean,
   isReference,
   MockOptions,
+  pascal,
 } from '@orval/core';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveMockValue } from '../resolvers/value';
@@ -120,7 +121,9 @@ export const getMockObject = ({
         // Fixes issue #910
         if (
           '$ref' in prop &&
-          existingReferencedProperties.includes(prop.$ref.split('/').pop()!)
+          existingReferencedProperties.includes(
+            pascal(prop.$ref.split('/').pop()!),
+          )
         ) {
           return undefined;
         }

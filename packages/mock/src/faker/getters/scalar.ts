@@ -6,6 +6,7 @@ import {
   isRootKey,
   mergeDeep,
   MockOptions,
+  pascal,
 } from '@orval/core';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
@@ -172,7 +173,9 @@ export const getMockScalar = ({
 
       if (
         '$ref' in item.items &&
-        existingReferencedProperties.includes(item.items.$ref.split('/').pop()!)
+        existingReferencedProperties.includes(
+          pascal(item.items.$ref.split('/').pop()!),
+        )
       ) {
         return { value: '[]', imports: [], name: item.name };
       }
