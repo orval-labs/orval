@@ -41,9 +41,27 @@ components:
         - birthDate
         - createdAt
       properties:
+        id:
+          type: integer
+          format: int64
         birthDate:
           type: string
           format: date
         createdAt:
           type: string
           format: date-time
+        age:
+          type: integer
+        legCount:
+          type: number
+        weight:
+          type: number
+          format: double
+        height:
+          type: number
+          format: float
+        chipNumbers:
+          type: array
+          items:
+            type: integer
+            format: int64
