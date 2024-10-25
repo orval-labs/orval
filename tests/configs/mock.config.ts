@@ -147,14 +147,15 @@ export default defineConfig({
       mock: true,
     },
   },
-  useDates: {
+  formats: {
     input: '../specifications/format.yaml',
     output: {
-      target: '../generated/mock/useDates/endpoints.ts',
-      schemas: '../generated/mock/useDates/model',
+      target: '../generated/mock/formats/endpoints.ts',
+      schemas: '../generated/mock/formats/model',
       mock: true,
       override: {
         useDates: true,
+        useBigInt: true,
       },
     },
   },
