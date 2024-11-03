@@ -94,7 +94,6 @@ const generateAxiosImplementation = (
     isFormData,
     isFormUrlEncoded,
   });
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -106,7 +105,6 @@ const generateAxiosImplementation = (
       verb,
       isFormData,
       isFormUrlEncoded,
-      isBodyVerb,
       hasSignal: false,
       isExactOptionalPropertyTypes,
     });

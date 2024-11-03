@@ -44,6 +44,7 @@ import {
   getQueryOptions,
 } from './client';
 import {
+  getHasSignal,
   isVue,
   normalizeQueryOptions,
   vueUnRefParams,
@@ -1225,7 +1226,10 @@ const generateQueryHook = async (
           outputClient,
           httpClient,
           isExactOptionalPropertyTypes,
-          hasSignal: !!query.signal,
+          hasSignal: getHasSignal({
+            overrideQuerySignal: override.query.signal,
+            verb,
+          }),
           queryOptionsMutator,
           queryKeyMutator,
           route,

@@ -9,7 +9,6 @@ import {
   GeneratorDependency,
   GeneratorOptions,
   OutputHttpClient,
-  VERBS_WITH_BODY,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -18,12 +17,11 @@ import {
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
 import {
-  isVue,
+  getHasSignal,
   makeRouteSafe,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
 } from './utils';
-import exp from 'constants';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -86,11 +84,13 @@ export const generateAxiosRequestFunction = (
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = override.formData !== false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
-  const hasSignal = !!override.query.signal;
+  const hasSignal = getHasSignal({
+    overrideQuerySignal: override.query.signal,
+    verb,
+  });
 
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -110,7 +110,6 @@ export const generateAxiosRequestFunction = (
       verb,
       isFormData,
       isFormUrlEncoded,
-      isBodyVerb,
       hasSignal,
       isExactOptionalPropertyTypes,
       isVue,
@@ -144,9 +143,7 @@ export const generateAxiosRequestFunction = (
           isRequestOptions && mutator.hasSecondArg
             ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
-        }${
-          !isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''
-        }) => {${bodyForm}
+        }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
@@ -159,7 +156,7 @@ export const generateAxiosRequestFunction = (
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${!isBodyVerb && hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
+    }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
       ${isVue ? vueUnRefParams(props) : ''}
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
