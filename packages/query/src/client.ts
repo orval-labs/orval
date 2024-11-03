@@ -12,20 +12,16 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
-  Verbs,
-  getIsBodyVerb,
 } from '@orval/core';
 
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
 
 import {
   getHasSignal,
-  isVue,
   makeRouteSafe,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
 } from './utils';
-import exp from 'constants';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
