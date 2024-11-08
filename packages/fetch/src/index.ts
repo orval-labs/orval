@@ -105,14 +105,15 @@ ${
 }\n`;
 
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpStatusReturnType,
+    override.fetch.includeHttpResponseReturnType,
     response.definition.success,
     operationName,
   );
-  const responseTypeImplementation = override.fetch.includeHttpStatusReturnType
+  const responseTypeImplementation = override.fetch.includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
   data: ${response.definition.success || 'unknown'};
   status: number;
+  headers?: Headers;
 }\n\n`
     : '';
 
@@ -167,7 +168,7 @@ ${
   )
   const data = await res.json()
 
-  ${override.fetch.includeHttpStatusReturnType ? 'return { status: res.status, data }' : `return data as ${responseTypeName}`}
+  ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers?: res.headers }' : `return data as ${responseTypeName}`}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
 
@@ -197,11 +198,11 @@ ${
 };
 
 export const fetchResponseTypeName = (
-  includeHttpStatusReturnType: boolean,
+  includeHttpResponseReturnType: boolean,
   definitionSuccessResponse: string,
   operationName: string,
 ) => {
-  return includeHttpStatusReturnType
+  return includeHttpResponseReturnType
     ? `${operationName}Response`
     : definitionSuccessResponse;
 };
