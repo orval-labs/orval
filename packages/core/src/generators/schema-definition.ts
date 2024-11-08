@@ -1,15 +1,19 @@
 import isEmpty from 'lodash.isempty';
-import { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
+import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
 import { getEnum, resolveDiscriminators } from '../getters';
 import { resolveRef, resolveValue } from '../resolvers';
-import { ContextSpecs, GeneratorSchema, InputFiltersOption } from '../types';
+import type {
+  ContextSpecs,
+  GeneratorSchema,
+  InputFiltersOption,
+} from '../types';
 import {
-  upath,
   isReference,
+  isString,
   jsDoc,
   pascal,
   sanitize,
-  isString,
+  upath,
 } from '../utils';
 import { generateInterface } from './interface';
 
@@ -22,19 +26,25 @@ export const generateSchemasDefinition = (
   schemas: SchemasObject = {},
   context: ContextSpecs,
   suffix: string,
-  schemasFilters?: InputFiltersOption['schemas'],
+  filters?: InputFiltersOption,
 ): GeneratorSchema[] => {
   if (isEmpty(schemas)) {
     return [];
   }
+
   const transformedSchemas = resolveDiscriminators(schemas, context);
 
   let generateSchemas = Object.entries(transformedSchemas);
-  if (schemasFilters) {
+  if (filters) {
+    const schemasFilters = filters.schemas || [];
+    const mode = filters.mode || 'include';
+
     generateSchemas = generateSchemas.filter(([schemaName]) => {
-      return schemasFilters.some((filter) =>
+      const isMatch = schemasFilters.some((filter) =>
         isString(filter) ? filter === schemaName : filter.test(schemaName),
       );
+
+      return mode === 'include' ? isMatch : !isMatch;
     });
   }
 
