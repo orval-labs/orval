@@ -13,32 +13,32 @@ export const getListPetsResponseMock = (): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+    '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.word.sample(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+    name: faker.string.alpha(20),
+    tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
   }));
 
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.word.sample(),
-  tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+  name: faker.string.alpha(20),
+  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
   ...overrideResponse,
 });
 
 export const getShowPetByIdResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  '@id': faker.helpers.arrayElement([faker.word.sample(), undefined]),
+  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.word.sample(),
-  tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+  name: faker.string.alpha(20),
+  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
   ...overrideResponse,
 });
 

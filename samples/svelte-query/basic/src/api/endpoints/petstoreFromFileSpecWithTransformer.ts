@@ -122,12 +122,14 @@ export function createListPets<
 export const createPets = (
   createPetsBody: CreatePetsBody,
   version: number = 1,
+  signal?: AbortSignal,
 ) => {
   return customInstance<void>({
     url: `/v${version}/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
+    signal,
   });
 };
 
