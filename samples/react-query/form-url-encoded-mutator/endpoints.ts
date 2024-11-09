@@ -110,12 +110,16 @@ export function useListPets<
 /**
  * @summary Create a pet
  */
-export const createPets = (createPetsBody: CreatePetsBody) => {
+export const createPets = (
+  createPetsBody: CreatePetsBody,
+  signal?: AbortSignal,
+) => {
   return customInstance<void>({
     url: `/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
+    signal,
   });
 };
 

@@ -118,12 +118,13 @@ export const useCreatePetsHook = () => {
   const createPets = useCustomInstance<void>();
 
   return useCallback(
-    (createPetsBody: CreatePetsBody) => {
+    (createPetsBody: CreatePetsBody, signal?: AbortSignal) => {
       return createPets({
         url: `/pets`,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         data: createPetsBody,
+        signal,
       });
     },
     [createPets],

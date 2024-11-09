@@ -135,12 +135,17 @@ export const useCreatePetsHook = () => {
   const createPets = useCustomClient<void>();
 
   return useCallback(
-    (createPetsBody: BodyType<CreatePetsBody>, version: number = 1) => {
+    (
+      createPetsBody: BodyType<CreatePetsBody>,
+      version: number = 1,
+      signal?: AbortSignal,
+    ) => {
       return createPets({
         url: `/v${version}/pets`,
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         data: createPetsBody,
+        signal,
       });
     },
     [createPets],

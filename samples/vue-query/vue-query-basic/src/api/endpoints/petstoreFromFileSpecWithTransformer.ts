@@ -222,6 +222,7 @@ export function useListPets<
 export const createPets = (
   createPetsBody: MaybeRef<CreatePetsBody>,
   version: MaybeRef<number | undefined | null> = 1,
+  signal?: AbortSignal,
 ) => {
   createPetsBody = unref(createPetsBody);
   version = unref(version);
@@ -231,6 +232,7 @@ export const createPets = (
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     data: createPetsBody,
+    signal,
   });
 };
 
@@ -458,8 +460,12 @@ export function useShowPetById<
 /**
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
  */
-export const postApiV1UserLogout = () => {
-  return customInstance<void>({ url: `/api/v1/user/logout`, method: 'POST' });
+export const postApiV1UserLogout = (signal?: AbortSignal) => {
+  return customInstance<void>({
+    url: `/api/v1/user/logout`,
+    method: 'POST',
+    signal,
+  });
 };
 
 export const getPostApiV1UserLogoutMutationOptions = <
