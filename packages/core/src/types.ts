@@ -501,7 +501,7 @@ export type SwrOptions = {
 };
 
 export type FetchOptions = {
-  includeHttpStatusReturnType: boolean;
+  includeHttpResponseReturnType: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
