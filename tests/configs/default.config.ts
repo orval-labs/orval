@@ -16,6 +16,17 @@ export default defineConfig({
     },
     output: '../generated/default/petstore-filter/endpoints.ts',
   },
+  'petstore-filter-exlude-mode': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        mode: 'exclude',
+        tags: ['pets-nested-array'],
+        schemas: ['PetsNestedArray'],
+      },
+    },
+    output: '../generated/default/petstore-filter-exclude-mode/endpoints.ts',
+  },
   'petstore-transfomer': {
     output: {
       target: '../generated/default/petstore-transformer/endpoints.ts',
