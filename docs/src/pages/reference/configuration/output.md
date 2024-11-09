@@ -683,7 +683,7 @@ module.exports = {
       ...
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
@@ -692,7 +692,7 @@ module.exports = {
 };
 ```
 
-##### includeHttpStatusReturnType
+##### includeHttpResponseReturnType
 
 Type: `Boolean`.
 Default: `true`

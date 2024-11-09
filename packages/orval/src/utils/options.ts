@@ -304,8 +304,9 @@ export const normalizeOptions = async (
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
         },
         fetch: {
-          includeHttpStatusReturnType:
-            outputOptions.override?.fetch?.includeHttpStatusReturnType ?? true,
+          includeHttpResponseReturnType:
+            outputOptions.override?.fetch?.includeHttpResponseReturnType ??
+            true,
           ...(outputOptions.override?.fetch ?? {}),
         },
         useDates: outputOptions.override?.useDates || false,
