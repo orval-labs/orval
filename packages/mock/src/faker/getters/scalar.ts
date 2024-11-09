@@ -100,13 +100,19 @@ export const getMockScalar = ({
     ...(mockOptions?.format ?? {}),
   };
 
-  if (item.format && ALL_FORMAT[item.format]) {
-    const dateFormats = ['date', 'date-time'];
+  if (item.format && (item.format === 'int64' || ALL_FORMAT[item.format])) {
+    let value = ALL_FORMAT[item.format] as string;
 
-    const value =
-      context.output.override.useDates && dateFormats.includes(item.format)
-        ? `new Date(${ALL_FORMAT[item.format]})`
-        : `${ALL_FORMAT[item.format]}`;
+    const dateFormats = ['date', 'date-time'];
+    if (dateFormats.includes(item.format) && context.output.override.useDates) {
+      value = `new Date(${value})`;
+    }
+
+    if (item.format === 'int64') {
+      value = context.output.override.useBigInt
+        ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
+        : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
+    }
 
     return {
       value: getNullable(value, item.nullable),
@@ -122,7 +128,7 @@ export const getMockScalar = ({
     case 'number':
     case 'integer': {
       let value = getNullable(
-        `${getNumberType(type, item.format, context.output.override.useBigInt)}({min: ${item.minimum}, max: ${item.maximum}})`,
+        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
         item.nullable,
       );
       let numberImports: GeneratorImport[] = [];
@@ -326,24 +332,4 @@ function getItemType(item: MockSchemaObject) {
   const type = Array.from(uniqTypes.values()).at(0);
   if (!type) return;
   return ['string', 'number'].includes(type) ? type : undefined;
-}
-
-/**
- * Checks type and format and returns the correct faker number function
- *
- * Will default to int if no specific type is found
- */
-function getNumberType(type?: string, format?: string, useBigInt?: boolean) {
-  switch (type) {
-    case 'integer':
-      return format == 'int64' && useBigInt === true
-        ? 'faker.number.bigInt'
-        : 'faker.number.int';
-    case 'number':
-      return format == 'double' || format == 'float'
-        ? 'faker.number.float'
-        : 'faker.number.int';
-    default:
-      return 'faker.number.int';
-  }
 }
