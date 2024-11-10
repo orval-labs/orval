@@ -235,13 +235,13 @@ export const getSwrMutationFetcherOptionType = (
 export const getSwrMutationFetcherType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
-  includeHttpStatusReturnType: boolean,
+  includeHttpResponseReturnType: boolean,
   operationName: string,
   mutator?: GeneratorMutator,
 ) => {
   if (httpClient === OutputHttpClient.FETCH) {
     const responseType = fetchResponseTypeName(
-      includeHttpStatusReturnType,
+      includeHttpResponseReturnType,
       response.definition.success,
       operationName,
     );

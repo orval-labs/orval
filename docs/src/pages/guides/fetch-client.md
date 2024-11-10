@@ -97,7 +97,7 @@ export const useListPets = <TError = Promise<Pets | Error>>(
 #### return original defined return type
 
 When using `fetch` as an `httpClient`, by default the `fetch` response type includes http status.
-If use `swr` or queries, i will be accessing things like `data.data`, which will be noisy so if you want to return a defined return type instead of an automatically generated return type, set `override.fetch.includeHttpStatusReturnType` value to `false`.
+If use `swr` or queries, i will be accessing things like `data.data`, which will be noisy so if you want to return a defined return type instead of an automatically generated return type, set `override.fetch.includeHttpResponseReturnType` value to `false`.
 
 ```js
 module.exports = {
@@ -106,7 +106,7 @@ module.exports = {
       ...
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },

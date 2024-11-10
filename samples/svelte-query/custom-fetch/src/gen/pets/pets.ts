@@ -59,6 +59,7 @@ type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 export type listPetsResponse = {
   data: Pets;
   status: number;
+  headers: Headers;
 };
 
 export const getListPetsUrl = (params?: ListPetsParams) => {
@@ -159,6 +160,7 @@ export function createListPets<
 export type createPetsResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getCreatePetsUrl = () => {
@@ -241,6 +243,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
 export type updatePetsResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getUpdatePetsUrl = () => {
@@ -323,6 +326,7 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(options?: {
 export type showPetByIdResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getShowPetByIdUrl = (petId: string) => {

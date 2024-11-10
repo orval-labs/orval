@@ -50,6 +50,7 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
 export type listPetsResponse = {
   data: Pets;
   status: number;
+  headers: Headers;
 };
 
 export const getListPetsUrl = (params?: ListPetsParams) => {
@@ -76,7 +77,7 @@ export const listPets = async (
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return { status: res.status, data, headers: res.headers };
 };
 
 export const getListPetsKey = (params?: ListPetsParams) =>
@@ -124,6 +125,7 @@ export const useListPets = <TError = Promise<unknown>>(
 export type createPetsResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getCreatePetsUrl = () => {
@@ -142,7 +144,7 @@ export const createPets = async (
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return { status: res.status, data, headers: res.headers };
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
@@ -192,6 +194,7 @@ export const useCreatePets = <TError = Promise<Error>>(options?: {
 export type updatePetsResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getUpdatePetsUrl = () => {
@@ -210,7 +213,7 @@ export const updatePets = async (
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return { status: res.status, data, headers: res.headers };
 };
 
 export const getUpdatePetsMutationFetcher = (options?: RequestInit) => {
@@ -260,6 +263,7 @@ export const useUpdatePets = <TError = Promise<Error>>(options?: {
 export type showPetByIdResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getShowPetByIdUrl = (petId: string) => {
@@ -276,7 +280,7 @@ export const showPetById = async (
   });
   const data = await res.json();
 
-  return { status: res.status, data };
+  return { status: res.status, data, headers: res.headers };
 };
 
 export const getShowPetByIdKey = (petId: string) =>

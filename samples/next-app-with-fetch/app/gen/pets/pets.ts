@@ -46,6 +46,7 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
 export type listPetsResponse = {
   data: Pets;
   status: number;
+  headers: Headers;
 };
 
 export const getListPetsUrl = (params?: ListPetsParams) => {
@@ -78,6 +79,7 @@ export const listPets = async (
 export type createPetsResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getCreatePetsUrl = () => {
@@ -102,6 +104,7 @@ export const createPets = async (
 export type updatePetsResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getUpdatePetsUrl = () => {
@@ -126,6 +129,7 @@ export const updatePets = async (
 export type showPetByIdResponse = {
   data: Pet;
   status: number;
+  headers: Headers;
 };
 
 export const getShowPetByIdUrl = (petId: string) => {
