@@ -24,16 +24,16 @@
     "@types/lodash.uniq": "^4.5.9",
     "@types/lodash.uniqby": "^4.7.9",
     "@types/lodash.uniqwith": "^4.5.9",
-    "@types/micromatch": "^4.0.5"
+    "@types/micromatch": "^4.0.9"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
-    "@ibm-cloud/openapi-ruleset": "^1.14.2",
-    "acorn": "^8.11.2",
-    "ajv": "^8.12.0",
+    "@ibm-cloud/openapi-ruleset": "^1.24.0",
+    "acorn": "^8.14.0",
+    "ajv": "^8.17.1",
     "chalk": "^4.1.2",
-    "compare-versions": "^6.1.0",
-    "debug": "^4.3.4",
+    "compare-versions": "^6.1.1",
+    "debug": "^4.3.7",
     "esbuild": "^0.24.0",
     "esutils": "2.0.3",
     "fs-extra": "^11.2.0",
@@ -44,8 +44,8 @@
     "lodash.uniq": "^4.5.0",
     "lodash.uniqby": "^4.7.0",
     "lodash.uniqwith": "^4.5.0",
-    "micromatch": "^4.0.5",
-    "openapi3-ts": "4.2.2",
+    "micromatch": "^4.0.8",
+    "openapi3-ts": "4.4.0",
     "swagger2openapi": "^7.0.8"
   }
 }
