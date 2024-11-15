@@ -386,6 +386,26 @@ Default Value: `en`.
 
 Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
+### docs
+
+Type: `Boolean | Object`.
+
+Default Value: `false`.
+
+Will generate API docs using [TypeDoc](https://typedoc.org/). by default these docs will be in Markdown format.
+
+TypeDoc can be configured by creating a config file e.g. `typedoc.config.mjs` in your project root (see the [config docs](https://typedoc.org/options/configuration/#options) for a full list of supported file names) or by passing a config filename to the `config` option below.
+
+See the TypeDoc [configuration documentation](https://typedoc.org/options/) for more details.
+
+The `docs` option can take some properties to customize the generation if you set it to an object. If you set it to `true`, the default options will be used.
+
+#### config
+
+Type: `String`.
+
+Use to specify a TypeDoc config filename. This can be useful if your project already has a TypeDoc config for other docs.
+
 ### clean
 
 Type: `Boolean | String[]`.

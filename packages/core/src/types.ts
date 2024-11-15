@@ -50,6 +50,7 @@ export type NormalizedOutputOptions = {
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
   clean: boolean | string[];
+  docs: boolean | OutputDocsOptions;
   prettier: boolean;
   tslint: boolean;
   biome: boolean;
@@ -174,6 +175,7 @@ export type OutputOptions = {
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
   clean?: boolean | string[];
+  docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
   tslint?: boolean;
   biome?: boolean;
@@ -238,6 +240,10 @@ export const OutputMode = {
 } as const;
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
+
+export type OutputDocsOptions = {
+  config: string;
+};
 
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {
