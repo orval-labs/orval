@@ -6,7 +6,6 @@
  */
 import { useMutation, useQuery } from '@tanstack/vue-query';
 import type {
-  DataTag,
   MutationFunction,
   QueryFunction,
   QueryKey,
@@ -144,14 +143,14 @@ export function useListPets<
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
+    queryKey: QueryKey;
   };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
 }
@@ -394,14 +393,14 @@ export function useShowPetById<
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
+    queryKey: QueryKey;
   };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
 }

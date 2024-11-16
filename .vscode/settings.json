@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["listitem", "openapi", "Orval", "Petstore", "tanstack"]
+  "cSpell.words": ["listitem", "openapi", "Orval", "Petstore", "tanstack"],
+  "typescript.tsdk": "node_modules/typescript/lib"
 }

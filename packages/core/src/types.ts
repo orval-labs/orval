@@ -10,8 +10,8 @@ import {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 // @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
-import swagger2openapi from 'swagger2openapi';
 import type { allLocales } from '@faker-js/faker';
+import swagger2openapi from 'swagger2openapi';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -62,6 +62,7 @@ export type NormalizedOutputOptions = {
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
+  onChanges: boolean;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -186,6 +187,7 @@ export type OutputOptions = {
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
+  onChanges?: boolean;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -600,6 +602,7 @@ export interface GlobalOptions {
   packageJson?: string;
   input?: string;
   output?: string;
+  onChanges?: boolean;
 }
 
 export interface Tsconfig {

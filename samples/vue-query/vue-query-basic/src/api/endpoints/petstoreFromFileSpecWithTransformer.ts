@@ -6,7 +6,6 @@
  */
 import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/vue-query';
 import type {
-  DataTag,
   InfiniteData,
   MutationFunction,
   QueryFunction,
@@ -137,9 +136,7 @@ export function useListPetsInfinite<
       >
     >;
   },
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData>;
-} {
+): UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsInfiniteQueryOptions(
     params,
     version,
@@ -149,9 +146,9 @@ export function useListPetsInfinite<
   const query = useInfiniteQuery(queryOptions) as UseInfiniteQueryReturnType<
     TData,
     TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  > & { queryKey: QueryKey };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
 }
@@ -204,14 +201,14 @@ export function useListPets<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
+    queryKey: QueryKey;
   };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
 }
@@ -376,9 +373,7 @@ export function useShowPetByIdInfinite<
       >
     >;
   },
-): UseInfiniteQueryReturnType<TData, TError> & {
-  queryKey: DataTag<QueryKey, TData>;
-} {
+): UseInfiniteQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdInfiniteQueryOptions(
     petId,
     version,
@@ -388,9 +383,9 @@ export function useShowPetByIdInfinite<
   const query = useInfiniteQuery(queryOptions) as UseInfiniteQueryReturnType<
     TData,
     TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  > & { queryKey: QueryKey };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
 }
@@ -443,14 +438,14 @@ export function useShowPetById<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
   },
-): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+): UseQueryReturnType<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
   const query = useQuery(queryOptions) as UseQueryReturnType<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
+    queryKey: QueryKey;
   };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as QueryKey;
 
   return query;
 }

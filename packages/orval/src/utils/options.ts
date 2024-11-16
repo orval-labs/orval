@@ -78,8 +78,16 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, tslint, biome } =
-    globalOptions;
+  const {
+    clean,
+    prettier,
+    client,
+    httpClient,
+    mode,
+    tslint,
+    biome,
+    onChanges,
+  } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -158,6 +166,7 @@ export const normalizeOptions = async (
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
+      onChanges: outputOptions.onChanges ?? onChanges ?? false,
       override: {
         ...outputOptions.override,
         mock: {

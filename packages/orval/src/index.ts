@@ -8,6 +8,7 @@ import {
 import { generateConfig, generateSpec } from './generate';
 import { defineConfig, normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
+import { writeLastCommit } from './utils/write-last-commit';
 
 const generate = async (
   optionsExport?: string | OptionsExport,
@@ -30,6 +31,7 @@ const generate = async (
       async () => {
         try {
           await generateSpec(workspace, normalizedOptions);
+          await writeLastCommit(workspace);
         } catch (e) {
           logError(e, options?.projectName);
         }
@@ -38,7 +40,8 @@ const generate = async (
     );
   } else {
     try {
-      return await generateSpec(workspace, normalizedOptions);
+      await generateSpec(workspace, normalizedOptions);
+      await writeLastCommit(workspace);
     } catch (e) {
       logError(e, options?.projectName);
     }

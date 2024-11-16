@@ -10,10 +10,10 @@ export type CreatePetsBodyItem = {
 };
 
 export type ListPetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
-  limit?: string;
+/**
+ * How many items to return at one time (max 100)
+ */
+limit?: string;
 };
 
 export interface Error {
@@ -28,3 +28,4 @@ export interface Pet {
 }
 
 export type Pets = Pet[];
+
