@@ -82,7 +82,7 @@ const getQueryParamsTypes = (
         imports: [{ name: enumName }],
         schemas: [
           ...resolvedValue.schemas,
-          { name: enumName, model: enumValue, imports: resolvedValue.imports },
+          { name: enumName, model: enumValue, factoryMethod: '', imports: resolvedValue.imports },
         ],
         originalSchema: resolvedValue.originalSchema,
       };
@@ -125,6 +125,7 @@ export const getQueryParams = ({
 
   const schema = {
     name,
+    factoryMethod: '',
     model: `export type ${name} = {\n${type}\n};\n`,
     imports,
   };

@@ -193,6 +193,7 @@ export const combineSchemas = ({
             })),
           ],
           model: newEnum,
+          factoryMethod: '',
           name: name,
         },
       ],

@@ -78,7 +78,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, tslint, biome } =
+  const { clean, prettier, client, httpClient, modelFactoryMethods, mode, tslint, biome } =
     globalOptions;
 
   const tsconfig = await loadTsconfig(
@@ -143,6 +143,8 @@ export const normalizeOptions = async (
       fileExtension: outputOptions.fileExtension || defaultFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
+      modelFactoryMethods:
+        outputOptions.modelFactoryMethods ?? modelFactoryMethods ?? false,
       httpClient:
         outputOptions.httpClient ?? httpClient ?? OutputHttpClient.AXIOS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
@@ -209,6 +211,14 @@ export const normalizeOptions = async (
               ? outputOptions.override?.header!
               : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
+        modelFactoryMethods: {
+          factoryMethodPrefix:
+            outputOptions.override?.modelFactoryMethods?.factoryMethodPrefix
+            ?? 'new',
+          outputMode:
+            outputOptions.override?.modelFactoryMethods?.outputMode
+            ?? 'split'
+        },
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,

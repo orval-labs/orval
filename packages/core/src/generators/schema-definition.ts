@@ -127,6 +127,7 @@ export const generateSchemasDefinition = (
 
       acc.push(...resolvedValue.schemas, {
         name: schemaName,
+        factoryMethod: '',
         model: output,
         imports,
       });

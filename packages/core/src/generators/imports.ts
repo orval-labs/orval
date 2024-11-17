@@ -5,6 +5,7 @@ import {
   GeneratorMutator,
   GeneratorVerbOptions,
   GetterPropType,
+  OutputModelFactoryMethodsMode,
 } from '../types';
 import { camel, upath } from '../utils';
 
@@ -14,12 +15,16 @@ export const generateImports = ({
   isRootKey,
   specsName,
   specKey: currentSpecKey,
+  factoryMethodOutput,
+  factoryMethodPrefix
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   specKey: string;
+  factoryMethodOutput?: (typeof OutputModelFactoryMethodsMode)[keyof typeof OutputModelFactoryMethodsMode];
+  factoryMethodPrefix?: string;
 }) => {
   if (!imports.length) {
     return '';
@@ -47,9 +52,14 @@ export const generateImports = ({
         } } from \'./${upath.join(path, camel(name))}\';`;
       }
 
-      return `import { create${name}, ${name}${
+      let mainImport = `import ${!values ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from \'./${camel(name)}\';`;
+      }${factoryMethodOutput == OutputModelFactoryMethodsMode.SINGLE ? `${factoryMethodPrefix}${name}` : ''} } from \'./${camel(name)}\';`;
+      if (factoryMethodOutput == OutputModelFactoryMethodsMode.SPLIT) {
+        let factoryMethodImport = `import { ${factoryMethodPrefix}${name} } from \'./${camel(name)}.factory\';`;
+        mainImport += '\n' + factoryMethodImport;
+      }
+      return mainImport;
     })
     .join('\n');
 };

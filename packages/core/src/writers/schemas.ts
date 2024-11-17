@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
-import { GeneratorSchema } from '../types';
+import { GeneratorSchema, OutputModelFactoryMethodsMode } from '../types';
 import { camel, upath } from '../utils';
 
 const getSchema = ({
@@ -35,6 +35,46 @@ const getSchema = ({
   return file;
 };
 
+const getFactoryMethod = ({
+                     schema: { name, imports, model, factoryMethod },
+                     target,
+                     isRootKey,
+                     specsName,
+                     header,
+                     specKey,
+                     factoryMethodOutput,
+                     factoryMethodPrefix
+                   }: {
+  schema: GeneratorSchema;
+  target: string;
+  isRootKey: boolean;
+  specsName: Record<string, string>;
+  header: string;
+  specKey: string;
+  factoryMethodOutput?: (typeof OutputModelFactoryMethodsMode)[keyof typeof OutputModelFactoryMethodsMode];
+  factoryMethodPrefix?: string;
+}): string => {
+  let file = header;
+  file += generateImports({
+    imports: imports.filter(
+      (imp) =>
+        !model.includes(`type ${imp.alias || imp.name} =`) &&
+        !model.includes(`interface ${imp.alias || imp.name} {`),
+    ),
+    target,
+    isRootKey,
+    specsName,
+    specKey,
+    factoryMethodOutput,
+    factoryMethodPrefix
+  });
+  file += `import { ${name}} from \'./${camel(name)}\';`;
+  file += '\n\n';
+
+  file += factoryMethod;
+  return file;
+};
+
 const getPath = (path: string, name: string, fileExtension: string): string =>
   upath.join(path, `/${name}${fileExtension}`);
 
@@ -53,6 +93,9 @@ export const writeSchema = async ({
   isRootKey,
   specsName,
   header,
+  factoryMethodInclude,
+  factoryMethodOutput,
+  factoryMethodPrefix
 }: {
   path: string;
   schema: GeneratorSchema;
@@ -62,6 +105,10 @@ export const writeSchema = async ({
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
+  factoryMethodInclude: boolean;
+  factoryMethodOutput?: (typeof OutputModelFactoryMethodsMode)[keyof typeof OutputModelFactoryMethodsMode];
+  factoryMethodPrefix?: string;
+
 }) => {
   const name = camel(schema.name);
 
@@ -70,6 +117,12 @@ export const writeSchema = async ({
       getPath(path, name, fileExtension),
       getSchema({ schema, target, isRootKey, specsName, header, specKey }),
     );
+    if (factoryMethodInclude && schema.factoryMethod.length > 0) {
+      await fs.outputFile(
+        getPath(path, name + '.factory', fileExtension),
+        getFactoryMethod({ schema, target, isRootKey, specsName, header, specKey, factoryMethodOutput, factoryMethodPrefix }),
+      );
+    }
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
   }
@@ -85,6 +138,9 @@ export const writeSchemas = async ({
   specsName,
   header,
   indexFiles,
+  factoryMethodInclude,
+  factoryMethodOutput,
+  factoryMethodPrefix
 }: {
   schemaPath: string;
   schemas: GeneratorSchema[];
@@ -95,6 +151,9 @@ export const writeSchemas = async ({
   specsName: Record<string, string>;
   header: string;
   indexFiles: boolean;
+  factoryMethodInclude: boolean;
+  factoryMethodOutput?: (typeof OutputModelFactoryMethodsMode)[keyof typeof OutputModelFactoryMethodsMode];
+  factoryMethodPrefix?: string;
 }) => {
   await Promise.all(
     schemas.map((schema) =>
@@ -107,6 +166,9 @@ export const writeSchemas = async ({
         isRootKey,
         specsName,
         header,
+        factoryMethodInclude,
+        factoryMethodOutput,
+        factoryMethodPrefix
       }),
     ),
   );

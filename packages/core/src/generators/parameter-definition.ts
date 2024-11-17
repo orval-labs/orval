@@ -29,6 +29,7 @@ export const generateParameterDefinition = (
       if (!schema.schema || imports.length) {
         acc.push({
           name: modelName,
+          factoryMethod: '',
           imports: imports.length
             ? [
                 {
@@ -63,6 +64,7 @@ export const generateParameterDefinition = (
       if (modelName !== resolvedObject.value) {
         acc.push({
           name: modelName,
+          factoryMethod: '',
           model,
           imports: resolvedObject.imports,
         });

@@ -1,6 +1,6 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { getScalar } from '../getters';
-import { ContextSpecs } from '../types';
+import { ContextSpecs, OutputModelFactoryMethodsMode } from '../types';
 import { jsDoc } from '../utils';
 
 /**
@@ -53,18 +53,27 @@ export const generateInterface = ({
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
   }
-  model += `export function create${name}(): ${name} ${scalar.factoryMethodValue}\n`;
-
   // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
   const externalModulesImportsOnly = scalar.imports.filter(
     (importName) => importName.name !== name,
   );
+
+  let factoryMethod: string = '';
+  if (context?.output.modelFactoryMethods) {
+    let factoryMethodPrefix = context?.output.override?.modelFactoryMethods?.factoryMethodPrefix!;
+    factoryMethod = `export function ${factoryMethodPrefix}${name}(): ${name} ${scalar.factoryMethodValue}\n`;
+    if (context?.output.override?.modelFactoryMethods?.outputMode == OutputModelFactoryMethodsMode.SINGLE) {
+      model += factoryMethod;
+      factoryMethod = '';
+    }
+  }
 
   return [
     ...scalar.schemas,
     {
       name,
       model,
+      factoryMethod,
       imports: externalModulesImportsOnly,
     },
   ];
