@@ -1241,6 +1241,7 @@ __metadata:
     micromatch: "npm:^4.0.8"
     openapi3-ts: "npm:4.4.0"
     swagger2openapi: "npm:^7.0.8"
+    typedoc: "npm:0.26.11"
   languageName: unknown
   linkType: soft
 
