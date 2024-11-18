@@ -18,7 +18,7 @@ import {
 import chalk from 'chalk';
 import execa from 'execa';
 import fs from 'fs-extra';
-import { Application } from 'typedoc';
+import { Application, TypeDocOptions } from 'typedoc';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { executeHook } from './utils';
@@ -201,12 +201,18 @@ export const writeSpecs = async (
 
   if (output.docs) {
     try {
+      let config: Partial<TypeDocOptions> = {};
+      let configPath: string | null = null;
+      if (typeof output.docs === 'object') {
+        ({ configPath = null, ...config } = output.docs);
+        if (configPath) {
+          config.options = configPath;
+        }
+      }
       const app = await Application.bootstrapWithPlugins({
         entryPoints: paths,
         // Set the custom config location if it has been provided.
-        ...(typeof output.docs === 'object'
-          ? { options: output.docs.config }
-          : {}),
+        ...config,
         plugin: ['typedoc-plugin-markdown'],
       });
       // Set defaults if the have not been provided by the external config.
@@ -218,19 +224,7 @@ export const writeSpecs = async (
       }
       const project = await app.convert();
       if (project) {
-        let out = 'docs';
-        if (app.options.isSet('out')) {
-          // Use the output location if it has been set in the external config.
-          out = app.options.getValue('out');
-        } else if (output.workspace) {
-          // Generate the docs in the workspace.
-          out = upath.join(output.workspace, 'docs');
-        } else if (output.target) {
-          const base = upath.dirname(output.target);
-          // Generate the docs along side the output target.
-          out = upath.join(base, 'docs');
-        }
-        await app.generateDocs(project, out);
+        await app.generateDocs(project, app.options.getValue('out'));
       } else {
         throw new Error('TypeDoc not initialised');
       }

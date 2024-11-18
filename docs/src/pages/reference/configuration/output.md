@@ -394,13 +394,15 @@ Default Value: `false`.
 
 Will generate API docs using [TypeDoc](https://typedoc.org/). by default these docs will be in Markdown format.
 
-TypeDoc can be configured by creating a config file e.g. `typedoc.config.mjs` in your project root (see the [config docs](https://typedoc.org/options/configuration/#options) for a full list of supported file names) or by passing a config filename to the `config` option below.
+TypeDoc can be configured by passing the [options](https://typedoc.org/options/) to the `docs` object or by creating a config file e.g. `typedoc.config.mjs` in your project root (see the [config docs](https://typedoc.org/options/configuration/#options) for a full list of supported file names) or by passing a config filename to the `configPath` option below.
 
 See the TypeDoc [configuration documentation](https://typedoc.org/options/) for more details.
 
 The `docs` option can take some properties to customize the generation if you set it to an object. If you set it to `true`, the default options will be used.
 
-#### config
+When no output directory destination is specified in `config`, the file will be output to the `docs` directory by default.
+
+#### configPath
 
 Type: `String`.
 
