@@ -12,6 +12,7 @@ import type {
 } from 'openapi3-ts/oas30';
 // @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
 import type swagger2openapi from 'swagger2openapi';
+import { TypeDocOptions } from 'typedoc';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -50,6 +51,7 @@ export type NormalizedOutputOptions = {
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
   clean: boolean | string[];
+  docs: boolean | OutputDocsOptions;
   prettier: boolean;
   tslint: boolean;
   biome: boolean;
@@ -174,6 +176,7 @@ export type OutputOptions = {
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
   clean?: boolean | string[];
+  docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
   tslint?: boolean;
   biome?: boolean;
@@ -238,6 +241,10 @@ export const OutputMode = {
 } as const;
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
+
+export type OutputDocsOptions = {
+  configPath?: string;
+} & Partial<TypeDocOptions>;
 
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {

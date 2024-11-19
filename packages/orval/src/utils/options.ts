@@ -148,6 +148,7 @@ export const normalizeOptions = async (
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,
+      docs: outputOptions.docs ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,
       biome: outputOptions.biome ?? biome ?? false,
