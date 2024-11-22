@@ -172,6 +172,20 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetchWithMultiQueryParams: {
+    output: {
+      target:
+        '../generated/vue-query/http-client-fetch-with-multi-query-params/endpoints.ts',
+      schemas:
+        '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
+      client: 'vue-query',
+      httpClient: 'fetch',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {
