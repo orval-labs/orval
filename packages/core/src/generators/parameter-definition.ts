@@ -22,7 +22,7 @@ export const generateParameterDefinition = (
         context,
       );
 
-      if (schema.in !== 'query') {
+      if (schema.in !== 'query' && schema.in !== 'header') {
         return acc;
       }
 
