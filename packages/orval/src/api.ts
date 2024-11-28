@@ -5,6 +5,7 @@ import {
   GeneratorApiBuilder,
   GeneratorApiOperations,
   GeneratorSchema,
+  getFullRoute,
   getRoute,
   GetterPropType,
   isReference,
@@ -97,13 +98,11 @@ export const getApiBuilder = async ({
         [] as GeneratorSchema[],
       );
 
-      let fullRoute = route;
-      if (output.baseUrl) {
-        if (output.baseUrl.endsWith('/') && route.startsWith('/')) {
-          fullRoute = route.slice(1);
-        }
-        fullRoute = `${output.baseUrl}${fullRoute}`;
-      }
+      const fullRoute = getFullRoute(
+        route,
+        verbs.servers ?? context.specs[context.specKey].servers,
+        output.baseUrl,
+      );
       const pathOperations = await generateOperations(
         output.client,
         verbsOptions,

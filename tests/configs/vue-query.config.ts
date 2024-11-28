@@ -185,7 +185,16 @@ export default defineConfig({
       target: '../specifications/multi-query-params.yaml',
     },
   },
-
+  formData: {
+    output: {
+      target: '../generated/vue-query/form-data/endpoints.ts',
+      schemas: '../generated/vue-query/form-data/model',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/form-data.yaml',
+    },
+  },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686
   // namedParameters: {
   //   output: {

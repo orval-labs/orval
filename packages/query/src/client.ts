@@ -196,8 +196,9 @@ export const generateAxiosRequestFunction = (
 
   const httpRequestFunctionImplementation = `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
-  }>> => {${bodyForm}
+  }>> => {
     ${isVue ? vueUnRefParams(props) : ''}
+    ${bodyForm}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
     }.${verb}(${options});

@@ -1,0 +1,60 @@
+openapi: 3.0.0
+info:
+  title: Sample API
+  version: 0.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: https://{environment}.example.com/v1
+    variables:
+      environment:
+        default: api
+        enum:
+          - api
+          - api.dev
+          - api.staging
+
+paths:
+  /pets:
+    servers:
+      - url: https://pets.example.com
+        description: Override base path for all operations with the /pets path
+    post:
+      operationId: createPet
+      requestBody:
+        $ref: '#/components/requestBodies/RequiredPetBody'
+      responses:
+        '204':
+          description: Ok
+
+  /ping:
+    servers:
+      - url: https://{region}.echo.{environment}.example.com
+        variables:
+          region:
+            default: eu
+          environment:
+            default: api
+            enum:
+              - api
+              - api.dev
+              - api.staging
+    get:
+      operationId: getEcho
+      responses:
+        '200':
+          description: Ok
+
+components:
+  requestBodies:
+    RequiredPetBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Pet'
+  schemas:
+    Pet:
+      type: object
+    Cookie:
+      type: object
