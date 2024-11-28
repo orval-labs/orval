@@ -296,6 +296,163 @@ module.exports = {
 };
 ```
 
+### baseUrl
+
+Type: `String | Object`.
+
+Default Value: `''`.
+
+Allows you to set the baesUrl used for all API calls. This can either be a constant string or be configured to read from the `servers` field
+in the specification.
+
+Example using constant:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      baseUrl: 'https://api.example.com', // prepend https://api.example.com to all api calls
+    },
+  },
+};
+```
+
+#### getBaseUrlFromSpecification
+
+Type: `boolean`
+
+Set to `true` to make Orval read the url from the `servers` fields in the specification. If a path has defined a `servers` field,
+that url will be used, otherwise the url from the whole specification's `servers` field will be used.
+If set to `false`, a constant `baseUrl` must be set.
+
+Example:
+
+```yaml
+servers:
+  - url: https://api.example.com
+paths:
+  /pets:
+    servers:
+      - url: https://pets.example.com
+```
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        // prepend url defined in specification, in this example: 'https://api.example.com'
+        // for all calls, except for calls to /pets, which will instead use 'https://pets.example.com' as base url.
+      },
+    },
+  },
+};
+```
+
+#### variables
+
+Type: `Dictionary`.
+
+Only valid when `getBaseUrlFromSpecification` is `true`.
+Used to substitute variables in urls.
+If the variable in the specification is an enum, and the provided value in the configuration is not one of the
+allowed values, an error will occur when generating.
+If a variable that is substituted is not configured, the default value defined in the specification will be used.
+
+Example:
+
+```yaml
+servers:
+  - url: https://{environment}.example.com/v1
+    variables:
+      environment:
+        default: api
+        enum:
+          - api
+          - api.dev
+          - api.staging
+```
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
+    },
+  },
+};
+```
+
+#### index
+
+Type: `Number`.
+
+Only valid when `getBaseUrlFromSpecification` is `true`.
+Since the `servers` field allows for multiple urls to be defined, you can decide which index of urls to pick here.
+If this is not defined, the first url will be used.
+If the defined index is out of range of the array, the last url in the array will be selected.
+
+Example:
+
+```yaml
+servers:
+  - url: https://api.example.com/v1
+  - url: https://api.dev.example.com/v1
+```
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        index: 1,
+      },
+    },
+  },
+};
+```
+
+#### baseUrl
+
+Type: `String`.
+
+Only valid when `getBaseUrlFromSpecification` is `false`.
+Behaves the same as setting the baseUrl as a string directly.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: false,
+        baseUrl: 'https://api.example.com', // The same as setting petstore.output.baseUrl: 'https://api.example.com'
+      },
+    },
+  },
+};
+```
+
+Gives the same result as:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      baseUrl: 'https://api.example.com',
+    },
+  },
+};
+```
+
 ### mock
 
 Type: `Boolean | Object | Function`.
