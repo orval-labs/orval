@@ -288,10 +288,12 @@ const getSchemaFormDataAndUrlEncoded = ({
     ? `const ${variableName} = new URLSearchParams();\n`
     : `const ${variableName} = new FormData();\n`;
 
-  if (schema.type === 'object') {
-    if (schema.oneOf || schema.anyOf || schema.allOf) {
-      const combinedSchemas = schema.oneOf || schema.anyOf || schema.allOf;
-
+  const combinedSchemas = schema.oneOf || schema.anyOf || schema.allOf;
+  if (
+    schema.type === 'object' ||
+    (schema.type === undefined && combinedSchemas)
+  ) {
+    if (combinedSchemas) {
       const shouldCast = !!schema.oneOf || !!schema.anyOf;
 
       const combinedSchemasFormData = combinedSchemas!
