@@ -5,6 +5,7 @@ import {
   GeneratorApiBuilder,
   GeneratorApiOperations,
   GeneratorSchema,
+  getFullRoute,
   getRoute,
   GetterPropType,
   isReference,
@@ -13,7 +14,6 @@ import {
   resolveRef,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
-import { ServerObject } from 'openapi3-ts/dist/oas31';
 import { PathItemObject } from 'openapi3-ts/oas30';
 import {
   generateClientFooter,
@@ -98,57 +98,11 @@ export const getApiBuilder = async ({
         [] as GeneratorSchema[],
       );
 
-      let fullRoute = route;
-      const getBaseUrl = (): string => {
-        if (!output.baseUrl) return '';
-        if (typeof output.baseUrl === 'string') return output.baseUrl;
-        if (output.baseUrl.getBaseUrlFromSpecification) {
-          const servers =
-            verbs.servers ?? context.specs[context.specKey].servers;
-          if (!servers) {
-            throw new Error(
-              "Orval is configured to use baseUrl from the specifications 'servers' field, but there exist no servers in the specification.",
-            );
-          }
-          const server = servers.at(
-            Math.min(output.baseUrl.index ?? 0, servers.length - 1),
-          );
-          if (!server) return '';
-          if (!server.variables) return server.url;
-
-          let url = server.url;
-          const variables = output.baseUrl.variables;
-          for (const variableKey of Object.keys(server.variables)) {
-            const variable = server.variables[variableKey];
-            if (!variables?.[variableKey]) {
-              url = url.replaceAll(
-                `{${variableKey}}`,
-                String(variable.default),
-              );
-            } else {
-              if (
-                variable.enum &&
-                !variable.enum.some((e) => e == variables[variableKey])
-              ) {
-                throw new Error(
-                  `Invalid variable value '${variables[variableKey]}' for variable '${variableKey}' when resolving ${server.url}. Valid values are: ${variable.enum.join(', ')}.`,
-                );
-              }
-              url = url.replaceAll(`{${variableKey}}`, variables[variableKey]);
-            }
-          }
-          return url;
-        }
-        return output.baseUrl.baseUrl;
-      };
-
-      const baseUrl = getBaseUrl();
-      if (baseUrl) {
-        if (baseUrl.endsWith('/') && route.startsWith('/')) {
-          fullRoute = route.slice(1);
-        }
-        fullRoute = `${baseUrl}${fullRoute}`;
-      }
+      const fullRoute = getFullRoute(
+        route,
+        verbs.servers ?? context.specs[context.specKey].servers,
+        output.baseUrl,
+      );
       const pathOperations = await generateOperations(
         output.client,
         verbsOptions,
