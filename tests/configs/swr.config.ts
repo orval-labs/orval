@@ -74,7 +74,7 @@ export default defineConfig({
       httpClient: 'fetch',
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
@@ -283,6 +283,36 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  baseUrlFromSpec: {
+    output: {
+      target: '../generated/swr/baseUrlFromSpec/endpoints.ts',
+      schemas: '../generated/swr/baseUrlFromSpec/model',
+      client: 'swr',
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/url-paths.yaml',
+    },
+  },
+  baseUrlNotFromSpec: {
+    output: {
+      target: '../generated/swr/baseUrlNotFromSpec/endpoints.ts',
+      schemas: '../generated/swr/baseUrlNotFromSpec/model',
+      client: 'swr',
+      baseUrl: {
+        getBaseUrlFromSpecification: false,
+        baseUrl: 'https://api.example.com',
+      },
+    },
+    input: {
+      target: '../specifications/url-paths.yaml',
     },
   },
 });
