@@ -59,7 +59,7 @@ export type NormalizedOutputOptions = {
   packageJson?: PackageJson;
   headers: boolean;
   indexFiles: boolean;
-  baseUrl?: string;
+  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
@@ -164,6 +164,22 @@ export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
 
+export type BaseUrlFromSpec = {
+  getBaseUrlFromSpecification: true;
+  variables?: {
+    [variable: string]: string;
+  };
+  index?: number;
+  baseUrl?: never;
+};
+
+export type BaseUrlFromConstant = {
+  getBaseUrlFromSpecification: false;
+  variables?: never;
+  index?: never;
+  baseUrl: string;
+};
+
 export type OutputOptions = {
   workspace?: string;
   target?: string;
@@ -184,7 +200,7 @@ export type OutputOptions = {
   packageJson?: string;
   headers?: boolean;
   indexFiles?: boolean;
-  baseUrl?: string;
+  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
