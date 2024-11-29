@@ -81,7 +81,7 @@ export default defineConfig({
       httpClient: 'fetch',
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
@@ -153,6 +153,63 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  ndJsonAggregated: {
+    output: {
+      target: '../generated/svelte-query/nd-json-aggregated/endpoints.ts',
+      schemas: '../generated/svelte-query/nd-json-aggregated/model',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          ndJson: {
+            aggregateResult: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/nd-json.yaml',
+    },
+  },
+  ndJsonHalfAggregated: {
+    output: {
+      target: '../generated/svelte-query/nd-json-half-aggregated/endpoints.ts',
+      schemas: '../generated/svelte-query/nd-json-half-aggregated/model',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          ndJson: {
+            aggregateResult: {
+              default: false,
+              getPets: true,
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/nd-json.yaml',
+    },
+  },
+  ndJsonNotAggregated: {
+    output: {
+      target: '../generated/svelte-query/nd-json-not-aggregated/endpoints.ts',
+      schemas: '../generated/svelte-query/nd-json-not-aggregated/model',
+      client: 'svelte-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          ndJson: {
+            aggregateResult: false,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/nd-json.yaml',
     },
   },
 });
