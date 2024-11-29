@@ -541,7 +541,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = getSwrMutationFetcherType(
       response,
       httpClient,
-      override.fetch.includeHttpResponseReturnType,
+      override.fetch.includeHttpResponseReturnType ?? true,
       operationName,
       mutator,
     );

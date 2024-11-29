@@ -118,9 +118,6 @@ export type NormalizedOverrideOutput = {
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
   suppressReadonlyModifier?: boolean;
-  ndJson?: {
-    aggregateResult: boolean | AggregateResultOptions;
-  };
 };
 
 export type NormalizedMutator = {
@@ -399,9 +396,6 @@ export type OverrideOutput = {
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
   suppressReadonlyModifier?: boolean;
-  ndJson?: {
-    aggregateResult: boolean | AggregateResultOptions;
-  };
 };
 
 export type OverrideOutputContentType = {
@@ -535,7 +529,10 @@ export type SwrOptions = {
 };
 
 export type FetchOptions = {
-  includeHttpResponseReturnType: boolean;
+  includeHttpResponseReturnType?: boolean;
+  ndJson?: {
+    aggregateResult: boolean | AggregateResultOptions;
+  };
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

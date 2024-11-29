@@ -105,7 +105,7 @@ ${
 }\n`;
 
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpResponseReturnType,
+    override.fetch.includeHttpResponseReturnType ?? true,
     response.definition.success,
     operationName,
   );
@@ -113,12 +113,12 @@ ${
     (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
   );
   const shouldAggregateNdJsonResult = // Either aggregateResult = true, or, aggregateResult[operationName] is true, or, aggregateResult.default is true and aggregateResult[operationName] is undefined
-    (typeof override.ndJson?.aggregateResult === 'boolean' &&
-      override.ndJson.aggregateResult) ||
-    (override.ndJson?.aggregateResult &&
-      (override.ndJson?.aggregateResult[operationName] ||
-        (override.ndJson.aggregateResult.default &&
-          override.ndJson.aggregateResult[operationName] === undefined)));
+    (typeof override.fetch.ndJson?.aggregateResult === 'boolean' &&
+      override.fetch.ndJson.aggregateResult) ||
+    (override.fetch.ndJson?.aggregateResult &&
+      (override.fetch.ndJson?.aggregateResult[operationName] ||
+        (override.fetch.ndJson.aggregateResult.default &&
+          override.fetch.ndJson.aggregateResult[operationName] === undefined)));
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
