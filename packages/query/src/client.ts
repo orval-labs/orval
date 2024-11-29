@@ -1,17 +1,17 @@
 import {
-  generateOptions,
-  GeneratorVerbOptions,
-  isSyntheticDefaultImportsAllow,
-  toObjectString,
-  GeneratorMutator,
-  GetterResponse,
-  pascal,
-  GeneratorDependency,
-  GeneratorOptions,
-  OutputHttpClient,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
+  generateOptions,
+  GeneratorDependency,
+  GeneratorMutator,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GetterResponse,
+  isSyntheticDefaultImportsAllow,
+  OutputHttpClient,
+  pascal,
+  toObjectString,
 } from '@orval/core';
 
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
@@ -382,7 +382,10 @@ export const getHttpFunctionQueryProps = (
   queryProperties: string,
 ) => {
   if (isVue && httpClient === OutputHttpClient.FETCH && queryProperties) {
-    return `unref(${queryProperties})`;
+    return queryProperties
+      .split(',')
+      .map((prop) => `unref(${prop})`)
+      .join(',');
   }
 
   return queryProperties;

@@ -172,6 +172,19 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  httpClientFetchWithMultiQueryParams: {
+    output: {
+      target:
+        '../generated/vue-query/http-client-fetch-with-multi-query-params/endpoints.ts',
+      schemas:
+        '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
+      client: 'vue-query',
+      httpClient: 'fetch',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/vue-query/form-data/endpoints.ts',
