@@ -910,7 +910,16 @@ const generateQueryImplementation = ({
       ? `InfiniteData<Awaited<ReturnType<${dataType}>>${infiniteParam}>`
       : `Awaited<ReturnType<${dataType}>>`;
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
+  const isNdJsonAndFetchHttpClient =
+    httpClient === OutputHttpClient.FETCH &&
+    response.contentTypes.some(
+      (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
+    );
+  const onMessageParam = isNdJsonAndFetchHttpClient
+    ? `,onMessage?: (value: ${response.definition.success || 'unknown'}) => void`
+    : '';
+
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}${onMessageParam}) => {
 
 ${hookOptions}
 
@@ -942,7 +951,7 @@ ${hookOptions}
         : ''
     }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
       httpFunctionProps ? ', ' : ''
-    }${queryOptions});
+    }${queryOptions}${isNdJsonAndFetchHttpClient ? ', onMessage' : ''});
 
       ${
         isVue(outputClient)

@@ -137,16 +137,11 @@ ${
     })
     .join(',');
 
-  const requiredOnMessage =
-    isNdJson && !override.ndJson?.aggregateResult
-      ? `onMessage: (value: ${response.definition.success || 'unknown'}) => void,`
-      : '';
-  const optionalOnMessage =
-    isNdJson && override.ndJson?.aggregateResult
-      ? `onMessage?: (value: ${response.definition.success || 'unknown'}) => void`
-      : '';
+  const onMessageParam = isNdJson
+    ? `onMessage?: (value: ${response.definition.success || 'unknown'}) => void`
+    : '';
 
-  const args = `${requiredOnMessage}${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit,` : ''}${optionalOnMessage}`;
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit,` : ''}${onMessageParam}`;
   const retrunType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)

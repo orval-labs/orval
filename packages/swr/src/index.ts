@@ -14,23 +14,23 @@ import {
   GetterProps,
   GetterPropType,
   GetterResponse,
+  jsDoc,
+  OutputHttpClient,
   pascal,
   stringify,
+  SwrOptions,
   toObjectString,
   Verbs,
-  jsDoc,
-  SwrOptions,
-  OutputHttpClient,
 } from '@orval/core';
 import {
   AXIOS_DEPENDENCIES,
   generateSwrRequestFunction,
-  getSwrRequestOptions,
-  getSwrErrorType,
-  getSwrRequestSecondArg,
   getHttpRequestSecondArg,
+  getSwrErrorType,
   getSwrMutationFetcherOptionType,
   getSwrMutationFetcherType,
+  getSwrRequestOptions,
+  getSwrRequestSecondArg,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -196,6 +196,15 @@ const generateSwrImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
+  const isNdJsonAndFetchHttpClient =
+    httpClient === OutputHttpClient.FETCH &&
+    response.contentTypes.some(
+      (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
+    );
+  const onMessageParam = isNdJsonAndFetchHttpClient
+    ? `,onMessage?: (value: ${response.definition.success || 'unknown'}) => void`
+    : '';
+
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
 export type ${pascal(
@@ -212,7 +221,7 @@ ${doc}export const ${camel(
     isRequestOptions,
     isInfinite: true,
     httpClient,
-  })}) => {
+  })}${onMessageParam}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
@@ -223,7 +232,7 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps && httpRequestSecondArg ? ', ' : ''
-  }${httpRequestSecondArg})
+  }${httpRequestSecondArg}${isNdJsonAndFetchHttpClient ? ',onMessage' : ''})
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
     swrOptions.swrInfiniteOptions
@@ -254,7 +263,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     isRequestOptions,
     isInfinite: false,
     httpClient,
-  })}) => {
+  })}${onMessageParam}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
@@ -265,7 +274,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps && httpRequestSecondArg ? ', ' : ''
-  }${httpRequestSecondArg})
+  }${httpRequestSecondArg}${onMessageParam ? ',onMessage' : ''})
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
     swrOptions.swrOptions
