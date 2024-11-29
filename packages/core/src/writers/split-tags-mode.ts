@@ -12,6 +12,7 @@ import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import uniqBy from 'lodash.uniqby';
+import { getAggregateStreamReader, getStreamReader } from './stream';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -136,6 +137,15 @@ export const writeSplitTagsMode = async ({
 
         if (implementation.includes('NonReadonly<')) {
           implementationData += getOrvalGeneratedTypes();
+          implementationData += '\n';
+        }
+
+        if (implementation.includes('readStream(')) {
+          implementationData += getStreamReader();
+          implementationData += '\n';
+        }
+        if (implementation.includes('readAggregateStream(')) {
+          implementationData += getAggregateStreamReader();
           implementationData += '\n';
         }
 

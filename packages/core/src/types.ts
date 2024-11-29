@@ -118,6 +118,9 @@ export type NormalizedOverrideOutput = {
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
   suppressReadonlyModifier?: boolean;
+  ndJson?: {
+    aggregateResult: boolean;
+  };
 };
 
 export type NormalizedMutator = {
@@ -391,6 +394,9 @@ export type OverrideOutput = {
   useNamedParameters?: boolean;
   useNativeEnums?: boolean;
   suppressReadonlyModifier?: boolean;
+  ndJson?: {
+    aggregateResult: boolean;
+  };
 };
 
 export type OverrideOutputContentType = {

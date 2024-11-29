@@ -9,6 +9,7 @@ import {
   kebab,
   upath,
 } from '../utils';
+import { getAggregateStreamReader, getStreamReader } from './stream';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 
@@ -130,6 +131,15 @@ export const writeTagsMode = async ({
 
         if (implementation.includes('NonReadonly<')) {
           data += getOrvalGeneratedTypes();
+          data += '\n';
+        }
+
+        if (implementation.includes('readStream(')) {
+          data += getStreamReader();
+          data += '\n';
+        }
+        if (implementation.includes('readAggregateStream(')) {
+          data += getAggregateStreamReader();
           data += '\n';
         }
 
