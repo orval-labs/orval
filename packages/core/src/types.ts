@@ -119,7 +119,7 @@ export type NormalizedOverrideOutput = {
   useNativeEnums?: boolean;
   suppressReadonlyModifier?: boolean;
   ndJson?: {
-    aggregateResult: boolean;
+    aggregateResult: boolean | AggregateResultOptions;
   };
 };
 
@@ -166,6 +166,11 @@ export type NormalizedInputOptions = {
 export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
+
+export type AggregateResultOptions = {
+  default: boolean;
+  [operationId: string]: boolean;
+};
 
 export type BaseUrlFromSpec = {
   getBaseUrlFromSpecification: true;
@@ -395,7 +400,7 @@ export type OverrideOutput = {
   useNativeEnums?: boolean;
   suppressReadonlyModifier?: boolean;
   ndJson?: {
-    aggregateResult: boolean;
+    aggregateResult: boolean | AggregateResultOptions;
   };
 };
 
