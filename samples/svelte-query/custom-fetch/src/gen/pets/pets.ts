@@ -198,10 +198,12 @@ export const getCreatePetsMutationOptions = <
 > => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation?.mutationKey
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
@@ -286,10 +288,13 @@ export const getUpdatePetsMutationOptions = <
 > => {
   const mutationKey = ['updatePets'];
   const { mutation: mutationOptions, request: requestOptions } = options
-    ? options.mutation?.mutationKey
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
+
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePets>>,
     { data: NonReadonly<Pet> }

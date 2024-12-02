@@ -168,7 +168,14 @@ export const useCreatePetsMutationOptions = <
   { data: BodyType<CreatePetsBody>; version?: number },
   TContext
 > => {
-  const { mutation: mutationOptions } = options ?? {};
+  const mutationKey = ['createPets'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
 
   const createPets = useCreatePetsHook();
 

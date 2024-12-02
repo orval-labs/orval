@@ -357,7 +357,7 @@ const {mutation: mutationOptions${
           : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
-      }} = options ? options.mutation?.mutationKey ? options : {...options, mutation: {...options.mutation, mutationKey}} : {mutation: { mutationKey, }};`
+      }} = options ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? options : {...options, mutation: {...options.mutation, mutationKey}} : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}};`
     : '';
 };
 
