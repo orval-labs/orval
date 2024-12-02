@@ -341,7 +341,7 @@ export const getQueryErrorType = (
 export const getHooksOptionImplementation = (
   isRequestOptions: boolean,
   httpClient: OutputHttpClient,
-  mutationOptionsFnName: string,
+  operationName: string,
   mutator?: GeneratorMutator,
 ) => {
   const options =
@@ -350,7 +350,7 @@ export const getHooksOptionImplementation = (
       : ', fetch: fetchOptions';
 
   return isRequestOptions
-    ? `const mutationKey = ['${mutationOptionsFnName}'];
+    ? `const mutationKey = ['${operationName}'];
 const {mutation: mutationOptions${
         !mutator
           ? options

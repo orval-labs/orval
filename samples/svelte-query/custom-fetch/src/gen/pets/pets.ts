@@ -196,7 +196,12 @@ export const getCreatePetsMutationOptions = <
   { data: CreatePetsBodyItem[] },
   TContext
 > => {
-  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
+  const mutationKey = ['createPets'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation?.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
@@ -279,8 +284,12 @@ export const getUpdatePetsMutationOptions = <
   { data: NonReadonly<Pet> },
   TContext
 > => {
-  const { mutation: mutationOptions, request: requestOptions } = options ?? {};
-
+  const mutationKey = ['updatePets'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation?.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePets>>,
     { data: NonReadonly<Pet> }

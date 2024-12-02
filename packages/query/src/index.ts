@@ -1325,7 +1325,7 @@ const generateQueryHook = async (
     const hooksOptionImplementation = getHooksOptionImplementation(
       isRequestOptions,
       httpClient,
-      mutationOptionsFnName,
+      camel(operationName),
       mutator,
     );
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
