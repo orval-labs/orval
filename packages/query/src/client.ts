@@ -341,6 +341,7 @@ export const getQueryErrorType = (
 export const getHooksOptionImplementation = (
   isRequestOptions: boolean,
   httpClient: OutputHttpClient,
+  operationName: string,
   mutator?: GeneratorMutator,
 ) => {
   const options =
@@ -349,13 +350,18 @@ export const getHooksOptionImplementation = (
       : ', fetch: fetchOptions';
 
   return isRequestOptions
-    ? `const {mutation: mutationOptions${
+    ? `const mutationKey = ['${operationName}'];
+const {mutation: mutationOptions${
         !mutator
           ? options
           : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
-      }} = options ?? {};`
+      }} = options ? 
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? 
+      options 
+      : {...options, mutation: {...options.mutation, mutationKey}} 
+      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${!mutator ? (httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined') : ''}};`
     : '';
 };
 
