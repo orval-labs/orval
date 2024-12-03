@@ -96,6 +96,7 @@ export const getProps = ({
         required: true,
         schema: {
           name: parameterTypeName,
+          factoryMethod: '',
           model: namedParametersTypeDefinition,
           imports: params.flatMap((property) => property.imports),
         },

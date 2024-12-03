@@ -50,6 +50,7 @@ export type NormalizedOutputOptions = {
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
+  modelFactoryMethods?: boolean;
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
   prettier: boolean;
@@ -70,6 +71,16 @@ export type NormalizedParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+export const OutputModelFactoryMethodsMode = {
+  SINGLE: 'single',
+  SPLIT: 'split',
+} as const;
+
+export type NormalizedModelFactoryMethodsOptions = {
+  factoryMethodPrefix?: string;
+  outputMode?: (typeof OutputModelFactoryMethodsMode)[keyof typeof OutputModelFactoryMethodsMode];
+};
+
 export type NormalizedOverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -83,6 +94,7 @@ export type NormalizedOverrideOutput = {
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+  modelFactoryMethods?: NormalizedModelFactoryMethodsOptions;
   components: {
     schemas: {
       suffix: string;
@@ -191,6 +203,7 @@ export type OutputOptions = {
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
+  modelFactoryMethods?: boolean;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
@@ -344,6 +357,11 @@ export type ParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+export type ModelFactoryMethodsOptions = {
+  factoryMethodPrefix?: string;
+  outputMode?: (typeof OutputModelFactoryMethodsMode)[keyof typeof OutputModelFactoryMethodsMode];
+};
+
 export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -357,6 +375,7 @@ export type OverrideOutput = {
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  modelFactoryMethods?: ModelFactoryMethodsOptions;
   components?: {
     schemas?: {
       suffix?: string;
@@ -619,6 +638,7 @@ export interface GlobalOptions {
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   httpClient?: OutputHttpClient;
+  modelFactoryMethods?: boolean;
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
@@ -660,6 +680,7 @@ export interface PackageJson {
 export type GeneratorSchema = {
   name: string;
   model: string;
+  factoryMethod: string;
   imports: GeneratorImport[];
 };
 
@@ -977,6 +998,7 @@ export const SchemaType = {
 
 export type ScalarValue = {
   value: string;
+  factoryMethodValue: string;
   isEnum: boolean;
   hasReadonlyProps: boolean;
   type: SchemaType;

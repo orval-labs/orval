@@ -83,6 +83,9 @@ export const writeSpecs = async (
           isRootKey: isRootKey(specKey, target),
           header,
           indexFiles: output.indexFiles,
+          factoryMethodInclude: output.modelFactoryMethods ?? false,
+          factoryMethodOutput: output.override?.modelFactoryMethods?.outputMode,
+          factoryMethodPrefix: output.override?.modelFactoryMethods?.factoryMethodPrefix
         });
       }),
     );
