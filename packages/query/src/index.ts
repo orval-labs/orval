@@ -481,9 +481,7 @@ const getQueryOptionsDefinition = ({
         > , 'initialData'
       >`
         : '';
-    const optionType = `${prefix}${pascal(
-      type,
-    )}Options<TData, TError, TData${
+    const optionType = `${prefix}${pascal(type)}Options<TData, TError, TData${
       hasQueryV5 &&
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
@@ -1322,7 +1320,7 @@ const generateQueryHook = async (
       mutator?.isHook
         ? `ReturnType<typeof use${pascal(operationName)}Hook>`
         : `typeof ${operationName}`
-    }>>`
+    }>>`;
 
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TData = ${TData}, TError = ${errorType},
     TContext = unknown>(${mutationArguments}) => {
