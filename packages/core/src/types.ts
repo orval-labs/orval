@@ -529,10 +529,7 @@ export type SwrOptions = {
 };
 
 export type FetchOptions = {
-  includeHttpResponseReturnType?: boolean;
-  ndJson?: {
-    aggregateResult: boolean | AggregateResultOptions;
-  };
+  includeHttpResponseReturnType: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

@@ -196,15 +196,6 @@ const generateSwrImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
-  const isNdJsonAndFetchHttpClient =
-    httpClient === OutputHttpClient.FETCH &&
-    response.contentTypes.some(
-      (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
-    );
-  const onMessageParam = isNdJsonAndFetchHttpClient
-    ? `,onMessage?: (value: ${response.definition.success || 'unknown'}) => void`
-    : '';
-
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
 export type ${pascal(
@@ -221,7 +212,7 @@ ${doc}export const ${camel(
     isRequestOptions,
     isInfinite: true,
     httpClient,
-  })}${onMessageParam}) => {
+  })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
@@ -232,7 +223,7 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps && httpRequestSecondArg ? ', ' : ''
-  }${httpRequestSecondArg}${isNdJsonAndFetchHttpClient ? ',onMessage' : ''})
+  }${httpRequestSecondArg})
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
     swrOptions.swrInfiniteOptions
@@ -263,7 +254,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
     isRequestOptions,
     isInfinite: false,
     httpClient,
-  })}${onMessageParam}) => {
+  })}) => {
   ${
     isRequestOptions
       ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
@@ -274,7 +265,7 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   ${swrKeyImplementation}
   const swrFn = () => ${operationName}(${httpFunctionProps}${
     httpFunctionProps && httpRequestSecondArg ? ', ' : ''
-  }${httpRequestSecondArg}${onMessageParam ? ',onMessage' : ''})
+  }${httpRequestSecondArg})
 
   const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
     swrOptions.swrOptions
@@ -541,7 +532,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = getSwrMutationFetcherType(
       response,
       httpClient,
-      override.fetch.includeHttpResponseReturnType ?? true,
+      override.fetch.includeHttpResponseReturnType,
       operationName,
       mutator,
     );

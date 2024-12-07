@@ -104,26 +104,19 @@ ${
   }
 }\n`;
 
-  const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpResponseReturnType ?? true,
-    response.definition.success,
-    operationName,
-  );
   const isNdJson = response.contentTypes.some(
     (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
   );
-  const shouldAggregateNdJsonResult = // Either aggregateResult = true, or, aggregateResult[operationName] is true, or, aggregateResult.default is true and aggregateResult[operationName] is undefined
-    (typeof override.fetch.ndJson?.aggregateResult === 'boolean' &&
-      override.fetch.ndJson.aggregateResult) ||
-    (override.fetch.ndJson?.aggregateResult &&
-      (override.fetch.ndJson?.aggregateResult[operationName] ||
-        (override.fetch.ndJson.aggregateResult.default &&
-          override.fetch.ndJson.aggregateResult[operationName] === undefined)));
+  const responseTypeName = fetchResponseTypeName(
+    override.fetch.includeHttpResponseReturnType,
+    isNdJson ? 'Response' : response.definition.success,
+    operationName,
+  );
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
-  data: ${isNdJson ? `Promise<${shouldAggregateNdJsonResult ? `${response.definition.success || 'unknown'}[]` : 'void'}>` : response.definition.success || 'unknown'};
+  ${isNdJson ? 'stream: Response' : `data: ${response.definition.success || 'unknown'}`};
   status: number;
   headers: Headers;
 }\n\n`
@@ -145,11 +138,7 @@ ${
     })
     .join(',');
 
-  const onMessageParam = isNdJson
-    ? `onMessage?: (value: ${response.definition.success || 'unknown'}) => void`
-    : '';
-
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit,` : ''}${onMessageParam}`;
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit,` : ''}`;
   const retrunType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
@@ -180,9 +169,14 @@ ${
     ${fetchBodyOption}
   }
 `;
-  const fetchResponseImplementation = `const res = await fetch(${fetchFnOptions})
+  const fetchResponseImplementation = isNdJson
+    ? `const stream = await fetch(${fetchFnOptions})
+  
+  ${override.fetch.includeHttpResponseReturnType ? 'return { status: stream.status, stream, headers: stream.headers }' : `return stream`}
+  `
+    : `const res = await fetch(${fetchFnOptions})
 
-  const data = ${isNdJson ? (shouldAggregateNdJsonResult ? 'readAggregateStream(res, onMessage)' : 'readStream(res, onMessage)') : 'await res.json()'}
+  const data = await res.json()
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;

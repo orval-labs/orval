@@ -8,7 +8,6 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
-import { getAggregateStreamReader, getStreamReader } from './stream';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
 
@@ -112,15 +111,6 @@ export const writeSingleMode = async ({
 
     if (implementation.includes('NonReadonly<')) {
       data += getOrvalGeneratedTypes();
-      data += '\n';
-    }
-
-    if (implementation.includes('readStream(')) {
-      data += getStreamReader();
-      data += '\n';
-    }
-    if (implementation.includes('readAggregateStream(')) {
-      data += getAggregateStreamReader();
       data += '\n';
     }
 

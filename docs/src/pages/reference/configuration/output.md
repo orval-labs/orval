@@ -863,9 +863,6 @@ module.exports = {
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
-          ndJson: {
-            aggregateResult: true
-          }
         },
       },
     },
@@ -882,69 +879,6 @@ Default: `true`
 
 When using `fetch` for `client` or `httpClient`, the `fetch` response type includes http status for easier processing by the application.
 If you want to return a defined return type instead of an automatically generated return type, set this value to `false`.
-
-##### ndJson
-
-Type: `Object`
-
-Orval supports streaming Newline Delimited JSON when using `fetch` as the Client, or when using any of `swr`, `svelte-query`, `react-query` or `vue-query` while using `fetch` as the HttpClient.
-This setting is used to determine if the result of the stream should be aggregated and returned to the calling site,
-or ignored and only invoke a callback on each line. Both the `application/nd-json` and `application/x-ndjson` content types are supported.
-
-Example:
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      ...
-      client: 'svelte-query',
-      httpClient: 'fetch',
-      override: {
-        fetch: {
-          ndJson: {
-            aggregateResult: true
-          }
-        },
-      },
-    },
-    ...
-  },
-};
-```
-
-###### aggregateResult
-
-Type: `Boolean | Object`
-
-Default: `false`
-
-If `true`, all operations that responds with a `application/nd-json` or `application/x-ndjson` content type will return an array of the
-result. If `false`, no such array will be created and instead an empty promise will be returned, which will resolve when the stream is done.
-This can also be an object, if you want to have different behaviors for different operations.
-
-Example:
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      ...
-      override: {
-        fetch: {
-          ndJson: {
-            aggregateResult: {
-              default: false,
-              getPets: true,
-            }
-          }
-        },
-      },
-    },
-    ...
-  },
-};
-```
 
 #### query
 

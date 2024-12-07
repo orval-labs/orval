@@ -308,9 +308,6 @@ export const normalizeOptions = async (
           includeHttpResponseReturnType:
             outputOptions.override?.fetch?.includeHttpResponseReturnType ??
             true,
-          ndJson: outputOptions.override?.fetch?.ndJson ?? {
-            aggregateResult: false,
-          },
           ...(outputOptions.override?.fetch ?? {}),
         },
         useDates: outputOptions.override?.useDates || false,

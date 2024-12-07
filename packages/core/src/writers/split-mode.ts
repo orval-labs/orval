@@ -8,10 +8,9 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
-import { getAggregateStreamReader, getStreamReader } from './stream';
 
 export const writeSplitMode = async ({
   builder,
@@ -122,15 +121,6 @@ export const writeSplitMode = async ({
 
     if (implementation.includes('NonReadonly<')) {
       implementationData += getOrvalGeneratedTypes();
-    }
-
-    if (implementation.includes('readStream(')) {
-      implementationData += getStreamReader();
-      implementationData += '\n';
-    }
-    if (implementation.includes('readAggregateStream(')) {
-      implementationData += getAggregateStreamReader();
-      implementationData += '\n';
     }
 
     implementationData += `\n${implementation}`;
