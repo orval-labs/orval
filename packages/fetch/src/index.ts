@@ -116,7 +116,7 @@ ${
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
-  ${isNdJson ? 'stream: Response' : `data: ${response.definition.success || 'unknown'}`};
+  ${isNdJson ? `stream: Response // type: ${response.definition.success || 'unknown'}` : `data: ${response.definition.success || 'unknown'}`};
   status: number;
   headers: Headers;
 }\n\n`
