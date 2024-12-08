@@ -70,18 +70,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  httpClientFetchWithIncludeHttpStatusReturnType: {
+  httpClientFetchWithIncludeHttpResponseReturnType: {
     output: {
       target:
-        '../generated/svelte-query/http-client-fetch-with-include-http-status-return-type/endpoints.ts',
+        '../generated/svelte-query/http-client-fetch-with-include-http-response-return-type/endpoints.ts',
       schemas:
-        '../generated/svelte-query/http-client-fetch-with-include-http-status-return-type/model',
+        '../generated/svelte-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'svelte-query',
       httpClient: 'fetch',
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },

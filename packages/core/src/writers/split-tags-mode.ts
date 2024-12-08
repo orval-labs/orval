@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import uniqBy from 'lodash.uniqby';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
@@ -8,10 +9,9 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
-import uniqBy from 'lodash.uniqby';
 
 export const writeSplitTagsMode = async ({
   builder,
