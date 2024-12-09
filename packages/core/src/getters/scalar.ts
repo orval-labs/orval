@@ -27,7 +27,10 @@ export const getScalar = ({
 }): ScalarValue => {
   // NOTE: Angular client does not support nullable types
   const isAngularClient = context.output.client === OutputClient.ANGULAR;
-  const nullable = item.nullable && !isAngularClient ? ' | null' : '';
+  const typeIncludesNull =
+    Array.isArray(item.type) && item.type.includes('null');
+  const nullable =
+    (typeIncludesNull || item.nullable) && !isAngularClient ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 

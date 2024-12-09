@@ -76,6 +76,13 @@ components:
           type:
             - 'boolean'
             - 'null'
+    NullStringEnum:
+      type:
+        - string
+        - 'null'
+      enum:
+        - foo
+        - bar
     NullEnum:
       nullable: true
       enum:
