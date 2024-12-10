@@ -54,6 +54,13 @@ export const getArray = ({
       examples: resolveExampleRefs(schema.examples, context),
     };
   }
+
+  if (!schema.items) {
+    schema.items = {
+      type: ["object", "string", "number", "null", "integer", "boolean"]
+    }
+  }
+
   if (schema.items) {
     const resolvedObject = resolveObject({
       schema: schema.items,
