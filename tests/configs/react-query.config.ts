@@ -217,6 +217,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  hookMutatorFetch: {
+    output: {
+      target: '../generated/react-query/hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/hook-mutator/model',
+      client: 'react-query',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-fetch.ts',
+          name: 'useCustomFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   hookMutatorWithSecondParameter: {
     output: {
       target:
