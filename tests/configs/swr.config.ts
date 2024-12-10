@@ -63,7 +63,7 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  httpClientFetchWithIncludeHttpStatusReturnType: {
+  httpClientFetchWithIncludeHttpResponseReturnType: {
     output: {
       target:
         '../generated/swr/http-client-fetch-with-include-http_status_return-type/endpoints.ts',

@@ -104,15 +104,19 @@ ${
   }
 }\n`;
 
+  const isNdJson = response.contentTypes.some(
+    (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
+  );
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
-    response.definition.success,
+    isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
+
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
-  data: ${response.definition.success || 'unknown'};
+  ${isNdJson ? `stream: Response // type: ${response.definition.success || 'unknown'}` : `data: ${response.definition.success || 'unknown'}`};
   status: number;
   headers: Headers;
 }\n\n`
@@ -134,7 +138,7 @@ ${
     })
     .join(',');
 
-  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
+  const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit,` : ''}`;
   const retrunType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
@@ -165,8 +169,13 @@ ${
     ${fetchBodyOption}
   }
 `;
-  const fetchResponseImplementation = `const res = await fetch(${fetchFnOptions}
-  )
+  const fetchResponseImplementation = isNdJson
+    ? `const stream = await fetch(${fetchFnOptions})
+  
+  ${override.fetch.includeHttpResponseReturnType ? 'return { status: stream.status, stream, headers: stream.headers }' : `return stream`}
+  `
+    : `const res = await fetch(${fetchFnOptions})
+
   const data = await res.json()
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}

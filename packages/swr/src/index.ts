@@ -14,23 +14,23 @@ import {
   GetterProps,
   GetterPropType,
   GetterResponse,
+  jsDoc,
+  OutputHttpClient,
   pascal,
   stringify,
+  SwrOptions,
   toObjectString,
   Verbs,
-  jsDoc,
-  SwrOptions,
-  OutputHttpClient,
 } from '@orval/core';
 import {
   AXIOS_DEPENDENCIES,
   generateSwrRequestFunction,
-  getSwrRequestOptions,
-  getSwrErrorType,
-  getSwrRequestSecondArg,
   getHttpRequestSecondArg,
+  getSwrErrorType,
   getSwrMutationFetcherOptionType,
   getSwrMutationFetcherType,
+  getSwrRequestOptions,
+  getSwrRequestSecondArg,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
