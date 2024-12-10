@@ -55,6 +55,7 @@ export const generateComponentDefinition = (
       if (modelName !== type) {
         acc.push({
           name: modelName,
+          factoryMethod: '',
           model,
           imports,
         });

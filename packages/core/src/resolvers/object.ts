@@ -30,11 +30,13 @@ const resolveObjectOriginal = ({
   ) {
     return {
       value: propName,
+      factoryMethodValue: `{}`,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
         {
           name: propName,
+          factoryMethod: `export function ${context.output.override.modelFactoryMethods?.factoryMethodPrefix}${propName}(): ${propName}${resolvedValue.factoryMethodValue}`,
           model: `${doc}export type ${propName} = ${resolvedValue.value};\n`,
           imports: resolvedValue.imports,
         },
@@ -54,13 +56,19 @@ const resolveObjectOriginal = ({
       resolvedValue.originalSchema?.['x-enumNames'],
       context.output.override.useNativeEnums,
     );
+    const factoryMethodValue = context?.output.override?.useTypeOverInterfaces
+      ? `${propName}[${resolvedValue.value.split(' | ')[0]}]`
+      : `${resolvedValue.value.split(' | ')[0]}`;
+
 
     return {
       value: propName,
+      factoryMethodValue,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
         {
+          factoryMethod: '',
           name: propName,
           model: doc + enumValue,
           imports: resolvedValue.imports,

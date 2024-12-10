@@ -44,6 +44,7 @@ export const resolveValue = ({
 
     return {
       value: resolvedImport.name,
+      factoryMethodValue: `${context.output.override.modelFactoryMethods?.factoryMethodPrefix}${resolvedImport.name}()`,
       imports: [
         {
           name: resolvedImport.name,
