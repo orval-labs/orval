@@ -35,8 +35,8 @@ export const generateSchemasDefinition = (
   const transformedSchemas = resolveDiscriminators(schemas, context);
 
   let generateSchemas = Object.entries(transformedSchemas);
-  if (filters) {
-    const schemasFilters = filters.schemas || [];
+  if (filters?.schemas) {
+    const schemasFilters = filters.schemas;
     const mode = filters.mode || 'include';
 
     generateSchemas = generateSchemas.filter(([schemaName]) => {

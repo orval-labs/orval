@@ -95,4 +95,35 @@ describe('generateSchemasDefinition', () => {
     expect(result).toHaveLength(1);
     expect(result[0].name).toBe('AnotherSchemaSuffix');
   });
+
+  it('should generate schemas when filters.schemas is undefined with other filters', () => {
+    const schemas: SchemasObject = {
+      TestSchema: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+        },
+      },
+      AnotherSchema: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+        },
+      },
+    };
+
+    const filters: InputFiltersOption = {
+      tags: ['TestTag'],
+    };
+
+    const result = generateSchemasDefinition(
+      schemas,
+      context,
+      'Suffix',
+      filters,
+    );
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe('TestSchemaSuffix');
+    expect(result[1].name).toBe('AnotherSchemaSuffix');
+  });
 });
