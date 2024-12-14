@@ -7369,7 +7369,7 @@ __metadata:
     husky: "npm:^9.1.6"
     lint-staged: "npm:^15.2.10"
     npm-run-all: "npm:^4.1.5"
-    prettier: "npm:3.2.5"
+    prettier: "npm:3.4.2"
     release-it: "npm:^17.10.0"
     rimraf: "npm:^5.0.5"
     tsup: "npm:^8.0.2"
@@ -7828,12 +7828,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prettier@npm:3.2.5":
-  version: 3.2.5
-  resolution: "prettier@npm:3.2.5"
+"prettier@npm:3.4.2":
+  version: 3.4.2
+  resolution: "prettier@npm:3.4.2"
   bin:
     prettier: bin/prettier.cjs
-  checksum: 10c0/ea327f37a7d46f2324a34ad35292af2ad4c4c3c3355da07313339d7e554320f66f65f91e856add8530157a733c6c4a897dc41b577056be5c24c40f739f5ee8c6
+  checksum: 10c0/99e076a26ed0aba4ebc043880d0f08bbb8c59a4c6641cdee6cdadf2205bdd87aa1d7823f50c3aea41e015e99878d37c58d7b5f0e663bba0ef047f94e36b96446
   languageName: node
   linkType: hard
 
