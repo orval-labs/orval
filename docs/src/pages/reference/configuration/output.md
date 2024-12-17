@@ -874,7 +874,6 @@ module.exports = {
 ##### includeHttpResponseReturnType
 
 Type: `Boolean`.
-
 Default: `true`
 
 When using `fetch` for `client` or `httpClient`, the `fetch` response type includes http status for easier processing by the application.

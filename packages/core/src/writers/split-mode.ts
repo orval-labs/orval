@@ -8,9 +8,9 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
+import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 
 export const writeSplitMode = async ({
   builder,

@@ -164,11 +164,6 @@ export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
 
-export type AggregateResultOptions = {
-  default: boolean;
-  [operationId: string]: boolean;
-};
-
 export type BaseUrlFromSpec = {
   getBaseUrlFromSpecification: true;
   variables?: {
