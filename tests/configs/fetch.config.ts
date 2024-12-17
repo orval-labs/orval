@@ -84,7 +84,7 @@ export default defineConfig({
       client: 'fetch',
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
