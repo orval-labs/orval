@@ -134,7 +134,7 @@ export default defineConfig({
       client: 'zod',
     },
     input: {
-      target: '../specifications/additional-properties.yaml',
+      target: '../specifications/translation.yaml',
     },
   },
   typedArraysTuplesV31: {
