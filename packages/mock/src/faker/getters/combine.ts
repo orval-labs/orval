@@ -160,7 +160,10 @@ export const combineSchemasMock = ({
         return `{${currentValue}}`;
       }
 
-      return `{${currentValue},`;
+      if (currentValue) {
+        return `{${currentValue},`;
+      }
+      return '{';
     }
 
     if (isLastElement) {
