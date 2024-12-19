@@ -91,6 +91,7 @@ export const getMockObject = ({
       context,
       imports,
       existingReferencedProperties,
+      splitMockImplementations,
     });
   }
 
