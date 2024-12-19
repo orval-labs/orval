@@ -8,6 +8,7 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
@@ -156,6 +157,8 @@ export const getMockScalar = ({
         value = item.path?.endsWith('[]')
           ? `faker.helpers.arrayElements(${enumValue})`
           : `faker.helpers.arrayElement(${enumValue})`;
+      } else if ('const' in item) {
+        value = '' + (item as SchemaObject31).const;
       }
       return {
         value,
@@ -165,8 +168,12 @@ export const getMockScalar = ({
     }
 
     case 'boolean': {
+      let value = 'faker.datatype.boolean()';
+      if ('const' in item) {
+        value = '' + (item as SchemaObject31).const;
+      }
       return {
-        value: 'faker.datatype.boolean()',
+        value,
         imports: [],
         name: item.name,
       };
@@ -288,6 +295,8 @@ export const getMockScalar = ({
           : `faker.helpers.arrayElement(${enumValue})`;
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
+      } else if ('const' in item) {
+        value = `'${(item as SchemaObject31).const}'`;
       }
 
       return {
@@ -311,7 +320,12 @@ export const getMockScalar = ({
         mockOptions,
         operationId,
         tags,
-        combine,
+        combine: combine
+          ? {
+              separator: combine.separator,
+              includedProperties: [],
+            }
+          : undefined,
         context,
         imports,
         existingReferencedProperties,
