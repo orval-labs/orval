@@ -3,6 +3,7 @@ import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { ContextSpecs, ScalarValue } from '../types';
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs } from '../resolvers';
+import { compareVersions } from '../utils';
 
 /**
  * Return the output type from an array
@@ -79,6 +80,18 @@ export const getArray = ({
       hasReadonlyProps: resolvedObject.hasReadonlyProps,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
+    };
+  } else if (
+    compareVersions(context.specs[context.specKey].openapi, '3.1', '>=')
+  ) {
+    return {
+      value: 'unknown[]',
+      imports: [],
+      schemas: [],
+      isEnum: false,
+      type: 'array',
+      isRef: false,
+      hasReadonlyProps: false,
     };
   } else {
     throw new Error(
