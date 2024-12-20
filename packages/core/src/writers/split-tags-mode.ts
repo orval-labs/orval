@@ -1,6 +1,11 @@
 import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, WriteModeProps } from '../types';
+import {
+  GeneratorImport,
+  NormalizedOutputOptions,
+  OutputClient,
+  WriteModeProps,
+} from '../types';
 import {
   camel,
   getFileInfo,
@@ -58,13 +63,11 @@ export const writeSplitTagsMode = async ({
             )
           : '../' + filename + '.schemas';
 
-        const importsForBuilder =
-          output.schemas && !output.indexFiles
-            ? uniqBy(imports, 'name').map((i) => ({
-                exports: [i],
-                dependency: upath.join(relativeSchemasPath, camel(i.name)),
-              }))
-            : [{ exports: imports, dependency: relativeSchemasPath }];
+        const importsForBuilder = generateImports(
+          output,
+          imports,
+          relativeSchemasPath,
+        );
 
         implementationData += builder.imports({
           client: output.client,
@@ -81,9 +84,16 @@ export const writeSplitTagsMode = async ({
           packageJson: output.packageJson,
           output,
         });
+
+        const importsMockForBuilder = generateImports(
+          output,
+          importsMock,
+          relativeSchemasPath,
+        );
+
         mockData += builder.importsMock({
           implementation: implementationMock,
-          imports: [{ exports: importsMock, dependency: relativeSchemasPath }],
+          imports: importsMockForBuilder,
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
@@ -182,3 +192,15 @@ export const writeSplitTagsMode = async ({
 
   return generatedFilePathsArray.flatMap((it) => it);
 };
+
+const generateImports = (
+  output: NormalizedOutputOptions,
+  imports: GeneratorImport[],
+  relativeSchemasPath: string,
+) =>
+  output.schemas && !output.indexFiles
+    ? uniqBy(imports, 'name').map((i) => ({
+        exports: [i],
+        dependency: upath.join(relativeSchemasPath, camel(i.name)),
+      }))
+    : [{ exports: imports, dependency: relativeSchemasPath }];
