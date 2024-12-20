@@ -56,7 +56,9 @@ const resolveObjectOriginal = ({
     );
 
     return {
-      value: propName,
+      value: context.output.override.useNativeEnums
+        ? `keyof typeof ${propName}`
+        : propName,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
