@@ -26,6 +26,7 @@ export const getProps = ({
   const bodyProp = {
     name: body.implementation,
     definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
+    definedDefinition: `${body.implementation}: ${body.isOptional ? 'undefined' : ''} | ${body.definition}`,
     implementation: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
     default: false,
     required: !body.isOptional,
@@ -35,6 +36,9 @@ export const getProps = ({
   const queryParamsProp = {
     name: 'params',
     definition: `params${queryParams?.isOptional ? '?' : ''}: ${
+      queryParams?.schema.name
+    }`,
+    definedDefinition: `params: ${queryParams?.isOptional ? 'undefined' : ''} | ${
       queryParams?.schema.name
     }`,
     implementation: `params${queryParams?.isOptional ? '?' : ''}: ${
@@ -50,6 +54,9 @@ export const getProps = ({
   const headersProp = {
     name: 'headers',
     definition: `headers${headers?.isOptional ? '?' : ''}: ${
+      headers?.schema.name
+    }`,
+    definedDefinition: `headers: ${headers?.isOptional ? 'undefined' : ''} | ${
       headers?.schema.name
     }`,
     implementation: `headers${headers?.isOptional ? '?' : ''}: ${
@@ -90,6 +97,7 @@ export const getProps = ({
         type: GetterPropType.NAMED_PATH_PARAMS,
         name,
         definition: `${name}: ${parameterTypeName}`,
+        definedDefinition: `${name}: ${parameterTypeName}`,
         implementation,
         default: false,
         destructured,
