@@ -2087,14 +2087,14 @@ module.exports = {
 
 Type: `Alphabetical` | `Specification`
 
-Default Value: `Alphabetical`
+Default Value: `Specification`
 This enables you to specify how properties in the models are sorted, either alphabetically or in the order they appear in the specification.
 
 ```js
 module.exports = {
   petstore: {
     output: {
-      propertySortOrder: 'Specification',
+      propertySortOrder: 'Alphabetical',
     },
   },
 };

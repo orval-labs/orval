@@ -322,7 +322,7 @@ export const normalizeOptions = async (
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
       optionsParamRequired: outputOptions.optionsParamRequired ?? false,
       propertySortOrder:
-        outputOptions.propertySortOrder ?? PropertySortOrder.ALPHABETICAL,
+        outputOptions.propertySortOrder ?? PropertySortOrder.SPECIFICATION,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
