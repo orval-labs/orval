@@ -64,6 +64,7 @@ export type NormalizedOutputOptions = {
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
+  propertySortOrder: PropertySortOrder;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -180,6 +181,14 @@ export type BaseUrlFromConstant = {
   baseUrl: string;
 };
 
+export const PropertySortOrder = {
+  ALPHABETICAL: 'Alphabetical',
+  SPECIFICATION: 'Specification',
+} as const;
+
+export type PropertySortOrder =
+  (typeof PropertySortOrder)[keyof typeof PropertySortOrder];
+
 export type OutputOptions = {
   workspace?: string;
   target?: string;
@@ -205,6 +214,7 @@ export type OutputOptions = {
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
+  propertySortOrder?: PropertySortOrder;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {

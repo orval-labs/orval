@@ -2,6 +2,7 @@ import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
 import {
   ContextSpecs,
+  PropertySortOrder,
   ScalarValue,
   SchemaType,
   SchemaWithConst,
@@ -70,98 +71,100 @@ export const getObject = ({
   }
 
   if (item.properties && Object.entries(item.properties).length > 0) {
-    return Object.entries(item.properties)
-      .sort((a, b) => {
+    const entries = Object.entries(item.properties);
+    if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
+      entries.sort((a, b) => {
         return a[0].localeCompare(b[0]);
-      })
-      .reduce(
-        (
-          acc,
-          [key, schema]: [string, ReferenceObject | SchemaObject],
-          index,
-          arr,
-        ) => {
-          const isRequired = (
-            Array.isArray(item.required) ? item.required : []
-          ).includes(key);
+      });
+    }
+    return entries.reduce(
+      (
+        acc,
+        [key, schema]: [string, ReferenceObject | SchemaObject],
+        index,
+        arr,
+      ) => {
+        const isRequired = (
+          Array.isArray(item.required) ? item.required : []
+        ).includes(key);
 
-          let propName = '';
+        let propName = '';
 
-          if (name) {
-            const isKeyStartWithUnderscore = key.startsWith('_');
+        if (name) {
+          const isKeyStartWithUnderscore = key.startsWith('_');
 
-            propName += pascal(
-              `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
-            );
-          }
-
-          const allSpecSchemas =
-            context.specs[context.target]?.components?.schemas ?? {};
-
-          const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
-            (schemaName) => pascal(schemaName) === propName,
+          propName += pascal(
+            `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
           );
+        }
 
-          if (isNameAlreadyTaken) {
-            propName = propName + 'Property';
-          }
+        const allSpecSchemas =
+          context.specs[context.target]?.components?.schemas ?? {};
 
-          const resolvedValue = resolveObject({
-            schema,
-            propName,
-            context,
-          });
+        const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
+          (schemaName) => pascal(schemaName) === propName,
+        );
 
-          const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
-          if (!index) {
-            acc.value += '{';
-          }
+        if (isNameAlreadyTaken) {
+          propName = propName + 'Property';
+        }
 
-          const doc = jsDoc(schema as SchemaObject, true);
+        const resolvedValue = resolveObject({
+          schema,
+          propName,
+          context,
+        });
 
-          acc.hasReadonlyProps ||= isReadOnly || false;
-          acc.imports.push(...resolvedValue.imports);
-          acc.value += `\n  ${doc ? `${doc}  ` : ''}${
-            isReadOnly && !context.output.override.suppressReadonlyModifier
-              ? 'readonly '
-              : ''
-          }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
-          acc.schemas.push(...resolvedValue.schemas);
+        const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
+        if (!index) {
+          acc.value += '{';
+        }
 
-          if (arr.length - 1 === index) {
-            if (item.additionalProperties) {
-              if (isBoolean(item.additionalProperties)) {
-                acc.value += `\n  [key: string]: unknown;\n }`;
-              } else {
-                const resolvedValue = resolveValue({
-                  schema: item.additionalProperties,
-                  name,
-                  context,
-                });
-                acc.value += `\n  [key: string]: ${resolvedValue.value};\n}`;
-              }
+        const doc = jsDoc(schema as SchemaObject, true);
+
+        acc.hasReadonlyProps ||= isReadOnly || false;
+        acc.imports.push(...resolvedValue.imports);
+        acc.value += `\n  ${doc ? `${doc}  ` : ''}${
+          isReadOnly && !context.output.override.suppressReadonlyModifier
+            ? 'readonly '
+            : ''
+        }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
+        acc.schemas.push(...resolvedValue.schemas);
+
+        if (arr.length - 1 === index) {
+          if (item.additionalProperties) {
+            if (isBoolean(item.additionalProperties)) {
+              acc.value += `\n  [key: string]: unknown;\n }`;
             } else {
-              acc.value += '\n}';
+              const resolvedValue = resolveValue({
+                schema: item.additionalProperties,
+                name,
+                context,
+              });
+              acc.value += `\n  [key: string]: ${resolvedValue.value};\n}`;
             }
-
-            acc.value += nullable;
+          } else {
+            acc.value += '\n}';
           }
 
-          return acc;
-        },
-        {
-          imports: [],
-          schemas: [],
-          value: '',
-          isEnum: false,
-          type: 'object' as SchemaType,
-          isRef: false,
-          schema: {},
-          hasReadonlyProps: false,
-          example: item.example,
-          examples: resolveExampleRefs(item.examples, context),
-        } as ScalarValue,
-      );
+          acc.value += nullable;
+        }
+
+        return acc;
+      },
+      {
+        imports: [],
+        schemas: [],
+        value: '',
+        isEnum: false,
+        type: 'object' as SchemaType,
+        isRef: false,
+        schema: {},
+        hasReadonlyProps: false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
+      } as ScalarValue,
+    );
   }
 
   if (item.additionalProperties) {
