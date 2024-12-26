@@ -1,6 +1,11 @@
 import fs from 'fs-extra';
+import uniqBy from 'lodash.uniqby';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import {
+  GeneratorImport,
+  NormalizedOutputOptions,
+  WriteModeProps,
+} from '../types';
 import {
   camel,
   getFileInfo,
@@ -55,15 +60,13 @@ export const writeTagsMode = async ({
             )
           : './' + filename + '.schemas';
 
-        const importsForBuilder = [
-          {
-            exports: imports.filter(
-              (imp) =>
-                !importsMock.some((impMock) => imp.name === impMock.name),
-            ),
-            dependency: schemasPathRelative,
-          },
-        ];
+        const importsForBuilder = generateImports(
+          output,
+          imports.filter(
+            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
+          ),
+          schemasPathRelative,
+        );
 
         data += builder.imports({
           client: output.client,
@@ -82,11 +85,15 @@ export const writeTagsMode = async ({
         });
 
         if (output.mock) {
+          const importsMockForBuilder = generateImports(
+            output,
+            importsMock,
+            schemasPathRelative,
+          );
+
           data += builder.importsMock({
             implementation: implementationMock,
-            imports: [
-              { exports: importsMock, dependency: schemasPathRelative },
-            ],
+            imports: importsMockForBuilder,
             specsName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
@@ -156,3 +163,15 @@ export const writeTagsMode = async ({
 
   return generatedFilePathsArray.flatMap((it) => it);
 };
+
+const generateImports = (
+  output: NormalizedOutputOptions,
+  imports: GeneratorImport[],
+  relativeSchemasPath: string,
+) =>
+  output.schemas && !output.indexFiles
+    ? uniqBy(imports, 'name').map((i) => ({
+        exports: [i],
+        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
+      }))
+    : [{ exports: imports, dependency: relativeSchemasPath }];

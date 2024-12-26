@@ -1,6 +1,11 @@
 import fs from 'fs-extra';
+import uniqBy from 'lodash.uniqby';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import {
+  GeneratorImport,
+  NormalizedOutputOptions,
+  WriteModeProps,
+} from '../types';
 import {
   camel,
   getFileInfo,
@@ -50,20 +55,20 @@ export const writeSingleMode = async ({
       output.tsconfig,
     );
 
+    const importsForBuilder = schemasPath
+      ? generateImports(
+          output,
+          imports.filter(
+            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
+          ),
+          schemasPath,
+        )
+      : [];
+
     data += builder.imports({
       client: output.client,
       implementation,
-      imports: schemasPath
-        ? [
-            {
-              exports: imports.filter(
-                (imp) =>
-                  !importsMock.some((impMock) => imp.name === impMock.name),
-              ),
-              dependency: schemasPath,
-            },
-          ]
-        : [],
+      imports: importsForBuilder,
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
@@ -77,11 +82,12 @@ export const writeSingleMode = async ({
     });
 
     if (output.mock) {
+      const importsMockForBuilder = schemasPath
+        ? generateImports(output, importsMock, schemasPath)
+        : [];
       data += builder.importsMock({
         implementation: implementationMock,
-        imports: schemasPath
-          ? [{ exports: importsMock, dependency: schemasPath }]
-          : [],
+        imports: importsMockForBuilder,
         specsName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
@@ -132,3 +138,15 @@ export const writeSingleMode = async ({
     throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
   }
 };
+
+const generateImports = (
+  output: NormalizedOutputOptions,
+  imports: GeneratorImport[],
+  relativeSchemasPath: string,
+) =>
+  output.schemas && !output.indexFiles
+    ? uniqBy(imports, 'name').map((i) => ({
+        exports: [i],
+        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
+      }))
+    : [{ exports: imports, dependency: relativeSchemasPath }];

@@ -201,6 +201,6 @@ const generateImports = (
   output.schemas && !output.indexFiles
     ? uniqBy(imports, 'name').map((i) => ({
         exports: [i],
-        dependency: upath.join(relativeSchemasPath, camel(i.name)),
+        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
       }))
     : [{ exports: imports, dependency: relativeSchemasPath }];

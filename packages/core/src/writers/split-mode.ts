@@ -1,6 +1,11 @@
 import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, WriteModeProps } from '../types';
+import {
+  GeneratorImport,
+  NormalizedOutputOptions,
+  OutputClient,
+  WriteModeProps,
+} from '../types';
 import {
   camel,
   getFileInfo,
@@ -11,6 +16,7 @@ import {
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
+import uniqBy from 'lodash.uniqby';
 
 export const writeSplitMode = async ({
   builder,
@@ -52,10 +58,16 @@ export const writeSplitMode = async ({
       output.tsconfig,
     );
 
+    const importsForBuilder = generateImports(
+      output,
+      imports,
+      relativeSchemasPath,
+    );
+
     implementationData += builder.imports({
       client: output.client,
       implementation,
-      imports: [{ exports: imports, dependency: relativeSchemasPath }],
+      imports: importsForBuilder,
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
@@ -68,9 +80,15 @@ export const writeSplitMode = async ({
       output,
     });
 
+    const importsMockForBuilder = generateImports(
+      output,
+      importsMock,
+      relativeSchemasPath,
+    );
+
     mockData += builder.importsMock({
       implementation: implementationMock,
-      imports: [{ exports: importsMock, dependency: relativeSchemasPath }],
+      imports: importsMockForBuilder,
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
@@ -160,3 +178,15 @@ export const writeSplitMode = async ({
     throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
   }
 };
+
+const generateImports = (
+  output: NormalizedOutputOptions,
+  imports: GeneratorImport[],
+  relativeSchemasPath: string,
+) =>
+  output.schemas && !output.indexFiles
+    ? uniqBy(imports, 'name').map((i) => ({
+        exports: [i],
+        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
+      }))
+    : [{ exports: imports, dependency: relativeSchemasPath }];
