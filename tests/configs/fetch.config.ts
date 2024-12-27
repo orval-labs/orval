@@ -178,15 +178,4 @@ export default defineConfig({
       target: '../specifications/parameters.yaml',
     },
   },
-  noIndexFiles: {
-    output: {
-      target: '../generated/fetch/no-index-files/endpoints.ts',
-      schemas: '../generated/fetch/no-index-files/model',
-      client: 'fetch',
-      indexFiles: false,
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
-  },
 });
