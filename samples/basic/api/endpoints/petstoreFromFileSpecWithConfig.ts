@@ -58,16 +58,6 @@ export const PetCallingCode = {
 } as const;
 
 export interface Pet {
-  /**
-   * @minimum 0
-   * @maximum 30
-   * @exclusiveMinimum
-   * @exclusiveMaximum
-   */
-  age?: number;
-  callingCode?: PetCallingCode;
-  country?: PetCountry;
-  email?: string;
   id: number;
   /**
    * Name of pet
@@ -76,10 +66,20 @@ export interface Pet {
    */
   name: string;
   /**
+   * @minimum 0
+   * @maximum 30
+   * @exclusiveMinimum
+   * @exclusiveMaximum
+   */
+  age?: number;
+  /**
    * @nullable
    * @pattern ^\\d{3}-\\d{2}-\\d{4}$
    */
   tag?: string | null;
+  email?: string;
+  callingCode?: PetCallingCode;
+  country?: PetCountry;
 }
 
 /**

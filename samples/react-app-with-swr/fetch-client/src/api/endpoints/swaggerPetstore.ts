@@ -41,7 +41,8 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+
+  const data: Pets = await res.json();
 
   return data as Pets;
 };
@@ -103,7 +104,8 @@ export const createPets = async (
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(createPetsBody),
   });
-  const data = await res.json();
+
+  const data: Pet = await res.json();
 
   return data as Pet;
 };
@@ -162,7 +164,8 @@ export const showPetById = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+
+  const data: Pet = await res.json();
 
   return data as Pet;
 };
