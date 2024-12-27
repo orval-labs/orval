@@ -7,9 +7,9 @@
 import type { DomainStatusEnum } from './domainStatusEnum';
 
 export interface Pet {
-  email?: string;
   id: number;
   name: string;
-  status?: DomainStatusEnum;
   tag?: string;
+  status?: DomainStatusEnum;
+  email?: string;
 }

@@ -75,7 +75,8 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+
+  const data: Pets = await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };
@@ -142,7 +143,8 @@ export const createPets = async (
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(createPetsBodyItem),
   });
-  const data = await res.json();
+
+  const data: Pet = await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };
@@ -211,7 +213,8 @@ export const updatePets = async (
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(pet),
   });
-  const data = await res.json();
+
+  const data: Pet = await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };
@@ -278,7 +281,8 @@ export const showPetById = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+
+  const data: Pet = await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };

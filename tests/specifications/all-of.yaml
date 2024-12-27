@@ -84,4 +84,5 @@ components:
         tag:
           type: string
     PetRef:
-      $ref: '#/components/schemas/Pet'
+      allOf:
+        - $ref: '#/components/schemas/Pet'

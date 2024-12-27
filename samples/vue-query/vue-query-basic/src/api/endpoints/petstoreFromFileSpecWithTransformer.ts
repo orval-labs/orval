@@ -67,10 +67,10 @@ export const getListPetsInfiniteQueryOptions = <
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
+        TData,
         TError,
         TData,
-        Awaited<ReturnType<typeof listPets>>,
+        TData,
         QueryKey,
         ListPetsParams['limit']
       >
@@ -98,10 +98,10 @@ export const getListPetsInfiniteQueryOptions = <
     enabled: computed(() => !!unref(version)),
     ...queryOptions,
   } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
+    TData,
     TError,
     TData,
-    Awaited<ReturnType<typeof listPets>>,
+    TData,
     QueryKey,
     ListPetsParams['limit']
   >;
@@ -128,10 +128,10 @@ export function useListPetsInfinite<
   options?: {
     query?: Partial<
       UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof listPets>>,
+        TData,
         TError,
         TData,
-        Awaited<ReturnType<typeof listPets>>,
+        TData,
         QueryKey,
         ListPetsParams['limit']
       >
@@ -162,11 +162,7 @@ export const getListPetsQueryOptions = <
 >(
   params?: MaybeRef<ListPetsParams>,
   version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    >;
-  },
+  options?: { query?: Partial<UseQueryOptions<TData, TError, TData>> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -181,7 +177,7 @@ export const getListPetsQueryOptions = <
     queryFn,
     enabled: computed(() => !!unref(version)),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
+  } as UseQueryOptions<TData, TError, TData>;
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -199,11 +195,7 @@ export function useListPets<
 >(
   params?: MaybeRef<ListPetsParams>,
   version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    >;
-  },
+  options?: { query?: Partial<UseQueryOptions<TData, TError, TData>> },
 ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
@@ -237,21 +229,17 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationOptions = <
+  TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
+    TData,
     TError,
-    { data: CreatePetsBody; version?: number },
+    { data: CreatePetsBody; version?: number | undefined | null },
     TContext
   >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBody; version?: number },
-  TContext
-> => {
+}) => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -263,14 +251,19 @@ export const getCreatePetsMutationOptions = <
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; version?: number }
+    { data: CreatePetsBody; version?: number | undefined | null }
   > = (props) => {
     const { data, version } = props ?? {};
 
     return createPets(data, version);
   };
 
-  return { mutationFn, ...mutationOptions };
+  return { mutationFn, ...mutationOptions } as UseMutationOptions<
+    TData,
+    TError,
+    { data: CreatePetsBody; version?: number | undefined | null },
+    TContext
+  >;
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -282,17 +275,21 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
+export const useCreatePets = <
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+  TContext = unknown,
+>(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
+    TData,
     TError,
-    { data: CreatePetsBody; version?: number },
+    { data: CreatePetsBody; version?: number | undefined | null },
     TContext
   >;
 }): UseMutationReturnType<
-  Awaited<ReturnType<typeof createPets>>,
+  TData,
   TError,
-  { data: CreatePetsBody; version?: number },
+  { data: CreatePetsBody; version?: number | undefined | null },
   TContext
 > => {
   const mutationOptions = getCreatePetsMutationOptions(options);
@@ -331,15 +328,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
 >(
   petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof showPetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
+  options?: { query?: Partial<UseInfiniteQueryOptions<TData, TError, TData>> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -354,11 +343,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
     queryFn,
     enabled: computed(() => !!(unref(version) && unref(petId))),
     ...queryOptions,
-  } as UseInfiniteQueryOptions<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  >;
+  } as UseInfiniteQueryOptions<TData, TError, TData>;
 };
 
 export type ShowPetByIdInfiniteQueryResult = NonNullable<
@@ -376,15 +361,7 @@ export function useShowPetByIdInfinite<
 >(
   petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseInfiniteQueryOptions<
-        Awaited<ReturnType<typeof showPetById>>,
-        TError,
-        TData
-      >
-    >;
-  },
+  options?: { query?: Partial<UseInfiniteQueryOptions<TData, TError, TData>> },
 ): UseInfiniteQueryReturnType<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 } {
@@ -410,11 +387,7 @@ export const getShowPetByIdQueryOptions = <
 >(
   petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
-  },
+  options?: { query?: Partial<UseQueryOptions<TData, TError, TData>> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -429,7 +402,7 @@ export const getShowPetByIdQueryOptions = <
     queryFn,
     enabled: computed(() => !!(unref(version) && unref(petId))),
     ...queryOptions,
-  } as UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
+  } as UseQueryOptions<TData, TError, TData>;
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -447,11 +420,7 @@ export function useShowPetById<
 >(
   petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
-  options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
-  },
+  options?: { query?: Partial<UseQueryOptions<TData, TError, TData>> },
 ): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
@@ -476,21 +445,12 @@ export const postApiV1UserLogout = (signal?: AbortSignal) => {
 };
 
 export const getPostApiV1UserLogoutMutationOptions = <
+  TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
   TError = unknown,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof postApiV1UserLogout>>,
-    TError,
-    void,
-    TContext
-  >;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof postApiV1UserLogout>>,
-  TError,
-  void,
-  TContext
-> => {
+  mutation?: UseMutationOptions<TData, TError, void, TContext>;
+}) => {
   const mutationKey = ['postApiV1UserLogout'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -507,7 +467,12 @@ export const getPostApiV1UserLogoutMutationOptions = <
     return postApiV1UserLogout();
   };
 
-  return { mutationFn, ...mutationOptions };
+  return { mutationFn, ...mutationOptions } as UseMutationOptions<
+    TData,
+    TError,
+    void,
+    TContext
+  >;
 };
 
 export type PostApiV1UserLogoutMutationResult = NonNullable<
@@ -520,21 +485,12 @@ export type PostApiV1UserLogoutMutationError = unknown;
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
  */
 export const usePostApiV1UserLogout = <
+  TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
   TError = unknown,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof postApiV1UserLogout>>,
-    TError,
-    void,
-    TContext
-  >;
-}): UseMutationReturnType<
-  Awaited<ReturnType<typeof postApiV1UserLogout>>,
-  TError,
-  void,
-  TContext
-> => {
+  mutation?: UseMutationOptions<TData, TError, void, TContext>;
+}): UseMutationReturnType<TData, TError, void, TContext> => {
   const mutationOptions = getPostApiV1UserLogoutMutationOptions(options);
 
   return useMutation(mutationOptions);
