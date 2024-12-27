@@ -7,8 +7,8 @@
 
 export interface Pet {
   '@id'?: string;
-  email?: string;
   id: number;
   name: string;
   tag?: string;
+  email?: string;
 }

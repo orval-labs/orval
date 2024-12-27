@@ -63,13 +63,7 @@ export const useListPetsQueryOptions = <
 >(
   params?: ListPetsParams,
   version: number = 1,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: UseQueryOptions<TData, TError, TData> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -87,11 +81,7 @@ export const useListPetsQueryOptions = <
     queryFn,
     enabled: !!version,
     ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
+  } as UseQueryOptions<TData, TError, TData> & { queryKey: QueryKey };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -109,13 +99,7 @@ export function useListPets<
 >(
   params?: ListPetsParams,
   version: number = 1,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: UseQueryOptions<TData, TError, TData> },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = useListPetsQueryOptions(params, version, options);
 
@@ -153,21 +137,17 @@ export const useCreatePetsHook = () => {
 };
 
 export const useCreatePetsMutationOptions = <
+  TData = Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError = ErrorType<Error>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
+    TData,
     TError,
     { data: BodyType<CreatePetsBody>; version?: number },
     TContext
   >;
-}): UseMutationOptions<
-  Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
-  TError,
-  { data: BodyType<CreatePetsBody>; version?: number },
-  TContext
-> => {
+}) => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -188,7 +168,12 @@ export const useCreatePetsMutationOptions = <
     return createPets(data, version);
   };
 
-  return { mutationFn, ...mutationOptions };
+  return { mutationFn, ...mutationOptions } as UseMutationOptions<
+    TData,
+    TError,
+    { data: BodyType<CreatePetsBody>; version?: number },
+    TContext
+  >;
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -201,17 +186,18 @@ export type CreatePetsMutationError = ErrorType<Error>;
  * @summary Create a pet
  */
 export const useCreatePets = <
+  TData = Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
   TError = ErrorType<Error>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
+    TData,
     TError,
     { data: BodyType<CreatePetsBody>; version?: number },
     TContext
   >;
 }): UseMutationResult<
-  Awaited<ReturnType<ReturnType<typeof useCreatePetsHook>>>,
+  TData,
   TError,
   { data: BodyType<CreatePetsBody>; version?: number },
   TContext
@@ -260,13 +246,7 @@ export const useListPetsNestedArrayQueryOptions = <
 >(
   params?: ListPetsNestedArrayParams,
   version: number = 1,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: UseQueryOptions<TData, TError, TData> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -284,11 +264,7 @@ export const useListPetsNestedArrayQueryOptions = <
     queryFn,
     enabled: !!version,
     ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
+  } as UseQueryOptions<TData, TError, TData> & { queryKey: QueryKey };
 };
 
 export type ListPetsNestedArrayQueryResult = NonNullable<
@@ -306,13 +282,7 @@ export function useListPetsNestedArray<
 >(
   params?: ListPetsNestedArrayParams,
   version: number = 1,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: UseQueryOptions<TData, TError, TData> },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = useListPetsNestedArrayQueryOptions(
     params,
@@ -357,13 +327,7 @@ export const useShowPetByIdQueryOptions = <
 >(
   petId: string,
   version: number = 1,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: UseQueryOptions<TData, TError, TData> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -381,11 +345,7 @@ export const useShowPetByIdQueryOptions = <
     queryFn,
     enabled: !!(version && petId),
     ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
+  } as UseQueryOptions<TData, TError, TData> & { queryKey: QueryKey };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -403,13 +363,7 @@ export function useShowPetById<
 >(
   petId: string,
   version: number = 1,
-  options?: {
-    query?: UseQueryOptions<
-      Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: UseQueryOptions<TData, TError, TData> },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = useShowPetByIdQueryOptions(petId, version, options);
 

@@ -12,8 +12,8 @@ export const getListPetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
     cuteness: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
 });
@@ -22,8 +22,8 @@ export const getListPetsResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
     length: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
 });
@@ -74,6 +74,10 @@ export const getListPetsResponseMock = (): Pets =>
       {
         ...getListPetsResponseDogMock(),
         '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+        id: faker.number.int({ min: undefined, max: undefined }),
+        name: faker.string.alpha(20),
+        tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
         callingCode: faker.helpers.arrayElement([
           faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
           undefined,
@@ -85,14 +89,14 @@ export const getListPetsResponseMock = (): Pets =>
           ] as const),
           undefined,
         ]),
-        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha(20),
-        tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
       },
       {
         ...getListPetsResponseCatMock(),
         '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+        id: faker.number.int({ min: undefined, max: undefined }),
+        name: faker.string.alpha(20),
+        tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
         callingCode: faker.helpers.arrayElement([
           faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
           undefined,
@@ -104,10 +108,6 @@ export const getListPetsResponseMock = (): Pets =>
           ] as const),
           undefined,
         ]),
-        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: faker.string.alpha(20),
-        tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
       },
     ]),
   );
@@ -116,8 +116,8 @@ export const getCreatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
     cuteness: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
 });
@@ -126,8 +126,8 @@ export const getCreatePetsResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
     length: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
 });
@@ -174,6 +174,10 @@ export const getCreatePetsResponseMock = (): Pet =>
     {
       ...getCreatePetsResponseDogMock(),
       '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha(20),
+      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -185,14 +189,14 @@ export const getCreatePetsResponseMock = (): Pet =>
         ] as const),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha(20),
-      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     },
     {
       ...getCreatePetsResponseCatMock(),
       '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha(20),
+      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -204,10 +208,6 @@ export const getCreatePetsResponseMock = (): Pet =>
         ] as const),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha(20),
-      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     },
   ]);
 
@@ -215,8 +215,8 @@ export const getUpdatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
     cuteness: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
 });
@@ -225,8 +225,8 @@ export const getUpdatePetsResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
     length: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
 });
@@ -273,6 +273,10 @@ export const getUpdatePetsResponseMock = (): Pet =>
     {
       ...getUpdatePetsResponseDogMock(),
       '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha(20),
+      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -284,14 +288,14 @@ export const getUpdatePetsResponseMock = (): Pet =>
         ] as const),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha(20),
-      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     },
     {
       ...getUpdatePetsResponseCatMock(),
       '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha(20),
+      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -303,10 +307,6 @@ export const getUpdatePetsResponseMock = (): Pet =>
         ] as const),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha(20),
-      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     },
   ]);
 
@@ -314,8 +314,8 @@ export const getShowPetByIdResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
     cuteness: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
 });
@@ -324,8 +324,8 @@ export const getShowPetByIdResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    breed: faker.helpers.arrayElement(['Dachshund'] as const),
     length: faker.number.int({ min: undefined, max: undefined }),
+    breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
 });
@@ -372,6 +372,10 @@ export const getShowPetByIdResponseMock = (): Pet =>
     {
       ...getShowPetByIdResponseDogMock(),
       '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha(20),
+      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -383,14 +387,14 @@ export const getShowPetByIdResponseMock = (): Pet =>
         ] as const),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha(20),
-      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     },
     {
       ...getShowPetByIdResponseCatMock(),
       '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: faker.string.alpha(20),
+      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -402,10 +406,6 @@ export const getShowPetByIdResponseMock = (): Pet =>
         ] as const),
         undefined,
       ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: faker.string.alpha(20),
-      tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
     },
   ]);
 

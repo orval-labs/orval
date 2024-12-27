@@ -14,20 +14,20 @@ export const getListPetsResponseMock = (): Pets =>
     (_, i) => i + 1,
   ).map(() => ({
     '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     id: (() => faker.number.int({ min: 1, max: 99999 }))(),
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   }));
 
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
   '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   id: faker.number.int({ min: undefined, max: undefined }),
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
+  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   ...overrideResponse,
 });
 

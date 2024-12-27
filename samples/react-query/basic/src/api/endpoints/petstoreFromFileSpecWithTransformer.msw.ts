@@ -13,10 +13,14 @@ export const getListPetsResponseMock = (): PetsArray =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
+    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
+    name: (() => faker.person.lastName())(),
     age: faker.helpers.arrayElement([
       faker.number.int({ min: 0, max: 30 }),
       undefined,
     ]),
+    tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     callingCode: faker.helpers.arrayElement([
       faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
       undefined,
@@ -28,10 +32,6 @@ export const getListPetsResponseMock = (): PetsArray =>
       ] as const),
       undefined,
     ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-    name: (() => faker.person.lastName())(),
-    tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]),
   }));
 
 export const getListPetsNestedArrayResponseMock = (
@@ -42,10 +42,17 @@ export const getListPetsNestedArrayResponseMock = (
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1,
     ).map(() => ({
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: (() => faker.person.lastName())(),
       age: faker.helpers.arrayElement([
         faker.number.int({ min: 0, max: 30 }),
         undefined,
       ]),
+      tag: faker.helpers.arrayElement([
+        (() => faker.person.lastName())(),
+        null,
+      ]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
       callingCode: faker.helpers.arrayElement([
         faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
         undefined,
@@ -56,13 +63,6 @@ export const getListPetsNestedArrayResponseMock = (
           'Uruguay',
         ] as const),
         undefined,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      tag: faker.helpers.arrayElement([
-        (() => faker.person.lastName())(),
-        null,
       ]),
     })),
     undefined,

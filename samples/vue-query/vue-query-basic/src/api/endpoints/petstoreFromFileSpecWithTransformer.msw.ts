@@ -14,27 +14,27 @@ export const getListPetsResponseMock = (): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     id: (() => faker.number.int({ min: 1, max: 99999 }))(),
     name: (() => faker.person.lastName())(),
+    tag: (() => faker.person.lastName())(),
     status: faker.helpers.arrayElement([
       faker.helpers.arrayElement(Object.values(DomainStatusEnum)),
       undefined,
     ]),
-    tag: (() => faker.person.lastName())(),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   }));
 
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   id: faker.number.int({ min: undefined, max: undefined }),
   name: (() => faker.person.lastName())(),
+  tag: (() => faker.person.lastName())(),
   status: faker.helpers.arrayElement([
     faker.helpers.arrayElement(Object.values(DomainStatusEnum)),
     undefined,
   ]),
-  tag: (() => faker.person.lastName())(),
+  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   ...overrideResponse,
 });
 
