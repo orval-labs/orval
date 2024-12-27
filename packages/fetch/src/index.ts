@@ -139,7 +139,7 @@ ${
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const retrunType = `Promise<${responseTypeName}>`;
+  const returnType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
@@ -180,7 +180,7 @@ ${
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -194,7 +194,7 @@ ${
     ? customFetchResponseImplementation
     : fetchResponseImplementation;
 
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
+  const fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${fetchImplementationBody}}
 `;
