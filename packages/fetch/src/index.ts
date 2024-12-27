@@ -176,7 +176,7 @@ ${
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const data = await res.json()
+  const data:${response.definition.success}  = await res.json()
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;
