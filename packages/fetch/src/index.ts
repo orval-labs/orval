@@ -115,7 +115,7 @@ ${
 
   const responseDataType =
     response.definition.success || response.definition.errors
-      ? `${response.definition.success} | ${response.definition.errors}`
+      ? `${response.definition.success !== 'unknown' ? response.definition.success : ''}${response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''}${response.definition.errors !== 'unknown' ? response.definition.errors : ''}`
       : 'unknown';
 
   const responseTypeImplementation = override.fetch
