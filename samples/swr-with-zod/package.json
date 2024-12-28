@@ -13,7 +13,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "swr": "2.2.5",
+    "swr": "^2.3.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
