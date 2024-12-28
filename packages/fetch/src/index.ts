@@ -113,10 +113,15 @@ ${
     operationName,
   );
 
+  const responseDataType =
+    response.definition.success || response.definition.errors
+      ? `${response.definition.success} | ${response.definition.errors}`
+      : 'unknown';
+
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
-  ${isNdJson ? 'stream: Response' : `data: ${response.definition.success || 'unknown'}`};
+  ${isNdJson ? 'stream: Response' : `data: ${responseDataType}`};
   status: number;
   headers: Headers;
 }\n\n`
