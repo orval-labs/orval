@@ -6,6 +6,7 @@
  */
 import type {
   CreatePetsBodyItem,
+  Error,
   ListPetsParams,
   Pet,
   Pets,
@@ -77,7 +78,7 @@ export const listPets = async (
  * @summary Create a pet
  */
 export type createPetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -102,7 +103,7 @@ export const createPets = async (
  * @summary Update a pet
  */
 export type updatePetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -127,7 +128,7 @@ export const updatePets = async (
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };

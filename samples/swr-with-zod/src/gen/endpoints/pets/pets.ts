@@ -124,7 +124,7 @@ export const useListPets = <TError = Promise<unknown>>(
  * @summary Create a pet
  */
 export type createPetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -194,7 +194,7 @@ export const useCreatePets = <TError = Promise<Error>>(options?: {
  * @summary Update a pet
  */
 export type updatePetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -264,7 +264,7 @@ export const useUpdatePets = <TError = Promise<Error>>(options?: {
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
