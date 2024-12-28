@@ -20,7 +20,7 @@ module.exports = {
  * @summary List all pets
  */
 export type listPetsResponse = {
-  data: Pets;
+  data: Pets | BadRequest;
   status: number;
 };
 
@@ -120,7 +120,7 @@ module.exports = {
  * @summary List all pets
  */
 - export type listPetsResponse = {
--   data: Pets;
+-   data: Pets | BadRequest;
 -   status: number;
 - };
 
