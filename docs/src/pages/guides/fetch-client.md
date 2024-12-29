@@ -48,7 +48,7 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+  const data: Pets = res.body ? await res.json() : {};
 
   return { status: res.status, data };
 };
@@ -133,10 +133,10 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+  const data: Pet = res.body ? await res.json() : {}
 
 -  return { status: res.status, data };
-+  return data as Pet;
++  return data;
 };
 ```
 
