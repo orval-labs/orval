@@ -22,6 +22,7 @@ import {
 export const generateRequestFunction = (
   {
     queryParams,
+    headers,
     operationName,
     response,
     mutator,
@@ -169,6 +170,7 @@ ${
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
+    ${headers ? 'headers: { ...headers, ...options?.headers },' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}
