@@ -1,6 +1,11 @@
 import fs from 'fs-extra';
+import uniqBy from 'lodash.uniqby';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import {
+  GeneratorImport,
+  NormalizedOutputOptions,
+  WriteModeProps,
+} from '../types';
 import {
   camel,
   getFileInfo,
@@ -9,6 +14,7 @@ import {
   kebab,
   upath,
 } from '../utils';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 
@@ -55,15 +61,13 @@ export const writeTagsMode = async ({
             )
           : './' + filename + '.schemas';
 
-        const importsForBuilder = [
-          {
-            exports: imports.filter(
-              (imp) =>
-                !importsMock.some((impMock) => imp.name === impMock.name),
-            ),
-            dependency: schemasPathRelative,
-          },
-        ];
+        const importsForBuilder = generateImportsForBuilder(
+          output,
+          imports.filter(
+            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
+          ),
+          schemasPathRelative,
+        );
 
         data += builder.imports({
           client: output.client,
@@ -82,11 +86,15 @@ export const writeTagsMode = async ({
         });
 
         if (output.mock) {
+          const importsMockForBuilder = generateImportsForBuilder(
+            output,
+            importsMock,
+            schemasPathRelative,
+          );
+
           data += builder.importsMock({
             implementation: implementationMock,
-            imports: [
-              { exports: importsMock, dependency: schemasPathRelative },
-            ],
+            imports: importsMockForBuilder,
             specsName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,

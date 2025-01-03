@@ -1,6 +1,11 @@
 import fs from 'fs-extra';
+import uniqBy from 'lodash.uniqby';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import {
+  GeneratorImport,
+  NormalizedOutputOptions,
+  WriteModeProps,
+} from '../types';
 import {
   camel,
   getFileInfo,
@@ -8,6 +13,7 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
 
@@ -50,20 +56,20 @@ export const writeSingleMode = async ({
       output.tsconfig,
     );
 
+    const importsForBuilder = schemasPath
+      ? generateImportsForBuilder(
+          output,
+          imports.filter(
+            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
+          ),
+          schemasPath,
+        )
+      : [];
+
     data += builder.imports({
       client: output.client,
       implementation,
-      imports: schemasPath
-        ? [
-            {
-              exports: imports.filter(
-                (imp) =>
-                  !importsMock.some((impMock) => imp.name === impMock.name),
-              ),
-              dependency: schemasPath,
-            },
-          ]
-        : [],
+      imports: importsForBuilder,
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
@@ -77,11 +83,12 @@ export const writeSingleMode = async ({
     });
 
     if (output.mock) {
+      const importsMockForBuilder = schemasPath
+        ? generateImportsForBuilder(output, importsMock, schemasPath)
+        : [];
       data += builder.importsMock({
         implementation: implementationMock,
-        imports: schemasPath
-          ? [{ exports: importsMock, dependency: schemasPath }]
-          : [],
+        imports: importsMockForBuilder,
         specsName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
