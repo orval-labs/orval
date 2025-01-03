@@ -17,6 +17,7 @@ import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import uniqBy from 'lodash.uniqby';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 
 export const writeSplitMode = async ({
   builder,
@@ -58,7 +59,7 @@ export const writeSplitMode = async ({
       output.tsconfig,
     );
 
-    const importsForBuilder = generateImports(
+    const importsForBuilder = generateImportsForBuilder(
       output,
       imports,
       relativeSchemasPath,
@@ -80,7 +81,7 @@ export const writeSplitMode = async ({
       output,
     });
 
-    const importsMockForBuilder = generateImports(
+    const importsMockForBuilder = generateImportsForBuilder(
       output,
       importsMock,
       relativeSchemasPath,
@@ -178,15 +179,3 @@ export const writeSplitMode = async ({
     throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
   }
 };
-
-const generateImports = (
-  output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
-  relativeSchemasPath: string,
-) =>
-  output.schemas && !output.indexFiles
-    ? uniqBy(imports, 'name').map((i) => ({
-        exports: [i],
-        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
-      }))
-    : [{ exports: imports, dependency: relativeSchemasPath }];

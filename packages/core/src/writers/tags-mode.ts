@@ -14,6 +14,7 @@ import {
   kebab,
   upath,
 } from '../utils';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 
@@ -60,7 +61,7 @@ export const writeTagsMode = async ({
             )
           : './' + filename + '.schemas';
 
-        const importsForBuilder = generateImports(
+        const importsForBuilder = generateImportsForBuilder(
           output,
           imports.filter(
             (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
@@ -85,7 +86,7 @@ export const writeTagsMode = async ({
         });
 
         if (output.mock) {
-          const importsMockForBuilder = generateImports(
+          const importsMockForBuilder = generateImportsForBuilder(
             output,
             importsMock,
             schemasPathRelative,
@@ -163,15 +164,3 @@ export const writeTagsMode = async ({
 
   return generatedFilePathsArray.flatMap((it) => it);
 };
-
-const generateImports = (
-  output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
-  relativeSchemasPath: string,
-) =>
-  output.schemas && !output.indexFiles
-    ? uniqBy(imports, 'name').map((i) => ({
-        exports: [i],
-        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
-      }))
-    : [{ exports: imports, dependency: relativeSchemasPath }];

@@ -13,6 +13,7 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
 
@@ -56,7 +57,7 @@ export const writeSingleMode = async ({
     );
 
     const importsForBuilder = schemasPath
-      ? generateImports(
+      ? generateImportsForBuilder(
           output,
           imports.filter(
             (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
@@ -83,7 +84,7 @@ export const writeSingleMode = async ({
 
     if (output.mock) {
       const importsMockForBuilder = schemasPath
-        ? generateImports(output, importsMock, schemasPath)
+        ? generateImportsForBuilder(output, importsMock, schemasPath)
         : [];
       data += builder.importsMock({
         implementation: implementationMock,
@@ -138,15 +139,3 @@ export const writeSingleMode = async ({
     throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
   }
 };
-
-const generateImports = (
-  output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
-  relativeSchemasPath: string,
-) =>
-  output.schemas && !output.indexFiles
-    ? uniqBy(imports, 'name').map((i) => ({
-        exports: [i],
-        dependency: upath.joinSafe(relativeSchemasPath, camel(i.name)),
-      }))
-    : [{ exports: imports, dependency: relativeSchemasPath }];
