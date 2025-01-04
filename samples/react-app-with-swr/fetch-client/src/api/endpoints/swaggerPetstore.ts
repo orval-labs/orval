@@ -42,7 +42,8 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const data: Pets = res.body ? await res.json() : {};
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return data as Pets;
 };
@@ -105,7 +106,8 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
-  const data: Pet = res.body ? await res.json() : {};
+  const data: Pet =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return data as Pet;
 };
@@ -165,7 +167,8 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const data: Pet = res.body ? await res.json() : {};
+  const data: Pet =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return data as Pet;
 };
