@@ -105,6 +105,17 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  headers: {
+    output: {
+      target: '../generated/fetch/headers/endpoints.ts',
+      schemas: '../generated/fetch/headers/model',
+      client: 'fetch',
+      headers: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   formData: {
     output: {
       target: '../generated/fetch/form-data-optional-request/endpoints.ts',
