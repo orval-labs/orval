@@ -183,7 +183,7 @@ ${
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const data:${response.definition.success}  = await res.json()
+  const data:${response.definition.success} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;
