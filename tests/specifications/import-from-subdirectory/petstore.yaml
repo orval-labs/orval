@@ -14,4 +14,13 @@ paths:
             application/json:
               schema:
                 oneOf:
-                  - $ref: 'subdirectory/petstore.yaml#/components/schemas/Pet'
+                  - $ref: './subdirectory/petstore.yaml#/components/schemas/Pet'
+    get:
+      responses:
+        '200':
+          description: All pets
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: './subdirectory/another-file.yaml#/components/schemas/AnotherSchema'
