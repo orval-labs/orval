@@ -22,7 +22,7 @@ export const generateParameterDefinition = (
         context,
       );
 
-      if (schema.in !== 'query') {
+      if ((schema.in === 'path') || (schema.in === 'cookie')) {
         return acc;
       }
 
