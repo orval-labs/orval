@@ -1,11 +1,6 @@
 import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import {
-  GeneratorImport,
-  NormalizedOutputOptions,
-  OutputClient,
-  WriteModeProps,
-} from '../types';
+import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
@@ -16,7 +11,7 @@ import {
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
-import uniqBy from 'lodash.uniqby';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -63,7 +58,7 @@ export const writeSplitTagsMode = async ({
             )
           : '../' + filename + '.schemas';
 
-        const importsForBuilder = generateImports(
+        const importsForBuilder = generateImportsForBuilder(
           output,
           imports,
           relativeSchemasPath,
@@ -85,7 +80,7 @@ export const writeSplitTagsMode = async ({
           output,
         });
 
-        const importsMockForBuilder = generateImports(
+        const importsMockForBuilder = generateImportsForBuilder(
           output,
           importsMock,
           relativeSchemasPath,
@@ -192,15 +187,3 @@ export const writeSplitTagsMode = async ({
 
   return generatedFilePathsArray.flatMap((it) => it);
 };
-
-const generateImports = (
-  output: NormalizedOutputOptions,
-  imports: GeneratorImport[],
-  relativeSchemasPath: string,
-) =>
-  output.schemas && !output.indexFiles
-    ? uniqBy(imports, 'name').map((i) => ({
-        exports: [i],
-        dependency: upath.join(relativeSchemasPath, camel(i.name)),
-      }))
-    : [{ exports: imports, dependency: relativeSchemasPath }];

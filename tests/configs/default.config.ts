@@ -198,4 +198,15 @@ export default defineConfig({
       mock: true,
     },
   },
+  noIndexFiles: {
+    output: {
+      target: '../generated/default/no-index-files/endpoints.ts',
+      schemas: '../generated/default/no-index-files/model',
+      client: 'fetch',
+      indexFiles: false,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
