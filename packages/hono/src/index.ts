@@ -4,26 +4,26 @@ import {
   ClientFooterBuilder,
   ClientGeneratorsBuilder,
   ClientHeaderBuilder,
+  ContextSpecs,
+  generateMutatorImports,
   GeneratorDependency,
+  GeneratorImport,
+  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
   getFileInfo,
-  pascal,
-  upath,
-  kebab,
-  ContextSpecs,
-  NormalizedOutputOptions,
-  GeneratorImport,
   getOrvalGeneratedTypes,
   jsDoc,
-  generateMutatorImports,
-  GeneratorMutator,
+  kebab,
   NormalizedMutator,
+  NormalizedOutputOptions,
+  pascal,
+  upath,
 } from '@orval/core';
-import { getRoute } from './route';
-import fs from 'fs-extra';
 import { generateZod } from '@orval/zod';
+import fs from 'fs-extra';
 import { InfoObject } from 'openapi3-ts/oas30';
+import { getRoute } from './route';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -164,7 +164,7 @@ const getZvalidatorImports = (
   verbOption: GeneratorVerbOptions,
   isHonoValidator: boolean,
 ) => {
-  let imports = [];
+  const imports = [];
 
   if (verbOption.headers) {
     imports.push(`${verbOption.operationName}Header`);
@@ -561,7 +561,7 @@ const generateContext = async (
 
         const imps = verbs
           .flatMap((verb) => {
-            let imports: GeneratorImport[] = [];
+            const imports: GeneratorImport[] = [];
             if (verb.params.length) {
               imports.push(...verb.params.map((param) => param.imports).flat());
             }
@@ -614,7 +614,7 @@ const generateContext = async (
 
   const imps = Object.values(verbOptions)
     .flatMap((verb) => {
-      let imports: GeneratorImport[] = [];
+      const imports: GeneratorImport[] = [];
       if (verb.params.length) {
         imports.push(...verb.params.map((param) => param.imports).flat());
       }
@@ -661,9 +661,7 @@ const generateZodFiles = async (
   output: NormalizedOutputOptions,
   context: ContextSpecs,
 ) => {
-  const { pathWithoutExtension, extension, dirname, filename } = getFileInfo(
-    output.target,
-  );
+  const { extension, dirname, filename } = getFileInfo(output.target);
 
   const header = getHeader(
     output.override.header,

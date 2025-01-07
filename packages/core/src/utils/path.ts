@@ -50,7 +50,7 @@ Object.entries(basepath).forEach(([propName, propValue]) => {
   }
 });
 
-let { join, resolve, extname, dirname, basename, isAbsolute } = path;
+const { join, resolve, extname, dirname, basename, isAbsolute } = path;
 export { join, resolve, extname, dirname, basename, isAbsolute };
 
 /**

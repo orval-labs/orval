@@ -48,7 +48,7 @@ export function isUndefined(x: any): x is undefined {
 }
 
 export function isNull(x: any): x is null {
-  return typeof x === null;
+  return x === null;
 }
 
 export function isSchema(x: any): x is SchemaObject {

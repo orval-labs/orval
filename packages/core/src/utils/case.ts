@@ -73,6 +73,7 @@ const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
     s = low.call(s);
   }
   if (!isFill && !regexps.hole.test(s)) {
+    // eslint-disable-next-line no-var
     var holey = fill(s, ' ');
     if (regexps.hole.test(holey)) {
       s = holey;
@@ -89,7 +90,7 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
 };
 
 // Caches the previously converted strings to improve performance
-let pascalMemory: Record<string, string> = {};
+const pascalMemory: Record<string, string> = {};
 
 export const pascal = (s: string) => {
   if (pascalMemory[s]) {

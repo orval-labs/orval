@@ -115,8 +115,8 @@ export const generateAxiosRequestFunction = (
       isVue,
     });
 
-    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
-    let propsImplementation =
+    const bodyDefinition = body.definition.replace('[]', '\\[\\]');
+    const propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${bodyDefinition}`),
@@ -357,10 +357,10 @@ const {mutation: mutationOptions${
           : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
-      }} = options ? 
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ? 
-      options 
-      : {...options, mutation: {...options.mutation, mutationKey}} 
+      }} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
       : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${!mutator ? (httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined') : ''}};`
     : '';
 };

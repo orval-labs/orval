@@ -76,7 +76,7 @@ const resolveZodType = (schema: SchemaObject) => {
   }
 };
 
-let constsUniqueCounter: Record<string, number> = {};
+const constsUniqueCounter: Record<string, number> = {};
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
@@ -203,11 +203,10 @@ export const generateZodValidationSchemaDefinition = (
       }
       break;
     case 'array':
-      const items = schema.items as SchemaObject | undefined;
       functions.push([
         'array',
         generateZodValidationSchemaDefinition(
-          items,
+          schema.items as SchemaObject | undefined,
           context,
           camel(`${name}-item`),
           strict,

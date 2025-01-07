@@ -96,6 +96,7 @@ export const normalizeOptions = async (
   if (typeof mock === 'boolean' && mock) {
     mock = DEFAULT_MOCK_OPTIONS;
   } else if (isFunction(mock)) {
+    // do nothing
   } else if (!mock) {
     mock = undefined;
   } else {
@@ -347,7 +348,7 @@ const parserDefaultOptions = {
   resolve: { github: githubResolver },
 } as SwaggerParserOptions;
 
-const normalizeMutator = <T>(
+const normalizeMutator = (
   workspace: string,
   mutator?: Mutator,
 ): NormalizedMutator | undefined => {
