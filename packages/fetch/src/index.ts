@@ -154,8 +154,10 @@ ${
   const ignoreContentTypes = ['multipart/form-data'];
   const fetchHeadersOption =
     body.contentType && !ignoreContentTypes.includes(body.contentType)
-      ? `headers: { 'Content-Type': '${body.contentType}', ...options?.headers }`
-      : '';
+      ? `headers: { 'Content-Type': '${body.contentType}',${headers ? '...headers,' : ''} ...options?.headers }`
+      : headers
+        ? 'headers: {...headers, ...options?.headers}'
+        : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
@@ -170,7 +172,6 @@ ${
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
-    ${headers ? 'headers: { ...headers, ...options?.headers },' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}
