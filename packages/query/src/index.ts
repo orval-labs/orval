@@ -437,9 +437,7 @@ const isSuspenseQuery = (type: QueryType) => {
 };
 
 const getQueryOptionsDefinition = ({
-  operationName,
   definitions,
-  mutator,
   type,
   hasSvelteQueryV4,
   hasQueryV5,
@@ -448,9 +446,7 @@ const getQueryOptionsDefinition = ({
   isReturnType,
   initialData,
 }: {
-  operationName: string;
   definitions: string;
-  mutator?: GeneratorMutator;
   type?: QueryType;
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
@@ -498,7 +494,6 @@ const getQueryOptionsDefinition = ({
 };
 
 const generateQueryArguments = ({
-  operationName,
   definitions,
   mutator,
   isRequestOptions,
@@ -510,7 +505,6 @@ const generateQueryArguments = ({
   initialData,
   httpClient,
 }: {
-  operationName: string;
   definitions: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
@@ -523,9 +517,7 @@ const generateQueryArguments = ({
   httpClient: OutputHttpClient;
 }) => {
   const definition = getQueryOptionsDefinition({
-    operationName,
     definitions,
-    mutator,
     type,
     hasSvelteQueryV4,
     hasQueryV5,
@@ -606,11 +598,9 @@ const generateQueryReturnType = ({
 
 const generateMutatorReturnType = ({
   outputClient,
-  dataType,
   variableType,
 }: {
   outputClient: OutputClient | OutputClientFunc;
-  dataType: unknown;
   variableType: unknown;
 }) => {
   if (outputClient === OutputClient.REACT_QUERY) {
@@ -797,7 +787,6 @@ const generateQueryImplementation = ({
     : `typeof ${operationName}`;
 
   const definedInitialDataQueryArguments = generateQueryArguments({
-    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -810,7 +799,6 @@ const generateQueryImplementation = ({
     httpClient,
   });
   const undefinedInitialDataQueryArguments = generateQueryArguments({
-    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -823,7 +811,6 @@ const generateQueryImplementation = ({
     httpClient,
   });
   const queryArguments = generateQueryArguments({
-    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -856,9 +843,7 @@ const generateQueryImplementation = ({
   });
 
   const queryOptionFnReturnType = getQueryOptionsDefinition({
-    operationName,
     definitions: '',
-    mutator,
     type,
     hasSvelteQueryV4,
     hasQueryV5,
@@ -1175,7 +1160,7 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    let queryKeyProps = toObjectString(
+    const queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
     );
@@ -1269,7 +1254,7 @@ const generateQueryHook = async (
       .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
       .join(',');
 
-    let errorType = getQueryErrorType(
+    const errorType = getQueryErrorType(
       operationName,
       response,
       httpClient,
@@ -1281,16 +1266,13 @@ const generateQueryHook = async (
       : `typeof ${operationName}`;
 
     const mutationOptionFnReturnType = getQueryOptionsDefinition({
-      operationName,
       definitions,
-      mutator,
       hasSvelteQueryV4,
       hasQueryV5,
       isReturnType: true,
     });
 
     const mutationArguments = generateQueryArguments({
-      operationName,
       definitions,
       mutator,
       isRequestOptions,
@@ -1386,7 +1368,6 @@ ${mutationOptionsFn}
     )} = <TData = ${TData}, TError = ${errorType},
     TContext = unknown>(${mutationArguments})${generateMutatorReturnType({
       outputClient,
-      dataType,
       variableType: definitions ? `{${definitions}}` : 'void',
     })} => {
 

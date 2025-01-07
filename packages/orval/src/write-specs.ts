@@ -1,6 +1,7 @@
 import {
   createSuccessMessage,
   getFileInfo,
+  getMockFileExtensionByTypeName,
   isRootKey,
   jsDoc,
   log,
@@ -13,14 +14,13 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
-  getMockFileExtensionByTypeName,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
 import fs from 'fs-extra';
-import { Application, TypeDocOptions } from 'typedoc';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
+import { Application, TypeDocOptions } from 'typedoc';
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -104,7 +104,7 @@ export const writeSpecs = async (
 
   if (output.workspace) {
     const workspacePath = output.workspace;
-    let imports = implementationPaths
+    const imports = implementationPaths
       .filter(
         (path) =>
           !output.mock ||
@@ -177,7 +177,7 @@ export const writeSpecs = async (
   if (output.prettier) {
     try {
       await execa('prettier', ['--write', ...paths]);
-    } catch (e) {
+    } catch {
       log(
         chalk.yellow(
           `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Prettier not found`,

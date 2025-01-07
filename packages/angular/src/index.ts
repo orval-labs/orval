@@ -17,7 +17,6 @@ import {
   pascal,
   sanitize,
   toObjectString,
-  VERBS_WITH_BODY,
 } from '@orval/core';
 
 const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [

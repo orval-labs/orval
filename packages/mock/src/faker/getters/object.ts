@@ -9,10 +9,10 @@ import {
   PropertySortOrder,
 } from '@orval/core';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { resolveMockValue } from '../resolvers/value';
 import { MockDefinition, MockSchemaObject } from '../../types';
-import { combineSchemasMock } from './combine';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
+import { resolveMockValue } from '../resolvers/value';
+import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
@@ -103,8 +103,8 @@ export const getMockObject = ({
       combine?.separator === 'anyOf'
         ? '{'
         : '';
-    let imports: GeneratorImport[] = [];
-    let includedProperties: string[] = [];
+    const imports: GeneratorImport[] = [];
+    const includedProperties: string[] = [];
 
     const entries = Object.entries(item.properties);
     if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
