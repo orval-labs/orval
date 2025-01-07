@@ -20,7 +20,7 @@ module.exports = {
  * @summary List all pets
  */
 export type listPetsResponse = {
-  data: Pets;
+  data: Pets | BadRequest;
   status: number;
 };
 
@@ -48,7 +48,8 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return { status: res.status, data };
 };
@@ -120,7 +121,7 @@ module.exports = {
  * @summary List all pets
  */
 - export type listPetsResponse = {
--   data: Pets;
+-   data: Pets | BadRequest;
 -   status: number;
 - };
 
@@ -133,10 +134,11 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
 -  return { status: res.status, data };
-+  return data as Pet;
++  return data;
 };
 ```
 

@@ -52,13 +52,7 @@ export const getListPetsQueryOptions = <
 >(
   params?: ListPetsParams,
   version: number = 1,
-  options?: {
-    query?: CreateQueryOptions<
-      Awaited<ReturnType<typeof listPets>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: CreateQueryOptions<TData, TError, TData> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -74,11 +68,7 @@ export const getListPetsQueryOptions = <
     queryFn,
     enabled: !!version,
     ...queryOptions,
-  } as CreateQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
+  } as CreateQueryOptions<TData, TError, TData> & { queryKey: QueryKey };
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -96,13 +86,7 @@ export function createListPets<
 >(
   params?: ListPetsParams,
   version: number = 1,
-  options?: {
-    query?: CreateQueryOptions<
-      Awaited<ReturnType<typeof listPets>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: CreateQueryOptions<TData, TError, TData> },
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
@@ -134,21 +118,17 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationOptions = <
+  TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
+    TData,
     TError,
     { data: CreatePetsBody; version?: number },
     TContext
   >;
-}): CreateMutationOptions<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBody; version?: number },
-  TContext
-> => {
+}) => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -167,7 +147,12 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, version);
   };
 
-  return { mutationFn, ...mutationOptions };
+  return { mutationFn, ...mutationOptions } as CreateMutationOptions<
+    TData,
+    TError,
+    { data: CreatePetsBody; version?: number },
+    TContext
+  >;
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -179,15 +164,19 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
+export const createCreatePets = <
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+  TContext = unknown,
+>(options?: {
   mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
+    TData,
     TError,
     { data: CreatePetsBody; version?: number },
     TContext
   >;
 }): CreateMutationResult<
-  Awaited<ReturnType<typeof createPets>>,
+  TData,
   TError,
   { data: CreatePetsBody; version?: number },
   TContext
@@ -222,13 +211,7 @@ export const getShowPetByIdQueryOptions = <
 >(
   petId: string,
   version: number = 1,
-  options?: {
-    query?: CreateQueryOptions<
-      Awaited<ReturnType<typeof showPetById>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: CreateQueryOptions<TData, TError, TData> },
 ) => {
   const { query: queryOptions } = options ?? {};
 
@@ -244,11 +227,7 @@ export const getShowPetByIdQueryOptions = <
     queryFn,
     enabled: !!(version && petId),
     ...queryOptions,
-  } as CreateQueryOptions<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  > & { queryKey: QueryKey };
+  } as CreateQueryOptions<TData, TError, TData> & { queryKey: QueryKey };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -266,13 +245,7 @@ export function createShowPetById<
 >(
   petId: string,
   version: number = 1,
-  options?: {
-    query?: CreateQueryOptions<
-      Awaited<ReturnType<typeof showPetById>>,
-      TError,
-      TData
-    >;
-  },
+  options?: { query?: CreateQueryOptions<TData, TError, TData> },
 ): CreateQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 

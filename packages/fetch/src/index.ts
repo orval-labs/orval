@@ -22,6 +22,7 @@ import {
 export const generateRequestFunction = (
   {
     queryParams,
+    headers,
     operationName,
     response,
     mutator,
@@ -113,10 +114,15 @@ ${
     operationName,
   );
 
+  const responseDataType =
+    response.definition.success || response.definition.errors
+      ? `${response.definition.success !== 'unknown' ? response.definition.success : ''}${response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''}${response.definition.errors !== 'unknown' ? response.definition.errors : ''}`
+      : 'unknown';
+
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
-  ${isNdJson ? 'stream: Response' : `data: ${response.definition.success || 'unknown'}`};
+  ${isNdJson ? 'stream: Response' : `data: ${responseDataType}`};
   status: number;
   headers: Headers;
 }\n\n`
@@ -139,7 +145,7 @@ ${
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const retrunType = `Promise<${responseTypeName}>`;
+  const returnType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
@@ -164,6 +170,7 @@ ${
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
+    ${headers ? 'headers: { ...headers, ...options?.headers },' : ''}
     ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
     ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
     ${fetchBodyOption}
@@ -176,11 +183,11 @@ ${
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const data = await res.json()
+  const data:${response.definition.success} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -194,7 +201,7 @@ ${
     ? customFetchResponseImplementation
     : fetchResponseImplementation;
 
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
+  const fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${fetchImplementationBody}}
 `;

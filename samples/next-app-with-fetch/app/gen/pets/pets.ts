@@ -6,6 +6,7 @@
  */
 import type {
   CreatePetsBodyItem,
+  Error,
   ListPetsParams,
   Pet,
   Pets,
@@ -67,7 +68,7 @@ export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
-  return customFetch<Promise<listPetsResponse>>(getListPetsUrl(params), {
+  return customFetch<listPetsResponse>(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -77,7 +78,7 @@ export const listPets = async (
  * @summary Create a pet
  */
 export type createPetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -90,7 +91,7 @@ export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
-  return customFetch<Promise<createPetsResponse>>(getCreatePetsUrl(), {
+  return customFetch<createPetsResponse>(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -102,7 +103,7 @@ export const createPets = async (
  * @summary Update a pet
  */
 export type updatePetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -115,7 +116,7 @@ export const updatePets = async (
   pet: NonReadonly<Pet>,
   options?: RequestInit,
 ): Promise<updatePetsResponse> => {
-  return customFetch<Promise<updatePetsResponse>>(getUpdatePetsUrl(), {
+  return customFetch<updatePetsResponse>(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -127,7 +128,7 @@ export const updatePets = async (
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -140,7 +141,7 @@ export const showPetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<showPetByIdResponse> => {
-  return customFetch<Promise<showPetByIdResponse>>(getShowPetByIdUrl(petId), {
+  return customFetch<showPetByIdResponse>(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });

@@ -7,6 +7,6 @@
 import type { DachshundBreed } from './dachshundBreed';
 
 export interface Dachshund {
-  breed: DachshundBreed;
   length: number;
+  breed: DachshundBreed;
 }

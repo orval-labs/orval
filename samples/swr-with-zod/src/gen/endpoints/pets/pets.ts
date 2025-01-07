@@ -75,7 +75,9 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };
@@ -123,7 +125,7 @@ export const useListPets = <TError = Promise<unknown>>(
  * @summary Create a pet
  */
 export type createPetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -142,7 +144,9 @@ export const createPets = async (
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(createPetsBodyItem),
   });
-  const data = await res.json();
+
+  const data: Pet =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };
@@ -192,7 +196,7 @@ export const useCreatePets = <TError = Promise<Error>>(options?: {
  * @summary Update a pet
  */
 export type updatePetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -211,7 +215,9 @@ export const updatePets = async (
     headers: { 'Content-Type': 'application/json', ...options?.headers },
     body: JSON.stringify(pet),
   });
-  const data = await res.json();
+
+  const data: Pet =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };
@@ -261,7 +267,7 @@ export const useUpdatePets = <TError = Promise<Error>>(options?: {
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -278,7 +284,9 @@ export const showPetById = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+
+  const data: Pet =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return { status: res.status, data, headers: res.headers };
 };

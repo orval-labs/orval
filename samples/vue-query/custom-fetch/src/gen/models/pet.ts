@@ -12,19 +12,19 @@ import type { PetCountry } from './petCountry';
 export type Pet =
   | (Dog & {
       '@id'?: string;
-      callingCode?: PetCallingCode;
-      country?: PetCountry;
-      email?: string;
       id: number;
       name: string;
       tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
     })
   | (Cat & {
       '@id'?: string;
-      callingCode?: PetCallingCode;
-      country?: PetCountry;
-      email?: string;
       id: number;
       name: string;
       tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
     });

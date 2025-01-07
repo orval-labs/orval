@@ -44,8 +44,8 @@ export const DachshundBreed = {
 } as const;
 
 export interface Dachshund {
-  breed: DachshundBreed;
   length: number;
+  breed: DachshundBreed;
 }
 
 export type LabradoodleBreed =
@@ -57,8 +57,8 @@ export const LabradoodleBreed = {
 } as const;
 
 export interface Labradoodle {
-  breed: LabradoodleBreed;
   cuteness: number;
+  breed: LabradoodleBreed;
 }
 
 export type DogType = (typeof DogType)[keyof typeof DogType];
@@ -98,19 +98,19 @@ export const PetCallingCode = {
 export type Pet =
   | (Dog & {
       '@id'?: string;
-      callingCode?: PetCallingCode;
-      country?: PetCountry;
-      email?: string;
       id: number;
       name: string;
       tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
     })
   | (Cat & {
       '@id'?: string;
-      callingCode?: PetCallingCode;
-      country?: PetCountry;
-      email?: string;
       id: number;
       name: string;
       tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
     });

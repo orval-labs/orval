@@ -84,7 +84,7 @@ export const listPets = async (
   params?: ListPetsParams,
   options?: RequestInit,
 ): Promise<listPetsResponse> => {
-  return customFetch<Promise<listPetsResponse>>(getListPetsUrl(params), {
+  return customFetch<listPetsResponse>(getListPetsUrl(params), {
     ...options,
     method: 'GET',
   });
@@ -100,9 +100,7 @@ export const getListPetsQueryOptions = <
 >(
   params?: ListPetsParams,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
 ) => {
@@ -115,7 +113,7 @@ export const getListPetsQueryOptions = <
   }) => listPets(params, { signal, ...requestOptions });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
-    Awaited<ReturnType<typeof listPets>>,
+    TData,
     TError,
     TData
   > & { queryKey: DataTag<QueryKey, TData> };
@@ -132,17 +130,8 @@ export function useListPets<
 >(
   params: undefined | ListPetsParams,
   options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listPets>>,
-          TError,
-          TData
-        >,
-        'initialData'
-      >;
+    query: Partial<UseQueryOptions<TData, TError, TData>> &
+      Pick<DefinedInitialDataOptions<TData, TError, TData>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): DefinedUseQueryResult<TData, TError> & {
@@ -154,17 +143,8 @@ export function useListPets<
 >(
   params?: ListPetsParams,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof listPets>>,
-          TError,
-          TData
-        >,
-        'initialData'
-      >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>> &
+      Pick<UndefinedInitialDataOptions<TData, TError, TData>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
@@ -174,9 +154,7 @@ export function useListPets<
 >(
   params?: ListPetsParams,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
@@ -190,9 +168,7 @@ export function useListPets<
 >(
   params?: ListPetsParams,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
@@ -211,7 +187,7 @@ export function useListPets<
  * @summary Create a pet
  */
 export type createPetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -224,7 +200,7 @@ export const createPets = async (
   createPetsBodyItem: CreatePetsBodyItem[],
   options?: RequestInit,
 ): Promise<createPetsResponse> => {
-  return customFetch<Promise<createPetsResponse>>(getCreatePetsUrl(), {
+  return customFetch<createPetsResponse>(getCreatePetsUrl(), {
     ...options,
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -233,22 +209,18 @@ export const createPets = async (
 };
 
 export const getCreatePetsMutationOptions = <
+  TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
+    TData,
     TError,
     { data: CreatePetsBodyItem[] },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof createPets>>,
-  TError,
-  { data: CreatePetsBodyItem[] },
-  TContext
-> => {
+}) => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
@@ -267,7 +239,12 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, requestOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  return { mutationFn, ...mutationOptions } as UseMutationOptions<
+    TData,
+    TError,
+    { data: CreatePetsBodyItem[] },
+    TContext
+  >;
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -279,16 +256,20 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
+export const useCreatePets = <
+  TData = Awaited<ReturnType<typeof createPets>>,
+  TError = Error,
+  TContext = unknown,
+>(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
+    TData,
     TError,
     { data: CreatePetsBodyItem[] },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof createPets>>,
+  TData,
   TError,
   { data: CreatePetsBodyItem[] },
   TContext
@@ -301,7 +282,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
  * @summary Update a pet
  */
 export type updatePetsResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -314,7 +295,7 @@ export const updatePets = async (
   pet: NonReadonly<Pet>,
   options?: RequestInit,
 ): Promise<updatePetsResponse> => {
-  return customFetch<Promise<updatePetsResponse>>(getUpdatePetsUrl(), {
+  return customFetch<updatePetsResponse>(getUpdatePetsUrl(), {
     ...options,
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...options?.headers },
@@ -323,22 +304,18 @@ export const updatePets = async (
 };
 
 export const getUpdatePetsMutationOptions = <
+  TData = Awaited<ReturnType<typeof updatePets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updatePets>>,
+    TData,
     TError,
     { data: NonReadonly<Pet> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}): UseMutationOptions<
-  Awaited<ReturnType<typeof updatePets>>,
-  TError,
-  { data: NonReadonly<Pet> },
-  TContext
-> => {
+}) => {
   const mutationKey = ['updatePets'];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
@@ -357,7 +334,12 @@ export const getUpdatePetsMutationOptions = <
     return updatePets(data, requestOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  return { mutationFn, ...mutationOptions } as UseMutationOptions<
+    TData,
+    TError,
+    { data: NonReadonly<Pet> },
+    TContext
+  >;
 };
 
 export type UpdatePetsMutationResult = NonNullable<
@@ -369,20 +351,19 @@ export type UpdatePetsMutationError = Error;
 /**
  * @summary Update a pet
  */
-export const useUpdatePets = <TError = Error, TContext = unknown>(options?: {
+export const useUpdatePets = <
+  TData = Awaited<ReturnType<typeof updatePets>>,
+  TError = Error,
+  TContext = unknown,
+>(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof updatePets>>,
+    TData,
     TError,
     { data: NonReadonly<Pet> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<
-  Awaited<ReturnType<typeof updatePets>>,
-  TError,
-  { data: NonReadonly<Pet> },
-  TContext
-> => {
+}): UseMutationResult<TData, TError, { data: NonReadonly<Pet> }, TContext> => {
   const mutationOptions = getUpdatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
@@ -391,7 +372,7 @@ export const useUpdatePets = <TError = Error, TContext = unknown>(options?: {
  * @summary Info for a specific pet
  */
 export type showPetByIdResponse = {
-  data: Pet;
+  data: Pet | Error;
   status: number;
   headers: Headers;
 };
@@ -404,7 +385,7 @@ export const showPetById = async (
   petId: string,
   options?: RequestInit,
 ): Promise<showPetByIdResponse> => {
-  return customFetch<Promise<showPetByIdResponse>>(getShowPetByIdUrl(petId), {
+  return customFetch<showPetByIdResponse>(getShowPetByIdUrl(petId), {
     ...options,
     method: 'GET',
   });
@@ -420,9 +401,7 @@ export const getShowPetByIdQueryOptions = <
 >(
   petId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
 ) => {
@@ -439,11 +418,9 @@ export const getShowPetByIdQueryOptions = <
     queryFn,
     enabled: !!petId,
     ...queryOptions,
-  } as UseQueryOptions<
-    Awaited<ReturnType<typeof showPetById>>,
-    TError,
-    TData
-  > & { queryKey: DataTag<QueryKey, TData> };
+  } as UseQueryOptions<TData, TError, TData> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 };
 
 export type ShowPetByIdQueryResult = NonNullable<
@@ -457,17 +434,8 @@ export function useShowPetById<
 >(
   petId: string,
   options: {
-    query: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    > &
-      Pick<
-        DefinedInitialDataOptions<
-          Awaited<ReturnType<typeof showPetById>>,
-          TError,
-          TData
-        >,
-        'initialData'
-      >;
+    query: Partial<UseQueryOptions<TData, TError, TData>> &
+      Pick<DefinedInitialDataOptions<TData, TError, TData>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): DefinedUseQueryResult<TData, TError> & {
@@ -479,17 +447,8 @@ export function useShowPetById<
 >(
   petId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    > &
-      Pick<
-        UndefinedInitialDataOptions<
-          Awaited<ReturnType<typeof showPetById>>,
-          TError,
-          TData
-        >,
-        'initialData'
-      >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>> &
+      Pick<UndefinedInitialDataOptions<TData, TError, TData>, 'initialData'>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
@@ -499,9 +458,7 @@ export function useShowPetById<
 >(
   petId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
@@ -515,9 +472,7 @@ export function useShowPetById<
 >(
   petId: string,
   options?: {
-    query?: Partial<
-      UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
+    query?: Partial<UseQueryOptions<TData, TError, TData>>;
     request?: SecondParameter<typeof customFetch>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
