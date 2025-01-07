@@ -8,6 +8,7 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
@@ -100,13 +101,19 @@ export const getMockScalar = ({
     ...(mockOptions?.format ?? {}),
   };
 
-  if (item.format && ALL_FORMAT[item.format]) {
-    const dateFormats = ['date', 'date-time'];
+  if (item.format && (item.format === 'int64' || ALL_FORMAT[item.format])) {
+    let value = ALL_FORMAT[item.format] as string;
 
-    const value =
-      context.output.override.useDates && dateFormats.includes(item.format)
-        ? `new Date(${ALL_FORMAT[item.format]})`
-        : `${ALL_FORMAT[item.format]}`;
+    const dateFormats = ['date', 'date-time'];
+    if (dateFormats.includes(item.format) && context.output.override.useDates) {
+      value = `new Date(${value})`;
+    }
+
+    if (item.format === 'int64') {
+      value = context.output.override.useBigInt
+        ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
+        : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
+    }
 
     return {
       value: getNullable(value, item.nullable),
@@ -122,7 +129,7 @@ export const getMockScalar = ({
     case 'number':
     case 'integer': {
       let value = getNullable(
-        `${getNumberType(type, item.format, context.output.override.useBigInt)}({min: ${item.minimum}, max: ${item.maximum}})`,
+        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
         item.nullable,
       );
       let numberImports: GeneratorImport[] = [];
@@ -150,6 +157,8 @@ export const getMockScalar = ({
         value = item.path?.endsWith('[]')
           ? `faker.helpers.arrayElements(${enumValue})`
           : `faker.helpers.arrayElement(${enumValue})`;
+      } else if ('const' in item) {
+        value = '' + (item as SchemaObject31).const;
       }
       return {
         value,
@@ -159,8 +168,12 @@ export const getMockScalar = ({
     }
 
     case 'boolean': {
+      let value = 'faker.datatype.boolean()';
+      if ('const' in item) {
+        value = '' + (item as SchemaObject31).const;
+      }
       return {
-        value: 'faker.datatype.boolean()',
+        value,
         imports: [],
         name: item.name,
       };
@@ -282,6 +295,8 @@ export const getMockScalar = ({
           : `faker.helpers.arrayElement(${enumValue})`;
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
+      } else if ('const' in item) {
+        value = `'${(item as SchemaObject31).const}'`;
       }
 
       return {
@@ -305,7 +320,12 @@ export const getMockScalar = ({
         mockOptions,
         operationId,
         tags,
-        combine,
+        combine: combine
+          ? {
+              separator: combine.separator,
+              includedProperties: [],
+            }
+          : undefined,
         context,
         imports,
         existingReferencedProperties,
@@ -326,24 +346,4 @@ function getItemType(item: MockSchemaObject) {
   const type = Array.from(uniqTypes.values()).at(0);
   if (!type) return;
   return ['string', 'number'].includes(type) ? type : undefined;
-}
-
-/**
- * Checks type and format and returns the correct faker number function
- *
- * Will default to int if no specific type is found
- */
-function getNumberType(type?: string, format?: string, useBigInt?: boolean) {
-  switch (type) {
-    case 'integer':
-      return format == 'int64' && useBigInt === true
-        ? 'faker.number.bigInt'
-        : 'faker.number.int';
-    case 'number':
-      return format == 'double' || format == 'float'
-        ? 'faker.number.float'
-        : 'faker.number.int';
-    default:
-      return 'faker.number.int';
-  }
 }

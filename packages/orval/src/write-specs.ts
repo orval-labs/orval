@@ -1,6 +1,7 @@
 import {
   createSuccessMessage,
   getFileInfo,
+  getMockFileExtensionByTypeName,
   isRootKey,
   jsDoc,
   log,
@@ -13,13 +14,13 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
-  getMockFileExtensionByTypeName,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
+import { Application, TypeDocOptions } from 'typedoc';
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -103,7 +104,7 @@ export const writeSpecs = async (
 
   if (output.workspace) {
     const workspacePath = output.workspace;
-    let imports = implementationPaths
+    const imports = implementationPaths
       .filter(
         (path) =>
           !output.mock ||
@@ -176,7 +177,7 @@ export const writeSpecs = async (
   if (output.prettier) {
     try {
       await execa('prettier', ['--write', ...paths]);
-    } catch (e) {
+    } catch {
       log(
         chalk.yellow(
           `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Prettier not found`,
@@ -193,6 +194,45 @@ export const writeSpecs = async (
         e.exitCode === 1
           ? e.stdout + e.stderr
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
+
+      log(chalk.yellow(message));
+    }
+  }
+
+  if (output.docs) {
+    try {
+      let config: Partial<TypeDocOptions> = {};
+      let configPath: string | null = null;
+      if (typeof output.docs === 'object') {
+        ({ configPath = null, ...config } = output.docs);
+        if (configPath) {
+          config.options = configPath;
+        }
+      }
+      const app = await Application.bootstrapWithPlugins({
+        entryPoints: paths,
+        // Set the custom config location if it has been provided.
+        ...config,
+        plugin: ['typedoc-plugin-markdown'],
+      });
+      // Set defaults if the have not been provided by the external config.
+      if (!app.options.isSet('readme')) {
+        app.options.setValue('readme', 'none');
+      }
+      if (!app.options.isSet('logLevel')) {
+        app.options.setValue('logLevel', 'None');
+      }
+      const project = await app.convert();
+      if (project) {
+        await app.generateDocs(project, app.options.getValue('out'));
+      } else {
+        throw new Error('TypeDoc not initialised');
+      }
+    } catch (e: any) {
+      const message =
+        e.exitCode === 1
+          ? e.stdout + e.stderr
+          : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
       log(chalk.yellow(message));
     }

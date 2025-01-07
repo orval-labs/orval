@@ -97,7 +97,7 @@ export const getParams = ({
 
     const definition = `${name}${
       !required || resolvedValue.originalSchema!.default ? '?' : ''
-    }: ${resolvedValue.value}`;
+    }: ${paramType}`;
 
     const implementation = `${name}${
       !required && !resolvedValue.originalSchema!.default ? '?' : ''

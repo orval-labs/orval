@@ -84,7 +84,7 @@ export default defineConfig({
       client: 'fetch',
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
@@ -100,6 +100,17 @@ export default defineConfig({
       override: {
         useNamedParameters: true,
       },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  headers: {
+    output: {
+      target: '../generated/fetch/headers/endpoints.ts',
+      schemas: '../generated/fetch/headers/model',
+      client: 'fetch',
+      headers: true,
     },
     input: {
       target: '../specifications/petstore.yaml',

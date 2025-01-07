@@ -26,6 +26,7 @@ import {
   OutputClient,
   OutputHttpClient,
   OutputMode,
+  PropertySortOrder,
   QueryOptions,
   RefComponentSuffix,
   SwaggerParserOptions,
@@ -103,6 +104,7 @@ export const normalizeOptions = async (
   if (typeof mock === 'boolean' && mock) {
     mock = DEFAULT_MOCK_OPTIONS;
   } else if (isFunction(mock)) {
+    // do nothing
   } else if (!mock) {
     mock = undefined;
   } else {
@@ -156,6 +158,7 @@ export const normalizeOptions = async (
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,
+      docs: outputOptions.docs ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
       tslint: outputOptions.tslint ?? tslint ?? false,
       biome: outputOptions.biome ?? biome ?? false,
@@ -313,8 +316,9 @@ export const normalizeOptions = async (
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
         },
         fetch: {
-          includeHttpStatusReturnType:
-            outputOptions.override?.fetch?.includeHttpStatusReturnType ?? true,
+          includeHttpResponseReturnType:
+            outputOptions.override?.fetch?.includeHttpResponseReturnType ??
+            true,
           ...(outputOptions.override?.fetch ?? {}),
         },
         useDates: outputOptions.override?.useDates || false,
@@ -327,6 +331,8 @@ export const normalizeOptions = async (
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
       optionsParamRequired: outputOptions.optionsParamRequired ?? false,
+      propertySortOrder:
+        outputOptions.propertySortOrder ?? PropertySortOrder.SPECIFICATION,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
@@ -351,7 +357,7 @@ const parserDefaultOptions = {
   resolve: { github: githubResolver },
 } as SwaggerParserOptions;
 
-const normalizeMutator = <T>(
+const normalizeMutator = (
   workspace: string,
   mutator?: Mutator,
 ): NormalizedMutator | undefined => {

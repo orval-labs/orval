@@ -1,17 +1,17 @@
 import {
-  generateOptions,
-  GeneratorVerbOptions,
-  isSyntheticDefaultImportsAllow,
-  toObjectString,
-  GeneratorMutator,
-  GetterResponse,
-  pascal,
-  GeneratorDependency,
-  GeneratorOptions,
-  OutputHttpClient,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
+  generateOptions,
+  GeneratorDependency,
+  GeneratorMutator,
+  GeneratorOptions,
+  GeneratorVerbOptions,
+  GetterResponse,
+  isSyntheticDefaultImportsAllow,
+  OutputHttpClient,
+  pascal,
+  toObjectString,
 } from '@orval/core';
 
 import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
@@ -115,8 +115,8 @@ export const generateAxiosRequestFunction = (
       isVue,
     });
 
-    let bodyDefinition = body.definition.replace('[]', '\\[\\]');
-    let propsImplementation =
+    const bodyDefinition = body.definition.replace('[]', '\\[\\]');
+    const propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${bodyDefinition}`),
@@ -196,8 +196,9 @@ export const generateAxiosRequestFunction = (
 
   const httpRequestFunctionImplementation = `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
-  }>> => {${bodyForm}
+  }>> => {
     ${isVue ? vueUnRefParams(props) : ''}
+    ${bodyForm}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
     }.${verb}(${options});
@@ -340,6 +341,7 @@ export const getQueryErrorType = (
 export const getHooksOptionImplementation = (
   isRequestOptions: boolean,
   httpClient: OutputHttpClient,
+  operationName: string,
   mutator?: GeneratorMutator,
 ) => {
   const options =
@@ -348,13 +350,18 @@ export const getHooksOptionImplementation = (
       : ', fetch: fetchOptions';
 
   return isRequestOptions
-    ? `const {mutation: mutationOptions${
+    ? `const mutationKey = ['${operationName}'];
+const {mutation: mutationOptions${
         !mutator
           ? options
           : mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
-      }} = options ?? {};`
+      }} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${!mutator ? (httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined') : ''}};`
     : '';
 };
 
@@ -381,7 +388,10 @@ export const getHttpFunctionQueryProps = (
   queryProperties: string,
 ) => {
   if (isVue && httpClient === OutputHttpClient.FETCH && queryProperties) {
-    return `unref(${queryProperties})`;
+    return queryProperties
+      .split(',')
+      .map((prop) => `unref(${prop})`)
+      .join(',');
   }
 
   return queryProperties;

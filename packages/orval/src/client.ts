@@ -20,12 +20,12 @@ import {
   OutputClientFunc,
   pascal,
 } from '@orval/core';
+import fetchClient from '@orval/fetch';
+import hono from '@orval/hono';
 import * as mock from '@orval/mock';
 import query from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
-import hono from '@orval/hono';
-import fetchClient from '@orval/fetch';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -159,7 +159,7 @@ export const generateClientFooter: GeneratorClientFooter = ({
         hasAwaitedType,
       });
     }
-  } catch (e) {
+  } catch {
     implementation = footer({
       operationNames,
       title: titles.implementation,

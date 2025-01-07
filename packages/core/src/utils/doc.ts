@@ -86,7 +86,7 @@ export function jsDoc(
   function tryAppendStringDocLine(key: string, value?: string) {
     if (value) {
       appendPrefix();
-      doc += ` @${key} ${value}`;
+      doc += ` @${key} ${value.replace(regex, replacement)}`;
     }
   }
 

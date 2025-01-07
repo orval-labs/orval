@@ -38,10 +38,10 @@ export const combineSchemasMock = ({
   existingReferencedProperties: string[];
   splitMockImplementations: string[];
 }): MockDefinition => {
-  let combineImports: GeneratorImport[] = [];
-  let includedProperties: string[] = (combine?.includedProperties ?? []).slice(
-    0,
-  );
+  const combineImports: GeneratorImport[] = [];
+  const includedProperties: string[] = (
+    combine?.includedProperties ?? []
+  ).slice(0);
 
   const isRefAndNotExisting =
     isReference(item) && !existingReferencedProperties.includes(item.name);
@@ -160,7 +160,10 @@ export const combineSchemasMock = ({
         return `{${currentValue}}`;
       }
 
-      return `{${currentValue},`;
+      if (currentValue) {
+        return `{${currentValue},`;
+      }
+      return '{';
     }
 
     if (isLastElement) {

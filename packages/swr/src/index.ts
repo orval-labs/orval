@@ -426,10 +426,10 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     );
     const swrKeyLoader = override.swr.useInfinite
       ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
-  return (_: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
+  return (page: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
     if (previousPageData && !previousPageData.data) return null
 
-    return [\`${route}\`${queryParams ? ', ...(params ? [params]: [])' : ''}${
+    return [\`${route}\`${queryParams ? ', ...(params ? [{...params,page}]: [{page}])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
     }] as const;
   }
@@ -532,7 +532,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = getSwrMutationFetcherType(
       response,
       httpClient,
-      override.fetch.includeHttpStatusReturnType,
+      override.fetch.includeHttpResponseReturnType,
       operationName,
       mutator,
     );

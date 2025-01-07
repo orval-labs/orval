@@ -1,0 +1,56 @@
+openapi: 3.0.0
+info:
+  title: Multi query params
+  version: 1.0.0
+paths:
+  /users/{userId}/orders:
+    get:
+      summary: Get user orders
+      description: Retrieves a list of orders for a specific user with optional filtering
+      parameters:
+        # Path parameter
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: integer
+          description: The unique identifier of the user
+          example: 12345
+
+        # Query parameters
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [pending, completed, cancelled]
+          description: Filter orders by status
+          example: completed
+
+        - in: query
+          name: fromDate
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Filter orders from this date (YYYY-MM-DD)
+          example: '2024-01-01'
+
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Maximum number of orders to return
+      responses:
+        '200':
+          description: A list of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string

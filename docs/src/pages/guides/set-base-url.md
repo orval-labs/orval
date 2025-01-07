@@ -1,6 +1,6 @@
 ## Use your own base url
 
-Orval allows you to set a custom base url for each OpenAPI specification. This can be a part of the url that's been omitted from the specification or the entire url.
+Orval allows you to set a custom base url for each OpenAPI specification. This can be a part of the url that's been omitted from the specification or the entire url. You can also configure Orval to read the `servers` field in the specification.
 
 ```ts
 module.exports = {
@@ -9,6 +9,28 @@ module.exports = {
       target: 'src/petstore.ts',
       baseUrl: '/api/v2',
       // baseUrl: 'https://petstore.swagger.io/v2',
+    },
+  },
+};
+```
+
+### Using the url from the OpenAPI specification
+
+If you want to use the url defined in your specification, described by the `servers` field, you can set `getBaseUrlFromSpecification`
+to `true`, which will make Orval correctly identify which base url to use for each operation. Read more about the different settings
+in the [output configuration](../reference/configuration/output#baseurl).
+
+```ts
+module.exports = {
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
     },
   },
 };

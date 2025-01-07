@@ -70,18 +70,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  httpClientFetchWithIncludeHttpStatusReturnType: {
+  httpClientFetchWithIncludeHttpResponseReturnType: {
     output: {
       target:
-        '../generated/vue-query/http-client-fetch-with-include-http-status-return-type/endpoints.ts',
+        '../generated/vue-query/http-client-fetch-with-include-http-response-return-type/endpoints.ts',
       schemas:
-        '../generated/vue-query/http-client-fetch-with-include-http-status-return-type/model',
+        '../generated/vue-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'vue-query',
       httpClient: 'fetch',
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
@@ -170,6 +170,29 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/petstore.yaml',
+    },
+  },
+  httpClientFetchWithMultiQueryParams: {
+    output: {
+      target:
+        '../generated/vue-query/http-client-fetch-with-multi-query-params/endpoints.ts',
+      schemas:
+        '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
+      client: 'vue-query',
+      httpClient: 'fetch',
+    },
+    input: {
+      target: '../specifications/multi-query-params.yaml',
+    },
+  },
+  formData: {
+    output: {
+      target: '../generated/vue-query/form-data/endpoints.ts',
+      schemas: '../generated/vue-query/form-data/model',
+      client: 'vue-query',
+    },
+    input: {
+      target: '../specifications/form-data.yaml',
     },
   },
   // Unsupported for now, see for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686

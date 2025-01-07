@@ -437,9 +437,7 @@ const isSuspenseQuery = (type: QueryType) => {
 };
 
 const getQueryOptionsDefinition = ({
-  operationName,
   definitions,
-  mutator,
   type,
   hasSvelteQueryV4,
   hasQueryV5,
@@ -448,9 +446,7 @@ const getQueryOptionsDefinition = ({
   isReturnType,
   initialData,
 }: {
-  operationName: string;
   definitions: string;
-  mutator?: GeneratorMutator;
   type?: QueryType;
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
@@ -459,22 +455,15 @@ const getQueryOptionsDefinition = ({
   isReturnType: boolean;
   initialData?: 'defined' | 'undefined';
 }) => {
-  const isMutatorHook = mutator?.isHook;
   const prefix = !hasSvelteQueryV4 ? 'Use' : 'Create';
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
-    const funcReturnType = `Awaited<ReturnType<${
-      isMutatorHook
-        ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-        : `typeof ${operationName}`
-    }>>`;
-
     const optionTypeInitialDataPostfix =
       initialData && !isSuspenseQuery(type)
         ? ` & Pick<
         ${pascal(initialData)}InitialDataOptions<
-          ${funcReturnType},
+          TData,
           TError,
           TData${
             hasQueryV5 &&
@@ -488,14 +477,12 @@ const getQueryOptionsDefinition = ({
         > , 'initialData'
       >`
         : '';
-    const optionType = `${prefix}${pascal(
-      type,
-    )}Options<${funcReturnType}, TError, TData${
+    const optionType = `${prefix}${pascal(type)}Options<TData, TError, TData${
       hasQueryV5 &&
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
       queryParams
-        ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        ? `, TData, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
     }>`;
     return `${partialOptions ? 'Partial<' : ''}${optionType}${
@@ -503,15 +490,10 @@ const getQueryOptionsDefinition = ({
     }${optionTypeInitialDataPostfix}`;
   }
 
-  return `${prefix}MutationOptions<Awaited<ReturnType<${
-    isMutatorHook
-      ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-      : `typeof ${operationName}`
-  }>>, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
+  return `${prefix}MutationOptions<TData, TError,${definitions ? `{${definitions}}` : 'void'}, TContext>`;
 };
 
 const generateQueryArguments = ({
-  operationName,
   definitions,
   mutator,
   isRequestOptions,
@@ -523,7 +505,6 @@ const generateQueryArguments = ({
   initialData,
   httpClient,
 }: {
-  operationName: string;
   definitions: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
@@ -536,9 +517,7 @@ const generateQueryArguments = ({
   httpClient: OutputHttpClient;
 }) => {
   const definition = getQueryOptionsDefinition({
-    operationName,
     definitions,
-    mutator,
     type,
     hasSvelteQueryV4,
     hasQueryV5,
@@ -619,16 +598,14 @@ const generateQueryReturnType = ({
 
 const generateMutatorReturnType = ({
   outputClient,
-  dataType,
   variableType,
 }: {
   outputClient: OutputClient | OutputClientFunc;
-  dataType: unknown;
   variableType: unknown;
 }) => {
   if (outputClient === OutputClient.REACT_QUERY) {
     return `: UseMutationResult<
-        Awaited<ReturnType<${dataType}>>,
+        TData,
         TError,
         ${variableType},
         TContext
@@ -636,7 +613,7 @@ const generateMutatorReturnType = ({
   }
   if (outputClient === OutputClient.SVELTE_QUERY) {
     return `: CreateMutationResult<
-        Awaited<ReturnType<${dataType}>>,
+        TData,
         TError,
         ${variableType},
         TContext
@@ -644,7 +621,7 @@ const generateMutatorReturnType = ({
   }
   if (outputClient === OutputClient.VUE_QUERY) {
     return `: UseMutationReturnType<
-        Awaited<ReturnType<${dataType}>>,
+        TData,
         TError,
         ${variableType},
         TContext
@@ -810,7 +787,6 @@ const generateQueryImplementation = ({
     : `typeof ${operationName}`;
 
   const definedInitialDataQueryArguments = generateQueryArguments({
-    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -823,7 +799,6 @@ const generateQueryImplementation = ({
     httpClient,
   });
   const undefinedInitialDataQueryArguments = generateQueryArguments({
-    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -836,7 +811,6 @@ const generateQueryImplementation = ({
     httpClient,
   });
   const queryArguments = generateQueryArguments({
-    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -869,9 +843,7 @@ const generateQueryImplementation = ({
   });
 
   const queryOptionFnReturnType = getQueryOptionsDefinition({
-    operationName,
     definitions: '',
-    mutator,
     type,
     hasSvelteQueryV4,
     hasQueryV5,
@@ -1188,7 +1160,7 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    let queryKeyProps = toObjectString(
+    const queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
     );
@@ -1282,7 +1254,7 @@ const generateQueryHook = async (
       .map(({ name, type }) => (type === GetterPropType.BODY ? 'data' : name))
       .join(',');
 
-    let errorType = getQueryErrorType(
+    const errorType = getQueryErrorType(
       operationName,
       response,
       httpClient,
@@ -1294,16 +1266,13 @@ const generateQueryHook = async (
       : `typeof ${operationName}`;
 
     const mutationOptionFnReturnType = getQueryOptionsDefinition({
-      operationName,
       definitions,
-      mutator,
       hasSvelteQueryV4,
       hasQueryV5,
       isReturnType: true,
     });
 
     const mutationArguments = generateQueryArguments({
-      operationName,
       definitions,
       mutator,
       isRequestOptions,
@@ -1325,10 +1294,18 @@ const generateQueryHook = async (
     const hooksOptionImplementation = getHooksOptionImplementation(
       isRequestOptions,
       httpClient,
+      camel(operationName),
       mutator,
     );
-    const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
-    TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
+
+    const TData = `Awaited<ReturnType<${
+      mutator?.isHook
+        ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+        : `typeof ${operationName}`
+    }>>`;
+
+    const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TData = ${TData}, TError = ${errorType},
+    TContext = unknown>(${mutationArguments}) => {
 ${hooksOptionImplementation}
 
       ${
@@ -1365,7 +1342,7 @@ ${hooksOptionImplementation}
     !mutationOptionsMutator
       ? '{ mutationFn, ...mutationOptions }'
       : 'customOptions'
-  }}`;
+  } as ${mutationOptionFnReturnType}}`;
 
     const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
 
@@ -1388,10 +1365,9 @@ ${mutationOptionsFn}
 
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
-    )} = <TError = ${errorType},
+    )} = <TData = ${TData}, TError = ${errorType},
     TContext = unknown>(${mutationArguments})${generateMutatorReturnType({
       outputClient,
-      dataType,
       variableType: definitions ? `{${definitions}}` : 'void',
     })} => {
 

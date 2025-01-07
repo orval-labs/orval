@@ -4,19 +4,18 @@ import {
   generateMutatorRequestOptions,
   generateOptions,
   GeneratorDependency,
+  GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
-  isSyntheticDefaultImportsAllow,
-  toObjectString,
-  VERBS_WITH_BODY,
-  GeneratorMutator,
   GetterResponse,
+  isSyntheticDefaultImportsAllow,
   OutputHttpClient,
+  toObjectString,
 } from '@orval/core';
 
 import {
-  generateRequestFunction as generateFetchRequestFunction,
   fetchResponseTypeName,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -235,13 +234,13 @@ export const getSwrMutationFetcherOptionType = (
 export const getSwrMutationFetcherType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
-  includeHttpStatusReturnType: boolean,
+  includeHttpResponseReturnType: boolean,
   operationName: string,
   mutator?: GeneratorMutator,
 ) => {
   if (httpClient === OutputHttpClient.FETCH) {
     const responseType = fetchResponseTypeName(
-      includeHttpStatusReturnType,
+      includeHttpResponseReturnType,
       response.definition.success,
       operationName,
     );

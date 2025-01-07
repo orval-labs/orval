@@ -1,4 +1,4 @@
-import {
+import type {
   ComponentsObject,
   OperationObject,
   ParameterObject,
@@ -14,7 +14,7 @@ import {
   getQueryParams,
   getResponse,
 } from '../getters';
-import {
+import type {
   ContextSpecs,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
@@ -259,15 +259,20 @@ export const _filteredVerbs = (
     return Object.entries(verbs);
   }
 
+  const filterTags = filters.tags || [];
+  const filterMode = filters.mode || 'include';
+
   return Object.entries(verbs).filter(
     ([_verb, operation]: [string, OperationObject]) => {
       const operationTags = operation.tags || [];
-      const filterTags = filters.tags || [];
-      return operationTags.some((tag) =>
+
+      const isMatch = operationTags.some((tag) =>
         filterTags.some((filterTag) =>
           filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
         ),
       );
+
+      return filterMode === 'exclude' ? !isMatch : isMatch;
     },
   );
 };

@@ -71,6 +71,30 @@ Default Value: `{}`.
 
 If specified, Orval only generates the endpoints after applying the filter.
 
+#### mode
+
+Type: `String`.
+
+Valid values: `include`, `exclude`.
+
+Default Value: `include`.
+
+Combined with `tags` or `schemas`, this setting determines whether to include or exclude the specified items.
+For instance, the example below generates endpoints that do not contain the tag `pets`.
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        tags: ['pets'],
+      },
+    },
+  },
+};
+```
+
 #### tags
 
 Type: Array of `string` or `RegExp`.

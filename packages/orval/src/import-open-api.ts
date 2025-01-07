@@ -123,7 +123,7 @@ const getApiSchemas = ({
         parsedSchemas,
         context,
         output.override.components.schemas.suffix,
-        input.filters?.schemas,
+        input.filters,
       );
 
       const responseDefinition = generateComponentDefinition(

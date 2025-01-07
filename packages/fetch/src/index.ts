@@ -22,6 +22,7 @@ import {
 export const generateRequestFunction = (
   {
     queryParams,
+    headers,
     operationName,
     response,
     mutator,
@@ -104,15 +105,26 @@ ${
   }
 }\n`;
 
+  const isNdJson = response.contentTypes.some(
+    (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
+  );
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpStatusReturnType,
-    response.definition.success,
+    override.fetch.includeHttpResponseReturnType,
+    isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
-  const responseTypeImplementation = override.fetch.includeHttpStatusReturnType
+
+  const responseDataType =
+    response.definition.success || response.definition.errors
+      ? `${response.definition.success !== 'unknown' ? response.definition.success : ''}${response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''}${response.definition.errors !== 'unknown' ? response.definition.errors : ''}`
+      : 'unknown';
+
+  const responseTypeImplementation = override.fetch
+    .includeHttpResponseReturnType
     ? `export type ${responseTypeName} = {
-  data: ${response.definition.success || 'unknown'};
+  ${isNdJson ? 'stream: Response' : `data: ${responseDataType}`};
   status: number;
+  headers: Headers;
 }\n\n`
     : '';
 
@@ -133,7 +145,7 @@ ${
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const retrunType = `Promise<${responseTypeName}>`;
+  const returnType = `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
@@ -142,8 +154,10 @@ ${
   const ignoreContentTypes = ['multipart/form-data'];
   const fetchHeadersOption =
     body.contentType && !ignoreContentTypes.includes(body.contentType)
-      ? `headers: { 'Content-Type': '${body.contentType}', ...options?.headers }`
-      : '';
+      ? `headers: { 'Content-Type': '${body.contentType}',${headers ? '...headers,' : ''} ...options?.headers }`
+      : headers
+        ? 'headers: {...headers, ...options?.headers}'
+        : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
@@ -163,13 +177,18 @@ ${
     ${fetchBodyOption}
   }
 `;
-  const fetchResponseImplementation = `const res = await fetch(${fetchFnOptions}
-  )
-  const data = await res.json()
+  const fetchResponseImplementation = isNdJson
+    ? `const stream = await fetch(${fetchFnOptions})
+  
+  ${override.fetch.includeHttpResponseReturnType ? 'return { status: stream.status, stream, headers: stream.headers }' : `return stream`}
+  `
+    : `const res = await fetch(${fetchFnOptions})
 
-  ${override.fetch.includeHttpStatusReturnType ? 'return { status: res.status, data }' : `return data as ${responseTypeName}`}
+  const data:${response.definition.success} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
+
+  ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${retrunType}>(${fetchFnOptions});`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -183,7 +202,7 @@ ${
     ? customFetchResponseImplementation
     : fetchResponseImplementation;
 
-  const fetchImplementation = `export const ${operationName} = async (${args}): ${retrunType} => {
+  const fetchImplementation = `export const ${operationName} = async (${args}): ${returnType} => {
   ${bodyForm ? `  ${bodyForm}` : ''}
   ${fetchImplementationBody}}
 `;
@@ -197,11 +216,11 @@ ${
 };
 
 export const fetchResponseTypeName = (
-  includeHttpStatusReturnType: boolean,
+  includeHttpResponseReturnType: boolean,
   definitionSuccessResponse: string,
   operationName: string,
 ) => {
-  return includeHttpStatusReturnType
+  return includeHttpResponseReturnType
     ? `${operationName}Response`
     : definitionSuccessResponse;
 };

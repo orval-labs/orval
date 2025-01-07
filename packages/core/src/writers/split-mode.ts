@@ -11,6 +11,7 @@ import {
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 
 export const writeSplitMode = async ({
   builder,
@@ -52,10 +53,16 @@ export const writeSplitMode = async ({
       output.tsconfig,
     );
 
+    const importsForBuilder = generateImportsForBuilder(
+      output,
+      imports,
+      relativeSchemasPath,
+    );
+
     implementationData += builder.imports({
       client: output.client,
       implementation,
-      imports: [{ exports: imports, dependency: relativeSchemasPath }],
+      imports: importsForBuilder,
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
@@ -68,9 +75,15 @@ export const writeSplitMode = async ({
       output,
     });
 
+    const importsMockForBuilder = generateImportsForBuilder(
+      output,
+      importsMock,
+      relativeSchemasPath,
+    );
+
     mockData += builder.importsMock({
       implementation: implementationMock,
-      imports: [{ exports: importsMock, dependency: relativeSchemasPath }],
+      imports: importsMockForBuilder,
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,

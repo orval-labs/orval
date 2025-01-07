@@ -5,6 +5,21 @@ info:
   license:
     name: MIT
 paths:
+  /pets:
+    post:
+      summary: Create a pet
+      operationId: createPets
+      tags:
+        - pets
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AllOfPet'
+      responses:
+        '204':
+          description: Ok
   /not-has-properties-with-all-of-pets:
     get:
       operationId: getNotHasPropertiesWithAllOfPets
@@ -46,6 +61,10 @@ paths:
 
 components:
   schemas:
+    AllOfPet:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - $ref: '#/components/schemas/PetDetail'
     Pet:
       type: object
       required:

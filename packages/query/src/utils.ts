@@ -1,18 +1,18 @@
 import {
   createLogger,
+  getIsBodyVerb,
+  GetterProps,
+  GetterPropType,
   isObject,
   isString,
   Mutator,
   NormalizedMutator,
   NormalizedQueryOptions,
-  QueryOptions,
   OutputClient,
   OutputClientFunc,
-  upath,
-  GetterProps,
-  GetterPropType,
+  QueryOptions,
   TEMPLATE_TAG_REGEX,
-  getIsBodyVerb,
+  upath,
   Verbs,
 } from '@orval/core';
 import chalk from 'chalk';
@@ -64,7 +64,7 @@ export const normalizeQueryOptions = (
 };
 
 // Temporary duplicate code before next major release
-const normalizeMutator = <T>(
+const normalizeMutator = (
   workspace: string,
   mutator?: Mutator,
 ): NormalizedMutator | undefined => {

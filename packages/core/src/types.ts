@@ -1,5 +1,6 @@
-import SwaggerParser from '@apidevtools/swagger-parser';
-import {
+import type SwaggerParser from '@apidevtools/swagger-parser';
+import type { allLocales } from '@faker-js/faker';
+import type {
   InfoObject,
   OpenAPIObject,
   OperationObject,
@@ -10,8 +11,8 @@ import {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 // @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
-import type { allLocales } from '@faker-js/faker';
-import swagger2openapi from 'swagger2openapi';
+import type swagger2openapi from 'swagger2openapi';
+import { TypeDocOptions } from 'typedoc';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -50,6 +51,7 @@ export type NormalizedOutputOptions = {
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
   clean: boolean | string[];
+  docs: boolean | OutputDocsOptions;
   prettier: boolean;
   tslint: boolean;
   biome: boolean;
@@ -57,12 +59,13 @@ export type NormalizedOutputOptions = {
   packageJson?: PackageJson;
   headers: boolean;
   indexFiles: boolean;
-  baseUrl?: string;
+  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
   onChanges: boolean;
+  propertySortOrder: PropertySortOrder;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -163,6 +166,30 @@ export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
 
+export type BaseUrlFromSpec = {
+  getBaseUrlFromSpecification: true;
+  variables?: {
+    [variable: string]: string;
+  };
+  index?: number;
+  baseUrl?: never;
+};
+
+export type BaseUrlFromConstant = {
+  getBaseUrlFromSpecification: false;
+  variables?: never;
+  index?: never;
+  baseUrl: string;
+};
+
+export const PropertySortOrder = {
+  ALPHABETICAL: 'Alphabetical',
+  SPECIFICATION: 'Specification',
+} as const;
+
+export type PropertySortOrder =
+  (typeof PropertySortOrder)[keyof typeof PropertySortOrder];
+
 export type OutputOptions = {
   workspace?: string;
   target?: string;
@@ -175,6 +202,7 @@ export type OutputOptions = {
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
   clean?: boolean | string[];
+  docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
   tslint?: boolean;
   biome?: boolean;
@@ -182,12 +210,13 @@ export type OutputOptions = {
   packageJson?: string;
   headers?: boolean;
   indexFiles?: boolean;
-  baseUrl?: string;
+  baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
   onChanges?: boolean;
+  propertySortOrder?: PropertySortOrder;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -195,6 +224,7 @@ export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
 };
 
 export type InputFiltersOption = {
+  mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
 };
@@ -239,6 +269,10 @@ export const OutputMode = {
 } as const;
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
+
+export type OutputDocsOptions = {
+  configPath?: string;
+} & Partial<TypeDocOptions>;
 
 // TODO: add support for other mock types (like cypress or playwright)
 export const OutputMockType = {
@@ -502,7 +536,7 @@ export type SwrOptions = {
 };
 
 export type FetchOptions = {
-  includeHttpStatusReturnType: boolean;
+  includeHttpResponseReturnType: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

@@ -71,7 +71,7 @@ paths:
       summary: List all pets as nested array
       operationId: listPetsNestedArray
       tags:
-        - pets
+        - pets, pets-nested-array
       parameters:
         - name: limit
           in: query

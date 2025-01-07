@@ -20,7 +20,7 @@ module.exports = {
  * @summary List all pets
  */
 export type listPetsResponse = {
-  data: Pets;
+  data: Pets | BadRequest;
   status: number;
 };
 
@@ -48,7 +48,8 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
   return { status: res.status, data };
 };
@@ -97,7 +98,7 @@ export const useListPets = <TError = Promise<Pets | Error>>(
 #### return original defined return type
 
 When using `fetch` as an `httpClient`, by default the `fetch` response type includes http status.
-If use `swr` or queries, i will be accessing things like `data.data`, which will be noisy so if you want to return a defined return type instead of an automatically generated return type, set `override.fetch.includeHttpStatusReturnType` value to `false`.
+If use `swr` or queries, i will be accessing things like `data.data`, which will be noisy so if you want to return a defined return type instead of an automatically generated return type, set `override.fetch.includeHttpResponseReturnType` value to `false`.
 
 ```js
 module.exports = {
@@ -106,7 +107,7 @@ module.exports = {
       ...
       override: {
         fetch: {
-          includeHttpStatusReturnType: false,
+          includeHttpResponseReturnType: false,
         },
       },
     },
@@ -120,7 +121,7 @@ module.exports = {
  * @summary List all pets
  */
 - export type listPetsResponse = {
--   data: Pets;
+-   data: Pets | BadRequest;
 -   status: number;
 - };
 
@@ -133,10 +134,11 @@ export const listPets = async (
     ...options,
     method: 'GET',
   });
-  const data = await res.json();
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
 
 -  return { status: res.status, data };
-+  return data as Pet;
++  return data;
 };
 ```
 
