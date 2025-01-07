@@ -1,6 +1,6 @@
 {
   "name": "@orval/axios",
-  "version": "7.3.0",
+  "version": "7.4.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,6 +13,6 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "7.3.0"
+    "@orval/core": "7.4.0"
   }
 }
