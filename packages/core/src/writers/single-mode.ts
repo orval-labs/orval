@@ -1,11 +1,6 @@
 import fs from 'fs-extra';
-import uniqBy from 'lodash.uniqby';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import {
-  GeneratorImport,
-  NormalizedOutputOptions,
-  WriteModeProps,
-} from '../types';
+import { WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,

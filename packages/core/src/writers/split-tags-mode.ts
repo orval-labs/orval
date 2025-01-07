@@ -1,11 +1,6 @@
 import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import {
-  GeneratorImport,
-  NormalizedOutputOptions,
-  OutputClient,
-  WriteModeProps,
-} from '../types';
+import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
@@ -16,7 +11,6 @@ import {
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
-import uniqBy from 'lodash.uniqby';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 
 export const writeSplitTagsMode = async ({
