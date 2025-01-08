@@ -52,7 +52,7 @@ const getQueryParamsTypes = (
       name: queryName,
     });
 
-    const key = getKey(name);
+    const key = sanitize(name);
     const doc = jsDoc(parameter);
 
     if (parameterImports.length) {
