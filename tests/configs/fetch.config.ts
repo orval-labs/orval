@@ -189,4 +189,12 @@ export default defineConfig({
       target: '../specifications/parameters.yaml',
     },
   },
+  importFromSubdirectory: {
+    output: {
+      target: '../generated/fetch/importFromSubdirectory/endpoints.ts',
+      schemas: '../generated/fetch/importFromSubdirectory/model',
+      client: 'fetch',
+    },
+    input: '../specifications/import-from-subdirectory/petstore.yaml',
+  },
 });
