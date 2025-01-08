@@ -209,4 +209,35 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  paramsSerializer: {
+    output: {
+      target: '../generated/default/params-serializer/endpoints.ts',
+      schemas: '../generated/default/params-serializer/model',
+      override: {
+        paramsSerializer: {
+          path: '../mutators/params-serializer.ts',
+          name: 'customParamsSerializer',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  paramsSerializerOptions: {
+    output: {
+      target: '../generated/default/params-serializer-options/endpoints.ts',
+      schemas: '../generated/default/params-serializer-options/model',
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
