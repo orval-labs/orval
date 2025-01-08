@@ -126,6 +126,7 @@ export type NormalizedMutator = {
   name?: string;
   default: boolean;
   alias?: Record<string, string>;
+  extension?: string
 };
 
 export type NormalizedOperationOptions = {
@@ -346,6 +347,7 @@ export type MutatorObject = {
   name?: string;
   default?: boolean;
   alias?: Record<string, string>;
+  extension?: string;
 };
 
 export type Mutator = string | MutatorObject;
