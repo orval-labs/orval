@@ -841,7 +841,7 @@ module.exports = {
 };
 ```
 
-The generated file will import the mutator with a `.js` extension. 
+The generated file will import the mutator with a `.js` extension.
 
 #### header
 

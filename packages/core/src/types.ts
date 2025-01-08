@@ -126,7 +126,7 @@ export type NormalizedMutator = {
   name?: string;
   default: boolean;
   alias?: Record<string, string>;
-  extension?: string
+  extension?: string;
 };
 
 export type NormalizedOperationOptions = {
