@@ -133,15 +133,16 @@ export const getObject = ({
 
         if (arr.length - 1 === index) {
           if (item.additionalProperties) {
+            acc.value += '\n}';
             if (isBoolean(item.additionalProperties)) {
-              acc.value += `\n  [key: string]: unknown;\n }`;
+              acc.value += ` | (${acc.value} & {\n  [key: string]: unknown;\n })`;
             } else {
               const resolvedValue = resolveValue({
                 schema: item.additionalProperties,
                 name,
                 context,
               });
-              acc.value += `\n  [key: string]: ${resolvedValue.value};\n}`;
+              acc.value += ` | (${acc.value} & {\n  [key: string]: ${resolvedValue.value};\n })`;
             }
           } else {
             acc.value += '\n}';

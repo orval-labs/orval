@@ -146,6 +146,7 @@ function shouldCreateInterface(schema: SchemaObject) {
     !schema.anyOf &&
     !isReference(schema) &&
     !schema.nullable &&
-    !schema.enum
+    !schema.enum &&
+    !schema.additionalProperties
   );
 }
