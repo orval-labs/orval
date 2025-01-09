@@ -215,22 +215,21 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^4.22.0":
-  version: 4.22.0
-  resolution: "@tanstack/react-query@npm:4.22.0"
+"@tanstack/query-core@npm:5.62.16":
+  version: 5.62.16
+  resolution: "@tanstack/query-core@npm:5.62.16"
+  checksum: 10c0/3df0c19916cb363b055a20590c856b4f08006754b8169222a12e94ed5647733c389ac0d58878dfb8d6803f23a2a092d8a29b3259330576bd4170dad86798eb6d
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:^5.63.0":
+  version: 5.63.0
+  resolution: "@tanstack/react-query@npm:5.63.0"
   dependencies:
-    "@tanstack/query-core": "npm:4.22.0"
-    use-sync-external-store: "npm:^1.2.0"
+    "@tanstack/query-core": "npm:5.62.16"
   peerDependencies:
-    react: ^16.8.0 || ^17.0.0 || ^18.0.0
-    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
-    react-native: "*"
-  peerDependenciesMeta:
-    react-dom:
-      optional: true
-    react-native:
-      optional: true
-  checksum: 10c0/aacb071935c20ec695adfce7594649b6a7683640b82b232727f1b000bb871b6e99bb98bf47b9617eb76829d6b5822a6c98d3cefb1ede90a69cc52c2c79488d14
+    react: ^18 || ^19
+  checksum: 10c0/8d9622c3b301ff309b4dcfd7a1b14469aa4ac5c1cca20507e67ca57ba1da72fc968d5cbff2b724b5c9f4eb9947e74c0cbf7e68a4c5698c179555da7e91aef6b5
   languageName: node
   linkType: hard
 
@@ -534,7 +533,7 @@ __metadata:
     "@angular/common": "npm:^17.1.1"
     "@angular/core": "npm:^17.1.1"
     "@faker-js/faker": "npm:^8.1.0"
-    "@tanstack/react-query": "npm:^4.22.0"
+    "@tanstack/react-query": "npm:^5.63.0"
     "@tanstack/svelte-query": "npm:^4.24.9"
     "@tanstack/vue-query": "npm:^4.22.0"
     "@types/react": "npm:18.3.2"
@@ -544,7 +543,7 @@ __metadata:
     orval: "link:../packages/orval/dist"
     react: "npm:^18.3.1"
     swr: "npm:^2.2.4"
-    typescript: "npm:4.8.2"
+    typescript: "npm:5.3.3"
     vue: "npm:^3.3.4"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -2498,23 +2497,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:4.8.2":
-  version: 4.8.2
-  resolution: "typescript@npm:4.8.2"
+"typescript@npm:5.3.3":
+  version: 5.3.3
+  resolution: "typescript@npm:5.3.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/562cae44b09b04b280822b4cb34e7c50543b5f871297219a736a4f2cadb80ba493b21e3890bec6fee6b25a0507fb529eca40ebc690ac9020a5135af838746e72
+  checksum: 10c0/e33cef99d82573624fc0f854a2980322714986bc35b9cb4d1ce736ed182aeab78e2cb32b385efa493b2a976ef52c53e20d6c6918312353a91850e2b76f1ea44f
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A4.8.2#optional!builtin<compat/typescript>":
-  version: 4.8.2
-  resolution: "typescript@patch:typescript@npm%3A4.8.2#optional!builtin<compat/typescript>::version=4.8.2&hash=3b564f"
+"typescript@patch:typescript@npm%3A5.3.3#optional!builtin<compat/typescript>":
+  version: 5.3.3
+  resolution: "typescript@patch:typescript@npm%3A5.3.3#optional!builtin<compat/typescript>::version=5.3.3&hash=e012d7"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/8e7760580c82eba5f2dc91fa5a2f59d8385a9a1b48228ac4921abfa5496beccb2a11ed68a78699accc3ec12dd8a520a8407a222904206c6cf2de478a7e714ff3
+  checksum: 10c0/1d0a5f4ce496c42caa9a30e659c467c5686eae15d54b027ee7866744952547f1be1262f2d40de911618c242b510029d51d43ff605dba8fb740ec85ca2d3f9500
   languageName: node
   linkType: hard
 
