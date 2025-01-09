@@ -9,7 +9,9 @@ import {
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
+  getFileInfo,
   getNumberWord,
+  getRefInfo,
   isBoolean,
   isObject,
   isString,
@@ -555,8 +557,17 @@ const deference = (
     childContext,
   );
 
+  const resolvedSpecKey = refName
+    ? getRefInfo(refName, context).specKey
+    : undefined;
+
+  const resolvedContext: ContextSpecs = {
+    ...childContext,
+    specKey: resolvedSpecKey ?? childContext.specKey,
+  };
+
   return Object.entries(resolvedSchema).reduce((acc, [key, value]) => {
-    acc[key] = deferenceScalar(value, childContext);
+    acc[key] = deferenceScalar(value, resolvedContext);
     return acc;
   }, {} as any);
 };

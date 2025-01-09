@@ -1,12 +1,14 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "7.4.0",
+  "version": "7.4.1",
   "license": "MIT",
   "files": [
     "dist"
   ],
-  "bin": "dist/bin/orval.js",
+  "bin": {
+    "orval": "dist/bin/orval.js"
+  },
   "type": "commonjs",
   "main": "dist/index.js",
   "keywords": [
@@ -39,7 +41,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/orval-labs/orval"
+    "url": "git+https://github.com/orval-labs/orval.git"
   },
   "scripts": {
     "build": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --clean --sourcemap --dts",
@@ -55,15 +57,15 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",
-    "@orval/angular": "7.4.0",
-    "@orval/axios": "7.4.0",
-    "@orval/core": "7.4.0",
-    "@orval/fetch": "7.4.0",
-    "@orval/hono": "7.4.0",
-    "@orval/mock": "7.4.0",
-    "@orval/query": "7.4.0",
-    "@orval/swr": "7.4.0",
-    "@orval/zod": "7.4.0",
+    "@orval/angular": "7.4.1",
+    "@orval/axios": "7.4.1",
+    "@orval/core": "7.4.1",
+    "@orval/fetch": "7.4.1",
+    "@orval/hono": "7.4.1",
+    "@orval/mock": "7.4.1",
+    "@orval/query": "7.4.1",
+    "@orval/swr": "7.4.1",
+    "@orval/zod": "7.4.1",
     "ajv": "^8.17.1",
     "cac": "^6.7.14",
     "chalk": "^4.1.2",
