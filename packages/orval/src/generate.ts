@@ -1,21 +1,23 @@
 import {
   asyncReduce,
   ConfigExternal,
-  upath,
-  logError,
   getFileInfo,
   GlobalOptions,
   isFunction,
   isString,
   loadFile,
   log,
-  NormalizedOptions,
+  logError,
   NormalizedConfig,
+  NormalizedOptions,
+  nothingChangedMessage,
   removeFiles,
+  upath,
 } from '@orval/core';
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
+import { writeLastCommit } from './utils/write-last-commit';
 import { writeSpecs } from './write-specs';
 
 export const generateSpec = async (
@@ -44,6 +46,12 @@ export const generateSpec = async (
   }
 
   const writeSpecBuilder = await importSpecs(workspace, options);
+
+  if (!writeSpecBuilder) {
+    nothingChangedMessage(projectName);
+    return;
+  }
+
   await writeSpecs(writeSpecBuilder, workspace, options, projectName);
 };
 
@@ -85,6 +93,7 @@ export const generateSpecs = async (
   );
 
   if (hasErrors) process.exit(1);
+
   return accumulate;
 };
 
@@ -131,10 +140,14 @@ export const generateConfig = async (
   if (options?.watch && fileToWatch.length) {
     startWatcher(
       options?.watch,
-      () => generateSpecs(normalizedConfig, workspace, options?.projectName),
+      async () => {
+        await generateSpecs(normalizedConfig, workspace, options?.projectName);
+        await writeLastCommit(workspace);
+      },
       fileToWatch,
     );
   } else {
     await generateSpecs(normalizedConfig, workspace, options?.projectName);
+    await writeLastCommit(workspace);
   }
 };

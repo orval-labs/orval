@@ -64,6 +64,7 @@ export type NormalizedOutputOptions = {
   urlEncodeParameters: boolean;
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
+  onChanges: boolean;
   propertySortOrder: PropertySortOrder;
 };
 
@@ -214,6 +215,7 @@ export type OutputOptions = {
   urlEncodeParameters?: boolean;
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
+  onChanges?: boolean;
   propertySortOrder?: PropertySortOrder;
 };
 
@@ -634,6 +636,7 @@ export interface GlobalOptions {
   packageJson?: string;
   input?: string;
   output?: string;
+  onChanges?: boolean;
 }
 
 export interface Tsconfig {

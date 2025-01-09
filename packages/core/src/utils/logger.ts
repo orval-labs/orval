@@ -46,6 +46,13 @@ export const createSuccessMessage = (backend?: string) =>
     }Your OpenAPI spec has been converted into ready to use orval!`,
   );
 
+export const nothingChangedMessage = (backend?: string) =>
+  log(
+    `🎉 ${
+      backend ? `${chalk.green(backend)} - ` : ''
+    }No changes detected, skipping generation`,
+  );
+
 export const ibmOpenapiValidatorWarnings = (
   warnings: {
     path: string[];

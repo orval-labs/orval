@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import { isString, logError, startMessage } from '@orval/core';
 import { cac } from 'cac';
-import { generateConfig, generateSpec } from '../generate';
 import pkg from '../../package.json';
+import { generateConfig, generateSpec } from '../generate';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
+import { writeLastCommit } from '../utils/write-last-commit';
 
 const cli = cac('orval');
 
@@ -40,6 +41,7 @@ cli
   .option('--tslint [path]', 'tslint generated files')
   .option('--biome [path]', 'biome generated files')
   .option('--tsconfig [path]', 'path to your tsconfig file')
+  .option('--onChanges', 'only generate when the input file changes')
   .action(async (paths, cmd) => {
     if (!cmd.config && isString(cmd.input) && isString(cmd.output)) {
       const normalizedOptions = await normalizeOptions({
@@ -54,6 +56,7 @@ cli
           client: cmd.client,
           mode: cmd.mode,
           tsconfig: cmd.tsconfig,
+          onChanges: cmd.onChanges,
         },
       });
 
@@ -63,6 +66,7 @@ cli
           async () => {
             try {
               await generateSpec(process.cwd(), normalizedOptions);
+              await writeLastCommit(process.cwd());
             } catch (e) {
               logError(e);
             }
@@ -72,6 +76,7 @@ cli
       } else {
         try {
           await generateSpec(process.cwd(), normalizedOptions);
+          await writeLastCommit(process.cwd());
         } catch (e) {
           logError(e);
         }
@@ -90,6 +95,7 @@ cli
         tsconfig: cmd.tsconfig,
         input: cmd.input,
         output: cmd.output,
+        onChanges: cmd.onChanges,
       });
     }
   });

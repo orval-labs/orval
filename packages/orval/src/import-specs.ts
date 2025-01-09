@@ -4,15 +4,18 @@ import {
   isUrl,
   log,
   NormalizedOptions,
-  upath,
   SwaggerParserOptions,
+  upath,
   WriteSpecsBuilder,
 } from '@orval/core';
 import chalk from 'chalk';
-import yaml from 'js-yaml';
+import { execSync } from 'child_process';
 import fs from 'fs-extra';
+import yaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
+import { getNodeModulesPath } from './utils/node-modules';
+import { readLastCommit } from './utils/read-last-commit';
 
 const resolveSpecs = async (
   path: string,
@@ -59,7 +62,7 @@ const resolveSpecs = async (
 export const importSpecs = async (
   workspace: string,
   options: NormalizedOptions,
-): Promise<WriteSpecsBuilder> => {
+): Promise<WriteSpecsBuilder | undefined> => {
   const { input, output } = options;
 
   if (isObject(input.target)) {
@@ -82,6 +85,49 @@ export const importSpecs = async (
     isPathUrl,
     !output.target,
   );
+
+  if (options.output.onChanges) {
+    const nodeModulesPath = await getNodeModulesPath(workspace);
+
+    if (nodeModulesPath) {
+      const lastCommit = await readLastCommit(workspace);
+
+      if (lastCommit) {
+        const currentCommit = execSync('git rev-parse HEAD').toString();
+
+        if (lastCommit === currentCommit) {
+          return;
+        }
+
+        const diff = execSync(
+          `git diff --name-only ${lastCommit} ${currentCommit}`,
+        ).toString();
+
+        const trackedFiles = Object.keys(data);
+
+        const gitRoot = execSync('git rev-parse --show-toplevel')
+          .toString()
+          .replace('\n', '');
+
+        const changedFiles = diff
+          .split('\n')
+          .filter(Boolean)
+          .map((path) => {
+            return upath.joinSafe(gitRoot, path);
+          });
+
+        const hasChangedFiles = changedFiles.some((file) =>
+          trackedFiles.includes(file),
+        );
+
+        console.log(changedFiles);
+
+        if (!hasChangedFiles) {
+          return;
+        }
+      }
+    }
+  }
 
   return importOpenApi({
     data,
