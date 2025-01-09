@@ -346,6 +346,21 @@ const isQueryV5 = (
   return compareVersions(withoutRc, '5.0.0');
 };
 
+const isQueryV5WithDataTagError = (
+  packageJson: PackageJson | undefined,
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '5.62.0');
+};
+
 const getPackageByQueryClient = (
   packageJson: PackageJson | undefined,
   queryClient: 'react-query' | 'vue-query' | 'svelte-query',
@@ -437,6 +452,8 @@ const isSuspenseQuery = (type: QueryType) => {
 };
 
 const getQueryOptionsDefinition = ({
+  operationName,
+  mutator,
   definitions,
   type,
   hasSvelteQueryV4,
@@ -446,6 +463,8 @@ const getQueryOptionsDefinition = ({
   isReturnType,
   initialData,
 }: {
+  operationName: string;
+  mutator?: GeneratorMutator;
   definitions: string;
   type?: QueryType;
   hasSvelteQueryV4: boolean;
@@ -459,11 +478,17 @@ const getQueryOptionsDefinition = ({
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
+    const funcReturnType = `Awaited<ReturnType<${
+      mutator?.isHook
+        ? `ReturnType<typeof use${pascal(operationName)}Hook>`
+        : `typeof ${operationName}`
+    }>>`;
+
     const optionTypeInitialDataPostfix =
       initialData && !isSuspenseQuery(type)
         ? ` & Pick<
         ${pascal(initialData)}InitialDataOptions<
-          TData,
+          ${funcReturnType},
           TError,
           TData${
             hasQueryV5 &&
@@ -477,12 +502,12 @@ const getQueryOptionsDefinition = ({
         > , 'initialData'
       >`
         : '';
-    const optionType = `${prefix}${pascal(type)}Options<TData, TError, TData${
+    const optionType = `${prefix}${pascal(type)}Options<${funcReturnType}, TError, TData${
       hasQueryV5 &&
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
       queryParams
-        ? `, TData, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
     }>`;
     return `${partialOptions ? 'Partial<' : ''}${optionType}${
@@ -494,6 +519,7 @@ const getQueryOptionsDefinition = ({
 };
 
 const generateQueryArguments = ({
+  operationName,
   definitions,
   mutator,
   isRequestOptions,
@@ -505,6 +531,7 @@ const generateQueryArguments = ({
   initialData,
   httpClient,
 }: {
+  operationName: string;
   definitions: string;
   mutator?: GeneratorMutator;
   isRequestOptions: boolean;
@@ -517,6 +544,8 @@ const generateQueryArguments = ({
   httpClient: OutputHttpClient;
 }) => {
   const definition = getQueryOptionsDefinition({
+    operationName,
+    mutator,
     definitions,
     type,
     hasSvelteQueryV4,
@@ -549,6 +578,7 @@ const generateQueryReturnType = ({
   hasVueQueryV4,
   hasSvelteQueryV4,
   hasQueryV5,
+  hasQueryV5WithDataTagError,
   isInitialDataDefined,
 }: {
   outputClient: OutputClient | OutputClientFunc;
@@ -558,6 +588,7 @@ const generateQueryReturnType = ({
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
+  hasQueryV5WithDataTagError: boolean;
   isInitialDataDefined?: boolean;
 }) => {
   switch (outputClient) {
@@ -572,7 +603,7 @@ const generateQueryReturnType = ({
 
       return `Create${pascal(
         type,
-      )}Result<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
+      )}Result<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
     }
     case OutputClient.VUE_QUERY: {
       if (!hasVueQueryV4) {
@@ -582,16 +613,16 @@ const generateQueryReturnType = ({
       }
 
       if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
-        return `UseQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
+        return `UseQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
       }
 
-      return `UseInfiniteQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
+      return `UseInfiniteQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
     }
     case OutputClient.REACT_QUERY:
     default: {
       return ` ${
         isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''
-      }Use${pascal(type)}Result<TData, TError> & { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`;
+      }Use${pascal(type)}Result<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
     }
   }
 };
@@ -674,6 +705,7 @@ const generateQueryImplementation = ({
   hasVueQueryV4,
   hasSvelteQueryV4,
   hasQueryV5,
+  hasQueryV5WithDataTagError,
   doc,
   usePrefetch,
 }: {
@@ -703,6 +735,7 @@ const generateQueryImplementation = ({
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
+  hasQueryV5WithDataTagError: boolean;
   doc?: string;
   usePrefetch?: boolean;
 }) => {
@@ -763,6 +796,7 @@ const generateQueryImplementation = ({
     hasVueQueryV4,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithDataTagError,
     isInitialDataDefined: true,
   });
   const returnType = generateQueryReturnType({
@@ -773,6 +807,7 @@ const generateQueryImplementation = ({
     hasVueQueryV4,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithDataTagError,
   });
 
   const errorType = getQueryErrorType(
@@ -787,8 +822,9 @@ const generateQueryImplementation = ({
     : `typeof ${operationName}`;
 
   const definedInitialDataQueryArguments = generateQueryArguments({
-    definitions: '',
+    operationName,
     mutator,
+    definitions: '',
     isRequestOptions,
     type,
     hasSvelteQueryV4,
@@ -799,6 +835,7 @@ const generateQueryImplementation = ({
     httpClient,
   });
   const undefinedInitialDataQueryArguments = generateQueryArguments({
+    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -811,6 +848,7 @@ const generateQueryImplementation = ({
     httpClient,
   });
   const queryArguments = generateQueryArguments({
+    operationName,
     definitions: '',
     mutator,
     isRequestOptions,
@@ -843,6 +881,8 @@ const generateQueryImplementation = ({
   });
 
   const queryOptionFnReturnType = getQueryOptionsDefinition({
+    operationName,
+    mutator,
     definitions: '',
     type,
     hasSvelteQueryV4,
@@ -945,7 +985,7 @@ ${hookOptions}
    } as ${queryOptionFnReturnType} ${
      isVue(outputClient)
        ? ''
-       : `& { queryKey: ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'} }`
+       : `& { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`
    }
 }`;
 
@@ -979,7 +1019,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   ${queryResultVarName}.queryKey = ${
     isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName
-  }.queryKey ${isVue(outputClient) ? `as ${hasQueryV5 ? 'DataTag<QueryKey, TData>' : 'QueryKey'}` : ''};
+  }.queryKey ${isVue(outputClient) ? `as ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'}` : ''};
 
   return ${queryResultVarName};
 }\n
@@ -1043,6 +1083,11 @@ const generateQueryHook = async (
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
+
+  const hasQueryV5WithDataTagError = isQueryV5WithDataTagError(
+    context.output.packageJson,
+    outputClient as 'react-query' | 'vue-query' | 'svelte-query',
+  );
 
   const httpClient = context.output.httpClient;
   const doc = jsDoc({ summary, deprecated });
@@ -1208,6 +1253,7 @@ const generateQueryHook = async (
           hasVueQueryV4,
           hasSvelteQueryV4,
           hasQueryV5,
+          hasQueryV5WithDataTagError,
           doc,
           usePrefetch: query.usePrefetch,
         }),
@@ -1266,6 +1312,8 @@ const generateQueryHook = async (
       : `typeof ${operationName}`;
 
     const mutationOptionFnReturnType = getQueryOptionsDefinition({
+      operationName,
+      mutator,
       definitions,
       hasSvelteQueryV4,
       hasQueryV5,
@@ -1273,6 +1321,7 @@ const generateQueryHook = async (
     });
 
     const mutationArguments = generateQueryArguments({
+      operationName,
       definitions,
       mutator,
       isRequestOptions,

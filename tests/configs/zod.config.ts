@@ -146,4 +146,11 @@ export default defineConfig({
       target: '../specifications/typed-arrays-tuples-v3-1.yaml',
     },
   },
+  importFromSubdirectory: {
+    output: {
+      target: '../generated/zod/import-from-subdirectory.ts',
+      client: 'zod',
+    },
+    input: '../specifications/import-from-subdirectory/petstore.yaml',
+  },
 });
