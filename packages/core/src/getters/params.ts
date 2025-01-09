@@ -71,6 +71,7 @@ export const getParams = ({
       return {
         name,
         definition: `${name}${!required ? '?' : ''}: unknown`,
+        definedDefinition: `${name}:${!required ? 'undefined' : ''} | unknown`,
         implementation: `${name}${!required ? '?' : ''}: unknown`,
         default: false,
         required,
@@ -107,9 +108,18 @@ export const getParams = ({
         : `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
+    const definedDefinition = `${name}: ${
+      !required &&
+      !resolvedValue.originalSchema!.default &&
+      !output.allParamsOptional
+        ? 'undefined | '
+        : ''
+    }${paramType}`;
+
     return {
       name,
       definition,
+      definedDefinition,
       implementation,
       default: resolvedValue.originalSchema!.default,
       required,
