@@ -234,11 +234,7 @@ export const addDependency = ({
 
       if (types) {
         if (values) {
-          for (let i = types.length - 1; i >= 0; i--) {
-            if (values.some((v) => v.name === types[i].name)) {
-              types.splice(i, 1);
-            }
-          }
+          types = types.filter((t) => !values.some((v) => v.name === t.name));
           dep += '\n';
         }
         dep += generateDependency({
