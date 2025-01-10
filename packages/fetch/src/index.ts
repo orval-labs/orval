@@ -12,6 +12,8 @@ import {
   generateBodyOptions,
   isObject,
   resolveRef,
+  GeneratorDependency,
+  ClientDependenciesBuilder,
 } from '@orval/core';
 import {
   PathItemObject,
@@ -86,23 +88,30 @@ export const generateRequestFunction = (
       normalizedParams.append(key, value === null ? 'null' : value.toString())
     }`;
 
-  const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
-${
-  queryParams
-    ? `  const normalizedParams = new URLSearchParams();
+  const queryImplementation = queryParams
+    ? override.paramsSerializer
+      ? `const normalizedParams = ${override.paramsSerializer.name}(params);`
+      : override.paramsSerializerOptions?.qs
+        ? `const normalizedParams = qs.stringify(params, ${JSON.stringify(
+            override.paramsSerializerOptions!.qs,
+          )});`
+        : `const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
     ${!isExplodeParametersOnly ? nomalParamsImplementation : ''}
   });`
-    : ''
-}
+    : '';
+  const returnQueryImplementation = queryParams
+    ? override.paramsSerializer || override.paramsSerializerOptions?.qs
+      ? `return normalizedParams ? \`${route}${'?${normalizedParams}'}\` : \`${route}\``
+      : `return normalizedParams.size ? \`${route}${'?${normalizedParams.toString()}'}\` : \`${route}\``
+    : `return \`${route}\``;
 
-  ${
-    queryParams
-      ? `return normalizedParams.size ? \`${route}${'?${normalizedParams.toString()}'}\` : \`${route}\``
-      : `return \`${route}\``
-  }
+  const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
+  ${queryImplementation}
+
+  ${returnQueryImplementation}
 }\n`;
 
   const isNdJson = response.contentTypes.some(
@@ -235,9 +244,32 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   };
 };
 
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'qs',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
+    dependency: 'qs',
+  },
+];
+
+const getFetchDependencies: ClientDependenciesBuilder = (
+  _: boolean,
+  hasParamsSerializerOptions: boolean,
+) => {
+  return [
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+  ];
+};
+
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
-  dependencies: () => [],
+  dependencies: getFetchDependencies,
 };
 
 export const builder = () => () => fetchClientBuilder;
