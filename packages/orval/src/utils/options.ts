@@ -158,6 +158,7 @@ export const normalizeOptions = async (
       packageJson,
       headers: outputOptions.headers ?? false,
       indexFiles: outputOptions.indexFiles ?? true,
+      indexMockFiles: outputOptions.indexMockFiles ?? false,
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
