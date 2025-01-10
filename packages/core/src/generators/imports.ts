@@ -233,11 +233,15 @@ export const addDependency = ({
       }
 
       if (types) {
+        let uniqueTypes = types;
         if (values) {
+          uniqueTypes = types.filter(
+            (t) => !values.some((v) => v.name === t.name),
+          );
           dep += '\n';
         }
         dep += generateDependency({
-          deps: types,
+          deps: uniqueTypes,
           isAllowSyntheticDefaultImports,
           dependency,
           specsName,
