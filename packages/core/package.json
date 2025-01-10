@@ -25,16 +25,16 @@
     "@types/lodash.uniqby": "^4.7.9",
     "@types/lodash.uniqwith": "^4.5.9",
     "@types/micromatch": "^4.0.9",
-    "typedoc": "0.26.11"
+    "typedoc": "0.27.6"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.1.0",
-    "@ibm-cloud/openapi-ruleset": "^1.26.0",
+    "@apidevtools/swagger-parser": "^10.1.1",
+    "@ibm-cloud/openapi-ruleset": "^1.28.0",
     "acorn": "^8.14.0",
     "ajv": "^8.17.1",
     "chalk": "^4.1.2",
     "compare-versions": "^6.1.1",
-    "debug": "^4.3.7",
+    "debug": "^4.4.0",
     "esbuild": "^0.24.2",
     "esutils": "2.0.3",
     "fs-extra": "^11.2.0",
