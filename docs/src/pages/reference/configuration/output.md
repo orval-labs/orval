@@ -280,6 +280,28 @@ module.exports = {
 };
 ```
 
+### indexMockFiles
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+When true, adds a index.msw.ts file which exports all mock functions.
+This is only valid when `mode` is `tags-split`.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      schemas: 'src/gen/model',
+      indexMockFiles: true,
+    },
+  },
+};
+```
+
 ### title
 
 Type: `String` or `Function`.

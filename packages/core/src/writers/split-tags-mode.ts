@@ -32,8 +32,11 @@ export const writeSplitTagsMode = async ({
   );
 
   const indexFilePath =
-    output.mock && output.indexFiles
-      ? upath.join(dirname, 'index.mock' + extension)
+    output.mock && output.indexMockFiles
+      ? upath.join(
+          dirname,
+          'index.' + getMockFileExtensionByTypeName(output.mock!) + extension,
+        )
       : undefined;
   if (indexFilePath) {
     await fs.outputFile(indexFilePath, '');
