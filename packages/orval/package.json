@@ -6,9 +6,7 @@
   "files": [
     "dist"
   ],
-  "bin": {
-    "orval": "dist/bin/orval.js"
-  },
+  "bin": "dist/bin/orval.js",
   "type": "commonjs",
   "main": "dist/index.js",
   "keywords": [
@@ -51,12 +49,12 @@
     "test": "tsc --noEmit && vitest --passWithNoTests"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.6",
-    "@types/js-yaml": "^4.0.8",
-    "@types/lodash.uniq": "^4.5.8"
+    "@types/inquirer": "^9.0.7",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash.uniq": "^4.5.9"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.1.0",
+    "@apidevtools/swagger-parser": "^10.1.1",
     "@orval/angular": "7.4.1",
     "@orval/axios": "7.4.1",
     "@orval/core": "7.4.1",
@@ -75,11 +73,11 @@
     "find-up": "5.0.0",
     "fs-extra": "^11.2.0",
     "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.2.2",
+    "openapi3-ts": "4.4.0",
     "string-argv": "^0.3.2",
     "tsconfck": "^2.0.1",
-    "typedoc": "0.26.11",
-    "typedoc-plugin-markdown": "4.2.10",
-    "typescript": "^5.6.3"
+    "typedoc": "0.27.6",
+    "typedoc-plugin-markdown": "4.4.1",
+    "typescript": "^5.7.3"
   }
 }
