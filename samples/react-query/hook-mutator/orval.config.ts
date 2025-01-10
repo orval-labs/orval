@@ -12,6 +12,7 @@ export default defineConfig({
           path: './use-custom-instance.ts',
           name: 'useCustomInstance',
         },
+
         // only for the operation id 'createPets'
         // operations: {
         //   createPets: {
@@ -30,6 +31,14 @@ export default defineConfig({
         //     },
         //   },
         // },
+        // for ES Module imports
+        // {
+        //  mutator: {
+        //    path: './use-custom-instance.ts',
+        //    name: 'useCustomInstance',
+        //    extension: '.js',
+        //  }
+        // }
       },
     },
     input: {
