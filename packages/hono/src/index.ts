@@ -941,6 +941,8 @@ export const zValidator =
         c.res = new Response(JSON.stringify(result.data), c.res);
       }
     }
+    
+    return;
   };
 `;
 
