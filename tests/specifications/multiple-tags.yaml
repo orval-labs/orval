@@ -21,46 +21,6 @@ paths:
             application/hal+json:
               schema:
                 $ref: '#/components/schemas/Pets'
-  /pets/dog/{dogId}:
-    get:
-      summary: Info for a specific dog
-      operationId: showDogById
-      tags:
-        - dog
-      parameters:
-        - name: dogId
-          in: path
-          required: true
-          description: The id of the dog to retrieve
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Expected response to a valid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Dog'
-  /pets/cat/{catId}:
-    get:
-      summary: Info for a specific cat
-      operationId: showCatById
-      tags:
-        - cat
-      parameters:
-        - name: catId
-          in: path
-          required: true
-          description: The id of the cat to retrieve
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Expected response to a valid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Cat'
 components:
   schemas:
     Pet:
