@@ -27,6 +27,7 @@ type CombinedData = {
    * - used to add missing properties in subschemas to avoid TS error described in @see https://github.com/orval-labs/orval/issues/935
    */
   allProperties: string[];
+  requiredProperties: string[];
 };
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
@@ -51,9 +52,13 @@ const combineValues = ({
   }
 
   if (separator === 'allOf') {
-    return `${resolvedData.values.join(` & `)}${
+    const joined = `${resolvedData.values.join(` & `)}${
       resolvedValue ? ` & ${resolvedValue.value}` : ''
     }`;
+    if (resolvedData.requiredProperties.length) {
+      return `${joined} & Required<Pick<${joined}, '${resolvedData.requiredProperties.join("' | '")}'>>`;
+    }
+    return joined;
   }
 
   let values = resolvedData.values;
@@ -113,17 +118,8 @@ export const combineSchemas = ({
         propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
       }
 
-      // the required fields in this schema need to be considered
-      // in the sub schema under the allOf key
-      if (separator === 'allOf' && schema.required) {
-        if (isSchema(subSchema) && subSchema.required) {
-          subSchema = {
-            ...subSchema,
-            required: [...schema.required, ...subSchema.required],
-          };
-        } else {
-          subSchema = { ...subSchema, required: schema.required };
-        }
+      if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
+        acc.requiredProperties.push(...subSchema.required);
       }
 
       const resolvedValue = resolveObject({
@@ -165,6 +161,7 @@ export const combineSchemas = ({
       hasReadonlyProps: false,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
+      requiredProperties: separator === 'allOf' ? schema.required ?? [] : [],
     } as CombinedData,
   );
 
