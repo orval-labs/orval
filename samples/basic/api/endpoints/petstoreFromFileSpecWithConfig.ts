@@ -6,48 +6,6 @@
  */
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
-export type ListPetsNestedArrayParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
-  limit?: string;
-};
-
-export type CreatePetsBody = {
-  name: string;
-  tag: string;
-};
-
-export type ListPetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
-  limit?: string;
-};
-
-export interface Error {
-  code: number;
-  message: string;
-}
-
-/**
- * @minItems 1
- * @maxItems 20
- */
-export type PetsArray = Pet[];
-
-export interface PetsNestedArray {
-  data?: Pet[];
-}
-
-export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetCountry = {
-  "People's_Republic_of_China": "People's Republic of China",
-  Uruguay: 'Uruguay',
-} as const;
-
 export type PetCallingCode =
   (typeof PetCallingCode)[keyof typeof PetCallingCode];
 
@@ -55,6 +13,14 @@ export type PetCallingCode =
 export const PetCallingCode = {
   '+33': '+33',
   '+420': '+420',
+} as const;
+
+export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const PetCountry = {
+  "People's_Republic_of_China": "People's Republic of China",
+  Uruguay: 'Uruguay',
 } as const;
 
 export interface Pet {
@@ -81,6 +47,40 @@ export interface Pet {
   callingCode?: PetCallingCode;
   country?: PetCountry;
 }
+
+export interface PetsNestedArray {
+  data?: Pet[];
+}
+
+/**
+ * @minItems 1
+ * @maxItems 20
+ */
+export type PetsArray = Pet[];
+
+export interface Error {
+  code: number;
+  message: string;
+}
+
+export type ListPetsParams = {
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
+};
+
+export type CreatePetsBody = {
+  name: string;
+  tag: string;
+};
+
+export type ListPetsNestedArrayParams = {
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
+};
 
 /**
  * @summary List all pets

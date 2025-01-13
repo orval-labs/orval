@@ -4,10 +4,18 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-export type CreatePetsBodyItem = {
+export interface Pet {
+  id: number;
   name: string;
   tag: string;
-};
+}
+
+export type Pets = Pet[];
+
+export interface Error {
+  code: number;
+  message: string;
+}
 
 export type ListPetsParams = {
   /**
@@ -16,15 +24,7 @@ export type ListPetsParams = {
   limit?: string;
 };
 
-export interface Error {
-  code: number;
-  message: string;
-}
-
-export interface Pet {
-  id: number;
+export type CreatePetsBodyItem = {
   name: string;
   tag: string;
-}
-
-export type Pets = Pet[];
+};
