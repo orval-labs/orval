@@ -547,9 +547,9 @@ Give you the possibility to set the locale for the mock generation. It is used b
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false.
+Default Value: `false`.
 
-When true, adds a index.msw.ts file which exports all mock functions.
+When `true`, adds a `index.msw.ts` file which exports all mock functions.
 This is only valid when `mode` is `tags-split`.
 
 Example:
