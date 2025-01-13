@@ -37,9 +37,15 @@ paths:
                   - $ref: '#/components/schemas/Pet'
                   - $ref: '#/components/schemas/PetDetail'
                   - type: object
+                    properties:
+                      category:
+                        type: string
                     required:
                       - category
                   - type: object
+                    properties:
+                      color:
+                        type: string
                     required:
                       - color
   /rested-ref-in-all-of-pets:
