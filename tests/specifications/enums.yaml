@@ -114,6 +114,8 @@ components:
     Dog:
       type: object
       properties:
+        group:
+          $ref: '#/components/schemas/DogGroup'
         petsRequested:
           type: array
           items:
@@ -132,3 +134,10 @@ components:
           type: array
           items:
             type: string
+    DogGroup:
+      enum:
+        - 1
+        - 2
+        - 3
+      type: integer
+      format: int32
