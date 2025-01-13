@@ -141,10 +141,7 @@ export const resolveMockValue = ({
         }
 
         const args = `${overrideVarName}: ${type} = {}`;
-        const value = newSchema.oneOf
-          ? `faker.helpers.arrayElement([${scalar.value}])`
-          : scalar.value;
-        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({...${value}, ...${overrideVarName}});`;
+        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
         splitMockImplementations?.push(func);
       }
 

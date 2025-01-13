@@ -100,6 +100,14 @@ export default defineConfig({
       target: '../generated/default/default-status/endpoints.ts',
     },
   },
+  'all-of-one-of': {
+    input: '../specifications/all-of-one-of.yaml',
+    output: {
+      schemas: '../generated/default/all-of-one-of/model',
+      target: '../generated/default/all-of-one-of/endpoints.ts',
+      mock: true,
+    },
+  },
   'circular-v2': {
     input: '../specifications/circular-v2.yaml',
     output: {
