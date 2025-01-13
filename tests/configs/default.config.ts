@@ -214,8 +214,10 @@ export default defineConfig({
       target: '../generated/default/index-mock-file/endpoints.ts',
       schemas: '../generated/default/index-mock-file/model',
       client: 'fetch',
-      mock: true,
-      indexMockFiles: true,
+      mock: {
+        type: 'msw',
+        indexMockFiles: true,
+      },
       mode: 'tags-split',
     },
     input: {

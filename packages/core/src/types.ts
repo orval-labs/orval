@@ -59,7 +59,6 @@ export type NormalizedOutputOptions = {
   packageJson?: PackageJson;
   headers: boolean;
   indexFiles: boolean;
-  indexMockFiles: boolean;
   baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
@@ -210,7 +209,6 @@ export type OutputOptions = {
   packageJson?: string;
   headers?: boolean;
   indexFiles?: boolean;
-  indexMockFiles?: boolean;
   baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
@@ -298,6 +296,7 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  indexMockFiles?: boolean;
 };
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {
