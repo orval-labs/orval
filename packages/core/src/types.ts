@@ -77,6 +77,7 @@ export type NormalizedOverrideOutput = {
   mutator?: NormalizedMutator;
   operations: { [key: string]: NormalizedOperationOptions };
   tags: { [key: string]: NormalizedOperationOptions };
+  multiTagResolver?: (tags: string[]) => string;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -360,6 +361,7 @@ export type OverrideOutput = {
   mutator?: Mutator;
   operations?: { [key: string]: OperationOptions };
   tags?: { [key: string]: OperationOptions };
+  multiTagResolver?: (tags: string[]) => string;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);

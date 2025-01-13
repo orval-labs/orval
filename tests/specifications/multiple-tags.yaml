@@ -1,0 +1,84 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+  license:
+    name: MIT
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  /pets:
+    get:
+      summary: List all pets
+      operationId: listPets
+      tags:
+        - dogs
+        - cats
+      responses:
+        '200':
+          description: A paged array of pets
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+  /pets/dog/{dogId}:
+    get:
+      summary: Info for a specific dog
+      operationId: showDogById
+      tags:
+        - dog
+      parameters:
+        - name: dogId
+          in: path
+          required: true
+          description: The id of the dog to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dog'
+  /pets/cat/{catId}:
+    get:
+      summary: Info for a specific cat
+      operationId: showCatById
+      tags:
+        - cat
+      parameters:
+        - name: catId
+          in: path
+          required: true
+          description: The id of the cat to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cat'
+components:
+  schemas:
+    Pet:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+    Dog:
+      type: object
+      properties:
+        barksPerMinute:
+          type: integer
+    Cat:
+      type: object
+      properties:
+        petsRequested:
+          type: integer
+    Pets:
+      type: array
+      items:
+        $ref: '#/components/schemas/Pet'
