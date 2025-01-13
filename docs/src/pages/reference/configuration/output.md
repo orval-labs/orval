@@ -1625,36 +1625,6 @@ Type: `Object`.
 
 Exactly the same as the `override.operations` but this time you can do it by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
 
-#### multiTagResolver
-
-Type: `Function`.
-
-```ts
-// type signature
-(tags: string[]) => string;
-```
-
-When using mode `tags` or `tags-split` and an operation have multiple tags, only one of them will be used when generating.
-This setting allows you to decide which tag to use. Default is the first tag.
-
-Example:
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      override: {
-        multiTagResolver: (tags) => {
-          const indexOfFavoriteTag = tags.include('myFavoriteTag');
-          if (indexOfFavoriteTag >= 0) return tags[indexOfFavoriteTag];
-          return tags[0];
-        },
-      },
-    },
-  },
-};
-```
-
 #### operationName
 
 Type: `Function`.

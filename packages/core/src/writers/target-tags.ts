@@ -20,9 +20,7 @@ const generateTargetTags = (
 ): {
   [key: string]: GeneratorTargetFull;
 } => {
-  const tag = options.override.multiTagResolver
-    ? options.override.multiTagResolver(operation.tags)
-    : operation.tags[0];
+  const tag = kebab(operation.tags[0]);
   const currentOperation = currentAcc[tag];
 
   if (!currentOperation) {
