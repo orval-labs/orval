@@ -296,6 +296,7 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  indexMockFiles?: boolean;
 };
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {

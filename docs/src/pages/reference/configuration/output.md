@@ -543,6 +543,30 @@ Default Value: `en`.
 
 Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
+### indexMockFiles
+
+Type: `Boolean`
+
+Default Value: `false`.
+
+When `true`, adds a `index.msw.ts` file which exports all mock functions.
+This is only valid when `mode` is `tags-split`.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      mock: {
+        indexMockFiles: true,
+      },
+    },
+  },
+};
+```
+
 ### docs
 
 Type: `Boolean | Object`.

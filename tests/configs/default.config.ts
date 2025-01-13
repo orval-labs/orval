@@ -209,4 +209,19 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  indexMockFiles: {
+    output: {
+      target: '../generated/default/index-mock-file/endpoints.ts',
+      schemas: '../generated/default/index-mock-file/model',
+      client: 'fetch',
+      mock: {
+        type: 'msw',
+        indexMockFiles: true,
+      },
+      mode: 'tags-split',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
