@@ -97,6 +97,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hono/zod-validator@npm:^0.4.2":
+  version: 0.4.2
+  resolution: "@hono/zod-validator@npm:0.4.2"
+  peerDependencies:
+    hono: ">=3.9.0"
+    zod: ^3.19.1
+  checksum: 10c0/f9235d4aebcb0f9dc942d4a168a61f2752f16b7273665efd15ee92042d7118c7e5efd1e031339e09d2dace5c04e945f7b8edc8d5d3d36e827a4f3d0fe2448538
+  languageName: node
+  linkType: hard
+
 "@isaacs/cliui@npm:^8.0.2":
   version: 8.0.2
   resolution: "@isaacs/cliui@npm:8.0.2"
@@ -533,11 +543,13 @@ __metadata:
     "@angular/common": "npm:^17.1.1"
     "@angular/core": "npm:^17.1.1"
     "@faker-js/faker": "npm:^8.1.0"
+    "@hono/zod-validator": "npm:^0.4.2"
     "@tanstack/react-query": "npm:^5.63.0"
     "@tanstack/svelte-query": "npm:^4.24.9"
     "@tanstack/vue-query": "npm:^4.22.0"
     "@types/react": "npm:18.3.2"
     axios: "npm:^0.26.1"
+    hono: "npm:^4.6.16"
     msw: "npm:^2.0.2"
     npm-run-all: "npm:^4.1.5"
     orval: "link:../packages/orval/dist"
@@ -1148,6 +1160,13 @@ __metadata:
   version: 4.0.2
   resolution: "headers-polyfill@npm:4.0.2"
   checksum: 10c0/865736fa62028e2368f528a4d0fa0fc0f9cb44570a5acb79e38fc0b860b5a9bccdbf84553bb38b03d44e2aa85078256d70011cb731308aeea49f7bbafa3d66b0
+  languageName: node
+  linkType: hard
+
+"hono@npm:^4.6.16":
+  version: 4.6.16
+  resolution: "hono@npm:4.6.16"
+  checksum: 10c0/3d7bf6e19dd2bf1fff38c92fb714da8ef501c90a54e0efd1e8e47fd9d386a88523b39002add8a71c2b8fd2c2f7107837a08ca31580778cba312575d6c72d6da2
   languageName: node
   linkType: hard
 
