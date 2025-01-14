@@ -264,6 +264,8 @@ export const OutputMode = {
   SPLIT: 'split',
   TAGS: 'tags',
   TAGS_SPLIT: 'tags-split',
+  TAGS_OPERATIONS: 'tags-operations',
+  TAGS_SPLIT_OPERATIONS: 'tags-split-operations',
 } as const;
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];

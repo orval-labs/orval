@@ -31,15 +31,15 @@ export const writeSplitTagsMode = async ({
     output.tsconfig,
   );
 
-  const indexFilePath =
+  const indexMockFilePath =
     output.mock && !isFunction(output.mock) && output.mock.indexMockFiles
       ? upath.join(
           dirname,
           'index.' + getMockFileExtensionByTypeName(output.mock!) + extension,
         )
       : undefined;
-  if (indexFilePath) {
-    await fs.outputFile(indexFilePath, '');
+  if (indexMockFilePath) {
+    await fs.outputFile(indexMockFilePath, '');
   }
 
   const generatedFilePathsArray = await Promise.all(
@@ -183,13 +183,16 @@ export const writeSplitTagsMode = async ({
 
         if (mockPath) {
           await fs.outputFile(mockPath, mockData);
-          if (indexFilePath) {
+          if (indexMockFilePath) {
             const localMockPath = upath.joinSafe(
               './',
               tag,
               tag + '.' + getMockFileExtensionByTypeName(output.mock!),
             );
-            fs.appendFile(indexFilePath, `export * from '${localMockPath}'\n`);
+            await fs.appendFile(
+              indexMockFilePath,
+              `export * from '${localMockPath}'\n`,
+            );
           }
         }
 

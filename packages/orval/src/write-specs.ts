@@ -13,7 +13,9 @@ import {
   WriteSpecsBuilder,
   writeSplitMode,
   writeSplitTagsMode,
+  writeSplitTagsOperationsMode,
   writeTagsMode,
+  writeTagsOperationsMode,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
@@ -63,7 +65,13 @@ export const writeSpecs = async (
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
 
-    const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
+    const fileExtension = [
+      'tags',
+      'tags-split',
+      'split',
+      'tags-operations',
+      'tags-split-operations',
+    ].includes(output.mode)
       ? '.ts'
       : output.fileExtension ?? '.ts';
 
@@ -249,6 +257,10 @@ const getWriteMode = (mode: OutputMode) => {
       return writeTagsMode;
     case OutputMode.TAGS_SPLIT:
       return writeSplitTagsMode;
+    case OutputMode.TAGS_OPERATIONS:
+      return writeTagsOperationsMode;
+    case OutputMode.TAGS_SPLIT_OPERATIONS:
+      return writeSplitTagsOperationsMode;
     case OutputMode.SINGLE:
     default:
       return writeSingleMode;
