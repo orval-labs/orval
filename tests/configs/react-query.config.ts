@@ -218,6 +218,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  hookMutatorWithExtension: {
+    output: {
+      target: '../generated/react-query/hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/hook-mutator/model',
+      client: 'react-query',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance.ts',
+          name: 'useCustomInstance',
+          extension: '.js',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   hookMutatorWithSecondParameter: {
     output: {
       target:

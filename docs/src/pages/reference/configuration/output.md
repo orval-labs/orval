@@ -845,6 +845,28 @@ export default useCustomInstance;
 export type ErrorType<Error> = AxiosError<Error>;
 ```
 
+- If you use ES modules (`"type": "module"`). You can also provide a hook like this
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/use-custom-instance.ts',
+          name: 'useCustomInstance',
+          extension: '.js',
+        },
+      },
+    },
+  },
+};
+```
+
+The generated file will import the mutator with a `.js` extension.
+
 #### header
 
 Type: `Boolean | Function`.
