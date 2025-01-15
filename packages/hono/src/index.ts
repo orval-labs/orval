@@ -160,6 +160,15 @@ ${currentValidator}async (c: ${contextTypeName}) => {
 );`;
 };
 
+const getValidatorOutputRelativePath = (
+  validatorOutputPath: string,
+  handlerPath: string,
+) => {
+  const { pathWithoutExtension } = getFileInfo(validatorOutputPath);
+
+  return upath.relativeSafe(upath.dirname(handlerPath), pathWithoutExtension);
+};
+
 const getZvalidatorImports = (
   verbOption: GeneratorVerbOptions,
   isHonoValidator: boolean,
@@ -266,7 +275,14 @@ const generateHandlers = async (
 
         if (hasZValidator) {
           if (output.override.hono.validator === true) {
-            validatorImport = `\nimport { zValidator } from '${outputPath}.validator';`;
+            const validatorPath = output.override.hono.validatorOutputPath
+              ? getValidatorOutputRelativePath(
+                  output.override.hono.validatorOutputPath,
+                  handlerPath,
+                )
+              : `${outputPath}.validator`;
+
+            validatorImport = `\nimport { zValidator } from '${validatorPath}';`;
           } else if (output.override.hono.validator === 'hono') {
             validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
           }
@@ -352,10 +368,16 @@ ${getHonoHandlers({
         const outputRelativePath = `./${kebab(tag)}`;
 
         let validatorImport = '';
-
         if (hasZValidator) {
           if (output.override.hono.validator === true) {
-            validatorImport = `\nimport { zValidator } from '${outputRelativePath}.validator';`;
+            const validatorPath = output.override.hono.validatorOutputPath
+              ? getValidatorOutputRelativePath(
+                  output.override.hono.validatorOutputPath,
+                  handlerPath,
+                )
+              : `${outputRelativePath}.validator`;
+
+            validatorImport = `\nimport { zValidator } from '${validatorPath}';`;
           } else if (output.override.hono.validator === 'hono') {
             validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
           }
@@ -450,7 +472,14 @@ const factory = createFactory();`;
 
   if (hasZValidator) {
     if (output.override.hono.validator === true) {
-      validatorImport = `\nimport { zValidator } from '${outputRelativePath}.validator';`;
+      const validatorPath = output.override.hono.validatorOutputPath
+        ? getValidatorOutputRelativePath(
+            output.override.hono.validatorOutputPath,
+            handlerPath,
+          )
+        : `${outputRelativePath}.validator`;
+
+      validatorImport = `\nimport { zValidator } from '${validatorPath}';`;
     } else if (output.override.hono.validator === 'hono') {
       validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
     }
@@ -775,7 +804,6 @@ const generateZvalidator = (
     context.specs[context.specKey].info,
   );
 
-  const { extension, dirname, filename } = getFileInfo(output.target);
   const content = `
 // based on https://github.com/honojs/middleware/blob/main/packages/zod-validator/src/index.ts
 import type { z, ZodSchema, ZodError } from 'zod';
@@ -916,10 +944,12 @@ export const zValidator =
   };
 `;
 
-  const validatorPath = upath.join(
-    dirname,
-    `${filename}.validator${extension}`,
-  );
+  let validatorPath = output.override.hono.validatorOutputPath;
+  if (!output.override.hono.validatorOutputPath) {
+    const { extension, dirname, filename } = getFileInfo(output.target);
+
+    validatorPath = upath.join(dirname, `${filename}.validator${extension}`);
+  }
 
   return {
     content: `${header}${content}`,
