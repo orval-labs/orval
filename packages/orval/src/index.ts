@@ -48,5 +48,6 @@ const generate = async (
 export { defineConfig };
 export { Options };
 export { generate };
+export * from '@orval/core';
 
 export default generate;
