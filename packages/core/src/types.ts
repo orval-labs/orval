@@ -126,6 +126,7 @@ export type NormalizedMutator = {
   name?: string;
   default: boolean;
   alias?: Record<string, string>;
+  extension?: string;
 };
 
 export type NormalizedOperationOptions = {
@@ -296,6 +297,7 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  indexMockFiles?: boolean;
 };
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {
@@ -346,6 +348,7 @@ export type MutatorObject = {
   name?: string;
   default?: boolean;
   alias?: Record<string, string>;
+  extension?: string;
 };
 
 export type Mutator = string | MutatorObject;
@@ -411,6 +414,7 @@ export type OverrideOutputContentType = {
 export type NormalizedHonoOptions = {
   handlers?: string;
   validator: boolean | 'hono';
+  validatorOutputPath: string;
 };
 
 export type ZodOptions = {
@@ -482,6 +486,7 @@ export type NormalizedZodOptions = {
 export type HonoOptions = {
   handlers?: string;
   validator?: boolean | 'hono';
+  validatorOutputPath?: string;
 };
 
 export type NormalizedQueryOptions = {

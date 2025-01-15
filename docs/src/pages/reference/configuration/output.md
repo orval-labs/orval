@@ -543,6 +543,30 @@ Default Value: `en`.
 
 Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
+### indexMockFiles
+
+Type: `Boolean`
+
+Default Value: `false`.
+
+When `true`, adds a `index.msw.ts` file which exports all mock functions.
+This is only valid when `mode` is `tags-split`.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      mock: {
+        indexMockFiles: true,
+      },
+    },
+  },
+};
+```
+
 ### docs
 
 Type: `Boolean | Object`.
@@ -820,6 +844,28 @@ export default useCustomInstance;
 
 export type ErrorType<Error> = AxiosError<Error>;
 ```
+
+- If you use ES modules (`"type": "module"`). You can also provide a hook like this
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/use-custom-instance.ts',
+          name: 'useCustomInstance',
+          extension: '.js',
+        },
+      },
+    },
+  },
+};
+```
+
+The generated file will import the mutator with a `.js` extension.
 
 #### header
 

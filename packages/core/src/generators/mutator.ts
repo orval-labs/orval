@@ -19,7 +19,7 @@ const getImport = (output: string, mutator: NormalizedMutator) => {
     upath.relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
 
-  return pathWithoutExtension;
+  return `${pathWithoutExtension}${mutator.extension || ''}`;
 };
 
 export const generateMutator = async ({
