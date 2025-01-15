@@ -16,79 +16,77 @@ const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
 const generateTargetTags = (
   currentAcc: { [key: string]: GeneratorTargetFull },
   operation: GeneratorOperation,
+  options: NormalizedOutputOptions,
 ): {
   [key: string]: GeneratorTargetFull;
 } => {
-  return operation.tags.map(kebab).reduce((acc, tag) => {
-    const currentOperation = acc[tag];
+  const tag = kebab(operation.tags[0]);
+  const currentOperation = currentAcc[tag];
 
-    if (!currentOperation) {
-      acc[tag] = {
-        imports: operation.imports,
-        importsMock: operation.importsMock,
-        mutators: operation.mutator ? [operation.mutator] : [],
-        clientMutators: operation.clientMutators ?? [],
-        formData: operation.formData ? [operation.formData] : [],
-        formUrlEncoded: operation.formUrlEncoded
-          ? [operation.formUrlEncoded]
-          : [],
-        paramsSerializer: operation.paramsSerializer
-          ? [operation.paramsSerializer]
-          : [],
-        implementation: operation.implementation,
-        implementationMock: {
-          function: operation.implementationMock.function,
-          handler: operation.implementationMock.handler,
-          handlerName: '  ' + operation.implementationMock.handlerName + '()',
-        },
-      };
-
-      return acc;
-    }
-
-    acc[tag] = {
-      implementation:
-        currentOperation.implementation + operation.implementation,
-      imports: [...currentOperation.imports, ...operation.imports],
-      importsMock: [...currentOperation.importsMock, ...operation.importsMock],
-      implementationMock: {
-        function:
-          currentOperation.implementationMock.function +
-          operation.implementationMock.function,
-        handler:
-          currentOperation.implementationMock.handler +
-          operation.implementationMock.handler,
-        handlerName:
-          currentOperation.implementationMock.handlerName +
-          ',\n  ' +
-          operation.implementationMock.handlerName +
-          '()',
-      },
-      mutators: operation.mutator
-        ? [...(currentOperation.mutators ?? []), operation.mutator]
-        : currentOperation.mutators,
-      clientMutators: operation.clientMutators
-        ? [
-            ...(currentOperation.clientMutators ?? []),
-            ...operation.clientMutators,
-          ]
-        : currentOperation.clientMutators,
-      formData: operation.formData
-        ? [...(currentOperation.formData ?? []), operation.formData]
-        : currentOperation.formData,
+  if (!currentOperation) {
+    currentAcc[tag] = {
+      imports: operation.imports,
+      importsMock: operation.importsMock,
+      mutators: operation.mutator ? [operation.mutator] : [],
+      clientMutators: operation.clientMutators ?? [],
+      formData: operation.formData ? [operation.formData] : [],
       formUrlEncoded: operation.formUrlEncoded
-        ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
-        : currentOperation.formUrlEncoded,
+        ? [operation.formUrlEncoded]
+        : [],
       paramsSerializer: operation.paramsSerializer
-        ? [
-            ...(currentOperation.paramsSerializer ?? []),
-            operation.paramsSerializer,
-          ]
-        : currentOperation.paramsSerializer,
+        ? [operation.paramsSerializer]
+        : [],
+      implementation: operation.implementation,
+      implementationMock: {
+        function: operation.implementationMock.function,
+        handler: operation.implementationMock.handler,
+        handlerName: '  ' + operation.implementationMock.handlerName + '()',
+      },
     };
 
-    return acc;
-  }, currentAcc);
+    return currentAcc;
+  }
+
+  currentAcc[tag] = {
+    implementation: currentOperation.implementation + operation.implementation,
+    imports: [...currentOperation.imports, ...operation.imports],
+    importsMock: [...currentOperation.importsMock, ...operation.importsMock],
+    implementationMock: {
+      function:
+        currentOperation.implementationMock.function +
+        operation.implementationMock.function,
+      handler:
+        currentOperation.implementationMock.handler +
+        operation.implementationMock.handler,
+      handlerName:
+        currentOperation.implementationMock.handlerName +
+        ',\n  ' +
+        operation.implementationMock.handlerName +
+        '()',
+    },
+    mutators: operation.mutator
+      ? [...(currentOperation.mutators ?? []), operation.mutator]
+      : currentOperation.mutators,
+    clientMutators: operation.clientMutators
+      ? [
+          ...(currentOperation.clientMutators ?? []),
+          ...operation.clientMutators,
+        ]
+      : currentOperation.clientMutators,
+    formData: operation.formData
+      ? [...(currentOperation.formData ?? []), operation.formData]
+      : currentOperation.formData,
+    formUrlEncoded: operation.formUrlEncoded
+      ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
+      : currentOperation.formUrlEncoded,
+    paramsSerializer: operation.paramsSerializer
+      ? [
+          ...(currentOperation.paramsSerializer ?? []),
+          operation.paramsSerializer,
+        ]
+      : currentOperation.paramsSerializer,
+  };
+  return currentAcc;
 };
 
 export const generateTargetForTags = (
@@ -101,7 +99,7 @@ export const generateTargetForTags = (
     .map(addDefaultTagIfEmpty)
     .reduce(
       (acc, operation, index, arr) => {
-        const targetTags = generateTargetTags(acc, operation);
+        const targetTags = generateTargetTags(acc, operation, options);
 
         if (index === arr.length - 1) {
           return Object.entries(targetTags).reduce<

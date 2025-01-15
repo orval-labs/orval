@@ -209,6 +209,16 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  multipleTags: {
+    output: {
+      target: '../generated/default/multiple-tags/endpoints.ts',
+      schemas: '../generated/default/multiple-tags/model',
+      mode: 'tags',
+    },
+    input: {
+      target: '../specifications/multiple-tags.yaml',
+    },
+  },
   indexMockFiles: {
     output: {
       target: '../generated/default/index-mock-file/endpoints.ts',
