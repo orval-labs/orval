@@ -1,6 +1,8 @@
 import {
+  ClientMockBuilder,
   ConfigExternal,
   createLogger,
+  GlobalMockOptions,
   GlobalOptions,
   HonoOptions,
   Hook,
@@ -92,17 +94,18 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  let mock = outputOptions.mock ?? globalOptions.mock;
-  if (typeof mock === 'boolean' && mock) {
+  const mockOption = outputOptions.mock ?? globalOptions.mock;
+  let mock: GlobalMockOptions | ClientMockBuilder | undefined;
+  if (typeof mockOption === 'boolean' && mockOption) {
     mock = DEFAULT_MOCK_OPTIONS;
-  } else if (isFunction(mock)) {
+  } else if (isFunction(mockOption)) {
     // do nothing
-  } else if (!mock) {
+  } else if (!mockOption) {
     mock = undefined;
   } else {
     mock = {
       ...DEFAULT_MOCK_OPTIONS,
-      ...mock,
+      ...mockOption,
     };
   }
 

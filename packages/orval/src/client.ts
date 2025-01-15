@@ -3,6 +3,7 @@ import axios from '@orval/axios';
 import {
   asyncReduce,
   ClientFileBuilder,
+  ClientMockGeneratorBuilder,
   ContextSpecs,
   generateDependencyImports,
   GeneratorClientFooter,
@@ -205,12 +206,13 @@ export const generateClientTitle: GeneratorClientTitle = ({
 const generateMock = (
   verbOption: GeneratorVerbOptions,
   options: GeneratorOptions,
-) => {
+): ClientMockGeneratorBuilder => {
   if (!options.mock) {
     return {
       implementation: {
         function: '',
         handler: '',
+        handlerName: '',
       },
       imports: [],
     };
@@ -252,7 +254,6 @@ export const generateOperations = (
       acc[verbOption.operationId] = {
         implementation: verbOption.doc + client.implementation,
         imports: client.imports,
-        // @ts-expect-error // FIXME
         implementationMock: generatedMock.implementation,
         importsMock: generatedMock.imports,
         tags: verbOption.tags,
