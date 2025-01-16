@@ -9,6 +9,7 @@ import {
   getRoute,
   GetterPropType,
   isReference,
+  logError,
   NormalizedInputOptions,
   NormalizedOutputOptions,
   resolveRef,
@@ -103,6 +104,10 @@ export const getApiBuilder = async ({
         verbs.servers ?? context.specs[context.specKey].servers,
         output.baseUrl,
       );
+      if (!output.target) {
+        logError('Output does not have a target');
+        process.exit(1);
+      }
       const pathOperations = await generateOperations(
         output.client,
         verbsOptions,
@@ -112,7 +117,6 @@ export const getApiBuilder = async ({
           override: output.override,
           context: resolvedContext,
           mock: output.mock,
-          // @ts-expect-error // FIXME
           output: output.target,
         },
         output,

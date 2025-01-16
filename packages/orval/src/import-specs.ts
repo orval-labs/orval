@@ -7,6 +7,7 @@ import {
   upath,
   SwaggerParserOptions,
   WriteSpecsBuilder,
+  isString,
 } from '@orval/core';
 import chalk from 'chalk';
 import yaml from 'js-yaml';
@@ -62,7 +63,7 @@ export const importSpecs = async (
 ): Promise<WriteSpecsBuilder> => {
   const { input, output } = options;
 
-  if (isObject(input.target)) {
+  if (!isString(input.target)) {
     return importOpenApi({
       data: { [workspace]: input.target },
       input,
@@ -72,11 +73,9 @@ export const importSpecs = async (
     });
   }
 
-  // @ts-expect-error // FIXME
   const isPathUrl = isUrl(input.target);
 
   const data = await resolveSpecs(
-    // @ts-expect-error // FIXME
     input.target,
     input.parserOptions,
     isPathUrl,
@@ -87,7 +86,6 @@ export const importSpecs = async (
     data,
     input,
     output,
-    // @ts-expect-error // FIXME
     target: input.target,
     workspace,
   });

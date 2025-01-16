@@ -33,7 +33,6 @@ export const importOpenApi = async ({
   const schemas = getApiSchemas({ input, output, target, workspace, specs });
 
   const api = await getApiBuilder({
-    // @ts-expect-error // FIXME
     input,
     output,
     context: {
