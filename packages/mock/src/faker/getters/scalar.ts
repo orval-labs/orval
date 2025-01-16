@@ -162,6 +162,7 @@ export const getMockScalar = ({
       }
       return {
         value,
+        enums: item.enum,
         imports: numberImports,
         name: item.name,
       };
