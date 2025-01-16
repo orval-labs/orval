@@ -245,7 +245,7 @@ const generateHandlers = async (
           !!verbOption.headers ||
           !!verbOption.params.length ||
           !!verbOption.queryParams ||
-          !!verbOption.body;
+          !!verbOption.body.definition;
 
         const isExist = fs.existsSync(handlerPath);
 
@@ -332,7 +332,7 @@ ${getHonoHandlers({
             !!verb.headers ||
             !!verb.params.length ||
             !!verb.queryParams ||
-            !!verb.body,
+            !!verb.body.definition,
         );
 
         const isExist = fs.existsSync(handlerPath);
@@ -429,7 +429,7 @@ const factory = createFactory();`;
       !!verb.headers ||
       !!verb.params.length ||
       !!verb.queryParams ||
-      !!verb.body ||
+      !!verb.body.definition ||
       (verb.response.contentTypes.length === 1 &&
         verb.response.contentTypes[0] === 'application/json'),
   );
