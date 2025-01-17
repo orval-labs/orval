@@ -121,7 +121,7 @@ export const getMockScalar = ({
     const value = context.output.override.useBigInt
       ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
       : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
-    
+
     return {
       value: getNullable(value, item.nullable),
       imports: [],
