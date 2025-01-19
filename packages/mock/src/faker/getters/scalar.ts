@@ -101,7 +101,7 @@ export const getMockScalar = ({
     ...(mockOptions?.format ?? {}),
   };
 
-  if (item.format && (item.format === 'int64' || ALL_FORMAT[item.format])) {
+  if (item.format && ALL_FORMAT[item.format]) {
     let value = ALL_FORMAT[item.format] as string;
 
     const dateFormats = ['date', 'date-time'];
@@ -109,11 +109,18 @@ export const getMockScalar = ({
       value = `new Date(${value})`;
     }
 
-    if (item.format === 'int64') {
-      value = context.output.override.useBigInt
-        ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
-        : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
-    }
+    return {
+      value: getNullable(value, item.nullable),
+      imports: [],
+      name: item.name,
+      overrided: false,
+    };
+  }
+
+  if (item.format && item.format === 'int64') {
+    const value = context.output.override.useBigInt
+      ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
+      : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
 
     return {
       value: getNullable(value, item.nullable),
