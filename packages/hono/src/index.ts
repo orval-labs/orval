@@ -55,12 +55,13 @@ export const getHonoHeader: ClientHeaderBuilder = ({
 
   let handlers = '';
 
+  const importHandlers = Object.values(verbOptions).filter((verbOption) =>
+    clientImplementation.includes(`${verbOption.operationName}Handlers`),
+  );
+
   if (output.override.hono.handlers) {
     const handlerFileInfo = getFileInfo(output.override.hono.handlers);
-    handlers = Object.values(verbOptions)
-      .filter((verbOption) =>
-        clientImplementation.includes(`${verbOption.operationName}Handlers`),
-      )
+    handlers = importHandlers
       .map((verbOption) => {
         const isTagMode =
           output.mode === 'tags' || output.mode === 'tags-split';
@@ -78,9 +79,11 @@ export const getHonoHeader: ClientHeaderBuilder = ({
       })
       .join('\n');
   } else {
-    handlers = `import {\n${Object.values(verbOptions)
+    const importHandlerNames = importHandlers
       .map((verbOption) => ` ${verbOption.operationName}Handlers`)
-      .join(`, \n`)}\n} from './${tag ?? targetInfo.filename}.handlers';`;
+      .join(`, \n`);
+
+    handlers = `import {\n${importHandlerNames}\n} from './${tag ?? targetInfo.filename}.handlers';`;
   }
 
   return `${handlers}\n\n
