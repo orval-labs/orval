@@ -51,7 +51,7 @@ export const getRefInfo = (
   const refPaths = ref
     ?.slice(1)
     .split('/')
-    .map((part) => part.replace(regex, '/'));
+    .map((part) => decodeURIComponent(part.replace(regex, '/')));
 
   const suffix = refPaths
     ? get(context.output.override, [...refPaths.slice(0, 2), 'suffix'], '')
