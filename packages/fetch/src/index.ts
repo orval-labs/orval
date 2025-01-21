@@ -114,8 +114,10 @@ ${
     operationName,
   );
 
-  let responseDataType = `${response.definition.success !== 'unknown' ? response.definition.success : ''}${response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''}${response.definition.errors !== 'unknown' ? response.definition.errors : ''}`;
-  if (!responseDataType) responseDataType = 'unknown';
+  const responseDataSuccessType = response.definition.success !== 'unknown' ? response.definition.success : ''
+  const responseDataTypeDelimiter = response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''
+  const responseDataErrorsType = response.definition.errors !== 'unknown' ? response.definition.errors : ''
+  const responseDataType = responseDataSuccessType || responseDataErrorsType ? `${responseDataSuccessType}${responseDataTypeDelimiter}${responseDataErrorsType}` : 'unknown'
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
