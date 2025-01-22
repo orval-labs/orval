@@ -66,6 +66,7 @@ export const combineSchemasMock = ({
 
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
   combineImports.push(...(itemResolvedValue?.imports ?? []));
+  let containsOnlyPrimitiveValues = true;
 
   const value = (item[separator] ?? []).reduce(
     (acc, val, _, arr) => {
@@ -117,18 +118,24 @@ export const combineSchemasMock = ({
       combineImports.push(...resolvedValue.imports);
       includedProperties.push(...(resolvedValue.includedProperties ?? []));
 
-      if (resolvedValue.value === '{}') return acc;
+      if (resolvedValue.value === '{}') {
+        containsOnlyPrimitiveValues = false;
+        return acc;
+      }
       if (resolvedValue.value.startsWith('{')) {
+        containsOnlyPrimitiveValues = false;
         return `${acc}${separator === 'allOf' ? '...' : ''}${resolvedValue.value},`;
+      } else if (resolvedValue.type === 'object') {
+        containsOnlyPrimitiveValues = false;
       }
       return `${acc}${resolvedValue.value},`;
     },
-    `${combine ? '...' : ''}${separator === 'allOf' ? '{' : 'faker.helpers.arrayElement(['}`,
+    `${separator === 'allOf' ? '' : 'faker.helpers.arrayElement(['}`,
   );
   let finalValue =
     value === 'undefined'
       ? value
-      : `${value}${separator === 'allOf' ? '}' : '])'}`;
+      : `${combine ? '...' : ''}${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
     finalValue = `{${finalValue.startsWith('...') ? '' : '...'}${finalValue}, ${itemResolvedValue.value}}`;
   }
