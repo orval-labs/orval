@@ -36,10 +36,12 @@ A function that returns a mock object will be generated as shown below:
 ```typescript
 import { faker } from '@faker-js/faker';
 
-export const getShowPetByIdMock = (overrideResponse?: Partial<Type>): Type => ({
+export const getShowPetByIdResponseMock = (
+  overrideResponse: Partial<Pet> = {},
+): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.word.sample(),
-  tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
+  name: faker.string.alpha(20),
+  tag: faker.string.alpha(20),
   ...overrideResponse,
 });
 ```
@@ -50,7 +52,7 @@ If you want to overwrite part of the object, you can write the mock value by spe
 ```typescript
 import { getShowPetByIdMock } from 'pets.msw';
 
-const pet = getShowPetByIdMock({ name: 'override' });
+const pet = getShowPetByIdResponseMock({ name: 'override' });
 console.log(pet);
 // => { id: 7272122785202176, ​name: "override", tag: undefined }
 ```
@@ -62,12 +64,22 @@ A function is generated that returns the value of the mock object bound to the `
 ```typescript
 import { HttpResponse, delay, http } from 'msw';
 
-export const getShowPetByIdMockHandler = (overrideResponse?: Pet) => {
-  return http.get('*/pets/:petId', async () => {
+export const getShowPetByIdMockHandler = (
+  overrideResponse?:
+    | Pet
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Pet> | Pet),
+) => {
+  return http.get('*/pets/:petId', async (info) => {
     await delay(1000);
     return new HttpResponse(
       JSON.stringify(
-        overrideResponse ? overrideResponse : getShowPetByIdMock(),
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock(),
       ),
       {
         status: 200,
@@ -91,6 +103,36 @@ const pet: Pet = { id: 1, name: 'test', tag: 'test' };
 const showPetByIdMockHandler = getShowPetByIdMockHandler(pet);
 console.log(showPetByIdMockHandler);
 // => Object { info: {…}, isUsed: false, resolver: async getShowPetByIdMockHandler(), resolverGenerator: undefined, resolverGeneratorResult: undefined, options: {} }
+```
+
+You can also pass a function as an argument, which will be called every time a request is made to the API.
+
+```ts
+getShowPetByIdMockHandler((info) => {
+  const body = await info.request.json();
+
+  return { message: `body: ${body}` };
+});
+```
+
+For example, if you want to use the generated mock in a test to verify that the API was called, you can use it as follows:
+
+```ts
+import { expect, vi } from 'vitest';
+import { getShowPetByIdMock, getShowPetByIdMockHandler } from 'pets.msw';
+
+const mockFn = vi.fn();
+
+const mock = [
+  getShowPetByIdMockHandler((info) => {
+    const body = await info.request.json();
+
+    mockFn(body);
+    return getShowPetByIdResponseMock();
+  }),
+];
+
+expect(mockFn).toHaveBeenCalledTimes(1);
 ```
 
 #### A function that returns an `Array` that aggregates all handlers in the file.
