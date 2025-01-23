@@ -114,9 +114,20 @@ ${
     operationName,
   );
 
+  const responseDataSuccessType =
+    response.definition.success !== 'unknown'
+      ? response.definition.success
+      : '';
+  const responseDataTypeDelimiter =
+    response.definition.success !== 'unknown' &&
+    response.definition.errors !== 'unknown'
+      ? ' | '
+      : '';
+  const responseDataErrorsType =
+    response.definition.errors !== 'unknown' ? response.definition.errors : '';
   const responseDataType =
-    response.definition.success || response.definition.errors
-      ? `${response.definition.success !== 'unknown' ? response.definition.success : ''}${response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''}${response.definition.errors !== 'unknown' ? response.definition.errors : ''}`
+    responseDataSuccessType || responseDataErrorsType
+      ? `${responseDataSuccessType}${responseDataTypeDelimiter}${responseDataErrorsType}`
       : 'unknown';
 
   const responseTypeImplementation = override.fetch
@@ -184,7 +195,7 @@ ${
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const data:${response.definition.success} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
+  const data:${responseDataType} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
 
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
 `;
