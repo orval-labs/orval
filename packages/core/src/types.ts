@@ -413,6 +413,7 @@ export type OverrideOutputContentType = {
 
 export type NormalizedHonoOptions = {
   handlers?: string;
+  compositeRoute: string;
   validator: boolean | 'hono';
   validatorOutputPath: string;
 };
@@ -485,6 +486,7 @@ export type NormalizedZodOptions = {
 
 export type HonoOptions = {
   handlers?: string;
+  compositeRoute?: string;
   validator?: boolean | 'hono';
   validatorOutputPath?: string;
 };
