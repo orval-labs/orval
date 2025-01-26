@@ -103,6 +103,13 @@ app.${verb.toLowerCase()}('${path}',...${operationName}Handlers)`;
 };
 
 export const generateHono: ClientBuilder = async (verbOptions, options) => {
+  if (options.override.hono.compositeRoute) {
+    return {
+      implementation: '',
+      imports: [],
+    };
+  }
+
   const routeImplementation = generateHonoRoute(verbOptions, options.pathRoute);
 
   return {
