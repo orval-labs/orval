@@ -42,11 +42,11 @@ describe('generateInterface', () => {
       {
         name: 'TestSchema',
         model:
-`export const TestSchema = {
+`export const TestSchemaValue = {
   message: 'Invalid data';
   code: 1;
 } as const;
-export type TestSchemaType = typeof TestSchema;
+export type TestSchema = typeof TestSchemaValue;
 `,
         imports: []
       }

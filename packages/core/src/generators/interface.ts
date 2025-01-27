@@ -46,7 +46,7 @@ export const generateInterface = ({
     !context?.output.override?.useTypeOverInterfaces
   ) {
     if (context.output.override?.useConstForSchemaDefinition) {
-      model += `export const ${name} = ${scalar.value} as const;\nexport type ${name}Type = typeof ${name};\n`;
+      model += `export const ${name}Value = ${scalar.value} as const;\nexport type ${name} = typeof ${name}Value;\n`;
     } else {
       // If `scalar.value` is 'unknown', replace it with `{}` to avoid type error
       const blankInterfaceValue =
