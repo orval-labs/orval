@@ -22,36 +22,34 @@ describe('generateInterface', () => {
       properties: {
         message: {
           type: 'string',
-          const: 'Invalid data'
+          const: 'Invalid data',
         },
         code: {
           type: 'integer',
-          const: 1
-        }
+          const: 1,
+        },
       },
-      required: [ 'message', 'code' ]
+      required: ['message', 'code'],
     };
 
     const got = generateInterface({
       name: 'TestSchema',
       context,
       schema: schema as unknown as SchemaObject30,
-      suffix: ''
+      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
         name: 'TestSchema',
-        model:
-`export const TestSchemaValue = {
+        model: `export const TestSchemaValue = {
   message: 'Invalid data';
   code: 1;
 } as const;
 export type TestSchema = typeof TestSchemaValue;
 `,
-        imports: []
-      }
-    ]
+        imports: [],
+      },
+    ];
     expect(got).toEqual(want);
   });
-
 });
