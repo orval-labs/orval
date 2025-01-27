@@ -114,6 +114,7 @@ export type NormalizedOverrideOutput = {
   useDates?: boolean;
   coerceTypes?: boolean; // deprecated
   useTypeOverInterfaces?: boolean;
+  useConstForSchemaDefinition?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
