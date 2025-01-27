@@ -16,7 +16,7 @@ describe('generateInterface', () => {
     specs: {},
   };
 
-  it('should return an empty array if schemas are empty', () => {
+  it('should return const object with typeof', () => {
     const schema: SchemaObject31 = {
       type: 'object',
       properties: {
