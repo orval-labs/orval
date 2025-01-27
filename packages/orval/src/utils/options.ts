@@ -585,6 +585,7 @@ const normalizeHonoOptions = (
     ...(hono.handlers
       ? { handlers: upath.resolve(workspace, hono.handlers) }
       : {}),
+    compositeRoute: hono.compositeRoute ?? '',
     validator: hono.validator ?? true,
     validatorOutputPath: hono.validatorOutputPath
       ? upath.resolve(workspace, hono.validatorOutputPath)

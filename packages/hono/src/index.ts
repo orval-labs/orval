@@ -94,7 +94,7 @@ export const getHonoFooter: ClientFooterBuilder = () => 'export default app';
 
 const generateHonoRoute = (
   { operationName, verb }: GeneratorVerbOptions,
-  { pathRoute }: GeneratorOptions,
+  pathRoute: string,
 ) => {
   const path = getRoute(pathRoute);
 
@@ -103,7 +103,14 @@ app.${verb.toLowerCase()}('${path}',...${operationName}Handlers)`;
 };
 
 export const generateHono: ClientBuilder = async (verbOptions, options) => {
-  const routeImplementation = generateHonoRoute(verbOptions, options);
+  if (options.override.hono.compositeRoute) {
+    return {
+      implementation: '',
+      imports: [],
+    };
+  }
+
+  const routeImplementation = generateHonoRoute(verbOptions, options.pathRoute);
 
   return {
     implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
@@ -962,17 +969,103 @@ export const zValidator =
   };
 };
 
+const generateCompositeRoutes = async (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  output: NormalizedOutputOptions,
+  context: ContextSpecs,
+) => {
+  const targetInfo = getFileInfo(output.target);
+  const compositeRouteInfo = getFileInfo(output.override.hono.compositeRoute);
+
+  const header = getHeader(
+    output.override.header,
+    context.specs[context.specKey].info,
+  );
+
+  const routes = Object.values(verbOptions)
+    .map((verbOption) => {
+      return generateHonoRoute(verbOption, verbOption.pathRoute);
+    })
+    .join();
+
+  const importHandlers = Object.values(verbOptions);
+
+  let ImportHandlersImplementation = '';
+  if (output.override.hono.handlers) {
+    const handlerFileInfo = getFileInfo(output.override.hono.handlers);
+    const operationNames = importHandlers.map(
+      (verbOption) => verbOption.operationName,
+    );
+
+    ImportHandlersImplementation = operationNames
+      .map((operationName) => {
+        const importHandlerName = `${operationName}Handlers`;
+
+        const handlersPath = upath.relativeSafe(
+          compositeRouteInfo.dirname,
+          upath.join(handlerFileInfo.dirname ?? '', `./${operationName}`),
+        );
+
+        return `import { ${importHandlerName} } from '${handlersPath}';`;
+      })
+      .join('\n');
+  } else {
+    const tags = importHandlers.map((verbOption) =>
+      kebab(verbOption.tags[0] ?? 'default'),
+    );
+    const uniqueTags = tags.filter((t, i) => tags.indexOf(t) === i);
+
+    ImportHandlersImplementation = uniqueTags
+      .map((tag) => {
+        const importHandlerNames = importHandlers
+          .filter((verbOption) => verbOption.tags[0] === tag)
+          .map((verbOption) => ` ${verbOption.operationName}Handlers`)
+          .join(`, \n`);
+
+        const handlersPath = upath.relativeSafe(
+          compositeRouteInfo.dirname,
+          upath.join(targetInfo.dirname ?? '', tag),
+        );
+
+        return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers';`;
+      })
+      .join('\n');
+  }
+
+  const honoImport = `import { Hono } from 'hono';`;
+  const honoInitialization = `\nconst app = new Hono()`;
+  const honoAppExport = `\nexport default app`;
+
+  const content = `${header}${honoImport}
+${ImportHandlersImplementation}
+${honoInitialization}
+${routes}
+${honoAppExport}
+`;
+
+  return [
+    {
+      content,
+      path: output.override.hono.compositeRoute || '',
+    },
+  ];
+};
+
 export const generateExtraFiles: ClientExtraFilesBuilder = async (
   verbOptions,
   output,
   context,
 ) => {
-  const [handlers, contexts, zods, validator] = await Promise.all([
-    generateHandlers(verbOptions, output),
-    generateContext(verbOptions, output, context),
-    generateZodFiles(verbOptions, output, context),
-    generateZvalidator(output, context),
-  ]);
+  const [handlers, contexts, zods, validator, compositeRoutes] =
+    await Promise.all([
+      generateHandlers(verbOptions, output),
+      generateContext(verbOptions, output, context),
+      generateZodFiles(verbOptions, output, context),
+      generateZvalidator(output, context),
+      output.override.hono.compositeRoute
+        ? generateCompositeRoutes(verbOptions, output, context)
+        : [],
+    ]);
 
   return [
     ...handlers,
@@ -982,6 +1075,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     output.override.hono.validator !== 'hono'
       ? [validator]
       : []),
+    ...compositeRoutes,
   ];
 };
 
