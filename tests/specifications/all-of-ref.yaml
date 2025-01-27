@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: All Of Ref
+  version: 1.0.0
+paths:
+  /pet:
+    get:
+      operationId: get-pet
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+          description: OK
+      tags:
+        - Pet
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - detail
+      properties:
+        id:
+          type: string
+        detail:
+          allOf:
+            - $ref: '#/components/schemas/Name'
+    Name:
+      type: string

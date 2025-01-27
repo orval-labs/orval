@@ -139,6 +139,9 @@ export const combineSchemasMock = ({
   if (itemResolvedValue) {
     finalValue = `{${finalValue.startsWith('...') ? '' : '...'}${finalValue}, ${itemResolvedValue.value}}`;
   }
+  if (finalValue.endsWith(',')) {
+    finalValue = finalValue.substring(0, finalValue.length - 1);
+  }
 
   return {
     value: finalValue,

@@ -164,6 +164,14 @@ export default defineConfig({
       mock: true,
     },
   },
+  'all-of-ref': {
+    input: '../specifications/all-of-ref.yaml',
+    output: {
+      schemas: '../generated/default/all-of-ref/model',
+      target: '../generated/default/all-of-ref/endpoints.ts',
+      mock: true,
+    },
+  },
   'deeply-nested-refs': {
     input: '../specifications/deeply-nested-refs.yaml',
     output: {
