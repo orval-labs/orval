@@ -234,4 +234,8 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  lowerCaseDiscriminator: {
+    input: '../specifications/lowercase-discriminator.yaml',
+    output: '../generated/default/lowercase-discriminator/endpoints.ts',
+  },
 });

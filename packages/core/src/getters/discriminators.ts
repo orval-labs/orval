@@ -20,7 +20,8 @@ export const resolveDiscriminators = (
           const { originalName } = getRefInfo(mappingValue, context);
           // name from getRefInfo may contain a suffix, which we don't want
           const name = pascal(originalName);
-          subTypeSchema = transformedSchemas[name];
+          subTypeSchema =
+            transformedSchemas[name] ?? transformedSchemas[originalName];
         } catch (e) {
           subTypeSchema = transformedSchemas[mappingValue];
         }
