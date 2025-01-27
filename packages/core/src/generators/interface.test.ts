@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { generateInterface } from './interface';
-import { SchemaObject } from 'openapi3-ts/oas30';
+import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
 
 describe('generateInterface', () => {
   const context: ContextSpecs = {
@@ -16,17 +17,25 @@ describe('generateInterface', () => {
   };
 
   it('should return an empty array if schemas are empty', () => {
-    const schema: SchemaObject = {
+    const schema: SchemaObject31 = {
       type: 'object',
       properties: {
-        id: { type: 'string' },
+        message: {
+          type: 'string',
+          const: 'Invalid data'
+        },
+        code: {
+          type: 'integer',
+          const: 1
+        }
       },
+      required: [ 'message', 'code' ]
     };
 
     const got = generateInterface({
       name: 'TestSchema',
       context,
-      schema,
+      schema: schema as unknown as SchemaObject30,
       suffix: ''
     });
     const want: GeneratorSchema[] = [
@@ -34,7 +43,8 @@ describe('generateInterface', () => {
         name: 'TestSchema',
         model:
 `export const TestSchema = {
-  id?: string;
+  message: 'Invalid data';
+  code: 1;
 } as const;
 export type TestSchemaType = typeof TestSchema;
 `,
