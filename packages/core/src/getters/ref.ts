@@ -1,7 +1,7 @@
 import get from 'lodash.get';
 import { ReferenceObject } from 'openapi3-ts/oas30';
 import { ContextSpecs } from '../types';
-import { getFileInfo, isUrl, pascal, upath } from '../utils';
+import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 
@@ -63,7 +63,10 @@ export const getRefInfo = (
 
   if (!pathname) {
     return {
-      name: pascal(originalName) + suffix,
+      name: sanitize(pascal(originalName) + suffix, {
+        es5keyword: true,
+        es5IdentifierName: true,
+      }),
       originalName,
       refPaths,
     };
@@ -74,7 +77,10 @@ export const getRefInfo = (
     : upath.resolve(getFileInfo(context.specKey).dirname, pathname);
 
   return {
-    name: pascal(originalName) + suffix,
+    name: sanitize(pascal(originalName) + suffix, {
+      es5keyword: true,
+      es5IdentifierName: true,
+    }),
     originalName,
     specKey: path,
     refPaths,
