@@ -1766,7 +1766,7 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 
 Type: `String` or `Object`.
 
-This is only valid when using `axios`.
+IMPORTANT: This is only valid when using `axios`.
 
 Valid values: path of the paramsSerializer function or object with a path and name.
 
