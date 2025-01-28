@@ -1766,11 +1766,15 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 
 Type: `String` or `Object`.
 
+IMPORTANT: This is only valid when using `axios`.
+
 Valid values: path of the paramsSerializer function or object with a path and name.
 
 Use this property to add a custom params serializer to all requests that use query params.
 
 If you provide an object you can also add a default property to use an export default function.
+
+If this is not specified, params are serialized as per `axios` default.
 
 Example:
 
@@ -1805,9 +1809,12 @@ export const customParamsSerializerFn = (
 
 Type: `Object`
 
-Use this property to add a default params serializer. Current options are: `qs`.
+IMPORTANT: This is only valid when using `axios`.
 
-All options are then passed to the chosen serializer.
+Use this property to decide how params are serialized. This is only taken into account when `paramsSerializer` is not defined.
+Currently, only `qs` is the available option. Read more about `qs` and it's settings [here](https://www.npmjs.com/package/qs).
+
+If this is not specified, params are serialized as per `axios` default.
 
 Example:
 
