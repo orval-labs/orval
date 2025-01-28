@@ -1809,7 +1809,7 @@ export const customParamsSerializerFn = (
 
 Type: `Object`
 
-This is only valid when using `axios`.
+IMPORTANT: This is only valid when using `axios`.
 
 Use this property to decide how params are serialized. This is only taken into account when `paramsSerializer` is not defined.
 Currently, only `qs` is the available option. Read more about `qs` and it's settings [here](https://www.npmjs.com/package/qs).
