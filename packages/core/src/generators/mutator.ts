@@ -259,10 +259,22 @@ const parseFunction = (
       (b: any) => b.type === 'ReturnStatement',
     );
 
+    // If the function directly returns an arrow function
     if (returnStatement?.argument?.params) {
       return {
         numberOfParams: node.params.length,
         returnNumberOfParams: returnStatement.argument.params.length,
+      };
+      // If the function returns a CallExpression (e.g., return useCallback(...))
+    } else if (
+      returnStatement?.argument?.type === 'CallExpression' &&
+      returnStatement.argument.arguments?.[0]?.type ===
+        'ArrowFunctionExpression'
+    ) {
+      const arrowFn = returnStatement.argument.arguments[0];
+      return {
+        numberOfParams: node.params.length,
+        returnNumberOfParams: arrowFn.params.length,
       };
     }
     return {
@@ -291,6 +303,15 @@ const parseFunction = (
     return {
       numberOfParams: declaration.init.params.length,
       returnNumberOfParams: returnStatement.argument.params.length,
+    };
+  } else if (
+    returnStatement?.argument?.type === 'CallExpression' &&
+    returnStatement.argument.arguments?.[0]?.type === 'ArrowFunctionExpression'
+  ) {
+    const arrowFn = returnStatement.argument.arguments[0];
+    return {
+      numberOfParams: declaration.init.params.length,
+      returnNumberOfParams: arrowFn.params.length,
     };
   }
 
