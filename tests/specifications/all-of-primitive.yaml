@@ -1,0 +1,32 @@
+openapi: 3.0.1
+info:
+  title: All Of Primitive
+  version: v1.0
+paths:
+  /pets:
+    get:
+      operationId: get-pets
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Pets'
+                type: array
+          description: OK
+components:
+  schemas:
+    Pets:
+      properties:
+        petId:
+          allOf:
+            - $ref: '#/components/schemas/DogId'
+            - $ref: '#/components/schemas/CatId'
+          nullable: true
+    DogId:
+      nullable: true
+      type: string
+    CatId:
+      description: test
+      type: string

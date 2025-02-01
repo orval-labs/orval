@@ -100,6 +100,46 @@ export default defineConfig({
       target: '../generated/default/default-status/endpoints.ts',
     },
   },
+  'all-of-one-of': {
+    input: '../specifications/all-of-one-of.yaml',
+    output: {
+      schemas: '../generated/default/all-of-one-of/model',
+      target: '../generated/default/all-of-one-of/endpoints.ts',
+      mock: true,
+    },
+  },
+  'all-of-primitive': {
+    input: '../specifications/all-of-primitive.yaml',
+    output: {
+      schemas: '../generated/default/all-of-primitive/model',
+      target: '../generated/default/all-of-primitive/endpoints.ts',
+      mock: true,
+    },
+  },
+  'one-of': {
+    input: '../specifications/one-of.yaml',
+    output: {
+      schemas: '../generated/default/one-of/model',
+      target: '../generated/default/one-of/endpoints.ts',
+      mock: true,
+    },
+  },
+  'one-of-primitive': {
+    input: '../specifications/one-of-primitive.yaml',
+    output: {
+      schemas: '../generated/default/one-of-primitive/model',
+      target: '../generated/default/one-of-primitive/endpoints.ts',
+      mock: true,
+    },
+  },
+  'any-of-primitive': {
+    input: '../specifications/any-of-primitive.yaml',
+    output: {
+      schemas: '../generated/default/any-of-primitive/model',
+      target: '../generated/default/any-of-primitive/endpoints.ts',
+      mock: true,
+    },
+  },
   'circular-v2': {
     input: '../specifications/circular-v2.yaml',
     output: {
@@ -121,6 +161,14 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/all-of/model',
       target: '../generated/default/all-of/endpoints.ts',
+      mock: true,
+    },
+  },
+  'all-of-ref': {
+    input: '../specifications/all-of-ref.yaml',
+    output: {
+      schemas: '../generated/default/all-of-ref/model',
+      target: '../generated/default/all-of-ref/endpoints.ts',
       mock: true,
     },
   },

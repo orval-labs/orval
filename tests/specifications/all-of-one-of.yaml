@@ -1,0 +1,38 @@
+openapi: 3.0.1
+info:
+  version: 1.0.0
+  title: any-of-one-of
+paths:
+  /something:
+    post:
+      responses:
+        '200':
+          description: Something
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  uploads:
+                    type: array
+                    items:
+                      allOf:
+                        - type: object
+                          properties:
+                            file_type:
+                              type: string
+                        - oneOf:
+                            - type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - a
+                            - type: object
+                              properties:
+                                type:
+                                  type: string
+                                  enum:
+                                    - b
+                                other:
+                                  type: string

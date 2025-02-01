@@ -66,144 +66,85 @@ export const combineSchemasMock = ({
 
   includedProperties.push(...(itemResolvedValue?.includedProperties ?? []));
   combineImports.push(...(itemResolvedValue?.imports ?? []));
+  let containsOnlyPrimitiveValues = true;
 
-  const value = (item[separator] ?? []).reduce((acc, val, index, arr) => {
-    if (
-      '$ref' in val &&
-      existingReferencedProperties.includes(pascal(val.$ref.split('/').pop()!))
-    ) {
-      if (arr.length === 1) {
-        return 'undefined';
-      }
-
-      return acc;
-    }
-
-    // the required fields in this schema need to be considered
-    // in the sub schema under the allOf key
-    if (separator === 'allOf' && item.required) {
-      if (isSchema(val) && val.required) {
-        val = { ...val, required: [...item.required, ...val.required] };
-      } else {
-        val = { ...val, required: item.required };
-      }
-    }
-
-    const resolvedValue = resolveMockValue({
-      schema: {
-        ...val,
-        name: item.name,
-        path: item.path ? item.path : '#',
-      },
-      combine: {
-        separator,
-        includedProperties:
-          separator !== 'oneOf'
-            ? includedProperties
-            : itemResolvedValue?.includedProperties ?? [],
-      },
-      mockOptions,
-      operationId,
-      tags,
-      context,
-      imports,
-      existingReferencedProperties,
-      splitMockImplementations,
-    });
-
-    combineImports.push(...resolvedValue.imports);
-    includedProperties.push(...(resolvedValue.includedProperties ?? []));
-
-    const isLastElement = index === arr.length - 1;
-
-    let currentValue = resolvedValue.value;
-
-    if (itemResolvedValue?.value && separator === 'oneOf') {
-      const splitValues = resolvedValue.value.split('},{');
-      const joined = splitValues.join(`,${itemResolvedValue.value}},{`);
-      currentValue = `${joined.slice(0, -1)},${itemResolvedValue.value}}`;
-    }
-
-    if (itemResolvedValue?.value && separator !== 'oneOf' && isLastElement) {
-      currentValue = `${currentValue ? `${currentValue},` : ''}${itemResolvedValue.value}`;
-    }
-
-    if (
-      resolvedValue.type === undefined &&
-      currentValue &&
-      separator === 'allOf'
-    ) {
-      currentValue = `...${currentValue}`;
-    }
-
-    const isObjectBounds =
-      !combine ||
-      (['oneOf', 'anyOf'].includes(combine.separator) && separator === 'allOf');
-
-    if (!index && isObjectBounds) {
+  const value = (item[separator] ?? []).reduce(
+    (acc, val, _, arr) => {
       if (
-        resolvedValue.enums ||
-        separator === 'oneOf' ||
-        separator === 'anyOf' ||
-        resolvedValue.type === 'array'
+        '$ref' in val &&
+        existingReferencedProperties.includes(
+          pascal(val.$ref.split('/').pop()!),
+        )
       ) {
         if (arr.length === 1) {
-          return `faker.helpers.arrayElement([${currentValue}])`;
+          return 'undefined';
         }
-        return `faker.helpers.arrayElement([${currentValue},`;
+
+        return acc;
       }
 
-      if (arr.length === 1) {
-        if (resolvedValue.type && resolvedValue.type !== 'object') {
-          return currentValue;
-        }
-        return `{${currentValue}}`;
-      }
-
-      if (currentValue) {
-        return `{${currentValue},`;
-      }
-      return '{';
-    }
-
-    if (isLastElement) {
-      if (
-        resolvedValue.enums ||
-        separator === 'oneOf' ||
-        separator === 'anyOf' ||
-        resolvedValue.type === 'array'
-      ) {
-        return `${acc}${currentValue}${!combine ? '])' : ''}`;
-      }
-
-      if (currentValue === '{}') {
-        currentValue = '';
-
-        if (acc.toString().endsWith(',')) {
-          acc = acc.toString().slice(0, -1);
+      // the required fields in this schema need to be considered
+      // in the sub schema under the allOf key
+      if (separator === 'allOf' && item.required) {
+        if (isSchema(val) && val.required) {
+          val = { ...val, required: [...item.required, ...val.required] };
+        } else {
+          val = { ...val, required: item.required };
         }
       }
 
-      return `${acc}${currentValue}${isObjectBounds ? '}' : ''}`;
-    }
+      const resolvedValue = resolveMockValue({
+        schema: {
+          ...val,
+          name: item.name,
+          path: item.path ? item.path : '#',
+        },
+        combine: {
+          separator,
+          includedProperties:
+            separator !== 'oneOf'
+              ? includedProperties
+              : itemResolvedValue?.includedProperties ?? [],
+        },
+        mockOptions,
+        operationId,
+        tags,
+        context,
+        imports,
+        existingReferencedProperties,
+        splitMockImplementations,
+      });
 
-    if (currentValue === '{}') {
-      currentValue = '';
+      combineImports.push(...resolvedValue.imports);
+      includedProperties.push(...(resolvedValue.includedProperties ?? []));
 
-      if (acc.toString().endsWith(',')) {
-        acc = acc.toString().slice(0, -1);
+      if (resolvedValue.value === '{}') {
+        containsOnlyPrimitiveValues = false;
+        return acc;
       }
-    }
-
-    if (!currentValue) {
-      return acc;
-    }
-
-    return `${acc}${currentValue},`;
-  }, '');
+      if (resolvedValue.value.startsWith('{')) {
+        containsOnlyPrimitiveValues = false;
+        return `${acc}${separator === 'allOf' ? '...' : ''}${resolvedValue.value},`;
+      } else if (resolvedValue.type === 'object') {
+        containsOnlyPrimitiveValues = false;
+      }
+      return `${acc}${resolvedValue.value},`;
+    },
+    `${separator === 'allOf' ? '' : 'faker.helpers.arrayElement(['}`,
+  );
+  let finalValue =
+    value === 'undefined'
+      ? value
+      : `${combine ? '...' : ''}${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
+  if (itemResolvedValue) {
+    finalValue = `{${finalValue.startsWith('...') ? '' : '...'}${finalValue}, ${itemResolvedValue.value}}`;
+  }
+  if (finalValue.endsWith(',')) {
+    finalValue = finalValue.substring(0, finalValue.length - 1);
+  }
 
   return {
-    value: value,
+    value: finalValue,
     imports: combineImports,
     name: item.name,
     includedProperties,
