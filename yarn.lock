@@ -7601,7 +7601,7 @@ __metadata:
     lodash.uniq: "npm:^4.5.0"
     openapi3-ts: "npm:4.2.2"
     string-argv: "npm:^0.3.2"
-    tsconfck: "npm:^2.0.1"
+    tsconfck: "npm:^3.1.4"
     typedoc: "npm:0.26.11"
     typedoc-plugin-markdown: "npm:4.2.10"
     typescript: "npm:^5.6.3"
@@ -9415,17 +9415,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsconfck@npm:^2.0.1":
-  version: 2.1.2
-  resolution: "tsconfck@npm:2.1.2"
+"tsconfck@npm:^3.1.4":
+  version: 3.1.4
+  resolution: "tsconfck@npm:3.1.4"
   peerDependencies:
-    typescript: ^4.3.5 || ^5.0.0
+    typescript: ^5.0.0
   peerDependenciesMeta:
     typescript:
       optional: true
   bin:
     tsconfck: bin/tsconfck.js
-  checksum: 10c0/6efc9cbbccdbbcafc86a744a1804fcd8438097c2beaac370444cc413fa1582a019a74002a111e3005b89ca0b0169ace730161864628fc751754e29b335c3c79f
+  checksum: 10c0/5120e91b3388574b449d57d08f45d05d9966cf4b9d6aa1018652c1fff6d7d37b1ed099b07e6ebf6099aa40b8a16968dd337198c55b7274892849112b942861ed
   languageName: node
   linkType: hard
 
