@@ -76,10 +76,10 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const data: Pets =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
 
-  return { status: res.status, data, headers: res.headers };
+  return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
 export const getListPetsKey = (params?: ListPetsParams) =>
@@ -145,10 +145,14 @@ export const createPets = async (
     body: JSON.stringify(createPetsBodyItem),
   });
 
-  const data: Pet =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
 
-  return { status: res.status, data, headers: res.headers };
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as createPetsResponse;
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
@@ -216,10 +220,14 @@ export const updatePets = async (
     body: JSON.stringify(pet),
   });
 
-  const data: Pet =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: updatePetsResponse['data'] = body ? JSON.parse(body) : {};
 
-  return { status: res.status, data, headers: res.headers };
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as updatePetsResponse;
 };
 
 export const getUpdatePetsMutationFetcher = (options?: RequestInit) => {
@@ -285,10 +293,14 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const data: Pet =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
 
-  return { status: res.status, data, headers: res.headers };
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as showPetByIdResponse;
 };
 
 export const getShowPetByIdKey = (petId: string) =>
