@@ -316,8 +316,6 @@ export const normalizeOptions = async (
           ...(outputOptions.override?.fetch ?? {}),
         },
         useDates: outputOptions.override?.useDates || false,
-        useConstForSchemaDefinition:
-          outputOptions.override?.useConstForSchemaDefinition || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         useNativeEnums: outputOptions.override?.useNativeEnums ?? false,

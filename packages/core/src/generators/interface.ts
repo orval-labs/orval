@@ -46,7 +46,6 @@ export const generateInterface = ({
     !context?.output.override?.useTypeOverInterfaces
   ) {
     if (
-      context.output.override?.useConstForSchemaDefinition &&
       scalar.type === 'object' &&
       schema.properties &&
       Object.values(schema.properties).every((item) => 'const' in item)
