@@ -51,7 +51,9 @@ export const generateInterface = ({
       schema.properties &&
       Object.values(schema.properties).every((item) => 'const' in item)
     ) {
-      model += `export const ${name}Value = ${scalar.value} as const;\nexport type ${name} = typeof ${name}Value;\n`;
+      const mappedScalarValue = scalar.value.replaceAll(';', ',');
+
+      model += `export const ${name}Value = ${mappedScalarValue} as const;\nexport type ${name} = typeof ${name}Value;\n`;
     } else {
       const blankInterfaceValue =
         scalar.value === 'unknown' ? '{}' : scalar.value;
