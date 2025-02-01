@@ -195,9 +195,10 @@ ${
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const data:${responseDataType} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
+  const data: ${response.definition.success} = body ? JSON.parse(body) : {}
 
-  ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
+  ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : 'return data'}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
 
