@@ -286,4 +286,13 @@ export default defineConfig({
     input: '../specifications/lowercase-discriminator.yaml',
     output: '../generated/default/lowercase-discriminator/endpoints.ts',
   },
+  overrideUseConstForSchemaDefinition: {
+    input: '../specifications/const-for-schema-definition.yaml',
+    output: {
+      target: '../generated/default/const-for-schema-definition/endpoints.ts',
+      override: {
+        useConstForSchemaDefinition: true,
+      },
+    }
+  },
 });

@@ -1,0 +1,40 @@
+openapi: 3.1.0
+info:
+  title: API
+  version: 1.0.0
+paths:
+  /get-bubble-gums/{id}:
+    get:
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: number
+          required: true
+      responses:
+        '200':
+          description: Success response
+          content:
+            application/json:
+              schema:
+                type: string
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BubbleGumIdNotFoundException'
+
+components:
+  schemas:
+    BubbleGumIdNotFoundException:
+      type: object
+      properties:
+        message:
+          type: string
+          const: 'Bubble gum not found'
+        code:
+          type: integer
+          const: 1
+          description: 'Unique exception code'
+      required: [ 'message', 'code' ]
