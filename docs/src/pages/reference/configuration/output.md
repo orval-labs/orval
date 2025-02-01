@@ -1989,6 +1989,60 @@ module.exports = {
 };
 ```
 
+#### useConstForSchemaDefinition
+
+Type: `Boolean`
+
+Valid values: true or false. Defaults to false.
+
+Should construct `const` for Definitions if all properties have const
+
+Example:
+
+```js
+/*Orval config*/
+module.exports = {
+  bubbleGum: {
+    output: {
+      override: {
+        useTypeOverInterfaces: true,
+      },
+    },
+  },
+};
+```
+```yaml
+# Api specification
+openapi: 3.1.0
+paths:
+  # ...paths...  
+
+components:
+  schemas:
+    BubbleGumIdNotFoundException:
+      type: object
+      properties:
+        message:
+          type: string
+          const: 'Bubble gum not found'
+        code:
+          type: integer
+          const: 1
+          description: 'Unique exception code'
+      required: [ 'message', 'code' ]
+
+```
+```typescript
+/*Generated*/
+export const BubbleGumIdNotFoundExceptionValue = {
+  message: 'Bubble gum not found',
+  /** Unique exception code */
+  code: 1,
+} as const;
+export type BubbleGumIdNotFoundException =
+  typeof BubbleGumIdNotFoundExceptionValue;
+```
+
 #### useDeprecatedOperations
 
 Type: `Boolean`
