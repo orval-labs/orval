@@ -290,6 +290,6 @@ export default defineConfig({
     input: '../specifications/const-for-schema-definition.yaml',
     output: {
       target: '../generated/default/const-for-schema-definition/endpoints.ts',
-    }
+    },
   },
 });

@@ -8,7 +8,7 @@ describe('generateInterface', () => {
   const context: ContextSpecs = {
     specKey: 'testSpec',
     output: {
-      override: {}
+      override: {},
     },
     target: 'typescript',
     specs: {},

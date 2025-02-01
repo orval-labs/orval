@@ -37,4 +37,4 @@ components:
           type: integer
           const: 1
           description: 'Unique exception code'
-      required: [ 'message', 'code' ]
+      required: ['message', 'code']
