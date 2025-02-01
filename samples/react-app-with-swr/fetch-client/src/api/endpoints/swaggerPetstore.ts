@@ -42,10 +42,10 @@ export const listPets = async (
     method: 'GET',
   });
 
-  const data: Pets =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: Pets = body ? JSON.parse(body) : {};
 
-  return data as Pets;
+  return data;
 };
 
 export const getListPetsKey = (params?: ListPetsParams) =>
@@ -106,10 +106,10 @@ export const createPets = async (
     body: JSON.stringify(createPetsBody),
   });
 
-  const data: Pet =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: Pet = body ? JSON.parse(body) : {};
 
-  return data as Pet;
+  return data;
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
@@ -167,10 +167,10 @@ export const showPetById = async (
     method: 'GET',
   });
 
-  const data: Pet =
-    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  const data: Pet = body ? JSON.parse(body) : {};
 
-  return data as Pet;
+  return data;
 };
 
 export const getShowPetByIdKey = (petId: string) =>
