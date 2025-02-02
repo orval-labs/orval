@@ -153,7 +153,7 @@ export function useListPetsInfinite<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
-          TData,
+          Awaited<ReturnType<typeof listPets>>,
           QueryKey
         >,
         'initialData'
@@ -186,7 +186,7 @@ export function useListPetsInfinite<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
-          TData,
+          Awaited<ReturnType<typeof listPets>>,
           QueryKey
         >,
         'initialData'
@@ -313,7 +313,7 @@ export function useListPets<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof listPets>>
         >,
         'initialData'
       >;
@@ -335,7 +335,7 @@ export function useListPets<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof listPets>>
         >,
         'initialData'
       >;
@@ -701,17 +701,21 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationOptions = <
-  TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number },
     TContext
   >;
-}) => {
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -730,12 +734,7 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, version);
   };
 
-  return { mutationFn, ...mutationOptions } as UseMutationOptions<
-    TData,
-    TError,
-    { data: CreatePetsBody; version?: number },
-    TContext
-  >;
+  return { mutationFn, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -748,18 +747,17 @@ export type CreatePetsMutationError = ErrorType<Error>;
  * @summary Create a pet
  */
 export const useCreatePets = <
-  TData = Awaited<ReturnType<typeof createPets>>,
   TError = ErrorType<Error>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number },
     TContext
   >;
 }): UseMutationResult<
-  TData,
+  Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBody; version?: number },
   TContext
@@ -855,7 +853,7 @@ export function useListPetsNestedArray<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPetsNestedArray>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof listPetsNestedArray>>
         >,
         'initialData'
       >;
@@ -881,7 +879,7 @@ export function useListPetsNestedArray<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPetsNestedArray>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof listPetsNestedArray>>
         >,
         'initialData'
       >;
@@ -1009,7 +1007,7 @@ export function useShowPetById<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetById>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof showPetById>>
         >,
         'initialData'
       >;
@@ -1031,7 +1029,7 @@ export function useShowPetById<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetById>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof showPetById>>
         >,
         'initialData'
       >;
