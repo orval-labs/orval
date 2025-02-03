@@ -1,6 +1,6 @@
 {
   "name": "@orval/mock",
-  "version": "7.4.1",
+  "version": "7.5.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@orval/core": "7.4.1",
+    "@orval/core": "7.5.0",
     "lodash.get": "^4.4.2",
     "lodash.omit": "^4.5.0",
     "openapi3-ts": "^4.2.2"
