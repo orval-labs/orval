@@ -8,6 +8,7 @@ import {
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
+import { combineSchemas } from './combine';
 import { resolveExampleRefs } from '../resolvers';
 
 /**
@@ -27,10 +28,7 @@ export const getScalar = ({
 }): ScalarValue => {
   // NOTE: Angular client does not support nullable types
   const isAngularClient = context.output.client === OutputClient.ANGULAR;
-  const typeIncludesNull =
-    Array.isArray(item.type) && item.type.includes('null');
-  const nullable =
-    (typeIncludesNull || item.nullable) && !isAngularClient ? ' | null' : '';
+  const nullable = item.nullable && !isAngularClient ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
@@ -160,6 +158,21 @@ export const getScalar = ({
 
     case 'object':
     default: {
+      if (Array.isArray(item.type)) {
+        return combineSchemas({
+          schema: {
+            anyOf: item.type.map((type) => ({
+              ...item,
+              type,
+            })),
+          },
+          name,
+          separator: 'anyOf',
+          context,
+          nullable,
+        });
+      }
+
       if (enumItems) {
         const value = `${enumItems
           .map((enumItem: unknown) =>
