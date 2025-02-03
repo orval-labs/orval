@@ -237,17 +237,21 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationOptions = <
-  TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number | undefined | null },
     TContext
   >;
-}) => {
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number | undefined | null },
+  TContext
+> => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -266,12 +270,7 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, version);
   };
 
-  return { mutationFn, ...mutationOptions } as UseMutationOptions<
-    TData,
-    TError,
-    { data: CreatePetsBody; version?: number | undefined | null },
-    TContext
-  >;
+  return { mutationFn, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -283,19 +282,15 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
-  TContext = unknown,
->(options?: {
+export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number | undefined | null },
     TContext
   >;
 }): UseMutationReturnType<
-  TData,
+  Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBody; version?: number | undefined | null },
   TContext
@@ -481,12 +476,21 @@ export const postApiV1UserLogout = (signal?: AbortSignal) => {
 };
 
 export const getPostApiV1UserLogoutMutationOptions = <
-  TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
   TError = unknown,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<TData, TError, void, TContext>;
-}) => {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof postApiV1UserLogout>>,
+  TError,
+  void,
+  TContext
+> => {
   const mutationKey = ['postApiV1UserLogout'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -503,12 +507,7 @@ export const getPostApiV1UserLogoutMutationOptions = <
     return postApiV1UserLogout();
   };
 
-  return { mutationFn, ...mutationOptions } as UseMutationOptions<
-    TData,
-    TError,
-    void,
-    TContext
-  >;
+  return { mutationFn, ...mutationOptions };
 };
 
 export type PostApiV1UserLogoutMutationResult = NonNullable<
@@ -521,12 +520,21 @@ export type PostApiV1UserLogoutMutationError = unknown;
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
  */
 export const usePostApiV1UserLogout = <
-  TData = Awaited<ReturnType<typeof postApiV1UserLogout>>,
   TError = unknown,
   TContext = unknown,
 >(options?: {
-  mutation?: UseMutationOptions<TData, TError, void, TContext>;
-}): UseMutationReturnType<TData, TError, void, TContext> => {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof postApiV1UserLogout>>,
+    TError,
+    void,
+    TContext
+  >;
+}): UseMutationReturnType<
+  Awaited<ReturnType<typeof postApiV1UserLogout>>,
+  TError,
+  void,
+  TContext
+> => {
   const mutationOptions = getPostApiV1UserLogoutMutationOptions(options);
 
   return useMutation(mutationOptions);

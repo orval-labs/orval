@@ -134,17 +134,21 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationOptions = <
-  TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: CreateMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number },
     TContext
   >;
-}) => {
+}): CreateMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions } = options
     ? options.mutation &&
@@ -163,12 +167,7 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, version);
   };
 
-  return { mutationFn, ...mutationOptions } as CreateMutationOptions<
-    TData,
-    TError,
-    { data: CreatePetsBody; version?: number },
-    TContext
-  >;
+  return { mutationFn, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -180,19 +179,15 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const createCreatePets = <
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
-  TContext = unknown,
->(options?: {
+export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBody; version?: number },
     TContext
   >;
 }): CreateMutationResult<
-  TData,
+  Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBody; version?: number },
   TContext

@@ -139,7 +139,7 @@ export function useListPets<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof listPets>>
         >,
         'initialData'
       >;
@@ -161,7 +161,7 @@ export function useListPets<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof listPets>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof listPets>>
         >,
         'initialData'
       >;
@@ -233,18 +233,22 @@ export const createPets = async (
 };
 
 export const getCreatePetsMutationOptions = <
-  TData = Awaited<ReturnType<typeof createPets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBodyItem[] },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}) => {
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBodyItem[] },
+  TContext
+> => {
   const mutationKey = ['createPets'];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
@@ -263,12 +267,7 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, requestOptions);
   };
 
-  return { mutationFn, ...mutationOptions } as UseMutationOptions<
-    TData,
-    TError,
-    { data: CreatePetsBodyItem[] },
-    TContext
-  >;
+  return { mutationFn, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -280,20 +279,16 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <
-  TData = Awaited<ReturnType<typeof createPets>>,
-  TError = Error,
-  TContext = unknown,
->(options?: {
+export const useCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof createPets>>,
     TError,
     { data: CreatePetsBodyItem[] },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  TData,
+  Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBodyItem[] },
   TContext
@@ -328,18 +323,22 @@ export const updatePets = async (
 };
 
 export const getUpdatePetsMutationOptions = <
-  TData = Awaited<ReturnType<typeof updatePets>>,
   TError = Error,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof updatePets>>,
     TError,
     { data: NonReadonly<Pet> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}) => {
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updatePets>>,
+  TError,
+  { data: NonReadonly<Pet> },
+  TContext
+> => {
   const mutationKey = ['updatePets'];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
@@ -358,12 +357,7 @@ export const getUpdatePetsMutationOptions = <
     return updatePets(data, requestOptions);
   };
 
-  return { mutationFn, ...mutationOptions } as UseMutationOptions<
-    TData,
-    TError,
-    { data: NonReadonly<Pet> },
-    TContext
-  >;
+  return { mutationFn, ...mutationOptions };
 };
 
 export type UpdatePetsMutationResult = NonNullable<
@@ -375,19 +369,20 @@ export type UpdatePetsMutationError = Error;
 /**
  * @summary Update a pet
  */
-export const useUpdatePets = <
-  TData = Awaited<ReturnType<typeof updatePets>>,
-  TError = Error,
-  TContext = unknown,
->(options?: {
+export const useUpdatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: UseMutationOptions<
-    TData,
+    Awaited<ReturnType<typeof updatePets>>,
     TError,
     { data: NonReadonly<Pet> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
-}): UseMutationResult<TData, TError, { data: NonReadonly<Pet> }, TContext> => {
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updatePets>>,
+  TError,
+  { data: NonReadonly<Pet> },
+  TContext
+> => {
   const mutationOptions = getUpdatePetsMutationOptions(options);
 
   return useMutation(mutationOptions);
@@ -469,7 +464,7 @@ export function useShowPetById<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetById>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof showPetById>>
         >,
         'initialData'
       >;
@@ -491,7 +486,7 @@ export function useShowPetById<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof showPetById>>,
           TError,
-          TData
+          Awaited<ReturnType<typeof showPetById>>
         >,
         'initialData'
       >;
