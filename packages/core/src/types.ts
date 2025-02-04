@@ -683,6 +683,7 @@ export type GeneratorSchema = {
 export type GeneratorImport = {
   name: string;
   schemaName?: string;
+  isConstant?: boolean;
   alias?: string;
   specKey?: string;
   default?: boolean;

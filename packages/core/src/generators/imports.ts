@@ -31,23 +31,23 @@ export const generateImports = ({
       a.name === b.name && a.default === b.default && a.specKey === b.specKey,
   )
     .sort()
-    .map(({ specKey, name, values, alias }) => {
+    .map(({ specKey, name, values, alias, isConstant }) => {
       const isSameSpecKey = currentSpecKey === specKey;
       if (specKey && !isSameSpecKey) {
         const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
-          return `import ${!values ? 'type ' : ''}{ ${name}${
+          return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
             alias ? ` as ${alias}` : ''
           } } from \'../${upath.join(path, camel(name))}\';`;
         }
 
-        return `import ${!values ? 'type ' : ''}{ ${name}${
+        return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
           alias ? ` as ${alias}` : ''
         } } from \'./${upath.join(path, camel(name))}\';`;
       }
 
-      return `import ${!values ? 'type ' : ''}{ ${name}${
+      return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
       } } from \'./${camel(name)}\';`;
     })

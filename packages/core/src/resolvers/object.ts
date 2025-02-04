@@ -28,14 +28,23 @@ const resolveObjectOriginal = ({
     resolvedValue?.type === 'object' &&
     new RegExp(/{|&|\|/).test(resolvedValue.value)
   ) {
+    let model = '';
+    const isConstant = 'const' in schema;
+
+    if (isConstant) {
+      model += `${doc}export const ${propName} = ${schema.const} as const;\n`
+    } else {
+      model += `${doc}export type ${propName} = ${resolvedValue.value};\n`
+    }
+
     return {
       value: propName,
-      imports: [{ name: propName }],
+      imports: [{ name: propName, isConstant }],
       schemas: [
         ...resolvedValue.schemas,
         {
           name: propName,
-          model: `${doc}export type ${propName} = ${resolvedValue.value};\n`,
+          model,
           imports: resolvedValue.imports,
         },
       ],
