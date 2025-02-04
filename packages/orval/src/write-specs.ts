@@ -132,8 +132,8 @@ export const writeSpecs = async (
         await fs.appendFile(
           indexFile,
           uniq(importsNotDeclared)
-            .map((imp) => `export * from '${imp}';`)
-            .join('\n') + '\n',
+            .map((imp) => `export * from '${imp}';\n`)
+            .join(),
         );
       } else {
         await fs.outputFile(
