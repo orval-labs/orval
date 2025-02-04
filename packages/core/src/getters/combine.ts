@@ -55,8 +55,21 @@ const combineValues = ({
     const joined = `${resolvedData.values.join(` & `)}${
       resolvedValue ? ` & ${resolvedValue.value}` : ''
     }`;
-    if (resolvedData.requiredProperties.length) {
-      return `${joined} & Required<Pick<${joined}, '${resolvedData.requiredProperties.join("' | '")}'>>`;
+
+    // Parent object may have set required properties that only exist in child
+    // objects. Make sure the resulting object has these properties as required,
+    // but there is no need to override properties that are already required
+    const overrideRequiredProperties = resolvedData.requiredProperties.filter(
+      (prop) =>
+        !resolvedData.originalSchema.some(
+          (schema) =>
+            schema &&
+            schema.properties?.[prop] &&
+            schema.required?.includes(prop),
+        ),
+    );
+    if (overrideRequiredProperties.length) {
+      return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
     }
     return joined;
   }
