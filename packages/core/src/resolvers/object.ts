@@ -32,9 +32,9 @@ const resolveObjectOriginal = ({
     const isConstant = 'const' in schema;
 
     if (isConstant) {
-      model += `${doc}export const ${propName} = ${schema.const} as const;\n`
+      model += `${doc}export const ${propName} = ${schema.const} as const;\n`;
     } else {
-      model += `${doc}export type ${propName} = ${resolvedValue.value};\n`
+      model += `${doc}export type ${propName} = ${resolvedValue.value};\n`;
     }
 
     return {
