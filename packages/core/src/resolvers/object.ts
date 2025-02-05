@@ -30,9 +30,13 @@ const resolveObjectOriginal = ({
   ) {
     let model = '';
     const isConstant = 'const' in schema;
+    const constantIsString =
+      'type' in schema &&
+      (schema.type === 'string' ||
+        (Array.isArray(schema.type) && schema.type.includes('string')));
 
     if (isConstant) {
-      model += `${doc}export const ${propName} = ${schema.const} as const;\n`;
+      model += `${doc}export const ${propName} = ${constantIsString ? `'${schema.const}'` : schema.const} as const;\n`;
     } else {
       model += `${doc}export type ${propName} = ${resolvedValue.value};\n`;
     }
