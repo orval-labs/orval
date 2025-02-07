@@ -1,3 +1,4 @@
+import { pascal } from '@orval/core';
 import {
   camel,
   ClientBuilder,
@@ -107,36 +108,40 @@ ${
   }
 }\n`;
 
-  const isNdJson = response.contentTypes.some(
-    (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
-  );
+  const isContentTypeNdJson = (contentType: string) =>
+    contentType === 'application/nd-json' ||
+    contentType === 'application/x-ndjson';
+
+  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
 
-  const responseDataSuccessType =
-    response.definition.success !== 'unknown'
-      ? response.definition.success
-      : '';
-  const responseDataTypeDelimiter =
-    response.definition.success !== 'unknown' &&
-    response.definition.errors !== 'unknown'
-      ? ' | '
-      : '';
-  const responseDataErrorsType =
-    response.definition.errors !== 'unknown' ? response.definition.errors : '';
-  const responseDataType =
-    responseDataSuccessType || responseDataErrorsType
-      ? `${responseDataSuccessType}${responseDataTypeDelimiter}${responseDataErrorsType}`
-      : 'unknown';
+  const allResponses = [...response.types.success, ...response.types.errors];
+  const nonDefaultStatuses = allResponses
+    .filter((r) => r.key !== 'default')
+    .map((r) => r.key);
+  const responseDataTypes = allResponses
+    .map(
+      (r) => `export type ${responseTypeName}${pascal(r.key)} = {
+  ${isContentTypeNdJson(r.contentType) ? 'stream: Response' : `data: ${r.value || 'unknown'}`}
+  status: ${r.key === 'default' ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>` : r.key}
+}`,
+    )
+    .join('\n\n');
+
+  const compositeName = `${responseTypeName}Composite`;
+  const compositeResponse = `${compositeName} = ${allResponses.map((r) => `${responseTypeName}${pascal(r.key)}`).join(' | ')}`;
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
-    ? `export type ${responseTypeName} = {
-  ${isNdJson ? 'stream: Response' : `data: ${responseDataType}`};
-  status: number;
+    ? `${responseDataTypes}
+    
+export type ${compositeResponse};
+    
+export type ${responseTypeName} = ${compositeName} & {
   headers: Headers;
 }\n\n`
     : '';
