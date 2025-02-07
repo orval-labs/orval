@@ -17,6 +17,7 @@ import {
   isUrl,
   mergeDeep,
   Mutator,
+  NamingConvention,
   NormalizedHonoOptions,
   NormalizedHookOptions,
   NormalizedMutator,
@@ -145,6 +146,8 @@ export const normalizeOptions = async (
         ? normalizePath(globalOptions.output, process.cwd())
         : normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
+      namingConvention:
+        outputOptions.namingConvention || NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension || defaultFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,

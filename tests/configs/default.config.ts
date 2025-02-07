@@ -282,6 +282,30 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreNamingConventionCamelCase: {
+    input: '../specifications/petstore.yaml',
+    output:
+      '../generated/default/petstore-naming-convention-camel-case/endpoints.ts',
+    namingConvention: 'camelCase',
+  },
+  petstoreNamingConventionPascalCase: {
+    input: '../specifications/petstore.yaml',
+    output:
+      '../generated/default/petstore-naming-convention-pascal-case/endpoints.ts',
+    namingConvention: 'PascalCase',
+  },
+  petstoreNamingConventionKebabCase: {
+    input: '../specifications/petstore.yaml',
+    output:
+      '../generated/default/petstore-naming-convention-kebab-case/endpoints.ts',
+    namingConvention: 'kebab-case',
+  },
+  petstoreNamingConventionSnakeCase: {
+    input: '../specifications/petstore.yaml',
+    output:
+      '../generated/default/petstore-naming-convention-snake-case/endpoints.ts',
+    namingConvention: 'snake_case',
+  },
   lowerCaseDiscriminator: {
     input: '../specifications/lowercase-discriminator.yaml',
     output: '../generated/default/lowercase-discriminator/endpoints.ts',

@@ -91,10 +91,10 @@ Specify the file extension for files generated automatically. Modes such as `tag
 module.exports = {
   petstore: {
     output: {
-      mode: 'split'
+      mode: 'split',
       target: './/gen/endpoints',
       schemas: './gen/model',
-      fileExtension: '.gen.ts'
+      fileExtension: '.gen.ts',
     },
   },
 };
@@ -107,6 +107,39 @@ src/gen/
 └── model
     ├── listPetsParams.ts
     └── pets.ts
+```
+
+### namingConvention
+
+Type: `String`.
+
+Valid values: `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
+
+Default Value: `camelCase`.
+
+Specify the naming convention for the generated files.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      namingConvention: 'PascalCase',
+      mode: 'split',
+      target: './/gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.gen.ts',
+    },
+  },
+};
+```
+
+```
+src/gen/
+├── endpoints
+│   └── SwaggerPetstore.gen.ts
+└── model
+    ├── ListPetsParams.ts
+    └── Pets.ts
 ```
 
 ### workspace

@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
-import { GeneratorSchema } from '../types';
-import { camel, upath } from '../utils';
+import { GeneratorSchema, NamingConvention } from '../types';
+import { camel, pascal, snake, kebab, upath } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -48,6 +48,7 @@ export const writeSchema = async ({
   path,
   schema,
   target,
+  namingConvention,
   fileExtension,
   specKey,
   isRootKey,
@@ -57,13 +58,21 @@ export const writeSchema = async ({
   path: string;
   schema: GeneratorSchema;
   target: string;
+  namingConvention: string;
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
 }) => {
-  const name = camel(schema.name);
+  let name = camel(schema.name);
+  if (namingConvention === NamingConvention.PASCAL_CASE) {
+    name = pascal(schema.name);
+  } else if (namingConvention === NamingConvention.SNAKE_CASE) {
+    name = snake(schema.name);
+  } else if (namingConvention === NamingConvention.KEBAB_CASE) {
+    name = kebab(schema.name);
+  }
 
   try {
     await fs.outputFile(
@@ -79,6 +88,7 @@ export const writeSchemas = async ({
   schemaPath,
   schemas,
   target,
+  namingConvention,
   fileExtension,
   specKey,
   isRootKey,
@@ -89,6 +99,7 @@ export const writeSchemas = async ({
   schemaPath: string;
   schemas: GeneratorSchema[];
   target: string;
+  namingConvention: string;
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
@@ -102,6 +113,7 @@ export const writeSchemas = async ({
         path: schemaPath,
         schema,
         target,
+        namingConvention,
         fileExtension,
         specKey,
         isRootKey,
