@@ -305,10 +305,10 @@ const getEnum = (
   const joindEnumValues =
     type === 'string'
       ? `'${item.enum
-          .filter(Boolean)
+          .filter((e) => e !== null)
           .map((e) => escape(e))
           .join("','")}'`
-      : item.enum.filter(Boolean);
+      : item.enum.filter((e) => e !== null);
 
   let enumValue = `[${joindEnumValues}]`;
   if (context.output.override.useNativeEnums) {
