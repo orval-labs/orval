@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
 import Select from 'react-select';
+import { useDebounce } from 'use-debounce';
 import { EXAMPLES } from './Examples';
 import { PlaygroundEditors } from './PlaygroundEditors';
 
@@ -29,17 +30,18 @@ export function Playground({ height }) {
   const [config, setConfig] = useState(
     EXAMPLES[DEFAULT_EXAMPLE.catName][DEFAULT_EXAMPLE.index].config,
   );
+  const [debounceConfig] = useDebounce(config, 500);
+  const [debounceSchema] = useDebounce(schema, 500);
 
   const generateApiQuery = useQuery(
-    [config, schema, template],
-    async () => {
-      const response = await axios.post('/api/generate', {
-        config,
-        schema,
-      });
-
-      return response.data;
-    },
+    [debounceConfig, debounceSchema, template],
+    async () =>
+      (
+        await axios.post('/api/generate', {
+          config,
+          schema,
+        })
+      ).data,
     {
       retry: false,
     },

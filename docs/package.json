@@ -51,6 +51,7 @@
     "remark-toc": "^7.0.0",
     "remark-unwrap-images": "^2.0.0",
     "unist-util-visit": "^2.0.3",
+    "use-debounce": "^10.0.4",
     "yaml": "^2.2.1"
   },
   "devDependencies": {
