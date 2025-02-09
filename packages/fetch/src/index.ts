@@ -127,7 +127,11 @@ ${
     .map(
       (r) => `export type ${responseTypeName}${pascal(r.key)} = {
   ${isContentTypeNdJson(r.contentType) ? 'stream: Response' : `data: ${r.value || 'unknown'}`}
-  status: ${r.key === 'default' ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>` : r.key}
+  status: ${r.key === 'default'
+    ? nonDefaultStatuses.length 
+      ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
+      : 'number'
+    : r.key}
 }`,
     )
     .join('\n\n');
