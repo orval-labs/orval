@@ -30,7 +30,7 @@ export function Playground({ height }) {
     EXAMPLES[DEFAULT_EXAMPLE.catName][DEFAULT_EXAMPLE.index].config,
   );
 
-  const { data: output, error } = useQuery(
+  const generateApiQuery = useQuery(
     [config, schema, template],
     async () => {
       const response = await axios.post('/api/generate', {
@@ -93,14 +93,14 @@ export function Playground({ height }) {
           options={groupedExamples}
         />
       </div>
-      {output ? (
+      {!generateApiQuery.isFetching ? (
         <PlaygroundEditors
           setSchema={setSchema}
           schema={schema}
           setConfig={setConfig}
           config={config}
-          error={error?.response?.data?.error}
-          output={output}
+          error={generateApiQuery.error?.response?.data?.error}
+          output={generateApiQuery.data}
           height={height}
         />
       ) : null}
