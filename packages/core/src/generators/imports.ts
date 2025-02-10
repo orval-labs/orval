@@ -5,8 +5,9 @@ import {
   GeneratorMutator,
   GeneratorVerbOptions,
   GetterPropType,
+  NamingConvention,
 } from '../types';
-import { camel, upath } from '../utils';
+import { camel, pascal, kebab, snake, upath } from '../utils';
 
 export const generateImports = ({
   imports = [],
@@ -14,12 +15,14 @@ export const generateImports = ({
   isRootKey,
   specsName,
   specKey: currentSpecKey,
+  namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   specKey: string;
+  namingConvention?: NamingConvention;
 }) => {
   if (!imports.length) {
     return '';
@@ -33,23 +36,33 @@ export const generateImports = ({
     .sort()
     .map(({ specKey, name, values, alias }) => {
       const isSameSpecKey = currentSpecKey === specKey;
+
+      let fileName = camel(name);
+      if (namingConvention === NamingConvention.PASCAL_CASE) {
+        fileName = pascal(name);
+      } else if (namingConvention === NamingConvention.KEBAB_CASE) {
+        fileName = kebab(name);
+      } else if (namingConvention === NamingConvention.SNAKE_CASE) {
+        fileName = snake(name);
+      }
+
       if (specKey && !isSameSpecKey) {
         const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
           return `import ${!values ? 'type ' : ''}{ ${name}${
             alias ? ` as ${alias}` : ''
-          } } from \'../${upath.join(path, camel(name))}\';`;
+          } } from \'../${upath.join(path, fileName)}\';`;
         }
 
         return `import ${!values ? 'type ' : ''}{ ${name}${
           alias ? ` as ${alias}` : ''
-        } } from \'./${upath.join(path, camel(name))}\';`;
+        } } from \'./${upath.join(path, fileName)}\';`;
       }
 
       return `import ${!values ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from \'./${camel(name)}\';`;
+      } } from \'./${fileName}\';`;
     })
     .join('\n');
 };

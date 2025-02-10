@@ -10,6 +10,7 @@ const getSchema = ({
   specsName,
   header,
   specKey,
+  namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   schema: GeneratorSchema;
   target: string;
@@ -17,6 +18,7 @@ const getSchema = ({
   specsName: Record<string, string>;
   header: string;
   specKey: string;
+  namingConvention?: NamingConvention;
 }): string => {
   let file = header;
   file += generateImports({
@@ -29,6 +31,7 @@ const getSchema = ({
     isRootKey,
     specsName,
     specKey,
+    namingConvention,
   });
   file += imports.length ? '\n\n' : '\n';
   file += model;
@@ -58,7 +61,7 @@ export const writeSchema = async ({
   path: string;
   schema: GeneratorSchema;
   target: string;
-  namingConvention: string;
+  namingConvention: NamingConvention;
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
@@ -77,7 +80,15 @@ export const writeSchema = async ({
   try {
     await fs.outputFile(
       getPath(path, name, fileExtension),
-      getSchema({ schema, target, isRootKey, specsName, header, specKey }),
+      getSchema({
+        schema,
+        target,
+        isRootKey,
+        specsName,
+        header,
+        specKey,
+        namingConvention,
+      }),
     );
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
@@ -99,7 +110,7 @@ export const writeSchemas = async ({
   schemaPath: string;
   schemas: GeneratorSchema[];
   target: string;
-  namingConvention: string;
+  namingConvention: NamingConvention;
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
