@@ -197,4 +197,11 @@ export default defineConfig({
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
+  defaultOnlyResponse: {
+    output: {
+      target: '../generated/fetch/default-only-response/endpoints.ts',
+      client: 'fetch',
+    },
+    input: '../specifications/default-response.yaml',
+  },
 });
