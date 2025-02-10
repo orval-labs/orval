@@ -284,27 +284,43 @@ export default defineConfig({
   },
   petstoreNamingConventionCamelCase: {
     input: '../specifications/petstore.yaml',
-    output:
-      '../generated/default/petstore-naming-convention-camel-case/endpoints.ts',
-    namingConvention: 'camelCase',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-camel-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-camel-case/model',
+      namingConvention: 'camelCase',
+    },
   },
   petstoreNamingConventionPascalCase: {
     input: '../specifications/petstore.yaml',
-    output:
-      '../generated/default/petstore-naming-convention-pascal-case/endpoints.ts',
-    namingConvention: 'PascalCase',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-pascal-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-pascal-case/model',
+      namingConvention: 'PascalCase',
+    },
   },
   petstoreNamingConventionKebabCase: {
     input: '../specifications/petstore.yaml',
-    output:
-      '../generated/default/petstore-naming-convention-kebab-case/endpoints.ts',
-    namingConvention: 'kebab-case',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-kebab-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-kebab-case/model',
+      namingConvention: 'kebab-case',
+    },
   },
   petstoreNamingConventionSnakeCase: {
     input: '../specifications/petstore.yaml',
-    output:
-      '../generated/default/petstore-naming-convention-snake-case/endpoints.ts',
-    namingConvention: 'snake_case',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-snake-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-snake-case/model',
+      namingConvention: 'snake_case',
+    },
   },
   lowerCaseDiscriminator: {
     input: '../specifications/lowercase-discriminator.yaml',
