@@ -44,6 +44,7 @@ export function Playground({ height }) {
       ).data,
     {
       retry: false,
+      keepPreviousData: true,
     },
   );
 
@@ -95,7 +96,7 @@ export function Playground({ height }) {
           options={groupedExamples}
         />
       </div>
-      {!generateApiQuery.isFetching ? (
+      {generateApiQuery.data || generateApiQuery.error ? (
         <PlaygroundEditors
           setSchema={setSchema}
           schema={schema}
