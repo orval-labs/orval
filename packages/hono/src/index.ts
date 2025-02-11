@@ -9,7 +9,6 @@ import {
   GeneratorDependency,
   GeneratorImport,
   GeneratorMutator,
-  GeneratorOptions,
   GeneratorVerbOptions,
   getFileInfo,
   getOrvalGeneratedTypes,
@@ -298,12 +297,17 @@ const generateHandlers = async (
           }
         }
 
-        const zodImports = output.override.hono.validator
-          ? `import { ${getZvalidatorImports(
-              verbOption,
-              output.override.hono.validator === 'hono',
-            )} } from '${outputPath}.zod';`
-          : '';
+        let zodImports = '';
+        if (output.override.hono.validator) {
+          const imports = getZvalidatorImports(
+            verbOption,
+            output.override.hono.validator === 'hono',
+          );
+
+          if (imports) {
+            zodImports = `import { ${imports} } from '${outputPath}.zod';`;
+          }
+        }
 
         const content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${contextTypeName} } from '${outputPath}.context';
@@ -393,22 +397,27 @@ ${getHonoHandlers({
           }
         }
 
-        const zodImports = output.override.hono.validator
-          ? `import { ${Object.values(verbs)
-              .map((verb) =>
-                getZvalidatorImports(
-                  verb,
-                  output.override.hono.validator === 'hono',
-                ),
-              )
-              .join(',\n')} } from '${outputRelativePath}.zod'`
-          : '';
+        let zodImports = '';
+        if (output.override.hono.validator) {
+          const imports = Object.values(verbs)
+            .map((verb) =>
+              getZvalidatorImports(
+                verb,
+                output.override.hono.validator === 'hono',
+              ),
+            )
+            .join(',\n');
+
+          if (imports) {
+            zodImports = `import {\n${imports}\n} from '${outputRelativePath}.zod';`;
+          }
+        }
 
         let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbs)
           .map((verb) => `${pascal(verb.operationName)}Context`)
           .join(',\n')} } from '${outputRelativePath}.context';
-${zodImports};
+${zodImports}
 
 const factory = createFactory();`;
 
@@ -495,13 +504,18 @@ const factory = createFactory();`;
     }
   }
 
-  const zodImports = output.override.hono.validator
-    ? `import { ${Object.values(verbOptions)
-        .map((verb) =>
-          getZvalidatorImports(verb, output.override.hono.validator === 'hono'),
-        )
-        .join(',\n')} } from '${outputRelativePath}.zod';`
-    : '';
+  let zodImports = '';
+  if (output.override.hono.validator) {
+    const imports = Object.values(verbOptions)
+      .map((verb) =>
+        getZvalidatorImports(verb, output.override.hono.validator === 'hono'),
+      )
+      .join(',\n');
+
+    if (imports) {
+      zodImports = `import { ${imports} } from '${outputRelativePath}.zod';`;
+    }
+  }
 
   let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbOptions)
@@ -624,9 +638,11 @@ const generateContext = async (
           content += '\n';
         }
 
-        content += `import { ${imps
-          .map((imp) => imp.name)
-          .join(',\n')} } from '${relativeSchemasPath}';\n\n`;
+        if (imps.length > 0) {
+          const importSchemas = imps.map((imp) => imp.name).join(',\n  ');
+
+          content += `import {\n  ${importSchemas}\n} from '${relativeSchemasPath}';\n\n`;
+        }
 
         content += contexts;
 
@@ -710,7 +726,7 @@ const generateZodFiles = async (
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
 
-    return Promise.all(
+    const builderContexts = await Promise.all(
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
         const zods = await Promise.all(
           verbs.map((verbOption) =>
@@ -728,6 +744,13 @@ const generateZodFiles = async (
             ),
           ),
         );
+
+        if (zods.every((z) => z.implementation === '')) {
+          return {
+            content: '',
+            path: '',
+          };
+        }
 
         const allMutators = zods.reduce(
           (acc, z) => {
@@ -757,6 +780,10 @@ const generateZodFiles = async (
           path: zodPath,
         };
       }),
+    );
+
+    return Promise.all(
+      builderContexts.filter((context) => context.content !== ''),
     );
   }
 
