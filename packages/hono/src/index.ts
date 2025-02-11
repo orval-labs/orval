@@ -986,7 +986,7 @@ const generateCompositeRoutes = async (
     .map((verbOption) => {
       return generateHonoRoute(verbOption, verbOption.pathRoute);
     })
-    .join();
+    .join(';');
 
   const importHandlers = Object.values(verbOptions);
 
