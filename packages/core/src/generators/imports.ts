@@ -161,7 +161,7 @@ const generateDependency = ({
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
   }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
     key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
-  }';\n`;
+  }';`;
 
   return importString;
 };
@@ -252,7 +252,7 @@ export const addDependency = ({
 
       return dep;
     })
-    .join('\n');
+    .join('\n') + '\n';
 };
 
 const getLibName = (code: string) => {
