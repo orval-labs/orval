@@ -9,7 +9,6 @@ import {
   GeneratorDependency,
   GeneratorImport,
   GeneratorMutator,
-  GeneratorOptions,
   GeneratorVerbOptions,
   getFileInfo,
   getOrvalGeneratedTypes,
@@ -180,35 +179,46 @@ const getValidatorOutputRelativePath = (
 };
 
 const getZvalidatorImports = (
-  verbOption: GeneratorVerbOptions,
+  verbOptions: GeneratorVerbOptions[],
+  importPath: string,
   isHonoValidator: boolean,
 ) => {
-  const imports = [];
+  const importImplementation = verbOptions
+    .flatMap((verbOption) => {
+      const imports = [];
 
-  if (verbOption.headers) {
-    imports.push(`${verbOption.operationName}Header`);
-  }
+      if (verbOption.headers) {
+        imports.push(`${verbOption.operationName}Header`);
+      }
 
-  if (verbOption.params.length) {
-    imports.push(`${verbOption.operationName}Params`);
-  }
+      if (verbOption.params.length) {
+        imports.push(`${verbOption.operationName}Params`);
+      }
 
-  if (verbOption.queryParams) {
-    imports.push(`${verbOption.operationName}QueryParams`);
-  }
+      if (verbOption.queryParams) {
+        imports.push(`${verbOption.operationName}QueryParams`);
+      }
 
-  if (verbOption.body.definition) {
-    imports.push(`${verbOption.operationName}Body`);
-  }
+      if (verbOption.body.definition) {
+        imports.push(`${verbOption.operationName}Body`);
+      }
 
-  if (
-    !isHonoValidator &&
-    !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
-  ) {
-    imports.push(`${verbOption.operationName}Response`);
-  }
+      if (
+        !isHonoValidator &&
+        !!verbOption.response.originalSchema?.['200']?.content?.[
+          'application/json'
+        ]
+      ) {
+        imports.push(`${verbOption.operationName}Response`);
+      }
 
-  return imports.join(',\n');
+      return imports.join(',\n');
+    })
+    .join(',\n');
+
+  return importImplementation
+    ? `import {\n${importImplementation}\n} from '${importPath}'`
+    : '';
 };
 
 const getVerbOptionGroupByTag = (
@@ -299,10 +309,11 @@ const generateHandlers = async (
         }
 
         const zodImports = output.override.hono.validator
-          ? `import { ${getZvalidatorImports(
-              verbOption,
+          ? getZvalidatorImports(
+              [verbOption],
+              `${outputPath}.zod`,
               output.override.hono.validator === 'hono',
-            )} } from '${outputPath}.zod';`
+            )
           : '';
 
         const content = `import { createFactory } from 'hono/factory';${validatorImport}
@@ -394,21 +405,18 @@ ${getHonoHandlers({
         }
 
         const zodImports = output.override.hono.validator
-          ? `import { ${Object.values(verbs)
-              .map((verb) =>
-                getZvalidatorImports(
-                  verb,
-                  output.override.hono.validator === 'hono',
-                ),
-              )
-              .join(',\n')} } from '${outputRelativePath}.zod'`
+          ? getZvalidatorImports(
+              Object.values(verbs),
+              `${outputRelativePath}.zod`,
+              output.override.hono.validator === 'hono',
+            )
           : '';
 
         let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbs)
           .map((verb) => `${pascal(verb.operationName)}Context`)
           .join(',\n')} } from '${outputRelativePath}.context';
-${zodImports};
+${zodImports}
 
 const factory = createFactory();`;
 
@@ -496,11 +504,11 @@ const factory = createFactory();`;
   }
 
   const zodImports = output.override.hono.validator
-    ? `import { ${Object.values(verbOptions)
-        .map((verb) =>
-          getZvalidatorImports(verb, output.override.hono.validator === 'hono'),
-        )
-        .join(',\n')} } from '${outputRelativePath}.zod';`
+    ? getZvalidatorImports(
+        Object.values(verbOptions),
+        `${outputRelativePath}.zod`,
+        output.override.hono.validator === 'hono',
+      )
     : '';
 
   let content = `import { createFactory } from 'hono/factory';${validatorImport}
@@ -624,9 +632,11 @@ const generateContext = async (
           content += '\n';
         }
 
-        content += `import { ${imps
-          .map((imp) => imp.name)
-          .join(',\n')} } from '${relativeSchemasPath}';\n\n`;
+        if (imps.length > 0) {
+          const importSchemas = imps.map((imp) => imp.name).join(',\n  ');
+
+          content += `import {\n  ${importSchemas}\n} from '${relativeSchemasPath}';\n\n`;
+        }
 
         content += contexts;
 
@@ -710,7 +720,7 @@ const generateZodFiles = async (
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
 
-    return Promise.all(
+    const builderContexts = await Promise.all(
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
         const zods = await Promise.all(
           verbs.map((verbOption) =>
@@ -728,6 +738,13 @@ const generateZodFiles = async (
             ),
           ),
         );
+
+        if (zods.every((z) => z.implementation === '')) {
+          return {
+            content: '',
+            path: '',
+          };
+        }
 
         const allMutators = zods.reduce(
           (acc, z) => {
@@ -757,6 +774,10 @@ const generateZodFiles = async (
           path: zodPath,
         };
       }),
+    );
+
+    return Promise.all(
+      builderContexts.filter((context) => context.content !== ''),
     );
   }
 
@@ -986,7 +1007,7 @@ const generateCompositeRoutes = async (
     .map((verbOption) => {
       return generateHonoRoute(verbOption, verbOption.pathRoute);
     })
-    .join();
+    .join(';');
 
   const importHandlers = Object.values(verbOptions);
 

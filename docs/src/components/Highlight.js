@@ -83,35 +83,35 @@ const Code = ({
               lineHeight: '1.5',
             }}
           >
-            {tokens.map((line, i) => (
-              <div
-                key={i}
-                {...getLineProps({
-                  line,
-                  key: i,
-                })}
-              >
-                {tokens.length > 1 ? (
-                  <span
-                    aria-hidden="true"
-                    className="select-none text-gray-300 text-right w-5 inline-block mx-2"
-                  >
-                    {i + 1}
-                  </span>
-                ) : (
-                  <span className="mx-2 w-5" />
-                )}{' '}
-                {line.map((token, key) => (
-                  <span
-                    key={key}
-                    {...getTokenProps({
+            {tokens.map((line, i) => {
+              const { key: lineKey, ...lineRestProps } = getLineProps({
+                line,
+                key: i,
+              });
+
+              return (
+                <div key={lineKey} {...lineRestProps}>
+                  {tokens.length > 1 ? (
+                    <span
+                      aria-hidden="true"
+                      className="select-none text-gray-300 text-right w-5 inline-block mx-2"
+                    >
+                      {i + 1}
+                    </span>
+                  ) : (
+                    <span className="mx-2 w-5" />
+                  )}{' '}
+                  {line.map((token, key) => {
+                    const { key: tokenKey, ...tokenRestProps } = getTokenProps({
                       token,
                       key,
-                    })}
-                  />
-                ))}
-              </div>
-            ))}
+                    });
+
+                    return <span key={tokenKey} {...tokenRestProps} />;
+                  })}
+                </div>
+              );
+            })}
           </pre>
         )}
       </Highlight>

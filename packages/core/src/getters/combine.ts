@@ -52,11 +52,35 @@ const combineValues = ({
   }
 
   if (separator === 'allOf') {
-    const joined = `${resolvedData.values.join(` & `)}${
+    let resolvedDataValue = resolvedData.values.join(` & `);
+    if (resolvedData.originalSchema.length > 0 && resolvedValue) {
+      const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
+        (s) =>
+          s?.discriminator &&
+          resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
+      ) as SchemaObject[];
+      if (discriminatedPropertySchemas.length > 0) {
+        resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
+      }
+    }
+    const joined = `${resolvedDataValue}${
       resolvedValue ? ` & ${resolvedValue.value}` : ''
     }`;
-    if (resolvedData.requiredProperties.length) {
-      return `${joined} & Required<Pick<${joined}, '${resolvedData.requiredProperties.join("' | '")}'>>`;
+
+    // Parent object may have set required properties that only exist in child
+    // objects. Make sure the resulting object has these properties as required,
+    // but there is no need to override properties that are already required
+    const overrideRequiredProperties = resolvedData.requiredProperties.filter(
+      (prop) =>
+        !resolvedData.originalSchema.some(
+          (schema) =>
+            schema &&
+            schema.properties?.[prop] &&
+            schema.required?.includes(prop),
+        ),
+    );
+    if (overrideRequiredProperties.length) {
+      return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
     }
     return joined;
   }
