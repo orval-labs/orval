@@ -3,21 +3,9 @@ info:
   title: API
   version: 1.0.0
 paths:
-  /get-bubble-gums/{id}:
+  /get-bubble-gums/:
     get:
-      parameters:
-        - in: path
-          name: id
-          schema:
-            type: number
-          required: true
       responses:
-        '200':
-          description: Success response
-          content:
-            application/json:
-              schema:
-                type: string
         '404':
           description: Not found
           content:
