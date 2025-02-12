@@ -171,18 +171,30 @@ export const writeSchemas = async ({
         ? fileExtension.slice(0, -3)
         : fileExtension;
 
+      let namingConventionTransform = camel;
+      if (namingConvention === NamingConvention.PASCAL_CASE) {
+        namingConventionTransform = pascal;
+      } else if (namingConvention === NamingConvention.SNAKE_CASE) {
+        namingConventionTransform = snake;
+      } else if (namingConvention === NamingConvention.KEBAB_CASE) {
+        namingConventionTransform = kebab;
+      }
+
       const importStatements = schemas
         .filter((schema) => {
           return (
             !stringData.includes(
-              `export * from './${camel(schema.name)}${ext}'`,
+              `export * from './${namingConventionTransform(schema.name)}${ext}'`,
             ) &&
             !stringData.includes(
-              `export * from "./${camel(schema.name)}${ext}"`,
+              `export * from "./${namingConventionTransform(schema.name)}${ext}"`,
             )
           );
         })
-        .map((schema) => `export * from './${camel(schema.name)}${ext}';`);
+        .map(
+          (schema) =>
+            `export * from './${namingConventionTransform(schema.name)}${ext}';`,
+        );
 
       const currentFileExports = (stringData
         .match(/export \* from(.*)('|")/g)
