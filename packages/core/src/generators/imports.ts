@@ -161,7 +161,7 @@ const generateDependency = ({
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
   }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
     key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
-  }'`;
+  }';\n`;
 
   return importString;
 };
