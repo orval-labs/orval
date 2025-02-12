@@ -179,35 +179,46 @@ const getValidatorOutputRelativePath = (
 };
 
 const getZvalidatorImports = (
-  verbOption: GeneratorVerbOptions,
+  verbOptions: GeneratorVerbOptions[],
+  importPath: string,
   isHonoValidator: boolean,
 ) => {
-  const imports = [];
+  const importImplementation = verbOptions
+    .flatMap((verbOption) => {
+      const imports = [];
 
-  if (verbOption.headers) {
-    imports.push(`${verbOption.operationName}Header`);
-  }
+      if (verbOption.headers) {
+        imports.push(`${verbOption.operationName}Header`);
+      }
 
-  if (verbOption.params.length) {
-    imports.push(`${verbOption.operationName}Params`);
-  }
+      if (verbOption.params.length) {
+        imports.push(`${verbOption.operationName}Params`);
+      }
 
-  if (verbOption.queryParams) {
-    imports.push(`${verbOption.operationName}QueryParams`);
-  }
+      if (verbOption.queryParams) {
+        imports.push(`${verbOption.operationName}QueryParams`);
+      }
 
-  if (verbOption.body.definition) {
-    imports.push(`${verbOption.operationName}Body`);
-  }
+      if (verbOption.body.definition) {
+        imports.push(`${verbOption.operationName}Body`);
+      }
 
-  if (
-    !isHonoValidator &&
-    !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
-  ) {
-    imports.push(`${verbOption.operationName}Response`);
-  }
+      if (
+        !isHonoValidator &&
+        !!verbOption.response.originalSchema?.['200']?.content?.[
+          'application/json'
+        ]
+      ) {
+        imports.push(`${verbOption.operationName}Response`);
+      }
 
-  return imports.join(',\n');
+      return imports.join(',\n');
+    })
+    .join(',\n');
+
+  return importImplementation
+    ? `import {\n${importImplementation}\n} from '${importPath}'`
+    : '';
 };
 
 const getVerbOptionGroupByTag = (
@@ -297,17 +308,13 @@ const generateHandlers = async (
           }
         }
 
-        let zodImports = '';
-        if (output.override.hono.validator) {
-          const imports = getZvalidatorImports(
-            verbOption,
-            output.override.hono.validator === 'hono',
-          );
-
-          if (imports) {
-            zodImports = `import { ${imports} } from '${outputPath}.zod';`;
-          }
-        }
+        const zodImports = output.override.hono.validator
+          ? getZvalidatorImports(
+              [verbOption],
+              `${outputPath}.zod`,
+              output.override.hono.validator === 'hono',
+            )
+          : '';
 
         const content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${contextTypeName} } from '${outputPath}.context';
@@ -397,21 +404,13 @@ ${getHonoHandlers({
           }
         }
 
-        let zodImports = '';
-        if (output.override.hono.validator) {
-          const imports = Object.values(verbs)
-            .map((verb) =>
-              getZvalidatorImports(
-                verb,
-                output.override.hono.validator === 'hono',
-              ),
+        const zodImports = output.override.hono.validator
+          ? getZvalidatorImports(
+              Object.values(verbs),
+              `${outputRelativePath}.zod`,
+              output.override.hono.validator === 'hono',
             )
-            .join(',\n');
-
-          if (imports) {
-            zodImports = `import {\n${imports}\n} from '${outputRelativePath}.zod';`;
-          }
-        }
+          : '';
 
         let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbs)
@@ -504,18 +503,13 @@ const factory = createFactory();`;
     }
   }
 
-  let zodImports = '';
-  if (output.override.hono.validator) {
-    const imports = Object.values(verbOptions)
-      .map((verb) =>
-        getZvalidatorImports(verb, output.override.hono.validator === 'hono'),
+  const zodImports = output.override.hono.validator
+    ? getZvalidatorImports(
+        Object.values(verbOptions),
+        `${outputRelativePath}.zod`,
+        output.override.hono.validator === 'hono',
       )
-      .join(',\n');
-
-    if (imports) {
-      zodImports = `import { ${imports} } from '${outputRelativePath}.zod';`;
-    }
-  }
+    : '';
 
   let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbOptions)
