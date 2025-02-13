@@ -58,3 +58,14 @@ components:
             - number
             - 'null'
           const: 1
+    BubbleGumIdNotFoundException:
+      type: object
+      properties:
+        message:
+          type: string
+          const: 'Bubble gum not found'
+        code:
+          type: integer
+          const: 1
+          description: 'Unique exception code'
+      required: [ 'message', 'code' ]
