@@ -44,6 +44,7 @@ export type NormalizedOutputOptions = {
   workspace?: string;
   target?: string;
   schemas?: string;
+  namingConvention: NamingConvention;
   fileExtension: string;
   mode: OutputMode;
   mock?: GlobalMockOptions | ClientMockBuilder;
@@ -190,10 +191,21 @@ export const PropertySortOrder = {
 export type PropertySortOrder =
   (typeof PropertySortOrder)[keyof typeof PropertySortOrder];
 
+export const NamingConvention = {
+  CAMEL_CASE: 'camelCase',
+  PASCAL_CASE: 'PascalCase',
+  SNAKE_CASE: 'snake_case',
+  KEBAB_CASE: 'kebab-case',
+} as const;
+
+export type NamingConvention =
+  (typeof NamingConvention)[keyof typeof NamingConvention];
+
 export type OutputOptions = {
   workspace?: string;
   target?: string;
   schemas?: string;
+  namingConvention?: NamingConvention;
   fileExtension?: string;
   mode?: OutputMode;
   // If mock is a boolean, it will use the default mock options (type: msw)

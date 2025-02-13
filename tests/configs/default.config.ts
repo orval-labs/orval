@@ -282,6 +282,46 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreNamingConventionCamelCase: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-camel-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-camel-case/model',
+      namingConvention: 'camelCase',
+    },
+  },
+  petstoreNamingConventionPascalCase: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-pascal-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-pascal-case/model',
+      namingConvention: 'PascalCase',
+    },
+  },
+  petstoreNamingConventionKebabCase: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-kebab-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-kebab-case/model',
+      namingConvention: 'kebab-case',
+    },
+  },
+  petstoreNamingConventionSnakeCase: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target:
+        '../generated/default/petstore-naming-convention-snake-case/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-naming-convention-snake-case/model',
+      namingConvention: 'snake_case',
+    },
+  },
   lowerCaseDiscriminator: {
     input: '../specifications/lowercase-discriminator.yaml',
     output: '../generated/default/lowercase-discriminator/endpoints.ts',

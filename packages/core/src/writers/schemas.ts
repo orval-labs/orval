@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
-import { GeneratorSchema } from '../types';
-import { camel, upath } from '../utils';
+import { GeneratorSchema, NamingConvention } from '../types';
+import { camel, pascal, snake, kebab, upath, conventionName } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -10,6 +10,7 @@ const getSchema = ({
   specsName,
   header,
   specKey,
+  namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   schema: GeneratorSchema;
   target: string;
@@ -17,6 +18,7 @@ const getSchema = ({
   specsName: Record<string, string>;
   header: string;
   specKey: string;
+  namingConvention?: NamingConvention;
 }): string => {
   let file = header;
   file += generateImports({
@@ -29,6 +31,7 @@ const getSchema = ({
     isRootKey,
     specsName,
     specKey,
+    namingConvention,
   });
   file += imports.length ? '\n\n' : '\n';
   file += model;
@@ -48,6 +51,7 @@ export const writeSchema = async ({
   path,
   schema,
   target,
+  namingConvention,
   fileExtension,
   specKey,
   isRootKey,
@@ -57,18 +61,27 @@ export const writeSchema = async ({
   path: string;
   schema: GeneratorSchema;
   target: string;
+  namingConvention: NamingConvention;
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
 }) => {
-  const name = camel(schema.name);
+  const name = conventionName(schema.name, namingConvention);
 
   try {
     await fs.outputFile(
       getPath(path, name, fileExtension),
-      getSchema({ schema, target, isRootKey, specsName, header, specKey }),
+      getSchema({
+        schema,
+        target,
+        isRootKey,
+        specsName,
+        header,
+        specKey,
+        namingConvention,
+      }),
     );
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
@@ -79,6 +92,7 @@ export const writeSchemas = async ({
   schemaPath,
   schemas,
   target,
+  namingConvention,
   fileExtension,
   specKey,
   isRootKey,
@@ -89,6 +103,7 @@ export const writeSchemas = async ({
   schemaPath: string;
   schemas: GeneratorSchema[];
   target: string;
+  namingConvention: NamingConvention;
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
@@ -102,6 +117,7 @@ export const writeSchemas = async ({
         path: schemaPath,
         schema,
         target,
+        namingConvention,
         fileExtension,
         specKey,
         isRootKey,
@@ -150,16 +166,17 @@ export const writeSchemas = async ({
 
       const importStatements = schemas
         .filter((schema) => {
+          const name = conventionName(schema.name, namingConvention);
+
           return (
-            !stringData.includes(
-              `export * from './${camel(schema.name)}${ext}'`,
-            ) &&
-            !stringData.includes(
-              `export * from "./${camel(schema.name)}${ext}"`,
-            )
+            !stringData.includes(`export * from './${name}${ext}'`) &&
+            !stringData.includes(`export * from "./${name}${ext}"`)
           );
         })
-        .map((schema) => `export * from './${camel(schema.name)}${ext}';`);
+        .map(
+          (schema) =>
+            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
+        );
 
       const currentFileExports = (stringData
         .match(/export \* from(.*)('|")/g)

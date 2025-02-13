@@ -5,8 +5,9 @@ import {
   GeneratorMutator,
   GeneratorVerbOptions,
   GetterPropType,
+  NamingConvention,
 } from '../types';
-import { camel, upath } from '../utils';
+import { upath, conventionName } from '../utils';
 
 export const generateImports = ({
   imports = [],
@@ -14,12 +15,14 @@ export const generateImports = ({
   isRootKey,
   specsName,
   specKey: currentSpecKey,
+  namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   specKey: string;
+  namingConvention?: NamingConvention;
 }) => {
   if (!imports.length) {
     return '';
@@ -33,23 +36,26 @@ export const generateImports = ({
     .sort()
     .map(({ specKey, name, values, alias, isConstant }) => {
       const isSameSpecKey = currentSpecKey === specKey;
+
+      const fileName = conventionName(name, namingConvention);
+
       if (specKey && !isSameSpecKey) {
         const path = specKey !== target ? specsName[specKey] : '';
 
         if (!isRootKey && specKey) {
           return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
             alias ? ` as ${alias}` : ''
-          } } from \'../${upath.join(path, camel(name))}\';`;
+          } } from \'../${upath.join(path, fileName)}\';`;
         }
 
         return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
           alias ? ` as ${alias}` : ''
-        } } from \'./${upath.join(path, camel(name))}\';`;
+        } } from \'./${upath.join(path, fileName)}\';`;
       }
 
       return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from \'./${camel(name)}\';`;
+      } } from \'./${fileName}\';`;
     })
     .join('\n');
 };

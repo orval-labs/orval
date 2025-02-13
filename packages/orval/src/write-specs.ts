@@ -77,6 +77,7 @@ export const writeSpecs = async (
           schemaPath,
           schemas,
           target,
+          namingConvention: output.namingConvention,
           fileExtension,
           specsName,
           specKey,
