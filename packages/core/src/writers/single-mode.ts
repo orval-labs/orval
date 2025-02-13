@@ -120,7 +120,7 @@ export const writeSingleMode = async ({
       data += generateModelsInline(builder.schemas);
     }
 
-    data += `\n\n${implementation}`;
+    data += `${implementation.trim()}\n`;
 
     if (output.mock) {
       data += '\n\n';

@@ -45,11 +45,20 @@ export const generateInterface = ({
     scalar.type === 'object' &&
     !context?.output.override?.useTypeOverInterfaces
   ) {
-    // If `scalar.value` is 'unknown', replace it with `{}` to avoid type error
-    const blankInterfaceValue =
-      scalar.value === 'unknown' ? '{}' : scalar.value;
+    if (
+      scalar.type === 'object' &&
+      schema.properties &&
+      Object.values(schema.properties).every((item) => 'const' in item)
+    ) {
+      const mappedScalarValue = scalar.value.replaceAll(';', ',');
 
-    model += `export interface ${name} ${blankInterfaceValue}\n`;
+      model += `export const ${name}Value = ${mappedScalarValue} as const;\nexport type ${name} = typeof ${name}Value;\n`;
+    } else {
+      const blankInterfaceValue =
+        scalar.value === 'unknown' ? '{}' : scalar.value;
+
+      model += `export interface ${name} ${blankInterfaceValue}\n`;
+    }
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
   }
