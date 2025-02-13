@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema, NamingConvention } from '../types';
-import { camel, pascal, snake, kebab, upath } from '../utils';
+import { camel, pascal, snake, kebab, upath, conventionName } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -68,14 +68,7 @@ export const writeSchema = async ({
   specsName: Record<string, string>;
   header: string;
 }) => {
-  let name = camel(schema.name);
-  if (namingConvention === NamingConvention.PASCAL_CASE) {
-    name = pascal(schema.name);
-  } else if (namingConvention === NamingConvention.SNAKE_CASE) {
-    name = snake(schema.name);
-  } else if (namingConvention === NamingConvention.KEBAB_CASE) {
-    name = kebab(schema.name);
-  }
+  const name = conventionName(schema.name, namingConvention);
 
   try {
     await fs.outputFile(
@@ -171,29 +164,18 @@ export const writeSchemas = async ({
         ? fileExtension.slice(0, -3)
         : fileExtension;
 
-      let namingConventionTransform = camel;
-      if (namingConvention === NamingConvention.PASCAL_CASE) {
-        namingConventionTransform = pascal;
-      } else if (namingConvention === NamingConvention.SNAKE_CASE) {
-        namingConventionTransform = snake;
-      } else if (namingConvention === NamingConvention.KEBAB_CASE) {
-        namingConventionTransform = kebab;
-      }
-
       const importStatements = schemas
         .filter((schema) => {
+          const name = conventionName(schema.name, namingConvention);
+
           return (
-            !stringData.includes(
-              `export * from './${namingConventionTransform(schema.name)}${ext}'`,
-            ) &&
-            !stringData.includes(
-              `export * from "./${namingConventionTransform(schema.name)}${ext}"`,
-            )
+            !stringData.includes(`export * from './${name}${ext}'`) &&
+            !stringData.includes(`export * from "./${name}${ext}"`)
           );
         })
         .map(
           (schema) =>
-            `export * from './${namingConventionTransform(schema.name)}${ext}';`,
+            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
         );
 
       const currentFileExports = (stringData

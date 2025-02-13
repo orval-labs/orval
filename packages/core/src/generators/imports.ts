@@ -7,7 +7,7 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { camel, pascal, kebab, snake, upath } from '../utils';
+import { upath, conventionName } from '../utils';
 
 export const generateImports = ({
   imports = [],
@@ -37,14 +37,7 @@ export const generateImports = ({
     .map(({ specKey, name, values, alias }) => {
       const isSameSpecKey = currentSpecKey === specKey;
 
-      let fileName = camel(name);
-      if (namingConvention === NamingConvention.PASCAL_CASE) {
-        fileName = pascal(name);
-      } else if (namingConvention === NamingConvention.KEBAB_CASE) {
-        fileName = kebab(name);
-      } else if (namingConvention === NamingConvention.SNAKE_CASE) {
-        fileName = snake(name);
-      }
+      const fileName = conventionName(name, namingConvention);
 
       if (specKey && !isSameSpecKey) {
         const path = specKey !== target ? specsName[specKey] : '';

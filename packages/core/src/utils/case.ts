@@ -1,3 +1,5 @@
+import { NamingConvention } from '../types';
+
 const unicodes = function (s: string, prefix: string) {
   prefix = prefix || '';
   return s.replace(/(^|-)/g, '$1\\u' + prefix).replace(/,/g, '\\u' + prefix);
@@ -140,4 +142,17 @@ export const upper = (
     fillWith,
     isDeapostrophe,
   );
+};
+
+export const conventionName = (name: string, convention: NamingConvention) => {
+  let nameConventionTransform = camel;
+  if (convention === NamingConvention.PASCAL_CASE) {
+    nameConventionTransform = pascal;
+  } else if (convention === NamingConvention.SNAKE_CASE) {
+    nameConventionTransform = snake;
+  } else if (convention === NamingConvention.KEBAB_CASE) {
+    nameConventionTransform = kebab;
+  }
+
+  return nameConventionTransform(name);
 };
