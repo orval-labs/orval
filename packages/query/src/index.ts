@@ -31,6 +31,7 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
+import { generateFetchHeader } from '@orval/fetch';
 import omitBy from 'lodash.omitby';
 import {
   AXIOS_DEPENDENCIES,
@@ -1442,22 +1443,19 @@ ${mutationOptionsFn}
   };
 };
 
-export const generateQueryHeader: ClientHeaderBuilder = ({
-  isRequestOptions,
-  isMutator,
-  hasAwaitedType,
-}) => {
+export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   return `${
-    !hasAwaitedType
+    !params.hasAwaitedType
       ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
       : ''
   }
 ${
-  isRequestOptions && isMutator
+  params.isRequestOptions && params.isMutator
     ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
     : ''
 }
+${params.output.httpClient === OutputHttpClient.FETCH ? generateFetchHeader(params) : ''}
 `;
 };
 

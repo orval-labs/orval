@@ -10,7 +10,7 @@ import {
 } from '../utils';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
-import { getHTTPStatusCodes, getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes } from './types';
 
 export const writeSingleMode = async ({
   builder,
@@ -113,10 +113,6 @@ export const writeSingleMode = async ({
 
     if (implementation.includes('NonReadonly<')) {
       data += getOrvalGeneratedTypes();
-      data += '\n';
-    }
-    if (implementation.includes('<HTTPStatusCodes,')) {
-      data += getHTTPStatusCodes();
       data += '\n';
     }
 

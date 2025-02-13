@@ -22,6 +22,7 @@ import {
   SwrOptions,
   OutputHttpClient,
 } from '@orval/core';
+import { generateFetchHeader } from '@orval/fetch';
 import {
   AXIOS_DEPENDENCIES,
   generateSwrRequestFunction,
@@ -589,23 +590,21 @@ export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOption
   }
 };
 
-export const generateSwrHeader: ClientHeaderBuilder = ({
-  isRequestOptions,
-  isMutator,
-  hasAwaitedType,
-}) =>
+export const generateSwrHeader: ClientHeaderBuilder = (params) =>
   `
   ${
-    !hasAwaitedType
+    !params.hasAwaitedType
       ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
       : ''
   }
   ${
-    isRequestOptions && isMutator
+    params.isRequestOptions && params.isMutator
       ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
       : ''
-  }`;
+  }
+  ${params.output.httpClient === OutputHttpClient.FETCH ? generateFetchHeader(params) : ''}
+`;
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);

@@ -9,7 +9,7 @@ import {
   upath,
 } from '../utils';
 import { generateTargetForTags } from './target-tags';
-import { getHTTPStatusCodes, getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 
@@ -152,10 +152,6 @@ export const writeSplitTagsMode = async ({
 
         if (implementation.includes('NonReadonly<')) {
           implementationData += getOrvalGeneratedTypes();
-          implementationData += '\n';
-        }
-        if (implementation.includes('<HTTPStatusCodes,')) {
-          implementationData += getHTTPStatusCodes();
           implementationData += '\n';
         }
 
