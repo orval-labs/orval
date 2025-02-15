@@ -223,42 +223,44 @@ export const addDependency = ({
     return acc;
   }, {});
 
-  return Object.entries(groupedBySpecKey)
-    .map(([key, { values, types }]) => {
-      let dep = '';
+  return (
+    Object.entries(groupedBySpecKey)
+      .map(([key, { values, types }]) => {
+        let dep = '';
 
-      if (values) {
-        dep += generateDependency({
-          deps: values,
-          isAllowSyntheticDefaultImports,
-          dependency,
-          specsName,
-          key,
-          onlyTypes: false,
-        });
-      }
-
-      if (types) {
-        let uniqueTypes = types;
         if (values) {
-          uniqueTypes = types.filter(
-            (t) => !values.some((v) => v.name === t.name),
-          );
-          dep += '\n';
+          dep += generateDependency({
+            deps: values,
+            isAllowSyntheticDefaultImports,
+            dependency,
+            specsName,
+            key,
+            onlyTypes: false,
+          });
         }
-        dep += generateDependency({
-          deps: uniqueTypes,
-          isAllowSyntheticDefaultImports,
-          dependency,
-          specsName,
-          key,
-          onlyTypes: true,
-        });
-      }
 
-      return dep;
-    })
-    .join('\n') + '\n';
+        if (types) {
+          let uniqueTypes = types;
+          if (values) {
+            uniqueTypes = types.filter(
+              (t) => !values.some((v) => v.name === t.name),
+            );
+            dep += '\n';
+          }
+          dep += generateDependency({
+            deps: uniqueTypes,
+            isAllowSyntheticDefaultImports,
+            dependency,
+            specsName,
+            key,
+            onlyTypes: true,
+          });
+        }
+
+        return dep;
+      })
+      .join('\n') + '\n'
+  );
 };
 
 const getLibName = (code: string) => {
