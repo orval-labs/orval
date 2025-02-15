@@ -261,10 +261,15 @@ export const getMockDefinition = ({
 };
 
 export const getMockOptionsDataOverride = (
+  operationTags: string[],
   operationId: string,
   override: NormalizedOverrideOutput,
 ) => {
-  const responseOverride = override?.operations?.[operationId]?.mock?.data;
+  const responseOverride =
+    override?.operations?.[operationId]?.mock?.data ||
+    operationTags
+      .map((operationTag) => override?.tags?.[operationTag]?.mock?.data)
+      .find((e) => e !== undefined);
   const implementation = isFunction(responseOverride)
     ? `(${responseOverride})()`
     : stringify(responseOverride);

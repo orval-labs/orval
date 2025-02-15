@@ -65,7 +65,6 @@ const generateVerbOptions = async ({
     description,
     summary,
   } = operation;
-
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operation.operationId!];
   const overrideTag = Object.entries(output.override.tags).reduce(
@@ -74,11 +73,10 @@ const generateVerbOptions = async ({
     {} as NormalizedOperationOptions,
   );
 
-  const override: NormalizedOverrideOutput = {
-    ...output.override,
-    ...overrideTag,
-    ...overrideOperation,
-  };
+  const override = mergeDeep(
+    mergeDeep(output.override, overrideTag),
+    overrideOperation,
+  );
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;

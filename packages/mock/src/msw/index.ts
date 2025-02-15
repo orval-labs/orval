@@ -89,7 +89,7 @@ const generateDefinition = (
     splitMockImplementations,
   });
 
-  const mockData = getMockOptionsDataOverride(operationId, override);
+  const mockData = getMockOptionsDataOverride(tags, operationId, override);
 
   let value = '';
 
