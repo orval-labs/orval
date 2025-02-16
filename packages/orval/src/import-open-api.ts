@@ -17,7 +17,6 @@ import {
   upath,
   WriteSpecsBuilder,
 } from '@orval/core';
-import omit from 'lodash.omit';
 import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
 import { getApiBuilder } from './api';
 
@@ -163,7 +162,7 @@ const getApiSchemas = ({
 };
 
 const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
-  const cleanedSpec = omit(spec, [
+  const keysToOmit = [
     'openapi',
     'info',
     'servers',
@@ -172,22 +171,32 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
     'security',
     'tags',
     'externalDocs',
-  ]);
+  ];
+
+  const cleanedSpec = Object.fromEntries(
+    Object.entries(spec).filter(([key]) => !keysToOmit.includes(key)),
+  );
 
   if (specKey && isSchema(cleanedSpec)) {
     const name = upath.getSchemaFileName(specKey);
 
+    const additionalKeysToOmit = [
+      'type',
+      'properties',
+      'allOf',
+      'oneOf',
+      'anyOf',
+      'items',
+    ];
+
     return {
       [name]: cleanedSpec as SchemasObject,
       ...getAllSchemas(
-        omit(cleanedSpec, [
-          'type',
-          'properties',
-          'allOf',
-          'oneOf',
-          'anyOf',
-          'items',
-        ]),
+        Object.fromEntries(
+          Object.entries(cleanedSpec).filter(
+            ([key]) => !additionalKeysToOmit.includes(key),
+          ),
+        ),
       ),
     };
   }

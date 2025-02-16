@@ -1,4 +1,3 @@
-import omit from 'lodash.omit';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
@@ -228,7 +227,13 @@ export const combineSchemas = ({
   let resolvedValue: ScalarValue | undefined;
 
   if (schema.properties) {
-    resolvedValue = getScalar({ item: omit(schema, separator), name, context });
+    resolvedValue = getScalar({
+      item: Object.fromEntries(
+        Object.entries(schema).filter(([key]) => key !== separator),
+      ),
+      name,
+      context,
+    });
   }
 
   const value = combineValues({

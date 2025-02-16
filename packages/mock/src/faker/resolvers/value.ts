@@ -7,7 +7,6 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
-import get from 'lodash.get';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
@@ -85,7 +84,8 @@ export const resolveMockValue = ({
       refPaths,
     } = getRefInfo(schema.$ref, context);
 
-    const schemaRef = get(context.specs[specKey], refPaths as string[]);
+    const schemaRef =
+      context?.specs?.[specKey]?.[refPaths[0]]?.[refPaths[1]] ?? undefined;
 
     const newSchema = {
       ...schemaRef,

@@ -1,5 +1,4 @@
 import { keyword } from 'esutils';
-import get from 'lodash.get';
 import {
   isBoolean,
   isFunction,
@@ -114,7 +113,7 @@ export const toObjectString = <T>(props: T[], path?: keyof T) => {
     return '';
   }
 
-  const arrayOfString = path ? props.map((prop) => get(prop, path)) : props;
+  const arrayOfString = path ? props.map((prop) => prop?.[path]) : props;
 
   return arrayOfString.join(',\n    ') + ',';
 };

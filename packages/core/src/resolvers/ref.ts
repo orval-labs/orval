@@ -1,4 +1,3 @@
-import get from 'lodash.get';
 import {
   ExampleObject,
   ParameterObject,
@@ -10,6 +9,7 @@ import {
 import { RefInfo, getRefInfo } from '../getters/ref';
 import { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
+import { OpenAPIObject } from 'openapi3-ts/oas30';
 
 type ComponentObject =
   | SchemaObject
@@ -84,8 +84,20 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
 
   const { specKey, refPaths } = refInfo;
 
+  const getSchemaByPaths = (
+    spec: OpenAPIObject,
+    paths: string[],
+  ): Schema | undefined => {
+    const result = paths.reduce(
+      (acc, path) => acc?.[path as keyof typeof acc],
+      spec,
+    );
+    return result as unknown as Schema | undefined;
+  };
+
   let schemaByRefPaths: Schema | undefined =
-    refPaths && get(context.specs[specKey || context.specKey], refPaths);
+    refPaths &&
+    getSchemaByPaths(context.specs[specKey || context.specKey], refPaths);
 
   if (!schemaByRefPaths) {
     schemaByRefPaths = context.specs?.[

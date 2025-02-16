@@ -6,7 +6,6 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
-import omit from 'lodash.omit';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
@@ -49,7 +48,9 @@ export const combineSchemasMock = ({
   const itemResolvedValue =
     isRefAndNotExisting || item.properties
       ? resolveMockValue({
-          schema: omit(item, separator) as MockSchemaObject,
+          schema: Object.fromEntries(
+            Object.entries(item).filter(([key]) => key !== separator),
+          ) as MockSchemaObject,
           combine: {
             separator: 'allOf',
             includedProperties: [],
