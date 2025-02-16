@@ -113,7 +113,18 @@ export const toObjectString = <T>(props: T[], path?: keyof T) => {
     return '';
   }
 
-  const arrayOfString = path ? props.map((prop) => prop?.[path]) : props;
+  const arrayOfString =
+    typeof path === 'string'
+      ? props.map((prop) =>
+          path
+            .split('.')
+            .reduce(
+              (obj: any, key: string) =>
+                obj && typeof obj === 'object' ? obj[key] : undefined,
+              prop,
+            ),
+        )
+      : props;
 
   return arrayOfString.join(',\n    ') + ',';
 };
