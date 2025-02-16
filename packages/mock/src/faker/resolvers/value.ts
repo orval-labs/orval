@@ -7,7 +7,6 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
-import get from 'lodash.get';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
@@ -85,7 +84,15 @@ export const resolveMockValue = ({
       refPaths,
     } = getRefInfo(schema.$ref, context);
 
-    const schemaRef = get(context.specs[specKey], refPaths as string[]);
+    const schemaRef = Array.isArray(refPaths)
+      ? (refPaths.reduce(
+          (obj, key) =>
+            obj && typeof obj === 'object'
+              ? (obj as Record<string, any>)[key]
+              : undefined,
+          context.specs[specKey],
+        ) as Partial<SchemaObject>)
+      : undefined;
 
     const newSchema = {
       ...schemaRef,
@@ -163,7 +170,7 @@ export const resolveMockValue = ({
 
     return {
       ...scalar,
-      type: newSchema.type,
+      type: newSchema.type as string,
     };
   }
 
@@ -182,6 +189,6 @@ export const resolveMockValue = ({
 
   return {
     ...scalar,
-    type: schema.type,
+    type: schema.type as string,
   };
 };

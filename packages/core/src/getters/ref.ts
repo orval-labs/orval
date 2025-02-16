@@ -1,6 +1,5 @@
-import get from 'lodash.get';
 import { ReferenceObject } from 'openapi3-ts/oas30';
-import { ContextSpecs } from '../types';
+import { ContextSpecs, NormalizedOverrideOutput } from '../types';
 import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
@@ -53,8 +52,21 @@ export const getRefInfo = (
     .split('/')
     .map((part) => decodeURIComponent(part.replace(regex, '/')));
 
+  const getOverrideSuffix = (
+    override: NormalizedOverrideOutput,
+    paths: string[],
+  ) => {
+    const firstLevel = override[paths[0] as keyof NormalizedOverrideOutput];
+    if (!firstLevel) return '';
+
+    const secondLevel = (firstLevel as Record<string, { suffix?: string }>)[
+      paths[1]
+    ];
+    return secondLevel?.suffix ?? '';
+  };
+
   const suffix = refPaths
-    ? get(context.output.override, [...refPaths.slice(0, 2), 'suffix'], '')
+    ? getOverrideSuffix(context.output.override, refPaths)
     : '';
 
   const originalName = ref
