@@ -84,8 +84,15 @@ export const resolveMockValue = ({
       refPaths,
     } = getRefInfo(schema.$ref, context);
 
-    const schemaRef =
-      context?.specs?.[specKey]?.[refPaths[0]]?.[refPaths[1]] ?? undefined;
+    const schemaRef = Array.isArray(refPaths)
+      ? (refPaths.reduce(
+          (obj, key) =>
+            obj && typeof obj === 'object'
+              ? (obj as Record<string, any>)[key]
+              : undefined,
+          context.specs[specKey],
+        ) as Partial<SchemaObject>)
+      : undefined;
 
     const newSchema = {
       ...schemaRef,
@@ -163,7 +170,7 @@ export const resolveMockValue = ({
 
     return {
       ...scalar,
-      type: newSchema.type,
+      type: newSchema.type as string,
     };
   }
 
@@ -182,6 +189,6 @@ export const resolveMockValue = ({
 
   return {
     ...scalar,
-    type: schema.type,
+    type: schema.type as string,
   };
 };
