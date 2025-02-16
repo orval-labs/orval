@@ -84,20 +84,13 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
 
   const { specKey, refPaths } = refInfo;
 
-  const getSchemaByPaths = (
-    spec: OpenAPIObject,
-    paths: string[],
-  ): Schema | undefined => {
-    const result = paths.reduce(
-      (acc, path) => acc?.[path as keyof typeof acc],
-      spec,
-    );
-    return result as unknown as Schema | undefined;
-  };
-
   let schemaByRefPaths: Schema | undefined =
-    refPaths &&
-    getSchemaByPaths(context.specs[specKey || context.specKey], refPaths);
+    refPaths && Array.isArray(refPaths)
+      ? refPaths.reduce(
+          (obj: any, key: string) => (obj && key in obj ? obj[key] : undefined),
+          context.specs[specKey || context.specKey],
+        )
+      : undefined;
 
   if (!schemaByRefPaths) {
     schemaByRefPaths = context.specs?.[
