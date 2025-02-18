@@ -1,4 +1,5 @@
 import {
+  ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -16,6 +17,7 @@ import {
 import {
   fetchResponseTypeName,
   generateRequestFunction as generateFetchRequestFunction,
+  generateFetchHeader,
 } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -251,4 +253,10 @@ export const getSwrMutationFetcherType = (
   } else {
     return `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
   }
+};
+
+export const getSwrHeader: ClientHeaderBuilder = (params) => {
+  return params.output.httpClient === OutputHttpClient.FETCH
+    ? generateFetchHeader(params)
+    : '';
 };

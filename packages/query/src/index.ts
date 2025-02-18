@@ -31,7 +31,6 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
-import { generateFetchHeader } from '@orval/fetch';
 import omitBy from 'lodash.omitby';
 import {
   AXIOS_DEPENDENCIES,
@@ -1455,7 +1454,6 @@ ${
     ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
     : ''
 }
-${params.output.httpClient === OutputHttpClient.FETCH ? generateFetchHeader(params) : ''}
 `;
 };
 

@@ -22,7 +22,6 @@ import {
   SwrOptions,
   OutputHttpClient,
 } from '@orval/core';
-import { generateFetchHeader } from '@orval/fetch';
 import {
   AXIOS_DEPENDENCIES,
   generateSwrRequestFunction,
@@ -32,6 +31,7 @@ import {
   getHttpRequestSecondArg,
   getSwrMutationFetcherOptionType,
   getSwrMutationFetcherType,
+  getSwrHeader,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -603,7 +603,7 @@ export const generateSwrHeader: ClientHeaderBuilder = (params) =>
       ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
       : ''
   }
-  ${params.output.httpClient === OutputHttpClient.FETCH ? generateFetchHeader(params) : ''}
+  ${getSwrHeader(params)}
 `;
 
 export const generateSwr: ClientBuilder = (verbOptions, options) => {
