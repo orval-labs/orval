@@ -263,7 +263,7 @@ export const generateZodValidationSchemaDefinition = (
     case 'object':
     default: {
       if (schema.allOf || schema.oneOf || schema.anyOf) {
-        const separator = schema.allOf
+        let separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
             ? 'oneOf'
@@ -274,10 +274,20 @@ export const generateZodValidationSchemaDefinition = (
           | ReferenceObject
         )[];
 
+        if (
+          (schema.oneOf || schema.anyOf) &&
+          schema.discriminator &&
+          schema.discriminator.propertyName
+        ) {
+          // store the discriminator property name in the separator to be used when building the zod schema
+          // adding discriminator property name is already handled via the deference function
+          separator = `discriminator__${schema.discriminator.propertyName}`;
+        }
+
         functions.push([
           separator,
-          schemas.map((schema) =>
-            generateZodValidationSchemaDefinition(
+          schemas.map((schema) => {
+            return generateZodValidationSchemaDefinition(
               schema as SchemaObject,
               context,
               camel(name),
@@ -285,8 +295,8 @@ export const generateZodValidationSchemaDefinition = (
               {
                 required: true,
               },
-            ),
-          ),
+            );
+          }),
         ]);
         break;
       }
@@ -424,8 +434,16 @@ export const parseZodValidationSchemaDefinition = (
         '',
       );
     }
-
-    if (fn === 'oneOf' || fn === 'anyOf') {
+    if (fn.startsWith('discriminator__')) {
+      const [, propertyName] = fn.split('discriminator__');
+      const typeSchemas = args.flatMap(
+        ({ functions }: { functions: [string, any][]; consts: string[] }) =>
+          functions.map(parseProperty),
+      );
+      return `zod.discriminatedUnion('${propertyName}', [${typeSchemas.join(
+        ',',
+      )}])`;
+    } else if (fn === 'oneOf' || fn === 'anyOf') {
       return args.reduce(
         (
           acc: string,
@@ -445,7 +463,6 @@ export const parseZodValidationSchemaDefinition = (
             acc += valueWithZod;
             return acc;
           }
-
           acc += `.or(${valueWithZod})`;
 
           return acc;

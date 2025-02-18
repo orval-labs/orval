@@ -8,7 +8,7 @@ import {
   type ZodValidationSchemaDefinition,
 } from '.';
 
-import { ContextSpecs } from '@orval/core';
+import { ContextSpecs, GeneratorOptions } from '@orval/core';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [
@@ -664,6 +664,201 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
     expect(result.implementation).toBe(
       'export const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
+    );
+  });
+});
+
+const apiSchemaWithDiscriminator: GeneratorOptions = {
+  pathRoute: '/dogs',
+  context: {
+    specKey: 'dog',
+    specs: {
+      dog: {
+        openapi: '3.0.0',
+        info: {
+          version: '1.0.0',
+          title: 'Dogs',
+        },
+        paths: {
+          '/dogs': {
+            get: {
+              summary: 'List all dogs',
+              operationId: 'listDogs',
+              tags: ['dogs'],
+              responses: {
+                '200': {
+                  description: 'A paged array of dogs',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        $ref: '#/components/schemas/Dogs',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        components: {
+          schemas: {
+            Dogs: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/Dog',
+              },
+            },
+            Dog: {
+              type: 'object',
+              oneOf: [
+                {
+                  $ref: '#/components/schemas/Labradoodle',
+                },
+                {
+                  $ref: '#/components/schemas/Dachshund',
+                },
+              ],
+              required: ['type'],
+              properties: {
+                barksPerMinute: {
+                  type: 'integer',
+                },
+              },
+              discriminator: {
+                propertyName: 'breed',
+                mapping: {
+                  Labradoodle: '#/components/schemas/Labradoodle',
+                  Dachshund: '#/components/schemas/Dachshund',
+                },
+              },
+            },
+            Labradoodle: {
+              type: 'object',
+              required: ['cuteness'],
+              properties: {
+                cuteness: {
+                  type: 'integer',
+                },
+                // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
+                breed: {
+                  type: 'string',
+                  enum: ['Labradoodle'],
+                },
+              },
+            },
+            Dachshund: {
+              type: 'object',
+              required: ['length'],
+              properties: {
+                length: {
+                  type: 'integer',
+                },
+                // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
+                breed: {
+                  type: 'string',
+                  enum: ['Labradoodle'],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+} as const;
+
+describe('generateDiscriminatedUnionZod', () => {
+  it('generates a discriminatedUnion zod schema', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/dogs',
+        verb: 'get',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      },
+      apiSchemaWithDiscriminator,
+      {},
+    );
+    expect(result.implementation).toBe(
+      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}),zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n})])\nexport const testResponse = zod.array(testResponseItem)\n\n`,
+    );
+    expect(result.implementation).not.toContain('.or(zod.object');
+  });
+  it('does not generate a discriminatedUnion zod schema when discriminator is absent', async () => {
+    const schemaWithoutDiscriminator = { ...apiSchemaWithDiscriminator };
+    const dogSchema = schemaWithoutDiscriminator.context.specs['dog']
+      .components!.schemas!['Dog'] as SchemaObject;
+    delete dogSchema.discriminator;
+    const result = await generateZod(
+      {
+        pathRoute: '/dogs',
+        verb: 'get',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      },
+      apiSchemaWithDiscriminator,
+      {},
+    );
+    expect(result.implementation).toBe(
+      `export const testResponseItem = zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).or(zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}))\nexport const testResponse = zod.array(testResponseItem)\n\n`,
+    );
+    expect(result.implementation).not.toContain(
+      "zod.discriminatedUnion('breed'",
     );
   });
 });
