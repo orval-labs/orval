@@ -739,6 +739,11 @@ const apiSchemaWithDiscriminator: GeneratorOptions = {
                 cuteness: {
                   type: 'integer',
                 },
+                // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
+                breed: {
+                  type: 'string',
+                  enum: ['Labradoodle'],
+                },
               },
             },
             Dachshund: {
@@ -747,6 +752,11 @@ const apiSchemaWithDiscriminator: GeneratorOptions = {
               properties: {
                 length: {
                   type: 'integer',
+                },
+                // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
+                breed: {
+                  type: 'string',
+                  enum: ['Labradoodle'],
                 },
               },
             },
@@ -800,9 +810,8 @@ describe('generateDiscriminatedUnionZod', () => {
       apiSchemaWithDiscriminator,
       {},
     );
-
-    expect(result.implementation).toContain(
-      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({\n  "cuteness": zod.number()\n}),zod.object({\n  "length": zod.number()\n})])\nexport const testResponse = zod.array(testResponseItem)`,
+    expect(result.implementation).toBe(
+      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}),zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n})])\nexport const testResponse = zod.array(testResponseItem)\n\n`,
     );
     expect(result.implementation).not.toContain('.or(zod.object');
   });
@@ -845,8 +854,8 @@ describe('generateDiscriminatedUnionZod', () => {
       apiSchemaWithDiscriminator,
       {},
     );
-    expect(result.implementation).toContain(
-      `export const testResponseItem = zod.object({\n  "cuteness": zod.number()\n}).or(zod.object({\n  "length": zod.number()\n}))\nexport const testResponse = zod.array(testResponseItem)`,
+    expect(result.implementation).toBe(
+      `export const testResponseItem = zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).or(zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}))\nexport const testResponse = zod.array(testResponseItem)\n\n`,
     );
     expect(result.implementation).not.toContain(
       "zod.discriminatedUnion('breed'",
