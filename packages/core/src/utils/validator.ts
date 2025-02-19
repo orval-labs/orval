@@ -3,6 +3,7 @@ import {
   ibmOpenapiValidatorErrors,
   ibmOpenapiValidatorWarnings,
 } from './logger';
+import fs from 'node:fs/promises';
 
 const ibmOpenapiRuleset = require('@ibm-cloud/openapi-ruleset');
 const { Spectral } = require('@stoplight/spectral-core');
@@ -12,9 +13,14 @@ const { Spectral } = require('@stoplight/spectral-core');
  * More information: https://github.com/IBM/openapi-validator/#configuration
  * @param specs openAPI spec
  */
-export const ibmOpenapiValidator = async (specs: OpenAPIObject) => {
+export const ibmOpenapiValidator = async (
+  specs: OpenAPIObject,
+  validation: boolean | object,
+) => {
+  const ruleset =
+    typeof validation === 'boolean' ? ibmOpenapiRuleset : validation;
   const spectral = new Spectral();
-  spectral.setRuleset(ibmOpenapiRuleset);
+  spectral.setRuleset(ruleset);
   const results = await spectral.run(specs);
 
   const errors: { message: string; path: string[] }[] = [];

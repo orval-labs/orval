@@ -21,11 +21,14 @@ module.exports = {
 
 ### validation
 
-Type: `Boolean`.
+Type: `Boolean` or `Object`
 
 Default Value: `false`.
 
-To enforce the best quality as possible of specification, we have integrated the amazing <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>. We strongly encourage you to setup your custom rules with a `.validaterc` file, you can find all useful information about this configuration <a href="https://github.com/IBM/openapi-validator/#configuration" target="_blank">here</a>.
+To enforce the best quality as possible of specification, we have integrated the amazing <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>.
+
+Specifying `true` will by default use the <a href="https://github.com/IBM/openapi-validator/blob/main/docs/ibm-cloud-rules.md"><em>IBM Cloud Validation Ruleset</em></a>.
+Specifying an `Object` will use the provided ruleset instead. You can learn more about creating rulesets <a href="https://docs.stoplight.io/docs/spectral/aa15cdee143a1-java-script-ruleset-format">here</a>.
 
 ```js
 module.exports = {
