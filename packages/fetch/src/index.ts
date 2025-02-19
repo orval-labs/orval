@@ -71,7 +71,7 @@ export const generateRequestFunction = (
   const explodeArrayImplementation =
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
-      
+
     if (value instanceof Array && explodeParameters.includes(key)) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
       return;
@@ -98,9 +98,11 @@ ${
     : ''
 }
 
+  ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
+
   ${
     queryParams
-      ? `return normalizedParams.size ? \`${route}${'?${normalizedParams.toString()}'}\` : \`${route}\``
+      ? `return stringifiedParams.length > 0 ? \`${route}${'?${stringifiedParams}'}\` : \`${route}\``
       : `return \`${route}\``
   }
 }\n`;
@@ -190,7 +192,7 @@ ${
 `;
   const fetchResponseImplementation = isNdJson
     ? `const stream = await fetch(${fetchFnOptions})
-  
+
   ${override.fetch.includeHttpResponseReturnType ? 'return { status: stream.status, stream, headers: stream.headers }' : `return stream`}
   `
     : `const res = await fetch(${fetchFnOptions})
