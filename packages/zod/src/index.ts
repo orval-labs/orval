@@ -231,6 +231,11 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
+      if (schema.format === 'binary') {
+        functions.push(['instanceof', 'File']);
+        break;
+      }
+
       functions.push([type as string, undefined]);
 
       if (schema.format === 'date') {
@@ -623,17 +628,18 @@ const parseBodyAndResponse = ({
     context,
   ).schema;
 
-  if (!resolvedRef.content?.['application/json']?.schema) {
+  const schema =
+    resolvedRef.content?.['application/json']?.schema ||
+    resolvedRef.content?.['multipart/form-data']?.schema;
+
+  if (!schema) {
     return {
       input: { functions: [], consts: [] },
       isArray: false,
     };
   }
 
-  const resolvedJsonSchema = deference(
-    resolvedRef.content['application/json'].schema,
-    context,
-  );
+  const resolvedJsonSchema = deference(schema, context);
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
