@@ -14,6 +14,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from 'react-query';
+
 import type {
   CreatePetsBody,
   Error,
@@ -23,8 +24,8 @@ import type {
   PetsArray,
   PetsNestedArray,
 } from './models';
-import { customInstance } from './custom-instance';
 
+import { customInstance } from './custom-instance';
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;

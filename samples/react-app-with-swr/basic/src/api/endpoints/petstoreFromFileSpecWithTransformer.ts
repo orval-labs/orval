@@ -6,8 +6,10 @@
  */
 import useSwr from 'swr';
 import type { Key, SWRConfiguration } from 'swr';
+
 import useSWRMutation from 'swr/mutation';
 import type { SWRMutationConfiguration } from 'swr/mutation';
+
 import type {
   CreatePetsBody,
   Error,
@@ -15,6 +17,7 @@ import type {
   Pet,
   Pets,
 } from '../model';
+
 import { customInstance } from '../mutator/custom-instance';
 
 type AwaitedInput<T> = PromiseLike<T> | T;

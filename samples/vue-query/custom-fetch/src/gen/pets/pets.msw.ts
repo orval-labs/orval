@@ -5,7 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import { faker } from '@faker-js/faker';
+
 import { HttpResponse, delay, http } from 'msw';
+
 import type { Cat, Dachshund, Dog, Labradoodle, Pet, Pets } from '.././models';
 
 export const getListPetsResponseLabradoodleMock = (

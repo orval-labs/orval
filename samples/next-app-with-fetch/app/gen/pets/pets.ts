@@ -11,6 +11,7 @@ import type {
   Pet,
   Pets,
 } from '.././models';
+
 import { customFetch } from '../../../custom-fetch';
 
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
@@ -59,8 +60,10 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     }
   });
 
-  return normalizedParams.size
-    ? `http://localhost:3000/pets?${normalizedParams.toString()}`
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `http://localhost:3000/pets?${stringifiedParams}`
     : `http://localhost:3000/pets`;
 };
 

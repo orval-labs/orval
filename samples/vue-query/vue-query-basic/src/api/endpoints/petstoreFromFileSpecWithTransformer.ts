@@ -18,8 +18,10 @@ import type {
   UseQueryOptions,
   UseQueryReturnType,
 } from '@tanstack/vue-query';
+
 import { computed, unref } from 'vue';
 import type { MaybeRef } from 'vue';
+
 import type {
   CreatePetsBody,
   Error,
@@ -27,6 +29,7 @@ import type {
   Pet,
   Pets,
 } from '../model';
+
 import { customInstance } from '../mutator/custom-instance';
 
 /**

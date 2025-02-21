@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { useCallback } from 'react';
+
 import { useMutation, useQuery } from 'react-query';
 import type {
   MutationFunction,
@@ -15,6 +16,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from 'react-query';
+
 import type {
   CreatePetsBody,
   Error,
@@ -24,8 +26,8 @@ import type {
   PetsArray,
   PetsNestedArray,
 } from './models';
-import { useCustomInstance } from './use-custom-instance';
 
+import { useCustomInstance } from './use-custom-instance';
 type AwaitedInput<T> = PromiseLike<T> | T;
 
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;

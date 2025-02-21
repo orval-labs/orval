@@ -5,7 +5,9 @@
  * OpenAPI spec version: 1.0.0
  */
 import { faker } from '@faker-js/faker';
+
 import { HttpResponse, delay, http } from 'msw';
+
 import { DomainStatusEnum } from '../model';
 import type { Pet, Pets } from '../model';
 
