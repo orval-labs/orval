@@ -441,9 +441,11 @@ export const parseZodValidationSchemaDefinition = (
     }
     if (fn.startsWith('discriminator__')) {
       const [, propertyName] = fn.split('discriminator__');
-      const typeSchemas = args.flatMap(
-        ({ functions }: { functions: [string, any][]; consts: string[] }) =>
-          functions.map(parseProperty),
+      const typeSchemas = args.map(
+        ({ functions }: { functions: [string, any][]; consts: string[] }) => {
+          const schemaFunctions = functions.map(parseProperty).join('');
+          return schemaFunctions;
+        },
       );
       return `zod.discriminatedUnion('${propertyName}', [${typeSchemas.join(
         ',',

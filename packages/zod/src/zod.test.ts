@@ -815,6 +815,45 @@ describe('generateDiscriminatedUnionZod', () => {
     );
     expect(result.implementation).not.toContain('.or(zod.object');
   });
+  it('generated discriminatedUnion zod schema strict setting', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/dogs',
+        verb: 'get',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            generate: {
+              param: true,
+              body: true,
+              response: true,
+              query: true,
+              header: true,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      },
+      apiSchemaWithDiscriminator,
+      {},
+    );
+    expect(result.implementation).toBe(
+      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).strict(),zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).strict()])\nexport const testResponse = zod.array(testResponseItem)\n\n`,
+    );
+  });
   it('does not generate a discriminatedUnion zod schema when discriminator is absent', async () => {
     const schemaWithoutDiscriminator = { ...apiSchemaWithDiscriminator };
     const dogSchema = schemaWithoutDiscriminator.context.specs['dog']
