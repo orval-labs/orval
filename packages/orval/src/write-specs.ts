@@ -20,7 +20,7 @@ import execa from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
-import { Application, TypeDocOptions } from 'typedoc';
+import { TypeDocOptions } from 'typedoc';
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -210,6 +210,13 @@ export const writeSpecs = async (
           config.options = configPath;
         }
       }
+
+      const getTypedocApplication = async () => {
+        const { Application } = await import('typedoc');
+        return Application;
+      };
+
+      const Application = await getTypedocApplication();
       const app = await Application.bootstrapWithPlugins({
         entryPoints: paths,
         // Set the custom config location if it has been provided.
