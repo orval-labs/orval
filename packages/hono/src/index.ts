@@ -18,6 +18,9 @@ import {
   NormalizedOutputOptions,
   pascal,
   upath,
+  getParamsInPath,
+  sanitize,
+  camel,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
@@ -542,11 +545,22 @@ const factory = createFactory();`;
 };
 
 const getContext = (verbOption: GeneratorVerbOptions) => {
-  const paramType = verbOption.params.length
-    ? `param: {\n ${verbOption.params
-        .map((property) => property.definition)
-        .join(',\n    ')},\n },`
-    : '';
+  let paramType = '';
+  if (verbOption.params.length) {
+    const params = getParamsInPath(verbOption.pathRoute).map((name) => {
+      const param = verbOption.params.find(
+        (p) => p.name === sanitize(camel(name), { es5keyword: true }),
+      );
+      const definition = param?.definition.split(':')[1];
+      const required = param?.required ?? false;
+      return {
+        definition: `${name}${!required ? '?' : ''}:${definition}`,
+      };
+    });
+    paramType = `param: {\n ${params
+      .map((property) => property.definition)
+      .join(',\n    ')},\n },`;
+  }
 
   const queryType = verbOption.queryParams
     ? `query: ${verbOption.queryParams?.schema.name},`
