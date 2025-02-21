@@ -41,6 +41,7 @@ import {
   getMutationRequestArgs,
   getQueryArgumentsRequestType,
   getQueryErrorType,
+  getQueryHeader,
   getQueryOptions,
 } from './client';
 import {
@@ -1454,6 +1455,7 @@ ${
     ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
     : ''
 }
+${getQueryHeader(params)}
 `;
 };
 
