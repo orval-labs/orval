@@ -18,6 +18,7 @@ import {
   jsStringEscape,
   pascal,
   resolveRef,
+  stringify,
   ZodCoerceType,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
@@ -145,6 +146,46 @@ export const generateZodValidationSchemaDefinition = (
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
   const matches = schema.pattern ?? undefined;
+
+  let defaultVarName: string | undefined;
+  if (schema.default !== undefined) {
+    defaultVarName = `${name}Default${constsCounterValue}`;
+    let defaultValue: string;
+
+    const isDateType =
+      schema.type === 'string' &&
+      (schema.format === 'date' || schema.format === 'date-time') &&
+      context.output.override.useDates;
+
+    if (isDateType) {
+      defaultValue = `new Date("${escape(schema.default)}")`;
+    } else if (isObject(schema.default)) {
+      const entries = Object.entries(schema.default)
+        .map(([key, value]) => {
+          if (isString(value)) {
+            return `${key}: "${escape(value)}"`;
+          }
+
+          if (Array.isArray(value)) {
+            const arrayItems = value.map((item) =>
+              isString(item) ? `"${escape(item)}"` : `${item}`,
+            );
+            return `${key}: [${arrayItems.join(', ')}]`;
+          }
+
+          return `${key}: ${value}`;
+        })
+        .join(', ');
+      defaultValue = `{ ${entries} }`;
+    } else {
+      const rawStringified = stringify(schema.default);
+      defaultValue =
+        rawStringified === undefined
+          ? 'null'
+          : rawStringified.replace(/'/g, '"');
+    }
+    consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+  }
 
   switch (type) {
     case 'tuple':
@@ -396,7 +437,9 @@ export const generateZodValidationSchemaDefinition = (
     ]);
   }
 
-  if (!required && nullable) {
+  if (!required && schema.default) {
+    functions.push(['default', defaultVarName]);
+  } else if (!required && nullable) {
     functions.push(['nullish', undefined]);
   } else if (nullable) {
     functions.push(['nullable', undefined]);

@@ -342,6 +342,240 @@ describe('generateZodValidationSchemaDefinition`', () => {
       consts: [],
     });
   });
+
+  describe('default value handling', () => {
+    const context: ContextSpecs = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    it('generates a default value for a non-required string schema', () => {
+      const schemaWithDefault: SchemaObject = {
+        type: 'string',
+        default: 'hello',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithDefault,
+        context,
+        'testStringDefault',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['string', undefined],
+          ['default', 'testStringDefaultDefault'],
+        ],
+        consts: [`export const testStringDefaultDefault = "hello";`],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe('zod.string().default(testStringDefaultDefault)');
+      expect(parsed.consts).toBe(
+        'export const testStringDefaultDefault = "hello";',
+      );
+    });
+
+    it('generates a default value for a number schema', () => {
+      const schemaWithNumberDefault: SchemaObject = {
+        type: 'number',
+        default: 42,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNumberDefault,
+        context,
+        'testNumberDefault',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['default', 'testNumberDefaultDefault'],
+        ],
+        consts: ['export const testNumberDefaultDefault = 42;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe('zod.number().default(testNumberDefaultDefault)');
+      expect(parsed.consts).toBe('export const testNumberDefaultDefault = 42;');
+    });
+
+    it('generates a default value for a boolean schema', () => {
+      const schemaWithBooleanDefault: SchemaObject = {
+        type: 'boolean',
+        default: true,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithBooleanDefault,
+        context,
+        'testBooleanDefault',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['boolean', undefined],
+          ['default', 'testBooleanDefaultDefault'],
+        ],
+        consts: ['export const testBooleanDefaultDefault = true;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe(
+        'zod.boolean().default(testBooleanDefaultDefault)',
+      );
+      expect(parsed.consts).toBe(
+        'export const testBooleanDefaultDefault = true;',
+      );
+    });
+
+    it('generates a default value for an array schema', () => {
+      const schemaWithArrayDefault: SchemaObject = {
+        type: 'array',
+        items: { type: 'string' },
+        default: ['a', 'b'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithArrayDefault,
+        context,
+        'testArrayDefault',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['array', { functions: [['string', undefined]], consts: [] }],
+          ['default', 'testArrayDefaultDefault'],
+        ],
+        consts: ['export const testArrayDefaultDefault = ["a", "b"];'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe(
+        'zod.array(zod.string()).default(testArrayDefaultDefault)',
+      );
+      expect(parsed.consts).toBe(
+        'export const testArrayDefaultDefault = ["a", "b"];',
+      );
+    });
+
+    it('generates a default value for an object schema', () => {
+      const schemaWithObjectDefault: SchemaObject = {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          age: { type: 'number' },
+        },
+        default: { name: 'Fluffy', age: 3 },
+      };
+
+      const context: ContextSpecs = {
+        output: {
+          override: { useDates: false },
+        },
+      } as ContextSpecs;
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithObjectDefault,
+        context,
+        'testObjectDefault',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          [
+            'object',
+            {
+              name: {
+                functions: [
+                  ['string', undefined],
+                  ['optional', undefined],
+                ],
+                consts: [],
+              },
+              age: {
+                functions: [
+                  ['number', undefined],
+                  ['optional', undefined],
+                ],
+                consts: [],
+              },
+            },
+          ],
+          ['default', 'testObjectDefaultDefault'],
+        ],
+        consts: [
+          'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 };',
+        ],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe(
+        'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
+      );
+      expect(parsed.consts).toBe(
+        'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 };',
+      );
+    });
+
+    it('generates a default value for a date schema with useDates enabled', () => {
+      const schemaWithDateDefault: SchemaObject = {
+        type: 'string',
+        format: 'date',
+        default: '2025-01-01',
+      };
+
+      const dateContext: ContextSpecs = {
+        output: {
+          override: {
+            useDates: true,
+          },
+        },
+      } as ContextSpecs;
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithDateDefault,
+        dateContext,
+        'testDateDefault',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['date', undefined],
+          ['default', 'testDateDefaultDefault'],
+        ],
+        consts: [
+          'export const testDateDefaultDefault = new Date("2025-01-01");',
+        ],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        dateContext,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.date().default(testDateDefaultDefault)');
+      expect(parsed.consts).toBe(
+        'export const testDateDefaultDefault = new Date("2025-01-01");',
+      );
+    });
+  });
 });
 
 const basicApiSchema = {
