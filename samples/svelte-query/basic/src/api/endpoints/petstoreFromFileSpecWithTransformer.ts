@@ -14,6 +14,7 @@ import type {
   QueryFunction,
   QueryKey,
 } from '@tanstack/svelte-query';
+
 import type {
   CreatePetsBody,
   Error,
@@ -21,6 +22,7 @@ import type {
   Pet,
   Pets,
 } from '../model';
+
 import { customInstance } from '../mutator/custom-instance';
 
 /**

@@ -12,9 +12,13 @@ import type {
   HttpParams,
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
+
 import { Injectable } from '@angular/core';
+
 import { Observable } from 'rxjs';
+
 import type { CreatePetsBody, ListPetsParams, Pet, Pets } from '../../model';
+
 import listPetsMutator from '../../mutator/response-type';
 
 type HttpClientOptions = {

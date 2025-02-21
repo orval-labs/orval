@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import { useCallback } from 'react';
+
 import { useMutation, useQuery } from 'react-query';
 import type {
   MutationFunction,
@@ -15,6 +16,7 @@ import type {
   UseQueryOptions,
   UseQueryResult,
 } from 'react-query';
+
 import type {
   CreatePetsBody,
   Error,
@@ -24,6 +26,7 @@ import type {
   PetsArray,
   PetsNestedArray,
 } from '../model';
+
 import { useCustomClient } from '../mutator/custom-client';
 import type { ErrorType, BodyType } from '../mutator/custom-client';
 

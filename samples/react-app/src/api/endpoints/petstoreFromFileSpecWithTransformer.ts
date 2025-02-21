@@ -5,6 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 import type { CreatePetsBody, ListPetsParams, Pet, Pets } from '../model';
+
 import { customInstance } from '../mutator/custom-instance';
 
 /**

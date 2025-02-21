@@ -32,6 +32,7 @@ import type {
   UseSuspenseQueryOptions,
   UseSuspenseQueryResult,
 } from '@tanstack/react-query';
+
 import type {
   CreatePetsBody,
   Error,
@@ -41,6 +42,7 @@ import type {
   PetsArray,
   PetsNestedArray,
 } from '../model';
+
 import { customInstance } from '../mutator/custom-instance';
 import type { ErrorType } from '../mutator/custom-instance';
 

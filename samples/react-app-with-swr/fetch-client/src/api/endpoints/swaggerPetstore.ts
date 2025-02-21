@@ -6,8 +6,10 @@
  */
 import useSwr from 'swr';
 import type { Key, SWRConfiguration } from 'swr';
+
 import useSWRMutation from 'swr/mutation';
 import type { SWRMutationConfiguration } from 'swr/mutation';
+
 import type {
   CreatePetsBody,
   Error,
@@ -28,8 +30,10 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     }
   });
 
-  return normalizedParams.size
-    ? `http://localhost:8000/pets?${normalizedParams.toString()}`
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `http://localhost:8000/pets?${stringifiedParams}`
     : `http://localhost:8000/pets`;
 };
 

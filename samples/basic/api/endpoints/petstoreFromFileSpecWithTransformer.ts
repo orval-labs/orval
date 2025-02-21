@@ -6,16 +6,20 @@
  */
 import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
+
 import type {
   CreatePetsBody,
   ListPetsNestedArrayParams,
   ListPetsParams,
 } from '../model';
-import { faker } from '@faker-js/faker';
-import { HttpResponse, delay, http } from 'msw';
-import type { Pet, PetsArray, PetsNestedArray } from '../model';
-import listPetsMutator from '../mutator/response-type';
 
+import { faker } from '@faker-js/faker';
+
+import { HttpResponse, delay, http } from 'msw';
+
+import type { Pet, PetsArray, PetsNestedArray } from '../model';
+
+import listPetsMutator from '../mutator/response-type';
 /**
  * @summary List all pets
  */
