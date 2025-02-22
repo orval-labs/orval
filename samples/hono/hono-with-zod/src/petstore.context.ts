@@ -67,3 +67,19 @@ export type ShowPetByIdContext<E extends Env = any> = Context<
     };
   }
 >;
+export type GetCatByIdContext<E extends Env = any> = Context<
+  E,
+  '/cats/:cat_id',
+  {
+    in: {
+      param: {
+        cat_id: string;
+      };
+    };
+    out: {
+      param: {
+        cat_id: string;
+      };
+    };
+  }
+>;
