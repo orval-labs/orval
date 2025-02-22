@@ -12,6 +12,18 @@ export interface Pet {
 
 export type Pets = Pet[];
 
+export type CatType = (typeof CatType)[keyof typeof CatType];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const CatType = {
+  cat: 'cat',
+} as const;
+
+export interface Cat {
+  readonly petsRequested?: number;
+  type: CatType;
+}
+
 export interface Error {
   code: number;
   message: string;

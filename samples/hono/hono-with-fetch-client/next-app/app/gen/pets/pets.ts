@@ -30,8 +30,10 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
     }
   });
 
-  return normalizedParams.size
-    ? `http://localhost:8787/pets?${normalizedParams.toString()}`
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `http://localhost:8787/pets?${stringifiedParams}`
     : `http://localhost:8787/pets`;
 };
 
