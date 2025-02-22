@@ -1,4 +1,5 @@
 import {
+  ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -14,7 +15,10 @@ import {
   toObjectString,
 } from '@orval/core';
 
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
+import {
+  generateRequestFunction as generateFetchRequestFunction,
+  generateFetchHeader,
+} from '@orval/fetch';
 
 import {
   getHasSignal,
@@ -395,4 +399,10 @@ export const getHttpFunctionQueryProps = (
   }
 
   return queryProperties;
+};
+
+export const getQueryHeader: ClientHeaderBuilder = (params) => {
+  return params.output.httpClient === OutputHttpClient.FETCH
+    ? generateFetchHeader(params)
+    : '';
 };

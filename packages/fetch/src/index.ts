@@ -1,3 +1,4 @@
+import { ClientHeaderBuilder, pascal } from '@orval/core';
 import {
   camel,
   ClientBuilder,
@@ -107,36 +108,46 @@ ${
   }
 }\n`;
 
-  const isNdJson = response.contentTypes.some(
-    (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
-  );
+  const isContentTypeNdJson = (contentType: string) =>
+    contentType === 'application/nd-json' ||
+    contentType === 'application/x-ndjson';
+
+  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   const responseTypeName = fetchResponseTypeName(
     override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
 
-  const responseDataSuccessType =
-    response.definition.success !== 'unknown'
-      ? response.definition.success
-      : '';
-  const responseDataTypeDelimiter =
-    response.definition.success !== 'unknown' &&
-    response.definition.errors !== 'unknown'
-      ? ' | '
-      : '';
-  const responseDataErrorsType =
-    response.definition.errors !== 'unknown' ? response.definition.errors : '';
-  const responseDataType =
-    responseDataSuccessType || responseDataErrorsType
-      ? `${responseDataSuccessType}${responseDataTypeDelimiter}${responseDataErrorsType}`
-      : 'unknown';
+  const allResponses = [...response.types.success, ...response.types.errors];
+  const nonDefaultStatuses = allResponses
+    .filter((r) => r.key !== 'default')
+    .map((r) => r.key);
+  const responseDataTypes = allResponses
+    .map(
+      (r) => `export type ${responseTypeName}${pascal(r.key)} = {
+  ${isContentTypeNdJson(r.contentType) ? 'stream: Response' : `data: ${r.value || 'unknown'}`}
+  status: ${
+    r.key === 'default'
+      ? nonDefaultStatuses.length
+        ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
+        : 'number'
+      : r.key
+  }
+}`,
+    )
+    .join('\n\n');
+
+  const compositeName = `${responseTypeName}Composite`;
+  const compositeResponse = `${compositeName} = ${allResponses.map((r) => `${responseTypeName}${pascal(r.key)}`).join(' | ')}`;
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
-    ? `export type ${responseTypeName} = {
-  ${isNdJson ? 'stream: Response' : `data: ${responseDataType}`};
-  status: number;
+    ? `${responseDataTypes}
+    
+export type ${compositeResponse};
+    
+export type ${responseTypeName} = ${compositeName} & {
   headers: Headers;
 }\n\n`
     : '';
@@ -249,8 +260,27 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   };
 };
 
+const getHTTPStatusCodes = () => `
+export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
+export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
+export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
+export type HTTPStatusCode4xx = 400 | 401 | 402 | 403 | 404 | 405 | 406 | 407 | 408 | 409 | 410 | 411 | 412 | 413 | 414 | 415 | 416 | 417 | 418 | 419 | 420 | 421 | 422 | 423 | 424 | 426 | 428 | 429 | 431 | 451;
+export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
+export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatusCode3xx | HTTPStatusCode4xx | HTTPStatusCode5xx;
+
+`;
+
+export const generateFetchHeader: ClientHeaderBuilder = ({
+  clientImplementation,
+}) => {
+  return clientImplementation.includes('<HTTPStatusCodes,')
+    ? getHTTPStatusCodes()
+    : '';
+};
+
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
+  header: generateFetchHeader,
   dependencies: () => [],
 };
 

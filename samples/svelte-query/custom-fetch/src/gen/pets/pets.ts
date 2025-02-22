@@ -55,12 +55,59 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
 
 type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];
 
+export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
+export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
+export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
+export type HTTPStatusCode4xx =
+  | 400
+  | 401
+  | 402
+  | 403
+  | 404
+  | 405
+  | 406
+  | 407
+  | 408
+  | 409
+  | 410
+  | 411
+  | 412
+  | 413
+  | 414
+  | 415
+  | 416
+  | 417
+  | 418
+  | 419
+  | 420
+  | 421
+  | 422
+  | 423
+  | 424
+  | 426
+  | 428
+  | 429
+  | 431
+  | 451;
+export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
+export type HTTPStatusCodes =
+  | HTTPStatusCode1xx
+  | HTTPStatusCode2xx
+  | HTTPStatusCode3xx
+  | HTTPStatusCode4xx
+  | HTTPStatusCode5xx;
+
 /**
  * @summary List all pets
  */
-export type listPetsResponse = {
+export type listPetsResponse200 = {
   data: Pets;
-  status: number;
+  status: 200;
+};
+
+export type listPetsResponseComposite = listPetsResponse200;
+
+export type listPetsResponse = listPetsResponseComposite & {
   headers: Headers;
 };
 
@@ -161,9 +208,21 @@ export function createListPets<
 /**
  * @summary Create a pet
  */
-export type createPetsResponse = {
-  data: Pet | Error;
-  status: number;
+export type createPetsResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type createPetsResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type createPetsResponseComposite =
+  | createPetsResponse200
+  | createPetsResponseDefault;
+
+export type createPetsResponse = createPetsResponseComposite & {
   headers: Headers;
 };
 
@@ -251,9 +310,21 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
 /**
  * @summary Update a pet
  */
-export type updatePetsResponse = {
-  data: Pet | Error;
-  status: number;
+export type updatePetsResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type updatePetsResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type updatePetsResponseComposite =
+  | updatePetsResponse200
+  | updatePetsResponseDefault;
+
+export type updatePetsResponse = updatePetsResponseComposite & {
   headers: Headers;
 };
 
@@ -341,9 +412,21 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(options?: {
 /**
  * @summary Info for a specific pet
  */
-export type showPetByIdResponse = {
-  data: Pet | Error;
-  status: number;
+export type showPetByIdResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type showPetByIdResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type showPetByIdResponseComposite =
+  | showPetByIdResponse200
+  | showPetByIdResponseDefault;
+
+export type showPetByIdResponse = showPetByIdResponseComposite & {
   headers: Headers;
 };
 
