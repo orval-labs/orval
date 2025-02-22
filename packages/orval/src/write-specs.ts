@@ -219,9 +219,10 @@ export const writeSpecs = async (
       const Application = await getTypedocApplication();
       const app = await Application.bootstrapWithPlugins({
         entryPoints: paths,
+        theme: 'markdown',
         // Set the custom config location if it has been provided.
         ...config,
-        plugin: ['typedoc-plugin-markdown'],
+        plugin: ['typedoc-plugin-markdown', ...(config.plugin ?? [])],
       });
       // Set defaults if the have not been provided by the external config.
       if (!app.options.isSet('readme')) {
