@@ -148,3 +148,17 @@ export const showPetByIdResponse = zod.preprocess(
         .strict(),
     ),
 );
+
+export const getCatByIdParams = zod.object({
+  cat_id: zod.string(),
+});
+
+export const getCatByIdResponse = zod.preprocess(
+  stripNill,
+  zod
+    .object({
+      petsRequested: zod.number().optional(),
+      type: zod.enum(['cat']),
+    })
+    .strict(),
+);

@@ -117,6 +117,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /cats/{cat_id}:
+    get:
+      summary: Get information about a specific cat
+      operationId: getCatById
+      tags:
+        - cats
+      parameters:
+        - name: cat_id
+          in: path
+          required: true
+          description: The ID of the cat to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response with cat information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cat'
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     Pet:
@@ -137,6 +163,17 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Pet'
+    Cat:
+      type: object
+      required: ['type']
+      properties:
+        petsRequested:
+          type: integer
+          readOnly: true
+        type:
+          type: string
+          enum:
+            - cat
     Error:
       type: object
       required:
