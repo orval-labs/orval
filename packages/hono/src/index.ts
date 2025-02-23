@@ -389,23 +389,24 @@ ${getHonoHandlers({
           };
         }
 
-        const outputRelativePath = `./${kebab(tag)}`;
-
         let validatorImport = '';
         if (hasZValidator) {
           if (output.override.hono.validator === true) {
-            const validatorPath = output.override.hono.validatorOutputPath
-              ? getValidatorOutputRelativePath(
-                  output.override.hono.validatorOutputPath,
-                  handlerPath,
-                )
-              : `${outputRelativePath}.validator`;
+            const validatorOutputPath =
+              output.override.hono.validatorOutputPath ||
+              `${dirname}/${filename}.validator${extension}`;
+            const validatorPath = getValidatorOutputRelativePath(
+              validatorOutputPath,
+              handlerPath,
+            );
 
             validatorImport = `\nimport { zValidator } from '${validatorPath}';`;
           } else if (output.override.hono.validator === 'hono') {
             validatorImport = `\nimport { zValidator } from '@hono/zod-validator';`;
           }
         }
+
+        const outputRelativePath = `./${kebab(tag)}`;
 
         const zodImports = output.override.hono.validator
           ? getZvalidatorImports(
