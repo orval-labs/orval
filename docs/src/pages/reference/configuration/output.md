@@ -616,6 +616,8 @@ The `docs` option can take some properties to customize the generation if you se
 
 When no output directory destination is specified in `config`, the file will be output to the `docs` directory by default.
 
+For example configuration, see this [sample](https://github.com/orval-labs/orval/tree/master/samples/react-app/orval.config.ts).
+
 #### configPath
 
 Type: `String`.

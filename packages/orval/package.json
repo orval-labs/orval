@@ -51,7 +51,8 @@
   "devDependencies": {
     "@types/inquirer": "^9.0.6",
     "@types/js-yaml": "^4.0.8",
-    "@types/lodash.uniq": "^4.5.8"
+    "@types/lodash.uniq": "^4.5.8",
+    "typedoc-plugin-coverage": "^3.4.1"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.0",

@@ -7426,6 +7426,7 @@ __metadata:
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^2.0.1"
     typedoc: "npm:^0.27.7"
+    typedoc-plugin-coverage: "npm:^3.4.1"
     typedoc-plugin-markdown: "npm:^4.4.2"
     typescript: "npm:^5.6.3"
   bin:
@@ -9422,6 +9423,15 @@ __metadata:
   version: 0.0.6
   resolution: "typedarray@npm:0.0.6"
   checksum: 10c0/6005cb31df50eef8b1f3c780eb71a17925f3038a100d82f9406ac2ad1de5eb59f8e6decbdc145b3a1f8e5836e17b0c0002fb698b9fe2516b8f9f9ff602d36412
+  languageName: node
+  linkType: hard
+
+"typedoc-plugin-coverage@npm:^3.4.1":
+  version: 3.4.1
+  resolution: "typedoc-plugin-coverage@npm:3.4.1"
+  peerDependencies:
+    typedoc: 0.25.x || 0.26.x || 0.27.x
+  checksum: 10c0/cc7f24b4fad73e5e3af064fdb4ff2b7353b3069c47224504ab7ce25defd8c0f0c3710d53743e84da8a75db89139bfd0fbb444f57a205cf2c5a1bb4a820c2a6d7
   languageName: node
   linkType: hard
 

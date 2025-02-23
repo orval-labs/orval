@@ -51,4 +51,37 @@ export default defineConfig({
       },
     },
   },
+  'petstore-file-with-docs-markdown': {
+    input: './petstore.yaml',
+    output: {
+      target: 'src/api/endpoints/petstoreFromFileSpecWithDocsMarkdown.ts',
+      docs: {
+        out: './docs-markdown',
+        disableSources: true,
+      },
+    },
+  },
+  'petstore-file-with-docs-html': {
+    input: './petstore.yaml',
+    output: {
+      target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtml.ts',
+      docs: {
+        theme: 'default',
+        out: './docs-html',
+        disableSources: true,
+      },
+    },
+  },
+  'petstore-file-with-docs-options-plugin': {
+    input: './petstore.yaml',
+    output: {
+      target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtmlPlugin.ts',
+      docs: {
+        theme: 'default',
+        out: './docs-html-plugin',
+        plugin: ['typedoc-plugin-coverage'],
+        disableSources: true,
+      },
+    },
+  },
 });
