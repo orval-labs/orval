@@ -51,12 +51,3 @@ export const showPetByIdResponse = zod.object({
   name: zod.string(),
   tag: zod.string(),
 });
-
-export const getCatByIdParams = zod.object({
-  cat_id: zod.string(),
-});
-
-export const getCatByIdResponse = zod.object({
-  petsRequested: zod.number().optional(),
-  type: zod.enum(['cat']),
-});

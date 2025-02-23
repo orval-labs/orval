@@ -10,7 +10,6 @@ import { listPetsHandlers } from './handlers/listPets';
 import { createPetsHandlers } from './handlers/createPets';
 import { updatePetsHandlers } from './handlers/updatePets';
 import { showPetByIdHandlers } from './handlers/showPetById';
-import { getCatByIdHandlers } from './handlers/getCatById';
 
 const app = new Hono();
 
@@ -37,11 +36,5 @@ app.put('/pets', ...updatePetsHandlers);
  */
 
 app.get('/pets/:petId', ...showPetByIdHandlers);
-
-/**
- * @summary Get information about a specific cat
- */
-
-app.get('/cats/:cat_id', ...getCatByIdHandlers);
 
 export default app;
