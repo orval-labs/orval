@@ -3666,6 +3666,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hono/composite-routes-with-tags-split@workspace:hono/composite-routes-with-tags-split":
+  version: 0.0.0-use.local
+  resolution: "@hono/composite-routes-with-tags-split@workspace:hono/composite-routes-with-tags-split"
+  dependencies:
+    "@cloudflare/workers-types": "npm:^4.20240529.0"
+    hono: "npm:^4.5.8"
+    orval: "link:../../../packages/orval/dist"
+    wrangler: "npm:^3.57.2"
+  languageName: unknown
+  linkType: soft
+
 "@hono/zod-validator@npm:^0.2.0":
   version: 0.2.1
   resolution: "@hono/zod-validator@npm:0.2.1"
@@ -17516,6 +17527,12 @@ __metadata:
   checksum: 10c0/10ff14aace236d0e2f044193362b22edce4784add08b779eccc8f8ef97195cae1248db8ec1ec5f5ff076f91acbe573f5f42a98c19b78dba8c54eefff983cae85
   languageName: node
   linkType: hard
+
+"orval@link:../../../packages/orval/dist::locator=%40hono%2Fcomposite-routes-with-tags-split%40workspace%3Ahono%2Fcomposite-routes-with-tags-split":
+  version: 0.0.0-use.local
+  resolution: "orval@link:../../../packages/orval/dist::locator=%40hono%2Fcomposite-routes-with-tags-split%40workspace%3Ahono%2Fcomposite-routes-with-tags-split"
+  languageName: node
+  linkType: soft
 
 "orval@link:../../../packages/orval/dist::locator=hono-with-fetch-client%40workspace%3Ahono%2Fhono-with-fetch-client":
   version: 0.0.0-use.local
