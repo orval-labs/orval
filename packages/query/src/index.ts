@@ -1092,10 +1092,12 @@ const generateQueryHook = async (
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
-  const hasQueryV5WithDataTagError = isQueryV5WithDataTagError(
-    context.output.packageJson,
-    outputClient as 'react-query' | 'vue-query' | 'svelte-query',
-  );
+  const hasQueryV5WithDataTagError =
+    query.version === 5 ||
+    isQueryV5WithDataTagError(
+      context.output.packageJson,
+      outputClient as 'react-query' | 'vue-query' | 'svelte-query',
+    );
 
   const httpClient = context.output.httpClient;
   const doc = jsDoc({ summary, deprecated });
