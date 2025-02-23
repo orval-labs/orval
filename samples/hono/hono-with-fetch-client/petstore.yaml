@@ -137,17 +137,6 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/Pet'
-    Cat:
-      type: object
-      required: ['type']
-      properties:
-        petsRequested:
-          type: integer
-          readOnly: true
-        type:
-          type: string
-          enum:
-            - cat
     Error:
       type: object
       required:

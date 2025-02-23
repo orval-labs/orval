@@ -5,8 +5,6 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export * from './cat';
-export * from './catType';
 export * from './createPetsBodyItem';
 export * from './error';
 export * from './listPetsParams';
