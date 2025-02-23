@@ -57,7 +57,7 @@ export function Playground({ height }) {
 
   return (
     <div>
-      <div className="mx-auto mb-4 w-1/2">
+      <div className="mx-auto mb-4 w-1/2 relative z-20">
         <h3 className="mb-2 text-center">Choose Live Example:</h3>
         <Select
           isSearchable={false}
