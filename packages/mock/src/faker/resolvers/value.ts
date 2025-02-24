@@ -163,11 +163,6 @@ export const resolveMockValue = ({
         specKey: isRootKey(specKey, context.target) ? undefined : specKey,
       });
     }
-
-    if (scalar.value && newSchema.allOf && combine?.separator === 'anyOf') {
-      scalar.value = `{${scalar.value}}`;
-    }
-
     return {
       ...scalar,
       type: newSchema.type as string,

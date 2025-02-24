@@ -108,6 +108,14 @@ export default defineConfig({
       mock: true,
     },
   },
+  'all-of-all-of': {
+    input: '../specifications/all-of-all-of.yaml',
+    output: {
+      schemas: '../generated/default/all-of-all-of/model',
+      target: '../generated/default/all-of-all-of/endpoints.ts',
+      mock: true,
+    },
+  },
   'all-of-primitive': {
     input: '../specifications/all-of-primitive.yaml',
     output: {
