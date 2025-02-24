@@ -1454,7 +1454,7 @@ export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   }
 ${
   params.isRequestOptions && params.isMutator
-    ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
+    ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
 ${getQueryHeader(params)}

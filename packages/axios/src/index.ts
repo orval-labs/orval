@@ -196,7 +196,7 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
 }) => `
 ${
   isRequestOptions && isMutator
-    ? `type SecondParameter<T extends (...args: any) => any> = Parameters<T>[1];\n\n`
+    ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
   ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
