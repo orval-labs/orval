@@ -16,7 +16,6 @@ const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
 const generateTargetTags = (
   currentAcc: { [key: string]: GeneratorTargetFull },
   operation: GeneratorOperation,
-  options: NormalizedOutputOptions,
 ): {
   [key: string]: GeneratorTargetFull;
 } => {
@@ -99,7 +98,7 @@ export const generateTargetForTags = (
     .map(addDefaultTagIfEmpty)
     .reduce(
       (acc, operation, index, arr) => {
-        const targetTags = generateTargetTags(acc, operation, options);
+        const targetTags = generateTargetTags(acc, operation);
 
         if (index === arr.length - 1) {
           return Object.entries(targetTags).reduce<
@@ -109,7 +108,10 @@ export const generateTargetForTags = (
               isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
             );
             const operationNames = Object.values(builder.operations)
-              .filter(({ tags }) => tags.map(kebab).includes(kebab(tag)))
+              // Operations can have multiple tags, but they are grouped by the first
+              // tag, therefore we only want to handle the case where the tag
+              // is the first in the list of tags.
+              .filter(({ tags }) => tags.map(kebab).indexOf(kebab(tag)) === 0)
               .map(({ operationName }) => operationName);
 
             const typescriptVersion =

@@ -21,6 +21,32 @@ paths:
             application/hal+json:
               schema:
                 $ref: '#/components/schemas/Pets'
+  /pets2:
+    get:
+      summary: List all pets
+      operationId: listPets2
+      tags:
+        - cats
+      responses:
+        '200':
+          description: A paged array of pets
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+  /pets3:
+    get:
+      summary: List all pets
+      operationId: listPets3
+      tags:
+        - dogs
+      responses:
+        '200':
+          description: A paged array of pets
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Pets'
 components:
   schemas:
     Pets:
