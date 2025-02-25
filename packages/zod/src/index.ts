@@ -466,9 +466,19 @@ export const parseZodValidationSchemaDefinition = (
     const [fn, args = ''] = property;
     if (fn === 'allOf') {
       return args.reduce(
-        (acc: string, { functions }: { functions: [string, any][] }) => {
+        (
+          acc: string,
+          {
+            functions,
+            consts: argConsts,
+          }: { functions: [string, any][]; consts: string[] },
+        ) => {
           const value = functions.map(parseProperty).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+
+          if (argConsts.length) {
+            consts += argConsts.join('\n');
+          }
 
           if (!acc) {
             acc += valueWithZod;
