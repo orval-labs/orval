@@ -9,7 +9,6 @@ import {
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
-  getFileInfo,
   getNumberWord,
   getRefInfo,
   isBoolean,
@@ -454,7 +453,7 @@ export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
-  preprocessResponse?: GeneratorMutator,
+  preprocess?: GeneratorMutator,
 ): { zod: string; consts: string } => {
   if (!input.functions.length) {
     return { zod: '', consts: '' };
@@ -592,8 +591,8 @@ ${Object.entries(args)
   consts += input.consts.join('\n');
 
   const schema = input.functions.map(parseProperty).join('');
-  const value = preprocessResponse
-    ? `.preprocess(${preprocessResponse.name}, ${
+  const value = preprocess
+    ? `.preprocess(${preprocess.name}, ${
         schema.startsWith('.') ? 'zod' : ''
       }${schema})`
     : schema;
@@ -946,10 +945,21 @@ const generateZodRoute = async (
     }),
   );
 
+  const preprocessParams = override.zod.preprocess?.param
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessParams`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
   const inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
     context,
     override.zod.coerce.param,
+    preprocessParams,
   );
 
   if (override.coerceTypes) {
@@ -958,21 +968,55 @@ const generateZodRoute = async (
     );
   }
 
+  const preprocessQueryParams = override.zod.preprocess?.query
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessQueryParams`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
     override.zod.coerce.query ?? override.coerceTypes,
+    preprocessQueryParams,
   );
+
+  const preprocessHeader = override.zod.preprocess?.header
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessHeader`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
   const inputHeaders = parseZodValidationSchemaDefinition(
     parsedParameters.headers,
     context,
     override.zod.coerce.header,
+    preprocessHeader,
   );
+
+  const preprocessBody = override.zod.preprocess?.body
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessBody`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
 
   const inputBody = parseZodValidationSchemaDefinition(
     parsedBody.input,
     context,
     override.zod.coerce.body,
+    preprocessBody,
   );
 
   const preprocessResponse = override.zod.preprocess?.response
