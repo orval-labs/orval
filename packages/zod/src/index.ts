@@ -1,5 +1,3 @@
-feat(zod): generate min max values of array items when using allOf
-
 import {
   camel,
   ClientBuilder,
