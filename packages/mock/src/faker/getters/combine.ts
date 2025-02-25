@@ -123,11 +123,14 @@ export const combineSchemasMock = ({
         containsOnlyPrimitiveValues = false;
         return acc;
       }
-      if (resolvedValue.value.startsWith('{')) {
-        containsOnlyPrimitiveValues = false;
-        return `${acc}${separator === 'allOf' ? '...' : ''}${resolvedValue.value},`;
-      } else if (resolvedValue.type === 'object') {
-        containsOnlyPrimitiveValues = false;
+      if (separator === 'allOf') {
+        if (resolvedValue.value.startsWith('{') || !resolvedValue.type) {
+          containsOnlyPrimitiveValues = false;
+          return `${acc}...${resolvedValue.value},`;
+        } else if (resolvedValue.type === 'object') {
+          containsOnlyPrimitiveValues = false;
+          return `${acc}...{${resolvedValue.value}},`;
+        }
       }
       return `${acc}${resolvedValue.value},`;
     },
@@ -136,9 +139,13 @@ export const combineSchemasMock = ({
   let finalValue =
     value === 'undefined'
       ? value
-      : `${combine ? '...' : ''}${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
+      : `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
-    finalValue = `{${finalValue.startsWith('...') ? '' : '...'}${finalValue}, ${itemResolvedValue.value}}`;
+    if (finalValue.startsWith('...')) {
+      finalValue = `...{${finalValue}, ${itemResolvedValue.value}}`;
+    } else {
+      finalValue = `{...${finalValue}, ${itemResolvedValue.value}}`;
+    }
   }
   if (finalValue.endsWith(',')) {
     finalValue = finalValue.substring(0, finalValue.length - 1);
