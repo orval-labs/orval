@@ -120,12 +120,28 @@ export default defineConfig({
               name: 'stripNill',
               path: '../mutators/zod-preprocess.ts',
             },
+            query: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+            param: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+            header: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+            body: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
           },
         },
       },
     },
     input: {
-      target: '../specifications/circular.yaml',
+      target: '../specifications/petstore.yaml',
     },
   },
   additionalProperties: {
