@@ -128,7 +128,7 @@ export const getObject = ({
           isReadOnly && !context.output.override.suppressReadonlyModifier
             ? 'readonly '
             : ''
-        }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
+        }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.isEnum && context.output.override.useNativeEnums ? `(keyof typeof ${resolvedValue.value})` : resolvedValue.value};`;
         acc.schemas.push(...resolvedValue.schemas);
 
         if (arr.length - 1 === index) {

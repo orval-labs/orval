@@ -12,9 +12,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DogGroup'
+                $ref: '#/components/schemas/Cat'
   /api/required-cat:
     get:
       summary: sample required cat
@@ -77,11 +75,6 @@ components:
           type: array
           items:
             type: string
-            x-enumNames:
-              - Black
-              - Brown
-              - White
-              - Grey
             enum:
               - BLACK
               - BROWN
