@@ -2,6 +2,7 @@ import {
   ContextSpecs,
   escape,
   GeneratorImport,
+  isReference,
   isRootKey,
   mergeDeep,
   MockOptions,
@@ -138,21 +139,38 @@ export const getMockScalar = ({
         `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
         item.nullable,
       );
+      let numberImports: GeneratorImport[] = [];
       if (item.enum) {
-        value = getEnum(
-          item,
-          imports,
-          context,
-          existingReferencedProperties,
-          'number',
-        );
+        // By default the value isn't a reference, so we don't have the object explicitly defined.
+        // So we have to create an array with the enum values and force them to be a const.
+        const joinedEnumValues = item.enum.filter(Boolean).join(',');
+
+        let enumValue = `[${joinedEnumValues}] as const`;
+
+        // But if the value is a reference, we can use the object directly via the imports and using Object.values.
+        if (item.isRef) {
+          enumValue = `Object.values(${item.name})`;
+          numberImports = [
+            {
+              name: item.name,
+              values: true,
+              ...(!isRootKey(context.specKey, context.target)
+                ? { specKey: context.specKey }
+                : {}),
+            },
+          ];
+        }
+
+        value = item.path?.endsWith('[]')
+          ? `faker.helpers.arrayElements(${enumValue})`
+          : `faker.helpers.arrayElement(${enumValue})`;
       } else if ('const' in item) {
         value = '' + (item as SchemaObject31).const;
       }
       return {
         value,
         enums: item.enum,
-        imports,
+        imports: numberImports,
         name: item.name,
       };
     }
@@ -187,6 +205,7 @@ export const getMockScalar = ({
         value,
         enums,
         imports: resolvedImports,
+        name,
       } = resolveMockValue({
         schema: {
           ...item.items,
@@ -204,9 +223,32 @@ export const getMockScalar = ({
       });
 
       if (enums) {
+        if (!isReference(item.items)) {
+          return {
+            value,
+            imports: resolvedImports,
+            name: item.name,
+          };
+        }
+
+        const enumImp = imports.find(
+          (imp) => name.replace('[]', '') === imp.name,
+        );
+        const enumValue = enumImp?.name || name;
         return {
-          value,
-          imports: resolvedImports,
+          value: `faker.helpers.arrayElements(Object.values(${enumValue}))`,
+          imports: enumImp
+            ? [
+                ...resolvedImports,
+                {
+                  ...enumImp,
+                  values: true,
+                  ...(!isRootKey(context.specKey, context.target)
+                    ? { specKey: context.specKey }
+                    : {}),
+                },
+              ]
+            : resolvedImports,
           name: item.name,
         };
       }
@@ -230,15 +272,35 @@ export const getMockScalar = ({
 
     case 'string': {
       let value = 'faker.string.alpha(20)';
+      let imports: GeneratorImport[] = [];
 
       if (item.enum) {
-        value = getEnum(
-          item,
-          imports,
-          context,
-          existingReferencedProperties,
-          'string',
-        );
+        // By default the value isn't a reference, so we don't have the object explicitly defined.
+        // So we have to create an array with the enum values and force them to be a const.
+        const joindEnumValues = item.enum
+          .filter(Boolean)
+          .map((e) => escape(e))
+          .join("','");
+
+        let enumValue = `['${joindEnumValues}'] as const`;
+
+        // But if the value is a reference, we can use the object directly via the imports and using Object.values.
+        if (item.isRef) {
+          enumValue = `Object.values(${item.name})`;
+          imports = [
+            {
+              name: item.name,
+              values: true,
+              ...(!isRootKey(context.specKey, context.target)
+                ? { specKey: context.specKey }
+                : {}),
+            },
+          ];
+        }
+
+        value = item.path?.endsWith('[]')
+          ? `faker.helpers.arrayElements(${enumValue})`
+          : `faker.helpers.arrayElement(${enumValue})`;
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
       } else if ('const' in item) {
@@ -293,70 +355,3 @@ function getItemType(item: MockSchemaObject) {
   if (!type) return;
   return ['string', 'number'].includes(type) ? type : undefined;
 }
-
-const getEnum = (
-  item: MockSchemaObject,
-  imports: GeneratorImport[],
-  context: ContextSpecs,
-  existingReferencedProperties: string[],
-  type: 'string' | 'number',
-) => {
-  if (!item.enum) return '';
-  const joindEnumValues =
-    type === 'string'
-      ? `'${item.enum
-          .filter((e) => e !== null)
-          .map((e) => escape(e))
-          .join("','")}'`
-      : item.enum.filter((e) => e !== null);
-
-  let enumValue = `[${joindEnumValues}]`;
-  if (context.output.override.useNativeEnums) {
-    if (item.isRef) {
-      enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
-      imports.push({
-        name: item.name,
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
-      });
-    } else if (existingReferencedProperties.length > 0) {
-      enumValue += ` as ${existingReferencedProperties[existingReferencedProperties.length - 1]}['${item.name}']`;
-      if (!item.path?.endsWith('[]')) enumValue += '[]';
-      imports.push({
-        name: existingReferencedProperties[
-          existingReferencedProperties.length - 1
-        ],
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
-      });
-    } else {
-      enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
-      imports.push({
-        name: item.name,
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
-      });
-    }
-  } else {
-    enumValue += ' as const';
-  }
-
-  // But if the value is a reference, we can use the object directly via the imports and using Object.values.
-  if (item.isRef && type === 'string') {
-    enumValue = `Object.values(${item.name})`;
-    imports.push({
-      name: item.name,
-      values: true,
-      ...(!isRootKey(context.specKey, context.target)
-        ? { specKey: context.specKey }
-        : {}),
-    });
-  }
-
-  return item.path?.endsWith('[]')
-    ? `faker.helpers.arrayElements(${enumValue})`
-    : `faker.helpers.arrayElement(${enumValue})`;
-};
