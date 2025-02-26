@@ -26,6 +26,7 @@ import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { getRoute } from './route';
+import { uniqBy } from './utils/uniqBy';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -621,7 +622,7 @@ const generateContext = async (
 
         const contexts = verbs.map((verb) => getContext(verb)).join('\n');
 
-        const imps = verbs
+        let imps = verbs
           .flatMap((verb) => {
             const imports: GeneratorImport[] = [];
             if (verb.params.length) {
@@ -641,6 +642,8 @@ const generateContext = async (
             return imports;
           })
           .filter((imp) => contexts.includes(imp.name));
+
+        imps = uniqBy(imps, 'name');
 
         if (contexts.includes('NonReadonly<')) {
           content += getOrvalGeneratedTypes();
@@ -676,7 +679,7 @@ const generateContext = async (
     .map((verbOption) => getContext(verbOption))
     .join('\n');
 
-  const imps = Object.values(verbOptions)
+  let imps = Object.values(verbOptions)
     .flatMap((verb) => {
       const imports: GeneratorImport[] = [];
       if (verb.params.length) {
@@ -696,6 +699,8 @@ const generateContext = async (
       return imports;
     })
     .filter((imp) => contexts.includes(imp.name));
+
+  imps = uniqBy(imps, 'name');
 
   if (contexts.includes('NonReadonly<')) {
     content += getOrvalGeneratedTypes();
