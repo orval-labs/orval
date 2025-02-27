@@ -26,7 +26,6 @@ import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { getRoute } from './route';
-import { uniqBy } from './utils/uniqBy';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
   {
