@@ -640,7 +640,10 @@ const generateContext = async (
 
             return imports;
           })
-          .filter((imp) => contexts.includes(imp.name));
+          .filter((imp) => contexts.includes(imp.name))
+          .filter(
+            (imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i,
+          );
 
         if (contexts.includes('NonReadonly<')) {
           content += getOrvalGeneratedTypes();
@@ -695,7 +698,8 @@ const generateContext = async (
 
       return imports;
     })
-    .filter((imp) => contexts.includes(imp.name));
+    .filter((imp) => contexts.includes(imp.name))
+    .filter((imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i);
 
   if (contexts.includes('NonReadonly<')) {
     content += getOrvalGeneratedTypes();
