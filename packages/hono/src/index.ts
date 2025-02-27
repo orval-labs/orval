@@ -622,7 +622,7 @@ const generateContext = async (
 
         const contexts = verbs.map((verb) => getContext(verb)).join('\n');
 
-        let imps = verbs
+        const imps = verbs
           .flatMap((verb) => {
             const imports: GeneratorImport[] = [];
             if (verb.params.length) {
@@ -641,9 +641,10 @@ const generateContext = async (
 
             return imports;
           })
-          .filter((imp) => contexts.includes(imp.name));
-
-        imps = uniqBy(imps, 'name');
+          .filter((imp) => contexts.includes(imp.name))
+          .filter(
+            (imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i,
+          );
 
         if (contexts.includes('NonReadonly<')) {
           content += getOrvalGeneratedTypes();
@@ -679,7 +680,7 @@ const generateContext = async (
     .map((verbOption) => getContext(verbOption))
     .join('\n');
 
-  let imps = Object.values(verbOptions)
+  const imps = Object.values(verbOptions)
     .flatMap((verb) => {
       const imports: GeneratorImport[] = [];
       if (verb.params.length) {
@@ -698,9 +699,8 @@ const generateContext = async (
 
       return imports;
     })
-    .filter((imp) => contexts.includes(imp.name));
-
-  imps = uniqBy(imps, 'name');
+    .filter((imp) => contexts.includes(imp.name))
+    .filter((imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i);
 
   if (contexts.includes('NonReadonly<')) {
     content += getOrvalGeneratedTypes();
