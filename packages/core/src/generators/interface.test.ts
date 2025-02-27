@@ -50,4 +50,27 @@ export type TestSchema = typeof TestSchemaValue;
     ];
     expect(got).toEqual(want);
   });
+
+  it('should return type', () => {
+    const schema: SchemaObject31 = {
+      type: 'object',
+      properties: {},
+      required: ['message', 'code'],
+    };
+
+    const got = generateInterface({
+      name: 'TestSchema',
+      context,
+      schema: schema as unknown as SchemaObject30,
+      suffix: '',
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'TestSchema',
+        model: `export interface TestSchema { [key: string]: unknown }\n`,
+        imports: [],
+      },
+    ];
+    expect(got).toEqual(want);
+  });
 });
