@@ -78,6 +78,8 @@ export const getRefInfo = (
       name: sanitize(pascal(originalName) + suffix, {
         es5keyword: true,
         es5IdentifierName: true,
+        underscore: true,
+        dash: true,
       }),
       originalName,
       refPaths,
@@ -92,6 +94,8 @@ export const getRefInfo = (
     name: sanitize(pascal(originalName) + suffix, {
       es5keyword: true,
       es5IdentifierName: true,
+      underscore: true,
+      dash: true,
     }),
     originalName,
     specKey: path,
