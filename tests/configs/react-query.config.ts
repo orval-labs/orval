@@ -447,4 +447,15 @@ export default defineConfig({
       },
     },
   },
+  specialCharacters: {
+    output: {
+      target: '../generated/react-query/special-characters/endpoints.ts',
+      schemas: '../generated/react-query/special-characters/model',
+      client: 'react-query',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/models-with-special-char.yaml',
+    },
+  },
 });
