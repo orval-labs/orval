@@ -70,7 +70,7 @@ export const generateSpecs = async (
   }
 
   let hasErrors: true | undefined;
-  const accumulate = asyncReduce(
+  const accumulate = await asyncReduce(
     Object.entries(config),
     async (acc, [projectName, options]) => {
       try {
