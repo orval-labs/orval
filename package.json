@@ -29,7 +29,7 @@
     "@commitlint/cli": "^19.3.0",
     "@commitlint/config-conventional": "^19.7.1",
     "@eslint/eslintrc": "^3.2.0",
-    "@eslint/js": "^9.17.0",
+    "@eslint/js": "^9.21.0",
     "@faker-js/faker": "^8.4.0",
     "@release-it-plugins/workspaces": "^4.2.0",
     "@release-it/conventional-changelog": "^8.0.1",
