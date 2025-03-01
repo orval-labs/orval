@@ -51,7 +51,18 @@ const combineValues = ({
   }
 
   if (separator === 'allOf') {
-    const joined = `${resolvedData.values.join(` & `)}${
+    let resolvedDataValue = resolvedData.values.join(` & `);
+    if (resolvedData.originalSchema.length > 0 && resolvedValue) {
+      const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
+        (s) =>
+          s?.discriminator &&
+          resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
+      ) as SchemaObject[];
+      if (discriminatedPropertySchemas.length > 0) {
+        resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
+      }
+    }
+    const joined = `${resolvedDataValue}${
       resolvedValue ? ` & ${resolvedValue.value}` : ''
     }`;
 
