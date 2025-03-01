@@ -1314,7 +1314,7 @@ __metadata:
     esbuild: "npm:^0.25.0"
     esutils: "npm:2.0.3"
     fs-extra: "npm:^11.2.0"
-    globby: "npm:11.1.0"
+    globby: "npm:14.1.0"
     lodash.isempty: "npm:^4.4.0"
     lodash.uniq: "npm:^4.5.0"
     lodash.uniqby: "npm:^4.7.0"
@@ -4850,6 +4850,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fast-glob@npm:^3.3.3":
+  version: 3.3.3
+  resolution: "fast-glob@npm:3.3.3"
+  dependencies:
+    "@nodelib/fs.stat": "npm:^2.0.2"
+    "@nodelib/fs.walk": "npm:^1.2.3"
+    glob-parent: "npm:^5.1.2"
+    merge2: "npm:^1.3.0"
+    micromatch: "npm:^4.0.8"
+  checksum: 10c0/f6aaa141d0d3384cf73cbcdfc52f475ed293f6d5b65bfc5def368b09163a9f7e5ec2b3014d80f733c405f58e470ee0cc451c2937685045cddcdeaa24199c43fe
+  languageName: node
+  linkType: hard
+
 "fast-json-stable-stringify@npm:^2.0.0":
   version: 2.1.0
   resolution: "fast-json-stable-stringify@npm:2.1.0"
@@ -5291,20 +5304,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globby@npm:11.1.0, globby@npm:^11.1.0":
-  version: 11.1.0
-  resolution: "globby@npm:11.1.0"
-  dependencies:
-    array-union: "npm:^2.1.0"
-    dir-glob: "npm:^3.0.1"
-    fast-glob: "npm:^3.2.9"
-    ignore: "npm:^5.2.0"
-    merge2: "npm:^1.4.1"
-    slash: "npm:^3.0.0"
-  checksum: 10c0/b39511b4afe4bd8a7aead3a27c4ade2b9968649abab0a6c28b1a90141b96ca68ca5db1302f7c7bd29eab66bf51e13916b8e0a3d0ac08f75e1e84a39b35691189
-  languageName: node
-  linkType: hard
-
 "globby@npm:14.0.2":
   version: 14.0.2
   resolution: "globby@npm:14.0.2"
@@ -5316,6 +5315,34 @@ __metadata:
     slash: "npm:^5.1.0"
     unicorn-magic: "npm:^0.1.0"
   checksum: 10c0/3f771cd683b8794db1e7ebc8b6b888d43496d93a82aad4e9d974620f578581210b6c5a6e75ea29573ed16a1345222fab6e9b877a8d1ed56eeb147e09f69c6f78
+  languageName: node
+  linkType: hard
+
+"globby@npm:14.1.0":
+  version: 14.1.0
+  resolution: "globby@npm:14.1.0"
+  dependencies:
+    "@sindresorhus/merge-streams": "npm:^2.1.0"
+    fast-glob: "npm:^3.3.3"
+    ignore: "npm:^7.0.3"
+    path-type: "npm:^6.0.0"
+    slash: "npm:^5.1.0"
+    unicorn-magic: "npm:^0.3.0"
+  checksum: 10c0/527a1063c5958255969620c6fa4444a2b2e9278caddd571d46dfbfa307cb15977afb746e84d682ba5b6c94fc081e8997f80ff05dd235441ba1cb16f86153e58e
+  languageName: node
+  linkType: hard
+
+"globby@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "globby@npm:11.1.0"
+  dependencies:
+    array-union: "npm:^2.1.0"
+    dir-glob: "npm:^3.0.1"
+    fast-glob: "npm:^3.2.9"
+    ignore: "npm:^5.2.0"
+    merge2: "npm:^1.4.1"
+    slash: "npm:^3.0.0"
+  checksum: 10c0/b39511b4afe4bd8a7aead3a27c4ade2b9968649abab0a6c28b1a90141b96ca68ca5db1302f7c7bd29eab66bf51e13916b8e0a3d0ac08f75e1e84a39b35691189
   languageName: node
   linkType: hard
 
@@ -5544,6 +5571,13 @@ __metadata:
   version: 5.3.1
   resolution: "ignore@npm:5.3.1"
   checksum: 10c0/703f7f45ffb2a27fb2c5a8db0c32e7dee66b33a225d28e8db4e1be6474795f606686a6e3bcc50e1aa12f2042db4c9d4a7d60af3250511de74620fbed052ea4cd
+  languageName: node
+  linkType: hard
+
+"ignore@npm:^7.0.3":
+  version: 7.0.3
+  resolution: "ignore@npm:7.0.3"
+  checksum: 10c0/8e21637513cbcd888a4873d34d5c651a2e24b3c4c9a6b159335a26bed348c3c386c51d6fab23577f59140e1b226323138fbd50e63882d4568fd12aa6c822029e
   languageName: node
   linkType: hard
 
@@ -7701,6 +7735,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"path-type@npm:^6.0.0":
+  version: 6.0.0
+  resolution: "path-type@npm:6.0.0"
+  checksum: 10c0/55baa8b1187d6dc683d5a9cfcc866168d6adff58e5db91126795376d818eee46391e00b2a4d53e44d844c7524a7d96aa68cc68f4f3e500d3d069a39e6535481c
+  languageName: node
+  linkType: hard
+
 "pathe@npm:^1.1.1, pathe@npm:^1.1.2":
   version: 1.1.2
   resolution: "pathe@npm:1.1.2"
@@ -9568,6 +9609,13 @@ __metadata:
   version: 0.1.0
   resolution: "unicorn-magic@npm:0.1.0"
   checksum: 10c0/e4ed0de05b0a05e735c7d8a2930881e5efcfc3ec897204d5d33e7e6247f4c31eac92e383a15d9a6bccb7319b4271ee4bea946e211bf14951fec6ff2cbbb66a92
+  languageName: node
+  linkType: hard
+
+"unicorn-magic@npm:^0.3.0":
+  version: 0.3.0
+  resolution: "unicorn-magic@npm:0.3.0"
+  checksum: 10c0/0a32a997d6c15f1c2a077a15b1c4ca6f268d574cf5b8975e778bb98e6f8db4ef4e86dfcae4e158cd4c7e38fb4dd383b93b13eefddc7f178dea13d3ac8a603271
   languageName: node
   linkType: hard
 
