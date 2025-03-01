@@ -1621,6 +1621,112 @@ Type: `String`.
 
 Give you the possibility to set base url to your mock handlers. Will override the global option.
 
+#### hono
+
+Type: `Object`
+
+Give you the possibility to override the generated `hono`
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+          validatorOutputPath: 'src/validator.ts',
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+};
+```
+
+##### handlers
+
+Type: `String`.
+
+You can specify the output path for the `hono` handler.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+        },
+      },
+    },
+  },
+};
+```
+
+Then it will be generated as below:
+
+```
+src/
+├── handlers
+│   ├── createPets.ts
+│   ├── listPets.ts
+│   ├── showPetById.ts
+│   └── updatePets.ts
+├── index.ts
+├── mutators.ts
+├── petstore.context.ts
+├── petstore.schemas.ts
+├── petstore.ts
+├── petstore.validator.ts
+└── petstore.zod.ts
+```
+
+##### validatorOutputPath
+
+Type: `String`.
+
+You can change the validator output path
+
+##### compositeRoute
+
+Type: `String`.
+
+You can output a file that defines a `hono` instance that composite routes.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+};
+```
+
+Then it will be generated as below:
+
+```
+src/
+├── endpoints
+│   ├── pets
+│   │   ├── pets.context.ts
+│   │   ├── pets.handlers.ts
+│   │   └── pets.zod.ts
+│   └── validator.ts
+├── routes.ts
+└── schemas
+    ├── pet.ts
+    └── pets.ts
+```
+
 #### components
 
 Type: `Object`.
