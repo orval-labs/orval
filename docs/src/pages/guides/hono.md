@@ -110,3 +110,87 @@ curl http://localhost:8787/pets #=> [{"id":1,"name":"doggie"}]
 ```
 
 Checkout <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-zod" target="_blank">here</a> the full example. And if you want to develop both the frontend and backend with `Typescript` using `Hono`, `fetch`, and `Next.js`, please check <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-fetch-client" target="_blank">here</a> as well.
+
+#### Using composite routes and handlers split by tags in `OpenAPI`
+
+If you want to using `tags` or `tags-split` mode, which splits handlers by tags defined in `OpenAPI`, but want to generate a composite single `hono` route file, define file path like a `src/routes.ts` to the `override.hono.compositeRoute` property and the `Hono` template generates a composite root file in the target file and directory.
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'hono',
+      target: 'src/endpoints',
+      schemas: 'src/schemas',
+      override: {
+        hono: {
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+};
+```
+
+Then it will be generated as below:
+
+```
+src/
+├── endpoints
+│   ├── pets
+│   │   ├── pets.context.ts
+│   │   ├── pets.handlers.ts
+│   │   └── pets.zod.ts
+│   └── validator.ts
+├── routes.ts
+└── schemas
+    ├── pet.ts
+    └── pets.ts
+```
+
+`routes.ts` composites all routes as shown below:
+
+```ts:routes.ts
+import { Hono } from 'hono';
+import {
+  listPetsHandlers,
+  createPetsHandlers,
+  updatePetsHandlers,
+  showPetByIdHandlers,
+} from './endpoints/pets/pets.handlers';
+
+const app = new Hono();
+
+app.get('/pets', ...listPetsHandlers);
+app.post('/pets', ...createPetsHandlers);
+app.put('/pets', ...updatePetsHandlers);
+app.get('/pets/:petId', ...showPetByIdHandlers);
+
+export default app;
+```
+
+You can prepare a hono server like `app.ts` and embed it like this:
+
+```ts:app.ts
+import { Hono } from 'hono';
+import routes from './routes';
+
+const app = new Hono();
+
+app.route('/', routes);
+
+export default app;
+```
+
+run `Hono` dev server as usual.
+
+```bash
+yarn wrangler dev src/app.ts
+curl http://localhost:8787/pets #=> [{"id":1,"name":"doggie"}]
+```
+
+Checkout <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/composite-routes-with-tags-split" target="_blank">here</a> the full example.
