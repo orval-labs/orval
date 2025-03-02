@@ -142,7 +142,7 @@ export const writeSchemas = async ({
       } else {
         duplicateNamesMap.set(
           schema.name,
-          (duplicateNamesMap.get(schema.name) || 0) + 1,
+          (duplicateNamesMap.get(schema.name) || 1) + 1,
         );
       }
     });
