@@ -293,8 +293,9 @@ export default defineConfig({
   petstoreNamingConventionCamelCase: {
     input: '../specifications/petstore.yaml',
     output: {
+      mode: 'split',
       target:
-        '../generated/default/petstore-naming-convention-camel-case/endpoints.ts',
+        '../generated/default/petstore-naming-convention-camel-case/endpoints',
       schemas:
         '../generated/default/petstore-naming-convention-camel-case/model',
       namingConvention: 'camelCase',
@@ -303,8 +304,9 @@ export default defineConfig({
   petstoreNamingConventionPascalCase: {
     input: '../specifications/petstore.yaml',
     output: {
+      mode: 'split',
       target:
-        '../generated/default/petstore-naming-convention-pascal-case/endpoints.ts',
+        '../generated/default/petstore-naming-convention-pascal-case/endpoints',
       schemas:
         '../generated/default/petstore-naming-convention-pascal-case/model',
       namingConvention: 'PascalCase',
@@ -313,8 +315,9 @@ export default defineConfig({
   petstoreNamingConventionKebabCase: {
     input: '../specifications/petstore.yaml',
     output: {
+      mode: 'split',
       target:
-        '../generated/default/petstore-naming-convention-kebab-case/endpoints.ts',
+        '../generated/default/petstore-naming-convention-kebab-case/endpoints',
       schemas:
         '../generated/default/petstore-naming-convention-kebab-case/model',
       namingConvention: 'kebab-case',
@@ -323,8 +326,9 @@ export default defineConfig({
   petstoreNamingConventionSnakeCase: {
     input: '../specifications/petstore.yaml',
     output: {
+      mode: 'split',
       target:
-        '../generated/default/petstore-naming-convention-snake-case/endpoints.ts',
+        '../generated/default/petstore-naming-convention-snake-case/endpoints',
       schemas:
         '../generated/default/petstore-naming-convention-snake-case/model',
       namingConvention: 'snake_case',

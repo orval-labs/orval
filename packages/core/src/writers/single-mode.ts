@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { WriteModeProps } from '../types';
 import {
-  camel,
+  conventionName,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
@@ -21,7 +21,10 @@ export const writeSingleMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { path, dirname } = getFileInfo(output.target, {
-      backupFilename: camel(builder.info.title),
+      backupFilename: conventionName(
+        builder.info.title,
+        output.namingConvention,
+      ),
       extension: output.fileExtension,
     });
 
