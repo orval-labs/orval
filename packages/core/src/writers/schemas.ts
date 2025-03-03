@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema, NamingConvention } from '../types';
-import { camel, pascal, snake, kebab, upath, conventionName } from '../utils';
+import { upath, conventionName } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
