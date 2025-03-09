@@ -343,6 +343,46 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
+  describe('description handling', () => {
+    const context: ContextSpecs = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    it('generates a description for a parameter', () => {
+      const schemaWithDefault: SchemaObject = {
+        type: 'string',
+        description: 'This is a test description',
+        default: 'hello',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithDefault,
+        context,
+        'testStringDescription',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['string', undefined],
+          ['default', 'testStringDescriptionDefault'],
+          ['describe', "'This is a test description'"],
+        ],
+        consts: ['export const testStringDescriptionDefault = "hello";'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe(
+        "zod.string().default(testStringDescriptionDefault).describe('This is a test description')",
+      );
+    });
+  });
+
   describe('default value handling', () => {
     const context: ContextSpecs = {
       output: {
