@@ -1225,12 +1225,6 @@ const generateQueryHook = async (
         ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
         : `\`${route}\``;
 
-    console.log(
-      'Route:',
-      route,
-      override.query.shouldSplitQueryKey,
-      routeString,
-    );
     // Note: do not unref() params in Vue - this will make key lose reactivity
     const queryKeyFn = `${
       override.query.shouldExportQueryKey ? 'export ' : ''
