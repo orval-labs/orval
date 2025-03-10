@@ -956,18 +956,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ibm-cloud/openapi-ruleset-utilities@npm:1.7.0":
-  version: 1.7.0
-  resolution: "@ibm-cloud/openapi-ruleset-utilities@npm:1.7.0"
-  checksum: 10c0/23d1a0fada6deb3a67a600c20a017c53a49b64d2ad0857874f5f62d7e25b7ba91025888bd16b7b33d738f81cc3eac088bbfb2e1bee20dc90d841959de4db5eaa
+"@ibm-cloud/openapi-ruleset-utilities@npm:1.7.1":
+  version: 1.7.1
+  resolution: "@ibm-cloud/openapi-ruleset-utilities@npm:1.7.1"
+  checksum: 10c0/ddc252733c260db238d0dbadee84da4ae312ad3e3574b0021d9ddd05a185067249915237af5023b45c8bd6b90032796ba8291cc9538a965ccff1a1a358feb224
   languageName: node
   linkType: hard
 
-"@ibm-cloud/openapi-ruleset@npm:^1.29.0":
-  version: 1.29.1
-  resolution: "@ibm-cloud/openapi-ruleset@npm:1.29.1"
+"@ibm-cloud/openapi-ruleset@npm:^1.29.2":
+  version: 1.29.2
+  resolution: "@ibm-cloud/openapi-ruleset@npm:1.29.2"
   dependencies:
-    "@ibm-cloud/openapi-ruleset-utilities": "npm:1.7.0"
+    "@ibm-cloud/openapi-ruleset-utilities": "npm:1.7.1"
     "@stoplight/spectral-formats": "npm:^1.8.2"
     "@stoplight/spectral-functions": "npm:^1.9.3"
     "@stoplight/spectral-rulesets": "npm:^1.21.3"
@@ -978,7 +978,7 @@ __metadata:
     loglevel-plugin-prefix: "npm:0.8.4"
     minimatch: "npm:^6.2.0"
     validator: "npm:^13.11.0"
-  checksum: 10c0/f89020a49c8f3bb4df4ad7b82411ee575473bea5f0b0f378ea8722e5dcf8ed4c399550a1e953c42d5c0a98cbe51c09fdf279e489e6d15e9d5f36f96cb543652c
+  checksum: 10c0/11c09705b63362befa8e0b668f310ffdc724e7a26172de4e111814bd121f758a9f41366cc723e908ff7b06485762918cab220403e2563c55f0747c0d98c797f0
   languageName: node
   linkType: hard
 
@@ -1293,7 +1293,7 @@ __metadata:
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.1"
     "@faker-js/faker": "npm:^8.4.0"
-    "@ibm-cloud/openapi-ruleset": "npm:^1.29.0"
+    "@ibm-cloud/openapi-ruleset": "npm:^1.29.2"
     "@types/debug": "npm:^4.1.12"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/inquirer": "npm:^9.0.7"
