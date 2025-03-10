@@ -7,7 +7,7 @@
     "@types/node": "^14.14.13",
     "@types/react": "^17.0.0",
     "@types/react-dom": "^17.0.0",
-    "axios": "^0.26.1",
+    "axios": "^1.8.2",
     "msw": "^2.0.2",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
