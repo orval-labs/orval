@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^19.7.1",
-    "@commitlint/config-conventional": "^19.7.1",
+    "@commitlint/config-conventional": "^19.8.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.21.0",
     "@faker-js/faker": "^8.4.0",

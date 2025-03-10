@@ -102,13 +102,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@commitlint/config-conventional@npm:^19.7.1":
-  version: 19.7.1
-  resolution: "@commitlint/config-conventional@npm:19.7.1"
+"@commitlint/config-conventional@npm:^19.8.0":
+  version: 19.8.0
+  resolution: "@commitlint/config-conventional@npm:19.8.0"
   dependencies:
-    "@commitlint/types": "npm:^19.5.0"
+    "@commitlint/types": "npm:^19.8.0"
     conventional-changelog-conventionalcommits: "npm:^7.0.2"
-  checksum: 10c0/9de7e5f1e4ac1d995293da12a646936d477c4fc50562de015df26e0b307ebf3fd2632dc8c874ba9d9a81c9540c3189e275fb6fe0b707ae6c9159c013b7dfdb56
+  checksum: 10c0/c0e2ad4ee8b793ad08ce8f0fd242d8111c71c81eba53b652431b7852e02d3eef0a383e234b7574429f5d1876b712a915921f6ff61fdaccdf708cbbaf3fa1f2f0
   languageName: node
   linkType: hard
 
@@ -273,6 +273,16 @@ __metadata:
     "@types/conventional-commits-parser": "npm:^5.0.0"
     chalk: "npm:^5.3.0"
   checksum: 10c0/f4a93992f43b23cd5af200c69bb73227fdc0f78a6f7ebcda73dad10d558c1ac66ff164aa6dc3c2ddb322c9ed8b1a89b05f458e40d7c440a0358f435d2d71c2df
+  languageName: node
+  linkType: hard
+
+"@commitlint/types@npm:^19.8.0":
+  version: 19.8.0
+  resolution: "@commitlint/types@npm:19.8.0"
+  dependencies:
+    "@types/conventional-commits-parser": "npm:^5.0.0"
+    chalk: "npm:^5.3.0"
+  checksum: 10c0/634a5db20110675da8ddf226f200c33f262c6e99d06853fd4a2f6d543e6cc7dfe48b045f7ae76bcce2e39595099bfebe6a5dd6da37ff2968733c1263b8d46644
   languageName: node
   linkType: hard
 
@@ -7340,7 +7350,7 @@ __metadata:
   resolution: "orval-workspaces@workspace:."
   dependencies:
     "@commitlint/cli": "npm:^19.7.1"
-    "@commitlint/config-conventional": "npm:^19.7.1"
+    "@commitlint/config-conventional": "npm:^19.8.0"
     "@eslint/eslintrc": "npm:^3.2.0"
     "@eslint/js": "npm:^9.21.0"
     "@faker-js/faker": "npm:^8.4.0"
