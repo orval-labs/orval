@@ -1148,6 +1148,22 @@ Default Value: `true`.
 
 Use to stop the export of mutator hooks. Useful if you want to rely soley on useQuery, useSuspenseQuery, etc.
 
+##### shouldExportQueryKey
+
+Type: `Boolean`.
+
+Default Value: `true`.
+
+Use to stop the export of query keys.
+
+##### shouldSplitQueryKey
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Use to make Orval generate query keys as arrays instead of strings.
+
 ##### version
 
 Type: `number`.
