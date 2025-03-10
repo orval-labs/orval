@@ -136,7 +136,7 @@ export const generateAxiosRequestFunction = (
       : '';
 
     if (mutator.isHook) {
-      return `${
+      const ret = `${
         override.query.shouldExportMutatorHooks ? 'export ' : ''
       }const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
@@ -154,6 +154,27 @@ export const generateAxiosRequestFunction = (
         }, [${operationName}])
       }
     `;
+
+      const vueRet = `${
+        override.query.shouldExportMutatorHooks ? 'export ' : ''
+      }const use${pascal(operationName)}Hook = () => {
+        const ${operationName} = ${mutator.name}<${
+          response.definition.success || 'unknown'
+        }>();
+
+        return (\n    ${propsImplementation}\n ${
+          isRequestOptions && mutator.hasSecondArg
+            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+            : ''
+        }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {${bodyForm}
+        return ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions});
+        }
+      }
+    `;
+
+      return isVue ? vueRet : ret;
     }
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
