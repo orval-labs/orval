@@ -1385,8 +1385,12 @@ ${hooksOptionImplementation}
             ? `const customOptions = ${
                 mutationOptionsMutator.name
               }({...mutationOptions, mutationFn}${
+                mutationOptionsMutator.hasSecondArg
+                  ? `, { url: \`${route.replaceAll('/${', '/{')}\` }`
+                  : ''
+              }${
                 mutationOptionsMutator.hasThirdArg
-                  ? `, { url: \`${route}\` }`
+                  ? `, { operationId: '${operationId}', operationName: '${operationName}' }`
                   : ''
               });`
             : ''

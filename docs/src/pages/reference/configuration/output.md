@@ -1124,13 +1124,32 @@ module.exports = {
         query: {
           mutationOptions: {
             path: './api/mutator/custom-mutator-options.ts',
-            name: 'customMutatorOptionsFn',
+            name: 'useCustomMutatorOptions',
             // default: true
           },
         },
       },
     },
   },
+};
+```
+
+```ts
+// custom-mutator-options.ts
+
+export const useCustomMutatorOptions = <T, TError, TData, TContext>(
+  options: UseMutationOptions<T, TError, TData, TContext> &
+    Required<
+      Pick<UseMutationOptions<T, TError, TData, TContext>, 'mutationFn'>
+    >,
+  /* Optional */ path: { url: string },
+  /* Optional */ operation: { operationId: string; operationName: string },
+) => {
+  const queryClient = useQueryClient();
+  if (operation.operationId === 'createPet') {
+    queryClient.invalidateQueries({ queryKey: getGetPetsQueryKey() });
+  }
+  return options;
 };
 ```
 
