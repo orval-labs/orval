@@ -13,7 +13,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
     "@tanstack/vue-query": "^5.28.4",
-    "axios": "^0.26.1",
+    "axios": "^1.8.2",
     "vue": "^3.3.4"
   },
   "devDependencies": {
