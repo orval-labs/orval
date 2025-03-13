@@ -18,15 +18,16 @@ const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
   const [token, setToken] = useState(initialState);
 
   useEffect(() => {
-    const interceptorId = AXIOS_INSTANCE.interceptors.request.use((config) => ({
-      ...config,
-      headers: token
-        ? {
-            ...config.headers,
-            Authorization: `Bearer ${token}`,
-          }
-        : config.headers,
-    }));
+    const interceptorId = AXIOS_INSTANCE.interceptors.request.use((config) => {
+      if (config.headers) {
+        Object.entries({
+          Authorization: `Bearer ${token}`,
+        }).forEach(([key, value]) => {
+          config.headers.set(key, value);
+        });
+      }
+      return config;
+    });
 
     return () => {
       AXIOS_INSTANCE.interceptors.request.eject(interceptorId);
