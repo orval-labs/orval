@@ -83,30 +83,32 @@ export const generateMutatorImports = ({
 
     if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
       let errorImportName = '';
+      const targetErrorImportName = mutator.default
+        ? `ErrorType as ${mutator.errorTypeName}`
+        : mutator.errorTypeName;
       if (
         mutator.hasErrorType &&
         implementation.includes(mutator.errorTypeName) &&
-        !acc.includes(mutator.errorTypeName)
+        !acc.includes(`{ ${targetErrorImportName} `)
       ) {
-        errorImportName = mutator.default
-          ? `ErrorType as ${mutator.errorTypeName}`
-          : mutator.errorTypeName;
+        errorImportName = targetErrorImportName;
       }
 
       let bodyImportName = '';
+      const targetBodyImportName = mutator.default
+        ? `BodyType as ${mutator.bodyTypeName}`
+        : mutator.bodyTypeName;
       if (
         mutator.bodyTypeName &&
         implementation.includes(mutator.bodyTypeName) &&
-        !acc.includes(mutator.bodyTypeName)
+        !acc.includes(` ${targetBodyImportName} }`)
       ) {
-        bodyImportName = mutator.default
-          ? `BodyType as ${mutator.bodyTypeName}`
-          : mutator.bodyTypeName;
+        bodyImportName = targetBodyImportName!;
       }
 
       if (bodyImportName || errorImportName) {
         acc += `import type { ${errorImportName}${
-          errorImportName && bodyImportName ? ', ' : ''
+          errorImportName && bodyImportName ? ' , ' : ''
         }${bodyImportName} } from '${path}';`;
         acc += '\n';
       }
