@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "7.6.0",
+  "version": "7.7.0",
   "license": "MIT",
   "workspaces": [
     "packages/*"
@@ -27,14 +27,14 @@
   },
   "devDependencies": {
     "@commitlint/cli": "^19.7.1",
-    "@commitlint/config-conventional": "^19.7.1",
+    "@commitlint/config-conventional": "^19.8.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.21.0",
     "@faker-js/faker": "^8.4.0",
     "@release-it-plugins/workspaces": "^4.2.0",
     "@release-it/conventional-changelog": "^8.0.1",
     "@types/node": "^20.13.0",
-    "@typescript-eslint/eslint-plugin": "^7.11.0",
+    "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.22.0",
     "dotenv-cli": "^7.4.1",
     "esbuild-plugin-alias": "^0.2.1",
@@ -52,7 +52,7 @@
     "tsup": "^8.0.2",
     "turbo": "^1.13.3",
     "typescript": "^4.7.4",
-    "typescript-eslint": "^8.22.0",
+    "typescript-eslint": "^8.26.0",
     "vitest": "^0.6.3",
     "zx": "^7.2.3"
   },

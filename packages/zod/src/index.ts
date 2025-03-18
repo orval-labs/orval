@@ -446,6 +446,10 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['optional', undefined]);
   }
 
+  if (schema.description) {
+    functions.push(['describe', `'${jsStringEscape(schema.description)}'`]);
+  }
+
   return { functions, consts: uniq(consts) };
 };
 
@@ -797,6 +801,7 @@ const parseParameters = ({
       }
 
       const schema = deference(parameter.schema, context);
+      schema.description = parameter.description;
 
       const mapStrict = {
         path: strict.param,

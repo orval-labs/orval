@@ -2,7 +2,7 @@ import fs from 'fs-extra';
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
-  camel,
+  conventionName,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
@@ -22,7 +22,10 @@ export const writeSplitMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
-      backupFilename: camel(builder.info.title),
+      backupFilename: conventionName(
+        builder.info.title,
+        output.namingConvention,
+      ),
       extension: output.fileExtension,
     });
 

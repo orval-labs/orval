@@ -1220,9 +1220,10 @@ const generateQueryHook = async (
       'implementation',
     );
 
-    const routeString = isVue(outputClient)
-      ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
-      : `\`${route}\``;
+    const routeString =
+      isVue(outputClient) || override.query.shouldSplitQueryKey
+        ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
+        : `\`${route}\``;
 
     // Note: do not unref() params in Vue - this will make key lose reactivity
     const queryKeyFn = `${
@@ -1384,8 +1385,12 @@ ${hooksOptionImplementation}
             ? `const customOptions = ${
                 mutationOptionsMutator.name
               }({...mutationOptions, mutationFn}${
+                mutationOptionsMutator.hasSecondArg
+                  ? `, { url: \`${route.replaceAll('/${', '/{')}\` }`
+                  : ''
+              }${
                 mutationOptionsMutator.hasThirdArg
-                  ? `, { url: \`${route}\` }`
+                  ? `, { operationId: '${operationId}', operationName: '${operationName}' }`
                   : ''
               });`
             : ''

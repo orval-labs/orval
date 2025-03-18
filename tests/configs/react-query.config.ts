@@ -49,6 +49,39 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreSplitQueryKey: {
+    output: {
+      target: '../generated/react-query/split-query-key/endpoints.ts',
+      schemas: '../generated/react-query/split-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreCustomMutatorOptions: {
+    output: {
+      target: '../generated/react-query/custom-mutator-options/endpoints.ts',
+      schemas: '../generated/react-query/custom-mutator-options/model',
+      client: 'react-query',
+      override: {
+        query: {
+          mutationOptions: {
+            path: '../mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   httpClientFetch: {
     output: {
       target: '../generated/react-query/http-client-fetch/endpoints.ts',

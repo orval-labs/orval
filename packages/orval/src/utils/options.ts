@@ -119,6 +119,7 @@ export const normalizeOptions = async (
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,
     shouldExportQueryKey: true,
+    shouldSplitQueryKey: false,
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
 
@@ -689,6 +690,14 @@ const normalizeQueryOptions = (
       : {}),
     ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
       ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
+      : {}),
+    ...(!isUndefined(globalOptions.shouldSplitQueryKey)
+      ? {
+          shouldSplitQueryKey: globalOptions.shouldSplitQueryKey,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.shouldSplitQueryKey)
+      ? { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey }
       : {}),
     ...(!isUndefined(globalOptions.signal)
       ? {

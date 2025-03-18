@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema, NamingConvention } from '../types';
-import { camel, pascal, snake, kebab, upath, conventionName } from '../utils';
+import { upath, conventionName } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -142,7 +142,7 @@ export const writeSchemas = async ({
       } else {
         duplicateNamesMap.set(
           schema.name,
-          (duplicateNamesMap.get(schema.name) || 0) + 1,
+          (duplicateNamesMap.get(schema.name) || 1) + 1,
         );
       }
     });
