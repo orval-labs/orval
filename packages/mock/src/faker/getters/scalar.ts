@@ -139,7 +139,7 @@ export const getMockScalar = ({
         `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
         item.nullable,
       );
-      let numberImports: GeneratorImport[] = [...imports];
+      let numberImports: GeneratorImport[] = [];
       if (item.enum) {
         value = getEnum(
           item,
@@ -232,7 +232,7 @@ export const getMockScalar = ({
 
     case 'string': {
       let value = 'faker.string.alpha(20)';
-      let stringImports: GeneratorImport[] = [...imports];
+      let stringImports: GeneratorImport[] = [];
 
       if (item.enum) {
         value = getEnum(
