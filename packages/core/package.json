@@ -23,17 +23,17 @@
     "@types/lodash.uniqby": "^4.7.9",
     "@types/lodash.uniqwith": "^4.5.9",
     "@types/micromatch": "^4.0.9",
-    "typedoc": "^0.27.9"
+    "typedoc": "^0.28.0"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
-    "@ibm-cloud/openapi-ruleset": "^1.29.2",
-    "acorn": "^8.14.0",
+    "@ibm-cloud/openapi-ruleset": "^1.29.3",
+    "acorn": "^8.14.1",
     "ajv": "^8.17.1",
     "chalk": "^4.1.2",
     "compare-versions": "^6.1.1",
     "debug": "^4.3.7",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.25.1",
     "esutils": "2.0.3",
     "fs-extra": "^11.2.0",
     "globby": "11.1.0",
