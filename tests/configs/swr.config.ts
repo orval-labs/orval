@@ -212,6 +212,9 @@ export default defineConfig({
       schemas: '../generated/swr/enums/model',
       client: 'swr',
       mock: true,
+      override: {
+        useNativeEnums: true,
+      },
     },
     input: {
       target: '../specifications/enums.yaml',
