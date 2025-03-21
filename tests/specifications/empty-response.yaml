@@ -1,0 +1,25 @@
+openapi: 3.0.1
+info:
+  version: '1'
+  title: sample
+paths:
+  /sample/form:
+    post:
+      operationId: add
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Form'
+      responses:
+        default:
+          description: default response
+          content:
+            '*/*': {}
+components:
+  schemas:
+    Form:
+      type: object
+      properties:
+        id:
+          type: string

@@ -233,7 +233,7 @@ export const writeSpecs = async (
       }
       const project = await app.convert();
       if (project) {
-        await app.generateDocs(project, app.options.getValue('out'));
+        await app.generateDocs(project, app.options.getValue('out') as string);
       } else {
         throw new Error('TypeDoc not initialised');
       }
