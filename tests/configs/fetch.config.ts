@@ -204,4 +204,14 @@ export default defineConfig({
     },
     input: '../specifications/default-response.yaml',
   },
+  emptyResponse: {
+    output: {
+      target: '../generated/fetch/empty-response/endpoints.ts',
+      schemas: '../generated/fetch/empty-response/model',
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/empty-response.yaml',
+    },
+  },
 });
