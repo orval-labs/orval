@@ -163,9 +163,12 @@ export const resolveMockValue = ({
         specKey: isRootKey(specKey, context.target) ? undefined : specKey,
       });
     }
+
     return {
       ...scalar,
-      type: newSchema.type as string,
+      type:
+        (newSchema.type as string | undefined) ??
+        (newSchema.isRef ? 'object' : undefined),
     };
   }
 
@@ -181,9 +184,10 @@ export const resolveMockValue = ({
     splitMockImplementations,
     allowOverride,
   });
-
   return {
     ...scalar,
-    type: schema.type as string,
+    type:
+      (schema.type as string | undefined) ??
+      (schema.isRef ? 'object' : undefined),
   };
 };
