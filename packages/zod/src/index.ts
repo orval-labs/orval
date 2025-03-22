@@ -112,6 +112,12 @@ const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
   return schema;
 };
 
+type DateTimeOptions = {
+  offset?: boolean;
+  local?: boolean;
+  precision?: number;
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   context: ContextSpecs,
@@ -119,6 +125,7 @@ export const generateZodValidationSchemaDefinition = (
   strict: boolean,
   rules?: {
     required?: boolean;
+    dateTimeOptions?: DateTimeOptions;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -284,7 +291,11 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'date-time') {
-        functions.push(['datetime', undefined]);
+        const options = context.output.override.zod?.dateTimeOptions;
+        functions.push([
+          'datetime',
+          options ? JSON.stringify(options) : undefined,
+        ]);
         break;
       }
 
