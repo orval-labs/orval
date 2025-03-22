@@ -137,8 +137,7 @@ export const generateZodValidationSchemaDefinition = (
 
   const functions: [string, any][] = [];
   const type = resolveZodType(schema);
-  const required =
-    schema.default !== undefined ? false : rules?.required ?? false;
+  const required = rules?.required ?? false;
   const nullable =
     schema.nullable ??
     (Array.isArray(schema.type) && schema.type.includes('null'));
