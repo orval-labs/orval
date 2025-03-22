@@ -430,6 +430,12 @@ export type NormalizedHonoOptions = {
   validatorOutputPath: string;
 };
 
+export type ZodDateTimeOptions = {
+  offset?: boolean;
+  local?: boolean;
+  precision?: number;
+};
+
 export type ZodOptions = {
   strict?: {
     param?: boolean;
@@ -459,6 +465,7 @@ export type ZodOptions = {
     body?: Mutator;
     response?: Mutator;
   };
+  dateTimeOptions?: ZodDateTimeOptions;
   generateEachHttpStatus?: boolean;
 };
 
@@ -494,6 +501,7 @@ export type NormalizedZodOptions = {
     response?: NormalizedMutator;
   };
   generateEachHttpStatus: boolean;
+  dateTimeOptions: ZodDateTimeOptions;
 };
 
 export type HonoOptions = {

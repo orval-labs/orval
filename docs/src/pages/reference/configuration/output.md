@@ -1482,6 +1482,36 @@ module.exports = {
 };
 ```
 
+##### dateTimeOptions
+
+Type: `Object`.
+
+Default Value: `{}`.
+
+Use to set options for zod `datetime` fields. These options are passed directly to zod `datetime` validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          dateTimeOptions: {
+            local: true,
+            offset: true,
+            precision: 3,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+You can find more details in the [zod documentation ](https://zod.dev/?id=datetimes).
+
 #### mock
 
 Type: `Object`.
