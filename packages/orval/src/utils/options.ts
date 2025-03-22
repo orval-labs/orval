@@ -306,6 +306,7 @@ export const normalizeOptions = async (
           },
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
+          dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -500,6 +501,7 @@ const normalizeOperationsAndTags = (
                     },
                     generateEachHttpStatus:
                       zod?.generateEachHttpStatus ?? false,
+                    dateTimeOptions: zod?.dateTimeOptions ?? {},
                   },
                 }
               : {}),
