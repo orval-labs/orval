@@ -118,6 +118,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'InfiniteData' },
       { name: 'CreateMutationResult' },
       { name: 'DataTag' },
+      { name: 'QueryClient' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -289,6 +290,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'InfiniteData' },
       { name: 'UseMutationReturnType' },
       { name: 'DataTag' },
+      { name: 'QueryClient' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -998,13 +1000,16 @@ ${hookOptions}
 }`;
 
   const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
+  const optionalQueryClientArgument = hasQueryV5
+    ? ', queryClient?: QueryClient'
+    : '';
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
   const overrideTypes = `
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments}\n  ): ${definedInitialDataReturnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments}\n  ): ${returnType}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments}\n  ): ${returnType}`;
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
   return `
 ${queryOptionsFn}
 
@@ -1015,7 +1020,7 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${hasQueryV5 && OutputClient.REACT_QUERY === outputClient ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments}\n  ): ${returnType} {
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
     queryProperties ? ',' : ''
@@ -1023,7 +1028,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   const ${queryResultVarName} = ${camel(
     `${operationPrefix}-${type}`,
-  )}(${queryOptionsVarName}) as ${returnType};
+  )}(${queryOptionsVarName} ${optionalQueryClientArgument ? ', queryClient' : ''}) as ${returnType};
 
   ${queryResultVarName}.queryKey = ${
     isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName

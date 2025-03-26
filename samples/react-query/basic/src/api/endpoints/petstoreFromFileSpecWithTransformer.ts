@@ -18,6 +18,7 @@ import type {
   DefinedUseQueryResult,
   InfiniteData,
   MutationFunction,
+  QueryClient,
   QueryFunction,
   QueryKey,
   UndefinedInitialDataOptions,
@@ -161,6 +162,7 @@ export function useListPetsInfinite<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): DefinedUseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -194,6 +196,7 @@ export function useListPetsInfinite<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -218,6 +221,7 @@ export function useListPetsInfinite<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -246,6 +250,7 @@ export function useListPetsInfinite<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 } {
@@ -255,10 +260,12 @@ export function useListPetsInfinite<
     options,
   );
 
-  const query = useInfiniteQuery(queryOptions) as UseInfiniteQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const query = useInfiniteQuery(
+    queryOptions,
+    queryClient,
+  ) as UseInfiniteQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 
   query.queryKey = queryOptions.queryKey;
 
@@ -320,6 +327,7 @@ export function useListPets<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -342,6 +350,7 @@ export function useListPets<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 export function useListPets<
   TData = Awaited<ReturnType<typeof listPets>>,
@@ -354,6 +363,7 @@ export function useListPets<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary List all pets
@@ -370,12 +380,14 @@ export function useListPets<
       UseQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getListPetsQueryOptions(params, version, options);
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   query.queryKey = queryOptions.queryKey;
 
@@ -434,6 +446,7 @@ export function useListPetsSuspense<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -452,6 +465,7 @@ export function useListPetsSuspense<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -470,6 +484,7 @@ export function useListPetsSuspense<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -492,6 +507,7 @@ export function useListPetsSuspense<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 } {
@@ -501,10 +517,12 @@ export function useListPetsSuspense<
     options,
   );
 
-  const query = useSuspenseQuery(queryOptions) as UseSuspenseQueryResult<
-    TData,
-    TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  const query = useSuspenseQuery(
+    queryOptions,
+    queryClient,
+  ) as UseSuspenseQueryResult<TData, TError> & {
+    queryKey: DataTag<QueryKey, TData>;
+  };
 
   query.queryKey = queryOptions.queryKey;
 
@@ -589,6 +607,7 @@ export function useListPetsSuspenseInfinite<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -613,6 +632,7 @@ export function useListPetsSuspenseInfinite<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -637,6 +657,7 @@ export function useListPetsSuspenseInfinite<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -665,6 +686,7 @@ export function useListPetsSuspenseInfinite<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseSuspenseInfiniteQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 } {
@@ -676,6 +698,7 @@ export function useListPetsSuspenseInfinite<
 
   const query = useSuspenseInfiniteQuery(
     queryOptions,
+    queryClient,
   ) as UseSuspenseInfiniteQueryResult<TData, TError> & {
     queryKey: DataTag<QueryKey, TData>;
   };
@@ -860,6 +883,7 @@ export function useListPetsNestedArray<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -886,6 +910,7 @@ export function useListPetsNestedArray<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 export function useListPetsNestedArray<
   TData = Awaited<ReturnType<typeof listPetsNestedArray>>,
@@ -902,6 +927,7 @@ export function useListPetsNestedArray<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary List all pets as nested array
@@ -922,6 +948,7 @@ export function useListPetsNestedArray<
       >
     >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getListPetsNestedArrayQueryOptions(
     params,
@@ -929,9 +956,10 @@ export function useListPetsNestedArray<
     options,
   );
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   query.queryKey = queryOptions.queryKey;
 
@@ -1014,6 +1042,7 @@ export function useShowPetById<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): DefinedUseQueryResult<TData, TError> & {
   queryKey: DataTag<QueryKey, TData>;
 };
@@ -1036,6 +1065,7 @@ export function useShowPetById<
         'initialData'
       >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 export function useShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
@@ -1048,6 +1078,7 @@ export function useShowPetById<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> };
 /**
  * @summary Info for a specific pet
@@ -1064,12 +1095,14 @@ export function useShowPetById<
       UseQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
   },
+  queryClient?: QueryClient,
 ): UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
   const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
-  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
-    queryKey: DataTag<QueryKey, TData>;
-  };
+  const query = useQuery(queryOptions, queryClient) as UseQueryResult<
+    TData,
+    TError
+  > & { queryKey: DataTag<QueryKey, TData> };
 
   query.queryKey = queryOptions.queryKey;
 
