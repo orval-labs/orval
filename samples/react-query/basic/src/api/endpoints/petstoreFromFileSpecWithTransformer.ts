@@ -771,17 +771,17 @@ export type CreatePetsMutationError = ErrorType<Error>;
 /**
  * @summary Create a pet
  */
-export const useCreatePets = <
-  TError = ErrorType<Error>,
-  TContext = unknown,
->(options?: {
-  mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBody; version?: number },
-    TContext
-  >;
-}): UseMutationResult<
+export const useCreatePets = <TError = ErrorType<Error>, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBody; version?: number },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBody; version?: number },
@@ -789,7 +789,7 @@ export const useCreatePets = <
 > => {
   const mutationOptions = getCreatePetsMutationOptions(options);
 
-  return useMutation(mutationOptions);
+  return useMutation(mutationOptions, queryClient);
 };
 
 /**

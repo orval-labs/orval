@@ -1409,6 +1409,9 @@ ${hooksOptionImplementation}
   }}`;
 
     const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
+    const optionalQueryClientArgument = hasQueryV5
+      ? ', queryClient?: QueryClient'
+      : '';
 
     implementation += `
 ${mutationOptionsFn}
@@ -1430,17 +1433,21 @@ ${mutationOptionsFn}
     ${doc}export const ${camel(
       `${operationPrefix}-${operationName}`,
     )} = <TError = ${errorType},
-    TContext = unknown>(${mutationArguments})${generateMutatorReturnType({
-      outputClient,
-      dataType,
-      variableType: definitions ? `{${definitions}}` : 'void',
-    })} => {
+    TContext = unknown>(${mutationArguments} ${optionalQueryClientArgument})${generateMutatorReturnType(
+      {
+        outputClient,
+        dataType,
+        variableType: definitions ? `{${definitions}}` : 'void',
+      },
+    )} => {
 
       const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
         isRequestOptions ? 'options' : 'mutationOptions'
       });
 
-      return ${operationPrefix}Mutation(${mutationOptionsVarName});
+      return ${operationPrefix}Mutation(${mutationOptionsVarName} ${
+        optionalQueryClientArgument ? ', queryClient' : ''
+      });
     }
     `;
 
