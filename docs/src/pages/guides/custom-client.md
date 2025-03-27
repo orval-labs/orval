@@ -24,13 +24,11 @@ module.exports = {
 
 const baseURL = '<BACKEND URL>'; // use your own URL here or environment variable
 
-export const customInstance = async <T>({
-  url,
+export const customInstance = async <T>(url: string, {
   method,
   params,
   data,
 }: {
-  url: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   params?: any;
   data?: BodyType<unknown>;
