@@ -24,16 +24,19 @@ module.exports = {
 
 const baseURL = '<BACKEND URL>'; // use your own URL here or environment variable
 
-export const customInstance = async <T>(url: string, {
-  method,
-  params,
-  data,
-}: {
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  params?: any;
-  data?: BodyType<unknown>;
-  responseType?: string;
-}): Promise<T> => {
+export const customInstance = async <T>(
+  url: string,
+  {
+    method,
+    params,
+    body,
+  }: {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    params?: any;
+    body?: BodyType<unknown>;
+    responseType?: string;
+  },
+): Promise<T> => {
   let targetUrl = `${baseURL}${url}`;
 
   if (params) {
@@ -42,7 +45,7 @@ export const customInstance = async <T>(url: string, {
 
   const response = await fetch(targetUrl, {
     method,
-    ...(data ? { body: JSON.stringify(data) } : {}),
+    body,
   });
 
   return response.json();
