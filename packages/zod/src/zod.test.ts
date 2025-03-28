@@ -616,6 +616,119 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
   });
+
+  describe('enum handling', () => {
+    const context: ContextSpecs = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    it('generates an enum for a string', () => {
+      const schema: SchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumString',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ["['cat', 'dog']"]],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+    });
+
+    it('generates an enum for a number', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        enum: [1, 2],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumber',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ['[1, 2]']],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe('zod.enum([1, 2]).optional()');
+    });
+
+    it('generates an enum for a boolean', () => {
+      const schema: SchemaObject = {
+        type: 'boolean',
+        enum: [true, false],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumBoolean',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ['[true, false]']],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe('zod.enum([true, false]).optional()');
+    });
+
+    it('generates an enum for any', () => {
+      const schema: SchemaObject = {
+        enum: ['cat', 1, true],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumAny',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ["['cat', 1, true]"]],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe("zod.enum(['cat', 1, true]).optional()");
+    });
+  });
 });
 
 const basicApiSchema = {

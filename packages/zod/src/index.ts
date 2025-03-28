@@ -400,6 +400,10 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
+      if (schema.enum) {
+        break;
+      }
+
       functions.push([type as string, undefined]);
 
       break;
@@ -435,7 +439,7 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
 
-  if (schema.enum && type !== 'number') {
+  if (schema.enum) {
     functions.push([
       'enum',
       [
