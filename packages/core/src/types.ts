@@ -260,6 +260,7 @@ export const OutputClient = {
   ZOD: 'zod',
   HONO: 'hono',
   FETCH: 'fetch',
+  MCP: 'mcp',
 } as const;
 
 export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
