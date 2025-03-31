@@ -1486,3 +1486,97 @@ describe('generateFormData', () => {
     );
   });
 });
+
+const schemaWithRefProperty = {
+  pathRoute: '/cats',
+  context: {
+    specKey: 'cat',
+    specs: {
+      cat: {
+        openapi: '3.0.0',
+        info: {
+          version: '1.0.0',
+          title: 'Cats',
+        },
+        paths: {
+          '/cats': {
+            post: {
+              operationId: 'xyz',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        $ref: {
+                          type: 'string',
+                        },
+                      },
+                      example: {
+                        $ref: 'hello',
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                '200': {},
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+};
+
+describe('generateZodWithEdgeCases', () => {
+  it('correctly handles $ref as a property name', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: true,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      },
+      schemaWithRefProperty,
+      {},
+    );
+
+    expect(result.implementation).toBe(
+      'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
+    );
+  });
+});
