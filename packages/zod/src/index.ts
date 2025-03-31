@@ -661,7 +661,23 @@ const deference = (
   };
 
   return Object.entries(resolvedSchema).reduce((acc, [key, value]) => {
-    acc[key] = deferenceScalar(value, resolvedContext);
+    if (key === 'properties' && isObject(value)) {
+      acc[key] = Object.entries(value).reduce(
+        (props, [propKey, propSchema]) => {
+          props[propKey] = deference(
+            propSchema as SchemaObject | ReferenceObject,
+            resolvedContext,
+          );
+          return props;
+        },
+        {} as Record<string, SchemaObject>,
+      );
+    } else if (key === 'default' || key === 'example' || key === 'examples') {
+      acc[key] = value;
+    } else {
+      acc[key] = deferenceScalar(value, resolvedContext);
+    }
+
     return acc;
   }, {} as any);
 };
