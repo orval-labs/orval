@@ -5240,10 +5240,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globals@npm:^15.14.0":
-  version: 15.14.0
-  resolution: "globals@npm:15.14.0"
-  checksum: 10c0/039deb8648bd373b7940c15df9f96ab7508fe92b31bbd39cbd1c1a740bd26db12457aa3e5d211553b234f30e9b1db2fee3683012f543a01a6942c9062857facb
+"globals@npm:^16.0.0":
+  version: 16.0.0
+  resolution: "globals@npm:16.0.0"
+  checksum: 10c0/8906d5f01838df64a81d6c2a7b7214312e2216cf65c5ed1546dc9a7d0febddf55ffa906cf04efd5b01eec2534d6f14859a89535d1a68241832810e41ef3fd5bb
   languageName: node
   linkType: hard
 
@@ -7334,7 +7334,7 @@ __metadata:
     eslint-config-prettier: "npm:^9.1.0"
     eslint-config-turbo: "npm:^2.4.2"
     eslint-plugin-prettier: "npm:^5.2.3"
-    globals: "npm:^15.14.0"
+    globals: "npm:^16.0.0"
     husky: "npm:^9.1.6"
     lint-staged: "npm:^15.4.3"
     npm-run-all: "npm:^4.1.5"
