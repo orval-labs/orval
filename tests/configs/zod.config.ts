@@ -169,4 +169,21 @@ export default defineConfig({
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
+  dateTimeOptions: {
+    output: {
+      target: '../generated/zod/date-time-options.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          dateTimeOptions: {
+            offset: true,
+            precision: 3,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/format.yaml',
+    },
+  },
 });

@@ -112,6 +112,12 @@ const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
   return schema;
 };
 
+type DateTimeOptions = {
+  offset?: boolean;
+  local?: boolean;
+  precision?: number;
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | undefined,
   context: ContextSpecs,
@@ -119,6 +125,7 @@ export const generateZodValidationSchemaDefinition = (
   strict: boolean,
   rules?: {
     required?: boolean;
+    dateTimeOptions?: DateTimeOptions;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -137,8 +144,7 @@ export const generateZodValidationSchemaDefinition = (
 
   const functions: [string, any][] = [];
   const type = resolveZodType(schema);
-  const required =
-    schema.default !== undefined ? false : rules?.required ?? false;
+  const required = rules?.required ?? false;
   const nullable =
     schema.nullable ??
     (Array.isArray(schema.type) && schema.type.includes('null'));
@@ -284,7 +290,11 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'date-time') {
-        functions.push(['datetime', undefined]);
+        const options = context.output.override.zod?.dateTimeOptions;
+        functions.push([
+          'datetime',
+          options ? JSON.stringify(options) : undefined,
+        ]);
         break;
       }
 
@@ -390,6 +400,10 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
+      if (schema.enum) {
+        break;
+      }
+
       functions.push([type as string, undefined]);
 
       break;
@@ -425,7 +439,7 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
 
-  if (schema.enum && type !== 'number') {
+  if (schema.enum) {
     functions.push([
       'enum',
       [
@@ -647,7 +661,23 @@ const deference = (
   };
 
   return Object.entries(resolvedSchema).reduce((acc, [key, value]) => {
-    acc[key] = deferenceScalar(value, resolvedContext);
+    if (key === 'properties' && isObject(value)) {
+      acc[key] = Object.entries(value).reduce(
+        (props, [propKey, propSchema]) => {
+          props[propKey] = deference(
+            propSchema as SchemaObject | ReferenceObject,
+            resolvedContext,
+          );
+          return props;
+        },
+        {} as Record<string, SchemaObject>,
+      );
+    } else if (key === 'default' || key === 'example' || key === 'examples') {
+      acc[key] = value;
+    } else {
+      acc[key] = deferenceScalar(value, resolvedContext);
+    }
+
     return acc;
   }, {} as any);
 };

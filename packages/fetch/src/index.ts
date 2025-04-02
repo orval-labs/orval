@@ -120,6 +120,19 @@ ${
   );
 
   const allResponses = [...response.types.success, ...response.types.errors];
+  if (allResponses.length === 0) {
+    allResponses.push({
+      contentType: '',
+      hasReadonlyProps: false,
+      imports: [],
+      isEnum: false,
+      isRef: false,
+      key: 'default',
+      schemas: [],
+      type: 'unknown',
+      value: 'unknown',
+    });
+  }
   const nonDefaultStatuses = allResponses
     .filter((r) => r.key !== 'default')
     .map((r) => r.key);

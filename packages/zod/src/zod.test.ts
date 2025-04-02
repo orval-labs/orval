@@ -616,6 +616,119 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
   });
+
+  describe('enum handling', () => {
+    const context: ContextSpecs = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    it('generates an enum for a string', () => {
+      const schema: SchemaObject = {
+        type: 'string',
+        enum: ['cat', 'dog'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumString',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ["['cat', 'dog']"]],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+    });
+
+    it('generates an enum for a number', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        enum: [1, 2],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumber',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ['[1, 2]']],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe('zod.enum([1, 2]).optional()');
+    });
+
+    it('generates an enum for a boolean', () => {
+      const schema: SchemaObject = {
+        type: 'boolean',
+        enum: [true, false],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumBoolean',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ['[true, false]']],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe('zod.enum([true, false]).optional()');
+    });
+
+    it('generates an enum for any', () => {
+      const schema: SchemaObject = {
+        enum: ['cat', 1, true],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumAny',
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['enum', ["['cat', 1, true]"]],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      expect(parsed.zod).toBe("zod.enum(['cat', 1, true]).optional()");
+    });
+  });
 });
 
 const basicApiSchema = {
@@ -1370,6 +1483,100 @@ describe('generateFormData', () => {
     );
     expect(result.implementation).toBe(
       'export const testBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\n',
+    );
+  });
+});
+
+const schemaWithRefProperty = {
+  pathRoute: '/cats',
+  context: {
+    specKey: 'cat',
+    specs: {
+      cat: {
+        openapi: '3.0.0',
+        info: {
+          version: '1.0.0',
+          title: 'Cats',
+        },
+        paths: {
+          '/cats': {
+            post: {
+              operationId: 'xyz',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        $ref: {
+                          type: 'string',
+                        },
+                      },
+                      example: {
+                        $ref: 'hello',
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                '200': {},
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+};
+
+describe('generateZodWithEdgeCases', () => {
+  it('correctly handles $ref as a property name', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: true,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      },
+      schemaWithRefProperty,
+      {},
+    );
+
+    expect(result.implementation).toBe(
+      'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
     );
   });
 });
