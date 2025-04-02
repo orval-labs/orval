@@ -8,7 +8,7 @@ import {
   GetterQueryParam,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
-import { getEnum } from './enum';
+import { getEnum, getEnumNames } from './enum';
 import { getKey } from './keys';
 
 type QueryParamsType = {
@@ -71,7 +71,7 @@ const getQueryParamsTypes = (
       const enumValue = getEnum(
         resolvedValue.value,
         enumName,
-        resolvedValue.originalSchema?.['x-enumNames'],
+        getEnumNames(resolvedValue.originalSchema),
         context.output.override.useNativeEnums,
       );
 
