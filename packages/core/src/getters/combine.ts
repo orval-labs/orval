@@ -8,7 +8,7 @@ import {
   SchemaType,
 } from '../types';
 import { getNumberWord, pascal, isSchema } from '../utils';
-import { getEnumImplementation } from './enum';
+import { getEnumImplementation, getEnumNames } from './enum';
 import { getScalar } from './scalar';
 import uniq from 'lodash.uniq';
 
@@ -282,7 +282,7 @@ const getCombineEnumValue = ({
         return `...${e},`;
       }
 
-      const names = originalSchema[i]?.['x-enumNames'] as string[];
+      const names = getEnumNames(originalSchema[i]);
 
       return getEnumImplementation(e, names);
     })

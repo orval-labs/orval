@@ -1,5 +1,14 @@
 import { keyword } from 'esutils';
+import { SchemaObject } from 'openapi3-ts/dist/model/openapi30';
 import { isNumeric, sanitize } from '../utils';
+
+export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
+  return (
+    schemaObject?.['x-enumNames'] ||
+    schemaObject?.['x-enumnames'] ||
+    schemaObject?.['x-enum-varnames']
+  );
+};
 
 export const getEnum = (
   value: string,

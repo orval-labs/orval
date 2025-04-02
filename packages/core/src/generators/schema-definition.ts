@@ -1,6 +1,6 @@
 import isEmpty from 'lodash.isempty';
 import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
-import { getEnum, resolveDiscriminators } from '../getters';
+import { getEnum, getEnumNames, resolveDiscriminators } from '../getters';
 import { resolveRef, resolveValue } from '../resolvers';
 import type {
   ContextSpecs,
@@ -84,7 +84,7 @@ export const generateSchemasDefinition = (
         output += getEnum(
           resolvedValue.value,
           schemaName,
-          resolvedValue.originalSchema?.['x-enumNames'],
+          getEnumNames(resolvedValue.originalSchema),
           context.output.override.useNativeEnums,
         );
       } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {

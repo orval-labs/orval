@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { getEnum } from '../getters/enum';
+import { getEnum, getEnumNames } from '../getters/enum';
 import { ContextSpecs, ResolverValue } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
@@ -64,7 +64,7 @@ const resolveObjectOriginal = ({
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
-      resolvedValue.originalSchema?.['x-enumNames'],
+      getEnumNames(resolvedValue.originalSchema),
       context.output.override.useNativeEnums,
     );
 
