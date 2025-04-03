@@ -30,7 +30,7 @@
     "@ibm-cloud/openapi-ruleset": "^1.29.4",
     "acorn": "^8.14.1",
     "ajv": "^8.17.1",
-    "chalk": "^4.1.2",
+    "chalk": "^5.4.1",
     "compare-versions": "^6.1.1",
     "debug": "^4.4.0",
     "esbuild": "^0.25.1",
