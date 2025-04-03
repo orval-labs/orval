@@ -1,6 +1,6 @@
 {
   "name": "@orval/query",
-  "version": "7.7.0",
+  "version": "7.8.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,8 +14,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@orval/core": "7.7.0",
-    "@orval/fetch": "7.7.0",
+    "@orval/core": "7.8.0",
+    "@orval/fetch": "7.8.0",
     "lodash.omitby": "^4.6.0"
   },
   "devDependencies": {
