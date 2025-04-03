@@ -37,6 +37,18 @@ components:
             type: string
           type: array
           title: Example tuple
+        example_tuple_with_object_item:
+          maxItems: 2
+          minItems: 2
+          prefixItems:
+            - type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+            - type: string
+              format: uuid
+          type: array
         example_const:
           const: this_is_a_const
         example_enum:

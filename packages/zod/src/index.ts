@@ -584,7 +584,10 @@ ${Object.entries(args)
 
     if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
-        .map((x) => 'zod' + x.functions.map(parseProperty).join(','))
+        .map((x) => {
+          const value = x.functions.map(parseProperty).join('');
+          return `${value.startsWith('.') ? 'zod' : ''}${value}`;
+        })
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
