@@ -57,6 +57,7 @@
     "zx": "^7.2.3"
   },
   "resolutions": {
-    "whatwg-url": ">=14"
+    "whatwg-url": ">=14",
+    "jsonpath-plus": "^10.3.0"
   }
 }
