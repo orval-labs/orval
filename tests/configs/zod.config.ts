@@ -186,4 +186,13 @@ export default defineConfig({
       target: '../specifications/format.yaml',
     },
   },
+  enums: {
+    output: {
+      target: '../generated/zod/enums.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
 });

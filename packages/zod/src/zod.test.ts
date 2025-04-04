@@ -642,7 +642,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['enum', ["['cat', 'dog']"]],
+          ['enum', "['cat', 'dog']"],
           ['optional', undefined],
         ],
         consts: [],
@@ -668,14 +668,20 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['enum', ['[1, 2]']],
+          [
+            'oneOf',
+            [
+              { functions: [['literal', 1]], consts: [] },
+              { functions: [['literal', 2]], consts: [] },
+            ],
+          ],
           ['optional', undefined],
         ],
         consts: [],
       });
 
       const parsed = parseZodValidationSchemaDefinition(result, context, false);
-      expect(parsed.zod).toBe('zod.enum([1, 2]).optional()');
+      expect(parsed.zod).toBe('zod.literal(1).or(zod.literal(2)).optional()');
     });
 
     it('generates an enum for a boolean', () => {
@@ -694,14 +700,22 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['enum', ['[true, false]']],
+          [
+            'oneOf',
+            [
+              { functions: [['literal', true]], consts: [] },
+              { functions: [['literal', false]], consts: [] },
+            ],
+          ],
           ['optional', undefined],
         ],
         consts: [],
       });
 
       const parsed = parseZodValidationSchemaDefinition(result, context, false);
-      expect(parsed.zod).toBe('zod.enum([true, false]).optional()');
+      expect(parsed.zod).toBe(
+        'zod.literal(true).or(zod.literal(false)).optional()',
+      );
     });
 
     it('generates an enum for any', () => {
@@ -719,14 +733,23 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['enum', ["['cat', 1, true]"]],
+          [
+            'oneOf',
+            [
+              { functions: [['literal', "'cat'"]], consts: [] },
+              { functions: [['literal', 1]], consts: [] },
+              { functions: [['literal', true]], consts: [] },
+            ],
+          ],
           ['optional', undefined],
         ],
         consts: [],
       });
 
       const parsed = parseZodValidationSchemaDefinition(result, context, false);
-      expect(parsed.zod).toBe("zod.enum(['cat', 1, true]).optional()");
+      expect(parsed.zod).toBe(
+        "zod.literal('cat').or(zod.literal(1)).or(zod.literal(true)).optional()",
+      );
     });
   });
 });
