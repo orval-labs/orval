@@ -440,14 +440,22 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   if (schema.enum) {
-    functions.push([
-      'enum',
-      [
-        `[${schema.enum
-          .map((value) => (isString(value) ? `'${escape(value)}'` : `${value}`))
-          .join(', ')}]`,
-      ],
-    ]);
+    if (schema.enum.every((value) => isString(value))) {
+      functions.push([
+        'enum',
+        `[${schema.enum.map((value) => `'${escape(value)}'`).join(', ')}]`,
+      ]);
+    } else {
+      functions.push([
+        'oneOf',
+        schema.enum.map((value) => ({
+          functions: [
+            ['literal', isString(value) ? `'${escape(value)}'` : value],
+          ],
+          consts: [],
+        })),
+      ]);
+    }
   }
 
   if (!required && schema.default) {
