@@ -266,6 +266,24 @@ export const getMockScalar = ({
       };
 
     default: {
+      if (item.enum) {
+        const enumImports: GeneratorImport[] = [];
+        const value = getEnum(
+          item,
+          enumImports,
+          context,
+          existingReferencedProperties,
+          undefined,
+        );
+
+        return {
+          value,
+          enums: item.enum,
+          imports: enumImports,
+          name: item.name,
+        };
+      }
+
       return getMockObject({
         item,
         mockOptions,
@@ -304,16 +322,17 @@ const getEnum = (
   imports: GeneratorImport[],
   context: ContextSpecs,
   existingReferencedProperties: string[],
-  type: 'string' | 'number',
+  type: 'string' | 'number' | undefined,
 ) => {
   if (!item.enum) return '';
-  const joindEnumValues =
-    type === 'string'
-      ? `'${item.enum
-          .filter((e) => e !== null)
-          .map((e) => escape(e))
-          .join("','")}'`
-      : item.enum.filter((e) => e !== null).join(',');
+  const joindEnumValues = item.enum
+    .filter((e) => e !== null)
+    .map((e) =>
+      type === 'string' || (type === undefined && typeof e === 'string')
+        ? `'${escape(e)}'`
+        : e,
+    )
+    .join(',');
 
   let enumValue = `[${joindEnumValues}]`;
   if (context.output.override.useNativeEnums) {
