@@ -40,7 +40,7 @@ git add <file> && git commit -m "feat/fix/chore/docs: commit message"
 
 When all that's done, it's time to file a pull request to upstream:
 
-**NOTE**: All pull requests should target the `main` branch.
+**NOTE**: All pull requests should target the `master` branch.
 
 ## Credits
 
