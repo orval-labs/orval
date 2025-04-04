@@ -55,6 +55,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Duck'
+  /api/cat-dog:
+    get:
+      summary: sample cat dog
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatDog'
 components:
   schemas:
     Siamese:
@@ -148,3 +158,8 @@ components:
         - 3
       type: integer
       format: int32
+    CatDog:
+      enum:
+        - 1
+        - '2'
+        - a
