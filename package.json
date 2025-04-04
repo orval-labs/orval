@@ -32,7 +32,7 @@
     "@eslint/js": "^9.21.0",
     "@faker-js/faker": "^8.4.0",
     "@release-it-plugins/workspaces": "^4.2.0",
-    "@release-it/conventional-changelog": "^8.0.1",
+    "@release-it/conventional-changelog": "^10.0.0",
     "@types/node": "^20.13.0",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.22.0",
