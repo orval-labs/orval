@@ -27,6 +27,7 @@ import * as mock from '@orval/mock';
 import query from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
+import mcp from '@orval/mcp';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 
@@ -45,6 +46,7 @@ const getGeneratorClient = (
     zod: zod()(),
     hono: hono()(),
     fetch: fetchClient()(),
+    mcp: mcp()(),
   };
 
   const generator = isFunction(outputClient)

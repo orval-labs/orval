@@ -1,0 +1,19 @@
+{
+  "name": "@orval/mcp",
+  "version": "7.8.0",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup ./src/index.ts --target node12 --clean --dts --sourcemap",
+    "dev": "tsup ./src/index.ts --target node12 --clean --watch --sourcemap src",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "@orval/core": "7.7.0",
+    "@orval/zod": "7.7.0"
+  }
+}
