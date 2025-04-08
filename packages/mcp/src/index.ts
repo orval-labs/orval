@@ -12,6 +12,7 @@ import {
   jsDoc,
   NormalizedOutputOptions,
   upath,
+  camel,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import {
@@ -168,13 +169,10 @@ export const generateServer = async (
   output: NormalizedOutputOptions,
   context: ContextSpecs,
 ) => {
+  const info = context.specs[context.specKey].info;
   const { extension, dirname } = getFileInfo(output.target);
   const serverPath = upath.join(dirname, `server${extension}`);
-
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, info);
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
@@ -243,7 +241,7 @@ import {
 `;
   const newMcpServerImplementation = `
 const server = new McpServer({
-  name: 'mcp-server',
+  name: '${camel(info.title)}Server',
   version: '1.0.0',
 });
 `;
