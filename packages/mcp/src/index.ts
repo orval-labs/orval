@@ -2,12 +2,10 @@ import {
   generateVerbImports,
   ClientBuilder,
   ClientExtraFilesBuilder,
-  ClientFooterBuilder,
   ClientGeneratorsBuilder,
   ClientHeaderBuilder,
   ContextSpecs,
   generateMutatorImports,
-  GeneratorDependency,
   GeneratorMutator,
   GeneratorVerbOptions,
   getFileInfo,
@@ -24,29 +22,6 @@ import {
 
 import { InfoObject } from 'openapi3-ts/oas30';
 
-const MCP_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      {
-        name: 'McpServer',
-        values: true,
-      },
-    ],
-    dependency: '@modelcontextprotocol/sdk/server/mcp.js',
-  },
-  {
-    exports: [
-      {
-        name: 'StdioServerTransport',
-        values: true,
-      },
-    ],
-    dependency: '@modelcontextprotocol/sdk/server/stdio.js',
-  },
-];
-
-export const getMcpDependencies = () => MCP_DEPENDENCIES;
-
 const getHeader = (
   option: false | ((info: InfoObject) => string | string[]),
   info: InfoObject,
@@ -62,8 +37,176 @@ const getHeader = (
 
 export const getMcpHeader: ClientHeaderBuilder = ({
   verbOptions,
+  output,
   clientImplementation,
 }) => {
+  const targetInfo = getFileInfo(output.target);
+  const schemaInfo = getFileInfo(output.schemas);
+
+  const relativeSchemaImportPath = output.schemas
+    ? upath.relativeSafe(targetInfo.dirname, schemaInfo.dirname)
+    : './' + targetInfo.filename + '.schemas';
+
+  const importSchemaNames = Object.values(verbOptions)
+    .flatMap((verbOption) => {
+      const imports = generateVerbImports(verbOption);
+
+      return imports
+        .filter((i) => clientImplementation.includes(i.name))
+        .map((i) => i.name);
+    })
+    .reduce((acc, name) => {
+      if (!acc.find((i) => i === name)) {
+        acc.push(name);
+      }
+
+      return acc;
+    }, [] as string[]);
+
+  const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
+    ',\n  ',
+  )}\n} from '${relativeSchemaImportPath}';
+`;
+
+  const relativeFetchClientPath = './http-client';
+  const importFetchClientNames = Object.values(verbOptions)
+    .flatMap((verbOption) => verbOption.operationName)
+    .reduce((acc, name) => {
+      if (!acc.find((i) => i === name)) {
+        acc.push(name);
+      }
+
+      return acc;
+    }, [] as string[]);
+
+  const importFetchClientImplementation = `import {\n  ${importFetchClientNames.join(
+    ',\n  ',
+  )}\n} from '${relativeFetchClientPath}';
+  `;
+
+  const content = [
+    importSchemasImplementation,
+    importFetchClientImplementation,
+  ].join('\n');
+
+  return content + '\n';
+};
+
+export const generateMcp: ClientBuilder = async (verbOptions, options) => {
+  const handlerArgsTypes = [];
+  const pathParamsType = verbOptions.params
+    .map((param) => {
+      const paramName = param.name.split(': ')[0];
+      const paramType = param.implementation.split(': ')[1];
+      return `    ${paramName}: ${paramType}`;
+    })
+    .join(',\n');
+  if (pathParamsType) {
+    handlerArgsTypes.push(`  pathParams: {\n${pathParamsType}\n  };`);
+  }
+  if (verbOptions.queryParams) {
+    handlerArgsTypes.push(
+      `  queryParams: ${verbOptions.queryParams.schema.name};`,
+    );
+  }
+  if (verbOptions.body.definition) {
+    handlerArgsTypes.push(`  bodyParams: ${verbOptions.body.definition};`);
+  }
+
+  const handlerArgsName = `${verbOptions.operationName}Args`;
+  const handlerArgsImplementation = handlerArgsTypes.length
+    ? `
+export type ${handlerArgsName} = {
+${handlerArgsTypes.join('\n')}
+}
+`
+    : '';
+
+  const fetchParams = [];
+  if (verbOptions.params.length) {
+    const pathParamsArgs = verbOptions.params
+      .map((param) => {
+        const paramName = param.name.split(': ')[0];
+
+        return `args.pathParams.${paramName}`;
+      })
+      .join(', ');
+
+    fetchParams.push(`${pathParamsArgs}`);
+  }
+  if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
+  if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
+
+  const handlerName = `${verbOptions.operationName}Handler`;
+  const handlerImplementation = `
+export const ${handlerName} = async (${handlerArgsTypes.length ? `args: ${handlerArgsName}` : ''}) => {
+  const res = await ${verbOptions.operationName}(${fetchParams.join(', ')});
+
+  return {
+    content: [
+      {
+        type: 'text' as const,
+        text: JSON.stringify(res),
+      },
+    ],
+  };
+};`;
+
+  const handlersImplementation = [
+    handlerArgsImplementation,
+    handlerImplementation,
+  ].join('');
+
+  return {
+    implementation: handlersImplementation ? `${handlersImplementation}\n` : '',
+    imports: [],
+  };
+};
+
+export const generateServer = async (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  output: NormalizedOutputOptions,
+  context: ContextSpecs,
+) => {
+  const { extension, dirname } = getFileInfo(output.target);
+  const serverPath = upath.join(dirname, `server${extension}`);
+
+  const header = getHeader(
+    output.override.header,
+    context.specs[context.specKey].info,
+  );
+
+  const toolImplementations = Object.values(verbOptions)
+    .map((verbOption) => {
+      const imputSchemaTypes = [];
+      if (verbOption.params.length)
+        imputSchemaTypes.push(
+          `  pathParams: ${verbOption.operationName}Params`,
+        );
+      if (verbOption.queryParams)
+        imputSchemaTypes.push(
+          `  queryParams: ${verbOption.operationName}QueryParams`,
+        );
+      if (verbOption.body.definition)
+        imputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
+
+      const imputSchemaImplementation = imputSchemaTypes.length
+        ? `  {
+  ${imputSchemaTypes.join(',\n  ')}
+  },`
+        : '';
+
+      const toolImplementation = `
+server.tool(
+  '${verbOption.operationName}',
+  '${verbOption.summary}',${imputSchemaImplementation ? `\n${imputSchemaImplementation}` : ''}
+  ${verbOption.operationName}Handler
+);`;
+
+      return toolImplementation;
+    })
+    .join('\n');
+
   const importToolSchemas = Object.values(verbOptions)
     .flatMap((verbOption) => {
       const imports = [];
@@ -84,185 +227,48 @@ export const getMcpHeader: ClientHeaderBuilder = ({
 
   const importHandlers = Object.values(verbOptions)
     .filter((verbOption) =>
-      clientImplementation.includes(`${verbOption.operationName}Handler`),
+      toolImplementations.includes(`${verbOption.operationName}Handler`),
     )
     .map((verbOption) => `  ${verbOption.operationName}Handler`)
     .join(`,\n`);
   const importHandlersImplementation = `import {\n${importHandlers}\n} from './handlers';`;
 
+  const importDependenciesImplementation = `import {
+  McpServer
+} from '@modelcontextprotocol/sdk/server/mcp.js';
+  
+import {
+  StdioServerTransport
+} from '@modelcontextprotocol/sdk/server/stdio.js';  
+`;
   const newMcpServerImplementation = `
 const server = new McpServer({
   name: 'mcp-server',
   version: '1.0.0',
 });
 `;
-
-  return [
-    importHandlersImplementation,
-    importToolSchemasImplementation,
-    newMcpServerImplementation,
-  ].join('\n');
-};
-
-export const getMcpFooter: ClientFooterBuilder = () => `
+  const serverConnectImplementation = `
 const transport = new StdioServerTransport();
+
 server.connect(transport).then(() => {
   console.error('MCP server running on stdio');
 }).catch(console.error);
 `;
 
-export const generateMcp: ClientBuilder = async (verbOptions, options) => {
-  const imputSchemaTypes = [];
-  if (verbOptions.params.length)
-    imputSchemaTypes.push(`  pathParams: ${verbOptions.operationName}Params`);
-  if (verbOptions.queryParams)
-    imputSchemaTypes.push(
-      `  queryParams: ${verbOptions.operationName}QueryParams`,
-    );
-  if (verbOptions.body.definition)
-    imputSchemaTypes.push(`  bodyParams: ${verbOptions.operationName}Body`);
-
-  const imputSchemaImplementation = imputSchemaTypes.length
-    ? `  {
-  ${imputSchemaTypes.join(',\n  ')}
-  },`
-    : '';
-
-  const toolImplementation = `
-server.tool(
-  '${verbOptions.operationName}',
-  '${verbOptions.summary}',${imputSchemaImplementation ? `\n${imputSchemaImplementation}` : ''}
-  ${verbOptions.operationName}Handler
-);`;
-
-  const schemaImports = generateVerbImports(verbOptions);
-  const imports = [...schemaImports];
-
-  return {
-    implementation: toolImplementation ? `${toolImplementation}\n` : '',
-    imports,
-  };
-};
-
-const getHandler = (verbOption: GeneratorVerbOptions) => {
-  const handlerArgsTypes = [];
-  const pathParamsType = verbOption.params
-    .map((param) => {
-      const paramName = param.name.split(': ')[0];
-      const paramType = param.implementation.split(': ')[1];
-      return `    ${paramName}: ${paramType}`;
-    })
-    .join(',\n');
-  if (pathParamsType)
-    handlerArgsTypes.push(`  pathParams: {\n${pathParamsType}\n  };`);
-  if (verbOption.queryParams)
-    handlerArgsTypes.push(
-      `  queryParams: ${verbOption.queryParams.schema.name};`,
-    );
-  if (verbOption.body.definition)
-    handlerArgsTypes.push(`  bodyParams: ${verbOption.body.definition};`);
-
-  const handlerArgsName = `${verbOption.operationName}Args`;
-  const handlerArgsImplementation = handlerArgsTypes.length
-    ? `
-export type ${handlerArgsName} = {
-${handlerArgsTypes.join('\n')}
-}
-`
-    : '';
-
-  const fetchParams = [];
-  if (verbOption.params.length) {
-    const pathParamsArgs = verbOption.params
-      .map((param) => {
-        const paramName = param.name.split(': ')[0];
-
-        return `args.pathParams.${paramName}`;
-      })
-      .join(', ');
-
-    fetchParams.push(`${pathParamsArgs}`);
-  }
-  if (verbOption.body.definition) fetchParams.push(`args.bodyParams`);
-  if (verbOption.queryParams) fetchParams.push(`args.queryParams`);
-
-  const handlerName = `${verbOption.operationName}Handler`;
-  const handlerImplementation = `
-export const ${handlerName} = async (${handlerArgsTypes.length ? `args: ${handlerArgsName}` : ''}) => {
-  const res = await ${verbOption.operationName}(${fetchParams.join(', ')});
-
-  return {
-    content: [
-      {
-        type: 'text' as const,
-        text: JSON.stringify(res),
-      },
-    ],
-  };
-};`;
-
-  return [handlerArgsImplementation, handlerImplementation].join('');
-};
-
-const generateHandlers = async (
-  verbOptions: Record<string, GeneratorVerbOptions>,
-  output: NormalizedOutputOptions,
-) => {
-  const { extension, dirname, filename } = getFileInfo(output.target);
-
-  const handlerPath = upath.join(dirname, `handlers${extension}`);
-
-  const relativeSchemaImportPath = output.schemas
-    ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
-    : './' + filename + '.schemas';
-  const importSchemaNames = await Promise.all(
-    Object.values(verbOptions)
-      .flatMap((verbOption) => generateVerbImports(verbOption))
-      .reduce((acc, imp) => {
-        if (!acc.find((name) => name === imp.name)) {
-          acc.push(imp.name);
-        }
-
-        return acc;
-      }, [] as string[]),
-  );
-  const importSchemasImplementation = `import { ${importSchemaNames.join(
-    ',\n',
-  )} } from '${relativeSchemaImportPath}';`;
-
-  const relativeFetchClientPath = './http-client';
-  const importFetchClientNames = await Promise.all(
-    Object.values(verbOptions)
-      .flatMap((verbOption) => verbOption.operationName)
-      .reduce((acc, name) => {
-        if (!acc.find((i) => i === name)) {
-          acc.push(name);
-        }
-
-        return acc;
-      }, [] as string[]),
-  );
-
-  const importFetchClientImplementation = `import { ${importFetchClientNames.join(
-    ',\n',
-  )} } from '${relativeFetchClientPath}';`;
-
-  const handlersImplementation = Object.values(verbOptions)
-    .map((verbOption) => {
-      return getHandler(verbOption);
-    })
-    .join('\n');
-
   const content = [
-    importSchemasImplementation,
-    importFetchClientImplementation,
-    handlersImplementation,
+    header,
+    importDependenciesImplementation,
+    importHandlersImplementation,
+    importToolSchemasImplementation,
+    newMcpServerImplementation,
+    toolImplementations,
+    serverConnectImplementation,
   ].join('\n');
 
   return [
     {
       content,
-      path: handlerPath,
+      path: serverPath,
     },
   ];
 };
@@ -404,20 +410,18 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   output,
   context,
 ) => {
-  const [handlers, zods, httpClients] = await Promise.all([
-    generateHandlers(verbOptions, output),
+  const [server, zods, httpClients] = await Promise.all([
+    generateServer(verbOptions, output, context),
     generateZodFiles(verbOptions, output, context),
     generateHttpClinetFiles(verbOptions, output, context),
   ]);
 
-  return [...handlers, ...zods, ...httpClients];
+  return [...server, ...zods, ...httpClients];
 };
 
 const mcpClientBuilder: ClientGeneratorsBuilder = {
   client: generateMcp,
-  dependencies: getMcpDependencies,
   header: getMcpHeader,
-  footer: getMcpFooter,
   extraFiles: generateExtraFiles,
 };
 
