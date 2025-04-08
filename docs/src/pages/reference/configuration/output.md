@@ -92,7 +92,7 @@ module.exports = {
   petstore: {
     output: {
       mode: 'split',
-      target: './/gen/endpoints',
+      target: './gen/endpoints',
       schemas: './gen/model',
       fileExtension: '.gen.ts',
     },
@@ -125,7 +125,7 @@ module.exports = {
     output: {
       namingConvention: 'PascalCase',
       mode: 'split',
-      target: './/gen/endpoints',
+      target: './gen/endpoints',
       schemas: './gen/model',
       fileExtension: '.gen.ts',
     },
