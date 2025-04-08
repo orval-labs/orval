@@ -15,6 +15,31 @@
 
 `Generate`, `valid`, `cache` and `mock` in your React, Vue, Svelte and Angular applications all with your OpenAPI specification.
 
+### How to use the generated mcp server
+
+Add a setting to the mcp client to launch the generated `server.ts`.
+For example, like this:
+
+```
+"pet-store-server": {
+  "command": "docker",
+  "args": [
+    "run",
+    "-i",
+    "--rm",
+    "pet-store-mcp",
+    "bash",
+    "-c",
+    "ts-node",
+    "src/gen/server.ts"
+  ],
+  "disabled": false,
+  "alwaysAllow": []
+}
+```
+
+Here, `src/gen/server.ts` is started using `Docker`.
+
 ### Samples
 
 You can find below some samples
