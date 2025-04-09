@@ -1387,6 +1387,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@orval/mcp@npm:7.8.0, @orval/mcp@workspace:packages/mcp":
+  version: 0.0.0-use.local
+  resolution: "@orval/mcp@workspace:packages/mcp"
+  dependencies:
+    "@orval/core": "npm:7.8.0"
+    "@orval/zod": "npm:7.8.0"
+  languageName: unknown
+  linkType: soft
+
 "@orval/mock@npm:7.8.0, @orval/mock@workspace:packages/mock":
   version: 0.0.0-use.local
   resolution: "@orval/mock@workspace:packages/mock"
@@ -7418,6 +7427,7 @@ __metadata:
     "@orval/core": "npm:7.8.0"
     "@orval/fetch": "npm:7.8.0"
     "@orval/hono": "npm:7.8.0"
+    "@orval/mcp": "npm:7.8.0"
     "@orval/mock": "npm:7.8.0"
     "@orval/query": "npm:7.8.0"
     "@orval/swr": "npm:7.8.0"

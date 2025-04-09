@@ -61,6 +61,7 @@
     "@orval/core": "7.8.0",
     "@orval/fetch": "7.8.0",
     "@orval/hono": "7.8.0",
+    "@orval/mcp": "7.8.0",
     "@orval/mock": "7.8.0",
     "@orval/query": "7.8.0",
     "@orval/swr": "7.8.0",
