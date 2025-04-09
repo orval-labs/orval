@@ -206,20 +206,6 @@ export default defineConfig({
       target: '../specifications/arrays.yaml',
     },
   },
-  enums: {
-    output: {
-      target: '../generated/swr/enums/endpoints.ts',
-      schemas: '../generated/swr/enums/model',
-      client: 'swr',
-      mock: true,
-      override: {
-        useNativeEnums: true,
-      },
-    },
-    input: {
-      target: '../specifications/enums.yaml',
-    },
-  },
   errors: {
     output: {
       target: '../generated/swr/errors/endpoints.ts',

@@ -2240,7 +2240,7 @@ module.exports = {
 };
 ```
 
-#### useNativeEnums
+#### useNativeEnums (deprecated, use 'enumGenerationType="enum"' instead)
 
 Type: `Boolean`
 
@@ -2260,6 +2260,56 @@ module.exports = {
     },
   },
 };
+```
+
+#### enumGenerationType
+
+Type: `const` | `enum` | `union`
+
+Default Value: `const`.
+
+This is used to specify how enums are generated. `const` generates a const object, `enum` generates a native enum and `union` generates a simple union type.
+To change the name of the generated enum keys, you can extend your OpenAPI schema with x-enumNames. Read more [here](../../guides/enums).
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        enumGenerationType: 'const',
+      },
+    },
+  },
+};
+```
+
+Result when `enumGenerationType` is `const`:
+
+```ts
+export type Example = (typeof Example)[keyof typeof Example];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const Example = {
+  foo: 'foo',
+  bar: 'bar',
+  baz: 'baz',
+} as const;
+```
+
+Result when `enumGenerationType` is `enum`:
+
+```ts
+export enum Example {
+  foo = 'foo',
+  bar = 'bar',
+  baz = 'baz',
+}
+```
+
+Result when `enumGenerationType` is `union`:
+
+```ts
+export const Example = 'foo' | 'bar' | 'baz';
 ```
 
 #### suppressReadonlyModifier

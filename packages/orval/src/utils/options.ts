@@ -323,7 +323,10 @@ export const normalizeOptions = async (
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
-        useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
+        enumGenerationType:
+          outputOptions.override?.useNativeEnums ?? false
+            ? 'enum'
+            : outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
       },
