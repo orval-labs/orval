@@ -33,17 +33,15 @@ const maybeReplaceCatalog = async (
   pkg: PackageJson,
   workspace: string,
 ): Promise<PackageJson> => {
-  let hasCatalog = false;
-  for (const kvp of [
-    ...Object.entries(pkg.dependencies ?? {}),
-    ...Object.entries(pkg.devDependencies ?? {}),
-  ]) {
-    if (kvp[1].startsWith('catalog:')) {
-      hasCatalog = true;
-      break;
-    }
+  if (
+    ![
+      ...Object.entries(pkg.dependencies ?? {}),
+      ...Object.entries(pkg.devDependencies ?? {}),
+      ...Object.entries(pkg.peerDependencies ?? {}),
+    ].some(([key]) => key.startsWith('catalog:'))
+  ) {
+    return pkg;
   }
-  if (!hasCatalog) return pkg;
 
   const filePath = await findUp('pnpm-workspace.yaml', { cwd: workspace });
   if (!filePath) {
@@ -57,6 +55,7 @@ const maybeReplaceCatalog = async (
   const pnpmWorkspaceFile = yaml.load(file) as Record<string, any>;
   performSubstitution(pkg.dependencies, pnpmWorkspaceFile);
   performSubstitution(pkg.devDependencies, pnpmWorkspaceFile);
+  performSubstitution(pkg.peerDependencies, pnpmWorkspaceFile);
 
   return pkg;
 };
@@ -83,18 +82,18 @@ const performSubstitution = (
       }
       dependencies[packageName] = sub;
     } else if (version.startsWith('catalog:')) {
-      const namedCatalog = version.substring(8); // 'catalog:' is 8 characters long
-      const catalog = pnpmWorkspaceFile.catalogs?.[namedCatalog];
+      const catalogName = version.substring('catalog:'.length);
+      const catalog = pnpmWorkspaceFile.catalogs?.[catalogName];
       if (!catalog) {
         log(
-          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no matching catalog named '${namedCatalog}'. (available named catalogs are: ${Object.keys(pnpmWorkspaceFile.catalogs ?? {}).join(', ')})`)}`,
+          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(pnpmWorkspaceFile.catalogs ?? {}).join(', ')})`)}`,
         );
         continue;
       }
       const sub = catalog[packageName];
       if (!sub) {
         log(
-          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no package in the catalog named '${namedCatalog}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`)}`,
+          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`)}`,
         );
         continue;
       }
