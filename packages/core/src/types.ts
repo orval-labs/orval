@@ -118,7 +118,7 @@ export type NormalizedOverrideOutput = {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
-  useNativeEnums?: boolean;
+  enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
 };
 
@@ -200,6 +200,15 @@ export const NamingConvention = {
 
 export type NamingConvention =
   (typeof NamingConvention)[keyof typeof NamingConvention];
+
+export const EnumGeneration = {
+  CONST: 'const',
+  ENUM: 'enum',
+  UNION: 'union',
+} as const;
+
+export type EnumGeneration =
+  (typeof EnumGeneration)[keyof typeof EnumGeneration];
 
 export type OutputOptions = {
   workspace?: string;
@@ -415,7 +424,11 @@ export type OverrideOutput = {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
+  /**
+   * @deprecated use 'enumGenerationType="enum"' instead
+   */
   useNativeEnums?: boolean;
+  enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
 };
 

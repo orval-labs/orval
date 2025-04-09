@@ -1,5 +1,6 @@
 import { keyword } from 'esutils';
 import { SchemaObject } from 'openapi3-ts/dist/model/openapi30';
+import { EnumGeneration } from '../types';
 import { isNumeric, sanitize } from '../utils';
 
 export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
@@ -13,13 +14,16 @@ export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
 export const getEnum = (
   value: string,
   enumName: string,
-  names?: string[],
-  useNativeEnums?: boolean,
+  names: string[] | undefined,
+  enumGenerationType: EnumGeneration,
 ) => {
-  const enumValue = useNativeEnums
-    ? getNativeEnum(value, enumName, names)
-    : getTypeConstEnum(value, enumName, names);
-  return enumValue;
+  if (enumGenerationType === EnumGeneration.CONST)
+    return getTypeConstEnum(value, enumName, names);
+  if (enumGenerationType === EnumGeneration.ENUM)
+    return getNativeEnum(value, enumName, names);
+  if (enumGenerationType === EnumGeneration.UNION)
+    return getUnion(value, enumName);
+  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
 };
 
 const getTypeConstEnum = (
@@ -135,4 +139,8 @@ const toNumberKey = (value: string) => {
     return `NUMBER_PLUS_${value.slice(1)}`;
   }
   return `NUMBER_${value}`;
+};
+
+const getUnion = (value: string, enumName: string) => {
+  return `export type ${enumName} = ${value};`;
 };

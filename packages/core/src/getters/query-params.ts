@@ -72,7 +72,7 @@ const getQueryParamsTypes = (
         resolvedValue.value,
         enumName,
         getEnumNames(resolvedValue.originalSchema),
-        context.output.override.useNativeEnums,
+        context.output.override.enumGenerationType,
       );
 
       return {

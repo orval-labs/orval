@@ -1,5 +1,6 @@
 import {
   ContextSpecs,
+  EnumGeneration,
   escape,
   GeneratorImport,
   isReference,
@@ -335,7 +336,7 @@ const getEnum = (
     .join(',');
 
   let enumValue = `[${joindEnumValues}]`;
-  if (context.output.override.useNativeEnums) {
+  if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
     if (item.isRef || existingReferencedProperties.length === 0) {
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
       imports.push({

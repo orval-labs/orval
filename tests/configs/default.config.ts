@@ -338,4 +338,40 @@ export default defineConfig({
     input: '../specifications/lowercase-discriminator.yaml',
     output: '../generated/default/lowercase-discriminator/endpoints.ts',
   },
+  constEnums: {
+    output: {
+      target: '../generated/default/enums/const/endpoints.ts',
+      schemas: '../generated/default/enums/const/model',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
+  nativeEnums: {
+    output: {
+      target: '../generated/default/enums/native/endpoints.ts',
+      schemas: '../generated/default/enums/native/model',
+      mock: true,
+      override: {
+        enumGenerationType: 'enum',
+      },
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
+  unionEnums: {
+    output: {
+      target: '../generated/default/enums/union/endpoints.ts',
+      schemas: '../generated/default/enums/union/model',
+      mock: true,
+      override: {
+        enumGenerationType: 'union',
+      },
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
+  },
 });
