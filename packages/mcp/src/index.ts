@@ -13,6 +13,7 @@ import {
   NormalizedOutputOptions,
   upath,
   camel,
+  pascal,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import {
@@ -50,17 +51,23 @@ export const getMcpHeader: ClientHeaderBuilder = ({
 
   const importSchemaNames = Object.values(verbOptions)
     .flatMap((verbOption) => {
-      const imports = generateVerbImports(verbOption);
+      const imports = [];
+      const pascalOperationName = pascal(verbOption.operationName);
 
-      return imports
-        .filter((i) => clientImplementation.includes(i.name))
-        .map((i) => i.name);
+      if (verbOption.queryParams) {
+        imports.push(`${pascalOperationName}Params`);
+      }
+
+      if (verbOption.body.definition) {
+        imports.push(`${pascalOperationName}Body`);
+      }
+
+      return imports;
     })
     .reduce((acc, name) => {
       if (!acc.find((i) => i === name)) {
         acc.push(name);
       }
-
       return acc;
     }, [] as string[]);
 
