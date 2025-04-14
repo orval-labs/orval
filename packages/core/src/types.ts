@@ -334,6 +334,7 @@ export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
   properties?: Record<string, unknown>;
   operations?: Record<string, { properties: Record<string, unknown> }>;
   tags?: Record<string, { properties: Record<string, unknown> }>;
+  allRequiredFields?: string[];
 };
 
 export type MockPropertiesObject = {

@@ -6,8 +6,17 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
+import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
+
+// Helper function for type safety
+const getRequired = (schema: SchemaObject | ReferenceObject): string[] => {
+  if ('required' in schema && Array.isArray(schema.required)) {
+    return schema.required;
+  }
+  return [];
+};
 
 export const combineSchemasMock = ({
   item,
@@ -45,6 +54,22 @@ export const combineSchemasMock = ({
   const isRefAndNotExisting =
     isReference(item) && !existingReferencedProperties.includes(item.name);
 
+  // Collect all required fields from the top-level schema
+  const allRequiredFields: string[] = getRequired(item);
+
+  // For allOf, extract and combine all required fields from the schemas
+  if (separator === 'allOf' && item[separator]) {
+    for (const schema of item[separator]) {
+      allRequiredFields.push(...getRequired(schema));
+    }
+  }
+
+  // Create an enhanced mockOptions that includes the combined required fields
+  const enhancedMockOptions: MockOptions = {
+    ...mockOptions,
+    allRequiredFields: [...new Set(allRequiredFields)], // Deduplicate
+  };
+
   const itemResolvedValue =
     isRefAndNotExisting || item.properties
       ? resolveMockValue({
@@ -55,7 +80,7 @@ export const combineSchemasMock = ({
             separator: 'allOf',
             includedProperties: [],
           },
-          mockOptions,
+          mockOptions: enhancedMockOptions,
           operationId,
           tags,
           context,
@@ -84,13 +109,21 @@ export const combineSchemasMock = ({
         return acc;
       }
 
-      // the required fields in this schema need to be considered
-      // in the sub schema under the allOf key
-      if (separator === 'allOf' && item.required) {
-        if (isSchema(val) && val.required) {
-          val = { ...val, required: [...item.required, ...val.required] };
-        } else {
-          val = { ...val, required: item.required };
+      // Propagate required fields to each schema
+      if (separator === 'allOf') {
+        // Create a copy we can safely modify
+        const schemaWithRequired = { ...val };
+
+        if (isSchema(schemaWithRequired)) {
+          // For SchemaObject we can safely add the required property
+          (schemaWithRequired as SchemaObject).required = [
+            ...new Set([
+              ...allRequiredFields,
+              ...getRequired(schemaWithRequired),
+            ]),
+          ];
+
+          val = schemaWithRequired;
         }
       }
 
@@ -107,7 +140,7 @@ export const combineSchemasMock = ({
               ? includedProperties
               : itemResolvedValue?.includedProperties ?? [],
         },
-        mockOptions,
+        mockOptions: enhancedMockOptions,
         operationId,
         tags,
         context,

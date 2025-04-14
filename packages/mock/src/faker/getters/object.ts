@@ -118,9 +118,14 @@ export const getMockObject = ({
           return undefined;
         }
 
+        // Check if this field is in the collected allRequiredFields from combined schemas
         const isRequired =
           mockOptions?.required ||
-          (Array.isArray(item.required) ? item.required : []).includes(key);
+          (Array.isArray(mockOptions?.allRequiredFields)
+            ? mockOptions.allRequiredFields.includes(key)
+            : (Array.isArray(item.required) ? item.required : []).includes(
+                key,
+              ));
 
         // Check to see if the property is a reference to an existing property
         // Fixes issue #910
