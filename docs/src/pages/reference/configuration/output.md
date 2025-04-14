@@ -1972,6 +1972,8 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 
 Type: `serialize` | `serialize-with-brackets` | `explode`
 
+Default Value: `serialize`
+
 Decides how FormData generation handles arrays.
 
 For all of the following examples, this specificaiton is used:
