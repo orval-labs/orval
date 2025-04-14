@@ -1968,6 +1968,99 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 };
 ```
 
+#### formDataArrayHandling
+
+Type: `serialize` | `serialize-with-brackets` | `explode`
+
+Decides how FormData generation handles arrays.
+
+For all of the following examples, this specificaiton is used:
+
+```yaml
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: number
+        relatives:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              colors:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - white
+                    - black
+                    - green
+```
+
+Type `serialize` setting results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value) =>
+    formData.append(`relatives`, JSON.stringify(value)),
+  );
+}
+```
+
+Type `serialize-with-brackets` setting results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value) =>
+    formData.append(`relatives[]`, JSON.stringify(value)),
+  );
+}
+```
+
+Type `explode` setting results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value, index) => {
+    if (value.name !== undefined) {
+      formData.append(`relatives[${index}].name`, value.name);
+    }
+    if (value.colors !== undefined) {
+      value.colors.forEach((value, index1) =>
+        formData.append(`relatives[${index}].colors[${index1}]`, value),
+      );
+    }
+  });
+}
+```
+
 #### paramsSerializer
 
 Type: `String` or `Object`.

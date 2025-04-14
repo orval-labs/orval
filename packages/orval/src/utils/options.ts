@@ -2,6 +2,7 @@ import {
   ClientMockBuilder,
   ConfigExternal,
   createLogger,
+  FormDataArrayHandling,
   GlobalMockOptions,
   GlobalOptions,
   HonoOptions,
@@ -207,6 +208,9 @@ export const normalizeOptions = async (
                 outputOptions.override?.formUrlEncoded,
               )
             : outputOptions.override?.formUrlEncoded) ?? true,
+        formDataArrayHandling:
+          outputOptions.override?.formDataArrayHandling ??
+          FormDataArrayHandling.SERIALIZE,
         paramsSerializer: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.paramsSerializer,

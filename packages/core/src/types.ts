@@ -83,6 +83,7 @@ export type NormalizedOverrideOutput = {
   header: false | ((info: InfoObject) => string[] | string);
   formData: boolean | NormalizedMutator;
   formUrlEncoded: boolean | NormalizedMutator;
+  formDataArrayHandling: FormDataArrayHandling;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
   components: {
@@ -379,6 +380,15 @@ export type ParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+export const FormDataArrayHandling = {
+  SERIALIZE: 'serialize',
+  EXPLODE: 'explode',
+  SERIALIZE_WITH_BRACKETS: 'serialize-with-brackets',
+} as const;
+
+export type FormDataArrayHandling =
+  (typeof FormDataArrayHandling)[keyof typeof FormDataArrayHandling];
+
 export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -390,6 +400,7 @@ export type OverrideOutput = {
   header?: boolean | ((info: InfoObject) => string[] | string);
   formData?: boolean | Mutator;
   formUrlEncoded?: boolean | Mutator;
+  formDataArrayHandling?: FormDataArrayHandling;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
   components?: {
