@@ -131,6 +131,75 @@ export function useListPets<
   return query;
 }
 
+export const useListPetsMutationOptions = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
+    TError,
+    { params?: ListPetsParams; version?: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
+  TError,
+  { params?: ListPetsParams; version?: number },
+  TContext
+> => {
+  const mutationKey = ['listPets'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const listPets = useListPetsHook();
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
+    { params?: ListPetsParams; version?: number }
+  > = (props) => {
+    const { params, version } = props ?? {};
+
+    return listPets(params, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ListPetsMutationResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>
+>;
+
+export type ListPetsMutationError = ErrorType<Error>;
+
+/**
+ * @summary List all pets
+ */
+export const useListPets = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
+    TError,
+    { params?: ListPetsParams; version?: number },
+    TContext
+  >;
+}): UseMutationResult<
+  Awaited<ReturnType<ReturnType<typeof useListPetsHook>>>,
+  TError,
+  { params?: ListPetsParams; version?: number },
+  TContext
+> => {
+  const mutationOptions = useListPetsMutationOptions(options);
+
+  return useMutation(mutationOptions);
+};
+
 /**
  * @summary Create a pet
  */
@@ -332,6 +401,75 @@ export function useListPetsNestedArray<
   return query;
 }
 
+export const useListPetsNestedArrayMutationOptions = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+    TError,
+    { params?: ListPetsNestedArrayParams; version?: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+  TError,
+  { params?: ListPetsNestedArrayParams; version?: number },
+  TContext
+> => {
+  const mutationKey = ['listPetsNestedArray'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const listPetsNestedArray = useListPetsNestedArrayHook();
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+    { params?: ListPetsNestedArrayParams; version?: number }
+  > = (props) => {
+    const { params, version } = props ?? {};
+
+    return listPetsNestedArray(params, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ListPetsNestedArrayMutationResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>
+>;
+
+export type ListPetsNestedArrayMutationError = ErrorType<Error>;
+
+/**
+ * @summary List all pets as nested array
+ */
+export const useListPetsNestedArray = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+    TError,
+    { params?: ListPetsNestedArrayParams; version?: number },
+    TContext
+  >;
+}): UseMutationResult<
+  Awaited<ReturnType<ReturnType<typeof useListPetsNestedArrayHook>>>,
+  TError,
+  { params?: ListPetsNestedArrayParams; version?: number },
+  TContext
+> => {
+  const mutationOptions = useListPetsNestedArrayMutationOptions(options);
+
+  return useMutation(mutationOptions);
+};
+
 /**
  * @summary Info for a specific pet
  */
@@ -424,3 +562,72 @@ export function useShowPetById<
 
   return query;
 }
+
+export const useShowPetByIdMutationOptions = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
+    TError,
+    { petId: string; version?: number },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
+  TError,
+  { petId: string; version?: number },
+  TContext
+> => {
+  const mutationKey = ['showPetById'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const showPetById = useShowPetByIdHook();
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
+    { petId: string; version?: number }
+  > = (props) => {
+    const { petId, version } = props ?? {};
+
+    return showPetById(petId, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ShowPetByIdMutationResult = NonNullable<
+  Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>
+>;
+
+export type ShowPetByIdMutationError = ErrorType<Error>;
+
+/**
+ * @summary Info for a specific pet
+ */
+export const useShowPetById = <
+  TError = ErrorType<Error>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
+    TError,
+    { petId: string; version?: number },
+    TContext
+  >;
+}): UseMutationResult<
+  Awaited<ReturnType<ReturnType<typeof useShowPetByIdHook>>>,
+  TError,
+  { petId: string; version?: number },
+  TContext
+> => {
+  const mutationOptions = useShowPetByIdMutationOptions(options);
+
+  return useMutation(mutationOptions);
+};

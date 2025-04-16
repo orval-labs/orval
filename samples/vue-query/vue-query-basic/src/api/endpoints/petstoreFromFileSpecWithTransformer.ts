@@ -225,6 +225,73 @@ export function useListPets<
   return query;
 }
 
+export const getListPetsMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    { params?: ListPetsParams; version?: number | undefined | null },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof listPets>>,
+  TError,
+  { params?: ListPetsParams; version?: number | undefined | null },
+  TContext
+> => {
+  const mutationKey = ['listPets'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof listPets>>,
+    { params?: ListPetsParams; version?: number | undefined | null }
+  > = (props) => {
+    const { params, version } = props ?? {};
+
+    return listPets(params, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ListPetsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+
+export type ListPetsMutationError = Error;
+
+/**
+ * @summary List all pets
+ */
+export const useListPets = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof listPets>>,
+      TError,
+      { params?: ListPetsParams; version?: number | undefined | null },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof listPets>>,
+  TError,
+  { params?: ListPetsParams; version?: number | undefined | null },
+  TContext
+> => {
+  const mutationOptions = getListPetsMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
+
 /**
  * @summary Create a pet
  */
@@ -480,6 +547,73 @@ export function useShowPetById<
 
   return query;
 }
+
+export const getShowPetByIdMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    { petId: string | undefined | null; version?: number | undefined | null },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof showPetById>>,
+  TError,
+  { petId: string | undefined | null; version?: number | undefined | null },
+  TContext
+> => {
+  const mutationKey = ['showPetById'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof showPetById>>,
+    { petId: string | undefined | null; version?: number | undefined | null }
+  > = (props) => {
+    const { petId, version } = props ?? {};
+
+    return showPetById(petId, version);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ShowPetByIdMutationResult = NonNullable<
+  Awaited<ReturnType<typeof showPetById>>
+>;
+
+export type ShowPetByIdMutationError = Error;
+
+/**
+ * @summary Info for a specific pet
+ */
+export const useShowPetById = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: UseMutationOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      { petId: string | undefined | null; version?: number | undefined | null },
+      TContext
+    >;
+  },
+  queryClient?: QueryClient,
+): UseMutationReturnType<
+  Awaited<ReturnType<typeof showPetById>>,
+  TError,
+  { petId: string | undefined | null; version?: number | undefined | null },
+  TContext
+> => {
+  const mutationOptions = getShowPetByIdMutationOptions(options);
+
+  return useMutation(mutationOptions, queryClient);
+};
 
 /**
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
