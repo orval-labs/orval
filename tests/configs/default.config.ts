@@ -108,6 +108,14 @@ export default defineConfig({
       mock: true,
     },
   },
+  'all-of-without-type': {
+    input: '../specifications/all-of-without-type.yaml',
+    output: {
+      schemas: '../generated/default/all-of-without-type/model',
+      target: '../generated/default/all-of-without-type/endpoints.ts',
+      mock: true,
+    },
+  },
   'all-of-all-of': {
     input: '../specifications/all-of-all-of.yaml',
     output: {
