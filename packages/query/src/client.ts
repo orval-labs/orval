@@ -86,7 +86,7 @@ export const generateAxiosRequestFunction = (
   }
 
   const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData !== false;
+  const isFormData = override.formData.disabled === false;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,

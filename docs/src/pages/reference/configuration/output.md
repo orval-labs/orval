@@ -1898,7 +1898,8 @@ Use this property to provide a config to your http client or completely remove t
 
 Type: `Boolean` or `String` or `Object`.
 
-Valid values: path of the formData function or object with a path and name.
+Valid values: path of the formData function or object with a path and name. You can also define how
+the names of form entries are handled regarding arrays.
 
 Use this property to disable the auto generation of form data if you use multipart
 
@@ -1931,27 +1932,22 @@ export const customFormDataFn = <Body>(body: Body): FormData => {
 };
 ```
 
-#### formUrlEncoded
+##### mutator
 
-Type: `Boolean` or `String` or `Object`.
+Type: `String` | `Object`
 
-Valid values: path of the formUrlEncoded function or object with a path and name.
-
-Use this property to disable the auto generation of form url encoded
-
-If you provide an object you can also add a default property to use an export default function.
-
-Example:
+Same as defining the mutator directly on `formData`, but this way you can specify `arrayHandling` as well.
 
 ```js
 module.exports = {
   petstore: {
     output: {
       override: {
-        formUrlEncoded: {
-          path: './api/mutator/custom-form-url-encoded-fn.ts',
-          name: 'customFormUrlEncodedFn',
-          // default: true
+        formData: {
+          mutator: {
+            path: './api/mutator/custom-form-data-fn.ts',
+            name: 'customFormDataFn',
+          },
         },
       },
     },
@@ -1959,22 +1955,31 @@ module.exports = {
 };
 ```
 
-```ts
-// type signature
-export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
-  // do your implementation to transform it to FormData
-
-  return URLSearchParams;
-};
-```
-
-#### formDataArrayHandling
+##### arrayHandling
 
 Type: `serialize` | `serialize-with-brackets` | `explode`
 
 Default Value: `serialize`
 
 Decides how FormData generation handles arrays.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          mutator: {
+            path: './api/mutator/custom-form-data-fn.ts',
+            name: 'customFormDataFn',
+          },
+          arrayHandling: 'serialize-with-brackets',
+        },
+      },
+    },
+  },
+};
+```
 
 For all of the following examples, this specificaiton is used:
 
@@ -2061,6 +2066,43 @@ if (pet.relatives !== undefined) {
     }
   });
 }
+```
+
+#### formUrlEncoded
+
+Type: `Boolean` or `String` or `Object`.
+
+Valid values: path of the formUrlEncoded function or object with a path and name.
+
+Use this property to disable the auto generation of form url encoded
+
+If you provide an object you can also add a default property to use an export default function.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formUrlEncoded: {
+          path: './api/mutator/custom-form-url-encoded-fn.ts',
+          name: 'customFormUrlEncodedFn',
+          // default: true
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// type signature
+export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
+  // do your implementation to transform it to FormData
+
+  return URLSearchParams;
+};
 ```
 
 #### paramsSerializer

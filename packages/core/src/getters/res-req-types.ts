@@ -417,7 +417,7 @@ const resolveSchemaPropertiesToFormData = ({
 
       if (property.type === 'object') {
         if (
-          context.output.override.formDataArrayHandling ===
+          context.output.override.formData.arrayHandling ===
           FormDataArrayHandling.EXPLODE
         ) {
           formDataValue = resolveSchemaPropertiesToFormData({
@@ -442,7 +442,7 @@ const resolveSchemaPropertiesToFormData = ({
           );
           if (itemSchema.type === 'object' || itemSchema.type === 'array') {
             if (
-              context.output.override.formDataArrayHandling ===
+              context.output.override.formData.arrayHandling ===
               FormDataArrayHandling.EXPLODE
             ) {
               hasNonPrimitiveChild = true;
@@ -472,14 +472,14 @@ const resolveSchemaPropertiesToFormData = ({
           }
         }
         if (
-          context.output.override.formDataArrayHandling ===
+          context.output.override.formData.arrayHandling ===
           FormDataArrayHandling.EXPLODE
         ) {
           if (!hasNonPrimitiveChild) {
             formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
           }
         } else {
-          formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formDataArrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
+          formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
         }
       } else if (
         property.type === 'number' ||

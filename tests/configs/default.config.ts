@@ -379,7 +379,9 @@ export default defineConfig({
       target: '../generated/default/form-data-explode/endpoints.ts',
       schemas: '../generated/default/form-data-explode/model',
       override: {
-        formDataArrayHandling: 'explode',
+        formData: {
+          arrayHandling: 'explode',
+        },
       },
     },
     input: {
