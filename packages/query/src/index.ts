@@ -1129,6 +1129,16 @@ const generateQueryHook = async (
     isQuery = operationQueryOptions.useSuspenseQuery;
   }
 
+  // For non-GET operations, only register query OR mutation hooks, not both
+  let isMutation =
+    verb !== Verbs.GET &&
+    (operationQueryOptions?.useMutation || override.query.useMutation);
+
+  // If both query and mutation are true for a non-GET operation, prioritize query
+  if (verb !== Verbs.GET && isQuery) {
+    isMutation = false;
+  }
+
   if (isQuery) {
     const queryKeyMutator = query.queryKey
       ? await generateMutator({
@@ -1286,11 +1296,6 @@ const generateQueryHook = async (
         : undefined;
   }
 
-  let isMutation = verb !== Verbs.GET && override.query.useMutation;
-  if (operationQueryOptions?.useMutation !== undefined) {
-    isMutation = operationQueryOptions.useMutation;
-  }
-
   if (isMutation) {
     const mutationOptionsMutator = query.mutationOptions
       ? await generateMutator({
@@ -1365,7 +1370,7 @@ const generateQueryHook = async (
 
     const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
-    
+
 ${hooksOptionImplementation}
 
       ${

@@ -132,7 +132,7 @@ export const normalizeOptions = async (
   if (typeof mockOption === 'boolean' && mockOption) {
     mock = DEFAULT_MOCK_OPTIONS;
   } else if (isFunction(mockOption)) {
-    // do nothing
+    mock = mockOption;
   } else if (!mockOption) {
     mock = undefined;
   } else {

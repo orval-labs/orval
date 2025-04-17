@@ -992,13 +992,17 @@ module.exports = {
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
+Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">useQuery</a> custom hook.
+If the query key isn't provided that's the default hook generated.
 
 ##### useMutation
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useMutation" target="_blank">useMutation</a> custom hook.
+The hook will only be generated if the operation is not a `GET` operation, and not configured to generate a [query](#useQuery).
+
+The [operations override](#operations) will take precedence if both are configured.
 
 ##### useInfinite
 
