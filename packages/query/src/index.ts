@@ -1131,7 +1131,8 @@ const generateQueryHook = async (
 
   // For non-GET operations, only register query OR mutation hooks, not both
   let isMutation =
-    operationQueryOptions?.useMutation || override.query.useMutation;
+    verb !== Verbs.GET &&
+    (operationQueryOptions?.useMutation || override.query.useMutation);
 
   // If both query and mutation are true for a non-GET operation, prioritize query
   if (verb !== Verbs.GET && isQuery) {
