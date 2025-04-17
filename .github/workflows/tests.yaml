@@ -33,6 +33,8 @@ jobs:
         run: yarn build
       - name: formatting
         run: yarn format:check
+      - name: update samples
+        run: yarn update-samples
       - name: unit tests
         run: yarn test:ci
       - name: tests install
