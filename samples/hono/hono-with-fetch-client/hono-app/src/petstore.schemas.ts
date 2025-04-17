@@ -18,14 +18,13 @@ export interface Error {
 }
 
 export type ListPetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
 };
 
 export type CreatePetsBodyItem = {
   name: string;
   tag: string;
 };
-
