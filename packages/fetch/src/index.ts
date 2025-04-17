@@ -37,7 +37,7 @@ export const generateRequestFunction = (
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData !== false;
+  const isFormData = override?.formData.disabled === false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);

@@ -81,7 +81,7 @@ export type NormalizedOverrideOutput = {
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
-  formData: boolean | NormalizedMutator;
+  formData: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
@@ -148,7 +148,7 @@ export type NormalizedOperationOptions = {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
-  formData?: boolean | NormalizedMutator;
+  formData?: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded?: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   requestOptions?: object | boolean;
@@ -379,6 +379,36 @@ export type ParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+export const FormDataArrayHandling = {
+  SERIALIZE: 'serialize',
+  EXPLODE: 'explode',
+  SERIALIZE_WITH_BRACKETS: 'serialize-with-brackets',
+} as const;
+
+export type FormDataArrayHandling =
+  (typeof FormDataArrayHandling)[keyof typeof FormDataArrayHandling];
+
+export type NormalizedFormDataType<TMutator> =
+  | {
+      disabled: true;
+      mutator?: never;
+      arrayHandling: FormDataArrayHandling;
+    }
+  | {
+      disabled: false;
+      mutator?: TMutator;
+      arrayHandling: FormDataArrayHandling;
+    };
+export type FormDataType<TMutator> =
+  | {
+      mutator: TMutator;
+      arrayHandling?: FormDataArrayHandling;
+    }
+  | {
+      mutator?: TMutator;
+      arrayHandling: FormDataArrayHandling;
+    };
+
 export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -388,7 +418,7 @@ export type OverrideOutput = {
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
-  formData?: boolean | Mutator;
+  formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
@@ -605,7 +635,7 @@ export type OperationOptions = {
     verb: Verbs,
   ) => string;
   fetch?: FetchOptions;
-  formData?: boolean | Mutator;
+  formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   requestOptions?: object | boolean;

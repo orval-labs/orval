@@ -29,6 +29,7 @@ import {
   asyncReduce,
   camel,
   dynamicImport,
+  isBoolean,
   isObject,
   isString,
   isVerb,
@@ -145,12 +146,11 @@ const generateVerbOptions = async ({
   });
 
   const formData =
-    (isString(override?.formData) || isObject(override?.formData)) &&
-    body.formData
+    !override.formData.disabled && body.formData
       ? await generateMutator({
           output: output.target,
           name: operationName,
-          mutator: override.formData,
+          mutator: override.formData.mutator,
           workspace: context.workspace,
           tsconfig: context.output.tsconfig,
         })

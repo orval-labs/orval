@@ -374,4 +374,18 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  formDataExplode: {
+    output: {
+      target: '../generated/default/form-data-explode/endpoints.ts',
+      schemas: '../generated/default/form-data-explode/model',
+      override: {
+        formData: {
+          arrayHandling: 'explode',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/form-data-nested.yaml',
+    },
+  },
 });

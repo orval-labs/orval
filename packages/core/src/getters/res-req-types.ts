@@ -11,7 +11,12 @@ import {
 } from 'openapi3-ts/oas30';
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
-import { ContextSpecs, GeneratorImport, ResReqTypesValue } from '../types';
+import {
+  ContextSpecs,
+  FormDataArrayHandling,
+  GeneratorImport,
+  ResReqTypesValue,
+} from '../types';
 import { camel } from '../utils';
 import { isReference } from '../utils/assertion';
 import { pascal } from '../utils/case';
@@ -381,12 +386,16 @@ const resolveSchemaPropertiesToFormData = ({
   propName,
   context,
   isRequestBodyOptional,
+  keyPrefix = '',
+  depth = 0,
 }: {
   schema: SchemaObject;
   variableName: string;
   propName: string;
   context: ContextSpecs;
   isRequestBodyOptional: boolean;
+  keyPrefix?: string;
+  depth?: number;
 }) => {
   const formDataValues = Object.entries(schema.properties ?? {}).reduce(
     (acc, [key, value]) => {
@@ -407,16 +416,50 @@ const resolveSchemaPropertiesToFormData = ({
       const nonOptionalValueKey = `${propName}${formattedKey}`;
 
       if (property.type === 'object') {
-        formDataValue = `${variableName}.append('${key}', JSON.stringify(${nonOptionalValueKey}));\n`;
+        if (
+          context.output.override.formData.arrayHandling ===
+          FormDataArrayHandling.EXPLODE
+        ) {
+          formDataValue = resolveSchemaPropertiesToFormData({
+            schema: property,
+            variableName,
+            propName: nonOptionalValueKey,
+            context,
+            isRequestBodyOptional,
+            keyPrefix: `${keyPrefix}${key}.`,
+            depth: depth + 1,
+          });
+        } else {
+          formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+        }
       } else if (property.type === 'array') {
         let valueStr = 'value';
+        let hasNonPrimitiveChild = false;
         if (property.items) {
           const { schema: itemSchema } = resolveRef<SchemaObject>(
             property.items,
             context,
           );
           if (itemSchema.type === 'object' || itemSchema.type === 'array') {
-            valueStr = 'JSON.stringify(value)';
+            if (
+              context.output.override.formData.arrayHandling ===
+              FormDataArrayHandling.EXPLODE
+            ) {
+              hasNonPrimitiveChild = true;
+              const resolvedValue = resolveSchemaPropertiesToFormData({
+                schema: itemSchema,
+                variableName,
+                propName: 'value',
+                context,
+                isRequestBodyOptional,
+                keyPrefix: `${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}].`,
+                depth: depth + 1,
+              });
+              formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
+    ${resolvedValue}});\n`;
+            } else {
+              valueStr = 'JSON.stringify(value)';
+            }
           } else if (
             itemSchema.type === 'number' ||
             itemSchema.type?.includes('number') ||
@@ -428,7 +471,16 @@ const resolveSchemaPropertiesToFormData = ({
             valueStr = 'value.toString()';
           }
         }
-        formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', ${valueStr}));\n`;
+        if (
+          context.output.override.formData.arrayHandling ===
+          FormDataArrayHandling.EXPLODE
+        ) {
+          if (!hasNonPrimitiveChild) {
+            formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
+          }
+        } else {
+          formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
+        }
       } else if (
         property.type === 'number' ||
         property.type?.includes('number') ||
@@ -437,9 +489,9 @@ const resolveSchemaPropertiesToFormData = ({
         property.type === 'boolean' ||
         property.type?.includes('boolean')
       ) {
-        formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
       } else {
-        formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey})\n`;
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey})\n`;
       }
 
       let existSubSchemaNullable = false;
@@ -453,7 +505,7 @@ const resolveSchemaPropertiesToFormData = ({
             return ['number', 'integer', 'boolean'].includes(subSchema.type);
           })
         ) {
-          formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
+          formDataValue = `${variableName}.append(\`${key}\`, ${nonOptionalValueKey}.toString())\n`;
         }
 
         if (

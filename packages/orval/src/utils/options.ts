@@ -2,6 +2,7 @@ import {
   ClientMockBuilder,
   ConfigExternal,
   createLogger,
+  FormDataArrayHandling,
   GlobalMockOptions,
   GlobalOptions,
   HonoOptions,
@@ -23,12 +24,15 @@ import {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOptions,
+  NormalizedOverrideOutput,
   NormalizedQueryOptions,
   OperationOptions,
   OptionsExport,
   OutputClient,
   OutputHttpClient,
   OutputMode,
+  OutputOptions,
+  OverrideOutput,
   PropertySortOrder,
   QueryOptions,
   RefComponentSuffix,
@@ -49,6 +53,34 @@ import { loadTsconfig } from './tsconfig';
 export function defineConfig(options: ConfigExternal): ConfigExternal {
   return options;
 }
+
+const createFormData = (
+  workspace: string,
+  formData: OverrideOutput['formData'],
+): NormalizedOverrideOutput['formData'] => {
+  const defaultArrayHandling = FormDataArrayHandling.SERIALIZE;
+  if (formData === undefined)
+    return { disabled: false, arrayHandling: defaultArrayHandling };
+  if (isBoolean(formData))
+    return { disabled: !formData, arrayHandling: defaultArrayHandling };
+  if (isString(formData))
+    return {
+      disabled: false,
+      mutator: normalizeMutator(workspace, formData),
+      arrayHandling: defaultArrayHandling,
+    };
+  if ('mutator' in formData || 'arrayHandling' in formData)
+    return {
+      disabled: false,
+      mutator: normalizeMutator(workspace, formData.mutator),
+      arrayHandling: formData.arrayHandling ?? defaultArrayHandling,
+    };
+  return {
+    disabled: false,
+    mutator: normalizeMutator(workspace, formData),
+    arrayHandling: defaultArrayHandling,
+  };
+};
 
 export const normalizeOptions = async (
   optionsExport: OptionsExport,
@@ -193,13 +225,10 @@ export const normalizeOptions = async (
           outputWorkspace,
           outputOptions.override?.mutator,
         ),
-        formData:
-          (!isBoolean(outputOptions.override?.formData)
-            ? normalizeMutator(
-                outputWorkspace,
-                outputOptions.override?.formData,
-              )
-            : outputOptions.override?.formData) ?? true,
+        formData: createFormData(
+          outputWorkspace,
+          outputOptions.override?.formData,
+        ),
         formUrlEncoded:
           (!isBoolean(outputOptions.override?.formUrlEncoded)
             ? normalizeMutator(
@@ -514,13 +543,7 @@ const normalizeOperationsAndTags = (
             ...(mutator
               ? { mutator: normalizeMutator(workspace, mutator) }
               : {}),
-            ...(formData
-              ? {
-                  formData: !isBoolean(formData)
-                    ? normalizeMutator(workspace, formData)
-                    : formData,
-                }
-              : {}),
+            ...createFormData(workspace, formData),
             ...(formUrlEncoded
               ? {
                   formUrlEncoded: !isBoolean(formUrlEncoded)

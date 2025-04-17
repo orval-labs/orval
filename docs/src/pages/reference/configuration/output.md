@@ -1902,7 +1902,8 @@ Use this property to provide a config to your http client or completely remove t
 
 Type: `Boolean` or `String` or `Object`.
 
-Valid values: path of the formData function or object with a path and name.
+Valid values: path of the formData function or object with a path and name. You can also define how
+the names of form entries are handled regarding arrays.
 
 Use this property to disable the auto generation of form data if you use multipart
 
@@ -1933,6 +1934,142 @@ export const customFormDataFn = <Body>(body: Body): FormData => {
 
   return FormData;
 };
+```
+
+##### mutator
+
+Type: `String` | `Object`
+
+Same as defining the mutator directly on `formData`, but this way you can specify `arrayHandling` as well.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          mutator: {
+            path: './api/mutator/custom-form-data-fn.ts',
+            name: 'customFormDataFn',
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+##### arrayHandling
+
+Type: `serialize` | `serialize-with-brackets` | `explode`
+
+Default Value: `serialize`
+
+Decides how FormData generation handles arrays.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          mutator: {
+            path: './api/mutator/custom-form-data-fn.ts',
+            name: 'customFormDataFn',
+          },
+          arrayHandling: 'serialize-with-brackets',
+        },
+      },
+    },
+  },
+};
+```
+
+For all of the following examples, this specificaiton is used:
+
+```yaml
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: number
+        relatives:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              colors:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - white
+                    - black
+                    - green
+```
+
+Type `serialize` setting results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value) =>
+    formData.append(`relatives`, JSON.stringify(value)),
+  );
+}
+```
+
+Type `serialize-with-brackets` setting results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value) =>
+    formData.append(`relatives[]`, JSON.stringify(value)),
+  );
+}
+```
+
+Type `explode` setting results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value, index) => {
+    if (value.name !== undefined) {
+      formData.append(`relatives[${index}].name`, value.name);
+    }
+    if (value.colors !== undefined) {
+      value.colors.forEach((value, index1) =>
+        formData.append(`relatives[${index}].colors[${index1}]`, value),
+      );
+    }
+  });
+}
 ```
 
 #### formUrlEncoded
