@@ -81,10 +81,9 @@ const generateVerbOptions = async ({
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
-  const overriddenOperationName = overrideOperationName
+  const operationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
-    : camel(operationId);
-  const operationName = sanitize(overriddenOperationName, { es5keyword: true });
+    : sanitize(camel(operationId), { es5keyword: true });
 
   const response = getResponse({
     responses,
