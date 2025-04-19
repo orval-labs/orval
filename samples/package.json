@@ -4,6 +4,7 @@
   "private": true,
   "workspaces": [
     "./**/*",
+    "!mcp/**/*",
     "!./node_modules"
   ],
   "devDependencies": {
