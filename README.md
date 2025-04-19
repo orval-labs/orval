@@ -32,6 +32,7 @@ You can find below some samples:
 - [angular app](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
 - [hono](https://github.com/orval-labs/orval/tree/master/samples/hono)
 - [next app with fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
+- [mcp server](https://github.com/orval-labs/orval/tree/master/samples/mcp)
 
 ### Playground
 
