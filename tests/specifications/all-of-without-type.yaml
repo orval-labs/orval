@@ -1,0 +1,50 @@
+openapi: 3.0.0
+info:
+  title: AllOf without type
+  version: '1.58.1'
+paths:
+  '/':
+    get:
+      tags:
+        - Example Endpoint
+      responses:
+        '200':
+          $ref: '#/components/responses/ExampleResponse'
+
+components:
+  responses:
+    ExampleResponse:
+      description: ExampleResponse
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/PaginatedDto'
+              - properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                required:
+                  - data
+
+  schemas:
+    PaginatedDto:
+      type: object
+      properties:
+        total_count:
+          type: number
+        next_cursor:
+          type: string
+          nullable: true
+          format: uuid
+      required:
+        - total_count
+        - next_cursor
+    User:
+      type: object
+      properties:
+        username:
+          type: string
+      required:
+        - username
