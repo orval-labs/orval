@@ -14,6 +14,7 @@ import {
   upath,
   camel,
   pascal,
+  getFullRoute,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import {
@@ -349,8 +350,14 @@ const generateHttpClinetFiles = async (
 
   const clients = await Promise.all(
     Object.values(verbOptions).map((verbOption) => {
+      const fullRoute = getFullRoute(
+        verbOption.route,
+        context.specs[context.specKey].servers,
+        output.baseUrl,
+      );
+
       const options = {
-        route: verbOption.route,
+        route: fullRoute,
         pathRoute: verbOption.pathRoute,
         override: output.override,
         context,
@@ -361,6 +368,7 @@ const generateHttpClinetFiles = async (
       return generateClient(verbOption, options, output.client, output);
     }),
   );
+
   const clientImplementation = clients
     .map((client) => client.implementation)
     .join('\n');
