@@ -27,8 +27,6 @@ module.exports = {
 };
 ```
 
-Currently, Please note that the `hono` client only works in `split` mode.
-
 #### generate template
 
 `orval` generates a file like the following:
