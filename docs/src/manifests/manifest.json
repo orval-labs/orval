@@ -104,6 +104,11 @@
           "title": "Enum names",
           "path": "/guides/enums",
           "editUrl": "/guides/enums.md"
+        },
+        {
+          "title": "MCP server",
+          "path": "/guides/mcp",
+          "editUrl": "/guides/mcp.md"
         }
       ]
     },
