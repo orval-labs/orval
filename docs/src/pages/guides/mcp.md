@@ -35,7 +35,7 @@ export default defineConfig({
 });
 ```
 
-Currently, Please note that the `hono` client only works in `single` mode.
+Currently, Please note that the `mcp` client only works in `single` mode.
 
 #### Generated Template Structure
 
