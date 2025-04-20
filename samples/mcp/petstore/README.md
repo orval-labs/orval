@@ -12,7 +12,8 @@ docker build ./ -t mcp-petstore
 
 ### 2. Setup as mcp server in your ai agent.
 
-For clients, specify as follows:
+Here we will introduce the settings using the `cline` for the ai agent. It will work with other ai agents, so please adjust the detailed settings accordingly.
+For `clile`, specify as follows:
 
 ```
 {
@@ -30,6 +31,6 @@ For clients, specify as follows:
     },
   }
 }
-
-That's it.
 ```
+
+This setup allows your AI agent to interact with the petstore API through the MCP protocol, using the generated handlers and tools.
