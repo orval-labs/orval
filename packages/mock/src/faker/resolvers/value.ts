@@ -99,6 +99,7 @@ export const resolveMockValue = ({
       name: pascal(originalName),
       path: schema.path,
       isRef: true,
+      required: [...(schemaRef?.required ?? []), ...(schema?.required ?? [])],
     };
 
     const newSeparator = newSchema.allOf
@@ -166,9 +167,7 @@ export const resolveMockValue = ({
 
     return {
       ...scalar,
-      type:
-        (newSchema.type as string | undefined) ??
-        (newSchema.isRef ? 'object' : undefined),
+      type: getType(newSchema),
     };
   }
 
@@ -186,8 +185,13 @@ export const resolveMockValue = ({
   });
   return {
     ...scalar,
-    type:
-      (schema.type as string | undefined) ??
-      (schema.isRef ? 'object' : undefined),
+    type: getType(schema),
   };
+};
+
+const getType = (schema: MockSchemaObject) => {
+  return (
+    (schema.type as string | undefined) ??
+    (schema.properties ? 'object' : schema.items ? 'array' : undefined)
+  );
 };
