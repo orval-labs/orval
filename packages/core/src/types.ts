@@ -59,7 +59,7 @@ export type NormalizedOutputOptions = {
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
   headers: boolean;
-  indexFiles: boolean;
+  indexFiles: NormalizedOutputIndexFiles;
   baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional: boolean;
   urlEncodeParameters: boolean;
@@ -163,6 +163,8 @@ export type NormalizedInputOptions = {
   filters?: InputFiltersOption;
 };
 
+export type NormalizedOutputIndexFiles = false | Required<OutputIndexFiles>;
+
 export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
@@ -230,7 +232,7 @@ export type OutputOptions = {
   tsconfig?: string | Tsconfig;
   packageJson?: string;
   headers?: boolean;
-  indexFiles?: boolean;
+  indexFiles?: boolean | OutputIndexFiles;
   baseUrl?: string | BaseUrlFromSpec | BaseUrlFromConstant;
   allParamsOptional?: boolean;
   urlEncodeParameters?: boolean;
@@ -290,6 +292,11 @@ export const OutputMode = {
 } as const;
 
 export type OutputMode = (typeof OutputMode)[keyof typeof OutputMode];
+
+export interface OutputIndexFiles {
+  workspace?: (implementations: string[]) => string[];
+  schemas?: (schemas: GeneratorSchema[]) => GeneratorSchema[];
+}
 
 export type OutputDocsOptions = {
   configPath?: string;
@@ -887,6 +894,7 @@ export type ClientBuilder = (
 export type ClientFileBuilder = {
   path: string;
   content: string;
+  exposeIndexFile?: boolean;
 };
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
