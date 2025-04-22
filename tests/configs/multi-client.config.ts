@@ -36,9 +36,16 @@ export default defineConfig({
     output: {
       client({ zod }) {
         return {
+          title: zod.title,
+          footer: zod.footer,
           client: zod.client,
-          async extraFiles(_, __, context) {
+          header: zod.header,
+          dependencies: zod.dependencies,
+          async extraFiles(verbOptions, output, context) {
             return [
+              ...(zod.extraFiles
+                ? await zod.extraFiles(verbOptions, output, context)
+                : []),
               {
                 path: context.output.workspace + '/extrafiles/index.ts',
                 content: 'export * from "./file1";\nexport * from "./file2";\n',
