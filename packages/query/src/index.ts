@@ -784,7 +784,7 @@ const generateQueryImplementation = ({
           return param.name === 'params'
             ? `{...${
                 isVue(outputClient) ? `unref(params)` : 'params'
-              }, ${queryParam}: pageParam || ${
+              }, '${queryParam}': pageParam || ${
                 isVue(outputClient)
                   ? `unref(params)?.['${queryParam}']`
                   : `params?.['${queryParam}']`
