@@ -3,7 +3,9 @@ import { SchemaObject } from 'openapi3-ts/dist/model/openapi30';
 import { EnumGeneration } from '../types';
 import { isNumeric, sanitize } from '../utils';
 
-export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
+export const getEnumNames = (
+  schemaObject: SchemaObject | undefined,
+): string[] | undefined => {
   return (
     schemaObject?.['x-enumNames'] ||
     schemaObject?.['x-enumnames'] ||
@@ -26,6 +28,19 @@ export const getEnum = (
   throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
 };
 
+export const getEnumItems = (
+  value: string,
+  names: string[] | undefined,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return getConstEnumItems(value, names);
+  if (enumGenerationType === EnumGeneration.ENUM)
+    return getNativeEnumItems(value, names);
+  if (enumGenerationType === EnumGeneration.UNION) return value;
+  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
+};
+
 const getTypeConstEnum = (
   value: string,
   enumName: string,
@@ -40,7 +55,7 @@ const getTypeConstEnum = (
 
   enumValue += ';\n';
 
-  const implementation = getEnumImplementation(value, names);
+  const implementation = getConstEnumItems(value, names);
 
   enumValue += `\n\n`;
 
@@ -51,7 +66,7 @@ const getTypeConstEnum = (
   return enumValue;
 };
 
-export const getEnumImplementation = (value: string, names?: string[]) => {
+const getConstEnumItems = (value: string, names?: string[]) => {
   // empty enum or null-only enum
   if (value === '') return '';
 

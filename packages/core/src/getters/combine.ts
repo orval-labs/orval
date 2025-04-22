@@ -2,13 +2,14 @@ import { SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   ContextSpecs,
+  EnumGeneration,
   GeneratorImport,
   GeneratorSchema,
   ScalarValue,
   SchemaType,
 } from '../types';
 import { getNumberWord, pascal, isSchema } from '../utils';
-import { getEnumImplementation, getEnumNames } from './enum';
+import { getEnumItems, getEnumNames } from './enum';
 import { getScalar } from './scalar';
 import uniq from 'lodash.uniq';
 
@@ -191,12 +192,18 @@ export const combineSchemas = ({
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
   if (isAllEnums && name && items.length > 1) {
-    const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
+    const newEnum = getCombineEnumValue(
+      resolvedData,
       name,
-    )} = ${getCombineEnumValue(resolvedData)}`;
+      context.output.override.enumGenerationType,
+    );
+    const propertyType = getEnumPropertyType(
+      pascal(name),
+      context.output.override.enumGenerationType,
+    );
 
     return {
-      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
+      value: propertyType,
       imports: [
         {
           name: pascal(name),
@@ -212,7 +219,7 @@ export const combineSchemas = ({
             })),
           ],
           model: newEnum,
-          name: name,
+          name: pascal(name),
         },
       ],
       isEnum: false,
@@ -263,17 +270,40 @@ export const combineSchemas = ({
   };
 };
 
-const getCombineEnumValue = ({
-  values,
-  isRef,
-  originalSchema,
-}: CombinedData) => {
-  if (values.length === 1) {
-    if (isRef[0]) {
-      return values[0];
-    }
+const getEnumImplementation = (
+  enumValue: string,
+  enumName: string,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${enumName} = {${enumValue}} as const`;
+  if (enumGenerationType === EnumGeneration.ENUM)
+    return `export enum ${enumName} {${enumValue}}`;
+  if (enumGenerationType === EnumGeneration.UNION)
+    return `export type ${enumName} = ${enumValue}`;
+  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
+};
 
-    return `{${getEnumImplementation(values[0])}} as const`;
+const getEnumPropertyType = (
+  enumName: string,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return `typeof ${enumName}[keyof typeof ${enumName}]`;
+  if (enumGenerationType === EnumGeneration.ENUM) return enumName;
+  if (enumGenerationType === EnumGeneration.UNION) return enumName;
+  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
+};
+
+const getCombineEnumValue = (
+  { values, isRef, originalSchema }: CombinedData,
+  name: string,
+  enumGenerationType: EnumGeneration,
+): string => {
+  if (values.length === 1) {
+    const names = getEnumNames(originalSchema[0]);
+    const items = getEnumItems(values[0], names, enumGenerationType);
+    return getEnumImplementation(items, name, enumGenerationType);
   }
 
   const enums = values
@@ -284,9 +314,9 @@ const getCombineEnumValue = ({
 
       const names = getEnumNames(originalSchema[i]);
 
-      return getEnumImplementation(e, names);
+      return getEnumItems(e, names, enumGenerationType);
     })
     .join('');
 
-  return `{${enums}} as const`;
+  return getEnumImplementation(enums, name, enumGenerationType);
 };

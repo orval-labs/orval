@@ -390,18 +390,57 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
-  formDataExplode: {
+  constCombineEnums: {
     output: {
-      target: '../generated/default/form-data-explode/endpoints.ts',
-      schemas: '../generated/default/form-data-explode/model',
+      target: '../generated/default/enums/combine/const/endpoints.ts',
+      schemas: '../generated/default/enums/combine/const/model',
+      mock: true,
       override: {
-        formData: {
-          arrayHandling: 'explode',
-        },
+        enumGenerationType: 'const',
       },
     },
     input: {
-      target: '../specifications/form-data-nested.yaml',
+      target: '../specifications/combine-enums.yaml',
     },
   },
+  nativeCombineEnums: {
+    output: {
+      target: '../generated/default/enums/combine/native/endpoints.ts',
+      schemas: '../generated/default/enums/combine/native/model',
+      mock: true,
+      override: {
+        enumGenerationType: 'enum',
+      },
+    },
+    input: {
+      target: '../specifications/combine-enums.yaml',
+    },
+  },
+  // unionCombineEnums: {
+  //   output: {
+  //     target: '../generated/default/enums/combine/union/endpoints.ts',
+  //     schemas: '../generated/default/enums/combine/union/model',
+  //     mock: true,
+  //     override: {
+  //       enumGenerationType: 'union',
+  //     },
+  //   },
+  //   input: {
+  //     target: '../specifications/combine-enums.yaml',
+  //   },
+  // },
+  // formDataExplode: {
+  //   output: {
+  //     target: '../generated/default/form-data-explode/endpoints.ts',
+  //     schemas: '../generated/default/form-data-explode/model',
+  //     override: {
+  //       formData: {
+  //         arrayHandling: 'explode',
+  //       },
+  //     },
+  //   },
+  //   input: {
+  //     target: '../specifications/form-data-nested.yaml',
+  //   },
+  // },
 });
