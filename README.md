@@ -19,17 +19,18 @@
 `orval` is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
 
 ### Supported clients
+
 `generate` models, requests, hooks, [mocks](https://mswjs.io/) and more, for these supported clients:
-* [React](https://react.dev/)
-* [React Query](https://tanstack.com/query/latest/docs/framework/react/overview)
-* [React with swr](https://swr.vercel.app/)
-* [Vue Query](https://tanstack.com/query/latest/docs/framework/vue/overview)
-* [Svelte Query](https://tanstack.com/query/latest/docs/framework/svelte/overview)
-* [Angular](https://angular.dev/)
-* [Hono](https://hono.dev/)
-* [zod](https://zod.dev/)
-* [native fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
-* [mcp](https://modelcontextprotocol.io/introduction)
+- [React](https://react.dev/)
+- [React Query](https://tanstack.com/query/latest/docs/framework/react/overview)
+- [React with swr](https://swr.vercel.app/)
+- [Vue Query](https://tanstack.com/query/latest/docs/framework/vue/overview)
+- [Svelte Query](https://tanstack.com/query/latest/docs/framework/svelte/overview)
+- [Angular](https://angular.dev/)
+- [Hono](https://hono.dev/)
+- [zod](https://zod.dev/)
+- [native fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API)
+- [mcp](https://modelcontextprotocol.io/introduction)
 
 ### Samples
 
