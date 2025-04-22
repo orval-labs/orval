@@ -16,21 +16,6 @@ export default defineConfig({
       },
     },
   },
-  fetch: {
-    input: '../specifications/petstore.yaml',
-    output: {
-      client: 'fetch',
-      mode: 'tags-split',
-      schemas: '../models',
-      target: './will-not-exists.ts',
-      workspace: '../generated/multi-client/fetch',
-      indexFiles: {
-        workspace(implementations) {
-          return implementations.filter((impl) => !impl.includes('models'));
-        },
-      },
-    },
-  },
   zod: {
     input: '../specifications/petstore.yaml',
     output: {
