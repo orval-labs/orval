@@ -9,7 +9,12 @@ import {
   SchemaType,
 } from '../types';
 import { getNumberWord, pascal, isSchema } from '../utils';
-import { getEnumItems, getEnumNames } from './enum';
+import {
+  getEnumDefinition,
+  getEnumItems,
+  getEnumNames,
+  getEnumPropertyType,
+} from './enum';
 import { getScalar } from './scalar';
 import uniq from 'lodash.uniq';
 
@@ -270,31 +275,6 @@ export const combineSchemas = ({
   };
 };
 
-const getEnumImplementation = (
-  enumValue: string,
-  enumName: string,
-  enumGenerationType: EnumGeneration,
-) => {
-  if (enumGenerationType === EnumGeneration.CONST)
-    return `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${enumName} = {${enumValue}} as const`;
-  if (enumGenerationType === EnumGeneration.ENUM)
-    return `export enum ${enumName} {${enumValue}}`;
-  if (enumGenerationType === EnumGeneration.UNION)
-    return `export type ${enumName} = ${enumValue}`;
-  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
-};
-
-const getEnumPropertyType = (
-  enumName: string,
-  enumGenerationType: EnumGeneration,
-) => {
-  if (enumGenerationType === EnumGeneration.CONST)
-    return `typeof ${enumName}[keyof typeof ${enumName}]`;
-  if (enumGenerationType === EnumGeneration.ENUM) return enumName;
-  if (enumGenerationType === EnumGeneration.UNION) return enumName;
-  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
-};
-
 const getCombineEnumValue = (
   { values, isRef, originalSchema }: CombinedData,
   name: string,
@@ -303,7 +283,7 @@ const getCombineEnumValue = (
   if (values.length === 1) {
     const names = getEnumNames(originalSchema[0]);
     const items = getEnumItems(values[0], names, enumGenerationType);
-    return getEnumImplementation(items, name, enumGenerationType);
+    return getEnumDefinition(items, name, enumGenerationType);
   }
 
   const enums = values
@@ -318,5 +298,5 @@ const getCombineEnumValue = (
     })
     .join('');
 
-  return getEnumImplementation(enums, name, enumGenerationType);
+  return getEnumDefinition(enums, name, enumGenerationType);
 };

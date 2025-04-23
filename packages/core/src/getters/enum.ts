@@ -38,7 +38,32 @@ export const getEnumItems = (
   if (enumGenerationType === EnumGeneration.ENUM)
     return getNativeEnumItems(value, names);
   if (enumGenerationType === EnumGeneration.UNION) return value;
-  throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
+  return '';
+};
+
+export const getEnumDefinition = (
+  enumValue: string,
+  enumName: string,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${enumName} = {${enumValue}} as const`;
+  if (enumGenerationType === EnumGeneration.ENUM)
+    return `export enum ${enumName} {${enumValue}}`;
+  if (enumGenerationType === EnumGeneration.UNION)
+    return `export type ${enumName} = ${enumValue}`;
+  return '';
+};
+
+export const getEnumPropertyType = (
+  enumName: string,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return `typeof ${enumName}[keyof typeof ${enumName}]`;
+  if (enumGenerationType === EnumGeneration.ENUM) return enumName;
+  if (enumGenerationType === EnumGeneration.UNION) return enumName;
+  return '';
 };
 
 const getTypeConstEnum = (
