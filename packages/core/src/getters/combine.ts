@@ -1,22 +1,16 @@
+import uniq from 'lodash.uniq';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   ContextSpecs,
-  EnumGeneration,
   GeneratorImport,
   GeneratorSchema,
   ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal, isSchema } from '../utils';
-import {
-  getEnumDefinition,
-  getEnumItems,
-  getEnumNames,
-  getEnumPropertyType,
-} from './enum';
+import { getNumberWord, isSchema, pascal } from '../utils';
+import { getCombineEnumValue, getEnumPropertyType } from './enum';
 import { getScalar } from './scalar';
-import uniq from 'lodash.uniq';
 
 type CombinedData = {
   imports: GeneratorImport[];
@@ -273,30 +267,4 @@ export const combineSchemas = ({
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };
-};
-
-const getCombineEnumValue = (
-  { values, isRef, originalSchema }: CombinedData,
-  name: string,
-  enumGenerationType: EnumGeneration,
-): string => {
-  if (values.length === 1) {
-    const names = getEnumNames(originalSchema[0]);
-    const items = getEnumItems(values[0], names, enumGenerationType);
-    return getEnumDefinition(items, name, enumGenerationType);
-  }
-
-  const enums = values
-    .map((e, i) => {
-      if (isRef[i]) {
-        return `...${e},`;
-      }
-
-      const names = getEnumNames(originalSchema[i]);
-
-      return getEnumItems(e, names, enumGenerationType);
-    })
-    .join('');
-
-  return getEnumDefinition(enums, name, enumGenerationType);
 };

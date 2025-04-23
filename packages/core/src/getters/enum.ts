@@ -28,7 +28,7 @@ export const getEnum = (
   throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
 };
 
-export const getEnumItems = (
+const getEnumItems = (
   value: string,
   names: string[] | undefined,
   enumGenerationType: EnumGeneration,
@@ -41,7 +41,7 @@ export const getEnumItems = (
   return '';
 };
 
-export const getEnumDefinition = (
+const getEnumDefinition = (
   enumValue: string,
   enumName: string,
   enumGenerationType: EnumGeneration,
@@ -64,6 +64,40 @@ export const getEnumPropertyType = (
   if (enumGenerationType === EnumGeneration.ENUM) return enumName;
   if (enumGenerationType === EnumGeneration.UNION) return enumName;
   return '';
+};
+
+export const getCombineEnumValue = (
+  {
+    values,
+    isRef,
+    originalSchema,
+  }: {
+    values: string[];
+    isRef: boolean[];
+    originalSchema: (SchemaObject | undefined)[];
+  },
+  name: string,
+  enumGenerationType: EnumGeneration,
+): string => {
+  if (values.length === 1) {
+    const names = getEnumNames(originalSchema[0]);
+    const items = getEnumItems(values[0], names, enumGenerationType);
+    return getEnumDefinition(items, name, enumGenerationType);
+  }
+
+  const enums = values
+    .map((e, i) => {
+      if (isRef[i]) {
+        return `...${e},`;
+      }
+
+      const names = getEnumNames(originalSchema[i]);
+
+      return getEnumItems(e, names, enumGenerationType);
+    })
+    .join('');
+
+  return getEnumDefinition(enums, name, enumGenerationType);
 };
 
 const getTypeConstEnum = (
