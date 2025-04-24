@@ -718,6 +718,8 @@ const generateQueryImplementation = ({
   hasQueryV5WithDataTagError,
   doc,
   usePrefetch,
+  useQuery,
+  useInfinite,
 }: {
   queryOption: {
     name: string;
@@ -748,6 +750,8 @@ const generateQueryImplementation = ({
   hasQueryV5WithDataTagError: boolean;
   doc?: string;
   usePrefetch?: boolean;
+  useQuery?: boolean;
+  useInfinite?: boolean;
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
@@ -1010,6 +1014,20 @@ ${hookOptions}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${definedInitialDataQueryPropsDefinitions} ${definedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${definedInitialDataReturnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
+
+  const shouldGeneratePrefetch =
+    usePrefetch &&
+    (type === QueryType.QUERY ||
+      type === QueryType.INFINITE ||
+      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+  const prefetchType =
+    type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
+      ? 'query'
+      : 'infinite-query';
+  const prefetchVarName = camel(`prefetch-${operationName}-${prefetchType}`);
+  const prefetchFnName = camel(`prefetch-${prefetchType}`);
+
   return `
 ${queryOptionsFn}
 
@@ -1037,16 +1055,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   return ${queryResultVarName};
 }\n
 ${
-  usePrefetch && (type === QueryType.QUERY || type === QueryType.INFINITE)
-    ? `${doc}export const ${camel(
-        `prefetch-${name}`,
-      )} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+  shouldGeneratePrefetch
+    ? `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
 
   const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  await queryClient.${camel(`prefetch-${type}`)}(${queryOptionsVarName});
+  await queryClient.${prefetchFnName}(${queryOptionsVarName});
 
   return queryClient;
 }\n`
@@ -1282,6 +1298,8 @@ const generateQueryHook = async (
           hasQueryV5WithDataTagError,
           doc,
           usePrefetch: query.usePrefetch,
+          useQuery: query.useQuery,
+          useInfinite: query.useInfinite,
         }),
       '',
     )}
