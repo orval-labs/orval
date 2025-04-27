@@ -33,7 +33,7 @@
     "gray-matter": "^4.0.3",
     "intersection-observer": "^0.12.2",
     "next": "13.5.9",
-    "orval": "^7.7.0",
+    "orval": "^7.9.0",
     "prettier": "^2.8.3",
     "prismjs": "^1.21.0",
     "react": "^18.3.1",
