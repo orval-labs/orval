@@ -1,6 +1,6 @@
 {
   "name": "@orval/mcp",
-  "version": "7.8.0",
+  "version": "7.9.0",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -13,7 +13,7 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "@orval/core": "7.8.0",
-    "@orval/zod": "7.8.0"
+    "@orval/core": "7.9.0",
+    "@orval/zod": "7.9.0"
   }
 }
