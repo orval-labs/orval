@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { isZodVersionV4 } from './compatibleV4';
+import {
+  isZodVersionV4,
+  getZodDateFormat,
+  getZodDateTimeFormat,
+} from './compatibleV4';
 
 describe('isZodVersionV4', () => {
   it('should return false when zod is not in package.json', () => {
@@ -50,5 +54,25 @@ describe('isZodVersionV4', () => {
     };
 
     expect(isZodVersionV4(packageJson)).toBe(true);
+  });
+});
+
+describe('getZodDateFormat', () => {
+  it('should return "iso.date" when isZodV4 is true', () => {
+    expect(getZodDateFormat(true)).toBe('iso.date');
+  });
+
+  it('should return "date" when isZodV4 is false', () => {
+    expect(getZodDateFormat(false)).toBe('date');
+  });
+});
+
+describe('getZodDateTimeFormat', () => {
+  it('should return "iso.datetime" when isZodV4 is true', () => {
+    expect(getZodDateTimeFormat(true)).toBe('iso.datetime');
+  });
+
+  it('should return "datetime" when isZodV4 is false', () => {
+    expect(getZodDateTimeFormat(false)).toBe('datetime');
   });
 });

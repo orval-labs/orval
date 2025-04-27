@@ -20,7 +20,11 @@ import {
   stringify,
   ZodCoerceType,
 } from '@orval/core';
-import { isZodVersionV4 } from './compatibleV4';
+import {
+  isZodVersionV4,
+  getZodDateFormat,
+  getZodDateTimeFormat,
+} from './compatibleV4';
 import uniq from 'lodash.uniq';
 import {
   ParameterObject,
@@ -278,7 +282,9 @@ export const generateZodValidationSchemaDefinition = (
         context.output.override.useDates &&
         (schema.format === 'date' || schema.format === 'date-time')
       ) {
-        functions.push(['date', undefined]);
+        const formatAPI = getZodDateFormat(isZodV4);
+
+        functions.push([formatAPI, undefined]);
         break;
       }
 
@@ -297,14 +303,18 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'date') {
-        functions.push(['date', undefined]);
+        const formatAPI = getZodDateFormat(isZodV4);
+
+        functions.push([formatAPI, undefined]);
         break;
       }
 
       if (schema.format === 'date-time') {
         const options = context.output.override.zod?.dateTimeOptions;
+        const formatAPI = getZodDateTimeFormat(isZodV4);
+
         functions.push([
-          'datetime',
+          formatAPI,
           options ? JSON.stringify(options) : undefined,
         ]);
         break;
