@@ -20,6 +20,7 @@ import {
   stringify,
   ZodCoerceType,
 } from '@orval/core';
+import { isZodVersionV4 } from './compatibleV4';
 import uniq from 'lodash.uniq';
 import {
   ParameterObject,
@@ -265,6 +266,10 @@ export const generateZodValidationSchemaDefinition = (
       ]);
       break;
     case 'string': {
+      const isZodV4 =
+        !!context.output.packageJson &&
+        isZodVersionV4(context.output.packageJson);
+
       if (schema.enum && type === 'string') {
         break;
       }
@@ -282,7 +287,14 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
-      functions.push([type as string, undefined]);
+      if (isZodV4) {
+        if (!schema.format) {
+          functions.push([type as string, undefined]);
+          break;
+        }
+      } else {
+        functions.push([type as string, undefined]);
+      }
 
       if (schema.format === 'date') {
         functions.push(['date', undefined]);
