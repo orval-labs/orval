@@ -337,26 +337,7 @@ const getEnum = (
 
   let enumValue = `[${joindEnumValues}]`;
   if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
-    if (item.isRef || existingReferencedProperties.length === 0) {
-      enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
-      imports.push({
-        name: item.name,
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
-      });
-    } else {
-      enumValue += ` as ${existingReferencedProperties[existingReferencedProperties.length - 1]}['${item.name}']`;
-      if (!item.path?.endsWith('[]')) enumValue += '[]';
-      imports.push({
-        name: existingReferencedProperties[
-          existingReferencedProperties.length - 1
-        ],
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
-      });
-    }
+    enumValue += ' as any[]';
   } else {
     enumValue += ' as const';
   }
