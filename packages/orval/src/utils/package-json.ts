@@ -38,7 +38,7 @@ const maybeReplaceCatalog = async (
       ...Object.entries(pkg.dependencies ?? {}),
       ...Object.entries(pkg.devDependencies ?? {}),
       ...Object.entries(pkg.peerDependencies ?? {}),
-    ].some(([key]) => key.startsWith('catalog:'))
+    ].some(([, value]) => typeof value === 'string' && value.startsWith('catalog:'))
   ) {
     return pkg;
   }
