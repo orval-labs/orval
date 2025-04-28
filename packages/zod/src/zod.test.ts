@@ -81,6 +81,8 @@ describe('parseZodValidationSchemaDefinition', () => {
           },
         } as ContextSpecs,
         false,
+        false,
+        false,
       );
 
       expect(parseResult.zod).toBe(
@@ -101,6 +103,8 @@ describe('parseZodValidationSchemaDefinition', () => {
           },
         } as ContextSpecs,
         true,
+        false,
+        false,
       );
 
       expect(parseResult.zod).toBe(
@@ -119,6 +123,8 @@ describe('parseZodValidationSchemaDefinition', () => {
           },
         },
       } as ContextSpecs,
+      false,
+      false,
       false,
     );
 
@@ -190,6 +196,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       } as ContextSpecs,
       'strict',
       true,
+      false,
       {
         required: true,
       },
@@ -243,6 +250,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       } as ContextSpecs,
       'strict',
       true,
+      false,
       {
         required: true,
       },
@@ -299,6 +307,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       } as ContextSpecs,
       'strict',
       true,
+      false,
       {
         required: true,
       },
@@ -364,6 +373,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         context,
         'testStringDescription',
         false,
+        false,
         { required: false },
       );
 
@@ -376,7 +386,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: ['export const testStringDescriptionDefault = "hello";'],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe(
         "zod.string().default(testStringDescriptionDefault).describe('This is a test description')",
       );
@@ -403,6 +419,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         context,
         'testStringDefault',
         false,
+        false,
         { required: false },
       );
 
@@ -414,7 +431,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: [`export const testStringDefaultDefault = "hello";`],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe('zod.string().default(testStringDefaultDefault)');
       expect(parsed.consts).toBe(
         'export const testStringDefaultDefault = "hello";',
@@ -432,6 +455,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         context,
         'testNumberDefault',
         false,
+        false,
         { required: false },
       );
 
@@ -443,7 +467,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: ['export const testNumberDefaultDefault = 42;'],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe('zod.number().default(testNumberDefaultDefault)');
       expect(parsed.consts).toBe('export const testNumberDefaultDefault = 42;');
     });
@@ -459,6 +489,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         context,
         'testBooleanDefault',
         false,
+        false,
         { required: false },
       );
 
@@ -470,7 +501,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: ['export const testBooleanDefaultDefault = true;'],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe(
         'zod.boolean().default(testBooleanDefaultDefault)',
       );
@@ -491,6 +528,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         context,
         'testArrayDefault',
         false,
+        false,
         { required: false },
       );
 
@@ -502,7 +540,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: ['export const testArrayDefaultDefault = ["a", "b"];'],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe(
         'zod.array(zod.string()).default(testArrayDefaultDefault)',
       );
@@ -531,6 +575,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         schemaWithObjectDefault,
         context,
         'testObjectDefault',
+        false,
         false,
         { required: false },
       );
@@ -563,7 +608,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         ],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe(
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
@@ -592,6 +643,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         dateContext,
         'testDateDefault',
         false,
+        false,
         { required: false },
       );
 
@@ -608,6 +660,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const parsed = parseZodValidationSchemaDefinition(
         result,
         dateContext,
+        false,
+        false,
         false,
       );
       expect(parsed.zod).toBe('zod.date().default(testDateDefaultDefault)');
@@ -637,6 +691,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         context,
         'testEnumString',
         false,
+        false,
         { required: false },
       );
 
@@ -648,7 +703,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: [],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
     });
 
@@ -662,6 +723,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         schema,
         context,
         'testEnumNumber',
+        false,
         false,
         { required: false },
       );
@@ -680,7 +742,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: [],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe('zod.literal(1).or(zod.literal(2)).optional()');
     });
 
@@ -694,6 +762,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         schema,
         context,
         'testEnumBoolean',
+        false,
         false,
         { required: false },
       );
@@ -712,7 +781,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: [],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe(
         'zod.literal(true).or(zod.literal(false)).optional()',
       );
@@ -727,6 +802,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         schema,
         context,
         'testEnumAny',
+        false,
         false,
         { required: false },
       );
@@ -746,7 +822,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: [],
       });
 
-      const parsed = parseZodValidationSchemaDefinition(result, context, false);
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
       expect(parsed.zod).toBe(
         "zod.literal('cat').or(zod.literal(1)).or(zod.literal(true)).optional()",
       );
@@ -1330,6 +1412,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       } as ContextSpecs,
       'example_tuple',
       true,
+      false,
       {
         required: true,
       },
@@ -1382,6 +1465,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       } as ContextSpecs,
       'example_tuple',
       true,
+      false,
       {
         required: true,
       },
