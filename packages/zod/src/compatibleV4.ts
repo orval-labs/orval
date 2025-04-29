@@ -19,3 +19,11 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
 
   return compareVersions(withoutRc, '4.0.0');
 };
+
+export const getZodDateFormat = (isZodV4: boolean) => {
+  return isZodV4 ? 'iso.date' : 'date';
+};
+
+export const getZodDateTimeFormat = (isZodV4: boolean) => {
+  return isZodV4 ? 'iso.datetime' : 'datetime';
+};
