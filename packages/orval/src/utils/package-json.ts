@@ -1,4 +1,4 @@
-import { log, PackageJson } from '@orval/core';
+import { isString, log, PackageJson } from '@orval/core';
 import chalk from 'chalk';
 import findUp from 'find-up';
 import fs from 'fs-extra';
@@ -38,7 +38,7 @@ const maybeReplaceCatalog = async (
       ...Object.entries(pkg.dependencies ?? {}),
       ...Object.entries(pkg.devDependencies ?? {}),
       ...Object.entries(pkg.peerDependencies ?? {}),
-    ].some(([key]) => key.startsWith('catalog:'))
+    ].some(([, value]) => isString(value) && value.startsWith('catalog:'))
   ) {
     return pkg;
   }
