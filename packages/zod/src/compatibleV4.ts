@@ -24,6 +24,10 @@ export const getZodDateFormat = (isZodV4: boolean) => {
   return isZodV4 ? 'iso.date' : 'date';
 };
 
+export const getZodTimeFormat = (isZodV4: boolean) => {
+  return isZodV4 ? 'iso.time' : 'time';
+};
+
 export const getZodDateTimeFormat = (isZodV4: boolean) => {
   return isZodV4 ? 'iso.datetime' : 'datetime';
 };

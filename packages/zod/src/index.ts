@@ -23,6 +23,7 @@ import {
 import {
   isZodVersionV4,
   getZodDateFormat,
+  getZodTimeFormat,
   getZodDateTimeFormat,
 } from './compatibleV4';
 import uniq from 'lodash.uniq';
@@ -304,6 +305,13 @@ export const generateZodValidationSchemaDefinition = (
 
       if (schema.format === 'date') {
         const formatAPI = getZodDateFormat(isZodV4);
+
+        functions.push([formatAPI, undefined]);
+        break;
+      }
+
+      if (schema.format === 'time') {
+        const formatAPI = getZodTimeFormat(isZodV4);
 
         functions.push([formatAPI, undefined]);
         break;

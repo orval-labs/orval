@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   isZodVersionV4,
   getZodDateFormat,
+  getZodTimeFormat,
   getZodDateTimeFormat,
 } from './compatibleV4';
 
@@ -64,6 +65,16 @@ describe('getZodDateFormat', () => {
 
   it('should return "date" when isZodV4 is false', () => {
     expect(getZodDateFormat(false)).toBe('date');
+  });
+});
+
+describe('getZodTimeFormat', () => {
+  it('should return "iso.time" when isZodV4 is true', () => {
+    expect(getZodTimeFormat(true)).toBe('iso.time');
+  });
+
+  it('should return "time" when isZodV4 is false', () => {
+    expect(getZodTimeFormat(false)).toBe('time');
   });
 });
 
