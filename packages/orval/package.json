@@ -73,7 +73,7 @@
     "enquirer": "^2.4.1",
     "execa": "^5.1.1",
     "find-up": "5.0.0",
-    "fs-extra": "^11.2.0",
+    "fs-extra": "^11.3.0",
     "lodash.uniq": "^4.5.0",
     "openapi3-ts": "4.2.2",
     "string-argv": "^0.3.2",
