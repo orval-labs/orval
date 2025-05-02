@@ -1132,6 +1132,7 @@ const generateQueryHook = async (
       override.query.useSuspenseQuery ||
       override.query.useInfinite ||
       override.query.useSuspenseInfiniteQuery);
+
   if (operationQueryOptions?.useInfinite !== undefined) {
     isQuery = operationQueryOptions.useInfinite;
   }
@@ -1145,14 +1146,20 @@ const generateQueryHook = async (
     isQuery = operationQueryOptions.useSuspenseQuery;
   }
 
-  // For non-GET operations, only register query OR mutation hooks, not both
-  let isMutation =
-    verb !== Verbs.GET &&
-    (operationQueryOptions?.useMutation || override.query.useMutation);
+  let isMutation = override.query.useMutation && verb !== Verbs.GET;
+
+  if (operationQueryOptions?.useMutation !== undefined) {
+    isMutation = operationQueryOptions.useMutation;
+  }
 
   // If both query and mutation are true for a non-GET operation, prioritize query
   if (verb !== Verbs.GET && isQuery) {
     isMutation = false;
+  }
+
+  // If both query and mutation are true for a GET operation, prioritize mutation
+  if (verb === Verbs.GET && isMutation) {
+    isQuery = false;
   }
 
   if (isQuery) {
