@@ -25,6 +25,8 @@ import {
   getZodDateFormat,
   getZodTimeFormat,
   getZodDateTimeFormat,
+  getParameterFunctions,
+  getObjectFunctionName,
 } from './compatibleV4';
 import uniq from 'lodash.uniq';
 import {
@@ -61,6 +63,7 @@ const possibleSchemaTypes = [
   'string',
   'boolean',
   'object',
+  'strictObject',
   'null',
   'array',
 ];
@@ -129,6 +132,7 @@ export const generateZodValidationSchemaDefinition = (
   context: ContextSpecs,
   name: string,
   strict: boolean,
+  isZodV4: boolean,
   rules?: {
     required?: boolean;
     dateTimeOptions?: DateTimeOptions;
@@ -226,6 +230,7 @@ export const generateZodValidationSchemaDefinition = (
                 deference(item as SchemaObject | ReferenceObject, context),
                 context,
                 camel(`${name}-${idx}-item`),
+                isZodV4,
                 strict,
                 {
                   required: true,
@@ -246,6 +251,7 @@ export const generateZodValidationSchemaDefinition = (
                   context,
                   camel(`${name}-item`),
                   strict,
+                  isZodV4,
                   {
                     required: true,
                   },
@@ -264,6 +270,7 @@ export const generateZodValidationSchemaDefinition = (
           context,
           camel(`${name}-item`),
           strict,
+          isZodV4,
           {
             required: true,
           },
@@ -271,10 +278,6 @@ export const generateZodValidationSchemaDefinition = (
       ]);
       break;
     case 'string': {
-      const isZodV4 =
-        !!context.output.packageJson &&
-        isZodVersionV4(context.output.packageJson);
-
       if (schema.enum && type === 'string') {
         break;
       }
@@ -377,6 +380,7 @@ export const generateZodValidationSchemaDefinition = (
               context,
               camel(name),
               strict,
+              isZodV4,
               {
                 required: true,
               },
@@ -387,8 +391,10 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.properties) {
+        const objectType = getObjectFunctionName(isZodV4, strict);
+
         functions.push([
-          'object',
+          objectType,
           Object.keys(schema.properties)
             .map((key) => ({
               [key]: generateZodValidationSchemaDefinition(
@@ -396,6 +402,7 @@ export const generateZodValidationSchemaDefinition = (
                 context,
                 camel(`${name}-${key}`),
                 strict,
+                isZodV4,
                 {
                   required: schema.required?.includes(key),
                 },
@@ -404,7 +411,7 @@ export const generateZodValidationSchemaDefinition = (
             .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
         ]);
 
-        if (strict) {
+        if (strict && !isZodV4) {
           functions.push(['strict', undefined]);
         }
 
@@ -421,6 +428,7 @@ export const generateZodValidationSchemaDefinition = (
             context,
             name,
             strict,
+            isZodV4,
             {
               required: true,
             },
@@ -509,6 +517,8 @@ export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
+  strict: boolean,
+  isZodV4: boolean,
   preprocess?: GeneratorMutator,
 ): { zod: string; consts: string } => {
   if (!input.functions.length) {
@@ -519,6 +529,7 @@ export const parseZodValidationSchemaDefinition = (
 
   const parseProperty = (property: [string, any]): string => {
     const [fn, args = ''] = property;
+
     if (fn === 'allOf') {
       return args.reduce(
         (
@@ -593,8 +604,10 @@ export const parseZodValidationSchemaDefinition = (
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
-    if (fn === 'object') {
-      return `zod.object({
+    if (fn === 'object' || fn === 'strictObject') {
+      const objectType = getObjectFunctionName(isZodV4, strict);
+
+      return `zod.${objectType}({
 ${Object.entries(args)
   .map(([key, schema]) => {
     const value = (schema as ZodValidationSchemaDefinition).functions
@@ -616,7 +629,7 @@ ${Object.entries(args)
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
 
-    if (fn === 'strict') {
+    if (fn === 'strict' && !isZodV4) {
       return '.strict()';
     }
 
@@ -729,6 +742,7 @@ const parseBodyAndResponse = ({
   name,
   strict,
   generate,
+  isZodV4,
   parseType,
 }: {
   data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
@@ -736,6 +750,7 @@ const parseBodyAndResponse = ({
   name: string;
   strict: boolean;
   generate: boolean;
+  isZodV4: boolean;
   parseType: 'body' | 'response';
 }): {
   input: ZodValidationSchemaDefinition;
@@ -789,6 +804,7 @@ const parseBodyAndResponse = ({
         context,
         name,
         strict,
+        isZodV4,
         {
           required: true,
         },
@@ -809,6 +825,7 @@ const parseBodyAndResponse = ({
       context,
       name,
       strict,
+      isZodV4,
       {
         required: true,
       },
@@ -821,12 +838,14 @@ const parseParameters = ({
   data,
   context,
   operationName,
+  isZodV4,
   strict,
   generate,
 }: {
   data: (ParameterObject | ReferenceObject)[] | undefined;
   context: ContextSpecs;
   operationName: string;
+  isZodV4: boolean;
   strict: {
     param: boolean;
     query: boolean;
@@ -891,6 +910,7 @@ const parseParameters = ({
         context,
         camel(`${operationName}-${parameter.in}-${parameter.name}`),
         mapStrict[parameter.in as 'path' | 'query' | 'header'] ?? false,
+        isZodV4,
         {
           required: parameter.required,
         },
@@ -935,11 +955,13 @@ const parseParameters = ({
   };
 
   if (Object.keys(defintionsByParameters.headers).length) {
-    headers.functions.push(['object', defintionsByParameters.headers]);
+    const parameterFunctions = getParameterFunctions(
+      isZodV4,
+      strict.header,
+      defintionsByParameters.headers,
+    );
 
-    if (strict.header) {
-      headers.functions.push(['strict', undefined]);
-    }
+    headers.functions.push(...parameterFunctions);
   }
 
   const queryParams: ZodValidationSchemaDefinition = {
@@ -948,11 +970,13 @@ const parseParameters = ({
   };
 
   if (Object.keys(defintionsByParameters.queryParams).length) {
-    queryParams.functions.push(['object', defintionsByParameters.queryParams]);
+    const parameterFunctions = getParameterFunctions(
+      isZodV4,
+      strict.query,
+      defintionsByParameters.queryParams,
+    );
 
-    if (strict.query) {
-      queryParams.functions.push(['strict', undefined]);
-    }
+    queryParams.functions.push(...parameterFunctions);
   }
 
   const params: ZodValidationSchemaDefinition = {
@@ -961,11 +985,13 @@ const parseParameters = ({
   };
 
   if (Object.keys(defintionsByParameters.params).length) {
-    params.functions.push(['object', defintionsByParameters.params]);
+    const parameterFunctions = getParameterFunctions(
+      isZodV4,
+      strict.param,
+      defintionsByParameters.params,
+    );
 
-    if (strict.param) {
-      params.functions.push(['strict', undefined]);
-    }
+    params.functions.push(...parameterFunctions);
   }
 
   return {
@@ -979,6 +1005,8 @@ const generateZodRoute = async (
   { operationName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
+  const isZodV4 =
+    !!context.output.packageJson && isZodVersionV4(context.output.packageJson);
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
     | undefined;
@@ -991,6 +1019,7 @@ const generateZodRoute = async (
     data: parameters,
     context,
     operationName,
+    isZodV4,
     strict: override.zod.strict,
     generate: override.zod.generate,
   });
@@ -1002,6 +1031,7 @@ const generateZodRoute = async (
     name: camel(`${operationName}-body`),
     strict: override.zod.strict.body,
     generate: override.zod.generate.body,
+    isZodV4,
     parseType: 'body',
   });
 
@@ -1017,6 +1047,7 @@ const generateZodRoute = async (
       name: camel(`${operationName}-${code}-response`),
       strict: override.zod.strict.response,
       generate: override.zod.generate.response,
+      isZodV4,
       parseType: 'response',
     }),
   );
@@ -1035,6 +1066,8 @@ const generateZodRoute = async (
     parsedParameters.params,
     context,
     override.zod.coerce.param,
+    override.zod.strict.param,
+    isZodV4,
     preprocessParams,
   );
 
@@ -1058,6 +1091,8 @@ const generateZodRoute = async (
     parsedParameters.queryParams,
     context,
     override.zod.coerce.query ?? override.coerceTypes,
+    override.zod.strict.query,
+    isZodV4,
     preprocessQueryParams,
   );
 
@@ -1075,6 +1110,8 @@ const generateZodRoute = async (
     parsedParameters.headers,
     context,
     override.zod.coerce.header,
+    override.zod.strict.header,
+    isZodV4,
     preprocessHeader,
   );
 
@@ -1092,6 +1129,8 @@ const generateZodRoute = async (
     parsedBody.input,
     context,
     override.zod.coerce.body,
+    override.zod.strict.body,
+    isZodV4,
     preprocessBody,
   );
 
@@ -1110,6 +1149,8 @@ const generateZodRoute = async (
       parsedResponse.input,
       context,
       override.zod.coerce.response,
+      override.zod.strict.response,
+      isZodV4,
       preprocessResponse,
     ),
   );

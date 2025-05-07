@@ -4,6 +4,8 @@ import {
   getZodDateFormat,
   getZodTimeFormat,
   getZodDateTimeFormat,
+  getParameterFunctions,
+  getObjectFunctionName,
 } from './compatibleV4';
 
 describe('isZodVersionV4', () => {
@@ -85,5 +87,78 @@ describe('getZodDateTimeFormat', () => {
 
   it('should return "datetime" when isZodV4 is false', () => {
     expect(getZodDateTimeFormat(false)).toBe('datetime');
+  });
+});
+
+describe('getParameterFunctions', () => {
+  const parameters = { test: 'value' };
+
+  describe('when isZodV4 is true', () => {
+    describe('when strict is true', () => {
+      it('should return [["strictObject", parameters]]', () => {
+        const result = getParameterFunctions(true, true, parameters);
+        expect(result).toEqual([['strictObject', parameters]]);
+      });
+    });
+
+    describe('when strict is false', () => {
+      it('should return [["object", parameters]]', () => {
+        const result = getParameterFunctions(true, false, parameters);
+        expect(result).toEqual([['object', parameters]]);
+      });
+    });
+  });
+
+  describe('when isZodV4 is false', () => {
+    describe('when strict is true', () => {
+      it('should return [["object", parameters], ["strict", undefined]]', () => {
+        const result = getParameterFunctions(false, true, parameters);
+        expect(result).toEqual([
+          ['object', parameters],
+          ['strict', undefined],
+        ]);
+      });
+    });
+
+    describe('when strict is false', () => {
+      it('should return [["object", parameters]]', () => {
+        const result = getParameterFunctions(false, false, parameters);
+        expect(result).toEqual([['object', parameters]]);
+      });
+    });
+  });
+});
+
+describe('getObjectFunctionName', () => {
+  describe('when isZodV4 is true', () => {
+    describe('when strict is true', () => {
+      it('should return "strictObject"', () => {
+        const result = getObjectFunctionName(true, true);
+        expect(result).toBe('strictObject');
+      });
+    });
+
+    describe('when strict is false', () => {
+      it('should return "object"', () => {
+        const result = getObjectFunctionName(true, false);
+        expect(result).toBe('object');
+      });
+    });
+  });
+
+  describe('when isZodV4 is false', () => {
+    describe('when strict is true', () => {
+      it('should return "object"', () => {
+        const result = getObjectFunctionName(false, true);
+        expect(result).toBe('object');
+      });
+    });
+
+    describe('when strict is false', () => {
+      it('should return "object"', () => {
+        const result = getObjectFunctionName(false, false);
+        expect(result).toBe('object');
+      });
+    });
   });
 });
