@@ -1,3 +1,4 @@
+import uniq from 'lodash.uniq';
 import { SchemaObject } from 'openapi3-ts/oas30';
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
@@ -7,10 +8,9 @@ import {
   ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal, isSchema } from '../utils';
-import { getEnumImplementation, getEnumNames } from './enum';
+import { getNumberWord, isSchema, pascal } from '../utils';
+import { getCombineEnumValue, getEnumPropertyType } from './enum';
 import { getScalar } from './scalar';
-import uniq from 'lodash.uniq';
 
 type CombinedData = {
   imports: GeneratorImport[];
@@ -191,12 +191,18 @@ export const combineSchemas = ({
   const isAllEnums = resolvedData.isEnum.every((v) => v);
 
   if (isAllEnums && name && items.length > 1) {
-    const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
+    const newEnum = getCombineEnumValue(
+      resolvedData,
       name,
-    )} = ${getCombineEnumValue(resolvedData)}`;
+      context.output.override.enumGenerationType,
+    );
+    const propertyType = getEnumPropertyType(
+      pascal(name),
+      context.output.override.enumGenerationType,
+    );
 
     return {
-      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
+      value: propertyType,
       imports: [
         {
           name: pascal(name),
@@ -212,7 +218,7 @@ export const combineSchemas = ({
             })),
           ],
           model: newEnum,
-          name: name,
+          name: pascal(name),
         },
       ],
       isEnum: false,
@@ -261,32 +267,4 @@ export const combineSchemas = ({
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };
-};
-
-const getCombineEnumValue = ({
-  values,
-  isRef,
-  originalSchema,
-}: CombinedData) => {
-  if (values.length === 1) {
-    if (isRef[0]) {
-      return values[0];
-    }
-
-    return `{${getEnumImplementation(values[0])}} as const`;
-  }
-
-  const enums = values
-    .map((e, i) => {
-      if (isRef[i]) {
-        return `...${e},`;
-      }
-
-      const names = getEnumNames(originalSchema[i]);
-
-      return getEnumImplementation(e, names);
-    })
-    .join('');
-
-  return `{${enums}} as const`;
 };

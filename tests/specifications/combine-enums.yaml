@@ -1,0 +1,23 @@
+openapi: 3.1.0
+info:
+  title: Combine Enums
+  version: 1.0.0
+paths:
+  /api:
+    get:
+      responses:
+        '200':
+          description: Example response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  foo:
+                    anyOf:
+                      - type: string
+                        enum:
+                          - example-true
+                      - type: string
+                        enum:
+                          - example-false

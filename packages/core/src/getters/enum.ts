@@ -3,7 +3,9 @@ import { SchemaObject } from 'openapi3-ts/dist/model/openapi30';
 import { EnumGeneration } from '../types';
 import { isNumeric, sanitize } from '../utils';
 
-export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
+export const getEnumNames = (
+  schemaObject: SchemaObject | undefined,
+): string[] | undefined => {
   return (
     schemaObject?.['x-enumNames'] ||
     schemaObject?.['x-enumnames'] ||
@@ -26,6 +28,78 @@ export const getEnum = (
   throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
 };
 
+const getEnumItems = (
+  value: string,
+  names: string[] | undefined,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return getConstEnumItems(value, names);
+  if (enumGenerationType === EnumGeneration.ENUM)
+    return getNativeEnumItems(value, names);
+  if (enumGenerationType === EnumGeneration.UNION) return value;
+  return '';
+};
+
+const getEnumDefinition = (
+  enumValue: string,
+  enumName: string,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${enumName} = {${enumValue}} as const`;
+  if (enumGenerationType === EnumGeneration.ENUM)
+    return `export enum ${enumName} {${enumValue}}`;
+  if (enumGenerationType === EnumGeneration.UNION)
+    return `export type ${enumName} = ${enumValue}`;
+  return '';
+};
+
+export const getEnumPropertyType = (
+  enumName: string,
+  enumGenerationType: EnumGeneration,
+) => {
+  if (enumGenerationType === EnumGeneration.CONST)
+    return `typeof ${enumName}[keyof typeof ${enumName}]`;
+  if (enumGenerationType === EnumGeneration.ENUM) return enumName;
+  if (enumGenerationType === EnumGeneration.UNION) return enumName;
+  return '';
+};
+
+export const getCombineEnumValue = (
+  {
+    values,
+    isRef,
+    originalSchema,
+  }: {
+    values: string[];
+    isRef: boolean[];
+    originalSchema: (SchemaObject | undefined)[];
+  },
+  name: string,
+  enumGenerationType: EnumGeneration,
+): string => {
+  if (values.length === 1) {
+    const names = getEnumNames(originalSchema[0]);
+    const items = getEnumItems(values[0], names, enumGenerationType);
+    return getEnumDefinition(items, name, enumGenerationType);
+  }
+
+  const enums = values
+    .map((e, i) => {
+      if (isRef[i]) {
+        return `...${e},`;
+      }
+
+      const names = getEnumNames(originalSchema[i]);
+
+      return getEnumItems(e, names, enumGenerationType);
+    })
+    .join('');
+
+  return getEnumDefinition(enums, name, enumGenerationType);
+};
+
 const getTypeConstEnum = (
   value: string,
   enumName: string,
@@ -40,7 +114,7 @@ const getTypeConstEnum = (
 
   enumValue += ';\n';
 
-  const implementation = getEnumImplementation(value, names);
+  const implementation = getConstEnumItems(value, names);
 
   enumValue += `\n\n`;
 
@@ -51,7 +125,7 @@ const getTypeConstEnum = (
   return enumValue;
 };
 
-export const getEnumImplementation = (value: string, names?: string[]) => {
+const getConstEnumItems = (value: string, names?: string[]) => {
   // empty enum or null-only enum
   if (value === '') return '';
 
