@@ -120,7 +120,7 @@ export const getObject = ({
           acc.value += '{';
         }
 
-        const doc = jsDoc(schema as SchemaObject, true);
+        const doc = jsDoc(schema as SchemaObject, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
         acc.imports.push(...resolvedValue.imports);
