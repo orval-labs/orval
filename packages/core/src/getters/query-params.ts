@@ -53,7 +53,14 @@ const getQueryParamsTypes = (
     });
 
     const key = getKey(name);
-    const doc = jsDoc(parameter);
+    const doc = jsDoc(
+      {
+        description: parameter.description,
+        ...schema,
+      },
+      void 0,
+      context,
+    );
 
     if (parameterImports.length) {
       return {

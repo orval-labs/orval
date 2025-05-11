@@ -7,7 +7,13 @@ import {
   SchemaType,
   SchemaWithConst,
 } from '../types';
-import { isBoolean, isReference, jsDoc, pascal } from '../utils';
+import {
+  isBoolean,
+  isReference,
+  jsDoc,
+  keyValuePairsToJsDoc,
+  pascal,
+} from '../utils';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
@@ -120,7 +126,7 @@ export const getObject = ({
           acc.value += '{';
         }
 
-        const doc = jsDoc(schema as SchemaObject, true);
+        const doc = jsDoc(schema as SchemaObject, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
         acc.imports.push(...resolvedValue.imports);
