@@ -1,5 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { getEnum, getEnumNames } from '../getters/enum';
+import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import { ContextSpecs, ResolverValue } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
@@ -66,6 +66,7 @@ const resolveObjectOriginal = ({
       propName,
       getEnumNames(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
+      getEnumDescriptions(resolvedValue.originalSchema),
     );
 
     return {

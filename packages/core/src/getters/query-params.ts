@@ -8,7 +8,7 @@ import {
   GetterQueryParam,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
-import { getEnum, getEnumNames } from './enum';
+import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';
 
 type QueryParamsType = {
@@ -73,6 +73,7 @@ const getQueryParamsTypes = (
         enumName,
         getEnumNames(resolvedValue.originalSchema),
         context.output.override.enumGenerationType,
+        getEnumDescriptions(resolvedValue.originalSchema),
       );
 
       return {

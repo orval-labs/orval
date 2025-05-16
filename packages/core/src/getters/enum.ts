@@ -11,14 +11,23 @@ export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
   );
 };
 
+export const getEnumDescriptions = (schemaObject: SchemaObject | undefined) => {
+  return (
+    schemaObject?.['x-enumDescriptions'] ||
+    schemaObject?.['x-enumdescriptions'] ||
+    schemaObject?.['x-enum-descriptions']
+  );
+};
+
 export const getEnum = (
   value: string,
   enumName: string,
   names: string[] | undefined,
   enumGenerationType: EnumGeneration,
+  descriptions?: string[],
 ) => {
   if (enumGenerationType === EnumGeneration.CONST)
-    return getTypeConstEnum(value, enumName, names);
+    return getTypeConstEnum(value, enumName, names, descriptions);
   if (enumGenerationType === EnumGeneration.ENUM)
     return getNativeEnum(value, enumName, names);
   if (enumGenerationType === EnumGeneration.UNION)
@@ -30,6 +39,7 @@ const getTypeConstEnum = (
   value: string,
   enumName: string,
   names?: string[],
+  descriptions?: string[],
 ) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
 
@@ -40,9 +50,9 @@ const getTypeConstEnum = (
 
   enumValue += ';\n';
 
-  const implementation = getEnumImplementation(value, names);
+  const implementation = getEnumImplementation(value, names, descriptions);
 
-  enumValue += `\n\n`;
+  enumValue += '\n\n';
 
   enumValue += '// eslint-disable-next-line @typescript-eslint/no-redeclare\n';
 
@@ -51,15 +61,23 @@ const getTypeConstEnum = (
   return enumValue;
 };
 
-export const getEnumImplementation = (value: string, names?: string[]) => {
+export const getEnumImplementation = (
+  value: string,
+  names?: string[],
+  descriptions?: string[],
+) => {
   // empty enum or null-only enum
   if (value === '') return '';
 
   return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
     const name = names?.[index];
+    const description = descriptions?.[index];
+    const comment = description ? `  /** ${description} */\n` : '';
+
     if (name) {
       return (
         acc +
+        comment +
         `  ${keyword.isIdentifierNameES5(name) ? name : `'${name}'`}: ${val},\n`
       );
     }
@@ -83,6 +101,7 @@ export const getEnumImplementation = (value: string, names?: string[]) => {
 
     return (
       acc +
+      comment +
       `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`
     );
   }, '');
