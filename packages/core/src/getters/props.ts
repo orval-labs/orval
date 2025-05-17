@@ -34,16 +34,16 @@ export const getProps = ({
 
   const queryParamsProp = {
     name: 'params',
-    definition: `params${queryParams?.isOptional ? '?' : ''}: ${
+    definition: `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${
       queryParams?.schema.name
     }`,
-    implementation: `params${queryParams?.isOptional ? '?' : ''}: ${
+    implementation: `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${
       queryParams?.schema.name
     }`,
     default: false,
     required: !isUndefined(queryParams?.isOptional)
-      ? !queryParams?.isOptional
-      : false,
+      ? !queryParams?.isOptional && !context.output.allParamsOptional
+      : !context.output.allParamsOptional,
     type: GetterPropType.QUERY_PARAM,
   };
 
