@@ -1230,13 +1230,13 @@ const apiSchemaWithDiscriminator: GeneratorOptions = {
               properties: {
                 breed: {
                   type: 'string',
-                }
-              }
+                },
+              },
             },
             Labradoodle: {
               allOf: [
                 {
-                  $ref: '#/components/schemas/BasicDog'
+                  $ref: '#/components/schemas/BasicDog',
                 },
                 {
                   type: 'object',
@@ -1250,14 +1250,14 @@ const apiSchemaWithDiscriminator: GeneratorOptions = {
                       type: 'string',
                       enum: ['Labradoodle'],
                     },
-                  }
-                }
-              ]
+                  },
+                },
+              ],
             },
             Dachshund: {
               allOf: [
                 {
-                  $ref: '#/components/schemas/BasicDog'
+                  $ref: '#/components/schemas/BasicDog',
                 },
                 {
                   type: 'object',
@@ -1272,8 +1272,8 @@ const apiSchemaWithDiscriminator: GeneratorOptions = {
                       enum: ['Dachshund'],
                     },
                   },
-                }
-              ]
+                },
+              ],
             },
           },
         },
@@ -1326,14 +1326,15 @@ describe('generateDiscriminatedUnionZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-`export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({
+      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({
   "breed": zod.enum(['Labradoodle']).optional(),
   "cuteness": zod.number()
 }),zod.object({
   "breed": zod.enum(['Dachshund']).optional(),
   "length": zod.number()
 })])
-export const testResponse = zod.array(testResponseItem)\n\n`);;
+export const testResponse = zod.array(testResponseItem)\n\n`,
+    );
     expect(result.implementation).not.toContain('.or(zod.object');
     expect(result.implementation).not.toContain('.and(');
   });
@@ -1373,7 +1374,7 @@ export const testResponse = zod.array(testResponseItem)\n\n`);;
       {},
     );
     expect(result.implementation).toBe(
-`export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({
+      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({
   "breed": zod.enum(['Labradoodle']).optional(),
   "cuteness": zod.number()
 }).strict(),zod.object({
@@ -1423,7 +1424,7 @@ export const testResponse = zod.array(testResponseItem)\n\n`,
       {},
     );
     expect(result.implementation).toBe(
-`export const testResponseItem = zod.object({
+      `export const testResponseItem = zod.object({
   "breed": zod.string()
 }).and(zod.object({
   "cuteness": zod.number(),
@@ -1731,6 +1732,6 @@ describe('generateZodWithEdgeCases', () => {
     );
     expect(result.implementation).toBe(
       'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
-    );;
+    );
   });
 });
