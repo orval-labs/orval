@@ -1224,33 +1224,56 @@ const apiSchemaWithDiscriminator: GeneratorOptions = {
                 },
               },
             },
-            Labradoodle: {
+            BasicDog: {
               type: 'object',
-              required: ['cuteness'],
+              required: ['breed'],
               properties: {
-                cuteness: {
-                  type: 'integer',
-                },
-                // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
                 breed: {
                   type: 'string',
-                  enum: ['Labradoodle'],
+                }
+              }
+            },
+            Labradoodle: {
+              allOf: [
+                {
+                  $ref: '#/components/schemas/BasicDog'
                 },
-              },
+                {
+                  type: 'object',
+                  required: ['cuteness'],
+                  properties: {
+                    cuteness: {
+                      type: 'integer',
+                    },
+                    // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
+                    breed: {
+                      type: 'string',
+                      enum: ['Labradoodle'],
+                    },
+                  }
+                }
+              ]
             },
             Dachshund: {
-              type: 'object',
-              required: ['length'],
-              properties: {
-                length: {
-                  type: 'integer',
+              allOf: [
+                {
+                  $ref: '#/components/schemas/BasicDog'
                 },
-                // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
-                breed: {
-                  type: 'string',
-                  enum: ['Labradoodle'],
-                },
-              },
+                {
+                  type: 'object',
+                  required: ['length'],
+                  properties: {
+                    length: {
+                      type: 'integer',
+                    },
+                    // in the real runner breed is added by getApiSchemas in import-open-api.ts, inferred from the discriminator
+                    breed: {
+                      type: 'string',
+                      enum: ['Dachshund'],
+                    },
+                  },
+                }
+              ]
             },
           },
         },
@@ -1303,9 +1326,16 @@ describe('generateDiscriminatedUnionZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}),zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n})])\nexport const testResponse = zod.array(testResponseItem)\n\n`,
-    );
+`export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({
+  "breed": zod.enum(['Labradoodle']).optional(),
+  "cuteness": zod.number()
+}),zod.object({
+  "breed": zod.enum(['Dachshund']).optional(),
+  "length": zod.number()
+})])
+export const testResponse = zod.array(testResponseItem)\n\n`);;
     expect(result.implementation).not.toContain('.or(zod.object');
+    expect(result.implementation).not.toContain('.and(');
   });
   it('generated discriminatedUnion zod schema strict setting', async () => {
     const result = await generateZod(
@@ -1343,7 +1373,14 @@ describe('generateDiscriminatedUnionZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      `export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).strict(),zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).strict()])\nexport const testResponse = zod.array(testResponseItem)\n\n`,
+`export const testResponseItem = zod.discriminatedUnion('breed', [zod.object({
+  "breed": zod.enum(['Labradoodle']).optional(),
+  "cuteness": zod.number()
+}).strict(),zod.object({
+  "breed": zod.enum(['Dachshund']).optional(),
+  "length": zod.number()
+}).strict()])
+export const testResponse = zod.array(testResponseItem)\n\n`,
     );
   });
   it('does not generate a discriminatedUnion zod schema when discriminator is absent', async () => {
@@ -1386,7 +1423,18 @@ describe('generateDiscriminatedUnionZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      `export const testResponseItem = zod.object({\n  "cuteness": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}).or(zod.object({\n  "length": zod.number(),\n  "breed": zod.enum(['Labradoodle']).optional()\n}))\nexport const testResponse = zod.array(testResponseItem)\n\n`,
+`export const testResponseItem = zod.object({
+  "breed": zod.string()
+}).and(zod.object({
+  "cuteness": zod.number(),
+  "breed": zod.enum(['Labradoodle']).optional()
+})).or(zod.object({
+  "breed": zod.string()
+}).and(zod.object({
+  "length": zod.number(),
+  "breed": zod.enum(['Dachshund']).optional()
+})))
+export const testResponse = zod.array(testResponseItem)\n\n`,
     );
     expect(result.implementation).not.toContain(
       "zod.discriminatedUnion('breed'",
@@ -1681,9 +1729,8 @@ describe('generateZodWithEdgeCases', () => {
       schemaWithRefProperty,
       {},
     );
-
     expect(result.implementation).toBe(
       'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
-    );
+    );;
   });
 });

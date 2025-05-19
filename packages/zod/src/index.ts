@@ -530,6 +530,24 @@ export const parseZodValidationSchemaDefinition = (
   const parseProperty = (property: [string, any]): string => {
     const [fn, args = ''] = property;
 
+    if (fn === 'flattenAllOf') {
+        const flattenedProperties: Record<string, any> = args.reduce(
+          (
+            acc: Record<string, any>,
+            {
+              functions
+            }: { functions: [string, any][];}
+          ) => {
+            functions.forEach(([_fn, schema]) => {
+              acc = { ...acc, ...schema}
+            })
+            return acc;
+          },
+          {}
+        )
+        const functionName = getObjectFunctionName(isZodV4, strict);
+        return `${parseProperty([functionName, flattenedProperties])}${strict ? parseProperty(['strict', undefined]) : ''}`
+    }
     if (fn === 'allOf') {
       return args.reduce(
         (
@@ -562,7 +580,7 @@ export const parseZodValidationSchemaDefinition = (
       const [, propertyName] = fn.split('discriminator__');
       const typeSchemas = args.map(
         ({ functions }: { functions: [string, any][]; consts: string[] }) => {
-          const schemaFunctions = functions.map(parseProperty).join('');
+          const schemaFunctions = functions.map(([fn, args]) => fn === 'allOf' ? parseProperty(['flattenAllOf', args]) : parseProperty([fn, args])).join('');
           return schemaFunctions;
         },
       );
@@ -656,7 +674,6 @@ ${Object.entries(args)
     ) {
       return `.coerce.${fn}(${args})`;
     }
-
     return `.${fn}(${args})`;
   };
 
