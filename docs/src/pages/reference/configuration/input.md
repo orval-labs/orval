@@ -162,7 +162,7 @@ Type: `Object`.
 
 Default Value: `{ resolve: { github: githubResolver }, validate: true }`.
 
-Orval utilizes a parser to process multiple file specifications. You can customize its behavior using the `parserOptions` property. See the [available options](https://apidevtools.com/swagger-parser/docs/options.html) for configuration. By default, Orval includes a GitHub parser, but you can add your own for private specifications or other specific needs.
+Orval utilizes a parser to process multiple file specifications. You can customize its behavior using the `parserOptions` property. See the [available options](https://apidevtools.com/swagger-parser/options.html) for configuration. By default, Orval includes a GitHub parser, but you can add your own for private specifications or other specific needs.
 
 Your specification is automatically validated by default.
 
