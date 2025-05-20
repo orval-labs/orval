@@ -1131,20 +1131,11 @@ const generateQueryHook = async (
     (override.query.useQuery ||
       override.query.useSuspenseQuery ||
       override.query.useInfinite ||
-      override.query.useSuspenseInfiniteQuery);
-
-  if (operationQueryOptions?.useInfinite !== undefined) {
-    isQuery = operationQueryOptions.useInfinite;
-  }
-  if (operationQueryOptions?.useSuspenseInfiniteQuery !== undefined) {
-    isQuery = operationQueryOptions.useSuspenseInfiniteQuery;
-  }
-  if (operationQueryOptions?.useQuery !== undefined) {
-    isQuery = operationQueryOptions.useQuery;
-  }
-  if (operationQueryOptions?.useSuspenseQuery !== undefined) {
-    isQuery = operationQueryOptions.useSuspenseQuery;
-  }
+      override.query.useSuspenseInfiniteQuery ||
+      operationQueryOptions?.useQuery ||
+      operationQueryOptions?.useSuspenseQuery ||
+      operationQueryOptions?.useInfinite ||
+      operationQueryOptions?.useSuspenseInfiniteQuery);
 
   let isMutation = override.query.useMutation && verb !== Verbs.GET;
 
