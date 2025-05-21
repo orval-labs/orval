@@ -13,6 +13,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  noContentWithDefault: {
+    output: {
+      target: '../generated/react-query/no-content-with-default/endpoints.ts',
+      schemas: '../generated/react-query/no-content-with-default/model',
+      mode: 'split',
+      client: 'react-query',
+      mock: {
+        type: 'msw',
+        delay: 0,
+        useExamples: true,
+      },
+      headers: true,
+    },
+    input: {
+      target: '../specifications/no-content-with-default.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/react-query/petstore-tags-split/endpoints.ts',
