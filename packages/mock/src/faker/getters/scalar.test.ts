@@ -64,7 +64,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
     tags: [],
     existingReferencedProperties: [],
     splitMockImplementations: [],
-    mockOptions: {useExamples: true},
+    mockOptions: { useExamples: true },
     context: {},
   };
 
