@@ -1,16 +1,16 @@
 import {
-  ContextSpecs,
+  type ContextSpecs,
   EnumGeneration,
   escape,
-  GeneratorImport,
+  type GeneratorImport,
   isReference,
   isRootKey,
   mergeDeep,
-  MockOptions,
+  type MockOptions,
   pascal,
 } from '@orval/core';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
@@ -87,7 +87,7 @@ export const getMockScalar = ({
 
   if (
     (context.output.override?.mock?.useExamples || mockOptions?.useExamples) &&
-    item.example
+    item.example !== undefined
   ) {
     return {
       value: JSON.stringify(item.example),
