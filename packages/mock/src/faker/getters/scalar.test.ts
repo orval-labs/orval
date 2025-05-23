@@ -56,8 +56,8 @@ describe('getMockScalar (example handling with falsy values)', () => {
   const baseArg = {
     item: {
       name: 'test-item',
-      type: 'boolean',
-      nullable: true,
+      example: false,
+      type: 'boolean' as const,
     },
     imports: [],
     operationId: 'test-operation',
@@ -65,7 +65,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: {},
+    context: { output: {} }  as ContextSpecs,
   };
 
   it('should return the example value when it is a false value', () => {
@@ -87,7 +87,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
   });
 
   it('should return a faker invocation when the example is undefined', () => {
-    const result = getMockScalar(baseArg);
+    const result = getMockScalar({...baseArg, item: {...baseArg.item, example: undefined}});
 
     expect(result.value).toBe('faker.datatype.boolean()');
   });
