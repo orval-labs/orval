@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { ContextSpecs, GeneratorSchema } from '../types';
+import type { ContextSpecs, GeneratorSchema } from '../types';
 import { generateInterface } from './interface';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-import { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
 
 describe('generateInterface', () => {
   const context: ContextSpecs = {
@@ -26,6 +26,10 @@ describe('generateInterface', () => {
           type: 'integer',
           const: 1,
         },
+        isError: {
+          type: 'boolean',
+          const: false,
+        },
       },
       required: ['message', 'code'],
     };
@@ -42,6 +46,7 @@ describe('generateInterface', () => {
         model: `export const TestSchemaValue = {
   message: 'Invalid data',
   code: 1,
+  isError: false,
 } as const;
 export type TestSchema = typeof TestSchemaValue;
 `,
