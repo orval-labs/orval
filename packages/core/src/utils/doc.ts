@@ -1,24 +1,12 @@
+import { ContextSpecs } from '../types';
+
 const search = '\\*/'; // Find '*/'
 const replacement = '*\\/'; // Replace With '*\/'
 
 const regex = new RegExp(search, 'g');
 
 export function jsDoc(
-  {
-    description,
-    deprecated,
-    summary,
-    minLength,
-    maxLength,
-    minimum,
-    maximum,
-    exclusiveMinimum,
-    exclusiveMaximum,
-    minItems,
-    maxItems,
-    nullable,
-    pattern,
-  }: {
+  schema: {
     description?: string[] | string;
     deprecated?: boolean;
     summary?: string;
@@ -34,7 +22,26 @@ export function jsDoc(
     pattern?: string;
   },
   tryOneLine = false,
+  context?: ContextSpecs,
 ): string {
+  if (context?.output?.override?.jsDoc) {
+    return keyValuePairsToJsDoc(context.output.override.jsDoc(schema));
+  }
+  const {
+    description,
+    deprecated,
+    summary,
+    minLength,
+    maxLength,
+    minimum,
+    maximum,
+    exclusiveMinimum,
+    exclusiveMaximum,
+    minItems,
+    maxItems,
+    nullable,
+    pattern,
+  } = schema;
   // Ensure there aren't any comment terminations in doc
   const lines = (
     Array.isArray(description)
@@ -121,5 +128,20 @@ export function jsDoc(
 
   doc += '*/\n';
 
+  return doc;
+}
+
+export function keyValuePairsToJsDoc(
+  keyValues: {
+    key: string;
+    value: string;
+  }[],
+) {
+  if (!keyValues.length) return '';
+  let doc = '/**\n';
+  keyValues.forEach(({ key, value }) => {
+    doc += ` * @${key} ${value}\n`;
+  });
+  doc += ' */\n';
   return doc;
 }
