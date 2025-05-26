@@ -1687,3 +1687,88 @@ describe('generateZodWithEdgeCases', () => {
     );
   });
 });
+
+describe('pattern validation', () => {
+  const context: ContextSpecs = {
+    output: {
+      override: {
+        useDates: false,
+      },
+    },
+  } as ContextSpecs;
+
+  it('generates a regex validation for a string with pattern', () => {
+    const schemaWithPattern: SchemaObject = {
+      type: 'string',
+      pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithPattern,
+      context,
+      'testGuid',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.consts).toEqual([
+      `export const testGuidRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');\n`,
+    ]);
+    expect(result.functions).toEqual([
+      ['string', undefined],
+      ['regex', 'testGuidRegExp'],
+    ]);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    
+    expect(parsed.zod).toBe('zod.string().regex(testGuidRegExp)');
+    expect(parsed.consts).toBe(
+      `export const testGuidRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');\n`,
+    );
+  });
+
+  it('generates a regex validation with custom error message for x-pattern-message', () => {
+    const schemaWithPatternMessage: SchemaObject = {
+      type: 'string',
+      pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+      'x-pattern-message': 'Please provide a valid email address',
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithPatternMessage,
+      context,
+      'testEmail',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result.consts).toEqual([
+      `export const testEmailRegExp = new RegExp('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$');\n`,
+    ]);
+    expect(result.functions).toEqual([
+      ['string', undefined],
+      ['regex', 'testEmailRegExp, "Please provide a valid email address"'],
+    ]);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    
+    expect(parsed.zod).toBe('zod.string().regex(testEmailRegExp, "Please provide a valid email address")');
+    expect(parsed.consts).toBe(
+      `export const testEmailRegExp = new RegExp('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$');\n`,
+    );
+  });
+});

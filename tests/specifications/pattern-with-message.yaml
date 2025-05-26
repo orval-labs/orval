@@ -1,0 +1,42 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Pattern with Message
+paths:
+  /users:
+    post:
+      summary: Create user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+      responses:
+        '200':
+          description: 'User created'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+components:
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+          x-pattern-message: 'ID must be a valid UUID'
+        email:
+          type: string
+          pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+          x-pattern-message: 'Please provide a valid email address'
+        phone:
+          type: string
+          pattern: '^\+?[1-9]\d{1,14}$'
+          x-pattern-message: 'Phone must be a valid international number'

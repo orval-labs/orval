@@ -195,4 +195,13 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  patternWithMessage: {
+    output: {
+      target: '../generated/zod/pattern-with-message.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/pattern-with-message.yaml',
+    },
+  },
 });

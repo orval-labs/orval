@@ -1516,6 +1516,30 @@ module.exports = {
 
 You can find more details in the [zod documentation ](https://zod.dev/?id=datetimes).
 
+##### OpenAPI Extensions Support
+
+Orval's Zod client supports the following OpenAPI extensions:
+
+- **`x-pattern-message`**: Provides custom error messages for pattern validation. When a property has both a `pattern` and `x-pattern-message`, the generated Zod schema will use the custom message.
+
+```yaml
+# OpenAPI Schema
+properties:
+  email:
+    type: string
+    pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    x-pattern-message: 'Please provide a valid email address'
+```
+
+```ts
+// Generated Zod Schema
+export const schema = zod.object({
+  email: zod.string().regex(emailRegExp, "Please provide a valid email address")
+});
+```
+
+See the [Pattern Validation Messages guide](/guides/pattern-validation) for more details.
+
 #### mock
 
 Type: `Object`.

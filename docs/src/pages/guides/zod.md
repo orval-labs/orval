@@ -52,3 +52,31 @@ type Pet = z.infer<typeof createPetsBodyItem>;
 console.log(pet as Pet);
 // => Object { id: 1, name: "pet name", tag: "tag" }
 ```
+
+### Pattern Validation with Custom Messages
+
+Orval supports the `x-pattern-message` OpenAPI extension to provide custom error messages for pattern validation. This is particularly useful when you want to give users clear feedback about format requirements.
+
+```yaml
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        email:
+          type: string
+          pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+          x-pattern-message: 'Please provide a valid email address'
+```
+
+This will generate:
+
+```ts
+export const userEmailRegExp = new RegExp('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+
+export const User = zod.object({
+  email: zod.string().regex(userEmailRegExp, "Please provide a valid email address").optional()
+});
+```
+
+For more details, see the [Pattern Validation Messages guide](/guides/pattern-validation).
