@@ -1534,7 +1534,9 @@ properties:
 ```ts
 // Generated Zod Schema
 export const schema = zod.object({
-  email: zod.string().regex(emailRegExp, "Please provide a valid email address")
+  email: zod
+    .string()
+    .regex(emailRegExp, 'Please provide a valid email address'),
 });
 ```
 

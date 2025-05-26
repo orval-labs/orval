@@ -474,11 +474,14 @@ export const generateZodValidationSchemaDefinition = (
     consts.push(
       `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
     );
-    
+
     // Check for x-pattern-message
     const patternMessage = schema['x-pattern-message'];
     if (patternMessage && typeof patternMessage === 'string') {
-      functions.push(['regex', `${name}RegExp${constsCounterValue}, ${JSON.stringify(patternMessage)}`]);
+      functions.push([
+        'regex',
+        `${name}RegExp${constsCounterValue}, ${JSON.stringify(patternMessage)}`,
+      ]);
     } else {
       functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
     }

@@ -1727,7 +1727,7 @@ describe('pattern validation', () => {
       false,
       false,
     );
-    
+
     expect(parsed.zod).toBe('zod.string().regex(testGuidRegExp)');
     expect(parsed.consts).toBe(
       `export const testGuidRegExp = new RegExp('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');\n`,
@@ -1765,8 +1765,10 @@ describe('pattern validation', () => {
       false,
       false,
     );
-    
-    expect(parsed.zod).toBe('zod.string().regex(testEmailRegExp, "Please provide a valid email address")');
+
+    expect(parsed.zod).toBe(
+      'zod.string().regex(testEmailRegExp, "Please provide a valid email address")',
+    );
     expect(parsed.consts).toBe(
       `export const testEmailRegExp = new RegExp('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\\\.[a-zA-Z]{2,}$');\n`,
     );

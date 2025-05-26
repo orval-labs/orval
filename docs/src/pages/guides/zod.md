@@ -72,10 +72,15 @@ components:
 This will generate:
 
 ```ts
-export const userEmailRegExp = new RegExp('^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$');
+export const userEmailRegExp = new RegExp(
+  '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+);
 
 export const User = zod.object({
-  email: zod.string().regex(userEmailRegExp, "Please provide a valid email address").optional()
+  email: zod
+    .string()
+    .regex(userEmailRegExp, 'Please provide a valid email address')
+    .optional(),
 });
 ```
 
