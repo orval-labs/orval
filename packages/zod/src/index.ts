@@ -364,16 +364,18 @@ export const generateZodValidationSchemaDefinition = (
 
         functions.push([
           separator,
-          schemas.map((schema) => generateZodValidationSchemaDefinition(
-            schema as SchemaObject,
-            context,
-            camel(name),
-            strict,
-            isZodV4,
-            {
-              required: true,
-            },
-          )),
+          schemas.map((schema) =>
+            generateZodValidationSchemaDefinition(
+              schema as SchemaObject,
+              context,
+              camel(name),
+              strict,
+              isZodV4,
+              {
+                required: true,
+              },
+            ),
+          ),
         ]);
         break;
       }
