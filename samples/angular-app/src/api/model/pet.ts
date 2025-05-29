@@ -9,4 +9,8 @@ export interface Pet {
   id: number;
   name: string;
   tag?: string;
+  /** @nullable */
+  requiredNullableString: string | null;
+  /** @nullable */
+  optionalNullableString?: string | null;
 }
