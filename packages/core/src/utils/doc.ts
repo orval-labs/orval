@@ -25,7 +25,10 @@ export function jsDoc(
   context?: ContextSpecs,
 ): string {
   if (context?.output?.override?.jsDoc) {
-    return keyValuePairsToJsDoc(context.output.override.jsDoc(schema));
+    const { filter } = context.output.override.jsDoc;
+    if (filter) {
+      return keyValuePairsToJsDoc(filter(schema));
+    }
   }
   const {
     description,

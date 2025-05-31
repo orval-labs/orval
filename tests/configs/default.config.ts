@@ -408,33 +408,35 @@ export default defineConfig({
     output: {
       target: '../generated/default/override-js-doc/endpoints.ts',
       override: {
-        jsDoc(schema) {
-          const blacklist = [
-            '$ref',
-            'allOf',
-            'anyOf',
-            'oneOf',
-            'not',
-            'items',
-            'properties',
-            'additionalProperties',
-            'patternProperties',
-            'additionalItems',
-            'discriminator',
-            'xml',
-            'externalDocs',
-          ];
-          return Object.entries(schema || {})
-            .filter(([key]) => !blacklist.includes(key))
-            .map(([key, value]) => {
-              return {
-                key,
-                value,
-              };
-            })
-            .sort((a, b) => {
-              return a.key.length - b.key.length;
-            });
+        jsDoc: {
+          filter: (schema) => {
+            const blacklist = [
+              '$ref',
+              'allOf',
+              'anyOf',
+              'oneOf',
+              'not',
+              'items',
+              'properties',
+              'additionalProperties',
+              'patternProperties',
+              'additionalItems',
+              'discriminator',
+              'xml',
+              'externalDocs',
+            ];
+            return Object.entries(schema || {})
+              .filter(([key]) => !blacklist.includes(key))
+              .map(([key, value]) => {
+                return {
+                  key,
+                  value,
+                };
+              })
+              .sort((a, b) => {
+                return a.key.length - b.key.length;
+              });
+          },
         },
       },
     },
