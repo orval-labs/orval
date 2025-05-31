@@ -1,6 +1,6 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject } from 'openapi3-ts/oas30';
 import { getScalar } from '../getters';
-import { ContextSpecs } from '../types';
+import type { ContextSpecs } from '../types';
 import { jsDoc } from '../utils';
 
 /**
@@ -51,7 +51,9 @@ export const generateInterface = ({
       Object.values(schema.properties).length > 0 &&
       Object.values(schema.properties).every((item) => 'const' in item)
     ) {
-      const mappedScalarValue = scalar.value.replaceAll(';', ',');
+      const mappedScalarValue = scalar.value
+        .replaceAll(';', ',')
+        .replaceAll('?:', ':');
 
       model += `export const ${name}Value = ${mappedScalarValue} as const;\nexport type ${name} = typeof ${name}Value;\n`;
     } else {

@@ -92,6 +92,11 @@ components:
               - Brown
               - White
               - Grey
+            x-enum-descriptions:
+              - Represents black colour
+              - Represents brown colour
+              - Represents white colour
+              - Represents grey colour
             enum:
               - BLACK
               - BROWN

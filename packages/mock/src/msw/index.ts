@@ -128,6 +128,9 @@ const generateDefinition = (
 
   const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
   const infoParam = 'info';
+  const overrideResponse = `overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
+    : ${getResponseMockFunctionName}()`;
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
@@ -139,10 +142,8 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
     return new HttpResponse(${
       isReturnHttpResponse
         ? isTextPlain
-          ? `${getResponseMockFunctionName}()`
-          : `JSON.stringify(overrideResponse !== undefined 
-            ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse) 
-            : ${getResponseMockFunctionName}())`
+          ? overrideResponse
+          : `JSON.stringify(${overrideResponse})`
         : null
     },
       { status: ${status === 'default' ? 200 : status.replace(/XX$/, '00')},
@@ -155,19 +156,18 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
   })
 }\n`;
 
-  const includeResponseImports =
-    isReturnHttpResponse && !isTextPlain
-      ? [
-          ...imports,
-          ...response.imports.filter((r) => {
-            // Only include imports which are actually used in mock.
-            const reg = new RegExp(`\\b${r.name}\\b`);
-            return (
-              reg.test(handlerImplementation) || reg.test(mockImplementation)
-            );
-          }),
-        ]
-      : imports;
+  const includeResponseImports = !isTextPlain
+    ? [
+        ...imports,
+        ...response.imports.filter((r) => {
+          // Only include imports which are actually used in mock.
+          const reg = new RegExp(`\\b${r.name}\\b`);
+          return (
+            reg.test(handlerImplementation) || reg.test(mockImplementation)
+          );
+        }),
+      ]
+    : imports;
 
   return {
     implementation: {

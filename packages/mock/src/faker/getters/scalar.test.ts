@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getMockScalar } from './scalar';
-import { ContextSpecs } from '@orval/core';
+import type { ContextSpecs } from '@orval/core';
 
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {
@@ -49,5 +49,49 @@ describe('getMockScalar (int64 format handling)', () => {
     });
 
     expect(result.value).toBe(specified);
+  });
+});
+
+describe('getMockScalar (example handling with falsy values)', () => {
+  const baseArg = {
+    item: {
+      name: 'test-item',
+      example: false,
+      type: 'boolean' as const,
+    },
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+    mockOptions: { useExamples: true },
+    context: { output: {} } as ContextSpecs,
+  };
+
+  it('should return the example value when it is a false value', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...baseArg.item, example: false },
+    });
+
+    expect(result.value).toBe('false');
+  });
+
+  it('should return the example value when it is a null value', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...baseArg.item, example: null },
+    });
+
+    expect(result.value).toBe('null');
+  });
+
+  it('should return a faker invocation when the example is undefined', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      item: { ...baseArg.item, example: undefined },
+    });
+
+    expect(result.value).toBe('faker.datatype.boolean()');
   });
 });

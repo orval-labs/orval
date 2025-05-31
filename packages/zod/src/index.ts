@@ -351,7 +351,7 @@ export const generateZodValidationSchemaDefinition = (
     case 'object':
     default: {
       if (schema.allOf || schema.oneOf || schema.anyOf) {
-        let separator = schema.allOf
+        const separator = schema.allOf
           ? 'allOf'
           : schema.oneOf
             ? 'oneOf'
@@ -362,20 +362,10 @@ export const generateZodValidationSchemaDefinition = (
           | ReferenceObject
         )[];
 
-        if (
-          (schema.oneOf || schema.anyOf) &&
-          schema.discriminator &&
-          schema.discriminator.propertyName
-        ) {
-          // store the discriminator property name in the separator to be used when building the zod schema
-          // adding discriminator property name is already handled via the deference function
-          separator = `discriminator__${schema.discriminator.propertyName}`;
-        }
-
         functions.push([
           separator,
-          schemas.map((schema) => {
-            return generateZodValidationSchemaDefinition(
+          schemas.map((schema) =>
+            generateZodValidationSchemaDefinition(
               schema as SchemaObject,
               context,
               camel(name),
@@ -384,8 +374,8 @@ export const generateZodValidationSchemaDefinition = (
               {
                 required: true,
               },
-            );
-          }),
+            ),
+          ),
         ]);
         break;
       }
@@ -558,18 +548,7 @@ export const parseZodValidationSchemaDefinition = (
         '',
       );
     }
-    if (fn.startsWith('discriminator__')) {
-      const [, propertyName] = fn.split('discriminator__');
-      const typeSchemas = args.map(
-        ({ functions }: { functions: [string, any][]; consts: string[] }) => {
-          const schemaFunctions = functions.map(parseProperty).join('');
-          return schemaFunctions;
-        },
-      );
-      return `zod.discriminatedUnion('${propertyName}', [${typeSchemas.join(
-        ',',
-      )}])`;
-    } else if (fn === 'oneOf' || fn === 'anyOf') {
+    if (fn === 'oneOf' || fn === 'anyOf') {
       return args.reduce(
         (
           acc: string,

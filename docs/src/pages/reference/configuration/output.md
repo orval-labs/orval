@@ -692,7 +692,7 @@ Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L823" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L823" target="_blank">GeneratorVerbOptions</a>
 
 ```js
 module.exports = {
