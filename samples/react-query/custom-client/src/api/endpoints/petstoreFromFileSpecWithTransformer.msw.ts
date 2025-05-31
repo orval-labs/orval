@@ -12,7 +12,7 @@ import type { Pet, PetsArray, PetsNestedArray } from '../model';
 
 export const getListPetsResponseMock = (): PetsArray =>
   Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
+    { length: faker.number.int({ min: 1, max: 20 }) },
     (_, i) => i + 1,
   ).map(() => ({
     id: (() => faker.number.int({ min: 1, max: 99999 }))(),

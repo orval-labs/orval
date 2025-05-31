@@ -78,7 +78,7 @@ export type ShowPetByIdResult = AxiosResponse<Pet>;
 
 export const getListPetsResponseMock = (): PetsArray =>
   Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
+    { length: faker.number.int({ min: 1, max: 20 }) },
     (_, i) => i + 1,
   ).map(() => ({
     id: faker.number.int({ min: undefined, max: undefined }),

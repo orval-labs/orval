@@ -202,11 +202,7 @@ export const normalizeOptions = async (
         outputOptions.unionAddMissingProperties ?? false,
       override: {
         ...outputOptions.override,
-        mock: {
-          arrayMin: outputOptions.override?.mock?.arrayMin ?? 1,
-          arrayMax: outputOptions.override?.mock?.arrayMax ?? 10,
-          ...(outputOptions.override?.mock ?? {}),
-        },
+        mock: outputOptions.override?.mock ?? {},
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations ?? {},
           outputWorkspace,
