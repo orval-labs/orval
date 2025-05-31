@@ -9,6 +9,7 @@ import {
   AxiosRequestConfig,
   AxiosResponse
 } from 'axios';
+import type axios from 'axios';
 
 export type PetCallingCode = typeof PetCallingCode[keyof typeof PetCallingCode];
 
@@ -89,7 +90,7 @@ limit?: string;
 
 export class SwaggerPetstoreClient {
   constructor(
-    private axios: Axios,
+    private axios: Axios = axios,
   ) {}/**
  * @summary List all pets
  */

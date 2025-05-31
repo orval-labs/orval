@@ -21,6 +21,7 @@ import {
 const AXIOS_CLASS_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
+      { name: 'axios', default: true },
       { name: 'Axios', values: true },
       { name: 'AxiosResponse', values: true },
       { name: 'AxiosRequestConfig', values: true },
@@ -58,7 +59,7 @@ ${isRequestOptions && isMutator
 
 export class ${title} {
   constructor(
-    private axios: Axios,
+    private axios: Axios = axios,
   ) {}`;
 
 export const generateAxiosClassFooter: ClientFooterBuilder = ({
