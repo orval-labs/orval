@@ -1358,6 +1358,14 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@orval/class@npm:7.9.0, @orval/class@workspace:packages/class":
+  version: 0.0.0-use.local
+  resolution: "@orval/class@workspace:packages/class"
+  dependencies:
+    "@orval/core": "npm:7.9.0"
+  languageName: unknown
+  linkType: soft
+
 "@orval/core@npm:7.9.0, @orval/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
@@ -7560,6 +7568,7 @@ __metadata:
     "@apidevtools/swagger-parser": "npm:^10.1.1"
     "@orval/angular": "npm:7.9.0"
     "@orval/axios": "npm:7.9.0"
+    "@orval/class": "npm:7.9.0"
     "@orval/core": "npm:7.9.0"
     "@orval/fetch": "npm:7.9.0"
     "@orval/hono": "npm:7.9.0"

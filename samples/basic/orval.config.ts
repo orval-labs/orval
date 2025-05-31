@@ -7,6 +7,13 @@ export default defineConfig({
     input: './petstore.yaml',
     output: './api/endpoints/petstoreFromFileSpecWithConfig.ts',
   },
+  'petstore-class': {
+    input: './petstore.yaml',
+    output: {
+      client: 'class',
+      target: './api/endpoints/petstoreClassFromFileSpecWithConfig.ts',
+    },
+  },
   'petstore-file-transfomer': {
     output: {
       target: './api/endpoints/petstoreFromFileSpecWithTransformer.ts',

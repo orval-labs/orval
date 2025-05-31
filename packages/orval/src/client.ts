@@ -1,5 +1,6 @@
 import angular from '@orval/angular';
 import axios from '@orval/axios';
+import clazz from '@orval/class';
 import {
   asyncReduce,
   ClientFileBuilder,
@@ -39,6 +40,7 @@ const getGeneratorClient = (
     axios: axios({ type: 'axios' })(),
     'axios-functions': axios({ type: 'axios-functions' })(),
     angular: angular()(),
+    class: clazz()(),
     'react-query': query({ output, type: 'react-query' })(),
     'svelte-query': query({ output, type: 'svelte-query' })(),
     'vue-query': query({ output, type: 'vue-query' })(),
