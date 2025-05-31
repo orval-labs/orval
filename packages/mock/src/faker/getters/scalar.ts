@@ -236,7 +236,7 @@ export const getMockScalar = ({
     case 'string': {
       const length =
         item.minLength !== undefined || item.maxLength !== undefined
-          ? `{length: {min: ${item.minLength ?? 0}, max: ${item.maxLength ?? (item.minLength ?? 0) + 20}}`
+          ? `{length: {min: ${item.minLength ?? 0}, max: ${item.maxLength ?? (item.minLength ?? 0) + 20}}}`
           : 20;
       let value = `faker.string.alpha(${length})`;
       const stringImports: GeneratorImport[] = [];
