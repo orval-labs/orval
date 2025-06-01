@@ -20,10 +20,6 @@ import type {
 
 import { customInstance } from '../mutator/custom-instance';
 
-type AwaitedInput<T> = PromiseLike<T> | T;
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-
 /**
  * @summary List all pets
  */
