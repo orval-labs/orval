@@ -926,10 +926,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.25.1, @eslint/js@npm:^9.25.1":
+"@eslint/js@npm:9.25.1":
   version: 9.25.1
   resolution: "@eslint/js@npm:9.25.1"
   checksum: 10c0/87d86b512ab109bfd3b9317ced3220ea3d444ac3bfa7abd853ca7f724d72c36e213062f9def16a632365d97dc29e0094312e3682a9767590ee6f43b3d5d873fd
+  languageName: node
+  linkType: hard
+
+"@eslint/js@npm:^9.28.0":
+  version: 9.28.0
+  resolution: "@eslint/js@npm:9.28.0"
+  checksum: 10c0/5a6759542490dd9f778993edfbc8d2f55168fd0f7336ceed20fe3870c65499d72fc0bca8d1ae00ea246b0923ea4cba2e0758a8a5507a3506ddcf41c92282abb8
   languageName: node
   linkType: hard
 
@@ -7524,7 +7531,7 @@ __metadata:
     "@commitlint/cli": "npm:^19.7.1"
     "@commitlint/config-conventional": "npm:^19.8.0"
     "@eslint/eslintrc": "npm:^3.2.0"
-    "@eslint/js": "npm:^9.25.1"
+    "@eslint/js": "npm:^9.28.0"
     "@faker-js/faker": "npm:^8.4.0"
     "@release-it-plugins/workspaces": "npm:^4.2.0"
     "@release-it/conventional-changelog": "npm:^10.0.0"
