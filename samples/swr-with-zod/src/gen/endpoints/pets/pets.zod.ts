@@ -17,16 +17,16 @@ export const listPetsQueryParams = zod.object({
 });
 
 export const listPetsResponseItem = zod
-  .discriminatedUnion('breed', [
-    zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
-    }),
+  .object({
+    cuteness: zod.number(),
+    breed: zod.enum(['Labradoodle']),
+  })
+  .or(
     zod.object({
       length: zod.number(),
       breed: zod.enum(['Dachshund']),
     }),
-  ])
+  )
   .or(
     zod.object({
       petsRequested: zod.number().optional(),
@@ -45,16 +45,16 @@ export const createPetsBodyItem = zod.object({
 export const createPetsBody = zod.array(createPetsBodyItem);
 
 export const createPetsResponse = zod
-  .discriminatedUnion('breed', [
-    zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
-    }),
+  .object({
+    cuteness: zod.number(),
+    breed: zod.enum(['Labradoodle']),
+  })
+  .or(
     zod.object({
       length: zod.number(),
       breed: zod.enum(['Dachshund']),
     }),
-  ])
+  )
   .or(
     zod.object({
       petsRequested: zod.number().optional(),
@@ -66,16 +66,16 @@ export const createPetsResponse = zod
  * @summary Update a pet
  */
 export const updatePetsBody = zod
-  .discriminatedUnion('breed', [
-    zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
-    }),
+  .object({
+    cuteness: zod.number(),
+    breed: zod.enum(['Labradoodle']),
+  })
+  .or(
     zod.object({
       length: zod.number(),
       breed: zod.enum(['Dachshund']),
     }),
-  ])
+  )
   .or(
     zod.object({
       petsRequested: zod.number().optional(),
@@ -84,16 +84,16 @@ export const updatePetsBody = zod
   );
 
 export const updatePetsResponse = zod
-  .discriminatedUnion('breed', [
-    zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
-    }),
+  .object({
+    cuteness: zod.number(),
+    breed: zod.enum(['Labradoodle']),
+  })
+  .or(
     zod.object({
       length: zod.number(),
       breed: zod.enum(['Dachshund']),
     }),
-  ])
+  )
   .or(
     zod.object({
       petsRequested: zod.number().optional(),
@@ -110,16 +110,16 @@ export const showPetByIdParams = zod.object({
 });
 
 export const showPetByIdResponse = zod
-  .discriminatedUnion('breed', [
-    zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
-    }),
+  .object({
+    cuteness: zod.number(),
+    breed: zod.enum(['Labradoodle']),
+  })
+  .or(
     zod.object({
       length: zod.number(),
       breed: zod.enum(['Dachshund']),
     }),
-  ])
+  )
   .or(
     zod.object({
       petsRequested: zod.number().optional(),

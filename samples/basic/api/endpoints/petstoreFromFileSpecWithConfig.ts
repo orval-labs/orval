@@ -28,8 +28,8 @@ export interface Pet {
   id: number;
   /**
    * Name of pet
-   * @minLength 40
-   * @maxLength 0
+   * @minLength 0
+   * @maxLength 40
    */
   name: string;
   /**

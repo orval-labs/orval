@@ -14,7 +14,11 @@ export const getListPetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    cuteness: faker.number.int({ min: undefined, max: undefined }),
+    cuteness: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
@@ -24,7 +28,11 @@ export const getListPetsResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    length: faker.number.int({ min: undefined, max: undefined }),
+    length: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
@@ -39,7 +47,11 @@ export const getListPetsResponseDogMock = (
       { ...getListPetsResponseDachshundMock() },
     ]),
     barksPerMinute: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['dog'] as const),
@@ -52,7 +64,11 @@ export const getListPetsResponseCatMock = (
 ): Cat => ({
   ...{
     petsRequested: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['cat'] as const),
@@ -91,7 +107,11 @@ export const getCreatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    cuteness: faker.number.int({ min: undefined, max: undefined }),
+    cuteness: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
@@ -101,7 +121,11 @@ export const getCreatePetsResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    length: faker.number.int({ min: undefined, max: undefined }),
+    length: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
@@ -116,7 +140,11 @@ export const getCreatePetsResponseDogMock = (
       { ...getCreatePetsResponseDachshundMock() },
     ]),
     barksPerMinute: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['dog'] as const),
@@ -129,7 +157,11 @@ export const getCreatePetsResponseCatMock = (
 ): Cat => ({
   ...{
     petsRequested: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['cat'] as const),
@@ -164,7 +196,11 @@ export const getUpdatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    cuteness: faker.number.int({ min: undefined, max: undefined }),
+    cuteness: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
@@ -174,7 +210,11 @@ export const getUpdatePetsResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    length: faker.number.int({ min: undefined, max: undefined }),
+    length: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
@@ -189,7 +229,11 @@ export const getUpdatePetsResponseDogMock = (
       { ...getUpdatePetsResponseDachshundMock() },
     ]),
     barksPerMinute: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['dog'] as const),
@@ -202,7 +246,11 @@ export const getUpdatePetsResponseCatMock = (
 ): Cat => ({
   ...{
     petsRequested: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['cat'] as const),
@@ -237,7 +285,11 @@ export const getShowPetByIdResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
 ): Labradoodle => ({
   ...{
-    cuteness: faker.number.int({ min: undefined, max: undefined }),
+    cuteness: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Labradoodle'] as const),
   },
   ...overrideResponse,
@@ -247,7 +299,11 @@ export const getShowPetByIdResponseDachshundMock = (
   overrideResponse: Partial<Dachshund> = {},
 ): Dachshund => ({
   ...{
-    length: faker.number.int({ min: undefined, max: undefined }),
+    length: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
     breed: faker.helpers.arrayElement(['Dachshund'] as const),
   },
   ...overrideResponse,
@@ -262,7 +318,11 @@ export const getShowPetByIdResponseDogMock = (
       { ...getShowPetByIdResponseDachshundMock() },
     ]),
     barksPerMinute: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['dog'] as const),
@@ -275,7 +335,11 @@ export const getShowPetByIdResponseCatMock = (
 ): Cat => ({
   ...{
     petsRequested: faker.helpers.arrayElement([
-      faker.number.int({ min: undefined, max: undefined }),
+      faker.number.int({
+        min: undefined,
+        max: undefined,
+        multipleOf: undefined,
+      }),
       undefined,
     ]),
     type: faker.helpers.arrayElement(['cat'] as const),
