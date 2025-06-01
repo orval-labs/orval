@@ -7531,8 +7531,6 @@ __metadata:
     "@commitlint/cli": "npm:^19.8.1"
     "@commitlint/config-conventional": "npm:^19.8.0"
     "@eslint/eslintrc": "npm:^3.2.0"
-    "@eslint/js": "npm:^9.25.1"
-    "@faker-js/faker": "npm:^9.8.0"
     "@eslint/js": "npm:^9.28.0"
     "@faker-js/faker": "npm:^9.8.0"
     "@release-it-plugins/workspaces": "npm:^4.2.0"
