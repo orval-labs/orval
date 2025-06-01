@@ -137,7 +137,7 @@ export const getMockScalar = ({
     case 'number':
     case 'integer': {
       let value = getNullable(
-        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`,
+        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}, multipleOf: ${item.multipleOf}})`,
         item.nullable,
       );
       const numberImports: GeneratorImport[] = [];
