@@ -2476,17 +2476,11 @@ module.exports = {
 ```
 
 #### jsDoc
+##### filter
 
 Type: `Object`.
 
-```ts
-// type signature
-type OverrideJsDocOptions = {
-  filter?: (schema: Record<string, any>) => { key: string; value: string }[];
-};
-```
-
-`jsDoc` is a configuration object that allows customizing JSDoc generation by optionally providing a filter function to transform schema entries into key–value pairs.
+A configuration object that allows you to customize `JSDoc` generation by optionally providing a filter function that transforms schema entries into key-value pairs.
 
 Example:
 
