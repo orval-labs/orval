@@ -2491,7 +2491,7 @@ module.exports = {
       override: {
         jsDoc: {
           filter: (schema) => {
-            const blacklist = [
+            const allowlist = [
               '$ref',
               'allOf',
               'anyOf',
