@@ -410,7 +410,7 @@ export default defineConfig({
       override: {
         jsDoc: {
           filter: (schema) => {
-            const blacklist = [
+            const allowlist = [
               '$ref',
               'allOf',
               'anyOf',
