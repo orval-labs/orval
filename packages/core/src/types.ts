@@ -120,7 +120,7 @@ export type NormalizedOverrideOutput = {
   useNamedParameters?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
-  jsDoc?: OverrideJsDocOptions;
+  jsDoc: OverrideJsDocOptions;
 };
 
 export type NormalizedMutator = {
