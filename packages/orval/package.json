@@ -80,6 +80,6 @@
     "tsconfck": "^2.0.1",
     "typedoc": "^0.28.0",
     "typedoc-plugin-markdown": "^4.4.2",
-    "typescript": "^5.6.3"
+    "typescript": "^5.8.3"
   }
 }
