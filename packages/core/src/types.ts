@@ -120,7 +120,7 @@ export type NormalizedOverrideOutput = {
   useNamedParameters?: boolean;
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
-  jsDoc: OverrideJsDocOptions;
+  jsDoc: NormalizedOverrideJsDocOptions;
 };
 
 export type NormalizedMutator = {
@@ -465,6 +465,10 @@ export type OverrideOutput = {
 };
 
 export type OverrideJsDocOptions = {
+  filter?: (schema: Record<string, any>) => { key: string; value: string }[];
+};
+
+export type NormalizedOverrideJsDocOptions = {
   filter?: (schema: Record<string, any>) => { key: string; value: string }[];
 };
 

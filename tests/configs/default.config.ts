@@ -411,22 +411,21 @@ export default defineConfig({
         jsDoc: {
           filter: (schema) => {
             const allowlist = [
-              '$ref',
-              'allOf',
-              'anyOf',
-              'oneOf',
-              'not',
-              'items',
-              'properties',
-              'additionalProperties',
-              'patternProperties',
-              'additionalItems',
-              'discriminator',
-              'xml',
-              'externalDocs',
+              'type',
+              'format',
+              'maxLength',
+              'minLength',
+              'description',
+              'minimum',
+              'maximum',
+              'exclusiveMinimum',
+              'exclusiveMaximum',
+              'pattern',
+              'nullable',
+              'enum',
             ];
             return Object.entries(schema || {})
-              .filter(([key]) => !blacklist.includes(key))
+              .filter(([key]) => allowlist.includes(key))
               .map(([key, value]) => {
                 return {
                   key,
