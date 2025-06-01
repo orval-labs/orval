@@ -26,10 +26,10 @@
     "dev": "turbo run dev"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.7.1",
+    "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.0",
     "@eslint/eslintrc": "^3.2.0",
-    "@eslint/js": "^9.25.1",
+    "@eslint/js": "^9.28.0",
     "@faker-js/faker": "^9.8.0",
     "@release-it-plugins/workspaces": "^4.2.0",
     "@release-it/conventional-changelog": "^10.0.0",
