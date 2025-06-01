@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@faker-js/faker": "^8.0.2",
+    "@faker-js/faker": "^9.8.0",
     "@types/faker": "^5.5.6",
     "@types/node": "^14.14.13",
     "@types/react": "^17.0.0",

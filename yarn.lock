@@ -957,10 +957,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:^8.4.0":
-  version: 8.4.1
-  resolution: "@faker-js/faker@npm:8.4.1"
-  checksum: 10c0/4f2aecddcfdc2cc8b50b2d15d1e37302a7c7a5bbd184ae910a9d271bc11248533ca74dcdd4a9ccbe20410553e7af0f6a4d334c5b955635e09a32ddf4a64942d4
+"@faker-js/faker@npm:^9.8.0":
+  version: 9.8.0
+  resolution: "@faker-js/faker@npm:9.8.0"
+  checksum: 10c0/f5db1125c1ea0115b9142fb4d4cb37cac2da4cd12ed02afb1cabf3b9600bd365bf480386250975a4fb200d77c00e8364dc8f61ac273a9dcdd2f2f42c3b29b0ec
   languageName: node
   linkType: hard
 
@@ -1363,7 +1363,7 @@ __metadata:
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.1"
-    "@faker-js/faker": "npm:^8.4.0"
+    "@faker-js/faker": "npm:^9.8.0"
     "@ibm-cloud/openapi-ruleset": "npm:^1.29.4"
     "@types/debug": "npm:^4.1.12"
     "@types/fs-extra": "npm:^11.0.4"
@@ -7525,7 +7525,7 @@ __metadata:
     "@commitlint/config-conventional": "npm:^19.8.0"
     "@eslint/eslintrc": "npm:^3.2.0"
     "@eslint/js": "npm:^9.25.1"
-    "@faker-js/faker": "npm:^8.4.0"
+    "@faker-js/faker": "npm:^9.8.0"
     "@release-it-plugins/workspaces": "npm:^4.2.0"
     "@release-it/conventional-changelog": "npm:^10.0.0"
     "@types/node": "npm:^20.13.0"
