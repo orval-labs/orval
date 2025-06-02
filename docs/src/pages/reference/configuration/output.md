@@ -1670,7 +1670,7 @@ module.exports = {
 
 Type: `Number`.
 
-Set number of decimals displayed in floating point numbers. items. (Default is `2`)
+Set number of decimals displayed in floating-point numbers. (Default is `2`)
 
 ```js
 module.exports = {
