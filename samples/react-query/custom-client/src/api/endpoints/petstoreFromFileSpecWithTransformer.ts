@@ -30,10 +30,6 @@ import type {
 import { useCustomClient } from '../mutator/custom-client';
 import type { ErrorType, BodyType } from '../mutator/custom-client';
 
-type AwaitedInput<T> = PromiseLike<T> | T;
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-
 /**
  * @summary List all pets
  */

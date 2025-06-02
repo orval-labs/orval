@@ -30,7 +30,7 @@
     "@commitlint/config-conventional": "^19.8.0",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.28.0",
-    "@faker-js/faker": "^8.4.0",
+    "@faker-js/faker": "^9.8.0",
     "@release-it-plugins/workspaces": "^4.2.0",
     "@release-it/conventional-changelog": "^10.0.0",
     "@types/node": "^20.13.0",
@@ -51,7 +51,7 @@
     "rimraf": "^5.0.5",
     "tsup": "^8.4.0",
     "turbo": "^1.13.3",
-    "typescript": "^4.7.4",
+    "typescript": "^5.2.2",
     "typescript-eslint": "^8.26.0",
     "vitest": "^0.6.3",
     "zx": "^7.2.3"

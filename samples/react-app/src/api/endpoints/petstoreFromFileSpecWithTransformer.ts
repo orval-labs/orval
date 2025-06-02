@@ -44,10 +44,6 @@ export const showPetById = (petId: string, version: number = 1) => {
   });
 };
 
-type AwaitedInput<T> = PromiseLike<T> | T;
-
-type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
-
 export type ListPetsResult = NonNullable<Awaited<ReturnType<typeof listPets>>>;
 export type CreatePetsResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>

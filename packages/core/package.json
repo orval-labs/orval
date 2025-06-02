@@ -14,7 +14,7 @@
     "test": "vitest run test.ts --global"
   },
   "devDependencies": {
-    "@faker-js/faker": "^8.4.0",
+    "@faker-js/faker": "^9.8.0",
     "@types/debug": "^4.1.12",
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
