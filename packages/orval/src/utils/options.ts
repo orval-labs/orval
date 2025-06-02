@@ -38,6 +38,8 @@ import {
   RefComponentSuffix,
   SwaggerParserOptions,
   upath,
+  NormalizedJsDocOptions,
+  JsDocOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
@@ -268,6 +270,7 @@ export const normalizeOptions = async (
           },
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
+        jsDoc: normalizeJSDocOptions(outputOptions.override?.jsDoc),
         query: globalQueryOptions,
         zod: {
           strict: {
@@ -622,6 +625,14 @@ const normalizeHonoOptions = (
     validatorOutputPath: hono.validatorOutputPath
       ? upath.resolve(workspace, hono.validatorOutputPath)
       : '',
+  };
+};
+
+const normalizeJSDocOptions = (
+  jsdoc: JsDocOptions = {},
+): NormalizedJsDocOptions => {
+  return {
+    ...jsdoc,
   };
 };
 
