@@ -133,7 +133,9 @@ export const getMockScalar = ({
   }
 
   const type = getItemType(item);
-  const isFakerV9 = !!context.output.packageJson && isFakerVersionV9(context.output.packageJson);
+  const isFakerV9 =
+    !!context.output.packageJson &&
+    isFakerVersionV9(context.output.packageJson);
 
   switch (type) {
     case 'number':

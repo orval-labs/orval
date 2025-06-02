@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  isFakerVersionV9,
-} from './compatibleV9';
+import { isFakerVersionV9 } from './compatibleV9';
 
 describe('isFakerVersionV9', () => {
   it('should return false when faker is not in package.json', () => {
