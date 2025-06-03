@@ -60,7 +60,7 @@ export const generateRequestFunction = (
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
 
-    return schema.in === 'query' && schema.explode;
+    return schema.in === 'query' && schema.explode !== false;
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
