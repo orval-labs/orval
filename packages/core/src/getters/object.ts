@@ -1,5 +1,6 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
+import { resolveExampleRefs, resolveValue } from '../resolvers';
+import { resolveObject } from '../resolvers/object';
 import {
   ContextSpecs,
   PropertySortOrder,
@@ -120,7 +121,7 @@ export const getObject = ({
           acc.value += '{';
         }
 
-        const doc = jsDoc(schema as SchemaObject, true);
+        const doc = jsDoc(schema as SchemaObject, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
         acc.imports.push(...resolvedValue.imports);

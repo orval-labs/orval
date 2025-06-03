@@ -404,4 +404,43 @@ export default defineConfig({
       target: '../specifications/form-data-nested.yaml',
     },
   },
+  overrideJsDOc: {
+    output: {
+      target: '../generated/default/override-js-doc/endpoints.ts',
+      override: {
+        jsDoc: {
+          filter: (schema) => {
+            const allowlist = [
+              'type',
+              'format',
+              'maxLength',
+              'minLength',
+              'description',
+              'minimum',
+              'maximum',
+              'exclusiveMinimum',
+              'exclusiveMaximum',
+              'pattern',
+              'nullable',
+              'enum',
+            ];
+            return Object.entries(schema || {})
+              .filter(([key]) => allowlist.includes(key))
+              .map(([key, value]) => {
+                return {
+                  key,
+                  value,
+                };
+              })
+              .sort((a, b) => {
+                return a.key.length - b.key.length;
+              });
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

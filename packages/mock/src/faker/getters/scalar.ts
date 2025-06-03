@@ -18,6 +18,7 @@ import {
   resolveMockValue,
 } from '../resolvers';
 import { getMockObject } from './object';
+import { isFakerVersionV9 } from '../compatibleV9';
 
 export const getMockScalar = ({
   item,
@@ -132,12 +133,15 @@ export const getMockScalar = ({
   }
 
   const type = getItemType(item);
+  const isFakerV9 =
+    !!context.output.packageJson &&
+    isFakerVersionV9(context.output.packageJson);
 
   switch (type) {
     case 'number':
     case 'integer': {
       let value = getNullable(
-        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}, multipleOf: ${item.multipleOf}})`,
+        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
         item.nullable,
       );
       if (type === 'number') {

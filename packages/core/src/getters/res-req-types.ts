@@ -401,6 +401,11 @@ const resolveSchemaPropertiesToFormData = ({
     (acc, [key, value]) => {
       const { schema: property } = resolveRef<SchemaObject>(value, context);
 
+      // Skip readOnly properties for formData
+      if (property.readOnly) {
+        return acc;
+      }
+
       let formDataValue = '';
 
       const formattedKeyPrefix = !isRequestBodyOptional

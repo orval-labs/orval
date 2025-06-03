@@ -2495,6 +2495,140 @@ module.exports = {
 };
 ```
 
+#### jsDoc
+
+##### filter
+
+Type: `Object`.
+
+A configuration object that allows you to customize `JSDoc` generation by optionally providing a filter function that transforms schema entries into key-value pairs.
+
+Example:
+
+```ts
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        jsDoc: {
+          filter: (schema) => {
+            const allowlist = [
+              'type',
+              'format',
+              'maxLength',
+              'minLength',
+              'description',
+              'minimum',
+              'maximum',
+              'exclusiveMinimum',
+              'exclusiveMaximum',
+              'pattern',
+              'nullable',
+              'enum',
+            ];
+            return Object.entries(schema || {})
+              .filter(([key]) => allowlist.includes(key))
+              .map(([key, value]) => {
+                return {
+                  key,
+                  value,
+                };
+              })
+              .sort((a, b) => {
+                return a.key.length - b.key.length;
+              });
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+Input:
+
+```yaml
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      properties:
+        '@id':
+          type: string
+          format: iri-reference
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+        email:
+          type: string
+          format: email
+        callingCode:
+          type: string
+          enum: ['+33', '+420', '+33'] # intentional duplicated value
+        country:
+          type: string
+          enum: ["People's Republic of China", 'Uruguay']
+```
+
+Result:
+
+```ts
+export interface Pet {
+  /**
+   * @type integer
+   * @format int64
+   */
+  id: number;
+  /**
+   * @type string
+   * @maxLength 0
+   * @minLength 40
+   * @description Name of pet
+   */
+  name: string;
+  /**
+   * @type integer
+   * @format int32
+   * @minimum 0
+   * @maximum 30
+   * @exclusiveMinimum true
+   * @exclusiveMaximum true
+   */
+  age?: number;
+  /**
+   * @type string
+   * @pattern ^\\d{3}-\\d{2}-\\d{4}$
+   * @nullable true
+   */
+  tag?: string | null;
+  /**
+   * @type string
+   * @format email
+   */
+  email?: string;
+  /**
+   * @type string
+   * @enum +33,+420,+33
+   */
+  callingCode?: PetCallingCode;
+  /**
+   * @type string
+   * @enum People's Republic of China,Uruguay
+   */
+  country?: PetCountry;
+}
+```
+
 ### allParamsOptional
 
 Type: `Boolean`
