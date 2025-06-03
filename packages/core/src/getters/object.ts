@@ -1,5 +1,6 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
+import { resolveExampleRefs, resolveValue } from '../resolvers';
+import { resolveObject } from '../resolvers/object';
 import {
   ContextSpecs,
   PropertySortOrder,
