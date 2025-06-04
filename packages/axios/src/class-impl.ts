@@ -15,7 +15,7 @@ import {
   GeneratorVerbOptions,
   pascal,
   sanitize,
-  toObjectString
+  toObjectString,
 } from '@orval/core';
 
 const AXIOS_CLASS_DEPENDENCIES: GeneratorDependency[] = [
@@ -45,7 +45,8 @@ export const generateAxiosClassHeader: ClientHeaderBuilder = ({
   isRequestOptions,
   isMutator,
 }) => `
-${isRequestOptions && isMutator
+${
+  isRequestOptions && isMutator
     ? `// eslint-disable-next-line
     type ThirdParameter<T extends (...args: any) => any> = T extends (
   config: any,
@@ -55,7 +56,7 @@ ${isRequestOptions && isMutator
   ? P
   : never;`
     : ''
-  }
+}
 
 export class ${title} {
   constructor(
@@ -131,23 +132,24 @@ const generateImplementation = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-        override?.requestOptions,
-        mutator.hasThirdArg,
-      )
+          override?.requestOptions,
+          mutator.hasThirdArg,
+        )
       : '';
 
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-          new RegExp(`(\\w*):\\s?${body.definition}`),
-          `$1: ${mutator.bodyTypeName}<${body.definition}>`,
-        )
+            new RegExp(`(\\w*):\\s?${body.definition}`),
+            `$1: ${mutator.bodyTypeName}<${body.definition}>`,
+          )
         : toObjectString(props, 'implementation');
 
-    return ` ${operationName}<TData = ${dataType}>(\n    ${propsImplementation}\n ${isRequestOptions && mutator.hasThirdArg
-      ? `options?: ThirdParameter<typeof ${mutator.name}>`
-      : ''
-      }) {${bodyForm}
+    return ` ${operationName}<TData = ${dataType}>(\n    ${propsImplementation}\n ${
+      isRequestOptions && mutator.hasThirdArg
+        ? `options?: ThirdParameter<typeof ${mutator.name}>`
+        : ''
+    }) {${bodyForm}
       return ${mutator.name}<TData>(
       ${mutatorConfig},
       this.axios,
@@ -176,8 +178,9 @@ const generateImplementation = (
   return ` ${operationName}<TData = ${dataType}>(\n    ${toObjectString(
     props,
     'implementation',
-  )} ${isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
-    }  ): Promise<AxiosResponse<TData>>  {${bodyForm}
+  )} ${
+    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
+  }  ): Promise<AxiosResponse<TData>>  {${bodyForm}
     return this.axios.${verb}<TData>(${options});
   }
 `;
@@ -198,6 +201,6 @@ const axiosClassClientBuilder: ClientGeneratorsBuilder = {
   title: generateAxiosClassTitle,
 };
 
-export const builder = () => () => axiosClassClientBuilder;
+export const builder = axiosClassClientBuilder;
 
 export default builder;

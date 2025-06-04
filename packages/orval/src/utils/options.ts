@@ -30,6 +30,7 @@ import {
   OptionsExport,
   OutputClient,
   OutputHttpClient,
+  OutputImplementationFormat,
   OutputMode,
   OutputOptions,
   OverrideOutput,
@@ -114,8 +115,16 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, tslint, biome } =
-    globalOptions;
+  const {
+    clean,
+    prettier,
+    client,
+    httpClient,
+    implementationFormat,
+    mode,
+    tslint,
+    biome,
+  } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -186,6 +195,10 @@ export const normalizeOptions = async (
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
         outputOptions.httpClient ?? httpClient ?? OutputHttpClient.AXIOS,
+      implementationFormat:
+        outputOptions.implementationFormat ??
+        implementationFormat ??
+        OutputImplementationFormat.FUNCTIONS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,

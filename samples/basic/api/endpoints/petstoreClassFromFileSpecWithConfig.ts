@@ -4,15 +4,11 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  Axios,
-  AxiosRequestConfig,
-  AxiosResponse
-} from 'axios';
+import { Axios, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type axios from 'axios';
 
-export type PetCallingCode = typeof PetCallingCode[keyof typeof PetCallingCode];
-
+export type PetCallingCode =
+  (typeof PetCallingCode)[keyof typeof PetCallingCode];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PetCallingCode = {
@@ -20,12 +16,11 @@ export const PetCallingCode = {
   '+420': '+420',
 } as const;
 
-export type PetCountry = typeof PetCountry[keyof typeof PetCountry];
-
+export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PetCountry = {
-  'People\'s_Republic_of_China': 'People\'s Republic of China',
+  "People's_Republic_of_China": "People's Republic of China",
   Uruguay: 'Uruguay',
 } as const;
 
@@ -70,10 +65,10 @@ export interface Error {
 }
 
 export type ListPetsParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
 };
 
 export type CreatePetsBody = {
@@ -82,67 +77,61 @@ export type CreatePetsBody = {
 };
 
 export type ListPetsNestedArrayParams = {
-/**
- * How many items to return at one time (max 100)
- */
-limit?: string;
+  /**
+   * How many items to return at one time (max 100)
+   */
+  limit?: string;
 };
 
 export class SwaggerPetstoreClient {
-  constructor(
-    private axios: Axios = axios,
-  ) {}/**
- * @summary List all pets
- */
- listPets<TData = PetsArray>(
-    params?: ListPetsParams, options?: AxiosRequestConfig
-  ): Promise<AxiosResponse<TData>>  {
-    return this.axios.get<TData>(
-      `/pets`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+  constructor(private axios: Axios = axios) {} /**
+   * @summary List all pets
+   */
+  listPets<TData = PetsArray>(
+    params?: ListPetsParams,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<TData>> {
+    return this.axios.get<TData>(`/pets`, {
+      ...options,
+      params: { ...params, ...options?.params },
+    });
   }
 
-/**
- * @summary Create a pet
- */
- createPets<TData = void>(
-    createPetsBody: CreatePetsBody, options?: AxiosRequestConfig
-  ): Promise<AxiosResponse<TData>>  {
-    return this.axios.post<TData>(
-      `/pets`,
-      createPetsBody,options
-    );
+  /**
+   * @summary Create a pet
+   */
+  createPets<TData = void>(
+    createPetsBody: CreatePetsBody,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<TData>> {
+    return this.axios.post<TData>(`/pets`, createPetsBody, options);
   }
 
-/**
- * @summary List all pets as nested array
- */
- listPetsNestedArray<TData = PetsNestedArray>(
-    params?: ListPetsNestedArrayParams, options?: AxiosRequestConfig
-  ): Promise<AxiosResponse<TData>>  {
-    return this.axios.get<TData>(
-      `/pets-nested-array`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+  /**
+   * @summary List all pets as nested array
+   */
+  listPetsNestedArray<TData = PetsNestedArray>(
+    params?: ListPetsNestedArrayParams,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<TData>> {
+    return this.axios.get<TData>(`/pets-nested-array`, {
+      ...options,
+      params: { ...params, ...options?.params },
+    });
   }
 
-/**
- * @summary Info for a specific pet
- */
- showPetById<TData = Pet>(
-    petId: string, options?: AxiosRequestConfig
-  ): Promise<AxiosResponse<TData>>  {
-    return this.axios.get<TData>(
-      `/pets/${petId}`,options
-    );
+  /**
+   * @summary Info for a specific pet
+   */
+  showPetById<TData = Pet>(
+    petId: string,
+    options?: AxiosRequestConfig,
+  ): Promise<AxiosResponse<TData>> {
+    return this.axios.get<TData>(`/pets/${petId}`, options);
   }
+}
 
-};
-
-export type ListPetsClientResult = NonNullable<PetsArray>
-export type CreatePetsClientResult = NonNullable<void>
-export type ListPetsNestedArrayClientResult = NonNullable<PetsNestedArray>
-export type ShowPetByIdClientResult = NonNullable<Pet>
+export type ListPetsClientResult = NonNullable<PetsArray>;
+export type CreatePetsClientResult = NonNullable<void>;
+export type ListPetsNestedArrayClientResult = NonNullable<PetsNestedArray>;
+export type ShowPetByIdClientResult = NonNullable<Pet>;

@@ -13,6 +13,7 @@ module.exports = {
       target: 'src/petstore.ts',
       schemas: 'src/model',
       client: 'react-query',
+      implementationFormat: 'functions',
       mock: true,
       override: {
         operations: {

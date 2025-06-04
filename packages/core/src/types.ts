@@ -51,6 +51,7 @@ export type NormalizedOutputOptions = {
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
+  implementationFormat: OutputImplementationFormat;
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
   prettier: boolean;
@@ -222,6 +223,7 @@ export type OutputOptions = {
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
+  implementationFormat?: OutputImplementationFormat;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
@@ -281,6 +283,14 @@ export const OutputHttpClient = {
 
 export type OutputHttpClient =
   (typeof OutputHttpClient)[keyof typeof OutputHttpClient];
+
+export const OutputImplementationFormat = {
+  FUNCTIONS: 'functions',
+  CLASS: 'class',
+} as const;
+
+export type OutputImplementationFormat =
+  (typeof OutputImplementationFormat)[keyof typeof OutputImplementationFormat];
 
 export const OutputMode = {
   SINGLE: 'single',
@@ -702,6 +712,7 @@ export interface GlobalOptions {
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
   httpClient?: OutputHttpClient;
+  implementationFormat?: OutputImplementationFormat;
   mode?: OutputMode;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
