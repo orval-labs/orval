@@ -17,7 +17,9 @@ import {
   pascal,
   sanitize,
   toObjectString,
+  OutputImplementationFormat,
 } from '@orval/core';
+import classBuilder from './class-impl.js';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -274,8 +276,16 @@ const builders: Record<'axios' | 'axios-functions', ClientGeneratorsBuilder> = {
 };
 
 export const builder =
-  ({ type = 'axios-functions' }: { type?: 'axios' | 'axios-functions' } = {}) =>
-  () =>
-    builders[type];
+  ({
+    type = 'axios-functions',
+    implementationFormat = 'functions',
+  }: {
+    type?: 'axios' | 'axios-functions';
+    implementationFormat?: OutputImplementationFormat;
+  } = {}) =>
+  () => {
+    if (implementationFormat === 'functions') return builders[type];
+    else return classBuilder;
+  };
 
 export default builder;
