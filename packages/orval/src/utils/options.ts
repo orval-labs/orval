@@ -205,6 +205,8 @@ export const normalizeOptions = async (
       override: {
         ...outputOptions.override,
         mock: {
+          stringMin: outputOptions.override?.mock?.stringMin ?? 10,
+          stringMax: outputOptions.override?.mock?.stringMax ?? 20,
           fractionDigits: outputOptions.override?.mock?.fractionDigits ?? 2,
           ...outputOptions.override?.mock,
         },

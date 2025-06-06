@@ -69,10 +69,16 @@ export const getListPetsResponseMock = (): Pets =>
       { ...getListPetsResponseDogMock() },
       { ...getListPetsResponseCatMock() },
     ]),
-    '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
     id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha(20),
-    tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
     callingCode: faker.helpers.arrayElement([
       faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
@@ -142,10 +148,16 @@ export const getCreatePetsResponseMock = (): Pet => ({
     { ...getCreatePetsResponseDogMock() },
     { ...getCreatePetsResponseCatMock() },
   ]),
-  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   callingCode: faker.helpers.arrayElement([
     faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
@@ -215,10 +227,16 @@ export const getUpdatePetsResponseMock = (): Pet => ({
     { ...getUpdatePetsResponseDogMock() },
     { ...getUpdatePetsResponseCatMock() },
   ]),
-  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   callingCode: faker.helpers.arrayElement([
     faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
@@ -288,10 +306,16 @@ export const getShowPetByIdResponseMock = (): Pet => ({
     { ...getShowPetByIdResponseDogMock() },
     { ...getShowPetByIdResponseCatMock() },
   ]),
-  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   callingCode: faker.helpers.arrayElement([
     faker.helpers.arrayElement(['+33', '+420', '+33'] as const),

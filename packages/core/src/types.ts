@@ -326,6 +326,10 @@ export type GlobalMockOptions = {
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   arrayMin?: number;
   arrayMax?: number;
+  stringMin?: number;
+  stringMax?: number;
+  numberMin?: number;
+  numberMax?: number;
   required?: boolean;
   properties?: MockProperties;
   format?: Record<string, unknown>;
