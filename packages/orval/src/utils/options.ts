@@ -204,7 +204,10 @@ export const normalizeOptions = async (
         outputOptions.unionAddMissingProperties ?? false,
       override: {
         ...outputOptions.override,
-        mock: outputOptions.override?.mock ?? {},
+        mock: {
+          fractionDigits: outputOptions.override?.mock?.fractionDigits ?? 2,
+          ...outputOptions.override?.mock,
+        },
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations ?? {},
           outputWorkspace,

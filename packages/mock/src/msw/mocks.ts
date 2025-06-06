@@ -35,6 +35,7 @@ const getMockWithoutFunc = (
   arrayMin: override?.mock?.arrayMin,
   arrayMax: override?.mock?.arrayMax,
   required: override?.mock?.required,
+  fractionDigits: override?.mock?.fractionDigits,
   ...(override?.mock?.properties
     ? {
         properties: getMockPropertiesWithoutFunc(

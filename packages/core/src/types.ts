@@ -329,6 +329,7 @@ export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   required?: boolean;
   properties?: MockProperties;
   format?: Record<string, unknown>;
+  fractionDigits?: number;
 };
 
 export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {

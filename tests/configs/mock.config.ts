@@ -156,6 +156,9 @@ export default defineConfig({
       override: {
         useDates: true,
         useBigInt: true,
+        mock: {
+          fractionDigits: 1,
+        },
       },
     },
   },

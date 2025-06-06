@@ -1666,6 +1666,26 @@ module.exports = {
 };
 ```
 
+##### fractionDigits
+
+Type: `Number`.
+
+Set number of decimals displayed in floating-point numbers. (Default is `2`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          fractionDigits: 1,
+        },
+      },
+    },
+  },
+};
+```
+
 ##### useExamples
 
 An extension of the global mock option. If set to `true`, the mock generator will use the `example` property of the specification to generate the mock. If the `example` property is not set, the mock generator will fallback to the default behavior. Will override the global option.
