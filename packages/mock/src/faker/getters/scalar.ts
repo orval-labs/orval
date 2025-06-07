@@ -119,19 +119,6 @@ export const getMockScalar = ({
     };
   }
 
-  if (item.format && item.format === 'int64') {
-    const value = context.output.override.useBigInt
-      ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
-      : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
-
-    return {
-      value: getNullable(value, item.nullable),
-      imports: [],
-      name: item.name,
-      overrided: false,
-    };
-  }
-
   const type = getItemType(item);
   const isFakerV9 =
     !!context.output.packageJson &&
@@ -140,8 +127,12 @@ export const getMockScalar = ({
   switch (type) {
     case 'number':
     case 'integer': {
+      const intFunction =
+        item.format === 'int64' && context.output.override.useBigInt
+          ? 'bigInt'
+          : 'int';
       let value = getNullable(
-        `faker.number.int({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
         item.nullable,
       );
       if (type === 'number') {
