@@ -1630,7 +1630,7 @@ Gives you the possibility to generate mocks for all the HTTP statuses in the `re
 
 Type: `Number`.
 
-Set the minimum length of generated arrays for properties that specify multiple items. (Default is `1`)
+Set the default minimum length of generated arrays for properties that specify multiple items. Used if `minItems` is not defined for the property. (Default is `1`)
 
 ```js
 module.exports = {
@@ -1650,7 +1650,7 @@ module.exports = {
 
 Type: `Number`.
 
-Set the maximum length of generated arrays for properties that specify multiple items. (Default is `10`)
+Set the default maximum length of generated arrays for properties that specify multiple items. Used if `maxItems` is not defined for the property. (Default is `10`)
 
 ```js
 module.exports = {
