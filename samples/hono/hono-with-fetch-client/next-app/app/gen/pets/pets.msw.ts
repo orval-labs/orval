@@ -16,16 +16,16 @@ export const getListPetsResponseMock = (): Pets =>
     (_, i) => i + 1,
   ).map(() => ({
     id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha(20),
-    tag: faker.string.alpha(20),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   }));
 
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.string.alpha(20),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
 });
 
@@ -33,8 +33,8 @@ export const getUpdatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.string.alpha(20),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
 });
 
@@ -42,8 +42,8 @@ export const getShowPetByIdResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.string.alpha(20),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.string.alpha({ length: { min: 10, max: 20 } }),
   ...overrideResponse,
 });
 

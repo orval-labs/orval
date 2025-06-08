@@ -119,19 +119,6 @@ export const getMockScalar = ({
     };
   }
 
-  if (item.format && item.format === 'int64') {
-    const value = context.output.override.useBigInt
-      ? `faker.number.bigInt({min: ${item.minimum}, max: ${item.maximum}})`
-      : `faker.number.int({min: ${item.minimum}, max: ${item.maximum}})`;
-
-    return {
-      value: getNullable(value, item.nullable),
-      imports: [],
-      name: item.name,
-      overrided: false,
-    };
-  }
-
   const type = getItemType(item);
   const isFakerV9 =
     !!context.output.packageJson &&
@@ -140,13 +127,17 @@ export const getMockScalar = ({
   switch (type) {
     case 'number':
     case 'integer': {
+      const intFunction =
+        item.format === 'int64' && context.output.override.useBigInt
+          ? 'bigInt'
+          : 'int';
       let value = getNullable(
-        `faker.number.int({min: ${item.minimum}, max: ${item.maximum}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
         item.nullable,
       );
       if (type === 'number') {
         value = getNullable(
-          `faker.number.float({min: ${item.minimum}, max: ${item.maximum ?? 999999999}, ${item.multipleOf ? `multipleOf: ${item.multipleOf}` : `fractionDigits: ${mockOptions?.fractionDigits}`}})`,
+          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}, ${item.multipleOf ? `multipleOf: ${item.multipleOf}` : `fractionDigits: ${mockOptions?.fractionDigits}`}})`,
           item.nullable,
         );
       }
@@ -244,10 +235,7 @@ export const getMockScalar = ({
     }
 
     case 'string': {
-      const length =
-        item.minLength !== undefined || item.maxLength !== undefined
-          ? `{length: {min: ${item.minLength ?? 0}, max: ${item.maxLength ?? (item.minLength ?? 0) + 20}}}`
-          : 20;
+      const length = `{length: {min: ${item.minLength ?? mockOptions?.stringMin}, max: ${item.maxLength ?? mockOptions?.stringMax}}}`;
       let value = `faker.string.alpha(${length})`;
       const stringImports: GeneratorImport[] = [];
 

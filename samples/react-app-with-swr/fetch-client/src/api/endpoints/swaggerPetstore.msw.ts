@@ -15,20 +15,32 @@ export const getListPetsResponseMock = (): Pets =>
     { length: faker.number.int({ min: 1, max: 10 }) },
     (_, i) => i + 1,
   ).map(() => ({
-    '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
     id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha(20),
-    tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
     email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   }));
 
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   ...overrideResponse,
 });
@@ -36,10 +48,16 @@ export const getCreatePetsResponseMock = (
 export const getShowPetByIdResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  '@id': faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  '@id': faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha(20),
-  tag: faker.helpers.arrayElement([faker.string.alpha(20), undefined]),
+  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+  tag: faker.helpers.arrayElement([
+    faker.string.alpha({ length: { min: 10, max: 20 } }),
+    undefined,
+  ]),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
   ...overrideResponse,
 });

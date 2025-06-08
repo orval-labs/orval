@@ -1666,6 +1666,86 @@ module.exports = {
 };
 ```
 
+##### stringMin
+
+Type: `Number`.
+
+Set the default minimum length of generated strings. Used if `minLength` is not defined for the property. (Default is `10`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          stringMin: 5,
+        },
+      },
+    },
+  },
+};
+```
+
+##### stringMax
+
+Type: `Number`.
+
+Set the default maximum length of generated strings. Used if `maxLength` is not defined for the property. (Default is `20`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          stringMax: 15,
+        },
+      },
+    },
+  },
+};
+```
+
+##### numberMin
+
+Type: `Number`.
+
+Set the default minimum value of generated numbers. Used if `minimum` is not defined for the property.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          numberMin: 5,
+        },
+      },
+    },
+  },
+};
+```
+
+##### numberMax
+
+Type: `Number`.
+
+Set the default maximum value of generated numbers. Used if `maximum` is not defined for the property.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          numberMax: 15,
+        },
+      },
+    },
+  },
+};
+```
+
 ##### fractionDigits
 
 Type: `Number`.
