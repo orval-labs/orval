@@ -364,6 +364,21 @@ const isQueryV5WithDataTagError = (
   return compareVersions(withoutRc, '5.62.0');
 };
 
+const isQueryV5WithInfiniteQueryOptionsError = (
+  packageJson: PackageJson | undefined,
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '5.80.0');
+};
+
 const getPackageByQueryClient = (
   packageJson: PackageJson | undefined,
   queryClient: 'react-query' | 'vue-query' | 'svelte-query',
@@ -461,6 +476,7 @@ const getQueryOptionsDefinition = ({
   type,
   hasSvelteQueryV4,
   hasQueryV5,
+  hasQueryV5WithInfiniteQueryOptionsError,
   queryParams,
   queryParam,
   isReturnType,
@@ -472,6 +488,7 @@ const getQueryOptionsDefinition = ({
   type?: QueryType;
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
+  hasQueryV5WithInfiniteQueryOptionsError: boolean;
   queryParams?: GetterQueryParam;
   queryParam?: string;
   isReturnType: boolean;
@@ -511,7 +528,9 @@ const getQueryOptionsDefinition = ({
       (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE) &&
       queryParam &&
       queryParams
-        ? `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        ? hasQueryV5WithInfiniteQueryOptionsError
+          ? `, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+          : `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
         : ''
     }>`;
     return `${partialOptions ? 'Partial<' : ''}${optionType}${
@@ -534,6 +553,7 @@ const generateQueryArguments = ({
   type,
   hasSvelteQueryV4,
   hasQueryV5,
+  hasQueryV5WithInfiniteQueryOptionsError,
   queryParams,
   queryParam,
   initialData,
@@ -546,6 +566,7 @@ const generateQueryArguments = ({
   type?: QueryType;
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
+  hasQueryV5WithInfiniteQueryOptionsError: boolean;
   queryParams?: GetterQueryParam;
   queryParam?: string;
   initialData?: 'defined' | 'undefined';
@@ -558,6 +579,7 @@ const generateQueryArguments = ({
     type,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
     queryParam,
     isReturnType: false,
@@ -716,6 +738,7 @@ const generateQueryImplementation = ({
   hasSvelteQueryV4,
   hasQueryV5,
   hasQueryV5WithDataTagError,
+  hasQueryV5WithInfiniteQueryOptionsError,
   doc,
   usePrefetch,
   useQuery,
@@ -748,6 +771,7 @@ const generateQueryImplementation = ({
   hasSvelteQueryV4: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
+  hasQueryV5WithInfiniteQueryOptionsError: boolean;
   doc?: string;
   usePrefetch?: boolean;
   useQuery?: boolean;
@@ -843,6 +867,7 @@ const generateQueryImplementation = ({
     type,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
     queryParam,
     initialData: 'defined',
@@ -856,6 +881,7 @@ const generateQueryImplementation = ({
     type,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
     queryParam,
     initialData: 'undefined',
@@ -869,6 +895,7 @@ const generateQueryImplementation = ({
     type,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
     queryParam,
     httpClient,
@@ -901,6 +928,7 @@ const generateQueryImplementation = ({
     type,
     hasSvelteQueryV4,
     hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
     queryParam,
     isReturnType: true,
@@ -1120,6 +1148,13 @@ const generateQueryHook = async (
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
+  const hasQueryV5WithInfiniteQueryOptionsError =
+    query.version === 5 ||
+    isQueryV5WithInfiniteQueryOptionsError(
+      context.output.packageJson,
+      outputClient as 'react-query' | 'vue-query' | 'svelte-query',
+    );
+
   const httpClient = context.output.httpClient;
   const doc = jsDoc({ summary, deprecated });
 
@@ -1294,6 +1329,7 @@ const generateQueryHook = async (
           hasSvelteQueryV4,
           hasQueryV5,
           hasQueryV5WithDataTagError,
+          hasQueryV5WithInfiniteQueryOptionsError,
           doc,
           usePrefetch: query.usePrefetch,
           useQuery: query.useQuery,
@@ -1354,6 +1390,7 @@ const generateQueryHook = async (
       definitions,
       hasSvelteQueryV4,
       hasQueryV5,
+      hasQueryV5WithInfiniteQueryOptionsError,
       isReturnType: true,
     });
 
@@ -1364,6 +1401,7 @@ const generateQueryHook = async (
       isRequestOptions,
       hasSvelteQueryV4,
       hasQueryV5,
+      hasQueryV5WithInfiniteQueryOptionsError,
       httpClient,
     });
 
