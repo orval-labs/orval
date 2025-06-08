@@ -36,8 +36,14 @@ const getGeneratorClient = (
   output: NormalizedOutputOptions,
 ) => {
   const GENERATOR_CLIENT: GeneratorClients = {
-    axios: axios({ type: 'axios' })(),
-    'axios-functions': axios({ type: 'axios-functions' })(),
+    axios: axios({
+      type: 'axios',
+      implementationFormat: output.implementationFormat,
+    })(),
+    'axios-functions': axios({
+      type: 'axios-functions',
+      implementationFormat: output.implementationFormat,
+    })(),
     angular: angular()(),
     'react-query': query({ output, type: 'react-query' })(),
     'svelte-query': query({ output, type: 'svelte-query' })(),
