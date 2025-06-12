@@ -8,7 +8,9 @@
         :pet-id="selectedPetId"
         :id="'selected-pet-' + selectedPetId"
       />
-      <Pets @[SELECT_PET_ID_EVENT]="selectedPetId = $event" />
+      <Pets
+        @[SELECT_PET_ID_EVENT]="(event: string) => (selectedPetId = event)"
+      />
     </header>
   </div>
 </template>
