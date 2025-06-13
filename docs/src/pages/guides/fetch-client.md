@@ -163,3 +163,64 @@ module.exports = {
   },
 };
 ```
+
+#### query parameter explode behavior
+
+By default, the `fetch` client follows the OpenAPI specification for query parameter explode behavior. This means that query parameters will be exploded unless explicitly set to `false` in the OpenAPI schema.
+
+If you want to maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), you can set `override.explode` to `true`.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        explode: true, // Only explode parameters with explode: true
+      },
+    },
+  },
+};
+```
+
+**Default behavior (OpenAPI specification compliant):**
+
+```typescript
+// OpenAPI schema
+{
+  "parameters": [
+    {
+      "name": "tags",
+      "in": "query",
+      "schema": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+      // explode is not specified, defaults to true
+    }
+  ]
+}
+
+// Generated URL: /pets?tags=tag1&tags=tag2
+```
+
+**With `override.explode: true` (backward compatible):**
+
+```typescript
+// OpenAPI schema
+{
+  "parameters": [
+    {
+      "name": "tags",
+      "in": "query",
+      "schema": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+      // explode is not specified, will not be exploded
+    }
+  ]
+}
+
+// Generated URL: /pets?tags=tag1,tag2
+```
