@@ -118,7 +118,7 @@ ${
 
   const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpResponseReturnType,
+    override.fetch?.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
@@ -258,7 +258,7 @@ export type ${responseTypeName} = ${compositeName} & {
 };
 
 export const fetchResponseTypeName = (
-  includeHttpResponseReturnType: boolean,
+  includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
   operationName: string,
 ) => {

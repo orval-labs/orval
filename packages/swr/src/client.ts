@@ -236,7 +236,7 @@ export const getSwrMutationFetcherOptionType = (
 export const getSwrMutationFetcherType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
-  includeHttpResponseReturnType: boolean,
+  includeHttpResponseReturnType: boolean | undefined,
   operationName: string,
   mutator?: GeneratorMutator,
 ) => {
