@@ -137,9 +137,17 @@ ${
     .filter((r) => r.key !== 'default')
     .map((r) => r.key);
   const responseDataTypes = allResponses
-    .map(
-      (r) => `export type ${responseTypeName}${pascal(r.key)} = {
-  ${isContentTypeNdJson(r.contentType) ? 'stream: Response' : `data: ${r.value || 'unknown'}`}
+    .map((r) =>
+      allResponses.filter((r2) => r2.key === r.key).length > 1
+        ? { ...r, suffix: pascal(r.contentType) }
+        : r,
+    )
+    .map((r) => {
+      const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
+      return {
+        name,
+        value: `export type ${name} = {
+  ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
   status: ${
     r.key === 'default'
       ? nonDefaultStatuses.length
@@ -148,15 +156,15 @@ ${
       : r.key
   }
 }`,
-    )
-    .join('\n\n');
+      };
+    });
 
   const compositeName = `${responseTypeName}Composite`;
-  const compositeResponse = `${compositeName} = ${allResponses.map((r) => `${responseTypeName}${pascal(r.key)}`).join(' | ')}`;
+  const compositeResponse = `${compositeName} = ${responseDataTypes.map((r) => r.name).join(' | ')}`;
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
-    ? `${responseDataTypes}
+    ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
     
 export type ${compositeResponse};
     
@@ -189,19 +197,33 @@ export type ${responseTypeName} = ${compositeName} & {
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];
-  const fetchHeadersOption =
-    body.contentType && !ignoreContentTypes.includes(body.contentType)
-      ? `headers: { 'Content-Type': '${body.contentType}',${headers ? '...headers,' : ''} ...options?.headers }`
-      : headers
-        ? 'headers: {...headers, ...options?.headers}'
-        : '';
+  const headersToAdd: string[] = [
+    ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
+      ? [`'Content-Type': '${body.contentType}'`]
+      : []),
+    ...(isNdJson && response.contentTypes.length === 1
+      ? [
+          `Accept: ${
+            response.contentTypes[0] === 'application/x-ndjson'
+              ? "'application/x-ndjson'"
+              : "'application/nd-json'"
+          }`,
+        ]
+      : []),
+    ...(headers ? ['...headers'] : []),
+  ];
+  const fetchHeadersOption = headersToAdd.length
+    ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+    : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
     isFormUrlEncoded,
   );
   const fetchBodyOption = requestBodyParams
-    ? (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded)
+    ? (isFormData && body.formData) ||
+      (isFormUrlEncoded && body.formUrlEncoded) ||
+      body.contentType === 'text/plain'
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
@@ -217,7 +239,7 @@ export type ${responseTypeName} = ${compositeName} & {
   const fetchResponseImplementation = isNdJson
     ? `const stream = await fetch(${fetchFnOptions})
 
-  ${override.fetch.includeHttpResponseReturnType ? 'return { status: stream.status, stream, headers: stream.headers }' : `return stream`}
+  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${responseTypeName}` : `return stream`}
   `
     : `const res = await fetch(${fetchFnOptions})
 

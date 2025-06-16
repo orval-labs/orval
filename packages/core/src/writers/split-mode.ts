@@ -9,7 +9,7 @@ import {
   upath,
 } from '../utils';
 import { generateTarget } from './target';
-import { getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 
@@ -137,6 +137,12 @@ export const writeSplitMode = async ({
 
     if (implementation.includes('NonReadonly<')) {
       implementationData += getOrvalGeneratedTypes();
+      implementationData += '\n';
+    }
+
+    if (implementation.includes('TypedResponse<')) {
+      implementationData += getTypedResponse();
+      implementationData += '\n';
     }
 
     implementationData += `\n${implementation}`;
