@@ -11,7 +11,7 @@ import {
 } from '../utils';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeTagsMode = async ({
   builder,
@@ -131,11 +131,13 @@ export const writeTagsMode = async ({
 
         data += '\n\n';
 
-        if (
-          implementation.includes('NonReadonly<') ||
-          implementation.includes('TypedResponse<')
-        ) {
+        if (implementation.includes('NonReadonly<')) {
           data += getOrvalGeneratedTypes();
+          data += '\n';
+        }
+
+        if (implementation.includes('TypedResponse<')) {
+          data += getTypedResponse();
           data += '\n';
         }
 
