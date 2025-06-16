@@ -30,7 +30,6 @@ import {
   getSwrRequestSecondArg,
   getHttpRequestSecondArg,
   getSwrMutationFetcherOptionType,
-  getSwrMutationFetcherType,
   getSwrHeader,
 } from './client';
 
@@ -530,13 +529,6 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       `get-${operationName}-mutation-fetcher`,
     );
 
-    const swrMutationFetcherType = getSwrMutationFetcherType(
-      response,
-      httpClient,
-      override.fetch.includeHttpResponseReturnType,
-      operationName,
-      mutator,
-    );
     const swrMutationFetcherOptionType = getSwrMutationFetcherOptionType(
       httpClient,
       mutator,
@@ -560,7 +552,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
 
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }): ${swrMutationFetcherType} => {
+  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }) => {
     return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length
         ? (httpFnProperties.length ? ', ' : '') + 'options'

@@ -15,7 +15,6 @@ import {
 } from '@orval/core';
 
 import {
-  fetchResponseTypeName,
   generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
 } from '@orval/fetch';
@@ -230,28 +229,6 @@ export const getSwrMutationFetcherOptionType = (
     return `SecondParameter<typeof ${mutator.name}>`;
   } else {
     return '';
-  }
-};
-
-export const getSwrMutationFetcherType = (
-  response: GetterResponse,
-  httpClient: OutputHttpClient,
-  includeHttpResponseReturnType: boolean,
-  operationName: string,
-  mutator?: GeneratorMutator,
-) => {
-  if (httpClient === OutputHttpClient.FETCH) {
-    const responseType = fetchResponseTypeName(
-      includeHttpResponseReturnType,
-      response.definition.success,
-      operationName,
-    );
-
-    return `Promise<${responseType}>`;
-  } else if (mutator) {
-    return `Promise<${response.definition.success || 'unknown'}>`;
-  } else {
-    return `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
   }
 };
 

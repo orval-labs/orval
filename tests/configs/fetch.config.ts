@@ -224,4 +224,19 @@ export default defineConfig({
       target: '../specifications/stream.yaml',
     },
   },
+  throwOnError: {
+    output: {
+      target: '../generated/fetch/throw-on-error/endpoints.ts',
+      schemas: '../generated/fetch/throw-on-error/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          shouldThrowOnError: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

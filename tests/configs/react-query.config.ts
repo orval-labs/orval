@@ -106,6 +106,11 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'react-query',
       httpClient: 'fetch',
+      override: {
+        fetch: {
+          shouldThrowOnError: true,
+        },
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',
