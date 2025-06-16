@@ -135,7 +135,10 @@ export const writeSplitMode = async ({
       });
     }
 
-    if (implementation.includes('NonReadonly<')) {
+    if (
+      implementation.includes('NonReadonly<') ||
+      implementation.includes('TypedResponse<')
+    ) {
       implementationData += getOrvalGeneratedTypes();
     }
 

@@ -114,7 +114,10 @@ export const writeSingleMode = async ({
       data += generateMutatorImports({ mutators: paramsSerializer });
     }
 
-    if (implementation.includes('NonReadonly<')) {
+    if (
+      implementation.includes('NonReadonly<') ||
+      implementation.includes('TypedResponse<')
+    ) {
       data += getOrvalGeneratedTypes();
       data += '\n';
     }

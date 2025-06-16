@@ -24,4 +24,8 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
     ? NonReadonly<NonNullable<T[P]>>
     : T[P];
 } : DistributeReadOnlyOverUnions<T>;
+
+interface TypedResponse<T> extends Response {
+  json(): Promise<T>;
+}
 `;

@@ -1,0 +1,25 @@
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Stream
+paths:
+  /stream:
+    get:
+      operationId: stream
+      description: Stream results
+      responses:
+        '200':
+          description: The stream result.
+          content:
+            application/x-ndjson:
+              schema:
+                $ref: '#/components/schemas/StreamEntry'
+components:
+  schemas:
+    StreamEntry:
+      type: object
+      properties:
+        foo:
+          type: number
+        bar:
+          type: string

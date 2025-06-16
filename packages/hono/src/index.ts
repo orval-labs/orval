@@ -645,7 +645,10 @@ const generateContext = async (
             (imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i,
           );
 
-        if (contexts.includes('NonReadonly<')) {
+        if (
+          contexts.includes('NonReadonly<') ||
+          contexts.includes('TypedResponse<')
+        ) {
           content += getOrvalGeneratedTypes();
           content += '\n';
         }
@@ -701,7 +704,10 @@ const generateContext = async (
     .filter((imp) => contexts.includes(imp.name))
     .filter((imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i);
 
-  if (contexts.includes('NonReadonly<')) {
+  if (
+    contexts.includes('NonReadonly<') ||
+    contexts.includes('TypedResponse<')
+  ) {
     content += getOrvalGeneratedTypes();
     content += '\n';
   }

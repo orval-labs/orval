@@ -109,6 +109,11 @@
           "title": "MCP server",
           "path": "/guides/mcp",
           "editUrl": "/guides/mcp.md"
+        },
+        {
+          "title": "Stream NDJSON",
+          "path": "/guides/stream-ndjson",
+          "editUrl": "/guides/stream-ndjson.md"
         }
       ]
     },
