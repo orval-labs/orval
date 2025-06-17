@@ -262,7 +262,7 @@ ${override.fetch.shouldThrowOnError ? '' : `export type ${responseTypeName} = ($
   }`;
   const fetchResponseImplementation = isNdJson
     ? `  const stream = await fetch(${fetchFnOptions});
-  const body = [204, 205, 304].includes(res.status) ? null : await stream.text();
+  ${override.fetch.shouldThrowOnError ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
   ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
   ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.shouldThrowOnError ? successName : responseTypeName}` : `return stream`}
   `
