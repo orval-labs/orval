@@ -88,7 +88,7 @@ export const createPets = (
 };
 
 export const getCreatePetsMutationFetcher = (version: number = 1) => {
-  return (_: Key, { arg }: { arg: CreatePetsBody }): Promise<Pet> => {
+  return (_: Key, { arg }: { arg: CreatePetsBody }) => {
     return createPets(arg, version);
   };
 };

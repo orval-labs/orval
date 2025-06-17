@@ -105,7 +105,7 @@ export type NormalizedOverrideOutput = {
   angular: Required<AngularOptions>;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
-  fetch: FetchOptions;
+  fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -621,8 +621,14 @@ export type SwrOptions = {
   swrInfiniteOptions?: any;
 };
 
-export type FetchOptions = {
+export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
+  shouldThrowOnError: boolean;
+};
+
+export type FetchOptions = {
+  includeHttpResponseReturnType?: boolean;
+  shouldThrowOnError?: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;

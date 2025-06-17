@@ -146,6 +146,7 @@ ${
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
       return {
         name,
+        success: response.types.success.some((s) => s.key === r.key),
         value: `export type ${name} = {
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
   status: ${
@@ -159,18 +160,37 @@ ${
       };
     });
 
-  const compositeName = `${responseTypeName}Composite`;
-  const compositeResponse = `${compositeName} = ${responseDataTypes.map((r) => r.name).join(' | ')}`;
+  const successName = `${responseTypeName}Success`;
+  const errorName = `${responseTypeName}Error`;
+  const hasSuccess = responseDataTypes.some((r) => r.success);
+  const hasError = responseDataTypes.some((r) => !r.success);
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
     
-export type ${compositeResponse};
-    
-export type ${responseTypeName} = ${compositeName} & {
+${
+  hasSuccess
+    ? `export type ${successName} = (${responseDataTypes
+        .filter((r) => r.success)
+        .map((r) => r.name)
+        .join(' | ')}) & {
   headers: Headers;
-}\n\n`
+}`
+    : ''
+};
+${
+  hasError
+    ? `export type ${errorName} = (${responseDataTypes
+        .filter((r) => !r.success)
+        .map((r) => r.name)
+        .join(' | ')}) & {
+  headers: Headers;
+}`
+    : ''
+};
+
+${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${responseTypeName} = (${hasError && hasSuccess ? `${successName} | ${errorName}` : hasSuccess ? successName : errorName})\n\n`}`
     : '';
 
   const getUrlFnProperties = props
@@ -190,7 +210,10 @@ export type ${responseTypeName} = ${compositeName} & {
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const returnType = `Promise<${responseTypeName}>`;
+  const returnType =
+    override.fetch.shouldThrowOnError && hasSuccess
+      ? `Promise<${successName}>`
+      : `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
@@ -236,17 +259,26 @@ export type ${responseTypeName} = ${compositeName} & {
     ${fetchBodyOption}
   }
 `;
+  const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
+    const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
+    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = body ? JSON.parse(body) : {}
+    err.info = data;
+    err.status = ${isNdJson ? 'stream' : 'res'}.status;
+    throw err;
+  }`;
   const fetchResponseImplementation = isNdJson
-    ? `const stream = await fetch(${fetchFnOptions})
-
-  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${responseTypeName}` : `return stream`}
+    ? `  const stream = await fetch(${fetchFnOptions});
+  ${override.fetch.shouldThrowOnError ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
+  ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
+  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}` : `return stream`}
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-  const data: ${responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body) : {}
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
 
-  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${responseTypeName}` : 'return data'}
+  const data: ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body) : {}
+  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
 
@@ -275,7 +307,7 @@ export type ${responseTypeName} = ${compositeName} & {
   return implementation;
 };
 
-export const fetchResponseTypeName = (
+const fetchResponseTypeName = (
   includeHttpResponseReturnType: boolean,
   definitionSuccessResponse: string,
   operationName: string,
