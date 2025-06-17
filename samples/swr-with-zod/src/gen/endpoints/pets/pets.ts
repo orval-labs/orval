@@ -96,11 +96,10 @@ export type listPetsResponse200 = {
   status: 200;
 };
 
-export type listPetsResponseComposite = listPetsResponse200;
-
-export type listPetsResponse = listPetsResponseComposite & {
+export type listPetsResponseSuccess = listPetsResponse200 & {
   headers: Headers;
 };
+export type listPetsResponse = listPetsResponseSuccess;
 
 export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -129,7 +128,6 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
-
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
 
@@ -185,13 +183,16 @@ export type createPetsResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type createPetsResponseComposite =
-  | createPetsResponse200
-  | createPetsResponseDefault;
-
-export type createPetsResponse = createPetsResponseComposite & {
+export type createPetsResponseSuccess = createPetsResponse200 & {
   headers: Headers;
 };
+export type createPetsResponseError = createPetsResponseDefault & {
+  headers: Headers;
+};
+
+export type createPetsResponse =
+  | createPetsResponseSuccess
+  | createPetsResponseError;
 
 export const getCreatePetsUrl = () => {
   return `http://localhost:8000/pets`;
@@ -210,7 +211,6 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
-
   return {
     data,
     status: res.status,
@@ -219,10 +219,7 @@ export const createPets = async (
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
-  return (
-    _: Key,
-    { arg }: { arg: CreatePetsBodyItem[] },
-  ): Promise<createPetsResponse> => {
+  return (_: Key, { arg }: { arg: CreatePetsBodyItem[] }) => {
     return createPets(arg, options);
   };
 };
@@ -272,13 +269,16 @@ export type updatePetsResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type updatePetsResponseComposite =
-  | updatePetsResponse200
-  | updatePetsResponseDefault;
-
-export type updatePetsResponse = updatePetsResponseComposite & {
+export type updatePetsResponseSuccess = updatePetsResponse200 & {
   headers: Headers;
 };
+export type updatePetsResponseError = updatePetsResponseDefault & {
+  headers: Headers;
+};
+
+export type updatePetsResponse =
+  | updatePetsResponseSuccess
+  | updatePetsResponseError;
 
 export const getUpdatePetsUrl = () => {
   return `http://localhost:8000/pets`;
@@ -297,7 +297,6 @@ export const updatePets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: updatePetsResponse['data'] = body ? JSON.parse(body) : {};
-
   return {
     data,
     status: res.status,
@@ -306,10 +305,7 @@ export const updatePets = async (
 };
 
 export const getUpdatePetsMutationFetcher = (options?: RequestInit) => {
-  return (
-    _: Key,
-    { arg }: { arg: NonReadonly<Pet> },
-  ): Promise<updatePetsResponse> => {
+  return (_: Key, { arg }: { arg: NonReadonly<Pet> }) => {
     return updatePets(arg, options);
   };
 };
@@ -359,13 +355,16 @@ export type showPetByIdResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type showPetByIdResponseComposite =
-  | showPetByIdResponse200
-  | showPetByIdResponseDefault;
-
-export type showPetByIdResponse = showPetByIdResponseComposite & {
+export type showPetByIdResponseSuccess = showPetByIdResponse200 & {
   headers: Headers;
 };
+export type showPetByIdResponseError = showPetByIdResponseDefault & {
+  headers: Headers;
+};
+
+export type showPetByIdResponse =
+  | showPetByIdResponseSuccess
+  | showPetByIdResponseError;
 
 export const getShowPetByIdUrl = (petId: string) => {
   return `http://localhost:8000/pets/${petId}`;
@@ -382,7 +381,6 @@ export const showPetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
-
   return {
     data,
     status: res.status,

@@ -48,7 +48,6 @@ export const listPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: Pets = body ? JSON.parse(body) : {};
-
   return data;
 };
 
@@ -112,12 +111,11 @@ export const createPets = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: Pet = body ? JSON.parse(body) : {};
-
   return data;
 };
 
 export const getCreatePetsMutationFetcher = (options?: RequestInit) => {
-  return (_: Key, { arg }: { arg: CreatePetsBody }): Promise<Pet> => {
+  return (_: Key, { arg }: { arg: CreatePetsBody }) => {
     return createPets(arg, options);
   };
 };
@@ -173,7 +171,6 @@ export const showPetById = async (
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   const data: Pet = body ? JSON.parse(body) : {};
-
   return data;
 };
 
