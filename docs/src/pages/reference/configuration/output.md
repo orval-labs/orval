@@ -960,6 +960,15 @@ Default: `true`
 When using `fetch` for `client` or `httpClient`, the `fetch` response type includes http status for easier processing by the application.
 If you want to return a defined return type instead of an automatically generated return type, set this value to `false`.
 
+##### explode
+
+Type: `Boolean`.
+Default: `false`
+
+By default, the `fetch` client follows the OpenAPI specification for query parameter explode behavior. This means that query parameters will be exploded unless explicitly set to `false` in the OpenAPI schema.
+
+If you want to maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), you can set this value to `true`.
+
 #### query
 
 Type: `Object`.

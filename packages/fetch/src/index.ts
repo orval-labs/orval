@@ -60,7 +60,11 @@ export const generateRequestFunction = (
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
 
-    return schema.in === 'query' && schema.explode;
+    if (override.fetch.explode) {
+      return schema.in === 'query' && schema.explode;
+    } else {
+      return schema.in === 'query' && schema.explode !== false;
+    }
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
@@ -114,7 +118,7 @@ ${
 
   const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpResponseReturnType,
+    override.fetch?.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
@@ -276,7 +280,7 @@ export type ${responseTypeName} = ${compositeName} & {
 };
 
 export const fetchResponseTypeName = (
-  includeHttpResponseReturnType: boolean,
+  includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
   operationName: string,
 ) => {
