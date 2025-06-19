@@ -1279,9 +1279,16 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryKeyProps = toObjectString(
-      props.filter((prop) => prop.type !== GetterPropType.HEADER),
-      'implementation',
+    const makeParamsOptional = (params: string) => {
+      if (!params) return '';
+      return params.replace(/(\w+):\s*([^,}]+)/g, '$1?: $2');
+    };
+
+    const queryKeyProps = makeParamsOptional(
+      toObjectString(
+        props.filter((prop) => prop.type !== GetterPropType.HEADER),
+        'implementation',
+      ),
     );
 
     const routeString =
