@@ -1279,6 +1279,8 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
+    // Convert "param: Type" to "param?: Type" for queryKey functions
+    // to enable cache invalidation without type assertion
     const makeParamsOptional = (params: string) => {
       if (!params) return '';
       return params.replace(/(\w+):\s*([^,}]+)/g, '$1?: $2');
