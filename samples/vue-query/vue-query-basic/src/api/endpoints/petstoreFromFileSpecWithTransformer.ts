@@ -54,7 +54,7 @@ export const listPets = (
 
 export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
-  version: MaybeRef<number | undefined | null> = 1,
+  version?: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', ...(params ? [params] : [])] as const;
 };
@@ -338,8 +338,8 @@ export const showPetById = (
 };
 
 export const getShowPetByIdQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
-  version: MaybeRef<number | undefined | null> = 1,
+  petId?: MaybeRef<string | undefined | null>,
+  version?: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;
 };

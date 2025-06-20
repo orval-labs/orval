@@ -120,8 +120,13 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString());
+    const explodeParameters = ['limit'];
+
+    if (value instanceof Array && explodeParameters.includes(key)) {
+      value.forEach((v) =>
+        normalizedParams.append(key, v === null ? 'null' : v.toString()),
+      );
+      return;
     }
   });
 
@@ -509,7 +514,7 @@ export const showPetById = async (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId: string) => {
+export const getShowPetByIdQueryKey = (petId?: string) => {
   return [`http://localhost:8000/pets/${petId}`] as const;
 };
 
