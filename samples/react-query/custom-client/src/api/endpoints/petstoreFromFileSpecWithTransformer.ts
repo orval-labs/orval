@@ -51,7 +51,7 @@ export const useListPetsHook = () => {
 
 export const getListPetsQueryKey = (
   params?: ListPetsParams,
-  version?: number = 1,
+  version: number = 1,
 ) => {
   return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
 };
@@ -245,7 +245,7 @@ export const useListPetsNestedArrayHook = () => {
 
 export const getListPetsNestedArrayQueryKey = (
   params?: ListPetsNestedArrayParams,
-  version?: number = 1,
+  version: number = 1,
 ) => {
   return [
     `/v${version}/pets-nested-array`,
@@ -346,10 +346,7 @@ export const useShowPetByIdHook = () => {
   );
 };
 
-export const getShowPetByIdQueryKey = (
-  petId?: string,
-  version?: number = 1,
-) => {
+export const getShowPetByIdQueryKey = (petId?: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
 

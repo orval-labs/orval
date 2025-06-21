@@ -108,7 +108,7 @@ export const getListPetsUrl = (params?: ListPetsParams) => {
   Object.entries(params || {}).forEach(([key, value]) => {
     const explodeParameters = ['limit'];
 
-    if (value instanceof Array && explodeParameters.includes(key)) {
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) =>
         normalizedParams.append(key, v === null ? 'null' : v.toString()),
       );

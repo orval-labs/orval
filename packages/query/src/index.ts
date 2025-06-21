@@ -1283,7 +1283,19 @@ const generateQueryHook = async (
     // to enable cache invalidation without type assertion
     const makeParamsOptional = (params: string) => {
       if (!params) return '';
-      return params.replace(/(\w+):\s*([^,}]+)/g, '$1?: $2');
+      // Handle parameters with default values: "param?: Type = value" -> "param: Type = value" (remove optional marker)
+      // Handle regular parameters: "param: Type" -> "param?: Type"
+      return params.replace(
+        /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
+        (match, paramName, optionalMarker, type, defaultValue, suffix) => {
+          // If parameter has a default value, don't add '?' (it's already effectively optional)
+          if (defaultValue) {
+            return `${paramName}: ${type.trim()}${defaultValue}${suffix}`;
+          }
+          // Otherwise, make it optional
+          return `${paramName}?: ${type.trim()}${suffix}`;
+        },
+      );
     };
 
     const queryKeyProps = makeParamsOptional(
