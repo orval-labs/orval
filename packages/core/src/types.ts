@@ -86,7 +86,7 @@ export type NormalizedOverrideOutput = {
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
   namingConvention: {
-    enum: NamingConvention;
+    enum?: NamingConvention;
   };
   components: {
     schemas: {
