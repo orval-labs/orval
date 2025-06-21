@@ -85,6 +85,9 @@ export type NormalizedOverrideOutput = {
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+  namingConvention: {
+    enum?: NamingConvention;
+  };
   components: {
     schemas: {
       suffix: string;
@@ -428,6 +431,9 @@ export type OverrideOutput = {
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  namingConvention?: {
+    enum?: NamingConvention;
+  };
   components?: {
     schemas?: {
       suffix?: string;

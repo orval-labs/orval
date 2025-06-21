@@ -252,6 +252,7 @@ export const normalizeOptions = async (
               ? outputOptions.override?.header!
               : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
+        namingConvention: outputOptions.override?.namingConvention ?? {},
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,
