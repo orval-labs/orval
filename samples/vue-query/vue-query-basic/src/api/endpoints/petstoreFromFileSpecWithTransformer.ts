@@ -338,7 +338,7 @@ export const showPetById = (
 };
 
 export const getShowPetByIdQueryKey = (
-  petId: MaybeRef<string | undefined | null>,
+  petId?: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;

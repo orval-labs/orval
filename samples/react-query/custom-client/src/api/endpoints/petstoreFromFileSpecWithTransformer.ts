@@ -346,7 +346,7 @@ export const useShowPetByIdHook = () => {
   );
 };
 
-export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => {
+export const getShowPetByIdQueryKey = (petId?: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
 
