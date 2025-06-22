@@ -1279,9 +1279,30 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryKeyProps = toObjectString(
-      props.filter((prop) => prop.type !== GetterPropType.HEADER),
-      'implementation',
+    // Convert "param: Type" to "param?: Type" for queryKey functions
+    // to enable cache invalidation without type assertion
+    const makeParamsOptional = (params: string) => {
+      if (!params) return '';
+      // Handle parameters with default values: "param?: Type = value" -> "param: Type = value" (remove optional marker)
+      // Handle regular parameters: "param: Type" -> "param?: Type"
+      return params.replace(
+        /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
+        (match, paramName, optionalMarker, type, defaultValue, suffix) => {
+          // If parameter has a default value, don't add '?' (it's already effectively optional)
+          if (defaultValue) {
+            return `${paramName}: ${type.trim()}${defaultValue}${suffix}`;
+          }
+          // Otherwise, make it optional
+          return `${paramName}?: ${type.trim()}${suffix}`;
+        },
+      );
+    };
+
+    const queryKeyProps = makeParamsOptional(
+      toObjectString(
+        props.filter((prop) => prop.type !== GetterPropType.HEADER),
+        'implementation',
+      ),
     );
 
     const routeString =

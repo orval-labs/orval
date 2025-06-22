@@ -77,7 +77,7 @@ export const generateRequestFunction = (
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
 
-    if (value instanceof Array && explodeParameters.includes(key)) {
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
       return;
     }
