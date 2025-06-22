@@ -148,10 +148,7 @@ describe('generateSchemasDefinition', () => {
         properties: {
           testedEnum: {
             type: 'string',
-            enum: [
-              'snake_case',
-              'camelCase',
-            ],
+            enum: ['snake_case', 'camelCase'],
           },
         },
       },

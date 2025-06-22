@@ -28,7 +28,13 @@ export const getEnum = (
   enumNamingConvention?: NamingConvention,
 ) => {
   if (enumGenerationType === EnumGeneration.CONST)
-    return getTypeConstEnum(value, enumName, names, descriptions, enumNamingConvention);
+    return getTypeConstEnum(
+      value,
+      enumName,
+      names,
+      descriptions,
+      enumNamingConvention,
+    );
   if (enumGenerationType === EnumGeneration.ENUM)
     return getNativeEnum(value, enumName, names, enumNamingConvention);
   if (enumGenerationType === EnumGeneration.UNION)
@@ -52,7 +58,12 @@ const getTypeConstEnum = (
 
   enumValue += ';\n';
 
-  const implementation = getEnumImplementation(value, names, descriptions, enumNamingConvention);
+  const implementation = getEnumImplementation(
+    value,
+    names,
+    descriptions,
+    enumNamingConvention,
+  );
 
   enumValue += '\n\n';
 
@@ -114,14 +125,23 @@ export const getEnumImplementation = (
   }, '');
 };
 
-const getNativeEnum = (value: string, enumName: string, names?: string[], enumNamingConvention?: NamingConvention) => {
+const getNativeEnum = (
+  value: string,
+  enumName: string,
+  names?: string[],
+  enumNamingConvention?: NamingConvention,
+) => {
   const enumItems = getNativeEnumItems(value, names, enumNamingConvention);
   const enumValue = `export enum ${enumName} {\n${enumItems}\n}`;
 
   return enumValue;
 };
 
-const getNativeEnumItems = (value: string, names?: string[], enumNamingConvention?: NamingConvention) => {
+const getNativeEnumItems = (
+  value: string,
+  names?: string[],
+  enumNamingConvention?: NamingConvention,
+) => {
   if (value === '') return '';
 
   return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
