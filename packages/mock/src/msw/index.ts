@@ -53,13 +53,19 @@ export const generateMSWImports: GenerateMockImports = ({
   isAllowSyntheticDefaultImports,
   options,
 }) => {
-  return generateDependencyImports(
+  const importBlock = generateDependencyImports(
     implementation,
     [...getMSWDependencies(options), ...imports],
     specsName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );
+
+  const seed = options?.seed;
+  if (seed !== undefined && !(Array.isArray(seed) && seed.length === 0)) {
+    return `${importBlock}\nfaker.seed(${Array.isArray(seed) ? `[${seed.join(', ')}]` : seed});\n\n`;
+  }
+  return importBlock;
 };
 
 const generateDefinition = (
