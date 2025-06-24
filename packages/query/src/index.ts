@@ -1132,7 +1132,7 @@ const generateQueryHook = async (
   const operationQueryOptions = operations[operationId]?.query;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const queryVersion = query?.version || override.query.version;
+  const queryVersion = override.query.version ?? query?.version;
 
   const hasVueQueryV4 =
     OutputClient.VUE_QUERY === outputClient &&
