@@ -940,6 +940,7 @@ export type ClientDependenciesBuilder = (
   packageJson?: PackageJson,
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
+  override?: NormalizedOverrideOutput,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {
