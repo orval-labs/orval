@@ -56,7 +56,7 @@ export const getObject = ({
     });
   }
 
-  if (item.type instanceof Array) {
+  if (Array.isArray(item.type)) {
     return combineSchemas({
       schema: {
         anyOf: item.type.map((type) => ({

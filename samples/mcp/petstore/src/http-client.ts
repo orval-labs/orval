@@ -143,7 +143,7 @@ export const getFindPetsByTagsUrl = (params?: FindPetsByTagsParams) => {
   Object.entries(params || {}).forEach(([key, value]) => {
     const explodeParameters = ['tags'];
 
-    if (value instanceof Array && explodeParameters.includes(key)) {
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) =>
         normalizedParams.append(key, v === null ? 'null' : v.toString()),
       );
