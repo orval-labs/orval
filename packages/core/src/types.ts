@@ -320,6 +320,8 @@ export type GlobalMockOptions = {
   baseUrl?: string;
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
+  // This is used to seed the faker library for deterministic output
+  seed?: number | number[];
   indexMockFiles?: boolean;
 };
 
