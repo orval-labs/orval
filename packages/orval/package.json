@@ -75,7 +75,7 @@
     "find-up": "5.0.0",
     "fs-extra": "^11.3.0",
     "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.2.2",
+    "openapi3-ts": "4.5.0",
     "string-argv": "^0.3.2",
     "tsconfck": "^2.0.1",
     "typedoc": "^0.28.0",
