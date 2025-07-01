@@ -5,14 +5,13 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@apidevtools/json-schema-ref-parser@npm:11.7.2":
-  version: 11.7.2
-  resolution: "@apidevtools/json-schema-ref-parser@npm:11.7.2"
+"@apidevtools/json-schema-ref-parser@npm:14.0.1":
+  version: 14.0.1
+  resolution: "@apidevtools/json-schema-ref-parser@npm:14.0.1"
   dependencies:
-    "@jsdevtools/ono": "npm:^7.1.3"
     "@types/json-schema": "npm:^7.0.15"
     js-yaml: "npm:^4.1.0"
-  checksum: 10c0/90dd8e60e25ccfe5c7de2453de893d5f5bb7c6cabcce028edf0678a119f0e433f422d730aa14fd718542e80fa7b3acf40923d69dc8e9f6c25603842b76ad2f16
+  checksum: 10c0/f8aff4d32f66b81be0e641da175d359ec3e4191f9c65343b30f90cfbcfdbdb78b13e57c4a0a8d0574c828294abde56400a031858f61cf38b3309a4213698dc0c
   languageName: node
   linkType: hard
 
@@ -30,20 +29,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@apidevtools/swagger-parser@npm:^10.1.1":
-  version: 10.1.1
-  resolution: "@apidevtools/swagger-parser@npm:10.1.1"
+"@apidevtools/swagger-parser@npm:^12.0.0":
+  version: 12.0.0
+  resolution: "@apidevtools/swagger-parser@npm:12.0.0"
   dependencies:
-    "@apidevtools/json-schema-ref-parser": "npm:11.7.2"
+    "@apidevtools/json-schema-ref-parser": "npm:14.0.1"
     "@apidevtools/openapi-schemas": "npm:^2.1.0"
     "@apidevtools/swagger-methods": "npm:^3.0.2"
-    "@jsdevtools/ono": "npm:^7.1.3"
     ajv: "npm:^8.17.1"
     ajv-draft-04: "npm:^1.0.0"
     call-me-maybe: "npm:^1.0.2"
   peerDependencies:
     openapi-types: ">=7"
-  checksum: 10c0/21be668c64311d54579ef06e71b6d5640df032f4cdd959dfde93210f26128cbe3c84eb29ead1895c93af703cd4f2fd7efae31dd316549f1f9d29293c78b0ccd4
+  checksum: 10c0/c905c49dc54788e8c697a61072b05dc3b51ba57b428ddbc683d364dc9981a1d07a5799d70c607858192d54b98b1256c380b2580d9b0f4fd55ff8400f6f285cd7
   languageName: node
   linkType: hard
 
@@ -1132,13 +1130,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@jsdevtools/ono@npm:^7.1.3":
-  version: 7.1.3
-  resolution: "@jsdevtools/ono@npm:7.1.3"
-  checksum: 10c0/a9f7e3e8e3bc315a34959934a5e2f874c423cf4eae64377d3fc9de0400ed9f36cb5fd5ebce3300d2e8f4085f557c4a8b591427a583729a87841fda46e6c216b9
-  languageName: node
-  linkType: hard
-
 "@jsep-plugin/assignment@npm:^1.3.0":
   version: 1.3.0
   resolution: "@jsep-plugin/assignment@npm:1.3.0"
@@ -1369,7 +1360,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
-    "@apidevtools/swagger-parser": "npm:^10.1.1"
+    "@apidevtools/swagger-parser": "npm:^12.0.0"
     "@faker-js/faker": "npm:^9.8.0"
     "@ibm-cloud/openapi-ruleset": "npm:^1.29.4"
     "@types/debug": "npm:^4.1.12"
@@ -7590,7 +7581,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "orval@workspace:packages/orval"
   dependencies:
-    "@apidevtools/swagger-parser": "npm:^10.1.1"
+    "@apidevtools/swagger-parser": "npm:^12.0.0"
     "@orval/angular": "npm:7.10.0"
     "@orval/axios": "npm:7.10.0"
     "@orval/core": "npm:7.10.0"

@@ -55,7 +55,7 @@
     "typedoc-plugin-coverage": "^3.4.1"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.1.1",
+    "@apidevtools/swagger-parser": "^12.0.0",
     "@orval/angular": "7.10.0",
     "@orval/axios": "7.10.0",
     "@orval/core": "7.10.0",
