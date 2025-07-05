@@ -84,6 +84,7 @@ export const generateClientImports: GeneratorClientImports = ({
             packageJson,
             output.httpClient,
             hasTagsMutator,
+            output.override,
           ),
           ...imports,
         ]

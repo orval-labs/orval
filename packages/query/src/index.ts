@@ -215,6 +215,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
   packageJson,
   httpClient,
   hasTagsMutator,
+  override,
 ) => {
   const hasReactQuery =
     packageJson?.dependencies?.['react-query'] ??
@@ -225,13 +226,18 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.devDependencies?.['@tanstack/react-query'] ??
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
+  const useReactQueryV3 =
+    override?.query.version !== undefined
+      ? override?.query.version <= 3
+      : hasReactQuery && !hasReactQueryV4;
+
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
     ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
       ? AXIOS_DEPENDENCIES
       : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...(hasReactQuery && !hasReactQueryV4
+    ...(useReactQueryV3
       ? REACT_QUERY_DEPENDENCIES_V3
       : REACT_QUERY_DEPENDENCIES),
   ];
@@ -1126,30 +1132,31 @@ const generateQueryHook = async (
   const operationQueryOptions = operations[operationId]?.query;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+  const queryVersion = override.query.version ?? query?.version;
 
   const hasVueQueryV4 =
     OutputClient.VUE_QUERY === outputClient &&
-    (!isVueQueryV3(context.output.packageJson) || query.version === 4);
+    (!isVueQueryV3(context.output.packageJson) || queryVersion === 4);
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
-    (!isSvelteQueryV3(context.output.packageJson) || query.version === 4);
+    (!isSvelteQueryV3(context.output.packageJson) || queryVersion === 4);
 
   const hasQueryV5 =
-    query.version === 5 ||
+    queryVersion === 5 ||
     isQueryV5(
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
   const hasQueryV5WithDataTagError =
-    query.version === 5 ||
+    queryVersion === 5 ||
     isQueryV5WithDataTagError(
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
   const hasQueryV5WithInfiniteQueryOptionsError =
-    query.version === 5 ||
+    queryVersion === 5 ||
     isQueryV5WithInfiniteQueryOptionsError(
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
