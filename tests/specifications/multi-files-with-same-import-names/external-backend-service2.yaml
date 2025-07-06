@@ -1,12 +1,12 @@
 openapi: '3.0.3'
 info:
   title: External backend service 2
-  version: "0.0.1"
+  version: '0.0.1'
 servers:
   - description: Remote
-    url: "/external-backend-service2/"
+    url: '/external-backend-service2/'
   - description: Local
-    url: "/"
+    url: '/'
 paths:
   /test:
     get:
@@ -16,7 +16,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Pet"
+                $ref: '#/components/schemas/Pet'
 
 components:
   schemas:
@@ -25,11 +25,10 @@ components:
       properties:
         name:
           type: string
-        from: 
+        from:
           type: string
           description: Field from service 2
           enum:
             - service2
       required:
         - from
-

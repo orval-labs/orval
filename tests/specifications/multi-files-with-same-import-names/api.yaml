@@ -1,14 +1,13 @@
 openapi: '3.0.3'
 info:
   title: My bff service
-  version: "0.0.1"
+  version: '0.0.1'
 servers:
   - description: Remote
-    url: "/bff/"
+    url: '/bff/'
   - description: Local
-    url: "/"
+    url: '/'
 paths:
-
   /test:
     get:
       responses:
@@ -17,20 +16,20 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Response"
+                $ref: '#/components/schemas/Response'
 
 components:
   schemas:
     Response:
       type: object
       properties:
-        petFromComponents: 
+        petFromComponents:
           $ref: '#/components/schemas/Pet'
-        petFromService1: 
+        petFromService1:
           $ref: './external-backend-service1.yaml#/components/schemas/Pet'
-        petFromService2: 
+        petFromService2:
           $ref: './external-backend-service2.yaml#/components/schemas/Pet'
-        petFromService3: 
+        petFromService3:
           $ref: './3.yaml#/components/schemas/Pet'
         petWithAllOf:
           allOf:
@@ -40,7 +39,7 @@ components:
             - $ref: '#/components/schemas/Pet'
         petWithOneOf:
           oneOf:
-            - $ref: '#/components/schemas/Pet'         
+            - $ref: '#/components/schemas/Pet'
             - $ref: './3.yaml#/components/schemas/Pet'
             - $ref: './external-backend-service2.yaml#/components/schemas/Pet'
             - $ref: './external-backend-service1.yaml#/components/schemas/Pet'
@@ -55,12 +54,10 @@ components:
       properties:
         name:
           type: string
-        from: 
+        from:
           type: string
           description: Field from bff
           enum:
             - bff
       required:
         - from
-        
-
