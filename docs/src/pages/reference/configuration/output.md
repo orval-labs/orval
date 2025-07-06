@@ -942,7 +942,6 @@ Change output naming convention generated **for property keys**.
 
 If you're looking **for file** naming convention, see [namingConvention](#namingconvention).
 
-
 ```ts
 
 module.exports = {
