@@ -117,7 +117,9 @@ Valid values: `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
 
 Default Value: `camelCase`.
 
-Specify the naming convention for the generated files.
+Specify the naming convention for the generated **files**.
+
+If you're looking for **property keys** naming convention, see [namingConvention](#namingconvention-for-property-keys).
 
 ```js
 module.exports = {
@@ -929,6 +931,42 @@ module.exports = {
   },
 };
 ```
+
+#### namingConvention for property keys
+
+Type: `Object`.
+
+Change output naming convention generated **for property keys**.
+
+**By default, preserves keys** naming convention as is.
+
+If you're looking **for file** naming convention, see [namingConvention](#namingconvention).
+
+```ts
+
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        namingConvention: {
+          enum: 'PascalCase',
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### Enum
+
+Type: `String`.
+
+Changes naming convention for **enum** keys. All generated [enum types](#enumgenerationtype) supported.
+
+Valid values: : `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
+_same as for file_ [namingConvention](#namingconvention).
 
 #### fetch
 

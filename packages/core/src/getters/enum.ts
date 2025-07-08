@@ -1,7 +1,7 @@
 import { keyword } from 'esutils';
 import { SchemaObject } from 'openapi3-ts/dist/model/openapi30';
-import { EnumGeneration } from '../types';
-import { isNumeric, sanitize } from '../utils';
+import { EnumGeneration, NamingConvention } from '../types';
+import { conventionName, isNumeric, sanitize } from '../utils';
 
 export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
   return (
@@ -25,11 +25,18 @@ export const getEnum = (
   names: string[] | undefined,
   enumGenerationType: EnumGeneration,
   descriptions?: string[],
+  enumNamingConvention?: NamingConvention,
 ) => {
   if (enumGenerationType === EnumGeneration.CONST)
-    return getTypeConstEnum(value, enumName, names, descriptions);
+    return getTypeConstEnum(
+      value,
+      enumName,
+      names,
+      descriptions,
+      enumNamingConvention,
+    );
   if (enumGenerationType === EnumGeneration.ENUM)
-    return getNativeEnum(value, enumName, names);
+    return getNativeEnum(value, enumName, names, enumNamingConvention);
   if (enumGenerationType === EnumGeneration.UNION)
     return getUnion(value, enumName);
   throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
@@ -40,6 +47,7 @@ const getTypeConstEnum = (
   enumName: string,
   names?: string[],
   descriptions?: string[],
+  enumNamingConvention?: NamingConvention,
 ) => {
   let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
 
@@ -50,7 +58,12 @@ const getTypeConstEnum = (
 
   enumValue += ';\n';
 
-  const implementation = getEnumImplementation(value, names, descriptions);
+  const implementation = getEnumImplementation(
+    value,
+    names,
+    descriptions,
+    enumNamingConvention,
+  );
 
   enumValue += '\n\n';
 
@@ -65,6 +78,7 @@ export const getEnumImplementation = (
   value: string,
   names?: string[],
   descriptions?: string[],
+  enumNamingConvention?: NamingConvention,
 ) => {
   // empty enum or null-only enum
   if (value === '') return '';
@@ -99,6 +113,10 @@ export const getEnumImplementation = (
       });
     }
 
+    if (enumNamingConvention) {
+      key = conventionName(key, enumNamingConvention);
+    }
+
     return (
       acc +
       comment +
@@ -107,14 +125,23 @@ export const getEnumImplementation = (
   }, '');
 };
 
-const getNativeEnum = (value: string, enumName: string, names?: string[]) => {
-  const enumItems = getNativeEnumItems(value, names);
+const getNativeEnum = (
+  value: string,
+  enumName: string,
+  names?: string[],
+  enumNamingConvention?: NamingConvention,
+) => {
+  const enumItems = getNativeEnumItems(value, names, enumNamingConvention);
   const enumValue = `export enum ${enumName} {\n${enumItems}\n}`;
 
   return enumValue;
 };
 
-const getNativeEnumItems = (value: string, names?: string[]) => {
+const getNativeEnumItems = (
+  value: string,
+  names?: string[],
+  enumNamingConvention?: NamingConvention,
+) => {
   if (value === '') return '';
 
   return [...new Set(value.split(' | '))].reduce((acc, val, index) => {
@@ -141,6 +168,10 @@ const getNativeEnumItems = (value: string, names?: string[]) => {
         dash: true,
         special: true,
       });
+    }
+
+    if (enumNamingConvention) {
+      key = conventionName(key, enumNamingConvention);
     }
 
     return (
