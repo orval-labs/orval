@@ -8,7 +8,7 @@ import {
   type ZodValidationSchemaDefinition,
 } from '.';
 
-import { ContextSpecs, GeneratorOptions } from '@orval/core';
+import { ContextSpecs } from '@orval/core';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [
@@ -1450,6 +1450,98 @@ describe('generateZodWithEdgeCases', () => {
 
     expect(result.implementation).toBe(
       'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
+    );
+  });
+});
+
+const schemaWithLiteralProperty = {
+  pathRoute: '/cats',
+  context: {
+    specKey: 'cat',
+    specs: {
+      cat: {
+        openapi: '3.0.0',
+        info: {
+          version: '1.0.0',
+          title: 'Cats',
+        },
+        paths: {
+          '/cats': {
+            post: {
+              operationId: 'xyz',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        type: {
+                          type: 'string',
+                          const: 'WILD',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                '200': {},
+              },
+            },
+          },
+        },
+      },
+    },
+    output: {
+      override: {
+        zod: {
+          generateEachHttpStatus: false,
+        },
+      },
+    },
+  },
+};
+
+describe('generateZodWithLiteralProperty', () => {
+  it('correctly handles literal as a property name', async () => {
+    const result = await generateZod(
+      {
+        pathRoute: '/cats',
+        verb: 'post',
+        operationName: 'test',
+        override: {
+          zod: {
+            strict: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+            generate: {
+              param: false,
+              body: true,
+              response: true,
+              query: false,
+              header: false,
+            },
+            coerce: {
+              param: false,
+              body: false,
+              response: false,
+              query: false,
+              header: false,
+            },
+          },
+        },
+      },
+      schemaWithLiteralProperty,
+      {},
+    );
+
+    expect(result.implementation).toBe(
+      'export const testBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
     );
   });
 });

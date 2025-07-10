@@ -68,7 +68,7 @@ const possibleSchemaTypes = [
   'array',
 ];
 
-const resolveZodType = (schema: SchemaObject) => {
+const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
   const schemaTypeValue = schema.type;
   const type = Array.isArray(schemaTypeValue)
     ? schemaTypeValue.find((t) => possibleSchemaTypes.includes(t))
@@ -128,7 +128,7 @@ type DateTimeOptions = {
 };
 
 export const generateZodValidationSchemaDefinition = (
-  schema: SchemaObject | undefined,
+  schema: SchemaObject | SchemaObject31 | undefined,
   context: ContextSpecs,
   name: string,
   strict: boolean,
@@ -156,7 +156,7 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const nullable =
-    schema.nullable ??
+    ('nullable' in schema && schema.nullable) ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
@@ -299,11 +299,19 @@ export const generateZodValidationSchemaDefinition = (
 
       if (isZodV4) {
         if (!schema.format) {
-          functions.push([type as string, undefined]);
+          if ('const' in schema) {
+            functions.push(['literal', `"${schema.const}"`]);
+          } else {
+            functions.push([type as string, undefined]);
+          }
           break;
         }
       } else {
-        functions.push([type as string, undefined]);
+        if ('const' in schema) {
+          functions.push(['literal', `"${schema.const}"`]);
+        } else {
+          functions.push([type as string, undefined]);
+        }
       }
 
       if (schema.format === 'date') {
