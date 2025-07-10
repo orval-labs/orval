@@ -254,16 +254,24 @@ const getFormDataAdditionalImports = ({
   context: ContextSpecs;
 }): GeneratorImport[] => {
   const { schema } = resolveRef<SchemaObject>(schemaObject, context);
-  if (schema.type === 'object') {
-    if (schema.oneOf || schema.anyOf) {
-      const combinedSchemas = schema.oneOf || schema.anyOf;
+  const imports: GeneratorImport[] = [];
 
-      return combinedSchemas!.map((schema) => {
-        const { imports } = resolveRef<SchemaObject>(schema, context);
-        return imports[0];
-      });
-    }
+  if (schema.type !== 'object') {
+    return imports;
   }
+
+  const combinedSchemas = schema.oneOf || schema.anyOf;
+
+  // should never happen, but just in case
+  if (!combinedSchemas) {
+    return imports;
+  }
+
+  for (const combinedSchema of combinedSchemas) {
+    const { imports } = resolveRef<SchemaObject>(combinedSchema, context);
+    imports.push(...imports);
+  }
+
   return [];
 };
 
@@ -308,14 +316,17 @@ const getSchemaFormDataAndUrlEncoded = ({
             context,
           );
 
-          if (shouldCast) additionalImports.push(imports[0]);
+          let newPropName = propName;
+          let newPropDefinition = '';
 
-          const newPropName = shouldCast
-            ? `${propName}${pascal(imports[0].name)}`
-            : propName;
-          const newPropDefinition = shouldCast
-            ? `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`
-            : '';
+          // If the schema is a reference, we need to cast it to the correct type
+          // to ensure that the form data is correctly typed.
+          if (shouldCast && imports[0]) {
+            additionalImports.push(imports[0]);
+            newPropName = `${propName}${pascal(imports[0].name)}`;
+            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
+          }
+
           return (
             newPropDefinition +
             resolveSchemaPropertiesToFormData({

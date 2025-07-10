@@ -1,0 +1,94 @@
+openapi: 3.0.1
+info:
+  title: One Of Required Example
+  version: v1.0
+paths:
+  /users:
+    post:
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestUser'
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseUser'
+    get:
+      operationId: getUser
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseUser'
+    put:
+      operationId: updateUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestUser'
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseUser'
+
+  schemas:
+    RequestUser:
+      type: object
+      required:
+        - name
+        - email
+        - password
+      properties:
+        name:
+          type: string
+          maxLength: 191
+        email:
+          type: string
+          format: email
+          maxLength: 191
+        password:
+          type: string
+        cpf:
+          type: string
+          maxLength: 191
+        cnpj:
+          type: string
+          maxLength: 191
+      oneOf:
+        - required: [cpf]
+        - required: [cnpj]
+
+    ResponseUser:
+      type: object
+      properties:
+        code:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        type:
+          type: string
+        is_approved:
+          type: boolean
+        is_registration_completed:
+          type: boolean
+        public_token:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        cpf:
+          type: string
+        cnpj:
+          type: string
