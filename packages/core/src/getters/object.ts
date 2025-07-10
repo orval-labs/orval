@@ -12,6 +12,7 @@ import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 
 /**
  * Return the output type from an object
@@ -124,12 +125,27 @@ export const getObject = ({
         const doc = jsDoc(schema as SchemaObject, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
-        acc.imports.push(...resolvedValue.imports);
+
+        const aliasedImports = getAliasedImports({
+          name,
+          context,
+          resolvedValue,
+          existingImports: acc.imports,
+        });
+
+        acc.imports.push(...aliasedImports);
+
+        const propValue = getImportAliasForRefOrValue({
+          context,
+          resolvedValue,
+          imports: aliasedImports,
+        });
+
         acc.value += `\n  ${doc ? `${doc}  ` : ''}${
           isReadOnly && !context.output.override.suppressReadonlyModifier
             ? 'readonly '
             : ''
-        }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
+        }${getKey(key)}${isRequired ? '' : '?'}: ${propValue};`;
         acc.schemas.push(...resolvedValue.schemas);
 
         if (arr.length - 1 === index) {

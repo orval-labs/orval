@@ -67,8 +67,8 @@ export const generateInterface = ({
   }
 
   // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
-  const externalModulesImportsOnly = scalar.imports.filter(
-    (importName) => importName.name !== name,
+  const externalModulesImportsOnly = scalar.imports.filter((importName) =>
+    importName.alias ? importName.alias !== name : importName.name !== name,
   );
 
   return [

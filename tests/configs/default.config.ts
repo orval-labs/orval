@@ -443,4 +443,12 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  'multi-files-with-same-import-names': {
+    output: {
+      target:
+        '../generated/default/multi-files-with-same-import-names/endpoints.ts',
+      schemas: '../generated/default/multi-files-with-same-import-names/model',
+    },
+    input: '../specifications/multi-files-with-same-import-names/api.yaml',
+  },
 });

@@ -1,0 +1,34 @@
+openapi: '3.0.3'
+info:
+  title: External backend service 2
+  version: '0.0.1'
+servers:
+  - description: Remote
+    url: '/external-backend-service2/'
+  - description: Local
+    url: '/'
+paths:
+  /test:
+    get:
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
+        from:
+          type: string
+          description: Field from service 2
+          enum:
+            - service2
+      required:
+        - from
