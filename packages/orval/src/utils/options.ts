@@ -3,6 +3,7 @@ import {
   ConfigExternal,
   createLogger,
   FormDataArrayHandling,
+  GeneratorSchema,
   GlobalMockOptions,
   GlobalOptions,
   HonoOptions,
@@ -24,14 +25,15 @@ import {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOptions,
+  NormalizedOutputIndexFiles,
   NormalizedOverrideOutput,
   NormalizedQueryOptions,
   OperationOptions,
   OptionsExport,
   OutputClient,
   OutputHttpClient,
+  OutputIndexFiles,
   OutputMode,
-  OutputOptions,
   OverrideOutput,
   PropertySortOrder,
   QueryOptions,
@@ -198,7 +200,7 @@ export const normalizeOptions = async (
       tsconfig,
       packageJson,
       headers: outputOptions.headers ?? false,
-      indexFiles: outputOptions.indexFiles ?? true,
+      indexFiles: normalizeIndexFiles(outputOptions.indexFiles),
       baseUrl: outputOptions.baseUrl,
       unionAddMissingProperties:
         outputOptions.unionAddMissingProperties ?? false,
@@ -436,6 +438,24 @@ export const normalizePath = <T>(path: T, workspace: string) => {
     return path;
   }
   return upath.resolve(workspace, path);
+};
+
+const normalizeIndexFiles = (
+  indexFiles: OutputIndexFiles | boolean | undefined = true,
+): NormalizedOutputIndexFiles => {
+  if (isBoolean(indexFiles)) {
+    return indexFiles
+      ? {
+          workspace: (implementations: string[]) => implementations,
+          schemas: (schemas: GeneratorSchema[]) => schemas,
+        }
+      : false;
+  }
+  return {
+    workspace: (implementations: string[]) => implementations,
+    schemas: (schemas: GeneratorSchema[]) => schemas,
+    ...indexFiles,
+  };
 };
 
 const normalizeOperationsAndTags = (

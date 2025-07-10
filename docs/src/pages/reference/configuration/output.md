@@ -296,24 +296,39 @@ Same as the tags mode if you don't use the `schemas` property only one file will
 
 ### indexFiles
 
-Type: `Boolean`
+Type: `Boolean | Object`
 
-Valid values: true or false. Defaults to true.
+Valid values:
 
-Specify whether to place `index.ts` in `schemas` generation.
+- `true` (default): Generates index files for both workspace and schemas
+- `false`: Disables index file generation
+- Object with optional `workspace` and `schemas` functions to customize index file generation
 
-Example:
+The `indexFiles` option allows you to control the generation of index files that export all available components. When set to an object, you can customize the behavior for both workspace and schemas separately.
 
 ```js
 module.exports = {
   petstore: {
     output: {
       schemas: 'src/gen/model',
-      indexFiles: false,
+      indexFiles: {
+        workspace(implementations) {
+          // Filter out model files from workspace index
+          return implementations.filter((impl) => !impl.includes('models'));
+        },
+        schemas(schemas) {
+          // Filter schemas to include in index
+          return schemas.filter((schema) => schema.name !== 'Error');
+        },
+      },
     },
   },
 };
 ```
+
+The `workspace` function receives an array of implementation paths and should return the filtered/augmented array of paths to include in the workspace index file.
+
+The `schemas` function receives an array of schema objects and should return the filtered array of schemas to include in the schemas index file.
 
 ### title
 
