@@ -156,6 +156,14 @@ export default defineConfig({
       mock: true,
     },
   },
+  'one-of-required': {
+    input: '../specifications/one-of-required.yaml',
+    output: {
+      schemas: '../generated/default/one-of-required/model',
+      target: '../generated/default/one-of-required/endpoints.ts',
+      mock: true,
+    },
+  },
   'any-of-primitive': {
     input: '../specifications/any-of-primitive.yaml',
     output: {
