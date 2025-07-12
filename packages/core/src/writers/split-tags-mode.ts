@@ -53,6 +53,7 @@ export const writeSplitTagsMode = async ({
           mutators,
           clientMutators,
           formData,
+          fetchReviver,
           formUrlEncoded,
           paramsSerializer,
         } = target;
@@ -146,6 +147,13 @@ export const writeSplitTagsMode = async ({
         if (paramsSerializer) {
           implementationData += generateMutatorImports({
             mutators: paramsSerializer,
+            oneMore: true,
+          });
+        }
+
+        if (fetchReviver) {
+          implementationData += generateMutatorImports({
+            mutators: fetchReviver,
             oneMore: true,
           });
         }

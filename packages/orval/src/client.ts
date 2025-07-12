@@ -266,6 +266,7 @@ export const generateOperations = (
         formUrlEncoded: verbOption.formUrlEncoded,
         paramsSerializer: verbOption.paramsSerializer,
         operationName: verbOption.operationName,
+        fetchReviver: verbOption.fetchReviver,
       };
 
       return acc;

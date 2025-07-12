@@ -1007,6 +1007,12 @@ By default, the `fetch` client follows the OpenAPI specification for query param
 
 If you want to maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), you can set this value to `true`.
 
+##### jsonReviver
+
+Type: `String` or `Object`
+
+Allows you to provide a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#reviver" target="_blank">reviver</a> function to the fetch client when it parses JSON. It is recommended to use this to revive dates when setting <a href="#usedates">useDates</a> to `true`
+
 #### query
 
 Type: `Object`.

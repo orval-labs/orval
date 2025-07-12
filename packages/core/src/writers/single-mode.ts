@@ -38,6 +38,7 @@ export const writeSingleMode = async ({
       formData,
       formUrlEncoded,
       paramsSerializer,
+      fetchReviver,
     } = generateTarget(builder, output);
 
     let data = header;
@@ -112,6 +113,10 @@ export const writeSingleMode = async ({
 
     if (paramsSerializer) {
       data += generateMutatorImports({ mutators: paramsSerializer });
+    }
+
+    if (fetchReviver) {
+      data += generateMutatorImports({ mutators: fetchReviver });
     }
 
     if (implementation.includes('NonReadonly<')) {

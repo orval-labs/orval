@@ -43,6 +43,7 @@ export const writeTagsMode = async ({
           clientMutators,
           formData,
           formUrlEncoded,
+          fetchReviver,
           paramsSerializer,
         } = target;
 
@@ -127,6 +128,10 @@ export const writeTagsMode = async ({
 
         if (paramsSerializer) {
           data += generateMutatorImports({ mutators: paramsSerializer });
+        }
+
+        if (fetchReviver) {
+          data += generateMutatorImports({ mutators: fetchReviver });
         }
 
         data += '\n\n';

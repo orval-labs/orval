@@ -55,6 +55,10 @@ export const generateTarget = (
         acc.clientMutators.push(...operation.clientMutators);
       }
 
+      if (operation.fetchReviver) {
+        acc.fetchReviver.push(operation.fetchReviver);
+      }
+
       if (index === arr.length - 1) {
         const isMutator = acc.mutators.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
@@ -113,6 +117,7 @@ export const generateTarget = (
       formData: [],
       formUrlEncoded: [],
       paramsSerializer: [],
+      fetchReviver: [],
     } as Required<GeneratorTargetFull>,
   );
 

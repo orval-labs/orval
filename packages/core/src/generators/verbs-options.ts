@@ -177,6 +177,17 @@ const generateVerbOptions = async ({
         })
       : undefined;
 
+  const fetchReviver =
+    isString(override?.fetch.jsonReviver) ||
+    isObject(override?.fetch.jsonReviver)
+      ? await generateMutator({
+          output: output.target,
+          name: 'fetchReviver',
+          mutator: override.fetch.jsonReviver as NormalizedMutator,
+          workspace: context.workspace,
+          tsconfig: context.output.tsconfig,
+        })
+      : undefined;
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
@@ -197,6 +208,7 @@ const generateVerbOptions = async ({
     formData,
     formUrlEncoded,
     paramsSerializer,
+    fetchReviver,
     override,
     doc,
     deprecated,

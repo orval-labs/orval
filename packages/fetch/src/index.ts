@@ -30,6 +30,7 @@ export const generateRequestFunction = (
     body,
     props,
     verb,
+    fetchReviver,
     formData,
     formUrlEncoded,
     override,
@@ -240,6 +241,7 @@ export type ${responseTypeName} = ${compositeName} & {
     ${fetchBodyOption}
   }
 `;
+  const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const fetchResponseImplementation = isNdJson
     ? `const stream = await fetch(${fetchFnOptions})
 
@@ -248,7 +250,7 @@ export type ${responseTypeName} = ${compositeName} & {
     : `const res = await fetch(${fetchFnOptions})
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-  const data: ${responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body) : {}
+  const data: ${responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
 
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${responseTypeName}` : 'return data'}
 `;
