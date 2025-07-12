@@ -224,4 +224,23 @@ export default defineConfig({
       target: '../specifications/stream.yaml',
     },
   },
+  reviver: {
+    output: {
+      target: '../generated/fetch/reviver/endpoints.ts',
+      schemas: '../generated/fetch/reviver/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      override: {
+        fetch: {
+          jsonReviver: {
+            path: 'mutators/custom-reviver.ts',
+            default: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

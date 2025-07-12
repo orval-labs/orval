@@ -39,6 +39,7 @@ export const writeSplitMode = async ({
       formData,
       formUrlEncoded,
       paramsSerializer,
+      fetchReviver,
     } = generateTarget(builder, output);
 
     let implementationData = header;
@@ -132,6 +133,12 @@ export const writeSplitMode = async ({
     if (paramsSerializer) {
       implementationData += generateMutatorImports({
         mutators: paramsSerializer,
+      });
+    }
+
+    if (fetchReviver) {
+      implementationData += generateMutatorImports({
+        mutators: fetchReviver,
       });
     }
 
