@@ -1013,6 +1013,39 @@ Type: `String` or `Object`
 
 Allows you to provide a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#reviver" target="_blank">reviver</a> function to the fetch client when it parses JSON. It is recommended to use this to revive dates when setting <a href="#usedates">useDates</a> to `true`
 
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          jsonReviver: {
+            path: './api/mutator/custom-reviver.ts',
+            name: 'customReviver',
+            // default: true
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// custom-reviver.ts
+const isoDateFormat =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
+
+export function customReviver(key: string, value: unknown) {
+  if (value && typeof value === 'string' && isoDateFormat.test(value)) {
+    return new Date(value);
+  }
+  return value;
+}
+```
+
 #### query
 
 Type: `Object`.
