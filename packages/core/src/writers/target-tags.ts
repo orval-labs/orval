@@ -176,6 +176,7 @@ export const generateTargetForTags = (
               formData: target.formData,
               formUrlEncoded: target.formUrlEncoded,
               paramsSerializer: target.paramsSerializer,
+              fetchReviver: target.fetchReviver,
             };
 
             return acc;
