@@ -14,6 +14,7 @@ paths:
               $ref: '#/components/schemas/RequestUser'
       responses:
         '201':
+          description: User created successfully
           content:
             application/json:
               schema:
@@ -22,6 +23,7 @@ paths:
       operationId: getUser
       responses:
         '200':
+          description: User retrieved successfully
           content:
             application/json:
               schema:
@@ -36,11 +38,13 @@ paths:
               $ref: '#/components/schemas/RequestUser'
       responses:
         '200':
+          description: User updated successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ResponseUser'
 
+components:
   schemas:
     RequestUser:
       type: object
