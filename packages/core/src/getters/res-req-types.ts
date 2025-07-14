@@ -254,25 +254,20 @@ const getFormDataAdditionalImports = ({
   context: ContextSpecs;
 }): GeneratorImport[] => {
   const { schema } = resolveRef<SchemaObject>(schemaObject, context);
-  const imports: GeneratorImport[] = [];
 
   if (schema.type !== 'object') {
-    return imports;
+    return [];
   }
 
   const combinedSchemas = schema.oneOf || schema.anyOf;
 
-  // should never happen, but just in case
   if (!combinedSchemas) {
-    return imports;
+    return [];
   }
 
-  for (const combinedSchema of combinedSchemas) {
-    const { imports } = resolveRef<SchemaObject>(combinedSchema, context);
-    imports.push(...imports);
-  }
-
-  return [];
+  return combinedSchemas
+    .map((schema) => resolveRef<SchemaObject>(schema, context).imports[0])
+    .filter(Boolean);
 };
 
 const getSchemaFormDataAndUrlEncoded = ({
@@ -316,17 +311,14 @@ const getSchemaFormDataAndUrlEncoded = ({
             context,
           );
 
-          let newPropName = propName;
-          let newPropDefinition = '';
+          if (shouldCast) additionalImports.push(imports[0]);
 
-          // If the schema is a reference, we need to cast it to the correct type
-          // to ensure that the form data is correctly typed.
-          if (shouldCast && imports[0]) {
-            additionalImports.push(imports[0]);
-            newPropName = `${propName}${pascal(imports[0].name)}`;
-            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
-          }
-
+          const newPropName = shouldCast
+            ? `${propName}${pascal(imports[0].name)}`
+            : propName;
+          const newPropDefinition = shouldCast
+            ? `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`
+            : '';
           return (
             newPropDefinition +
             resolveSchemaPropertiesToFormData({
