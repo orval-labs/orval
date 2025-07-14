@@ -254,17 +254,20 @@ const getFormDataAdditionalImports = ({
   context: ContextSpecs;
 }): GeneratorImport[] => {
   const { schema } = resolveRef<SchemaObject>(schemaObject, context);
-  if (schema.type === 'object') {
-    if (schema.oneOf || schema.anyOf) {
-      const combinedSchemas = schema.oneOf || schema.anyOf;
 
-      return combinedSchemas!.map((schema) => {
-        const { imports } = resolveRef<SchemaObject>(schema, context);
-        return imports[0];
-      });
-    }
+  if (schema.type !== 'object') {
+    return [];
   }
-  return [];
+
+  const combinedSchemas = schema.oneOf || schema.anyOf;
+
+  if (!combinedSchemas) {
+    return [];
+  }
+
+  return combinedSchemas
+    .map((schema) => resolveRef<SchemaObject>(schema, context).imports[0])
+    .filter(Boolean);
 };
 
 const getSchemaFormDataAndUrlEncoded = ({
