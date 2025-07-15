@@ -630,6 +630,7 @@ export type SwrOptions = {
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
   explode?: boolean;
+  jsonReviver?: Mutator;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
@@ -803,6 +804,7 @@ export type GeneratorTarget = {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  fetchReviver?: GeneratorMutator[];
 };
 
 export type GeneratorTargetFull = {
@@ -819,6 +821,7 @@ export type GeneratorTargetFull = {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  fetchReviver?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
@@ -836,6 +839,7 @@ export type GeneratorOperation = {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  fetchReviver?: GeneratorMutator;
   operationName: string;
   types?: {
     result: (title?: string) => string;
@@ -861,6 +865,7 @@ export type GeneratorVerbOptions = {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  fetchReviver?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
   originalOperation: OperationObject;

@@ -35,6 +35,7 @@ const generateTargetTags = (
       paramsSerializer: operation.paramsSerializer
         ? [operation.paramsSerializer]
         : [],
+      fetchReviver: operation.fetchReviver ? [operation.fetchReviver] : [],
       implementation: operation.implementation,
       implementationMock: {
         function: operation.implementationMock.function,
@@ -84,6 +85,9 @@ const generateTargetTags = (
           operation.paramsSerializer,
         ]
       : currentOperation.paramsSerializer,
+    fetchReviver: operation.fetchReviver
+      ? [...(currentOperation.fetchReviver ?? []), operation.fetchReviver]
+      : currentOperation.fetchReviver,
   };
   return currentAcc;
 };
@@ -172,6 +176,7 @@ export const generateTargetForTags = (
               formData: target.formData,
               formUrlEncoded: target.formUrlEncoded,
               paramsSerializer: target.paramsSerializer,
+              fetchReviver: target.fetchReviver,
             };
 
             return acc;
