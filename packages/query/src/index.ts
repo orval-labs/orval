@@ -1169,11 +1169,15 @@ const generateQueryHook = async (
   let mutators = undefined;
 
   let isQuery =
-    Verbs.GET === verb &&
-    (override.query.useQuery ||
-      override.query.useSuspenseQuery ||
-      override.query.useInfinite ||
-      override.query.useSuspenseInfiniteQuery);
+    (Verbs.GET === verb &&
+      (override.query.useQuery ||
+        override.query.useSuspenseQuery ||
+        override.query.useInfinite ||
+        override.query.useSuspenseInfiniteQuery)) ||
+    override.query.useQuery ||
+    override.query.useSuspenseQuery ||
+    override.query.useInfinite ||
+    override.query.useSuspenseInfiniteQuery;
 
   // Allows operationQueryOptions to override non-GET verbs
   const hasOperationQueryOption =
