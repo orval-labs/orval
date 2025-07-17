@@ -164,6 +164,14 @@ export default defineConfig({
       mock: true,
     },
   },
+  'one-of-nested': {
+    input: '../specifications/one-of-nested.yaml',
+    output: {
+      schemas: '../generated/default/one-of-nested/model',
+      target: '../generated/default/one-of-nested/endpoints.ts',
+      mock: true,
+    },
+  },
   'any-of-primitive': {
     input: '../specifications/any-of-primitive.yaml',
     output: {
