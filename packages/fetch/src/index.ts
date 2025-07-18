@@ -73,13 +73,22 @@ export const generateRequestFunction = (
 
     return schema.name;
   });
+  const hasDateParams =
+    context.output.override.useDates &&
+    parameters.some(
+      (p) =>
+        'schema' in p &&
+        p.schema &&
+        'format' in p.schema &&
+        p.schema.format === 'date-time',
+    );
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
-      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString()));
       return;
     }
       `
@@ -89,7 +98,7 @@ export const generateRequestFunction = (
     explodeParameters.length === parameters.length;
 
   const nomalParamsImplementation = `if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
     }`;
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {

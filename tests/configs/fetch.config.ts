@@ -243,4 +243,18 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  dateParams: {
+    output: {
+      target: '../generated/fetch/dateParams/endpoints.ts',
+      schemas: '../generated/fetch/dateParams/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      override: {
+        useDates: true,
+      },
+    },
+    input: {
+      target: '../specifications/parameters.yaml',
+    },
+  },
 });

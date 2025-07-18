@@ -120,6 +120,15 @@ paths:
           required: false
           schema:
             type: string
+        - name: latestBirthdate
+          in: query
+          description: |
+            Filter by latest birthdate.
+            Example: 2020-01-01T00:00:00Z
+          required: false
+          schema:
+            type: string
+            format: date-time
       responses:
         '200':
           description: A paged array of pets
