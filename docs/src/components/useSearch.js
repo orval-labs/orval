@@ -84,7 +84,8 @@ export function SearchProvider({
                   url: item.url
                     .replace(url.origin, '')
                     .replace('#__next', '')
-                    .replace('/docs/#', '/docs/overview#'),
+                    .replace('/docs/#', '/docs/overview#')
+                    .replace(/#([^/]+)$/, '/$1'),
                 };
               });
             }}
