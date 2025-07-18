@@ -477,6 +477,13 @@ const resolveSchemaPropertiesToFormData = ({
             itemSchema.type?.includes('boolean')
           ) {
             valueStr = 'value.toString()';
+          } else if (
+            itemSchema.type === 'string' &&
+            itemSchema.format === 'date-time' &&
+            context.output.override.useDates
+          ) {
+            valueStr =
+              'value instanceof Date ? value.toISOString() : value.toString()';
           }
         }
         if (
@@ -498,6 +505,12 @@ const resolveSchemaPropertiesToFormData = ({
         property.type?.includes('boolean')
       ) {
         formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
+      } else if (
+        property.type === 'string' &&
+        property.format === 'date-time' &&
+        context.output.override.useDates
+      ) {
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Date ? ${nonOptionalValueKey}.toISOString() : ${nonOptionalValueKey})\n`;
       } else {
         formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey})\n`;
       }
