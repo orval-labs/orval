@@ -2430,6 +2430,8 @@ export function handleDates(body: any) {
 }
 ```
 
+**Note:** If you are using the fetch client and useDates is set to true, query parameters of type Date will be stringified using toISOString()
+
 #### useBigInt
 
 Type: `Boolean`
