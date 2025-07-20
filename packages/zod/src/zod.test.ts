@@ -749,7 +749,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         false,
       );
-      expect(parsed.zod).toBe('zod.literal(1).or(zod.literal(2)).optional()');
+      expect(parsed.zod).toBe(
+        'zod.union([zod.literal(1),zod.literal(2)]).optional()',
+      );
     });
 
     it('generates an enum for a boolean', () => {
@@ -789,8 +791,41 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        'zod.literal(true).or(zod.literal(false)).optional()',
+        'zod.union([zod.literal(true),zod.literal(false)]).optional()',
       );
+    });
+
+    it('does not use union for single item enum', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        enum: [1],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testEnumNumber',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['oneOf', [{ functions: [['literal', 1]], consts: [] }]],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.literal(1).optional()');
     });
 
     it('generates an enum for any', () => {
@@ -830,7 +865,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        "zod.literal('cat').or(zod.literal(1)).or(zod.literal(true)).optional()",
+        "zod.union([zod.literal('cat'),zod.literal(1),zod.literal(true)]).optional()",
       );
     });
   });

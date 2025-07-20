@@ -557,31 +557,20 @@ export const parseZodValidationSchemaDefinition = (
       );
     }
     if (fn === 'oneOf' || fn === 'anyOf') {
-      return args.reduce(
-        (
-          acc: string,
-          {
-            functions,
-            consts: argConsts,
-          }: { functions: [string, any][]; consts: string[] },
-        ) => {
+      // Can't use zod.union() with a single item
+      if (args.length === 1) {
+        return args[0].functions.map(parseProperty).join('');
+      }
+
+      const union = args.map(
+        ({ functions }: { functions: [string, any][] }) => {
           const value = functions.map(parseProperty).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-
-          if (argConsts.length) {
-            consts += argConsts.join('');
-          }
-
-          if (!acc) {
-            acc += valueWithZod;
-            return acc;
-          }
-          acc += `.or(${valueWithZod})`;
-
-          return acc;
+          return valueWithZod;
         },
-        '',
       );
+
+      return `.union([${union}])`;
     }
 
     if (fn === 'additionalProperties') {
