@@ -91,6 +91,7 @@ h6:hover .anchor::after {
   --fds-animation-fade-out: cubic-bezier(0, 0, 1, 1);
 }
 
+/* Fixes transparency of results and recent results in search */
 .DocSearch-Hit:hover,
 .DocSearch-Hit[aria-selected="true"] {
   background-color: rgba(243, 244, 246, 0.95) !important;
