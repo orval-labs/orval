@@ -91,6 +91,13 @@ h6:hover .anchor::after {
   --fds-animation-fade-out: cubic-bezier(0, 0, 1, 1);
 }
 
+.DocSearch-Hit:hover,
+.DocSearch-Hit[aria-selected="true"] {
+  background-color: rgba(243, 244, 246, 0.95) !important;
+  opacity: 1 !important;
+  transition: background-color 0.2s ease-in-out;
+}
+
 .DocSearch--active #__next {
   -webkit-filter: blur(2px);
   filter: blur(2px);
