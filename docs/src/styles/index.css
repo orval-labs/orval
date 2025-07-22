@@ -78,7 +78,6 @@ h6:hover .anchor::after {
 }
 
 /* Algolia v3 overrides */
-/* Algolia v3 overrides */
 :root {
   --docsearch-modal-background: #fff;
   --docsearch-highlight-color: #6f40c9;
@@ -98,6 +97,10 @@ h6:hover .anchor::after {
   background-color: rgba(243, 244, 246, 0.95) !important;
   opacity: 1 !important;
   transition: background-color 0.2s ease-in-out;
+}
+
+:root {
+  --docsearch-hit-active-color: #6b7280; 
 }
 
 .DocSearch--active #__next {
