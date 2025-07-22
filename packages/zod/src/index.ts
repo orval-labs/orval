@@ -127,6 +127,10 @@ type DateTimeOptions = {
   precision?: number;
 };
 
+type TimeOptions = {
+  precision?: '-1' | '0' | '1' | '2' | '3';
+};
+
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | SchemaObject31 | undefined,
   context: ContextSpecs,
@@ -136,6 +140,7 @@ export const generateZodValidationSchemaDefinition = (
   rules?: {
     required?: boolean;
     dateTimeOptions?: DateTimeOptions;
+    timeOptions?: TimeOptions;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -322,9 +327,13 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'time') {
+        const options = context.output.override.zod?.timeOptions;
         const formatAPI = getZodTimeFormat(isZodV4);
 
-        functions.push([formatAPI, undefined]);
+        functions.push([
+          formatAPI,
+          options ? JSON.stringify(options) : undefined,
+        ]);
         break;
       }
 

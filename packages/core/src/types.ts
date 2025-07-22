@@ -501,6 +501,10 @@ export type ZodDateTimeOptions = {
   precision?: number;
 };
 
+export type ZodTimeOptions = {
+  precision?: -1 | 0 | 1 | 2 | 3;
+};
+
 export type ZodOptions = {
   strict?: {
     param?: boolean;
@@ -531,6 +535,7 @@ export type ZodOptions = {
     response?: Mutator;
   };
   dateTimeOptions?: ZodDateTimeOptions;
+  timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
 };
 
@@ -567,6 +572,7 @@ export type NormalizedZodOptions = {
   };
   generateEachHttpStatus: boolean;
   dateTimeOptions: ZodDateTimeOptions;
+  timeOptions: ZodTimeOptions;
 };
 
 export type HonoOptions = {
