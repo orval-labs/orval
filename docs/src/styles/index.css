@@ -100,7 +100,7 @@ h6:hover .anchor::after {
 }
 
 :root {
-  --docsearch-hit-active-color: #6b7280; 
+  --docsearch-hit-active-color: #6b7280;
 }
 
 .DocSearch--active #__next {
