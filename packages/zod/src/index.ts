@@ -128,7 +128,7 @@ type DateTimeOptions = {
 };
 
 type TimeOptions = {
-  precision?: '-1' | '0' | '1' | '2' | '3';
+  precision?: -1 | 0 | 1 | 2 | 3;
 };
 
 export const generateZodValidationSchemaDefinition = (
