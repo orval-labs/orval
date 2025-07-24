@@ -1,9 +1,18 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "pipeline": {
+  "globalEnv": [
+    "ORVAL_DEBUG_FILTER",
+    "CI",
+    "DEBUG"
+  ],
+  "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "dev": {
       "cache": false
@@ -14,6 +23,5 @@
     "test": {
       "outputs": []
     }
-  },
-  "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"]
+  }
 }
