@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/server.ts",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
+    "generate-api": "orval"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.10.1",
@@ -13,9 +13,8 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "orval": "link:../../../packages/orval/dist",
+    "orval": "workspace:*",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
-  },
-  "packageManager": "yarn@4.9.1"
+  }
 }

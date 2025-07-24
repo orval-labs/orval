@@ -14,8 +14,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@orval/core": "7.11.2",
-    "@orval/fetch": "7.11.2",
+    "@orval/core": "workspace:*",
+    "@orval/fetch": "workspace:*",
     "lodash.omitby": "^4.6.0"
   },
   "devDependencies": {

@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
-    "orval": "link:../../../packages/orval/dist"
+    "orval": "workspace:*"
   },
   "scripts": {
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "generate-api": "orval",
     "test": "tsc --noEmit endpoints.ts"
   },
   "dependencies": {

@@ -7,7 +7,7 @@
     "dev": "vite --host",
     "build": "vue-tsc -b && vite build",
     "preview": "vite preview",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "generate-api": "orval",
     "test": "tsc --noEmit"
   },
   "dependencies": {
@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.5",
-    "orval": "link:../../../packages/orval/dist",
+    "orval": "workspace:*",
     "typescript": "^5.2.2",
     "vite": "^5.3.1",
     "vue-tsc": "^2.0.21"

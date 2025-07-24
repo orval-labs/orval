@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@orval/core": "7.11.2",
+    "@orval/core": "workspace:*",
     "openapi3-ts": "^4.2.2"
   }
 }

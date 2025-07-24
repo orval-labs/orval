@@ -17,13 +17,13 @@
     "typescript": "^5.2.2"
   },
   "devDependencies": {
-    "orval": "link:../../../packages/orval/dist"
+    "orval": "workspace:*"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "generate-api": "orval",
     "test": "tsc --noEmit"
   },
   "eslintConfig": {
