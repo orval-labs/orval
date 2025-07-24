@@ -22,6 +22,11 @@
     },
     "test": {
       "outputs": []
+    },
+    "generate-api": {
+      "dependsOn": [
+        "orval#build"
+      ]
     }
   }
 }
