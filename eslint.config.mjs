@@ -1,13 +1,13 @@
-import pluginJs from '@eslint/js';
+// @ts-check
+import eslint from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-/** @type {import('eslint').Linter.Config[]} */
-export default [
+export default tseslint.config(
+  eslint.configs.recommended,
+  tseslint.configs.recommended,
   { files: ['**/*.{js,mjs,cjs,ts}'] },
   { languageOptions: { globals: globals.browser } },
-  pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
@@ -21,4 +21,4 @@ export default [
       '@typescript-eslint/no-unused-vars': 'warn',
     },
   },
-];
+);
