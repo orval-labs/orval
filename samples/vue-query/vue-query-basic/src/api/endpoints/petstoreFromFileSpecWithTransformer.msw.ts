@@ -122,10 +122,10 @@ export const getShowPetByIdMockHandler = (
 
 export const getPostApiV1UserLogoutMockHandler = (
   overrideResponse?:
-    | void
+    | null
     | ((
         info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<void> | void),
+      ) => Promise<null> | null),
 ) => {
   return http.post('*/api/v1/user/logout', async (info) => {
     await delay(1000);
