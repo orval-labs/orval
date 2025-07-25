@@ -1168,23 +1168,26 @@ const generateQueryHook = async (
   let implementation = '';
   let mutators = undefined;
 
+  // Allows operationQueryOptions (which is the Orval config override for the operationId)
+  // to override non-GET verbs
+  const hasOperationQueryOption = !!(
+    operationQueryOptions &&
+    (operationQueryOptions?.useQuery ||
+      operationQueryOptions?.useSuspenseQuery ||
+      operationQueryOptions?.useInfinite ||
+      operationQueryOptions?.useSuspenseInfiniteQuery)
+  );
+
   let isQuery =
-    Verbs.GET === verb &&
-    (override.query.useQuery ||
-      override.query.useSuspenseQuery ||
-      override.query.useInfinite ||
-      override.query.useSuspenseInfiniteQuery);
-
-  // Allows operationQueryOptions to override non-GET verbs
-  const hasOperationQueryOption =
-    operationQueryOptions?.useQuery ||
-    operationQueryOptions?.useSuspenseQuery ||
-    operationQueryOptions?.useInfinite ||
-    operationQueryOptions?.useSuspenseInfiniteQuery;
-
-  isQuery = isQuery || hasOperationQueryOption;
+    (Verbs.GET === verb &&
+      (override.query.useQuery ||
+        override.query.useSuspenseQuery ||
+        override.query.useInfinite ||
+        override.query.useSuspenseInfiniteQuery)) ||
+    hasOperationQueryOption;
 
   let isMutation = override.query.useMutation && verb !== Verbs.GET;
+  
 
   if (operationQueryOptions?.useMutation !== undefined) {
     isMutation = operationQueryOptions.useMutation;
