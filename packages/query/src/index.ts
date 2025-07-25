@@ -1187,7 +1187,6 @@ const generateQueryHook = async (
     hasOperationQueryOption;
 
   let isMutation = override.query.useMutation && verb !== Verbs.GET;
-  
 
   if (operationQueryOptions?.useMutation !== undefined) {
     isMutation = operationQueryOptions.useMutation;
