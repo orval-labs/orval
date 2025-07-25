@@ -502,7 +502,7 @@ export function useShowPetById<
  * @summary This is required to test case when there are no parameters (this path is ignored in add-version transformer), see https://github.com/orval-labs/orval/issues/857#issuecomment-1835317990
  */
 export const postApiV1UserLogout = (signal?: AbortSignal) => {
-  return customInstance<void>({
+  return customInstance<null>({
     url: `/api/v1/user/logout`,
     method: 'POST',
     signal,
