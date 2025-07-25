@@ -9,6 +9,7 @@
   "bin": "dist/bin/orval.js",
   "type": "commonjs",
   "main": "dist/index.js",
+  "types": "dist/index.d.js",
   "keywords": [
     "rest",
     "client",
@@ -45,13 +46,13 @@
     "build": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --clean --sourcemap --dts",
     "dev": "tsup ./src/bin/orval.ts ./src/index.ts --target node12 --clean --sourcemap --watch ./src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
-    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
+    "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
     "test": "tsc --noEmit && vitest --passWithNoTests"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.6",
+    "@types/inquirer": "^9.0.7",
     "@types/js-yaml": "^4.0.8",
-    "@types/lodash.uniq": "^4.5.8",
+    "@types/lodash.uniq": "^4.5.9",
     "typedoc-plugin-coverage": "^3.4.1"
   },
   "dependencies": {
@@ -75,11 +76,11 @@
     "find-up": "5.0.0",
     "fs-extra": "^11.3.0",
     "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.2.2",
+    "openapi3-ts": "4.4.0",
     "string-argv": "^0.3.2",
     "tsconfck": "^2.0.1",
     "typedoc": "^0.28.7",
     "typedoc-plugin-markdown": "^4.8.0",
-    "typescript": "^5.6.3"
+    "typescript": "5.8.3"
   }
 }

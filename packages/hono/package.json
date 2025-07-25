@@ -18,6 +18,6 @@
     "lodash.uniq": "^4.5.0"
   },
   "devDependencies": {
-    "@types/lodash.uniq": "^4.5.7"
+    "@types/lodash.uniq": "^4.5.9"
   }
 }

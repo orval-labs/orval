@@ -7,13 +7,13 @@
     "generate-api": "orval"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.2.0",
-    "hono": "^4.0.4",
-    "zod": "^3.23.8"
+    "@hono/zod-validator": "^0.4.2",
+    "hono": "^4.6.16",
+    "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240208.0",
+    "@cloudflare/workers-types": "^4.20240529.0",
     "orval": "workspace:*",
-    "wrangler": "^3.25.0"
+    "wrangler": "^3.57.2"
   }
 }

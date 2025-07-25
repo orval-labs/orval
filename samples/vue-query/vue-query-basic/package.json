@@ -11,22 +11,22 @@
     "test": "vue-tsc --noEmit && vitest --run && yarn test-types"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.8.0",
+    "@faker-js/faker": "^9.9.0",
     "@tanstack/vue-query": "^5.80.7",
-    "axios": "^1.8.2",
+    "axios": "^1.8.4",
     "vue": "^3.5.16"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.0.1",
-    "@vitejs/plugin-vue": "^4.5.0",
+    "@vitejs/plugin-vue": "^5.0.5",
     "@vue/compiler-sfc": "^3.5.16",
     "jsdom": "^23.0.0",
-    "msw": "^2.0.2",
+    "msw": "^2.10.4",
     "orval": "workspace:*",
     "tsd": "^0.29.0",
-    "typescript": "^5.3.2",
-    "vite": "^4.4.11",
-    "vitest": "^0.34.6",
+    "typescript": "5.8.3",
+    "vite": "^5.3.4",
+    "vitest": "^3.2.4",
     "vue-tsc": "^2.2.10"
   },
   "msw": {

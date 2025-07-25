@@ -1,7 +1,6 @@
 {
   "name": "docs",
   "version": "1.0.0",
-  "main": "index.js",
   "author": "Jared Palmer <jared@palmer.net>",
   "license": "MIT",
   "scripts": {
@@ -21,7 +20,7 @@
     "@next/mdx": "^15.4.4",
     "@octokit/graphql": "^5.0.4",
     "@reactions/component": "^2.0.2",
-    "@tanstack/react-query": "^4.22.0",
+    "@tanstack/react-query": "^5.63.0",
     "axios": "^1.8.4",
     "body-scroll-lock": "^3.1.5",
     "classnames": "^2.5.1",
@@ -33,8 +32,8 @@
     "gray-matter": "^4.0.3",
     "intersection-observer": "^0.12.2",
     "next": "^15.4.4",
-    "orval": "^7.9.0",
-    "prettier": "^2.8.3",
+    "orval": "workspace:*",
+    "prettier": "3.2.5",
     "prismjs": "^1.21.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -67,7 +66,7 @@
     "nextjs-sitemap-generator": "^1.1.3",
     "postcss": "8.4.21",
     "remark-parse": "^8.0.3",
-    "tailwindcss": "^3.3.5"
+    "tailwindcss": "^3.4.1"
   },
   "engines": {
     "node": "18.x"

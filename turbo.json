@@ -1,18 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalEnv": [
-    "ORVAL_DEBUG_FILTER",
-    "CI",
-    "DEBUG"
-  ],
+  "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"],
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "dist/**"
-      ]
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
     },
     "dev": {
       "cache": false
@@ -24,9 +16,7 @@
       "outputs": []
     },
     "generate-api": {
-      "dependsOn": [
-        "orval#build"
-      ]
+      "dependsOn": ["orval#build"]
     }
   }
 }

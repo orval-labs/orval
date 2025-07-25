@@ -12,9 +12,9 @@
     "zod": "^3.24.3"
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
+    "@types/node": "^20.13.0",
     "orval": "workspace:*",
     "ts-node": "^10.9.2",
-    "typescript": "^5.8.2"
+    "typescript": "5.8.3"
   }
 }

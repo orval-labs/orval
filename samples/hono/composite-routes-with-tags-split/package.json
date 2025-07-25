@@ -5,11 +5,10 @@
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts",
-    "clean": "run --top-level rimraf -rf src/endpoints src/schemas",
-    "generate-api": "run clean && orval"
+    "generate-api": "orval"
   },
   "dependencies": {
-    "hono": "^4.5.8"
+    "hono": "^4.6.16"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20240529.0",

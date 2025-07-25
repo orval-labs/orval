@@ -15,6 +15,6 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "openapi3-ts": "^4.2.2"
+    "openapi3-ts": "4.4.0"
   }
 }
