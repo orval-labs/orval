@@ -97,8 +97,7 @@ export const getListPetsInfiniteQueryOptions = <
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -155,8 +154,7 @@ export function useListPetsInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     > &
       Pick<
@@ -189,8 +187,7 @@ export function useListPetsInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     > &
       Pick<
@@ -223,8 +220,7 @@ export function useListPetsInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -252,8 +248,7 @@ export function useListPetsInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -558,8 +553,7 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -615,8 +609,7 @@ export function useListPetsSuspenseInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -640,8 +633,7 @@ export function useListPetsSuspenseInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -665,8 +657,7 @@ export function useListPetsSuspenseInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
@@ -694,8 +685,7 @@ export function useListPetsSuspenseInfinite<
         TError,
         TData,
         Awaited<ReturnType<typeof listPets>>,
-        QueryKey,
-        ListPetsParams['limit']
+        QueryKey
       >
     >;
   },
