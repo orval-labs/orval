@@ -1172,10 +1172,10 @@ const generateQueryHook = async (
   // to override non-GET verbs
   const hasOperationQueryOption = !!(
     operationQueryOptions &&
-    (operationQueryOptions?.useQuery ||
-      operationQueryOptions?.useSuspenseQuery ||
-      operationQueryOptions?.useInfinite ||
-      operationQueryOptions?.useSuspenseInfiniteQuery)
+    (operationQueryOptions.useQuery ||
+      operationQueryOptions.useSuspenseQuery ||
+      operationQueryOptions.useInfinite ||
+      operationQueryOptions.useSuspenseInfiniteQuery)
   );
 
   let isQuery =
