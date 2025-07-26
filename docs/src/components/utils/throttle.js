@@ -1,5 +1,5 @@
 export const throttle = (func, limit) => {
-  let inThrottle = false
+  let inThrottle = false;
   return (...args) => {
     if (!inThrottle) {
       func(...args); //exec function

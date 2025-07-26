@@ -21,9 +21,9 @@ const DEFAULT_EXAMPLE = {
 };
 
 // Imports Select dynamically only on the client to avoid hydration warnings in SSR (e.g. aria-activedescendant)
-  const Select = dynamic(() => import('react-select'), {
-    ssr: false,
-  });
+const Select = dynamic(() => import('react-select'), {
+  ssr: false,
+});
 
 export function Playground({ height }) {
   const [template, setTemplate] = useState(

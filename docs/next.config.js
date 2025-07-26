@@ -6,7 +6,7 @@ const remarkPlugins = require('./src/lib/docs/remark-plugins.js');
 
 module.exports = {
   pageExtensions: ['jsx', 'js', 'ts', 'tsx', 'mdx', 'md'],
-rewrites() {
+  rewrites() {
     return [
       {
         source: '/docs{/}?',
