@@ -65,3 +65,6 @@ components:
           items:
             type: integer
             format: int64
+        feedingTime:
+          type: string
+          format: time
