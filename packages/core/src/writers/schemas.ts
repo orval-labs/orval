@@ -1,6 +1,10 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
-import { GeneratorSchema, NamingConvention } from '../types';
+import {
+  GeneratorSchema,
+  NamingConvention,
+  NormalizedOutputIndexFiles,
+} from '../types';
 import { upath, conventionName } from '../utils';
 
 const getSchema = ({
@@ -109,7 +113,7 @@ export const writeSchemas = async ({
   isRootKey: boolean;
   specsName: Record<string, string>;
   header: string;
-  indexFiles: boolean;
+  indexFiles: NormalizedOutputIndexFiles;
 }) => {
   await Promise.all(
     schemas.map((schema) =>
@@ -164,7 +168,8 @@ export const writeSchemas = async ({
         ? fileExtension.slice(0, -3)
         : fileExtension;
 
-      const importStatements = schemas
+      const importStatements = indexFiles
+        .schemas(schemas)
         .filter((schema) => {
           const name = conventionName(schema.name, namingConvention);
 

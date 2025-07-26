@@ -124,12 +124,28 @@ export const writeSpecs = async (
       );
     }
 
+    const exposedFiles = builder.extraFiles.filter(
+      (file) => file.exposeIndexFile,
+    );
+    if (exposedFiles.length) {
+      imports.push(
+        ...exposedFiles.map((file) =>
+          upath.relativeSafe(
+            workspacePath,
+            getFileInfo(file.path).pathWithoutExtension,
+          ),
+        ),
+      );
+    }
+
     if (output.indexFiles) {
       const indexFile = upath.join(workspacePath, '/index.ts');
 
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');
-        const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
+        const importsNotDeclared = output.indexFiles
+          .workspace(imports)
+          .filter((imp) => !data.includes(imp));
         await fs.appendFile(
           indexFile,
           uniq(importsNotDeclared)
@@ -139,7 +155,7 @@ export const writeSpecs = async (
       } else {
         await fs.outputFile(
           indexFile,
-          uniq(imports)
+          uniq(output.indexFiles.workspace(imports))
             .map((imp) => `export * from '${imp}';`)
             .join('\n') + '\n',
         );

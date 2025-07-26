@@ -20,6 +20,7 @@
     "generate:fetch": "yarn orval --config ./configs/fetch.config.ts",
     "generate:mcp": "yarn orval --config ./configs/mcp.config.ts",
     "generate:hono": "rm -rf generated/hono && yarn orval --config ./configs/hono.config.ts",
+    "generate:multi-client": "yarn orval --config ./configs/multi-client.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
