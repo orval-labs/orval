@@ -1,6 +1,8 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-require-imports */
 module.exports = [
   require('remark-slug'),
-  require('./remark-paragraph-alerts'),
+  require('./remark-paragraph-alerts.js'),
   [
     require('remark-autolink-headings'),
     {

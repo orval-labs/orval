@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const fm = require('gray-matter');
 
 // makes mdx in next.js suck less by injecting necessary exports so that

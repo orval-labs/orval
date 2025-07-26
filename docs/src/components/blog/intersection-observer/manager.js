@@ -1,8 +1,8 @@
 import { hasEqualOptions, parseOptions } from './utils';
 
-if (typeof window !== 'undefined') {
-  require('intersection-observer');
-}
+//if (typeof window !== 'undefined') {
+//  require('intersection-observer');
+//}
 
 const manager = (function makeManager() {
   const observers = new Map();

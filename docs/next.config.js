@@ -2,11 +2,11 @@ const webpack = require('webpack');
 const fs = require('fs');
 const path = require('path');
 const visit = require('unist-util-visit');
-const remarkPlugins = require('./src/lib/docs/remark-plugins');
+const remarkPlugins = require('./src/lib/docs/remark-plugins.js');
 
 module.exports = {
   pageExtensions: ['jsx', 'js', 'ts', 'tsx', 'mdx', 'md'],
-  rewrites() {
+rewrites() {
     return [
       {
         source: '/docs{/}?',
@@ -25,7 +25,7 @@ module.exports = {
             remarkPlugins,
           },
         },
-        path.join(__dirname, './src/lib/docs/md-loader'),
+        path.join(__dirname, 'src/lib/docs/md-loader.js'),
       ],
     });
 
