@@ -1,3 +1,5 @@
+/* eslint-disable no-undef */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const is = require('unist-util-is');
 const visit = require('unist-util-visit');
 
