@@ -5,27 +5,33 @@ __metadata:
   version: 8
   cacheKey: 10c0
 
-"@angular/common@npm:^17.1.1":
-  version: 17.1.1
-  resolution: "@angular/common@npm:17.1.1"
+"@angular/common@npm:^20.1.3":
+  version: 20.1.3
+  resolution: "@angular/common@npm:20.1.3"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
-    "@angular/core": 17.1.1
+    "@angular/core": 20.1.3
     rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/8fce41fd9b12b24004c9d29f09ede904af8349700a7fa78837658dc5ad707701289c9f4bf0d8f2ec6f54aeee7eda959477a2641cf1b61f66cbddd8237dd11c12
+  checksum: 10c0/a6219b25b4b56d4ea3078beae002f54b0d34b7876c7849313371543e69e0d9aaefeba3cd5adfaa3819c1df8a10a84f327d89371d0aa7b658d61db6aa70155015
   languageName: node
   linkType: hard
 
-"@angular/core@npm:^17.1.1":
-  version: 17.1.1
-  resolution: "@angular/core@npm:17.1.1"
+"@angular/core@npm:^20.1.3":
+  version: 20.1.3
+  resolution: "@angular/core@npm:20.1.3"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
+    "@angular/compiler": 20.1.3
     rxjs: ^6.5.3 || ^7.4.0
-    zone.js: ~0.14.0
-  checksum: 10c0/05b31772d3b7b0a7fc21be51419cbdf790c1e7d54d3ee2118855cb5e9c13ac72629de5745680934b0d53a2385b4faa126faa35806bba7d0ece9ec4b8a0c5a0e4
+    zone.js: ~0.15.0
+  peerDependenciesMeta:
+    "@angular/compiler":
+      optional: true
+    zone.js:
+      optional: true
+  checksum: 10c0/0608081058640041f4f0df827a0114cd8c26ae7ed5d19d5f6eb48abcd5092d576e2656bd52eb6a31370a598717d5e6f193859872a8b3fc9b59b8350b5483cfeb
   languageName: node
   linkType: hard
 
@@ -577,8 +583,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "basic@workspace:."
   dependencies:
-    "@angular/common": "npm:^17.1.1"
-    "@angular/core": "npm:^17.1.1"
+    "@angular/common": "npm:^20.1.3"
+    "@angular/core": "npm:^20.1.3"
     "@faker-js/faker": "npm:^9.8.0"
     "@hono/zod-validator": "npm:^0.4.2"
     "@modelcontextprotocol/sdk": "npm:^1.9.0"
@@ -593,7 +599,7 @@ __metadata:
     orval: "link:../packages/orval/dist"
     react: "npm:^18.3.1"
     swr: "npm:^2.2.4"
-    typescript: "npm:5.3.3"
+    typescript: "npm:5.8.3"
     vue: "npm:^3.3.4"
     zod: "npm:^3.23.8"
   languageName: unknown
@@ -3234,23 +3240,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.3.3":
-  version: 5.3.3
-  resolution: "typescript@npm:5.3.3"
+"typescript@npm:5.8.3":
+  version: 5.8.3
+  resolution: "typescript@npm:5.8.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/e33cef99d82573624fc0f854a2980322714986bc35b9cb4d1ce736ed182aeab78e2cb32b385efa493b2a976ef52c53e20d6c6918312353a91850e2b76f1ea44f
+  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5.3.3#optional!builtin<compat/typescript>":
-  version: 5.3.3
-  resolution: "typescript@patch:typescript@npm%3A5.3.3#optional!builtin<compat/typescript>::version=5.3.3&hash=e012d7"
+"typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>":
+  version: 5.8.3
+  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=b45daf"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/1d0a5f4ce496c42caa9a30e659c467c5686eae15d54b027ee7866744952547f1be1262f2d40de911618c242b510029d51d43ff605dba8fb740ec85ca2d3f9500
+  checksum: 10c0/92ea03509e06598948559ddcdd8a4ae5a7ab475766d5589f1b796f5731b3d631a4c7ddfb86a3bd44d58d10102b132cd4b4994dda9b63e6273c66d77d6a271dbd
   languageName: node
   linkType: hard
 

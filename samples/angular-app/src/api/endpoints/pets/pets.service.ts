@@ -21,27 +21,29 @@ import type { CreatePetsBody, ListPetsParams, Pet, Pets } from '../../model';
 
 import listPetsMutator from '../../mutator/response-type';
 
-type HttpClientOptions = {
-  headers?:
-    | HttpHeaders
-    | {
-        [header: string]: string | string[];
-      };
+interface HttpClientOptions {
+  headers?: HttpHeaders | Record<string, string | string[]>;
   context?: HttpContext;
-  observe?: any;
   params?:
     | HttpParams
-    | {
-        [param: string]:
-          | string
-          | number
-          | boolean
-          | ReadonlyArray<string | number | boolean>;
-      };
+    | Record<
+        string,
+        string | number | boolean | ReadonlyArray<string | number | boolean>
+      >;
   reportProgress?: boolean;
   responseType?: any;
   withCredentials?: boolean;
-};
+  credentials?: RequestCredentials;
+  keepalive?: boolean;
+  priority?: RequestPriority;
+  cache?: RequestCache;
+  mode?: RequestMode;
+  redirect?: RequestRedirect;
+  referrer?: string;
+  integrity?: string;
+  transferCache?: { includeHeaders?: string[] } | boolean;
+  timeout?: number;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PetsService {
@@ -61,23 +63,23 @@ export class PetsService {
   createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
-  ): Observable<TData>;
+    options?: HttpClientOptions & { observe: 'events' },
+  ): Observable<HttpEvent<TData>>;
   createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
+    options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
   createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
-  ): Observable<HttpEvent<TData>>;
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
   createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version: number = 1,
-    options?: HttpClientOptions,
-  ): Observable<TData> {
+    options?: HttpClientOptions & { observe?: any },
+  ): Observable<any> {
     return this.http.post<TData>(`/v${version}/pets`, createPetsBody, options);
   }
   /**
@@ -86,23 +88,23 @@ export class PetsService {
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
-  ): Observable<TData>;
+    options?: HttpClientOptions & { observe: 'events' },
+  ): Observable<HttpEvent<TData>>;
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
+    options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
-    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
-  ): Observable<HttpEvent<TData>>;
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
   showPetById<TData = Pet>(
     petId: string,
     version: number = 1,
-    options?: HttpClientOptions,
-  ): Observable<TData> {
+    options?: HttpClientOptions & { observe?: any },
+  ): Observable<any> {
     return this.http.get<TData>(`/v${version}/pets/${petId}`, options);
   }
 }
