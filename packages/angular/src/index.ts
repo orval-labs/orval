@@ -63,19 +63,26 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
 }) => `
 ${
   isRequestOptions && !isGlobalMutator
-    ? `type HttpClientOptions = {
-  headers?: HttpHeaders | {
-      [header: string]: string | string[];
-  };
+    ? `interface HttpClientOptions {
+  headers?: HttpHeaders | Record<string, string | string[]>;
   context?: HttpContext;
-  observe?: any;
-  params?: HttpParams | {
-    [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-  };
+  params?:
+        | HttpParams
+        | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
   reportProgress?: boolean;
   responseType?: any;
   withCredentials?: boolean;
-};`
+  credentials?: RequestCredentials;
+  keepalive?: boolean;
+  priority?: RequestPriority;
+  cache?: RequestCache;
+  mode?: RequestMode;
+  redirect?: RequestRedirect;
+  referrer?: string;
+  integrity?: string;
+  transferCache?: {includeHeaders?: string[]} | boolean;
+  timeout?: number;
+}`
     : ''
 }
 
@@ -217,17 +224,16 @@ const generateImplementation = (
 
   const propsDefinition = toObjectString(props, 'definition');
   const overloads = isRequestOptions
-    ? `${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }\n  ): Observable<TData>;
-    ${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }\n  ): Observable<AngularHttpResponse<TData>>;
-    ${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }\n  ): Observable<HttpEvent<TData>>;`
+    ? `${operationName}<TData = ${dataType}>(${propsDefinition} options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
+ ${operationName}<TData = ${dataType}>(${propsDefinition} options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
+ ${operationName}<TData = ${dataType}>(${propsDefinition} options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;`
     : '';
 
-  return ` ${overloads}${operationName}<TData = ${dataType}>(\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${
-    isRequestOptions ? `options?: HttpClientOptions\n` : ''
-  }  ): Observable<TData>  {${bodyForm}
+  return ` ${overloads}
+  ${operationName}<TData = ${dataType}>(
+    ${toObjectString(props, 'implementation')} ${
+      isRequestOptions ? `options?: HttpClientOptions & { observe?: any }` : ''
+    }): Observable<any> {${bodyForm}
     return this.http.${verb}<TData>(${options});
   }
 `;
