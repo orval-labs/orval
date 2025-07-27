@@ -622,6 +622,7 @@ export type AngularOptions = {
 
 export type SwrOptions = {
   useInfinite?: boolean;
+  useSWRMutationForGet?: boolean;
   swrOptions?: any;
   swrMutationOptions?: any;
   swrInfiniteOptions?: any;

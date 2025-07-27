@@ -165,6 +165,7 @@ export default defineConfig({
       override: {
         swr: {
           useInfinite: true,
+          useSWRMutationForGet: true,
           swrOptions: {
             dedupingInterval: 10000,
           },
