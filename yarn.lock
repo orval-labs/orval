@@ -1426,6 +1426,7 @@ __metadata:
   resolution: "@orval/mcp@workspace:packages/mcp"
   dependencies:
     "@orval/core": "npm:7.10.0"
+    "@orval/fetch": "npm:7.10.0"
     "@orval/zod": "npm:7.10.0"
   languageName: unknown
   linkType: soft

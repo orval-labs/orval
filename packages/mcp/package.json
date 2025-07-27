@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@orval/core": "7.10.0",
+    "@orval/fetch": "7.10.0",
     "@orval/zod": "7.10.0"
   }
 }
