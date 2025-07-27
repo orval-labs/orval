@@ -7,6 +7,49 @@ info:
 servers:
   - url: http://petstore.swagger.io/v1
 paths:
+  /search:
+    get:
+      summary: search by query params
+      operationId: searchPets
+      tags:
+        - pets
+      parameters:
+        - name: requirednullableString
+          in: query
+          required: true
+          schema:
+            type: string
+            nullable: true
+        - name: requirednullableStringTwo
+          in: query
+          required: true
+          schema:
+            type: string
+            nullable: true
+        - name: nonRequirednullableString
+          in: query
+          required: false
+          schema:
+            type: string
+            nullable: true
+      responses:
+        '200':
+          description: A paged array of pets
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /pets:
     get:
       summary: List all pets
@@ -204,6 +247,7 @@ components:
       required:
         - id
         - name
+        - requiredNullableString
       properties:
         id:
           type: integer
@@ -212,6 +256,12 @@ components:
           type: string
         tag:
           type: string
+        requiredNullableString:
+          type: string
+          nullable: true
+        optionalNullableString:
+          type: string
+          nullable: true
     Pets:
       type: array
       items:

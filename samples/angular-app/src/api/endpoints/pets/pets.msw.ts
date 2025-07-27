@@ -10,6 +10,31 @@ import { HttpResponse, delay, http } from 'msw';
 
 import type { Pet, Pets } from '../../model';
 
+export const getSearchPetsResponseMock = (): Pets =>
+  Array.from(
+    { length: faker.number.int({ min: 1, max: 10 }) },
+    (_, i) => i + 1,
+  ).map(() => ({
+    id: faker.number.int({
+      min: undefined,
+      max: undefined,
+      multipleOf: undefined,
+    }),
+    name: (() => faker.person.lastName())(),
+    tag: (() => faker.person.lastName())(),
+    requiredNullableString: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    optionalNullableString: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      undefined,
+    ]),
+  }));
+
 export const getListPetsResponseMock = (): Pets =>
   Array.from(
     { length: faker.number.int({ min: 1, max: 10 }) },
@@ -22,6 +47,17 @@ export const getListPetsResponseMock = (): Pets =>
     }),
     name: (() => faker.person.lastName())(),
     tag: (() => faker.person.lastName())(),
+    requiredNullableString: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      null,
+    ]),
+    optionalNullableString: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        faker.string.alpha({ length: { min: 10, max: 20 } }),
+        null,
+      ]),
+      undefined,
+    ]),
   }));
 
 export const getShowPetByIdResponseMock = () =>
@@ -35,6 +71,29 @@ export const getShowPetTextResponseMock = (): string => faker.word.sample();
 
 export const getDownloadFileResponseMock = (): Blob =>
   new Blob(faker.helpers.arrayElements(faker.word.words(10).split(' ')));
+
+export const getSearchPetsMockHandler = (
+  overrideResponse?:
+    | Pets
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Pets> | Pets),
+) => {
+  return http.get('*/v:version/search', async (info) => {
+    await delay(1000);
+
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getSearchPetsResponseMock(),
+      ),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  });
+};
 
 export const getListPetsMockHandler = (
   overrideResponse?:
@@ -158,6 +217,7 @@ export const getDownloadFileMockHandler = (
   });
 };
 export const getPetsMock = () => [
+  getSearchPetsMockHandler(),
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
   getShowPetByIdMockHandler(),

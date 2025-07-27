@@ -5,6 +5,7 @@ import {
   GetterProps,
   GetterPropType,
   GetterQueryParam,
+  OutputClient,
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
@@ -34,12 +35,8 @@ export const getProps = ({
 
   const queryParamsProp = {
     name: 'params',
-    definition: `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${
-      queryParams?.schema.name
-    }`,
-    implementation: `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${
-      queryParams?.schema.name
-    }`,
+    definition: getQueryParamDefinition(queryParams, context),
+    implementation: getQueryParamDefinition(queryParams, context),
     default: false,
     required: !isUndefined(queryParams?.isOptional)
       ? !queryParams?.isOptional && !context.output.allParamsOptional
@@ -119,3 +116,14 @@ export const getProps = ({
 
   return sortedProps;
 };
+
+function getQueryParamDefinition(
+  queryParams: GetterQueryParam | undefined,
+  context: ContextSpecs,
+): string {
+  let paramType = queryParams?.schema.name;
+  if (OutputClient.ANGULAR === context.output.client) {
+    paramType = `DeepNonNullable<${paramType}>`;
+  }
+  return `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${paramType}`;
+}

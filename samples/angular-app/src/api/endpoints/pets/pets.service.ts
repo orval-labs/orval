@@ -15,9 +15,17 @@ import type {
 
 import { Injectable, inject } from '@angular/core';
 
+import type { DeepNonNullable } from '@orval/core/src/utils/deep-non-nullable';
+
 import { Observable } from 'rxjs';
 
-import type { CreatePetsBody, ListPetsParams, Pet, Pets } from '../../model';
+import type {
+  CreatePetsBody,
+  ListPetsParams,
+  Pet,
+  Pets,
+  SearchPetsParams,
+} from '../../model';
 
 import listPetsMutator from '../../mutator/response-type';
 
@@ -48,9 +56,40 @@ interface HttpClientOptions {
 export class PetsService {
   private readonly http = inject(HttpClient);
   /**
+   * @summary search by query params
+   */
+  searchPets<TData = Pets>(
+    params: DeepNonNullable<SearchPetsParams>,
+    version?: number,
+    options?: HttpClientOptions & { observe: 'events' },
+  ): Observable<HttpEvent<TData>>;
+  searchPets<TData = Pets>(
+    params: DeepNonNullable<SearchPetsParams>,
+    version?: number,
+    options?: HttpClientOptions & { observe: 'response' },
+  ): Observable<AngularHttpResponse<TData>>;
+  searchPets<TData = Pets>(
+    params: DeepNonNullable<SearchPetsParams>,
+    version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
+  searchPets<TData = Pets>(
+    params: DeepNonNullable<SearchPetsParams>,
+    version: number = 1,
+    options?: HttpClientOptions & { observe?: any },
+  ): Observable<any> {
+    return this.http.get<TData>(`/v${version}/search`, {
+      ...options,
+      params: { ...params, ...options?.params },
+    });
+  }
+  /**
    * @summary List all pets
    */
-  listPets<TData = Pets>(params?: ListPetsParams, version: number = 1) {
+  listPets<TData = Pets>(
+    params?: DeepNonNullable<ListPetsParams>,
+    version: number = 1,
+  ) {
     return listPetsMutator<TData>(
       { url: `/v${version}/pets`, method: 'GET', params },
       this.http,
@@ -199,6 +238,7 @@ export class PetsService {
   }
 }
 
+export type SearchPetsClientResult = NonNullable<Pets>;
 export type ListPetsClientResult = NonNullable<Pets>;
 export type CreatePetsClientResult = never;
 export type ShowPetByIdClientResult = NonNullable<Pet>;
