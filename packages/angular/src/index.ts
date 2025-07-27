@@ -70,7 +70,6 @@ ${
         | HttpParams
         | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
   reportProgress?: boolean;
-  responseType?: any;
   withCredentials?: boolean;
   credentials?: RequestCredentials;
   keepalive?: boolean;
@@ -223,18 +222,22 @@ const generateImplementation = (
   });
 
   const propsDefinition = toObjectString(props, 'definition');
+  const isModelType = dataType !== 'Blob' && dataType !== 'string';
+  let functionName = operationName;
+  if (isModelType) functionName += `<TData = ${dataType}>`;
+
   const overloads = isRequestOptions
-    ? `${operationName}<TData = ${dataType}>(${propsDefinition} options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<TData>>;
- ${operationName}<TData = ${dataType}>(${propsDefinition} options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<TData>>;
- ${operationName}<TData = ${dataType}>(${propsDefinition} options?: HttpClientOptions & { observe?: 'body' }): Observable<TData>;`
+    ? `${functionName}(${propsDefinition} options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<${isModelType ? 'TData' : dataType}>>;
+ ${functionName}(${propsDefinition} options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<${isModelType ? 'TData' : dataType}>>;
+ ${functionName}(${propsDefinition} options?: HttpClientOptions & { observe?: 'body' }): Observable<${isModelType ? 'TData' : dataType}>;`
     : '';
 
   return ` ${overloads}
-  ${operationName}<TData = ${dataType}>(
+  ${functionName}(
     ${toObjectString(props, 'implementation')} ${
       isRequestOptions ? `options?: HttpClientOptions & { observe?: any }` : ''
     }): Observable<any> {${bodyForm}
-    return this.http.${verb}<TData>(${options});
+    return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});
   }
 `;
 };

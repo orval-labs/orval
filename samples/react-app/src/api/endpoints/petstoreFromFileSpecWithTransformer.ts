@@ -26,7 +26,7 @@ export const createPets = (
   createPetsBody: CreatePetsBody,
   version: number = 1,
 ) => {
-  return customInstance<void>({
+  return customInstance<null>({
     url: `/v${version}/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -51,7 +51,12 @@ export const generateAxiosOptions = ({
   paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
-  if (!queryParams && !headers && !response.isBlob) {
+  if (
+    !queryParams &&
+    !headers &&
+    !response.isBlob &&
+    response.definition.success !== 'string'
+  ) {
     if (isRequestOptions) {
       return 'options';
     }
@@ -82,11 +87,14 @@ export const generateAxiosOptions = ({
   }
 
   if (
-    response.isBlob &&
-    (!isObject(requestOptions) ||
-      !requestOptions.hasOwnProperty('responseType'))
+    !isObject(requestOptions) ||
+    !requestOptions.hasOwnProperty('responseType')
   ) {
-    value += `\n        responseType: 'blob',`;
+    if (response.isBlob) {
+      value += `\n        responseType: 'blob',`;
+    } else if (response.definition.success === 'string') {
+      value += `\n        responseType: 'text',`;
+    }
   }
 
   if (isObject(requestOptions)) {

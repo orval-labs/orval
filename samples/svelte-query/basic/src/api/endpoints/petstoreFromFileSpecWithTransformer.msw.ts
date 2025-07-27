@@ -52,10 +52,10 @@ export const getListPetsMockHandler = (
 
 export const getCreatePetsMockHandler = (
   overrideResponse?:
-    | void
+    | null
     | ((
         info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<void> | void),
+      ) => Promise<null> | null),
 ) => {
   return http.post('*/v:version/pets', async (info) => {
     await delay(1000);

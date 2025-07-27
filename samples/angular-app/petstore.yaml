@@ -32,6 +32,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Pets'
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pets'
         default:
           description: unexpected error
           content:
@@ -89,11 +92,107 @@ paths:
         '200':
           description: Expected response to a valid request
           content:
+            application/xml:
+              schema:
+                $ref: '#/components/schemas/Pet'
             application/json:
               schema:
                 $ref: '#/components/schemas/Pet'
         default:
           description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /pets/{petId}/text:
+    get:
+      summary: Info for a specific pet
+      operationId: showPetText
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: The id of the pet to retrieve
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Expected response to a valid request
+          content:
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /pet/{petId}/uploadImage:
+    post:
+      tags:
+        - pets
+      summary: Uploads an image.
+      description: Upload image of the pet.
+      operationId: uploadFile
+      parameters:
+        - name: petId
+          in: path
+          description: ID of pet to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: successful operation
+        '400':
+          description: No file uploaded
+        '404':
+          description: Pet not found
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /pet/{petId}/downloadImage:
+    get:
+      tags:
+        - pets
+      summary: Download an image.
+      description: Download image of the pet.
+      operationId: downloadFile
+      parameters:
+        - name: petId
+          in: path
+          description: ID of pet to download
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: successful operation
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '400':
+          description: No file downloaded
+        '404':
+          description: Pet not found
+        default:
+          description: Unexpected error
           content:
             application/json:
               schema:

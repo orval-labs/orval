@@ -131,7 +131,7 @@ export function useListPets<
  * @summary Create a pet
  */
 export const useCreatePetsHook = () => {
-  const createPets = useCustomClient<void>();
+  const createPets = useCustomClient<null>();
 
   return useCallback(
     (
