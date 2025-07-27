@@ -31,6 +31,11 @@ export const getShowPetByIdResponseMock = () =>
     tag: faker.helpers.arrayElement([faker.word.sample(), void 0]),
   }))();
 
+export const getShowPetTextResponseMock = (): string => faker.word.sample();
+
+export const getDownloadFileResponseMock = (): Blob =>
+  new Blob(faker.helpers.arrayElements(faker.word.words(10).split(' ')));
+
 export const getListPetsMockHandler = (
   overrideResponse?:
     | Pets
@@ -92,8 +97,71 @@ export const getShowPetByIdMockHandler = (
     );
   });
 };
+
+export const getShowPetTextMockHandler = (
+  overrideResponse?:
+    | string
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<string> | string),
+) => {
+  return http.get('*/v:version/pets/:petId/text', async (info) => {
+    await delay(1000);
+
+    return new HttpResponse(
+      overrideResponse !== undefined
+        ? typeof overrideResponse === 'function'
+          ? await overrideResponse(info)
+          : overrideResponse
+        : getShowPetTextResponseMock(),
+      { status: 200, headers: { 'Content-Type': 'text/plain' } },
+    );
+  });
+};
+
+export const getUploadFileMockHandler = (
+  overrideResponse?:
+    | null
+    | ((
+        info: Parameters<Parameters<typeof http.post>[1]>[0],
+      ) => Promise<null> | null),
+) => {
+  return http.post('*/v:version/pet/:petId/uploadImage', async (info) => {
+    await delay(1000);
+    if (typeof overrideResponse === 'function') {
+      await overrideResponse(info);
+    }
+    return new HttpResponse(null, { status: 200 });
+  });
+};
+
+export const getDownloadFileMockHandler = (
+  overrideResponse?:
+    | Blob
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<Blob> | Blob),
+) => {
+  return http.get('*/v:version/pet/:petId/downloadImage', async (info) => {
+    await delay(1000);
+
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getDownloadFileResponseMock(),
+      ),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    );
+  });
+};
 export const getPetsMock = () => [
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
   getShowPetByIdMockHandler(),
+  getShowPetTextMockHandler(),
+  getUploadFileMockHandler(),
+  getDownloadFileMockHandler(),
 ];
