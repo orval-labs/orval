@@ -1341,6 +1341,30 @@ Type: `Boolean`.
 
 Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
 
+##### useSWRMutationForGet
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://swr.vercel.app/docs/mutation#useswrmutation" target="_blank">useSWRMutation</a> custom hook for get request.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrOptions: {
+            useSWRMutationForGet: true,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 ##### swrOptions
 
 Type: `Object`.
