@@ -58,22 +58,22 @@ export class PetsService {
   /**
    * @summary Create a pet
    */
-  createPets<TData = void>(
+  createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
   ): Observable<TData>;
-  createPets<TData = void>(
+  createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  createPets<TData = void>(
+  createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
     options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
   ): Observable<HttpEvent<TData>>;
-  createPets<TData = void>(
+  createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version: number = 1,
     options?: HttpClientOptions,
@@ -108,5 +108,5 @@ export class PetsService {
 }
 
 export type ListPetsClientResult = NonNullable<Pets>;
-export type CreatePetsClientResult = NonNullable<void>;
+export type CreatePetsClientResult = never;
 export type ShowPetByIdClientResult = NonNullable<Pet>;

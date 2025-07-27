@@ -149,9 +149,11 @@ const generateImplementation = (
 
   returnTypesToWrite.set(
     operationName,
-    `export type ${pascal(
-      operationName,
-    )}ClientResult = NonNullable<${dataType}>`,
+    `export type ${pascal(operationName)}ClientResult = ${
+      dataType === 'null'
+        ? 'never' // NonNullable<null> is the type never
+        : `NonNullable<${dataType}>`
+    };`,
   );
 
   if (mutator) {
