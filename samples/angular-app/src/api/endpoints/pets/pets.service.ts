@@ -13,7 +13,7 @@ import type {
   HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 
 import { Observable } from 'rxjs';
 
@@ -45,7 +45,8 @@ type HttpClientOptions = {
 
 @Injectable({ providedIn: 'root' })
 export class PetsService {
-  constructor(private http: HttpClient) {} /**
+  private readonly http = inject(HttpClient);
+  /**
    * @summary List all pets
    */
   listPets<TData = Pets>(params?: ListPetsParams, version: number = 1) {

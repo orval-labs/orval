@@ -32,7 +32,10 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
     dependency: '@angular/common/http',
   },
   {
-    exports: [{ name: 'Injectable', values: true }],
+    exports: [
+      { name: 'Injectable', values: true },
+      { name: 'inject', values: true },
+    ],
     dependency: '@angular/core',
   },
   {
@@ -95,9 +98,8 @@ ${
     : ''
 })
 export class ${title} {
-  constructor(
-    private http: HttpClient,
-  ) {}`;
+  private readonly http = inject(HttpClient);
+`;
 
 export const generateAngularFooter: ClientFooterBuilder = ({
   operationNames,
