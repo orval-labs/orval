@@ -9,7 +9,7 @@ describe('getProps', () => {
       output: {
         client: 'angular',
         allParamsOptional: false,
-        override: {}
+        override: {},
       },
     } as ContextSpecs;
 
@@ -19,7 +19,6 @@ describe('getProps', () => {
       },
       isOptional: false,
     } as GetterQueryParam;
-
 
     const props = getProps({
       context,
@@ -33,7 +32,7 @@ describe('getProps', () => {
         originalSchema: {} as ReferenceObject | RequestBodyObject,
         imports: [],
         schemas: [],
-        contentType: ''
+        contentType: '',
       },
     });
 
@@ -43,4 +42,3 @@ describe('getProps', () => {
     expect(props[0].required).toBe(true);
   });
 });
-

@@ -129,18 +129,18 @@ paths:
           description: The id of the pet to retrieve
           schema:
             type: string
-#        - name: requiredNullableString
-#          in: query
-#          required: true
-#          schema:
-#            type: string
-#            nullable: true
-#        - name: optionalNullableString
-#          in: query
-#          required: false
-#          schema:
-#            type: string
-#            nullable: true
+      #        - name: requiredNullableString
+      #          in: query
+      #          required: true
+      #          schema:
+      #            type: string
+      #            nullable: true
+      #        - name: optionalNullableString
+      #          in: query
+      #          required: false
+      #          schema:
+      #            type: string
+      #            nullable: true
       responses:
         '200':
           description: Expected response to a valid request

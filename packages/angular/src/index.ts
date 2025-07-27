@@ -42,7 +42,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [{ name: 'DeepNonNullable' }],
     dependency: '@orval/core/src/utils/deep-non-nullable',
-  }
+  },
 ];
 
 const returnTypesToWrite: Map<string, string> = new Map();

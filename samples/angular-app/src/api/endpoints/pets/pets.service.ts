@@ -4,146 +4,148 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import {
-  HttpClient
-} from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import type {
   HttpContext,
   HttpEvent,
   HttpHeaders,
   HttpParams,
-  HttpResponse as AngularHttpResponse
+  HttpResponse as AngularHttpResponse,
 } from '@angular/common/http';
 
-import {
-  Injectable
-} from '@angular/core';
+import { Injectable } from '@angular/core';
 
-import type {
-  DeepNonNullable
-} from '@orval/core/src/utils/deep-non-nullable';
+import type { DeepNonNullable } from '@orval/core/src/utils/deep-non-nullable';
 
-import {
-  Observable
-} from 'rxjs';
+import { Observable } from 'rxjs';
 
 import type {
   CreatePetsBody,
   ListPetsParams,
   Pet,
   Pets,
-  SearchPetsParams
+  SearchPetsParams,
 } from '../../model';
 
 import listPetsMutator from '../../mutator/response-type';
 
-
 type HttpClientOptions = {
-  headers?: HttpHeaders | {
-      [header: string]: string | string[];
-  };
+  headers?:
+    | HttpHeaders
+    | {
+        [header: string]: string | string[];
+      };
   context?: HttpContext;
   observe?: any;
-  params?: HttpParams | {
-    [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-  };
+  params?:
+    | HttpParams
+    | {
+        [param: string]:
+          | string
+          | number
+          | boolean
+          | ReadonlyArray<string | number | boolean>;
+      };
   reportProgress?: boolean;
   responseType?: any;
   withCredentials?: boolean;
 };
 
-
-
 @Injectable({ providedIn: 'root' })
 export class PetsService {
-  constructor(
-    private http: HttpClient,
-  ) {}/**
- * @summary search by query params
- */
- searchPets<TData = Pets>(
+  constructor(private http: HttpClient) {} /**
+   * @summary search by query params
+   */
+  searchPets<TData = Pets>(
     params: DeepNonNullable<SearchPetsParams>,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
   ): Observable<TData>;
-    searchPets<TData = Pets>(
+  searchPets<TData = Pets>(
     params: DeepNonNullable<SearchPetsParams>,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-    searchPets<TData = Pets>(
+  searchPets<TData = Pets>(
     params: DeepNonNullable<SearchPetsParams>,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;searchPets<TData = Pets>(
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
+  ): Observable<HttpEvent<TData>>;
+  searchPets<TData = Pets>(
     params: DeepNonNullable<SearchPetsParams>,
-    version: number = 1, options?: HttpClientOptions
-  ): Observable<TData>  {
-    return this.http.get<TData>(
-      `/v${version}/search`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<TData> {
+    return this.http.get<TData>(`/v${version}/search`, {
+      ...options,
+      params: { ...params, ...options?.params },
+    });
   }
-/**
- * @summary List all pets
- */
- listPets<TData = Pets>(
+  /**
+   * @summary List all pets
+   */
+  listPets<TData = Pets>(
     params?: DeepNonNullable<ListPetsParams>,
     version: number = 1,
- ) {
-      return listPetsMutator<TData>(
-      {url: `/v${version}/pets`, method: 'GET',
-        params
-    },
+  ) {
+    return listPetsMutator<TData>(
+      { url: `/v${version}/pets`, method: 'GET', params },
       this.http,
-      );
-    }
+    );
+  }
   /**
- * @summary Create a pet
- */
- createPets<TData = void>(
+   * @summary Create a pet
+   */
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
   ): Observable<TData>;
-    createPets<TData = void>(
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-    createPets<TData = void>(
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;createPets<TData = void>(
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
+  ): Observable<HttpEvent<TData>>;
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
-    version: number = 1, options?: HttpClientOptions
-  ): Observable<TData>  {
-    return this.http.post<TData>(
-      `/v${version}/pets`,
-      createPetsBody,options
-    );
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<TData> {
+    return this.http.post<TData>(`/v${version}/pets`, createPetsBody, options);
   }
-/**
- * @summary Info for a specific pet
- */
- showPetById<TData = Pet>(
+  /**
+   * @summary Info for a specific pet
+   */
+  showPetById<TData = Pet>(
     petId: string,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' },
   ): Observable<TData>;
-    showPetById<TData = Pet>(
+  showPetById<TData = Pet>(
     petId: string,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-    showPetById<TData = Pet>(
+  showPetById<TData = Pet>(
     petId: string,
-    version?: number, options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }
-  ): Observable<HttpEvent<TData>>;showPetById<TData = Pet>(
+    version?: number,
+    options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' },
+  ): Observable<HttpEvent<TData>>;
+  showPetById<TData = Pet>(
     petId: string,
-    version: number = 1, options?: HttpClientOptions
-  ): Observable<TData>  {
-    return this.http.get<TData>(
-      `/v${version}/pets/${petId}`,options
-    );
+    version: number = 1,
+    options?: HttpClientOptions,
+  ): Observable<TData> {
+    return this.http.get<TData>(`/v${version}/pets/${petId}`, options);
   }
-};
+}
 
-export type SearchPetsClientResult = NonNullable<Pets>
-export type ListPetsClientResult = NonNullable<Pets>
-export type CreatePetsClientResult = NonNullable<void>
-export type ShowPetByIdClientResult = NonNullable<Pet>
+export type SearchPetsClientResult = NonNullable<Pets>;
+export type ListPetsClientResult = NonNullable<Pets>;
+export type CreatePetsClientResult = NonNullable<void>;
+export type ShowPetByIdClientResult = NonNullable<Pet>;

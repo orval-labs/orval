@@ -36,7 +36,7 @@ export const getProps = ({
   const queryParamsProp = {
     name: 'params',
     definition: getQueryParamDefinition(queryParams, context),
-    implementation:  getQueryParamDefinition(queryParams, context),
+    implementation: getQueryParamDefinition(queryParams, context),
     default: false,
     required: !isUndefined(queryParams?.isOptional)
       ? !queryParams?.isOptional && !context.output.allParamsOptional
@@ -117,10 +117,13 @@ export const getProps = ({
   return sortedProps;
 };
 
-function getQueryParamDefinition(queryParams: GetterQueryParam | undefined, context: ContextSpecs): string {
+function getQueryParamDefinition(
+  queryParams: GetterQueryParam | undefined,
+  context: ContextSpecs,
+): string {
   let paramType = queryParams?.schema.name;
   if (OutputClient.ANGULAR === context.output.client) {
-    paramType = `DeepNonNullable<${paramType}>`
+    paramType = `DeepNonNullable<${paramType}>`;
   }
   return `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${paramType}`;
 }

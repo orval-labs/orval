@@ -6,7 +6,7 @@
  */
 
 export type SearchPetsParams = {
-requirednullableString: string | null;
-requirednullableStringTwo: string | null;
-nonRequirednullableString?: string | null;
+  requirednullableString: string | null;
+  requirednullableStringTwo: string | null;
+  nonRequirednullableString?: string | null;
 };
