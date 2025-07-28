@@ -6,6 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
+    "test": "ng test",
     "lint": "ng lint",
     "generate-api": "node ../../packages/orval/dist/bin/orval.js"
   },
@@ -27,6 +28,12 @@
     "@faker-js/faker": "^9.9.0",
     "msw": "^2.10.4",
     "orval": "link:../../packages/orval/dist",
-    "typescript": "~5.8.2"
+    "typescript": "~5.8.2",
+    "vitest": "^3.2.4"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
   }
 }
