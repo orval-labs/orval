@@ -298,7 +298,17 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (isZodV4) {
-        if (!schema.format) {
+        if (
+          ![
+            'date',
+            'time',
+            'date-time',
+            'email',
+            'uri',
+            'hostname',
+            'uuid',
+          ].includes(schema.format || '')
+        ) {
           if ('const' in schema) {
             functions.push(['literal', `"${schema.const}"`]);
           } else {
