@@ -186,6 +186,22 @@ export default defineConfig({
       target: '../specifications/format.yaml',
     },
   },
+  timeOptions: {
+    output: {
+      target: '../generated/zod/time-options.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          timeOptions: {
+            precision: -1,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/format.yaml',
+    },
+  },
   enums: {
     output: {
       target: '../generated/zod/enums.ts',

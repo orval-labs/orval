@@ -343,6 +343,7 @@ export const normalizeOptions = async (
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
+          timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -542,6 +543,7 @@ const normalizeOperationsAndTags = (
                     generateEachHttpStatus:
                       zod?.generateEachHttpStatus ?? false,
                     dateTimeOptions: zod?.dateTimeOptions ?? {},
+                    timeOptions: zod?.timeOptions ?? {},
                   },
                 }
               : {}),

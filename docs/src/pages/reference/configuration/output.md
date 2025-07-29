@@ -1626,6 +1626,34 @@ module.exports = {
 
 You can find more details in the [zod documentation ](https://zod.dev/?id=datetimes).
 
+##### timeOptions
+
+Type: `Object`.
+
+Default Value: `{}`.
+
+Use to set options for zod `time` fields. These options are passed directly to zod `time` validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          timeOptions: {
+            precision: -1,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+You can find more details in the [zod documentation ](https://zod.dev/?id=times).
+
 #### mock
 
 Type: `Object`.
