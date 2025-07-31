@@ -311,14 +311,17 @@ const getSchemaFormDataAndUrlEncoded = ({
             context,
           );
 
-          if (shouldCast) additionalImports.push(imports[0]);
+          let newPropName = propName;
+          let newPropDefinition = '';
 
-          const newPropName = shouldCast
-            ? `${propName}${pascal(imports[0].name)}`
-            : propName;
-          const newPropDefinition = shouldCast
-            ? `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`
-            : '';
+          // If the schema is a reference, we need to cast it to the correct type
+          // to ensure that the form data is correctly typed.
+          if (shouldCast && imports[0]) {
+            additionalImports.push(imports[0]);
+            newPropName = `${propName}${pascal(imports[0].name)}`;
+            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
+          }
+
           return (
             newPropDefinition +
             resolveSchemaPropertiesToFormData({
