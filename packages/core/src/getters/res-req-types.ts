@@ -314,8 +314,8 @@ const getSchemaFormDataAndUrlEncoded = ({
           let newPropName = propName;
           let newPropDefinition = '';
 
-          // If the schema is a reference, we need to cast it to the correct type
-          // to ensure that the form data is correctly typed.
+          // If the schema is a union type (oneOf, anyOf) and includes a reference (has imports),
+          // we need to cast the property to the specific type to avoid TypeScript errors.
           if (shouldCast && imports[0]) {
             additionalImports.push(imports[0]);
             newPropName = `${propName}${pascal(imports[0].name)}`;
