@@ -33,5 +33,5 @@ components:
         cnpj:
           type: string
       oneOf:
-        - required: [cpf]
-        - required: [cnpj]
+        - required: [cpf, name]
+        - required: [cnpj, password]
