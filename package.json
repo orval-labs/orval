@@ -50,7 +50,7 @@
     "release-it": "17.10.0",
     "rimraf": "^5.0.5",
     "tsup": "^8.4.0",
-    "turbo": "^1.13.3",
+    "turbo": "^2.5.5",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.26.0",
     "vitest": "^0.6.3",
