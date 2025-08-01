@@ -1351,23 +1351,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@orval/angular@npm:7.11.0, @orval/angular@workspace:packages/angular":
+"@orval/angular@npm:7.11.1, @orval/angular@workspace:packages/angular":
   version: 0.0.0-use.local
   resolution: "@orval/angular@workspace:packages/angular"
   dependencies:
-    "@orval/core": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
   languageName: unknown
   linkType: soft
 
-"@orval/axios@npm:7.11.0, @orval/axios@workspace:packages/axios":
+"@orval/axios@npm:7.11.1, @orval/axios@workspace:packages/axios":
   version: 0.0.0-use.local
   resolution: "@orval/axios@workspace:packages/axios"
   dependencies:
-    "@orval/core": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
   languageName: unknown
   linkType: soft
 
-"@orval/core@npm:7.11.0, @orval/core@workspace:packages/core":
+"@orval/core@npm:7.11.1, @orval/core@workspace:packages/core":
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
@@ -1402,70 +1402,70 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@orval/fetch@npm:7.11.0, @orval/fetch@workspace:packages/fetch":
+"@orval/fetch@npm:7.11.1, @orval/fetch@workspace:packages/fetch":
   version: 0.0.0-use.local
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
-    "@orval/core": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
   languageName: unknown
   linkType: soft
 
-"@orval/hono@npm:7.11.0, @orval/hono@workspace:packages/hono":
+"@orval/hono@npm:7.11.1, @orval/hono@workspace:packages/hono":
   version: 0.0.0-use.local
   resolution: "@orval/hono@workspace:packages/hono"
   dependencies:
-    "@orval/core": "npm:7.11.0"
-    "@orval/zod": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
+    "@orval/zod": "npm:7.11.1"
     "@types/lodash.uniq": "npm:^4.5.7"
     lodash.uniq: "npm:^4.5.0"
   languageName: unknown
   linkType: soft
 
-"@orval/mcp@npm:7.11.0, @orval/mcp@workspace:packages/mcp":
+"@orval/mcp@npm:7.11.1, @orval/mcp@workspace:packages/mcp":
   version: 0.0.0-use.local
   resolution: "@orval/mcp@workspace:packages/mcp"
   dependencies:
-    "@orval/core": "npm:7.11.0"
-    "@orval/fetch": "npm:7.11.0"
-    "@orval/zod": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
+    "@orval/fetch": "npm:7.11.1"
+    "@orval/zod": "npm:7.11.1"
   languageName: unknown
   linkType: soft
 
-"@orval/mock@npm:7.11.0, @orval/mock@workspace:packages/mock":
+"@orval/mock@npm:7.11.1, @orval/mock@workspace:packages/mock":
   version: 0.0.0-use.local
   resolution: "@orval/mock@workspace:packages/mock"
   dependencies:
-    "@orval/core": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
     openapi3-ts: "npm:^4.2.2"
   languageName: unknown
   linkType: soft
 
-"@orval/query@npm:7.11.0, @orval/query@workspace:packages/query":
+"@orval/query@npm:7.11.1, @orval/query@workspace:packages/query":
   version: 0.0.0-use.local
   resolution: "@orval/query@workspace:packages/query"
   dependencies:
-    "@orval/core": "npm:7.11.0"
-    "@orval/fetch": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
+    "@orval/fetch": "npm:7.11.1"
     "@types/lodash.omitby": "npm:^4.6.7"
     lodash.omitby: "npm:^4.6.0"
     vitest: "npm:^0.34.6"
   languageName: unknown
   linkType: soft
 
-"@orval/swr@npm:7.11.0, @orval/swr@workspace:packages/swr":
+"@orval/swr@npm:7.11.1, @orval/swr@workspace:packages/swr":
   version: 0.0.0-use.local
   resolution: "@orval/swr@workspace:packages/swr"
   dependencies:
-    "@orval/core": "npm:7.11.0"
-    "@orval/fetch": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
+    "@orval/fetch": "npm:7.11.1"
   languageName: unknown
   linkType: soft
 
-"@orval/zod@npm:7.11.0, @orval/zod@workspace:packages/zod":
+"@orval/zod@npm:7.11.1, @orval/zod@workspace:packages/zod":
   version: 0.0.0-use.local
   resolution: "@orval/zod@workspace:packages/zod"
   dependencies:
-    "@orval/core": "npm:7.11.0"
+    "@orval/core": "npm:7.11.1"
     "@types/lodash.uniq": "npm:^4.5.7"
     lodash.uniq: "npm:^4.5.0"
   languageName: unknown
@@ -2383,12 +2383,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^20.13.0":
-  version: 20.14.14
-  resolution: "@types/node@npm:20.14.14"
+"@types/node@npm:^24.1.0":
+  version: 24.1.0
+  resolution: "@types/node@npm:24.1.0"
   dependencies:
-    undici-types: "npm:~5.26.4"
-  checksum: 10c0/4fc8d368df2b6f5497698327b30db68d7d20e32221ce7d057fb15cbd5834685b2fde0440609e4cb2204e5d305b928f008faf41b950a425f3fd55b60cb1b997cf
+    undici-types: "npm:~7.8.0"
+  checksum: 10c0/6c4686bc144f6ce7bffd4cadc3e1196e2217c1da4c639c637213719c8a3ee58b6c596b994befcbffeacd9d9eb0c3bff6529d2bc27da5d1cb9d58b1da0056f9f4
   languageName: node
   linkType: hard
 
@@ -7582,7 +7582,7 @@ __metadata:
     "@faker-js/faker": "npm:^9.8.0"
     "@release-it-plugins/workspaces": "npm:^4.2.0"
     "@release-it/conventional-changelog": "npm:^10.0.1"
-    "@types/node": "npm:^20.13.0"
+    "@types/node": "npm:^24.1.0"
     "@typescript-eslint/eslint-plugin": "npm:^8.26.0"
     "@typescript-eslint/parser": "npm:^8.22.0"
     dotenv-cli: "npm:^7.4.1"
@@ -7612,16 +7612,16 @@ __metadata:
   resolution: "orval@workspace:packages/orval"
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.1"
-    "@orval/angular": "npm:7.11.0"
-    "@orval/axios": "npm:7.11.0"
-    "@orval/core": "npm:7.11.0"
-    "@orval/fetch": "npm:7.11.0"
-    "@orval/hono": "npm:7.11.0"
-    "@orval/mcp": "npm:7.11.0"
-    "@orval/mock": "npm:7.11.0"
-    "@orval/query": "npm:7.11.0"
-    "@orval/swr": "npm:7.11.0"
-    "@orval/zod": "npm:7.11.0"
+    "@orval/angular": "npm:7.11.1"
+    "@orval/axios": "npm:7.11.1"
+    "@orval/core": "npm:7.11.1"
+    "@orval/fetch": "npm:7.11.1"
+    "@orval/hono": "npm:7.11.1"
+    "@orval/mcp": "npm:7.11.1"
+    "@orval/mock": "npm:7.11.1"
+    "@orval/query": "npm:7.11.1"
+    "@orval/swr": "npm:7.11.1"
+    "@orval/zod": "npm:7.11.1"
     "@types/inquirer": "npm:^9.0.6"
     "@types/js-yaml": "npm:^4.0.8"
     "@types/lodash.uniq": "npm:^4.5.8"
@@ -9908,6 +9908,13 @@ __metadata:
   version: 6.13.0
   resolution: "undici-types@npm:6.13.0"
   checksum: 10c0/2de55181f569c77a4f08063f8bf2722fcbb6ea312a26a9e927bd1f5ea5cf3a281c5ddf23155061db083e0a25838f54813543ff13b0ac34d230d5c1205ead66c1
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.8.0":
+  version: 7.8.0
+  resolution: "undici-types@npm:7.8.0"
+  checksum: 10c0/9d9d246d1dc32f318d46116efe3cfca5a72d4f16828febc1918d94e58f6ffcf39c158aa28bf5b4fc52f410446bc7858f35151367bd7a49f21746cab6497b709b
   languageName: node
   linkType: hard
 

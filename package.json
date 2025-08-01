@@ -33,7 +33,7 @@
     "@faker-js/faker": "^9.8.0",
     "@release-it-plugins/workspaces": "^4.2.0",
     "@release-it/conventional-changelog": "^10.0.1",
-    "@types/node": "^20.13.0",
+    "@types/node": "^24.1.0",
     "@typescript-eslint/eslint-plugin": "^8.26.0",
     "@typescript-eslint/parser": "^8.22.0",
     "dotenv-cli": "^7.4.1",
