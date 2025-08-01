@@ -61,6 +61,11 @@ export class PetsService {
   searchPets<TData = Pets>(
     params: DeepNonNullable<SearchPetsParams>,
     version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
+  searchPets<TData = Pets>(
+    params: DeepNonNullable<SearchPetsParams>,
+    version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<TData>>;
   searchPets<TData = Pets>(
@@ -68,11 +73,6 @@ export class PetsService {
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  searchPets<TData = Pets>(
-    params: DeepNonNullable<SearchPetsParams>,
-    version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<TData>;
   searchPets<TData = Pets>(
     params: DeepNonNullable<SearchPetsParams>,
     version: number = 1,
@@ -101,6 +101,11 @@ export class PetsService {
   createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
+  createPets<TData = null>(
+    createPetsBody: CreatePetsBody,
+    version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<TData>>;
   createPets<TData = null>(
@@ -108,11 +113,6 @@ export class PetsService {
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  createPets<TData = null>(
-    createPetsBody: CreatePetsBody,
-    version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<TData>;
   createPets<TData = null>(
     createPetsBody: CreatePetsBody,
     version: number = 1,
@@ -126,6 +126,11 @@ export class PetsService {
   showPetById<TData = Pet>(
     petId: string,
     version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
+  showPetById<TData = Pet>(
+    petId: string,
+    version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<TData>>;
   showPetById<TData = Pet>(
@@ -133,11 +138,6 @@ export class PetsService {
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  showPetById<TData = Pet>(
-    petId: string,
-    version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<TData>;
   showPetById<TData = Pet>(
     petId: string,
     version: number = 1,
@@ -151,6 +151,11 @@ export class PetsService {
   showPetText(
     petId: string,
     version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<string>;
+  showPetText(
+    petId: string,
+    version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<string>>;
   showPetText(
@@ -158,11 +163,6 @@ export class PetsService {
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<string>>;
-  showPetText(
-    petId: string,
-    version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<string>;
   showPetText(
     petId: string,
     version: number = 1,
@@ -181,6 +181,12 @@ export class PetsService {
     petId: number,
     uploadFileBody: Blob,
     version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<TData>;
+  uploadFile<TData = null>(
+    petId: number,
+    uploadFileBody: Blob,
+    version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<TData>>;
   uploadFile<TData = null>(
@@ -189,12 +195,6 @@ export class PetsService {
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  uploadFile<TData = null>(
-    petId: number,
-    uploadFileBody: Blob,
-    version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<TData>;
   uploadFile<TData = null>(
     petId: number,
     uploadFileBody: Blob,
@@ -214,6 +214,11 @@ export class PetsService {
   downloadFile(
     petId: number,
     version?: number,
+    options?: HttpClientOptions & { observe?: 'body' },
+  ): Observable<Blob>;
+  downloadFile(
+    petId: number,
+    version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<Blob>>;
   downloadFile(
@@ -221,11 +226,6 @@ export class PetsService {
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<Blob>>;
-  downloadFile(
-    petId: number,
-    version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<Blob>;
   downloadFile(
     petId: number,
     version: number = 1,
