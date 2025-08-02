@@ -28,6 +28,7 @@ import type {
 } from '../../model';
 
 import listPetsMutator from '../../mutator/response-type';
+import paramsSerializerMutator from '../../mutator/custom-params-serializer';
 
 interface HttpClientOptions {
   headers?: HttpHeaders | Record<string, string | string[]>;
@@ -80,7 +81,7 @@ export class PetsService {
   ): Observable<any> {
     return this.http.get<TData>(`/v${version}/search`, {
       ...options,
-      params: { ...params, ...options?.params },
+      params: paramsSerializerMutator({ ...params, ...options?.params }),
     });
   }
   /**

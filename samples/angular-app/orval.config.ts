@@ -12,6 +12,9 @@ export default defineConfig({
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
+        paramsSerializer: {
+          path: 'src/api/mutator/custom-params-serializer.ts',
+        },
         operations: {
           listPets: {
             mutator: 'src/api/mutator/response-type.ts',
