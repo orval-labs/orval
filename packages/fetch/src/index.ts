@@ -19,6 +19,7 @@ import {
   ParameterObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
+import { SchemaObject } from 'openapi3-ts/oas31';
 
 export const generateRequestFunction = (
   {
@@ -60,11 +61,18 @@ export const generateRequestFunction = (
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
+    const schemaObject = schema.schema as SchemaObject;
 
     if (override.fetch.explode) {
-      return schema.in === 'query' && schema.explode;
+      return (
+        schema.in === 'query' && schemaObject.type === 'array' && schema.explode
+      );
     } else {
-      return schema.in === 'query' && schema.explode !== false;
+      return (
+        schema.in === 'query' &&
+        schemaObject.type === 'array' &&
+        schema.explode !== false
+      );
     }
   });
 
