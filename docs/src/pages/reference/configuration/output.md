@@ -642,7 +642,7 @@ Type: `Boolean`.
 
 Default Value: `false`.
 
-Can be used to prettier generated files. You need to have prettier in your dependencies.
+Can be used to prettier generated files. You need to have prettier installed globally.
 
 ### tslint
 

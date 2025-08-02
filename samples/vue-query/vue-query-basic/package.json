@@ -23,7 +23,6 @@
     "jsdom": "^23.0.0",
     "msw": "^2.0.2",
     "orval": "link:../../packages/orval/dist",
-    "prettier": "^3.0.3",
     "tsd": "^0.29.0",
     "typescript": "^5.3.2",
     "vite": "^4.4.11",
