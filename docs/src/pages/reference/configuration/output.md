@@ -1001,11 +1001,11 @@ If you want to return a defined return type instead of an automatically generate
 ##### explode
 
 Type: `Boolean`.
-Default: `false`
+Default: `true`
 
 By default, the `fetch` client follows the OpenAPI specification for query parameter explode behavior. This means that query parameters will be exploded unless explicitly set to `false` in the OpenAPI schema.
 
-If you want to maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), you can set this value to `true`.
+If you want to maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), you can set this value to `false`.
 
 ##### jsonReviver
 
