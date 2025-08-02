@@ -37,6 +37,7 @@ export const generateAxiosOptions = ({
   requestOptions,
   hasSignal,
   isVue,
+  isAngular,
   paramsSerializer,
   paramsSerializerOptions,
 }: {
@@ -47,6 +48,7 @@ export const generateAxiosOptions = ({
   requestOptions?: object | boolean;
   hasSignal: boolean;
   isVue: boolean;
+  isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
@@ -107,6 +109,8 @@ export const generateAxiosOptions = ({
     if (queryParams) {
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
+      } else if (isAngular && paramsSerializer) {
+        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -117,7 +121,11 @@ export const generateAxiosOptions = ({
     }
   }
 
-  if (queryParams && (paramsSerializer || paramsSerializerOptions?.qs)) {
+  if (
+    !isAngular &&
+    queryParams &&
+    (paramsSerializer || paramsSerializerOptions?.qs)
+  ) {
     if (paramsSerializer) {
       value += `\n        paramsSerializer: ${paramsSerializer.name},`;
     } else {
@@ -175,6 +183,7 @@ export const generateOptions = ({
     isExactOptionalPropertyTypes,
     hasSignal,
     isVue: isVue ?? false,
+    isAngular: isAngular ?? false,
     paramsSerializer,
     paramsSerializerOptions,
   });
