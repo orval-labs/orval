@@ -644,14 +644,6 @@ Default Value: `false`.
 
 Can be used to prettier generated files. You need to have prettier in your dependencies.
 
-### tslint
-
-Type: `Boolean`.
-
-Default Value: `false`.
-
-Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
-
 ### biome
 
 Type: `Boolean`.

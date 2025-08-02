@@ -21,7 +21,6 @@ export const getParamsInPath = (path: string) => {
   let n;
   const output = [];
   const templatePathRegex = /\{(.*?)\}/g;
-  // tslint:disable-next-line:no-conditional-assignment
   while ((n = templatePathRegex.exec(path)) !== null) {
     output.push(n[1]);
   }

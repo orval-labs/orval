@@ -81,14 +81,6 @@ The `--prettier`, can be used to prettier generated files. You need to have pret
 $ orval --prettier
 ```
 
-### tslint
-
-The `--tslint`, can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
-
-```bash
-$ orval --tslint
-```
-
 ### biome
 
 The `--biome`, can be used to [`Biome`](https://biomejs.dev/) generated files. You need to have `Biome` in your global dependencies.
