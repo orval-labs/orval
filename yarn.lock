@@ -7661,7 +7661,7 @@ __metadata:
     tsconfck: "npm:^2.0.1"
     typedoc: "npm:^0.28.7"
     typedoc-plugin-coverage: "npm:^3.4.1"
-    typedoc-plugin-markdown: "npm:^4.4.2"
+    typedoc-plugin-markdown: "npm:^4.8.0"
     typescript: "npm:^5.6.3"
   bin:
     orval: dist/bin/orval.js
@@ -9804,12 +9804,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc-plugin-markdown@npm:^4.4.2":
-  version: 4.4.2
-  resolution: "typedoc-plugin-markdown@npm:4.4.2"
+"typedoc-plugin-markdown@npm:^4.8.0":
+  version: 4.8.0
+  resolution: "typedoc-plugin-markdown@npm:4.8.0"
   peerDependencies:
-    typedoc: 0.27.x
-  checksum: 10c0/93112f0f06f1c0bc7eec1ba7f9034b88a6817a92ec41e491e8ac73c23a5fbda84df537d136395295737499fc1d5afa94d1500a1921b1a967248dc5d3054fc9d6
+    typedoc: 0.28.x
+  checksum: 10c0/c97953b1999b8df8e45b760c927e2819a0b4697bb7eb99487defb536e9c2763263c2c37778e6c747a9712d4664a2b616a84c31b3b4616654337099dc8a131a4e
   languageName: node
   linkType: hard
 
