@@ -40,14 +40,6 @@ export default defineConfig({
       },
     },
   },
-  'petstore-tslint': {
-    input: '../specifications/petstore.yaml',
-    output: {
-      target: '../generated/default/petstore-tslint/endpoints.ts',
-      schemas: '../generated/default/petstore-tslint/model',
-      tslint: true,
-    },
-  },
   endpointParameters: {
     input: '../specifications/parameters.yaml',
     output: {

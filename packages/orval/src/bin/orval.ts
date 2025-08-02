@@ -37,7 +37,6 @@ cli
   )
   .option('--clean [path]', 'Clean output directory')
   .option('--prettier [path]', 'Prettier generated files')
-  .option('--tslint [path]', 'tslint generated files')
   .option('--biome [path]', 'biome generated files')
   .option('--tsconfig [path]', 'path to your tsconfig file')
   .action(async (paths, cmd) => {
@@ -48,7 +47,6 @@ cli
           target: cmd.output,
           clean: cmd.clean,
           prettier: cmd.prettier,
-          tslint: cmd.tslint,
           biome: cmd.biome,
           mock: cmd.mock,
           client: cmd.client,
@@ -82,7 +80,6 @@ cli
         watch: cmd.watch,
         clean: cmd.clean,
         prettier: cmd.prettier,
-        tslint: cmd.tslint,
         biome: cmd.biome,
         mock: cmd.mock,
         client: cmd.client,

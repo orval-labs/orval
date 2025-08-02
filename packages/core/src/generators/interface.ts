@@ -5,7 +5,7 @@ import { jsDoc } from '../utils';
 
 /**
  * Generate the interface string
- * A eslint|tslint comment is insert if the resulted object is empty
+ * An eslint comment is insert if the resulted object is empty
  *
  * @param name interface name
  * @param schema
@@ -33,12 +33,8 @@ export const generateInterface = ({
   model += jsDoc(schema);
 
   if (isEmptyObject) {
-    if (context.output.tslint) {
-      model += '// tslint:disable-next-line:no-empty-interface\n';
-    } else {
-      model +=
-        '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
-    }
+    model +=
+      '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
   }
 
   if (
