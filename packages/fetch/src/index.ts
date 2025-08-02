@@ -63,17 +63,11 @@ export const generateRequestFunction = (
     const { schema } = resolveRef<ParameterObject>(parameter, context);
     const schemaObject = schema.schema as SchemaObject;
 
-    if (override.fetch.explode) {
-      return (
-        schema.in === 'query' && schemaObject.type === 'array' && schema.explode
-      );
-    } else {
-      return (
-        schema.in === 'query' &&
-        schemaObject.type === 'array' &&
-        schema.explode !== false
-      );
-    }
+    return (
+      schema.in === 'query' &&
+      schemaObject.type === 'array' &&
+      (schema.explode || override.fetch.explode)
+    );
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
