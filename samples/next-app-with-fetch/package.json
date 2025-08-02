@@ -24,7 +24,6 @@
     "msw": "^2.2.14",
     "orval": "link:../../packages/orval/dist",
     "postcss": "^8",
-    "prettier": "^3.0.3",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

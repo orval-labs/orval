@@ -16,8 +16,7 @@
     "typescript": "^5.2.2"
   },
   "devDependencies": {
-    "orval": "link:../../../packages/orval/dist",
-    "prettier": "^3.0.3"
+    "orval": "link:../../../packages/orval/dist"
   },
   "scripts": {
     "start": "react-scripts start",

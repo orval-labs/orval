@@ -181,7 +181,7 @@ export const writeSpecs = async (
     } catch {
       log(
         chalk.yellow(
-          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Prettier not found`,
+          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Globally installed prettier not found`,
         ),
       );
     }

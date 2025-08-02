@@ -75,7 +75,7 @@ $ orval --clean ./src
 
 ### Prettier
 
-The `--prettier`, can be used to prettier generated files. You need to have prettier in your global dependencies.
+The `--prettier`, can be used to prettier generated files. You need to have prettier installed globally.
 
 ```bash
 $ orval --prettier
