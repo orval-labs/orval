@@ -156,3 +156,30 @@ import { setupServer } from 'msw/node';
 const server = setupServer();
 server.use(...getPetsMock());
 ```
+
+---
+
+### Deterministic Mock Data with `faker.seed`
+
+By default, faker generates random mock data on each run. You can repeat the same output with the `seed` option in your mock configuration. This will inject a `faker.seed(...)` call into your generated mock files, ensuring deterministic output.
+
+#### Configuration Example
+
+```typescript
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: './src/petstore.ts',
+      mock: {
+        type: 'msw',
+        seed: 12345, // Set a deterministic seed
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
