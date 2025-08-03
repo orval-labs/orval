@@ -202,7 +202,7 @@ export const combineSchemas = ({
       hasReadonlyProps: false,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
-      requiredProperties: separator === 'allOf' ? schema.required ?? [] : [],
+      requiredProperties: separator === 'allOf' ? (schema.required ?? []) : [],
     } as CombinedData,
   );
 
