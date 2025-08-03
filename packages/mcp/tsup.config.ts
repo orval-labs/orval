@@ -1,0 +1,8 @@
+import { defineConfig } from 'tsup'
+
+export default defineConfig({
+  entry: ['src/index.ts'],
+  target: "node12",
+  sourcemap: true,
+  clean: true,
+})

@@ -8,8 +8,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --target node12 --clean --dts --sourcemap",
-    "dev": "tsup ./src/index.ts --target node12 --clean --watch --sourcemap src",
+    "build": "tsup --dts",
+    "dev": "tsup --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest run test.ts --global"
   },
@@ -18,6 +18,7 @@
     "lodash.uniq": "^4.5.0"
   },
   "devDependencies": {
-    "@types/lodash.uniq": "^4.5.9"
+    "@types/lodash.uniq": "^4.5.9",
+    "tsup": "^8.5.0"
   }
 }

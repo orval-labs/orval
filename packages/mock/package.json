@@ -8,13 +8,16 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --target node12 --clean --sourcemap --dts",
-    "dev": "tsup ./src/index.ts --target node12 --clean --sourcemap --watch src",
+    "build": "tsup --dts",
+    "dev": "tsup --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest run"
   },
   "dependencies": {
     "@orval/core": "workspace:*",
     "openapi3-ts": "4.4.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.0"
   }
 }

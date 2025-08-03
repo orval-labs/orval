@@ -6440,6 +6440,7 @@ __metadata:
   resolution: "@orval/angular@workspace:packages/angular"
   dependencies:
     "@orval/core": "workspace:*"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6448,6 +6449,7 @@ __metadata:
   resolution: "@orval/axios@workspace:packages/axios"
   dependencies:
     "@orval/core": "workspace:*"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6482,7 +6484,8 @@ __metadata:
     micromatch: "npm:^4.0.8"
     openapi3-ts: "npm:4.5.0"
     swagger2openapi: "npm:^7.0.8"
-    typedoc: "npm:^0.28.9"
+    tsup: "npm:^8.5.0"
+    typedoc: "npm:^0.28.7"
   languageName: unknown
   linkType: soft
 
@@ -6491,6 +6494,7 @@ __metadata:
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
     "@orval/core": "workspace:*"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6502,6 +6506,7 @@ __metadata:
     "@orval/zod": "workspace:*"
     "@types/lodash.uniq": "npm:^4.5.9"
     lodash.uniq: "npm:^4.5.0"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6512,6 +6517,7 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
     "@orval/zod": "workspace:*"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6521,6 +6527,7 @@ __metadata:
   dependencies:
     "@orval/core": "workspace:*"
     openapi3-ts: "npm:4.4.0"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6532,6 +6539,7 @@ __metadata:
     "@orval/fetch": "workspace:*"
     "@types/lodash.omitby": "npm:^4.6.7"
     lodash.omitby: "npm:^4.6.0"
+    tsup: "npm:^8.5.0"
     vitest: "npm:^3.2.4"
   languageName: unknown
   linkType: soft
@@ -6542,6 +6550,7 @@ __metadata:
   dependencies:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -6552,6 +6561,7 @@ __metadata:
     "@orval/core": "workspace:*"
     "@types/lodash.uniq": "npm:^4.5.9"
     lodash.uniq: "npm:^4.5.0"
+    tsup: "npm:^8.5.0"
   languageName: unknown
   linkType: soft
 
@@ -21825,7 +21835,6 @@ __metadata:
     prettier: "npm:3.6.2"
     release-it: "npm:17.10.0"
     rimraf: "npm:^5.0.5"
-    tsup: "npm:^8.4.0"
     turbo: "npm:^2.5.5"
     typescript: "npm:5.8.3"
     typescript-eslint: "npm:^8.38.0"
@@ -21864,6 +21873,7 @@ __metadata:
     openapi3-ts: "npm:4.4.0"
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^2.0.1"
+    tsup: "npm:^8.5.0"
     typedoc: "npm:^0.28.7"
     typedoc-plugin-coverage: "npm:^3.4.1"
     typedoc-plugin-markdown: "npm:^4.8.0"
@@ -27848,31 +27858,6 @@ __metadata:
   version: 2.8.1
   resolution: "tslib@npm:2.8.1"
   checksum: 10c0/9c4759110a19c53f992d9aae23aac5ced636e99887b51b9e61def52611732872ff7668757d4e4c61f19691e36f4da981cd9485e869b4a7408d689f6bf1f14e62
-  languageName: node
-  linkType: hard
-
-"tslint@npm:~6.1.0":
-  version: 6.1.3
-  resolution: "tslint@npm:6.1.3"
-  dependencies:
-    "@babel/code-frame": "npm:^7.0.0"
-    builtin-modules: "npm:^1.1.1"
-    chalk: "npm:^2.3.0"
-    commander: "npm:^2.12.1"
-    diff: "npm:^4.0.1"
-    glob: "npm:^7.1.1"
-    js-yaml: "npm:^3.13.1"
-    minimatch: "npm:^3.0.4"
-    mkdirp: "npm:^0.5.3"
-    resolve: "npm:^1.3.2"
-    semver: "npm:^5.3.0"
-    tslib: "npm:^1.13.0"
-    tsutils: "npm:^2.29.0"
-  peerDependencies:
-    typescript: ">=2.3.0-dev || >=2.4.0-dev || >=2.5.0-dev || >=2.6.0-dev || >=2.7.0-dev || >=2.8.0-dev || >=2.9.0-dev || >=3.0.0-dev || >= 3.1.0-dev || >= 3.2.0-dev || >= 4.0.0-dev"
-  bin:
-    tslint: bin/tslint
-  checksum: 10c0/04717de06d187ee46ffa99e28af80f1b5a2edbec051e32b43ca681da625a61e94e5eb9ebb638fafe07975fb3536760ffd772f76c57134db723a9ecff6aeac380
   languageName: node
   linkType: hard
 
