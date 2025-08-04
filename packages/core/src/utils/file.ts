@@ -359,10 +359,42 @@ async function loadFromBundledFile<File = unknown>(
   return file;
 }
 
-export async function removeFiles(patterns: string[], dir: string) {
+export async function removeFilesAndEmptyFolders(
+  patterns: string[],
+  dir: string,
+) {
   const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
   });
+
+  // Remove files
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
+
+  // Find and remove empty directories
+  const directories = await glob(['**/*'], {
+    cwd: dir,
+    absolute: true,
+    onlyDirectories: true,
+  });
+
+  // Sort directories by depth (deepest first) to ensure we can remove nested empty folders
+  const sortedDirectories = directories.sort((a, b) => {
+    const depthA = a.split('/').length;
+    const depthB = b.split('/').length;
+    return depthB - depthA;
+  });
+
+  // Remove empty directories
+  for (const directory of sortedDirectories) {
+    try {
+      const contents = await fs.promises.readdir(directory);
+      if (contents.length === 0) {
+        await fs.promises.rmdir(directory);
+      }
+    } catch (error) {
+      // Directory might have been removed already or doesn't exist
+      // Continue with next directory
+    }
+  }
 }

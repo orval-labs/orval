@@ -1,17 +1,17 @@
 import {
   asyncReduce,
   ConfigExternal,
-  upath,
-  logError,
   getFileInfo,
   GlobalOptions,
   isFunction,
   isString,
   loadFile,
   log,
-  NormalizedOptions,
+  logError,
   NormalizedConfig,
-  removeFiles,
+  NormalizedOptions,
+  removeFilesAndEmptyFolders,
+  upath,
 } from '@orval/core';
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
@@ -29,13 +29,13 @@ export const generateSpec = async (
       : [];
 
     if (options.output.target) {
-      await removeFiles(
+      await removeFilesAndEmptyFolders(
         ['**/*', '!**/*.d.ts', ...extraPatterns],
         getFileInfo(options.output.target).dirname,
       );
     }
     if (options.output.schemas) {
-      await removeFiles(
+      await removeFilesAndEmptyFolders(
         ['**/*', '!**/*.d.ts', ...extraPatterns],
         getFileInfo(options.output.schemas).dirname,
       );
