@@ -22,7 +22,7 @@
     "@sveltejs/kit": "^1.5.0",
     "@typescript-eslint/eslint-plugin": "^8.38.0",
     "@typescript-eslint/parser": "^8.38.0",
-    "eslint": "^9.31.0",
+    "eslint": "^9.32.0",
     "eslint-plugin-svelte3": "^4.0.0",
     "msw": "^2.10.4",
     "orval": "workspace:*",
@@ -35,7 +35,7 @@
   "type": "module",
   "dependencies": {
     "@tanstack/svelte-query": "^4.24.9",
-    "axios": "^1.8.4"
+    "axios": "^1.11.0"
   },
   "msw": {
     "workerDirectory": "static"

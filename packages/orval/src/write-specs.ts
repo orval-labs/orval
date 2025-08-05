@@ -7,7 +7,6 @@ import {
   log,
   NormalizedOptions,
   OutputMode,
-  upath,
   writeSchemas,
   writeSingleMode,
   WriteSpecsBuilder,
@@ -16,12 +15,14 @@ import {
   writeTagsMode,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa from 'execa';
+import { execa } from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { TypeDocOptions } from 'typedoc';
 import { executeHook } from './utils';
+import { join, resolve, extname, normalize, relative } from 'node:path';
+import { URL } from 'node:url';
 
 const getHeader = (
   option: false | ((info: InfoObject) => string | string[]),
@@ -36,6 +37,26 @@ const getHeader = (
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
 
+// TODO this was copied from core utils path.ts,
+// importing it monkey patches node:path so c/p for now
+function getSpecName(specKey: string, target: string) {
+  if (URL.canParse(specKey)) {
+    const url = new URL(target);
+    return specKey
+      .replace(url.origin, '')
+      .replace(getFileInfo(url.pathname).dirname, '')
+      .replace(extname(specKey), '');
+  }
+
+  return (
+    '/' +
+    normalize(relative(getFileInfo(target).dirname, specKey))
+      .split('../')
+      .join('')
+      .replace(extname(specKey), '')
+  );
+}
+
 export const writeSpecs = async (
   builder: WriteSpecsBuilder,
   workspace: string,
@@ -48,7 +69,7 @@ export const writeSpecs = async (
 
   const specsName = Object.keys(schemas).reduce(
     (acc, specKey) => {
-      const basePath = upath.getSpecName(specKey, target);
+      const basePath = getSpecName(specKey, target);
       const name = basePath.slice(1).split('/').join('-');
 
       acc[specKey] = name;
@@ -70,7 +91,7 @@ export const writeSpecs = async (
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
         const schemaPath = !isRootKey(specKey, target)
-          ? upath.join(rootSchemaPath, specsName[specKey])
+          ? join(rootSchemaPath, specsName[specKey])
           : rootSchemaPath;
 
         return writeSchemas({
@@ -112,20 +133,15 @@ export const writeSpecs = async (
           !path.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
       )
       .map((path) =>
-        upath.relativeSafe(
-          workspacePath,
-          getFileInfo(path).pathWithoutExtension,
-        ),
+        resolve(workspacePath, getFileInfo(path).pathWithoutExtension),
       );
 
     if (output.schemas) {
-      imports.push(
-        upath.relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
-      );
+      imports.push(resolve(workspacePath, getFileInfo(output.schemas).dirname));
     }
 
     if (output.indexFiles) {
-      const indexFile = upath.join(workspacePath, '/index.ts');
+      const indexFile = join(workspacePath, '/index.ts');
 
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');

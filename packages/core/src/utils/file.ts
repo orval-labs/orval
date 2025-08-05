@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { build, PluginBuild } from 'esbuild';
 import fs from 'fs';
-import glob from 'globby';
+import { globby } from 'globby';
 import mm from 'micromatch';
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
 import { Tsconfig } from '../types';
@@ -370,7 +370,7 @@ export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
 ) {
-  const files = await glob(patterns, {
+  const files = await globby(patterns, {
     cwd: dir,
     absolute: true,
   });
@@ -379,7 +379,7 @@ export async function removeFilesAndEmptyFolders(
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
 
   // Find and remove empty directories
-  const directories = await glob(['**/*'], {
+  const directories = await globby(['**/*'], {
     cwd: dir,
     absolute: true,
     onlyDirectories: true,

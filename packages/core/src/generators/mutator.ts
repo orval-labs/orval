@@ -1,4 +1,4 @@
-import acorn, { Parser } from 'acorn';
+import { Parser, ecmaVersion } from 'acorn';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import {
@@ -130,9 +130,7 @@ export const generateMutator = async ({
   }
 };
 
-const getEcmaVersion = (
-  target?: TsConfigTarget,
-): acorn.ecmaVersion | undefined => {
+const getEcmaVersion = (target?: TsConfigTarget): ecmaVersion | undefined => {
   if (!target) {
     return;
   }
@@ -142,7 +140,7 @@ const getEcmaVersion = (
   }
 
   try {
-    return Number(target.toLowerCase().replace('es', '')) as acorn.ecmaVersion;
+    return Number(target.toLowerCase().replace('es', '')) as ecmaVersion;
   } catch {
     return;
   }
@@ -161,7 +159,7 @@ const removeComments = (file: string) => {
 const parseFile = (
   file: string,
   name: string,
-  ecmaVersion: acorn.ecmaVersion = 6,
+  ecmaVersion: ecmaVersion = 6,
 ): GeneratorMutatorParsingInfo | undefined => {
   try {
     const ast = Parser.parse(file, { ecmaVersion }) as any;

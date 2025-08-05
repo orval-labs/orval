@@ -9,7 +9,6 @@
   "bin": "dist/bin/orval.js",
   "type": "commonjs",
   "main": "dist/index.js",
-  "types": "dist/index.d.js",
   "keywords": [
     "rest",
     "client",
@@ -42,19 +41,22 @@
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git"
   },
+  "engines": {
+    "node": ">=20.19.4"
+  },
   "scripts": {
-    "build": "tsup --dts src/index.ts",
-    "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
+    "build": "tsup --dts",
+    "dev": "tsup --watch ./src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
-    "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
+    "generate-api": "node ./dist/bin/orval.js --config ../../samples/angular-app/orval.config.ts",
     "test": "tsc --noEmit && vitest --passWithNoTests"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.7",
-    "@types/js-yaml": "^4.0.8",
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
     "@types/lodash.uniq": "^4.5.9",
     "tsup": "^8.5.0",
-    "typedoc-plugin-coverage": "^3.4.1"
+    "typescript": "~5.8.3"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
@@ -68,20 +70,19 @@
     "@orval/query": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "ajv": "^8.17.1",
     "cac": "^6.7.14",
-    "chalk": "^4.1.2",
+    "chalk": "^5.5.0",
     "chokidar": "^4.0.3",
     "enquirer": "^2.4.1",
-    "execa": "^5.1.1",
-    "find-up": "5.0.0",
-    "fs-extra": "^11.3.0",
+    "execa": "^8.0.1",
+    "find-up": "^7.0.0",
+    "fs-extra": "^11.3.1",
     "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.4.0",
+    "openapi3-ts": "4.5.0",
     "string-argv": "^0.3.2",
-    "tsconfck": "^2.0.1",
-    "typedoc": "^0.28.7",
-    "typedoc-plugin-markdown": "^4.8.0",
-    "typescript": "5.8.3"
+    "tsconfck": "^2.1.2",
+    "typedoc": "^0.28.9",
+    "typedoc-plugin-coverage": "^4.0.1",
+    "typedoc-plugin-markdown": "^4.8.0"
   }
 }

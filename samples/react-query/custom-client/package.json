@@ -8,7 +8,7 @@
     "@types/node": "^20.13.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "axios": "^1.8.4",
+    "axios": "^1.11.0",
     "faker": "^5.5.3",
     "msw": "^2.10.4",
     "react": "^18.3.1",

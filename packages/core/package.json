@@ -17,33 +17,32 @@
     "@faker-js/faker": "^9.9.0",
     "@types/debug": "^4.1.12",
     "@types/fs-extra": "^11.0.4",
-    "@types/inquirer": "^9.0.8",
     "@types/lodash.isempty": "^4.4.9",
     "@types/lodash.uniq": "^4.5.9",
     "@types/lodash.uniqby": "^4.7.9",
     "@types/lodash.uniqwith": "^4.5.9",
     "@types/micromatch": "^4.0.9",
-    "tsup": "^8.5.0",
-    "typedoc": "^0.28.9"
+    "tsup": "^8.5.0"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
-    "@ibm-cloud/openapi-ruleset": "^1.31.1",
+    "@ibm-cloud/openapi-ruleset": "^1.31.2",
+    "@stoplight/spectral-core": "^1.20.0",
     "acorn": "^8.15.0",
-    "ajv": "^8.17.1",
-    "chalk": "^4.1.2",
+    "chalk": "^5.5.0",
     "compare-versions": "^6.1.1",
     "debug": "^4.4.1",
     "esbuild": "^0.25.8",
     "esutils": "2.0.3",
-    "fs-extra": "^11.3.0",
-    "globby": "11.1.0",
+    "fs-extra": "^11.3.1",
+    "globby": "14.1.0",
     "lodash.isempty": "^4.4.0",
     "lodash.uniq": "^4.5.0",
     "lodash.uniqby": "^4.7.0",
     "lodash.uniqwith": "^4.5.0",
     "micromatch": "^4.0.8",
     "openapi3-ts": "4.5.0",
-    "swagger2openapi": "^7.0.8"
+    "swagger2openapi": "^7.0.8",
+    "typedoc": "^0.28.9"
   }
 }

@@ -1,7 +1,8 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema, NamingConvention } from '../types';
-import { upath, conventionName } from '../utils';
+import { conventionName } from '../utils';
+import { join } from 'node:path';
 
 const getSchema = ({
   schema: { imports, model },
@@ -38,9 +39,6 @@ const getSchema = ({
   return file;
 };
 
-const getPath = (path: string, name: string, fileExtension: string): string =>
-  upath.join(path, `/${name}${fileExtension}`);
-
 export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n`;
 
@@ -48,7 +46,7 @@ export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, { model }) => writeModelInline(acc, model), '');
 
 export const writeSchema = async ({
-  path,
+  schemaPath,
   schema,
   target,
   namingConvention,
@@ -58,7 +56,7 @@ export const writeSchema = async ({
   specsName,
   header,
 }: {
-  path: string;
+  schemaPath: string;
   schema: GeneratorSchema;
   target: string;
   namingConvention: NamingConvention;
@@ -72,7 +70,7 @@ export const writeSchema = async ({
 
   try {
     await fs.outputFile(
-      getPath(path, name, fileExtension),
+      join(schemaPath, `${name}${fileExtension}`),
       getSchema({
         schema,
         target,
@@ -114,7 +112,7 @@ export const writeSchemas = async ({
   await Promise.all(
     schemas.map((schema) =>
       writeSchema({
-        path: schemaPath,
+        schemaPath,
         schema,
         target,
         namingConvention,
@@ -128,7 +126,7 @@ export const writeSchemas = async ({
   );
 
   if (indexFiles) {
-    const schemaFilePath = upath.join(schemaPath, `/index${fileExtension}`);
+    const schemaFilePath = join(schemaPath, `/index${fileExtension}`);
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
