@@ -299,7 +299,7 @@ export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
 ) {
-  const files = await glob(patterns, {
+  const files = await globby(patterns, {
     cwd: dir,
     absolute: true,
   });
@@ -308,7 +308,7 @@ export async function removeFilesAndEmptyFolders(
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
 
   // Find and remove empty directories
-  const directories = await glob(['**/*'], {
+  const directories = await globby(['**/*'], {
     cwd: dir,
     absolute: true,
     onlyDirectories: true,

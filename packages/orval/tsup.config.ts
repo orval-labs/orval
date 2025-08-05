@@ -1,8 +1,8 @@
-import { defineConfig } from 'tsup'
+import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/bin/orval.ts', 'src/index.ts'],
-  target: "node12",
+  target: 'node20',
   sourcemap: true,
   clean: true,
-})
+});

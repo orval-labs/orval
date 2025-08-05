@@ -50,6 +50,9 @@
     "type": "git",
     "url": "git+https://github.com/orval-labs/orval.git"
   },
+  "engines": {
+    "node": ">=20.19.4"
+  },
   "scripts": {
     "build": "tsdown --config-loader unconfig",
     "dev": "tsdown --config-loader unconfig --watch src --onSuccess 'yarn generate-api'",

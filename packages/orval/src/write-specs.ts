@@ -1,3 +1,6 @@
+import { extname, join, normalize, relative, resolve } from 'node:path';
+import { URL } from 'node:url';
+
 import {
   createSuccessMessage,
   getFileInfo,
@@ -7,7 +10,6 @@ import {
   log,
   type NormalizedOptions,
   OutputMode,
-  upath,
   writeSchemas,
   writeSingleMode,
   type WriteSpecsBuilder,
@@ -36,6 +38,26 @@ const getHeader = (
 
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
+
+// TODO this was copied from core utils path.ts,
+// importing it monkey patches node:path so c/p for now
+function getSpecName(specKey: string, target: string) {
+  if (URL.canParse(specKey)) {
+    const url = new URL(target);
+    return specKey
+      .replace(url.origin, '')
+      .replace(getFileInfo(url.pathname).dirname, '')
+      .replace(extname(specKey), '');
+  }
+
+  return (
+    '/' +
+    normalize(relative(getFileInfo(target).dirname, specKey))
+      .split('../')
+      .join('')
+      .replace(extname(specKey), '')
+  );
+}
 
 export const writeSpecs = async (
   builder: WriteSpecsBuilder,
@@ -112,20 +134,15 @@ export const writeSpecs = async (
           !path.endsWith(`.${getMockFileExtensionByTypeName(output.mock)}.ts`),
       )
       .map((path) =>
-        upath.relativeSafe(
-          workspacePath,
-          getFileInfo(path).pathWithoutExtension,
-        ),
+        resolve(workspacePath, getFileInfo(path).pathWithoutExtension),
       );
 
     if (output.schemas) {
-      imports.push(
-        upath.relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
-      );
+      imports.push(resolve(workspacePath, getFileInfo(output.schemas).dirname));
     }
 
     if (output.indexFiles) {
-      const indexFile = upath.join(workspacePath, '/index.ts');
+      const indexFile = join(workspacePath, '/index.ts');
 
       if (await fs.pathExists(indexFile)) {
         const data = await fs.readFile(indexFile, 'utf8');
