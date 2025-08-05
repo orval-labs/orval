@@ -15,7 +15,7 @@ import type {
 
 import { Injectable, inject } from '@angular/core';
 
-import type { DeepNonNullable } from '@orval/core/src/utils/deep-non-nullable';
+import type { DeepNonNullable } from '@orval/core';
 
 import { Observable } from 'rxjs';
 

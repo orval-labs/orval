@@ -44,7 +44,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
   {
     exports: [{ name: 'DeepNonNullable' }],
-    dependency: '@orval/core/src/utils/deep-non-nullable',
+    dependency: '@orval/core',
   },
 ];
 
