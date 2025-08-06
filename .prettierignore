@@ -13,3 +13,8 @@ yarn.lock
 
 # Angular build cache
 **/.angular/cache
+*.svg
+*.ico
+*.lock
+.gitignore
+.prettierignore
