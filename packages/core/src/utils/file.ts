@@ -93,6 +93,13 @@ export async function loadFile<File = any>(
     }
 
     if (!resolvedPath) {
+      const cjsFile = resolve(root, `${defaultFileName}.cjs`);
+      if (fs.existsSync(cjsFile)) {
+        resolvedPath = cjsFile;
+      }
+    }
+
+    if (!resolvedPath) {
       const tsFile = resolve(root, `${defaultFileName}.ts`);
       if (fs.existsSync(tsFile)) {
         resolvedPath = tsFile;
@@ -106,7 +113,7 @@ export async function loadFile<File = any>(
       createLogger(logLevel).error(chalk.red(`File not found => ${filePath}`));
     } else if (defaultFileName) {
       createLogger(logLevel).error(
-        chalk.red(`File not found => ${defaultFileName}.{js,mjs,ts}`),
+        chalk.red(`File not found => ${defaultFileName}.{js,mjs,cjs,ts}`),
       );
     } else {
       createLogger(logLevel).error(chalk.red(`File not found`));
