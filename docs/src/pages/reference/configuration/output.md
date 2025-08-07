@@ -2866,7 +2866,7 @@ module.exports = {
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false. **Note:** this only works for Tanstack Query clients for now.
+Valid values: true or false. Defaults to false. **Note:** this only works for Tanstack Query clients and fetch httpClients for now.
 
 Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become a default in the future, see https://github.com/orval-labs/orval/pull/895
 

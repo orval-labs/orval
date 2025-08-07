@@ -20,6 +20,7 @@ import {
   ReferenceObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject } from 'openapi3-ts/oas31';
+import { makeRouteSafe } from './utils';
 
 export const generateRequestFunction = (
   {
@@ -38,6 +39,11 @@ export const generateRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
+  let _route = route;
+  if (context.output.urlEncodeParameters) {
+    _route = makeRouteSafe(_route);
+  }
+
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData.disabled === false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
@@ -114,13 +120,19 @@ ${
   });`
     : ''
 }
-
+  ${
+    context.output.urlEncodeParameters
+      ? `for (const [key, value] of normalizedParams) {
+    normalizedParams.set(key, encodeURIComponent(value));
+  }`
+      : ``
+  }
   ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${route}${'?${stringifiedParams}'}\` : \`${route}\``
-      : `return \`${route}\``
+      ? `return stringifiedParams.length > 0 ? \`${_route}${'?${stringifiedParams}'}\` : \`${_route}\``
+      : `return \`${_route}\``
   }
 }\n`;
 
@@ -306,10 +318,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  return {
-    implementation: `${functionImplementation}\n`,
-    imports,
-  };
+  return { implementation: `${functionImplementation}\n`, imports };
 };
 
 const getHTTPStatusCodes = () => `
