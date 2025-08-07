@@ -11,10 +11,13 @@
     "build": "tsup ./src/index.ts --target node12 --clean --sourcemap --dts",
     "dev": "tsup ./src/index.ts --target node12 --clean --sourcemap --watch src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest run"
+    "test": "vitest"
   },
   "dependencies": {
     "@orval/core": "7.11.2",
     "openapi3-ts": "^4.2.2"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

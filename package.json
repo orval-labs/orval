@@ -21,7 +21,7 @@
     "build": "turbo run build",
     "test": "turbo run test",
     "test:samples": "cd ./samples && yarn && yarn test",
-    "test:ci": "yarn test && yarn test:samples",
+    "test:ci": "CI=true yarn test && yarn test:samples",
     "lint": "turbo run lint",
     "dev": "turbo run dev"
   },
@@ -53,7 +53,7 @@
     "turbo": "^1.13.3",
     "typescript": "^5.2.2",
     "typescript-eslint": "^8.38.0",
-    "vitest": "^0.6.3",
+    "vitest": "^3.2.4",
     "zx": "^7.2.3"
   },
   "resolutions": {

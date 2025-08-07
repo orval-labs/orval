@@ -6,7 +6,7 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "CI=true ng test --no-watch",
+    "test": "ng test --no-watch",
     "lint": "ng lint",
     "generate-api": "node ../../packages/orval/dist/bin/orval.js"
   },

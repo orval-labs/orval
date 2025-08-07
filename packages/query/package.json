@@ -11,7 +11,7 @@
     "build": "tsup ./src/index.ts --target node12 --clean --sourcemap --dts",
     "dev": "tsup ./src/index.ts --target node12 --clean --sourcemap --watch src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest run"
+    "test": "vitest"
   },
   "dependencies": {
     "@orval/core": "7.11.2",
@@ -20,6 +20,6 @@
   },
   "devDependencies": {
     "@types/lodash.omitby": "^4.6.7",
-    "vitest": "^0.34.6"
+    "vitest": "^3.2.4"
   }
 }
