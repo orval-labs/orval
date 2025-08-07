@@ -40,7 +40,7 @@ const getHeader = (
 // TODO this was copied from core utils path.ts,
 // importing it monkey patches node:path so c/p for now
 function getSpecName(specKey: string, target: string) {
-  if (URL.canParse(specKey)) {
+  if (isUrl(specKey)) {
     const url = new URL(target);
     return specKey
       .replace(url.origin, '')
@@ -55,6 +55,16 @@ function getSpecName(specKey: string, target: string) {
       .join('')
       .replace(extname(specKey), '')
   );
+}
+
+// TODO this was copied from core utils path.ts,
+// importing it monkey patches node:path so c/p for now
+function isUrl(str: string) {
+  if (URL.canParse(str)) {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  }
+  return false;
 }
 
 export const writeSpecs = async (
