@@ -7932,6 +7932,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/query-core@npm:5.62.16":
+  version: 5.62.16
+  resolution: "@tanstack/query-core@npm:5.62.16"
+  checksum: 10c0/3df0c19916cb363b055a20590c856b4f08006754b8169222a12e94ed5647733c389ac0d58878dfb8d6803f23a2a092d8a29b3259330576bd4170dad86798eb6d
+  languageName: node
+  linkType: hard
+
 "@tanstack/query-core@npm:5.83.1":
   version: 5.83.1
   resolution: "@tanstack/query-core@npm:5.83.1"
@@ -7947,6 +7954,17 @@ __metadata:
   peerDependencies:
     react: ^18 || ^19
   checksum: 10c0/a57fed2e6f3c7a42309383e03056f1ff1506ad5fdc8d20a1a6a945006442e71871dfd5eac6e90fb8a506036b2e8a2a5463fa0f5bed826de170aa5926a4728f99
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:~5.62.0":
+  version: 5.62.16
+  resolution: "@tanstack/react-query@npm:5.62.16"
+  dependencies:
+    "@tanstack/query-core": "npm:5.62.16"
+  peerDependencies:
+    react: ^18 || ^19
+  checksum: 10c0/8c1fa1f746a4679da7fdb9708ca286a42eae9c6de3a3643afd53632436cb878a94f68bb617be5a2b4369ad839380d1621dc0f49c7551ffdd9bc4568168e4483c
   languageName: node
   linkType: hard
 
@@ -23710,7 +23728,7 @@ __metadata:
   resolution: "react-query-basic@workspace:samples/react-query/basic"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@tanstack/react-query": "npm:^5.63.0"
+    "@tanstack/react-query": "npm:~5.62.0"
     "@types/node": "npm:^20.13.0"
     "@types/react": "npm:^18.3.3"
     "@types/react-dom": "npm:^18.3.0"
