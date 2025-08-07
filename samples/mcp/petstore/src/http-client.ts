@@ -72,7 +72,7 @@ export type findPetsByStatusResponse200 = {
 };
 
 export type findPetsByStatusResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -136,7 +136,7 @@ export type findPetsByTagsResponse200 = {
 };
 
 export type findPetsByTagsResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -205,7 +205,7 @@ export type getPetByIdResponse200 = {
 };
 
 export type getPetByIdResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -263,7 +263,7 @@ export type updatePetWithFormResponse200 = {
 };
 
 export type updatePetWithFormResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -326,12 +326,12 @@ export const updatePetWithForm = async (
 };
 
 export type deletePetResponse200 = {
-  data: void;
+  data: null;
   status: 200;
 };
 
 export type deletePetResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -383,7 +383,7 @@ export type getInventoryResponse200 = {
 };
 
 export type getInventoryResponseDefault = {
-  data: void;
+  data: null;
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
@@ -426,7 +426,7 @@ export type getOrderByIdResponse200 = {
 };
 
 export type getOrderByIdResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -479,12 +479,12 @@ export const getOrderById = async (
 };
 
 export type deleteOrderResponse200 = {
-  data: void;
+  data: null;
   status: 200;
 };
 
 export type deleteOrderResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -542,7 +542,7 @@ export type loginUserResponse200 = {
 };
 
 export type loginUserResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -601,12 +601,12 @@ export const loginUser = async (
 };
 
 export type logoutUserResponse200 = {
-  data: void;
+  data: null;
   status: 200;
 };
 
 export type logoutUserResponseDefault = {
-  data: void;
+  data: null;
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
@@ -649,7 +649,7 @@ export type getUserByNameResponse200 = {
 };
 
 export type getUserByNameResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
@@ -702,12 +702,12 @@ export const getUserByName = async (
 };
 
 export type deleteUserResponse200 = {
-  data: void;
+  data: null;
   status: 200;
 };
 
 export type deleteUserResponse400 = {
-  data: void;
+  data: null;
   status: 400;
 };
 
