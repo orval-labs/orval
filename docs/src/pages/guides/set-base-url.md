@@ -1,4 +1,7 @@
-## Use your own base url
+---
+id: use-your-own-base-url
+title: Use your own base url
+---
 
 Orval allows you to set a custom base url for each OpenAPI specification. This can be a part of the url that's been omitted from the specification or the entire url. You can also configure Orval to read the `servers` field in the specification.
 
@@ -14,7 +17,7 @@ module.exports = {
 };
 ```
 
-### Using the url from the OpenAPI specification
+## Using the url from the OpenAPI specification
 
 If you want to use the url defined in your specification, described by the `servers` field, you can set `getBaseUrlFromSpecification`
 to `true`, which will make Orval correctly identify which base url to use for each operation. Read more about the different settings
@@ -38,7 +41,7 @@ module.exports = {
 
 It's also possible to configure the base url directly on your HTTP client instead.
 
-### Axios
+## Axios
 
 You can set a default baseUrl for all requests:
 
@@ -63,7 +66,7 @@ There is also the possibility to create a custom axios instance. Check the [full
 const AXIOS_INSTANCE = axios.create({ baseURL: '<BACKEND URL>' }); // use your own URL here or environment variable
 ```
 
-### Fetch client
+## Fetch client
 
 Also, if you are using the `fetch` client, you can still set the request URL with the custom fetch client.
 
@@ -101,7 +104,7 @@ export const customFetch = async <T>(
 
 Please refer to the complete sample [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts)
 
-### Angular http client
+## Angular http client
 
 You can use an interceptor to automatically add the url of your API. Like you would do to add an authorization header.
 
@@ -139,6 +142,6 @@ providers: [
 ];
 ```
 
-### Other client
+## Other client
 
 Depending on the client that you are using, you will need to add it by yourself

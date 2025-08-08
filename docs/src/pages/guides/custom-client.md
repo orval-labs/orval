@@ -1,4 +1,7 @@
-### Custom client
+---
+id: custom-client
+title: Custom HTTP client
+---
 
 You can add a mutator function to your config and setup a custom instance of your preferred HTTP client.
 
@@ -62,7 +65,7 @@ export type BodyType<BodyData> = CamelCase<BodyType>;
 
 Or, Please refer to the using custom fetch with Next.js sample app [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts).
 
-#### Angular
+## Angular
 
 Even if you use the `angular` client, you can add mutator functions to your configuration to set up your preferred HTTP client.
 

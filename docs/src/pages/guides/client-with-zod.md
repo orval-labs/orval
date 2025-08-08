@@ -1,11 +1,11 @@
 ---
 id: client-with-zod
-title: client-with-zod
+title: Client with Zod
 ---
 
 If you want to use `zod` with your `swr` or `TanStack Query` client, you can do so by configuring it as follows.
 
-#### Example of orval.config.js
+## Example of orval.config.js
 
 ```js
 module.exports = {

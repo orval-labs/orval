@@ -5,7 +5,7 @@ title: Enum Names
 
 You can extend your OpenAPI schema to include enum names for your enum values. This will let Orval generate your enums with the correct names.
 
-#### Example of OpenAPI schema
+## Example of OpenAPI schema
 
 ```yaml
 openapi: '3.1.0'
@@ -44,7 +44,7 @@ export const MyEnum {
 } as const;
 ```
 
-#### Valid enum name extensions
+## Valid enum name extensions
 
 Orval recognizes the following extensions:
 

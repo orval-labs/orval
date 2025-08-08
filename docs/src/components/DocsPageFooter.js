@@ -18,7 +18,7 @@ export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
   return (
     <>
       <div className="py-8">
-        <div className="flex space-between items-center">
+        <nav className="flex space-between items-center">
           {prevRoute && prevRoute.path ? (
             <NextLink
               href={removeFromLast(prevRoute.path, '.')}
@@ -47,7 +47,7 @@ export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
               </span>
             </NextLink>
           )}
-        </div>
+        </nav>
       </div>
 
       {editUrl ? (

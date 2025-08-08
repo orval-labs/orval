@@ -3,17 +3,17 @@ id: stream-ndjson
 title: Stream Newline Delimited JSON
 ---
 
-### Introduction
+## Introduction
 
 `Orval` generates code that properly types responses streamed from `NDJSON`.
 [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) is a technique to stream an array of JSON objects. This is mostly used when the data set is large.
 
-### How to use
+## How to use
 
 `Orval` does not generate code for actually parsing the stream, but rather provides type safety. You can use the code in the example below to see how you can achieve reading streamed data.
 Proper type support is only supported when using the `fetch` client as either a standalone client, or as a [httpClient](../reference/configuration/output#httpclient).
 
-#### Example
+### Example
 
 ```ts
 // orval.config.ts
