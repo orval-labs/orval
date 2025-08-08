@@ -23,6 +23,9 @@ export default defineConfig({
           path: '../mutators/custom-fetch.ts',
           name: 'customFetch',
         },
+        fetch: {
+          shouldThrowOnError: true,
+        },
       },
     },
     input: {
@@ -269,7 +272,7 @@ export default defineConfig({
       },
     },
     input: {
-      target: '../specifications/stream.yaml',
+      target: '../specifications/petstore.yaml',
     },
   },
 });
