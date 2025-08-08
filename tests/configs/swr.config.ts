@@ -60,7 +60,7 @@ export default defineConfig({
       httpClient: 'fetch',
       override: {
         fetch: {
-          shouldThrowOnError: true,
+          forceSuccessResponse: true,
         },
       },
     },

@@ -206,7 +206,7 @@ ${
     : ''
 };
 
-${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${responseTypeName} = (${hasError && hasSuccess ? `${successName} | ${errorName}` : hasSuccess ? successName : errorName})\n\n`}`
+${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${responseTypeName} = (${hasError && hasSuccess ? `${successName} | ${errorName}` : hasSuccess ? successName : errorName})\n\n`}`
     : '';
 
   const getUrlFnProperties = props
@@ -227,7 +227,7 @@ ${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${response
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
   const returnType =
-    override.fetch.shouldThrowOnError && hasSuccess
+    override.fetch.forceSuccessResponse && hasSuccess
       ? `Promise<${successName}>`
       : `Promise<${responseTypeName}>`;
 
@@ -286,17 +286,17 @@ ${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${response
   }`;
   const fetchResponseImplementation = isNdJson
     ? `  const stream = await fetch(${fetchFnOptions});
-  ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
-  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}` : `return stream`}
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : `return stream`}
   `
     : `const res = await fetch(${fetchFnOptions})
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
-  const data: ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
-  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}` : 'return data'}
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
+  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,

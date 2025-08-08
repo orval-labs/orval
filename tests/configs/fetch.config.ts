@@ -24,7 +24,7 @@ export default defineConfig({
           name: 'customFetch',
         },
         fetch: {
-          shouldThrowOnError: true,
+          forceSuccessResponse: true,
         },
       },
     },
@@ -267,7 +267,7 @@ export default defineConfig({
       client: 'fetch',
       override: {
         fetch: {
-          shouldThrowOnError: true,
+          forceSuccessResponse: true,
         },
       },
     },

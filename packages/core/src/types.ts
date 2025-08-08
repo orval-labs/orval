@@ -634,14 +634,14 @@ export type SwrOptions = {
 
 export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
-  shouldThrowOnError: boolean;
+  forceSuccessResponse: boolean;
   explode: boolean;
   jsonReviver?: Mutator;
 };
 
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
-  shouldThrowOnError?: boolean;
+  forceSuccessResponse?: boolean;
   explode?: boolean;
   jsonReviver?: Mutator;
 };

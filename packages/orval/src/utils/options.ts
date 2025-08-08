@@ -353,8 +353,8 @@ export const normalizeOptions = async (
           includeHttpResponseReturnType:
             outputOptions.override?.fetch?.includeHttpResponseReturnType ??
             true,
-          shouldThrowOnError:
-            outputOptions.override?.fetch?.shouldThrowOnError ?? false,
+          forceSuccessResponse:
+            outputOptions.override?.fetch?.forceSuccessResponse ?? false,
           explode: outputOptions.override?.fetch?.explode ?? true,
           ...(outputOptions.override?.fetch ?? {}),
         },
@@ -362,9 +362,9 @@ export const normalizeOptions = async (
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
-          (outputOptions.override?.useNativeEnums ?? false)
+          outputOptions.override?.useNativeEnums ?? false
             ? 'enum'
-            : (outputOptions.override?.enumGenerationType ?? 'const'),
+            : outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
       },
