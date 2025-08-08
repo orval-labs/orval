@@ -7,7 +7,7 @@ The `fetch` API has the advantage of reducing the bundle size of the application
 
 You should have an `OpenAPI` specification and an `Orval` config where you define the mode as `fetch`.
 
-#### Example with fetch
+## Example with fetch
 
 ```ts
 import { defineConfig } from 'orval';
@@ -77,7 +77,7 @@ The `fetch` client will generate an implementation file with following per path 
 
 Checkout <a href="https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch" target="_blank">here</a> the full example
 
-#### Custom function
+## Custom function
 
 You can add a custom `fetch` function to your config.
 

@@ -6,10 +6,10 @@ export const SidebarHeading = ({ title, children }) => {
     //   <div>{children}</div>
     // </div>
     <div className="heading">
-      <h4>{title}</h4>
+      <h2 className="h4">{title}</h2>
       <div>{children}</div>
       <style jsx>{`
-        h4 {
+        .h4 {
           margin: 1.25rem 0;
           font-size: 1.2rem;
           font-weight: 600;

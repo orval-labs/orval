@@ -3,7 +3,7 @@ id: configuration-input
 title: Input
 ---
 
-### target
+## target
 
 Type: `String`.
 
@@ -19,7 +19,7 @@ module.exports = {
 };
 ```
 
-### validation
+## validation
 
 Type: `Boolean` or `Object`
 
@@ -40,13 +40,13 @@ module.exports = {
 };
 ```
 
-### override
+## override
 
 Type: `Object`.
 
 Give you the possibility to override the specification
 
-#### transformer
+### transformer
 
 Type: `String` or `Function`.
 
@@ -66,7 +66,7 @@ module.exports = {
 
 Example of transformer <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
 
-### filters
+## filters
 
 Type: `Object`.
 
@@ -74,7 +74,7 @@ Default Value: `{}`.
 
 If specified, Orval only generates the endpoints after applying the filter.
 
-#### mode
+### mode
 
 Type: `String`.
 
@@ -98,7 +98,7 @@ module.exports = {
 };
 ```
 
-#### tags
+### tags
 
 Type: Array of `string` or `RegExp`.
 
@@ -119,7 +119,7 @@ module.exports = {
 };
 ```
 
-#### schemas
+### schemas
 
 Type: Array of `string` or `RegExp`.
 
@@ -138,7 +138,7 @@ module.exports = {
 };
 ```
 
-### converterOptions
+## converterOptions
 
 Type: `Object`.
 
@@ -156,7 +156,7 @@ module.exports = {
 };
 ```
 
-### parserOptions
+## parserOptions
 
 Type: `Object`.
 

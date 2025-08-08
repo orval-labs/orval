@@ -2,15 +2,15 @@ import Link from 'next/link';
 import { siteConfig } from '../siteConfig';
 export const Footer = (props) => {
   return (
-    <div className="bg-gray-50 border-t border-gray-200">
+    <footer className="bg-gray-50 border-t border-gray-200">
       <div className="container mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           <div className="grid grid-cols-2 gap-8 xl:col-span-2">
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h4 className="text-sm leading-5 font-semibold tracking-wider text-gray-400 uppercase">
+                <h2 className="text-sm leading-5 font-semibold tracking-wider text-gray-500 uppercase">
                   Resources
-                </h4>
+                </h2>
                 <ul className="mt-4">
                   <li>
                     <Link
@@ -39,9 +39,9 @@ export const Footer = (props) => {
                 </ul>
               </div>
               <div className="mt-12 md:mt-0">
-                <h4 className="text-sm leading-5 font-semibold tracking-wider text-gray-400 uppercase">
+                <h2 className="text-sm leading-5 font-semibold tracking-wider text-gray-500 uppercase">
                   Community
-                </h4>
+                </h2>
                 <ul className="mt-4">
                   <li className="mt-4">
                     <a
@@ -73,7 +73,7 @@ export const Footer = (props) => {
           <div className="flex md:order-2">
             <a
               href="https://twitter.com/anymaniax"
-              className="ml-6 text-gray-400 hover:text-gray-500"
+              className="ml-6 text-gray-500 hover:text-gray-600"
             >
               <span className="sr-only">Twitter</span>
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@ export const Footer = (props) => {
             </a>
             <a
               href="https://github.com/orval-labs"
-              className="ml-6 text-gray-400 hover:text-gray-500"
+              className="ml-6 text-gray-500 hover:text-gray-600"
             >
               <span className="sr-only">GitHub</span>
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -94,12 +94,12 @@ export const Footer = (props) => {
               </svg>
             </a>
           </div>
-          <p className="mt-8 text-base leading-6 text-gray-400 md:mt-0 md:order-1">
+          <p className="mt-8 text-base leading-6 text-gray-500 md:mt-0 md:order-1">
             {siteConfig.copyright}
           </p>
         </div>
       </div>
-    </div>
+    </footer>
   );
 };
 Footer.displayName = 'Footer';

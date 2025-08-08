@@ -1,4 +1,7 @@
-### Fetch client
+---
+id: fetch-client
+title: Fetch client
+---
 
 If you want to use to the `fetch` API as an http client with `swr` or `TanStack Query` clients, you can change the http client from `axios` to `fetch` API by setting the `httpClient` option.
 
@@ -95,7 +98,7 @@ export const useListPets = <TError = Promise<Pets | Error>>(
 };
 ```
 
-#### return original defined return type
+## return original defined return type
 
 When using `fetch` as an `httpClient`, by default the `fetch` response type includes http status.
 If use `swr` or queries, i will be accessing things like `data.data`, which will be noisy so if you want to return a defined return type instead of an automatically generated return type, set `override.fetch.includeHttpResponseReturnType` value to `false`.
@@ -142,7 +145,7 @@ export const listPets = async (
 };
 ```
 
-#### custom fetch client
+## custom fetch client
 
 Also, if you want to use to the custom fetch client, you can set in the override option.
 

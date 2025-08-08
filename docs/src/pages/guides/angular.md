@@ -5,7 +5,7 @@ title: Angular
 
 You should have an OpenAPI specification and an Orval config where you define the mode as Angular.
 
-#### Example with angular
+## Example with angular
 
 ```js
 module.exports = {
@@ -30,11 +30,11 @@ The Angular mode will generate automatically two classes. One abstract with the 
 
 You can checkout an example <a href="https://github.com/orval-labs/orval/tree/master/samples/angular-app" target="_blank">here</a>
 
-### How to set a backend url
+## How to set a backend url
 
 You can use an interceptor to automatically add the url of your API. Like you would do to add an authorization header.
 
-### How use mock
+## How use mock
 
 You should define your mock inside the environment file. If you don't do that you will add all the dependencies to your bundle.
 

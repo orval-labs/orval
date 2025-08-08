@@ -5,7 +5,7 @@ title: SWR
 
 You should have an OpenAPI specification and an Orval config where you define the mode as swr.
 
-#### Example with SWR
+## Example with SWR
 
 ```js
 module.exports = {

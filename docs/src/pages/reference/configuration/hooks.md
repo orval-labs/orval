@@ -3,7 +3,7 @@ id: configuration-hooks
 title: Hooks
 ---
 
-### afterAllFilesWrite
+## afterAllFilesWrite
 
 Type: `String` or `String[]` or `Function`.
 

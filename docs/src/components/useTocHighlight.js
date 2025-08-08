@@ -18,7 +18,7 @@ export function useTocHighlight(
     const { anchors } = getHeaderAnchors().reduce(
       (acc, el) => {
         const anchor = getHeaderDataFromAnchor(el);
-        if (anchor.depth <= 3) {
+        if (anchor.depth <= 2) {
           return {
             lastParent: anchor,
             anchors: [...acc.anchors, anchor],
