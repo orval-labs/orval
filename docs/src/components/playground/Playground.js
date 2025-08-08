@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
-import Select from 'react-select';
+import dynamic from 'next/dynamic';
 import { useDebounce } from 'use-debounce';
 import { EXAMPLES } from './Examples';
 import { PlaygroundEditors } from './PlaygroundEditors';
@@ -19,6 +19,11 @@ const DEFAULT_EXAMPLE = {
   catName: 'ReactQuery',
   index: 0,
 };
+
+// Imports Select dynamically only on the client to avoid hydration warnings in SSR (e.g. aria-activedescendant)
+const Select = dynamic(() => import('react-select'), {
+  ssr: false,
+});
 
 export function Playground({ height }) {
   const [template, setTemplate] = useState(

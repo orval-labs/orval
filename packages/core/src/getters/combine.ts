@@ -14,6 +14,7 @@ import {
   getEnumNames,
 } from './enum';
 import { getScalar } from './scalar';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import uniq from 'lodash.uniq';
 
 type CombinedData = {
@@ -156,8 +157,21 @@ export const combineSchemas = ({
         context,
       });
 
-      acc.values.push(resolvedValue.value);
-      acc.imports.push(...resolvedValue.imports);
+      const aliasedImports = getAliasedImports({
+        context,
+        name,
+        resolvedValue,
+        existingImports: acc.imports,
+      });
+
+      const value = getImportAliasForRefOrValue({
+        context,
+        resolvedValue,
+        imports: aliasedImports,
+      });
+
+      acc.values.push(value);
+      acc.imports.push(...aliasedImports);
       acc.schemas.push(...resolvedValue.schemas);
       acc.isEnum.push(resolvedValue.isEnum);
       acc.types.push(resolvedValue.type);
@@ -188,7 +202,7 @@ export const combineSchemas = ({
       hasReadonlyProps: false,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
-      requiredProperties: separator === 'allOf' ? schema.required ?? [] : [],
+      requiredProperties: separator === 'allOf' ? (schema.required ?? []) : [],
     } as CombinedData,
   );
 

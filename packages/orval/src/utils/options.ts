@@ -116,8 +116,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, tslint, biome } =
-    globalOptions;
+  const { clean, prettier, client, httpClient, mode, biome } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -193,7 +192,6 @@ export const normalizeOptions = async (
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
-      tslint: outputOptions.tslint ?? tslint ?? false,
       biome: outputOptions.biome ?? biome ?? false,
       tsconfig,
       packageJson,
@@ -252,6 +250,7 @@ export const normalizeOptions = async (
               ? outputOptions.override?.header!
               : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
+        namingConvention: outputOptions.override?.namingConvention ?? {},
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,
@@ -342,6 +341,7 @@ export const normalizeOptions = async (
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
           dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
+          timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         swr: {
           ...(outputOptions.override?.swr ?? {}),
@@ -355,15 +355,16 @@ export const normalizeOptions = async (
             true,
           shouldThrowOnError:
             outputOptions.override?.fetch?.shouldThrowOnError ?? false,
+          explode: outputOptions.override?.fetch?.explode ?? true,
           ...(outputOptions.override?.fetch ?? {}),
         },
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
-          outputOptions.override?.useNativeEnums ?? false
+          (outputOptions.override?.useNativeEnums ?? false)
             ? 'enum'
-            : outputOptions.override?.enumGenerationType ?? 'const',
+            : (outputOptions.override?.enumGenerationType ?? 'const'),
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
       },
@@ -542,6 +543,7 @@ const normalizeOperationsAndTags = (
                     generateEachHttpStatus:
                       zod?.generateEachHttpStatus ?? false,
                     dateTimeOptions: zod?.dateTimeOptions ?? {},
+                    timeOptions: zod?.timeOptions ?? {},
                   },
                 }
               : {}),

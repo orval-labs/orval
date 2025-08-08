@@ -37,6 +37,7 @@ export const generateAxiosOptions = ({
   requestOptions,
   hasSignal,
   isVue,
+  isAngular,
   paramsSerializer,
   paramsSerializerOptions,
 }: {
@@ -47,11 +48,17 @@ export const generateAxiosOptions = ({
   requestOptions?: object | boolean;
   hasSignal: boolean;
   isVue: boolean;
+  isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
-  if (!queryParams && !headers && !response.isBlob) {
+  if (
+    !queryParams &&
+    !headers &&
+    !response.isBlob &&
+    response.definition.success !== 'string'
+  ) {
     if (isRequestOptions) {
       return 'options';
     }
@@ -82,11 +89,14 @@ export const generateAxiosOptions = ({
   }
 
   if (
-    response.isBlob &&
-    (!isObject(requestOptions) ||
-      !requestOptions.hasOwnProperty('responseType'))
+    !isObject(requestOptions) ||
+    !requestOptions.hasOwnProperty('responseType')
   ) {
-    value += `\n        responseType: 'blob',`;
+    if (response.isBlob) {
+      value += `\n        responseType: 'blob',`;
+    } else if (response.definition.success === 'string') {
+      value += `\n        responseType: 'text',`;
+    }
   }
 
   if (isObject(requestOptions)) {
@@ -99,6 +109,8 @@ export const generateAxiosOptions = ({
     if (queryParams) {
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
+      } else if (isAngular && paramsSerializer) {
+        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -109,7 +121,11 @@ export const generateAxiosOptions = ({
     }
   }
 
-  if (queryParams && (paramsSerializer || paramsSerializerOptions?.qs)) {
+  if (
+    !isAngular &&
+    queryParams &&
+    (paramsSerializer || paramsSerializerOptions?.qs)
+  ) {
     if (paramsSerializer) {
       value += `\n        paramsSerializer: ${paramsSerializer.name},`;
     } else {
@@ -167,6 +183,7 @@ export const generateOptions = ({
     isExactOptionalPropertyTypes,
     hasSignal,
     isVue: isVue ?? false,
+    isAngular: isAngular ?? false,
     paramsSerializer,
     paramsSerializerOptions,
   });

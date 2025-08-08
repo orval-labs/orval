@@ -224,6 +224,39 @@ export default defineConfig({
       target: '../specifications/stream.yaml',
     },
   },
+  reviver: {
+    output: {
+      target: '../generated/fetch/reviver/endpoints.ts',
+      schemas: '../generated/fetch/reviver/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      override: {
+        fetch: {
+          jsonReviver: {
+            path: 'mutators/custom-reviver.ts',
+            default: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  dateParams: {
+    output: {
+      target: '../generated/fetch/dateParams/endpoints.ts',
+      schemas: '../generated/fetch/dateParams/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      override: {
+        useDates: true,
+      },
+    },
+    input: {
+      target: '../specifications/parameters.yaml',
+    },
+  },
   throwOnError: {
     output: {
       target: '../generated/fetch/throw-on-error/endpoints.ts',
@@ -236,7 +269,7 @@ export default defineConfig({
       },
     },
     input: {
-      target: '../specifications/petstore.yaml',
+      target: '../specifications/stream.yaml',
     },
   },
 });

@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import readline from 'readline';
-export const log = console.log; // tslint:disable-line:no-console
+export const log = console.log;
 
 export const startMessage = ({
   name,

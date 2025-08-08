@@ -84,6 +84,7 @@ export const generateClientImports: GeneratorClientImports = ({
             packageJson,
             output.httpClient,
             hasTagsMutator,
+            output.override,
           ),
           ...imports,
         ]
@@ -265,6 +266,7 @@ export const generateOperations = (
         formUrlEncoded: verbOption.formUrlEncoded,
         paramsSerializer: verbOption.paramsSerializer,
         operationName: verbOption.operationName,
+        fetchReviver: verbOption.fetchReviver,
       };
 
       return acc;

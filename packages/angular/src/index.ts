@@ -32,12 +32,19 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
     dependency: '@angular/common/http',
   },
   {
-    exports: [{ name: 'Injectable', values: true }],
+    exports: [
+      { name: 'Injectable', values: true },
+      { name: 'inject', values: true },
+    ],
     dependency: '@angular/core',
   },
   {
     exports: [{ name: 'Observable', values: true }],
     dependency: 'rxjs',
+  },
+  {
+    exports: [{ name: 'DeepNonNullable' }],
+    dependency: '@orval/core',
   },
 ];
 
@@ -60,19 +67,25 @@ export const generateAngularHeader: ClientHeaderBuilder = ({
 }) => `
 ${
   isRequestOptions && !isGlobalMutator
-    ? `type HttpClientOptions = {
-  headers?: HttpHeaders | {
-      [header: string]: string | string[];
-  };
+    ? `interface HttpClientOptions {
+  headers?: HttpHeaders | Record<string, string | string[]>;
   context?: HttpContext;
-  observe?: any;
-  params?: HttpParams | {
-    [param: string]: string | number | boolean | ReadonlyArray<string | number | boolean>;
-  };
+  params?:
+        | HttpParams
+        | Record<string, string | number | boolean | ReadonlyArray<string | number | boolean>>;
   reportProgress?: boolean;
-  responseType?: any;
   withCredentials?: boolean;
-};`
+  credentials?: RequestCredentials;
+  keepalive?: boolean;
+  priority?: RequestPriority;
+  cache?: RequestCache;
+  mode?: RequestMode;
+  redirect?: RequestRedirect;
+  referrer?: string;
+  integrity?: string;
+  transferCache?: {includeHeaders?: string[]} | boolean;
+  timeout?: number;
+}`
     : ''
 }
 
@@ -95,9 +108,8 @@ ${
     : ''
 })
 export class ${title} {
-  constructor(
-    private http: HttpClient,
-  ) {}`;
+  private readonly http = inject(HttpClient);
+`;
 
 export const generateAngularFooter: ClientFooterBuilder = ({
   operationNames,
@@ -147,9 +159,11 @@ const generateImplementation = (
 
   returnTypesToWrite.set(
     operationName,
-    `export type ${pascal(
-      operationName,
-    )}ClientResult = NonNullable<${dataType}>`,
+    `export type ${pascal(operationName)}ClientResult = ${
+      dataType === 'null'
+        ? 'never' // NonNullable<null> is the type never
+        : `NonNullable<${dataType}>`
+    };`,
   );
 
   if (mutator) {
@@ -212,19 +226,22 @@ const generateImplementation = (
   });
 
   const propsDefinition = toObjectString(props, 'definition');
+  const isModelType = dataType !== 'Blob' && dataType !== 'string';
+  let functionName = operationName;
+  if (isModelType) functionName += `<TData = ${dataType}>`;
+
   const overloads = isRequestOptions
-    ? `${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'body' }\n  ): Observable<TData>;
-    ${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'response' }\n  ): Observable<AngularHttpResponse<TData>>;
-    ${operationName}<TData = ${dataType}>(\n    ${propsDefinition} options?: Omit<HttpClientOptions, 'observe'> & { observe?: 'events' }\n  ): Observable<HttpEvent<TData>>;`
+    ? `${functionName}(${propsDefinition} options?: HttpClientOptions & { observe?: 'body' }): Observable<${isModelType ? 'TData' : dataType}>;
+ ${functionName}(${propsDefinition} options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<${isModelType ? 'TData' : dataType}>>;
+ ${functionName}(${propsDefinition} options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<${isModelType ? 'TData' : dataType}>>;`
     : '';
 
-  return ` ${overloads}${operationName}<TData = ${dataType}>(\n    ${toObjectString(
-    props,
-    'implementation',
-  )} ${
-    isRequestOptions ? `options?: HttpClientOptions\n` : ''
-  }  ): Observable<TData>  {${bodyForm}
-    return this.http.${verb}<TData>(${options});
+  return ` ${overloads}
+  ${functionName}(
+    ${toObjectString(props, 'implementation')} ${
+      isRequestOptions ? `options?: HttpClientOptions & { observe?: any }` : ''
+    }): Observable<any> {${bodyForm}
+    return this.http.${verb}${isModelType ? '<TData>' : ''}(${options});
   }
 `;
 };

@@ -54,7 +54,6 @@ export type NormalizedOutputOptions = {
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
   prettier: boolean;
-  tslint: boolean;
   biome: boolean;
   tsconfig?: Tsconfig;
   packageJson?: PackageJson;
@@ -85,6 +84,9 @@ export type NormalizedOverrideOutput = {
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+  namingConvention: {
+    enum?: NamingConvention;
+  };
   components: {
     schemas: {
       suffix: string;
@@ -226,7 +228,6 @@ export type OutputOptions = {
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
-  tslint?: boolean;
   biome?: boolean;
   tsconfig?: string | Tsconfig;
   packageJson?: string;
@@ -428,6 +429,9 @@ export type OverrideOutput = {
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
+  namingConvention?: {
+    enum?: NamingConvention;
+  };
   components?: {
     schemas?: {
       suffix?: string;
@@ -495,6 +499,10 @@ export type ZodDateTimeOptions = {
   precision?: number;
 };
 
+export type ZodTimeOptions = {
+  precision?: -1 | 0 | 1 | 2 | 3;
+};
+
 export type ZodOptions = {
   strict?: {
     param?: boolean;
@@ -525,6 +533,7 @@ export type ZodOptions = {
     response?: Mutator;
   };
   dateTimeOptions?: ZodDateTimeOptions;
+  timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
 };
 
@@ -561,6 +570,7 @@ export type NormalizedZodOptions = {
   };
   generateEachHttpStatus: boolean;
   dateTimeOptions: ZodDateTimeOptions;
+  timeOptions: ZodTimeOptions;
 };
 
 export type HonoOptions = {
@@ -616,6 +626,7 @@ export type AngularOptions = {
 
 export type SwrOptions = {
   useInfinite?: boolean;
+  useSWRMutationForGet?: boolean;
   swrOptions?: any;
   swrMutationOptions?: any;
   swrInfiniteOptions?: any;
@@ -624,11 +635,15 @@ export type SwrOptions = {
 export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
   shouldThrowOnError: boolean;
+  explode: boolean;
+  jsonReviver?: Mutator;
 };
 
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
   shouldThrowOnError?: boolean;
+  explode?: boolean;
+  jsonReviver?: Mutator;
 };
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
@@ -718,7 +733,6 @@ export interface GlobalOptions {
   watch?: boolean | string | (string | boolean)[];
   clean?: boolean | string[];
   prettier?: boolean;
-  tslint?: boolean;
   biome?: boolean;
   mock?: boolean | GlobalMockOptions;
   client?: OutputClient;
@@ -802,6 +816,7 @@ export type GeneratorTarget = {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  fetchReviver?: GeneratorMutator[];
 };
 
 export type GeneratorTargetFull = {
@@ -818,6 +833,7 @@ export type GeneratorTargetFull = {
   formData?: GeneratorMutator[];
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
+  fetchReviver?: GeneratorMutator[];
 };
 
 export type GeneratorOperation = {
@@ -835,6 +851,7 @@ export type GeneratorOperation = {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  fetchReviver?: GeneratorMutator;
   operationName: string;
   types?: {
     result: (title?: string) => string;
@@ -860,6 +877,7 @@ export type GeneratorVerbOptions = {
   formData?: GeneratorMutator;
   formUrlEncoded?: GeneratorMutator;
   paramsSerializer?: GeneratorMutator;
+  fetchReviver?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
   originalOperation: OperationObject;
@@ -945,6 +963,7 @@ export type ClientDependenciesBuilder = (
   packageJson?: PackageJson,
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
+  override?: NormalizedOverrideOutput,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {

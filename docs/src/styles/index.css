@@ -80,15 +80,27 @@ h6:hover .anchor::after {
 /* Algolia v3 overrides */
 :root {
   --docsearch-modal-background: #fff;
-  --docsearch-highlight-color: #1965e0;
-  --docsearch-primary-color: #0052cc;
-  --docsearch-searchbox-shadow: 0 0 0 3px rgba(66, 153, 225, 0.5);
+  --docsearch-highlight-color: #6f40c9;
+  --docsearch-primary-color: #9e73f1;
+  --docsearch-searchbox-shadow: 0 0 0 3px rgba(166, 130, 250, 0.5);
   --ifm-z-index-fixed: 1000;
   --docsearch-searchbox-height: 48px;
   --docsearch-icon-stroke-width: 1.4;
   --hover-overlay: rgba(0, 0, 0, 0.05);
   --fds-animation-fade-in: cubic-bezier(0, 0, 1, 1);
   --fds-animation-fade-out: cubic-bezier(0, 0, 1, 1);
+}
+
+/* Fixes transparency of results and recent results in search */
+.DocSearch-Hit:hover,
+.DocSearch-Hit[aria-selected='true'] {
+  background-color: rgba(243, 244, 246, 0.95) !important;
+  opacity: 1 !important;
+  transition: background-color 0.2s ease-in-out;
+}
+
+:root {
+  --docsearch-hit-active-color: #6b7280;
 }
 
 .DocSearch--active #__next {

@@ -1,0 +1,88 @@
+openapi: 3.1.0
+info:
+  title: Orval MRE
+  description: Orval MRE
+  version: 1.0.0
+servers:
+  - url: 'https://localhost:8080'
+paths:
+  /example:
+    get:
+      operationId: example
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Example'
+          description: example
+
+components:
+  schemas:
+    PointInFutureRelative:
+      type: object
+      required:
+        - kind
+        - value
+      properties:
+        kind:
+          type: string
+          enum:
+            - relative
+        value:
+          type: string
+    PointInFutureAbsolute:
+      type: object
+      required:
+        - kind
+        - value
+      properties:
+        kind:
+          type: string
+          enum:
+            - absolute
+        value:
+          type: string
+          format: date-time
+    PointInFuture:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/PointInFutureAbsolute'
+        - $ref: '#/components/schemas/PointInFutureRelative'
+      discriminator:
+        propertyName: kind
+        mapping:
+          absolute: '#/components/schemas/PointInFutureAbsolute'
+          relative: '#/components/schemas/PointInFutureRelative'
+    Example1:
+      type: object
+      required:
+        - kind
+      properties:
+        kind:
+          type: string
+          enum:
+            - example1
+    Example2:
+      type: object
+      required:
+        - kind
+        - expiry
+      properties:
+        kind:
+          type: string
+          enum:
+            - example2
+        expiry:
+          allOf:
+            - $ref: '#/components/schemas/PointInFuture'
+    Example:
+      type: object
+      oneOf:
+        - $ref: '#/components/schemas/Example1'
+        - $ref: '#/components/schemas/Example2'
+      discriminator:
+        propertyName: kind
+        mapping:
+          example1: '#/components/schemas/Example1'
+          example2: '#/components/schemas/Example2'

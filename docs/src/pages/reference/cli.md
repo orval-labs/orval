@@ -75,18 +75,10 @@ $ orval --clean ./src
 
 ### Prettier
 
-The `--prettier`, can be used to prettier generated files. You need to have prettier in your global dependencies.
+The `--prettier`, can be used to prettier generated files. You need to have prettier installed globally.
 
 ```bash
 $ orval --prettier
-```
-
-### tslint
-
-The `--tslint`, can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
-
-```bash
-$ orval --tslint
 ```
 
 ### biome

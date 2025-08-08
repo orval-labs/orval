@@ -117,7 +117,9 @@ Valid values: `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
 
 Default Value: `camelCase`.
 
-Specify the naming convention for the generated files.
+Specify the naming convention for the generated **files**.
+
+If you're looking for **property keys** naming convention, see [namingConvention](#namingconvention-for-property-keys).
 
 ```js
 module.exports = {
@@ -640,15 +642,7 @@ Type: `Boolean`.
 
 Default Value: `false`.
 
-Can be used to prettier generated files. You need to have prettier in your dependencies.
-
-### tslint
-
-Type: `Boolean`.
-
-Default Value: `false`.
-
-Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
+Can be used to prettier generated files. You need to have prettier installed globally.
 
 ### biome
 
@@ -930,6 +924,42 @@ module.exports = {
 };
 ```
 
+#### namingConvention for property keys
+
+Type: `Object`.
+
+Change output naming convention generated **for property keys**.
+
+**By default, preserves keys** naming convention as is.
+
+If you're looking **for file** naming convention, see [namingConvention](#namingconvention).
+
+```ts
+
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        namingConvention: {
+          enum: 'PascalCase',
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+##### Enum
+
+Type: `String`.
+
+Changes naming convention for **enum** keys. All generated [enum types](#enumgenerationtype) supported.
+
+Valid values: : `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
+_same as for file_ [namingConvention](#namingconvention).
+
 #### fetch
 
 Type: `Object`.
@@ -959,6 +989,54 @@ Default: `true`
 
 When using `fetch` for `client` or `httpClient`, the `fetch` response type includes http status for easier processing by the application.
 If you want to return a defined return type instead of an automatically generated return type, set this value to `false`.
+
+##### explode
+
+Type: `Boolean`.
+Default: `true`
+
+By default, the `fetch` client follows the OpenAPI specification for query parameter explode behavior. This means that query parameters will be exploded unless explicitly set to `false` in the OpenAPI schema.
+
+If you want to maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), you can set this value to `false`.
+
+##### jsonReviver
+
+Type: `String` or `Object`
+
+Allows you to provide a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#reviver" target="_blank">reviver</a> function to the fetch client when it parses JSON. It is recommended to use this to revive dates when setting <a href="#usedates">useDates</a> to `true`
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          jsonReviver: {
+            path: './api/mutator/custom-reviver.ts',
+            name: 'customReviver',
+            // default: true
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// custom-reviver.ts
+const isoDateFormat =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
+
+export function customReviver(key: string, value: unknown) {
+  if (value && typeof value === 'string' && isoDateFormat.test(value)) {
+    return new Date(value);
+  }
+  return value;
+}
+```
 
 #### query
 
@@ -1255,6 +1333,30 @@ Type: `Boolean`.
 
 Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
 
+##### useSWRMutationForGet
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://swr.vercel.app/docs/mutation#useswrmutation" target="_blank">useSWRMutation</a> custom hook for get request.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrOptions: {
+            useSWRMutationForGet: true,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 ##### swrOptions
 
 Type: `Object`.
@@ -1515,6 +1617,34 @@ module.exports = {
 ```
 
 You can find more details in the [zod documentation ](https://zod.dev/?id=datetimes).
+
+##### timeOptions
+
+Type: `Object`.
+
+Default Value: `{}`.
+
+Use to set options for zod `time` fields. These options are passed directly to zod `time` validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          timeOptions: {
+            precision: -1,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+You can find more details in the [zod documentation ](https://zod.dev/?id=times).
 
 #### mock
 
@@ -2213,7 +2343,7 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 
 Type: `String` or `Object`.
 
-IMPORTANT: This is only valid when using `axios`.
+IMPORTANT: This is only valid when using `axios` or `angular`.
 
 Valid values: path of the paramsSerializer function or object with a path and name.
 
@@ -2343,6 +2473,8 @@ export function handleDates(body: any) {
   }
 }
 ```
+
+**Note:** If you are using the fetch client and useDates is set to true, query parameters of type Date will be stringified using toISOString()
 
 #### useBigInt
 

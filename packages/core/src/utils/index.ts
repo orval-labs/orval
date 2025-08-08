@@ -18,3 +18,4 @@ export * from './string';
 export * from './tsconfig';
 export * from './validator';
 export * from './is-body-verb';
+export * from './deep-non-nullable';

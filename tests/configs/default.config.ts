@@ -40,14 +40,6 @@ export default defineConfig({
       },
     },
   },
-  'petstore-tslint': {
-    input: '../specifications/petstore.yaml',
-    output: {
-      target: '../generated/default/petstore-tslint/endpoints.ts',
-      schemas: '../generated/default/petstore-tslint/model',
-      tslint: true,
-    },
-  },
   endpointParameters: {
     input: '../specifications/parameters.yaml',
     output: {
@@ -153,6 +145,22 @@ export default defineConfig({
     output: {
       schemas: '../generated/default/one-of-primitive/model',
       target: '../generated/default/one-of-primitive/endpoints.ts',
+      mock: true,
+    },
+  },
+  'one-of-required': {
+    input: '../specifications/one-of-required.yaml',
+    output: {
+      schemas: '../generated/default/one-of-required/model',
+      target: '../generated/default/one-of-required/endpoints.ts',
+      mock: true,
+    },
+  },
+  'one-of-nested': {
+    input: '../specifications/one-of-nested.yaml',
+    output: {
+      schemas: '../generated/default/one-of-nested/model',
+      target: '../generated/default/one-of-nested/endpoints.ts',
       mock: true,
     },
   },
@@ -442,5 +450,13 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
     },
+  },
+  'multi-files-with-same-import-names': {
+    output: {
+      target:
+        '../generated/default/multi-files-with-same-import-names/endpoints.ts',
+      schemas: '../generated/default/multi-files-with-same-import-names/model',
+    },
+    input: '../specifications/multi-files-with-same-import-names/api.yaml',
   },
 });

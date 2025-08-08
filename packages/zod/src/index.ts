@@ -68,7 +68,7 @@ const possibleSchemaTypes = [
   'array',
 ];
 
-const resolveZodType = (schema: SchemaObject) => {
+const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
   const schemaTypeValue = schema.type;
   const type = Array.isArray(schemaTypeValue)
     ? schemaTypeValue.find((t) => possibleSchemaTypes.includes(t))
@@ -127,8 +127,12 @@ type DateTimeOptions = {
   precision?: number;
 };
 
+type TimeOptions = {
+  precision?: -1 | 0 | 1 | 2 | 3;
+};
+
 export const generateZodValidationSchemaDefinition = (
-  schema: SchemaObject | undefined,
+  schema: SchemaObject | SchemaObject31 | undefined,
   context: ContextSpecs,
   name: string,
   strict: boolean,
@@ -136,6 +140,7 @@ export const generateZodValidationSchemaDefinition = (
   rules?: {
     required?: boolean;
     dateTimeOptions?: DateTimeOptions;
+    timeOptions?: TimeOptions;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -156,7 +161,7 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const nullable =
-    schema.nullable ??
+    ('nullable' in schema && schema.nullable) ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
@@ -298,12 +303,30 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (isZodV4) {
-        if (!schema.format) {
-          functions.push([type as string, undefined]);
+        if (
+          ![
+            'date',
+            'time',
+            'date-time',
+            'email',
+            'uri',
+            'hostname',
+            'uuid',
+          ].includes(schema.format || '')
+        ) {
+          if ('const' in schema) {
+            functions.push(['literal', `"${schema.const}"`]);
+          } else {
+            functions.push([type as string, undefined]);
+          }
           break;
         }
       } else {
-        functions.push([type as string, undefined]);
+        if ('const' in schema) {
+          functions.push(['literal', `"${schema.const}"`]);
+        } else {
+          functions.push([type as string, undefined]);
+        }
       }
 
       if (schema.format === 'date') {
@@ -314,9 +337,13 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'time') {
+        const options = context.output.override.zod?.timeOptions;
         const formatAPI = getZodTimeFormat(isZodV4);
 
-        functions.push([formatAPI, undefined]);
+        functions.push([
+          formatAPI,
+          options ? JSON.stringify(options) : undefined,
+        ]);
         break;
       }
 
@@ -549,31 +576,20 @@ export const parseZodValidationSchemaDefinition = (
       );
     }
     if (fn === 'oneOf' || fn === 'anyOf') {
-      return args.reduce(
-        (
-          acc: string,
-          {
-            functions,
-            consts: argConsts,
-          }: { functions: [string, any][]; consts: string[] },
-        ) => {
+      // Can't use zod.union() with a single item
+      if (args.length === 1) {
+        return args[0].functions.map(parseProperty).join('');
+      }
+
+      const union = args.map(
+        ({ functions }: { functions: [string, any][] }) => {
           const value = functions.map(parseProperty).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-
-          if (argConsts.length) {
-            consts += argConsts.join('');
-          }
-
-          if (!acc) {
-            acc += valueWithZod;
-            return acc;
-          }
-          acc += `.or(${valueWithZod})`;
-
-          return acc;
+          return valueWithZod;
         },
-        '',
       );
+
+      return `.union([${union}])`;
     }
 
     if (fn === 'additionalProperties') {

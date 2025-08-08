@@ -51,6 +51,9 @@ components:
           type: array
         example_const:
           const: this_is_a_const
+        example_string_const:
+          type: string
+          const: this_is_a_string_const
         example_enum:
           type: string
           enum:

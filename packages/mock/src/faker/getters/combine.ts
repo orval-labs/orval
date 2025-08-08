@@ -105,7 +105,7 @@ export const combineSchemasMock = ({
           includedProperties:
             separator !== 'oneOf'
               ? includedProperties
-              : itemResolvedValue?.includedProperties ?? [],
+              : (itemResolvedValue?.includedProperties ?? []),
         },
         mockOptions,
         operationId,
@@ -129,7 +129,11 @@ export const combineSchemasMock = ({
           return `${acc}...${resolvedValue.value},`;
         } else if (resolvedValue.type === 'object') {
           containsOnlyPrimitiveValues = false;
-          return `${acc}...{${resolvedValue.value}},`;
+          if (resolvedValue.value.startsWith('faker')) {
+            return `${acc}...${resolvedValue.value},`;
+          } else {
+            return `${acc}...{${resolvedValue.value}},`;
+          }
         }
       }
       return `${acc}${resolvedValue.value},`;

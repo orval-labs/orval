@@ -65,7 +65,7 @@ export const writeSpecs = async (
 
     const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
       ? '.ts'
-      : output.fileExtension ?? '.ts';
+      : (output.fileExtension ?? '.ts');
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
@@ -181,7 +181,7 @@ export const writeSpecs = async (
     } catch {
       log(
         chalk.yellow(
-          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Prettier not found`,
+          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Globally installed prettier not found`,
         ),
       );
     }

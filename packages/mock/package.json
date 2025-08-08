@@ -1,6 +1,6 @@
 {
   "name": "@orval/mock",
-  "version": "7.10.0",
+  "version": "7.11.2",
   "license": "MIT",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -14,7 +14,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@orval/core": "7.10.0",
+    "@orval/core": "7.11.2",
     "openapi3-ts": "^4.2.2"
   }
 }

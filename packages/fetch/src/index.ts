@@ -19,6 +19,7 @@ import {
   ParameterObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
+import { SchemaObject } from 'openapi3-ts/oas31';
 
 export const generateRequestFunction = (
   {
@@ -30,6 +31,7 @@ export const generateRequestFunction = (
     body,
     props,
     verb,
+    fetchReviver,
     formData,
     formUrlEncoded,
     override,
@@ -59,8 +61,13 @@ export const generateRequestFunction = (
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
+    const schemaObject = schema.schema as SchemaObject;
 
-    return schema.in === 'query' && schema.explode;
+    return (
+      schema.in === 'query' &&
+      schemaObject.type === 'array' &&
+      (schema.explode || override.fetch.explode)
+    );
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
@@ -68,13 +75,22 @@ export const generateRequestFunction = (
 
     return schema.name;
   });
+  const hasDateParams =
+    context.output.override.useDates &&
+    parameters.some(
+      (p) =>
+        'schema' in p &&
+        p.schema &&
+        'format' in p.schema &&
+        p.schema.format === 'date-time',
+    );
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
 
-    if (value instanceof Array && explodeParameters.includes(key)) {
-      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString()));
       return;
     }
       `
@@ -84,7 +100,7 @@ export const generateRequestFunction = (
     explodeParameters.length === parameters.length;
 
   const nomalParamsImplementation = `if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
     }`;
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
@@ -114,7 +130,7 @@ ${
 
   const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpResponseReturnType,
+    override.fetch?.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
@@ -259,16 +275,17 @@ ${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${response
     ${fetchBodyOption}
   }
 `;
+  const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
   const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
+    const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();
     const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
-    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = body ? JSON.parse(body) : {}
+    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = body ? JSON.parse(body${reviver}) : {}
     err.info = data;
     err.status = ${isNdJson ? 'stream' : 'res'}.status;
     throw err;
   }`;
   const fetchResponseImplementation = isNdJson
     ? `  const stream = await fetch(${fetchFnOptions});
-  ${override.fetch.shouldThrowOnError ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
   ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
   ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}` : `return stream`}
   `
@@ -276,8 +293,7 @@ ${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${response
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.shouldThrowOnError ? throwOnErrorImplementation : ''}
-
-  const data: ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body) : {}
+  const data: ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.shouldThrowOnError && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
@@ -307,8 +323,8 @@ ${override.fetch.shouldThrowOnError && hasSuccess ? '' : `export type ${response
   return implementation;
 };
 
-const fetchResponseTypeName = (
-  includeHttpResponseReturnType: boolean,
+export const fetchResponseTypeName = (
+  includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
   operationName: string,
 ) => {

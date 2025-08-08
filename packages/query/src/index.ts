@@ -215,6 +215,7 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
   packageJson,
   httpClient,
   hasTagsMutator,
+  override,
 ) => {
   const hasReactQuery =
     packageJson?.dependencies?.['react-query'] ??
@@ -225,13 +226,18 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.devDependencies?.['@tanstack/react-query'] ??
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
+  const useReactQueryV3 =
+    override?.query.version !== undefined
+      ? override?.query.version <= 3
+      : hasReactQuery && !hasReactQueryV4;
+
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
     ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
       ? AXIOS_DEPENDENCIES
       : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...(hasReactQuery && !hasReactQueryV4
+    ...(useReactQueryV3
       ? REACT_QUERY_DEPENDENCIES_V3
       : REACT_QUERY_DEPENDENCIES),
   ];
@@ -1126,30 +1132,31 @@ const generateQueryHook = async (
   const operationQueryOptions = operations[operationId]?.query;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+  const queryVersion = override.query.version ?? query?.version;
 
   const hasVueQueryV4 =
     OutputClient.VUE_QUERY === outputClient &&
-    (!isVueQueryV3(context.output.packageJson) || query.version === 4);
+    (!isVueQueryV3(context.output.packageJson) || queryVersion === 4);
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
-    (!isSvelteQueryV3(context.output.packageJson) || query.version === 4);
+    (!isSvelteQueryV3(context.output.packageJson) || queryVersion === 4);
 
   const hasQueryV5 =
-    query.version === 5 ||
+    queryVersion === 5 ||
     isQueryV5(
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
   const hasQueryV5WithDataTagError =
-    query.version === 5 ||
+    queryVersion === 5 ||
     isQueryV5WithDataTagError(
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
     );
 
   const hasQueryV5WithInfiniteQueryOptionsError =
-    query.version === 5 ||
+    queryVersion === 5 ||
     isQueryV5WithInfiniteQueryOptionsError(
       context.output.packageJson,
       outputClient as 'react-query' | 'vue-query' | 'svelte-query',
@@ -1161,16 +1168,23 @@ const generateQueryHook = async (
   let implementation = '';
   let mutators = undefined;
 
+  // Allows operationQueryOptions (which is the Orval config override for the operationId)
+  // to override non-GET verbs
+  const hasOperationQueryOption = !!(
+    operationQueryOptions &&
+    (operationQueryOptions.useQuery ||
+      operationQueryOptions.useSuspenseQuery ||
+      operationQueryOptions.useInfinite ||
+      operationQueryOptions.useSuspenseInfiniteQuery)
+  );
+
   let isQuery =
-    Verbs.GET === verb &&
-    (override.query.useQuery ||
-      override.query.useSuspenseQuery ||
-      override.query.useInfinite ||
-      override.query.useSuspenseInfiniteQuery ||
-      operationQueryOptions?.useQuery ||
-      operationQueryOptions?.useSuspenseQuery ||
-      operationQueryOptions?.useInfinite ||
-      operationQueryOptions?.useSuspenseInfiniteQuery);
+    (Verbs.GET === verb &&
+      (override.query.useQuery ||
+        override.query.useSuspenseQuery ||
+        override.query.useInfinite ||
+        override.query.useSuspenseInfiniteQuery)) ||
+    hasOperationQueryOption;
 
   let isMutation = override.query.useMutation && verb !== Verbs.GET;
 
@@ -1279,9 +1293,30 @@ const generateQueryHook = async (
     ];
 
     const queryKeyFnName = camel(`get-${operationName}-queryKey`);
-    const queryKeyProps = toObjectString(
-      props.filter((prop) => prop.type !== GetterPropType.HEADER),
-      'implementation',
+    // Convert "param: Type" to "param?: Type" for queryKey functions
+    // to enable cache invalidation without type assertion
+    const makeParamsOptional = (params: string) => {
+      if (!params) return '';
+      // Handle parameters with default values: "param?: Type = value" -> "param: Type = value" (remove optional marker)
+      // Handle regular parameters: "param: Type" -> "param?: Type"
+      return params.replace(
+        /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
+        (match, paramName, optionalMarker, type, defaultValue, suffix) => {
+          // If parameter has a default value, don't add '?' (it's already effectively optional)
+          if (defaultValue) {
+            return `${paramName}: ${type.trim()}${defaultValue}${suffix}`;
+          }
+          // Otherwise, make it optional
+          return `${paramName}?: ${type.trim()}${suffix}`;
+        },
+      );
+    };
+
+    const queryKeyProps = makeParamsOptional(
+      toObjectString(
+        props.filter((prop) => prop.type !== GetterPropType.HEADER),
+        'implementation',
+      ),
     );
 
     const routeString =

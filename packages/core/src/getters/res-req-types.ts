@@ -254,17 +254,20 @@ const getFormDataAdditionalImports = ({
   context: ContextSpecs;
 }): GeneratorImport[] => {
   const { schema } = resolveRef<SchemaObject>(schemaObject, context);
-  if (schema.type === 'object') {
-    if (schema.oneOf || schema.anyOf) {
-      const combinedSchemas = schema.oneOf || schema.anyOf;
 
-      return combinedSchemas!.map((schema) => {
-        const { imports } = resolveRef<SchemaObject>(schema, context);
-        return imports[0];
-      });
-    }
+  if (schema.type !== 'object') {
+    return [];
   }
-  return [];
+
+  const combinedSchemas = schema.oneOf || schema.anyOf;
+
+  if (!combinedSchemas) {
+    return [];
+  }
+
+  return combinedSchemas
+    .map((schema) => resolveRef<SchemaObject>(schema, context).imports[0])
+    .filter(Boolean);
 };
 
 const getSchemaFormDataAndUrlEncoded = ({
@@ -308,14 +311,17 @@ const getSchemaFormDataAndUrlEncoded = ({
             context,
           );
 
-          if (shouldCast) additionalImports.push(imports[0]);
+          let newPropName = propName;
+          let newPropDefinition = '';
 
-          const newPropName = shouldCast
-            ? `${propName}${pascal(imports[0].name)}`
-            : propName;
-          const newPropDefinition = shouldCast
-            ? `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`
-            : '';
+          // If the schema is a union type (oneOf, anyOf) and includes a reference (has imports),
+          // we need to cast the property to the specific type to avoid TypeScript errors.
+          if (shouldCast && imports[0]) {
+            additionalImports.push(imports[0]);
+            newPropName = `${propName}${pascal(imports[0].name)}`;
+            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
+          }
+
           return (
             newPropDefinition +
             resolveSchemaPropertiesToFormData({

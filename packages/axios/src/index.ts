@@ -178,7 +178,7 @@ const generateAxiosImplementation = (
   } ): Promise<TData> => {${bodyForm}
     return axios${
       !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(${options});
+    }.${verb}(${options})${response.types.success.some((x) => x.type === 'null') ? '.then((res) => {if (res.data === "") res.data = null; return res as TData;})' : ''};
   }
 `;
 };

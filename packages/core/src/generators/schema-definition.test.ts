@@ -126,4 +126,36 @@ describe('generateSchemasDefinition', () => {
     expect(result[0].name).toBe('TestSchemaSuffix');
     expect(result[1].name).toBe('AnotherSchemaSuffix');
   });
+
+  it('should generate schemas with changed enum nameConvention', () => {
+    const context: ContextSpecs = {
+      specKey: 'testSpec',
+      output: {
+        override: {
+          enumGenerationType: 'enum',
+          namingConvention: {
+            enum: 'PascalCase',
+          },
+        },
+      },
+      target: 'typescript',
+      specs: {},
+    };
+
+    const schemas: SchemasObject = {
+      TestSchema: {
+        type: 'object',
+        properties: {
+          testedEnum: {
+            type: 'string',
+            enum: ['snake_case', 'camelCase'],
+          },
+        },
+      },
+    };
+
+    const result = generateSchemasDefinition(schemas, context, 'Suffix');
+    expect(result[0].model.includes('SnakeCase')).toBe(true);
+    expect(result[0].model.includes('CamelCase')).toBe(true);
+  });
 });

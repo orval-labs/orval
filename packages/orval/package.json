@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "7.10.0",
+  "version": "7.11.2",
   "license": "MIT",
   "files": [
     "dist"
@@ -56,16 +56,16 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
-    "@orval/angular": "7.10.0",
-    "@orval/axios": "7.10.0",
-    "@orval/core": "7.10.0",
-    "@orval/fetch": "7.10.0",
-    "@orval/hono": "7.10.0",
-    "@orval/mcp": "7.10.0",
-    "@orval/mock": "7.10.0",
-    "@orval/query": "7.10.0",
-    "@orval/swr": "7.10.0",
-    "@orval/zod": "7.10.0",
+    "@orval/angular": "7.11.2",
+    "@orval/axios": "7.11.2",
+    "@orval/core": "7.11.2",
+    "@orval/fetch": "7.11.2",
+    "@orval/hono": "7.11.2",
+    "@orval/mcp": "7.11.2",
+    "@orval/mock": "7.11.2",
+    "@orval/query": "7.11.2",
+    "@orval/swr": "7.11.2",
+    "@orval/zod": "7.11.2",
     "ajv": "^8.17.1",
     "cac": "^6.7.14",
     "chalk": "^4.1.2",
@@ -78,8 +78,8 @@
     "openapi3-ts": "4.2.2",
     "string-argv": "^0.3.2",
     "tsconfck": "^2.0.1",
-    "typedoc": "^0.28.0",
-    "typedoc-plugin-markdown": "^4.4.2",
+    "typedoc": "^0.28.7",
+    "typedoc-plugin-markdown": "^4.8.0",
     "typescript": "^5.6.3"
   }
 }

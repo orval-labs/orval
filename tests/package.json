@@ -19,7 +19,7 @@
     "generate:mock": "yarn orval --config ./configs/mock.config.ts",
     "generate:fetch": "yarn orval --config ./configs/fetch.config.ts",
     "generate:mcp": "yarn orval --config ./configs/mcp.config.ts",
-    "generate:hono": "rm -rf generated/hono && yarn orval --config ./configs/hono.config.ts",
+    "generate:hono": "yarn orval --config ./configs/hono.config.ts",
     "build": "tsc"
   },
   "author": "Victor Bury",
@@ -27,11 +27,11 @@
   "devDependencies": {
     "npm-run-all": "^4.1.5",
     "orval": "link:../packages/orval/dist",
-    "typescript": "5.3.3"
+    "typescript": "5.8.3"
   },
   "dependencies": {
-    "@angular/common": "^17.1.1",
-    "@angular/core": "^17.1.1",
+    "@angular/common": "^20.1.3",
+    "@angular/core": "^20.1.3",
     "@faker-js/faker": "^9.8.0",
     "@hono/zod-validator": "^0.4.2",
     "@modelcontextprotocol/sdk": "^1.9.0",
