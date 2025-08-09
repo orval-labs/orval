@@ -19,8 +19,13 @@
     "generate:mock": "yarn orval --config ./configs/mock.config.ts",
     "generate:fetch": "yarn orval --config ./configs/fetch.config.ts",
     "generate:mcp": "yarn orval --config ./configs/mcp.config.ts",
+    "generate:mcp-mutator": "yarn orval --config ./configs/mcp-mutator.config.ts",
     "generate:hono": "yarn orval --config ./configs/hono.config.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "build:mcp-server": "tsc ./generated/mcp/single/*.ts ./generated/mcp/single/http-schemas/*.ts --outDir ./generated/mcp/single/dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck",
+    "build:mcp-server-mutator": "tsc ./generated/mcp/single-mutator/*.ts ./generated/mcp/single-mutator/http-schemas/*.ts ./mutators/mcp-client.ts --outDir ./generated/mcp/single-mutator/dist --module commonjs --target es2020 --esModuleInterop --skipLibCheck --rootDir .",
+    "test:mcp-inspector": "yarn build:mcp-server && npx vitest run inspector.test.ts",
+    "test:mcp-auth": "yarn build:mcp-server-mutator && npx vitest run mcp-auth.test.ts"
   },
   "author": "Victor Bury",
   "license": "ISC",
