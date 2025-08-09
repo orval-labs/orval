@@ -95,27 +95,31 @@ export const writeSingleMode = async ({
       });
     }
 
-    if (mutators) {
+    // Skip mutator imports for MCP and Hono clients as they are handled in separate files
+    const skipMutatorImports =
+      output.client === 'mcp' || output.client === 'hono';
+
+    if (mutators && !skipMutatorImports) {
       data += generateMutatorImports({ mutators, implementation });
     }
 
-    if (clientMutators) {
+    if (clientMutators && !skipMutatorImports) {
       data += generateMutatorImports({ mutators: clientMutators });
     }
 
-    if (formData) {
+    if (formData && !skipMutatorImports) {
       data += generateMutatorImports({ mutators: formData });
     }
 
-    if (formUrlEncoded) {
+    if (formUrlEncoded && !skipMutatorImports) {
       data += generateMutatorImports({ mutators: formUrlEncoded });
     }
 
-    if (paramsSerializer) {
+    if (paramsSerializer && !skipMutatorImports) {
       data += generateMutatorImports({ mutators: paramsSerializer });
     }
 
-    if (fetchReviver) {
+    if (fetchReviver && !skipMutatorImports) {
       data += generateMutatorImports({ mutators: fetchReviver });
     }
 

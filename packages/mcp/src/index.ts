@@ -389,6 +389,21 @@ const generateHttpClinetFiles = async (
     ',\n',
   )} } from '${relativeSchemasPath}';`;
 
+  // Collect all mutators from verb options
+  const allMutators = Object.values(verbOptions).reduce(
+    (acc, verbOption) => {
+      if (verbOption.mutator) {
+        acc[verbOption.mutator.name] = verbOption.mutator;
+      }
+      return acc;
+    },
+    {} as Record<string, GeneratorMutator>,
+  );
+
+  const mutatorsImports = generateMutatorImports({
+    mutators: Object.values(allMutators),
+  });
+
   const fetchHeader = generateFetchHeader({
     title: '',
     isRequestOptions: false,
@@ -405,6 +420,7 @@ const generateHttpClinetFiles = async (
   const content = [
     header,
     importImplementation,
+    mutatorsImports,
     fetchHeader,
     clientImplementation,
   ].join('\n');
