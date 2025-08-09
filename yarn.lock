@@ -21568,7 +21568,7 @@ __metadata:
     "@faker-js/faker": "npm:^9.9.0"
     "@hono/zod-validator": "npm:^0.4.2"
     "@modelcontextprotocol/sdk": "npm:1.10.1"
-    "@tanstack/react-query": "npm:^5.63.0"
+    "@tanstack/react-query": "npm:~5.62.0"
     "@tanstack/svelte-query": "npm:^4.24.9"
     "@tanstack/vue-query": "npm:^5.80.7"
     "@types/react": "npm:^18.3.3"
@@ -23768,7 +23768,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-custom-fetch@workspace:samples/react-query/custom-fetch"
   dependencies:
-    "@tanstack/react-query": "npm:^5.63.0"
+    "@tanstack/react-query": "npm:~5.62.0"
     "@types/react": "npm:^18.3.3"
     "@types/react-dom": "npm:^18.3.0"
     "@typescript-eslint/eslint-plugin": "npm:^8.38.0"

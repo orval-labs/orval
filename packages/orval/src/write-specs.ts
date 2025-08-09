@@ -21,7 +21,14 @@ import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { TypeDocOptions } from 'typedoc';
 import { executeHook } from './utils';
-import { join, resolve, extname, normalize, relative } from 'node:path';
+import {
+  join,
+  resolve,
+  extname,
+  dirname,
+  normalize,
+  relative,
+} from 'node:path/posix';
 import { URL } from 'node:url';
 
 const getHeader = (
@@ -44,13 +51,13 @@ function getSpecName(specKey: string, target: string) {
     const url = new URL(target);
     return specKey
       .replace(url.origin, '')
-      .replace(getFileInfo(url.pathname).dirname, '')
+      .replace(dirname(url.pathname), '')
       .replace(extname(specKey), '');
   }
 
   return (
     '/' +
-    normalize(relative(getFileInfo(target).dirname, specKey))
+    normalize(relative(dirname(target), specKey))
       .split('../')
       .join('')
       .replace(extname(specKey), '')
