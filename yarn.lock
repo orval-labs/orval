@@ -6462,12 +6462,14 @@ __metadata:
     "@ibm-cloud/openapi-ruleset": "npm:^1.31.2"
     "@stoplight/spectral-core": "npm:^1.20.0"
     "@types/debug": "npm:^4.1.12"
+    "@types/esutils": "npm:^2.0.2"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/lodash.isempty": "npm:^4.4.9"
     "@types/lodash.uniq": "npm:^4.5.9"
     "@types/lodash.uniqby": "npm:^4.7.9"
     "@types/lodash.uniqwith": "npm:^4.5.9"
     "@types/micromatch": "npm:^4.0.9"
+    "@types/swagger2openapi": "npm:^7.0.4"
     acorn: "npm:^8.15.0"
     chalk: "npm:^5.5.0"
     compare-versions: "npm:^6.1.1"
@@ -6485,6 +6487,7 @@ __metadata:
     swagger2openapi: "npm:^7.0.8"
     tsup: "npm:^8.5.0"
     typedoc: "npm:^0.28.9"
+    vitest: "npm:^3.2.4"
   languageName: unknown
   linkType: soft
 
@@ -6532,6 +6535,7 @@ __metadata:
     "@orval/core": "workspace:*"
     openapi3-ts: "npm:4.5.0"
     tsup: "npm:^8.5.0"
+    vitest: "npm:^3.2.4"
   languageName: unknown
   linkType: soft
 
@@ -6568,6 +6572,7 @@ __metadata:
     lodash.uniq: "npm:^4.5.0"
     openapi3-ts: "npm:4.5.0"
     tsup: "npm:^8.5.0"
+    vitest: "npm:^3.2.4"
   languageName: unknown
   linkType: soft
 
@@ -8340,6 +8345,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/esutils@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "@types/esutils@npm:2.0.2"
+  checksum: 10c0/80aa38f224c77a5030f8872c7ac0840a40c0a98796c21ffa67cccac4e06cb65ef6b88ae6a00c643a4cc1b79a38655ca7acb7bed20153f78975275d79ff19846f
+  languageName: node
+  linkType: hard
+
 "@types/express-serve-static-core@npm:*, @types/express-serve-static-core@npm:^5.0.0":
   version: 5.0.7
   resolution: "@types/express-serve-static-core@npm:5.0.7"
@@ -8798,6 +8810,16 @@ __metadata:
   version: 2.0.6
   resolution: "@types/statuses@npm:2.0.6"
   checksum: 10c0/dd88c220b0e2c6315686289525fd61472d2204d2e4bef4941acfb76bda01d3066f749ac74782aab5b537a45314fcd7d6261eefa40b6ec872691f5803adaa608d
+  languageName: node
+  linkType: hard
+
+"@types/swagger2openapi@npm:^7.0.4":
+  version: 7.0.4
+  resolution: "@types/swagger2openapi@npm:7.0.4"
+  dependencies:
+    "@types/node": "npm:*"
+    openapi-types: "npm:^12.1.0"
+  checksum: 10c0/bd13f18f64cb4e8e15ef15e005b85422d929a792a4f32217dd476caa2efc8d0241aac22914c53addb94711455e7a353973d6383290e06bd69c73468f0b29898d
   languageName: node
   linkType: hard
 
@@ -21472,6 +21494,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"openapi-types@npm:^12.1.0":
+  version: 12.1.3
+  resolution: "openapi-types@npm:12.1.3"
+  checksum: 10c0/4ad4eb91ea834c237edfa6ab31394e87e00c888fc2918009763389c00d02342345195d6f302d61c3fd807f17723cd48df29b47b538b68375b3827b3758cd520f
+  languageName: node
+  linkType: hard
+
 "openapi3-ts@npm:4.5.0":
   version: 4.5.0
   resolution: "openapi3-ts@npm:4.5.0"
@@ -21653,6 +21682,7 @@ __metadata:
     typedoc-plugin-coverage: "npm:^4.0.1"
     typedoc-plugin-markdown: "npm:^4.8.0"
     typescript: "npm:~5.8.3"
+    vitest: "npm:^3.2.4"
   bin:
     orval: ./dist/bin/orval.js
   languageName: unknown

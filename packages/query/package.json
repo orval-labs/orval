@@ -15,7 +15,7 @@
     "build": "tsup --dts",
     "dev": "tsup --watch src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest run"
+    "test": "vitest"
   },
   "dependencies": {
     "@orval/core": "workspace:*",

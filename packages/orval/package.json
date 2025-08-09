@@ -54,14 +54,15 @@
     "dev": "tsup --watch ./src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/angular-app/orval.config.ts",
-    "test": "tsc --noEmit && vitest --passWithNoTests"
+    "test": "tsc --noEmit && vitest"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash.uniq": "^4.5.9",
     "tsup": "^8.5.0",
-    "typescript": "~5.8.3"
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
