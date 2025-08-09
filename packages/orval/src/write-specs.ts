@@ -46,13 +46,13 @@ function getSpecName(specKey: string, target: string) {
     const url = new URL(target);
     return specKey
       .replace(url.origin, '')
-      .replace(getFileInfo(url.pathname).dirname, '')
+      .replace(dirname(url.pathname), '')
       .replace(extname(specKey), '');
   }
 
   return (
     '/' +
-    normalize(relative(getFileInfo(target).dirname, specKey))
+    normalize(relative(dirname(target), specKey))
       .split('../')
       .join('')
       .replace(extname(specKey), '')

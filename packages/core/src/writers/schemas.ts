@@ -128,8 +128,8 @@ export const writeSchemas = async ({
   );
 
   if (indexFiles) {
-    const schemaFilePath = join(schemaPath, `/index${fileExtension}`);
-    await fs.ensureFile(schemaFilePath);
+    const indexFilePath = join(schemaPath, `/index${fileExtension}`);
+    await fs.ensureFile(indexFilePath);
 
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception, which list all duplicates, before attempting
@@ -156,27 +156,33 @@ export const writeSchemas = async ({
     }
 
     try {
-      const data = await fs.readFile(schemaFilePath);
+      const data = await fs.readFile(indexFilePath);
 
       const stringData = data.toString();
 
-      const ext = fileExtension.endsWith('.ts')
-        ? fileExtension.slice(0, -3)
-        : fileExtension;
+      const isExtensionTS = fileExtension.endsWith('.ts');
 
       const importStatements = schemas
-        .filter((schema) => {
-          const name = conventionName(schema.name, namingConvention);
+        .map((schema) => {
+          const schemaFilePath = join(
+            schemaPath,
+            conventionName(schema.name, namingConvention) + fileExtension,
+          );
+          const relativePath = getRelativeImportPath(
+            indexFilePath,
+            schemaFilePath,
+            !isExtensionTS,
+          );
 
+          return relativePath;
+        })
+        .filter((relativePath) => {
           return (
-            !stringData.includes(`export * from './${name}${ext}'`) &&
-            !stringData.includes(`export * from "./${name}${ext}"`)
+            !stringData.includes(`export * from '${relativePath}'`) &&
+            !stringData.includes(`export * from "${relativePath}"`)
           );
         })
-        .map(
-          (schema) =>
-            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
-        );
+        .map((relativePath) => `export * from '${relativePath}';`);
 
       const currentFileExports = (stringData
         .match(/export \* from(.*)('|")/g)
