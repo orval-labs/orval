@@ -1,3 +1,4 @@
+import { TEMPLATE_TAG_REGEX } from '@orval/core';
 import { ClientHeaderBuilder, pascal } from '@orval/core';
 import {
   camel,
@@ -20,7 +21,6 @@ import {
   ReferenceObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject } from 'openapi3-ts/oas31';
-import { makeRouteSafe } from './utils';
 
 export const generateRequestFunction = (
   {
@@ -39,10 +39,9 @@ export const generateRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
-  let _route = route;
-  if (context.output.urlEncodeParameters) {
-    _route = makeRouteSafe(_route);
-  }
+  const _route = context.output.urlEncodeParameters
+    ? makeRouteSafe(route)
+    : route;
 
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData.disabled === false;
@@ -338,6 +337,9 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
     ? getHTTPStatusCodes()
     : '';
 };
+
+export const makeRouteSafe = (route: string): string =>
+  route.replaceAll(TEMPLATE_TAG_REGEX, `\${encodeURIComponent(String($1))}`);
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
