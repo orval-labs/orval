@@ -21654,7 +21654,7 @@ __metadata:
     typedoc-plugin-markdown: "npm:^4.8.0"
     typescript: "npm:~5.8.3"
   bin:
-    orval: dist/bin/orval.js
+    orval: ./dist/bin/orval.js
   languageName: unknown
   linkType: soft
 
