@@ -2482,7 +2482,7 @@ Type: `Boolean`
 
 Valid values: true or false. Defaults to false.
 
-Use this property to convert OpenAPI `int64` format to JavaScript `BigInt` objects instead of `number`.
+Use this property to convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
 
 Example:
 

@@ -54,6 +54,57 @@ describe('getMockScalar (int64 format handling)', () => {
   });
 });
 
+describe('getMockScalar (uint64 format handling)', () => {
+  const baseArg = {
+    item: {
+      type: 'integer' as SchemaObjectType,
+      format: 'uint64',
+      minimum: 1,
+      maximum: 100,
+      name: 'test-item',
+    },
+    imports: [],
+    operationId: 'test-operation',
+    tags: [],
+    existingReferencedProperties: [],
+    splitMockImplementations: [],
+  };
+
+  it('should return faker.number.bigInt() when format is uint64, useBigInt is true, and mockOptions.format.uint64 is NOT specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      context: { output: { override: { useBigInt: true } } } as ContextSpecs,
+    });
+
+    expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
+  });
+
+  it('should return faker.number.int() when format is uint64, useBigInt is false, and mockOptions.format.uint64 is NOT specified', () => {
+    const result = getMockScalar({
+      ...baseArg,
+      context: { output: { override: { useBigInt: false } } } as ContextSpecs,
+    });
+
+    expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
+  });
+
+  it('should return custom mockOptions.format.uint64 when format is uint64 and mockOptions.format.uint64 IS specified', () => {
+    const specified = 'faker.number.int({ min: 0, max: 200 }).toString()';
+
+    const result = getMockScalar({
+      ...baseArg,
+      mockOptions: {
+        format: {
+          uint64: specified,
+        },
+      },
+      context: { output: { override: { useBigInt: true } } } as ContextSpecs,
+    });
+
+    expect(result.value).toBe(specified);
+  });
+});
+
 describe('getMockScalar (example handling with falsy values)', () => {
   const baseArg = {
     item: {
