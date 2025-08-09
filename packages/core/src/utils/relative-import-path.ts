@@ -9,7 +9,7 @@ import path from 'node:path';
  *
  * @param importerFilePath - The absolute path of the file that will contain the import statement.
  * @param exporterFilePath - The absolute path of the file being imported.
- * @param [includeFileExtension=false] - Whether the import path should include the file extension, defaults to false. 
+ * @param [includeFileExtension=false] - Whether the import path should include the file extension, defaults to false.
  * @returns The relative import path string.
  */
 export function getRelativeImportPath(
