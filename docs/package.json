@@ -20,7 +20,7 @@
     "@next/mdx": "^15.4.4",
     "@octokit/graphql": "^5.0.4",
     "@reactions/component": "^2.0.2",
-    "@tanstack/react-query": "^5.63.0",
+    "@tanstack/react-query": "^4.22.0",
     "axios": "^1.11.0",
     "body-scroll-lock": "^3.1.5",
     "classnames": "^2.5.1",
@@ -69,9 +69,9 @@
     "tailwindcss": "^3.4.1"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=20"
   },
   "volta": {
-    "node": "18.18.2"
+    "node": "20.19.4"
   }
 }

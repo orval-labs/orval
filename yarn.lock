@@ -7946,14 +7946,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:^5.63.0":
-  version: 5.84.1
-  resolution: "@tanstack/react-query@npm:5.84.1"
+"@tanstack/react-query@npm:^4.22.0":
+  version: 4.40.1
+  resolution: "@tanstack/react-query@npm:4.40.1"
   dependencies:
-    "@tanstack/query-core": "npm:5.83.1"
+    "@tanstack/query-core": "npm:4.40.0"
+    use-sync-external-store: "npm:^1.2.0"
   peerDependencies:
-    react: ^18 || ^19
-  checksum: 10c0/a57fed2e6f3c7a42309383e03056f1ff1506ad5fdc8d20a1a6a945006442e71871dfd5eac6e90fb8a506036b2e8a2a5463fa0f5bed826de170aa5926a4728f99
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+    react-native: "*"
+  peerDependenciesMeta:
+    react-dom:
+      optional: true
+    react-native:
+      optional: true
+  checksum: 10c0/19d93d60fc39872683da0b74ca11cf78cc6186c8eec8b4732bec3efb83d553e94108a838d6d20dd54f109f330a56858133df85b4a4700c641c1fb3eb11855d35
   languageName: node
   linkType: hard
 
@@ -13291,7 +13299,7 @@ __metadata:
     "@reactions/component": "npm:^2.0.2"
     "@tailwindcss/forms": "npm:^0.5.9"
     "@tailwindcss/ui": "npm:^0.7.2"
-    "@tanstack/react-query": "npm:^5.63.0"
+    "@tanstack/react-query": "npm:^4.22.0"
     algoliasearch: "npm:3.35.1"
     autoprefixer: "npm:^10.4.16"
     axios: "npm:^1.11.0"
@@ -28506,7 +28514,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"use-sync-external-store@npm:^1.4.0":
+"use-sync-external-store@npm:^1.2.0, use-sync-external-store@npm:^1.4.0":
   version: 1.5.0
   resolution: "use-sync-external-store@npm:1.5.0"
   peerDependencies:
