@@ -45,9 +45,9 @@ import chalk from 'chalk';
 
 import pkg from '../../package.json';
 import { githubResolver } from './github';
+import { httpResolver } from './http-resolver';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
-import { httpResolver } from './http-resolver';
 
 /**
  * Type helper to make it easier to use orval.config.ts

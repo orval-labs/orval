@@ -5,4 +5,6 @@ export default defineConfig({
   target: 'node20',
   sourcemap: true,
   clean: true,
+  // https://tsup.egoist.dev/#generate-typescript-declaration-maps--d-ts-map
+  onSuccess: 'tsc --emitDeclarationOnly --declaration',
 });

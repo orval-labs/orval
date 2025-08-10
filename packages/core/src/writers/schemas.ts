@@ -67,6 +67,16 @@ export const writeSchema = async ({
   header: string;
 }) => {
   const name = conventionName(schema.name, namingConvention);
+  const schemaFilePath = join(schemaPath, `${name}${fileExtension}`);
+  const schemaOutput = getSchema({
+    schema,
+    target,
+    isRootKey,
+    specsName,
+    header,
+    specKey,
+    namingConvention,
+  });
 
   try {
     await fs.outputFile(
