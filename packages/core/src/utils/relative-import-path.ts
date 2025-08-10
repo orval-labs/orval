@@ -17,10 +17,19 @@ export function getRelativeImportPath(
   exporterFilePath: string,
   includeFileExtension = false,
 ): string {
+  if (!path.isAbsolute(importerFilePath))
+    throw new Error(
+      `'importerFilePath' is not an absolute path. "${importerFilePath}"`,
+    );
+  if (!path.isAbsolute(exporterFilePath))
+    throw new Error(
+      `'exporterFilePath' is not an absolute path. "${exporterFilePath}"`,
+    );
+
   // Get the directory of the importer file
   const importerDir = path.dirname(importerFilePath);
 
-  // Calculate the relative path from the importer's directory to the target file.
+  // Calculate the relative path from the importer's directory to the exporter file.
   const relativePath = path.relative(importerDir, exporterFilePath);
 
   // Convert to posix path
