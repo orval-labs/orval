@@ -1,9 +1,5 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
-import {
-  ContextSpecs,
-  ScalarValue,
-  SchemaWithConst,
-} from '../types';
+import { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { getObject } from './object';
