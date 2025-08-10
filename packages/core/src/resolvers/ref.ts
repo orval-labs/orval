@@ -9,7 +9,6 @@ import {
 import { RefInfo, getRefInfo } from '../getters/ref';
 import { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
-import { OpenAPIObject } from 'openapi3-ts/oas30';
 
 type ComponentObject =
   | SchemaObject

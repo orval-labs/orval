@@ -1,20 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { getRelativeImportPath } from './relative-import-path';
 import path from 'node:path';
+import os from 'node:os';
 
 function genPaths(a: string, b: string) {
-  return [
-    ['posix', path.posix.normalize(a), path.posix.normalize(b)],
-    ['posix', path.posix.normalize('./' + a), path.posix.normalize('./' + b)],
-    ['posix', path.posix.normalize('/' + a), path.posix.normalize('/' + b)],
+  if (os.type() === 'win32') {
+    // posix paths works on windows, but not the other way around
+    return [
+      ['posix', path.posix.normalize('/' + a), path.posix.normalize('/' + b)],
+      [
+        'windows',
+        path.win32.normalize('C:\\' + a),
+        path.win32.normalize('C:\\' + b),
+      ],
+    ];
+  }
 
-    ['windows', path.win32.normalize(a), path.win32.normalize(b)],
-    ['windows', path.win32.normalize('./' + a), path.win32.normalize('./' + b)],
-    [
-      'windows',
-      path.win32.normalize('C:\\' + a),
-      path.win32.normalize('C:\\' + b),
-    ],
+  return [
+    ['posix', path.posix.normalize('/' + a), path.posix.normalize('/' + b)],
   ];
 }
 

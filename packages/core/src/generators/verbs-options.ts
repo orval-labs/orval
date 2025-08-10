@@ -22,14 +22,12 @@ import type {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
-  NormalizedOverrideOutput,
   Verbs,
 } from '../types';
 import {
   asyncReduce,
   camel,
   dynamicImport,
-  isBoolean,
   isObject,
   isString,
   isVerb,

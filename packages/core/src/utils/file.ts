@@ -294,6 +294,8 @@ async function bundleFile(
                         };
                       }
                     }
+
+                    return;
                   },
                 );
               },
@@ -310,6 +312,8 @@ async function bundleFile(
                 external: true,
               };
             }
+
+            return;
           });
         },
       },

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "generate": "run-p 'generate:*'",
+    "generate": "run-s 'generate:*'",
     "generate:cli": "orval --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",
     "generate:default": "orval --config ./configs/default.config.ts",
     "generate:axios": "orval --config ./configs/axios.config.ts",
