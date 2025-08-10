@@ -1,20 +1,18 @@
-const webpack = require('webpack');
-const fs = require('fs');
-const path = require('path');
-const visit = require('unist-util-visit');
-const remarkPlugins = require('./src/lib/docs/remark-plugins.js');
+import { join } from 'node:path';
+import process from 'node:process';
+import remarkPlugins from './src/lib/docs/remark-plugins.js';
 
-module.exports = {
+import type { NextConfig } from 'next';
+
+const nextConfig: NextConfig = {
   experimental: { esmExternals: 'loose' },
   pageExtensions: ['jsx', 'js', 'ts', 'tsx', 'mdx', 'md'],
-  rewrites() {
-    return [
-      {
-        source: '/docs{/}?',
-        destination: '/docs/overview',
-      },
-    ];
-  },
+  rewrites: async () => [
+    {
+      source: '/docs{/}?',
+      destination: '/docs/overview',
+    },
+  ],
   webpack: (config, { dev, isServer, ...options }) => {
     config.module.rules.push({
       test: /.mdx?$/, // load both .md and .mdx files
@@ -26,7 +24,7 @@ module.exports = {
             remarkPlugins,
           },
         },
-        path.join(__dirname, 'src/lib/docs/md-loader.js'),
+        join(__dirname, 'src/lib/docs/md-loader.js'),
       ],
     });
 
@@ -44,3 +42,5 @@ module.exports = {
     return config;
   },
 };
+
+export default nextConfig;

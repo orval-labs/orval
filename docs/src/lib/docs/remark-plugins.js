@@ -1,10 +1,8 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-require-imports */
-module.exports = [
-  require('remark-slug'),
-  require('./remark-paragraph-alerts.js'),
+export default [
+  import('remark-slug'),
+  import('./remark-paragraph-alerts.js').default,
   [
-    require('remark-autolink-headings'),
+    import('remark-autolink-headings'),
     {
       behavior: 'append',
       linkProperties: {
@@ -14,12 +12,12 @@ module.exports = [
     },
   ],
 
-  require('remark-emoji'),
-  require('remark-footnotes'),
-  require('remark-images'),
-  require('remark-unwrap-images'),
+  import('remark-emoji'),
+  import('remark-footnotes'),
+  import('remark-images'),
+  import('remark-unwrap-images'),
   [
-    require('remark-toc'),
+    import('remark-toc'),
     {
       skip: 'Reference',
       maxDepth: 6,

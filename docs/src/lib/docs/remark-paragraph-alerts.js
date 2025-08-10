@@ -1,7 +1,5 @@
-/* eslint-disable no-undef */
-/* eslint-disable @typescript-eslint/no-require-imports */
-const is = require('unist-util-is');
-const visit = require('unist-util-visit');
+import is from 'unist-util-is';
+import visit from 'unist-util-visit';
 
 const sigils = {
   '=>': 'success',
@@ -10,7 +8,7 @@ const sigils = {
   '!>': 'danger',
 };
 
-module.exports = function paragraphCustomAlertsPlugin() {
+export default function paragraphCustomAlertsPlugin() {
   return function transformer(tree) {
     visit(tree, 'paragraph', (pNode, _, parent) => {
       visit(pNode, 'text', (textNode) => {
