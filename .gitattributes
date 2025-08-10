@@ -3,4 +3,8 @@
 /.yarn/plugins/**/*  binary
 /.pnp.*              binary linguist-generated
 
-text eol=lf
+* text eol=lf
+
+*.ico binary
+*.png binary
+*.jpg binary
