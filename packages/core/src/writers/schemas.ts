@@ -67,20 +67,19 @@ export const writeSchema = async ({
   header: string;
 }) => {
   const name = conventionName(schema.name, namingConvention);
+  const schemaFilePath = join(schemaPath, `${name}${fileExtension}`);
+  const schemaOutput = getSchema({
+    schema,
+    target,
+    isRootKey,
+    specsName,
+    header,
+    specKey,
+    namingConvention,
+  });
 
   try {
-    await fs.outputFile(
-      join(schemaPath, `${name}${fileExtension}`),
-      getSchema({
-        schema,
-        target,
-        isRootKey,
-        specsName,
-        header,
-        specKey,
-        namingConvention,
-      }),
-    );
+    await fs.outputFile(schemaFilePath, schemaOutput);
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
   }

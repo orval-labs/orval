@@ -4,7 +4,7 @@
   "license": "MIT",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
   },
@@ -12,7 +12,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup --dts",
+    "build": "tsup",
     "dev": "tsup --watch src",
     "lint": "eslint src/**/*.ts"
   },

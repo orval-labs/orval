@@ -10,7 +10,7 @@
   "type": "commonjs",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
+      "types": "./dist/src/index.d.ts",
       "default": "./dist/index.js"
     }
   },
@@ -50,10 +50,10 @@
     "node": ">=20.19.4"
   },
   "scripts": {
-    "build": "tsup --dts",
+    "build": "tsup",
     "dev": "tsup --watch ./src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
-    "generate-api": "node ./dist/bin/orval.js --config ../../samples/angular-app/orval.config.ts",
+    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
     "test": "tsc --noEmit && vitest"
   },
   "devDependencies": {
