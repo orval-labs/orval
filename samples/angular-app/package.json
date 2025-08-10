@@ -28,7 +28,7 @@
     "@faker-js/faker": "^9.9.0",
     "msw": "^2.10.4",
     "orval": "workspace:*",
-    "typescript": "5.8.3",
+    "typescript": "~5.8.3",
     "vitest": "^3.2.4"
   },
   "msw": {

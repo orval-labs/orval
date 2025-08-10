@@ -10211,7 +10211,7 @@ __metadata:
     orval: "workspace:*"
     rxjs: "npm:~7.8.2"
     tslib: "npm:^2.8.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vitest: "npm:^3.2.4"
   languageName: unknown
   linkType: soft
@@ -19886,7 +19886,7 @@ __metadata:
     "@types/node": "npm:^20.13.0"
     orval: "workspace:*"
     ts-node: "npm:^10.9.2"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     zod: "npm:^3.24.3"
   languageName: unknown
   linkType: soft
@@ -20755,7 +20755,7 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     tailwindcss: "npm:^3.4.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
 
@@ -20771,7 +20771,7 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     tailwindcss: "npm:^3.4.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
 
@@ -23658,7 +23658,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     react-query: "npm:^3.34.19"
     react-scripts: "npm:^5.0.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
 
@@ -23777,7 +23777,7 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
 
@@ -23798,7 +23798,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     react-query: "npm:^3.34.19"
     react-scripts: "npm:^5.0.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
 
@@ -23818,7 +23818,7 @@ __metadata:
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^5.3.4"
   languageName: unknown
   linkType: soft
@@ -26879,7 +26879,7 @@ __metadata:
     svelte: "npm:^3.54.0"
     svelte-check: "npm:^3.0.1"
     tslib: "npm:^2.8.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^4.0.0"
   languageName: unknown
   linkType: soft
@@ -26896,7 +26896,7 @@ __metadata:
     svelte: "npm:^4.2.18"
     svelte-check: "npm:^3.8.1"
     tslib: "npm:^2.8.1"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^5.3.4"
   languageName: unknown
   linkType: soft
@@ -27015,7 +27015,7 @@ __metadata:
     react-dom: "npm:^18.3.1"
     react-scripts: "npm:^5.0.1"
     swr: "npm:^2.3.0"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
   languageName: unknown
   linkType: soft
 
@@ -27035,7 +27035,7 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     swr: "npm:^2.3.0"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^5.3.4"
   languageName: unknown
   linkType: soft
@@ -27056,7 +27056,7 @@ __metadata:
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
     swr: "npm:^2.3.0"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^5.3.4"
     zod: "npm:^3.24.3"
   languageName: unknown
@@ -28019,16 +28019,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.8.3, typescript@npm:~5.8.3":
-  version: 5.8.3
-  resolution: "typescript@npm:5.8.3"
-  bin:
-    tsc: bin/tsc
-    tsserver: bin/tsserver
-  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
-  languageName: node
-  linkType: hard
-
 "typescript@npm:^5.0.3":
   version: 5.9.2
   resolution: "typescript@npm:5.9.2"
@@ -28039,13 +28029,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.8.3#optional!builtin<compat/typescript>":
+"typescript@npm:~5.8.3":
   version: 5.8.3
-  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
+  resolution: "typescript@npm:5.8.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
+  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
   languageName: node
   linkType: hard
 
@@ -28056,6 +28046,16 @@ __metadata:
     tsc: bin/tsc
     tsserver: bin/tsserver
   checksum: 10c0/34d2a8e23eb8e0d1875072064d5e1d9c102e0bdce56a10a25c0b917b8aa9001a9cf5c225df12497e99da107dc379360bc138163c66b55b95f5b105b50578067e
+  languageName: node
+  linkType: hard
+
+"typescript@patch:typescript@npm%3A~5.8.3#optional!builtin<compat/typescript>":
+  version: 5.8.3
+  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
+  bin:
+    tsc: bin/tsc
+    tsserver: bin/tsserver
+  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
   languageName: node
   linkType: hard
 
@@ -28982,7 +28982,7 @@ __metadata:
     msw: "npm:^2.10.4"
     orval: "workspace:*"
     tsd: "npm:^0.29.0"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^5.3.4"
     vitest: "npm:^3.2.4"
     vue: "npm:^3.5.16"
@@ -28997,7 +28997,7 @@ __metadata:
     "@tanstack/vue-query": "npm:^5.80.7"
     "@vitejs/plugin-vue": "npm:^5.0.5"
     orval: "workspace:*"
-    typescript: "npm:5.8.3"
+    typescript: "npm:~5.8.3"
     vite: "npm:^5.3.4"
     vue: "npm:^3.5.16"
     vue-tsc: "npm:^2.2.10"
