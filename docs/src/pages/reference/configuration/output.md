@@ -1220,24 +1220,33 @@ module.exports = {
 // custom-mutator-options.ts
 
 // custom-mutator-options.ts
-type OptionsWithMutationFn<TData = unknown, TError = Error, TVariables = void, TContext = unknown> = UseMutationOptions<
-  T,
-  TError,
-  TData,
-  TContext
-> &
-  Required<Pick<UseMutationOptions<T, TError, TData, TContext>, 'mutationFn'>>
+type OptionsWithMutationFn<
+  TData = unknown,
+  TError = Error,
+  TVariables = void,
+  TContext = unknown,
+> = UseMutationOptions<T, TError, TData, TContext> &
+  Required<Pick<UseMutationOptions<T, TError, TData, TContext>, 'mutationFn'>>;
 
-export const useCustomMutatorOptions = <TData = unknown, TError = Error, TVariables = void, TContext = unknown>(
+export const useCustomMutatorOptions = <
+  TData = unknown,
+  TError = Error,
+  TVariables = void,
+  TContext = unknown,
+>(
   options: OptionsWithMutationFn<T, TError, TData, TContext>,
 ): OptionsWithMutationFn<T, TError, TData, TContext> => {
   const queryClient = useQueryClient();
-  if (options.mutationKey?.[0] === 'petDestroy') { // Note: `options.mutationKey?.[0]` is untyped.
-    options.onSuccess = (_data, variables, _context) => { // Note: `variables` is untyped.
-        options.onSuccess?.(data, variables, context);
-        // Note: `queryKey` is hardcoded, can't use `getGetPetQueryKey()` as it would introduce circular dependencies.
-        queryClient.invalidateQueries({ queryKey: ['api', 'v2', 'pet', variables.id] });
-    }
+  if (options.mutationKey?.[0] === 'petDestroy') {
+    // Note: `options.mutationKey?.[0]` is untyped.
+    options.onSuccess = (_data, variables, _context) => {
+      // Note: `variables` is untyped.
+      options.onSuccess?.(data, variables, context);
+      // Note: `queryKey` is hardcoded, can't use `getGetPetQueryKey()` as it would introduce circular dependencies.
+      queryClient.invalidateQueries({
+        queryKey: ['api', 'v2', 'pet', variables.id],
+      });
+    };
   }
   // TODO: add more ifs for each mutation.
   return options;
