@@ -1,9 +1,10 @@
 // tailwind.config.js
 
-import { fontFamily as _fontFamily, rotate as _rotate } from 'tailwindcss/defaultTheme';
+const defaultTheme = require('tailwindcss/defaultTheme');
 
-export const content = ['./src/**/*.js', './src/**/*.jsx'];
-export const theme = {
+module.exports = {
+  content: ['./src/**/*.js', './src/**/*.jsx'],
+  theme: {
   extend: {
     colors: {
       coral: {
@@ -14,8 +15,8 @@ export const theme = {
     },
   },
   fontFamily: {
-    sans: ['Inter', ..._fontFamily.sans],
-    serif: ['Inter', ..._fontFamily.serif],
+      sans: ['Inter', ...defaultTheme.fontFamily.sans],
+      serif: ['Inter', ...defaultTheme.fontFamily.serif],
   },
   screens: {
     sm: '640px',
@@ -24,7 +25,7 @@ export const theme = {
     xl: '1400px',
   },
   rotate: {
-    ..._rotate,
+      ...defaultTheme.rotate,
     '-30': '-30deg',
   },
   container: {
@@ -45,5 +46,6 @@ export const theme = {
       },
     },
   }),
+  },
+  plugins: [require('@tailwindcss/forms')],
 };
-export const plugins = [import('@tailwindcss/forms')];

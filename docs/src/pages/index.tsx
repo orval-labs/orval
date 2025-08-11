@@ -7,9 +7,9 @@ import Head from 'next/head';
 import Link from 'next/link';
 import * as React from 'react';
 import { siteConfig } from '@/siteConfig';
-import Highlight from '../components/Highlight';
-import { Playground } from '../components/playground/Playground';
-import { getSponsors } from '../get-sponsors';
+import Highlight from '@/components/Highlight';
+import { Playground } from '@/components/playground/Playground';
+import { getSponsors } from '@/get-sponsors';
 import Image from 'next/image';
 
 const Home = (props) => {
