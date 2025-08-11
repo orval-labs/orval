@@ -1,8 +1,8 @@
-import { Banner } from 'components/Banner';
-import { Footer } from 'components/Footer';
-import { Nav } from 'components/Nav';
-import { Seo } from 'components/Seo';
-import { Sticky } from 'components/Sticky';
+import { Banner } from '@/components/Banner';
+import { Footer } from '@/components/Footer';
+import { Nav } from '@/components/Nav';
+import { Seo } from '@/components/Seo';
+import { Sticky } from '@/components/Sticky';
 import Head from 'next/head';
 import { Playground } from '../components/playground/Playground';
 

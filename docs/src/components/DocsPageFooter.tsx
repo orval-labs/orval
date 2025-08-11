@@ -1,7 +1,7 @@
 import * as React from 'react';
 import NextLink from 'next/link';
-import { removeFromLast } from '../lib/docs/utils';
-import { siteConfig } from 'siteConfig';
+import { removeFromLast } from '@/lib/docs/utils';
+import { siteConfig } from '@/siteConfig';
 import { FiThumbsDown, FiThumbsUp } from 'react-icons/fi';
 import { TWButton } from './TWButton';
 

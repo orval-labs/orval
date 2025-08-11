@@ -1,5 +1,5 @@
-import is from 'unist-util-is';
-import visit from 'unist-util-visit';
+import { is } from 'unist-util-is';
+import { visit } from 'unist-util-visit';
 
 const sigils = {
   '=>': 'success',
@@ -42,4 +42,4 @@ export default function paragraphCustomAlertsPlugin() {
       });
     });
   };
-};
+}

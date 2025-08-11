@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Router from 'next/router';
 import React from 'react';
 import { createPortal } from 'react-dom';
-import { siteConfig } from 'siteConfig';
+import { siteConfig } from '@/siteConfig';
 
 const SearchContext = React.createContext();
 let DocSearchModal = null;

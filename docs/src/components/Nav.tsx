@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { siteConfig } from 'siteConfig';
+import { siteConfig } from '@/siteConfig';
 import { Search } from './Search';
 
 export const Nav = () => (

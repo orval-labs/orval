@@ -1,12 +1,14 @@
 import * as React from 'react';
 import { forwardRefWithAs } from './forwardRefWithAs';
 import cx from 'classnames';
+
 const mapIntentToColor = {
   primary: 'blue',
   success: 'green',
   danger: 'red',
   warning: 'yellow',
 };
+
 export const TWButton = forwardRefWithAs(
   (
     {
@@ -131,4 +133,5 @@ export const TWButton = forwardRefWithAs(
     });
   },
 );
+
 TWButton.displayName = 'TWButton';

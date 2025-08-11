@@ -9,7 +9,7 @@ export default async function (src) {
   const { content, data } = fm(src);
   const layout = data.layout || 'Docs';
   const code =
-    `import { Layout${layout} } from 'components/Layout${layout}';
+    `import { Layout${layout} } from '@/components/Layout${layout}';
 export const meta = ${JSON.stringify(data)};
 export default ({ children, ...props }) => (
   <Layout${layout} meta={meta} {...props}>{children}</Layout${layout}>
