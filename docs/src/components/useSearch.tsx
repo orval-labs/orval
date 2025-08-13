@@ -2,21 +2,25 @@ import { useDocSearchKeyboardEvents } from '@docsearch/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Router from 'next/router';
-import React from 'react';
+import React, { PropsWithChildren } from 'react';
 import { createPortal } from 'react-dom';
 import { siteConfig } from '@/siteConfig';
 
-const SearchContext = React.createContext();
+const SearchContext = React.createContext(undefined);
 let DocSearchModal = null;
 
 export const useSearch = () => React.useContext(SearchContext);
+
+interface SearchProviderProps {
+  searchParameters: { hitsPerPage: number };
+}
 
 export function SearchProvider({
   children,
   searchParameters = {
     hitsPerPage: 5,
   },
-}) {
+}: PropsWithChildren<SearchProviderProps>) {
   const [isShowing, setIsShowing] = React.useState(false);
 
   const onOpen = React.useCallback(function onOpen() {
@@ -97,7 +101,12 @@ export function SearchProvider({
   );
 }
 
-function Hit({ hit, children }) {
+interface HitProps {
+  hit: unknown;
+  children: React.ReactElement;
+}
+
+function Hit({ hit, children }: HitProps) {
   return (
     <Link href={hit.url.replace()} legacyBehavior>
       {children}

@@ -1,6 +1,5 @@
 // Packages
 import { Component, cloneElement, Children } from 'react';
-import { findDOMNode } from 'react-dom';
 import PropTypes from 'prop-types';
 
 // Private Observer Manager functions and manager
@@ -61,8 +60,8 @@ export default class Observer extends Component {
   }
 
   handleTarget = (node) => {
-    // eslint-disable-next-line
-    const element = isDOMNode(node) ? node : findDOMNode(node);
+    // TODO findDOMNode is removed https://react.dev/blog/2024/04/25/react-19-upgrade-guide#removed-reactdom-finddomnode
+    const element = isDOMNode(node) ? node : findDOMNode(node); 
     if (this.target && this.target !== element) {
       this.unobserve();
       this.shouldReobserve = true;
