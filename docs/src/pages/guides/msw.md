@@ -156,3 +156,16 @@ import { setupServer } from 'msw/node';
 const server = setupServer();
 server.use(...getPetsMock());
 ```
+
+You can also turn on [`indexMockFiles`](../reference/configuration/output#indexmockfiles) which will allow you dynamically import all mock handlers.
+
+```ts
+// node.ts
+import * as mocks from './endpoints/index.msw';
+import { setupServer } from 'msw/node';
+
+const handlers = Object.entries(mocks).flatMap(([, getMock]) => getMock());
+const server = setupServer(...handlers);
+
+export { server };
+```

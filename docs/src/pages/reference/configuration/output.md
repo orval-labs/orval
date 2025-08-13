@@ -584,7 +584,7 @@ Type: `Boolean`
 
 Default Value: `false`.
 
-When `true`, adds a `index.msw.ts` file which exports all mock functions.
+When `true`, adds a `index.msw.ts` file which exports arrays with all mock functions.
 This is only valid when `mode` is `tags-split`.
 
 Example:
@@ -600,6 +600,13 @@ module.exports = {
     },
   },
 };
+```
+
+```ts
+// index.msw.ts
+export { getPetsMock } from './pets/pets.msw';
+export { getStoresMock } from './stores/stores.msw';
+// etc...
 ```
 
 ## docs

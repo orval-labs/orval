@@ -8,7 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular',
-      mock: true,
+      mock: { indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
