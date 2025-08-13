@@ -31,7 +31,6 @@ import {
   OutputClient,
   OutputHttpClient,
   OutputMode,
-  OutputOptions,
   OverrideOutput,
   PropertySortOrder,
   QueryOptions,

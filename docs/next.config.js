@@ -5,6 +5,7 @@ const visit = require('unist-util-visit');
 const remarkPlugins = require('./src/lib/docs/remark-plugins.js');
 
 module.exports = {
+  experimental: { esmExternals: 'loose' },
   pageExtensions: ['jsx', 'js', 'ts', 'tsx', 'mdx', 'md'],
   rewrites() {
     return [

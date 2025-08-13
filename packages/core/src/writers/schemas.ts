@@ -1,7 +1,8 @@
 import fs from 'fs-extra';
 import { generateImports } from '../generators';
 import { GeneratorSchema, NamingConvention } from '../types';
-import { upath, conventionName } from '../utils';
+import { conventionName, getRelativeImportPath } from '../utils';
+import { join } from 'node:path';
 
 const getSchema = ({
   schema: { imports, model },
@@ -38,9 +39,6 @@ const getSchema = ({
   return file;
 };
 
-const getPath = (path: string, name: string, fileExtension: string): string =>
-  upath.join(path, `/${name}${fileExtension}`);
-
 export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n`;
 
@@ -48,7 +46,7 @@ export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, { model }) => writeModelInline(acc, model), '');
 
 export const writeSchema = async ({
-  path,
+  schemaPath,
   schema,
   target,
   namingConvention,
@@ -58,7 +56,7 @@ export const writeSchema = async ({
   specsName,
   header,
 }: {
-  path: string;
+  schemaPath: string;
   schema: GeneratorSchema;
   target: string;
   namingConvention: NamingConvention;
@@ -69,20 +67,19 @@ export const writeSchema = async ({
   header: string;
 }) => {
   const name = conventionName(schema.name, namingConvention);
+  const schemaFilePath = join(schemaPath, `${name}${fileExtension}`);
+  const schemaOutput = getSchema({
+    schema,
+    target,
+    isRootKey,
+    specsName,
+    header,
+    specKey,
+    namingConvention,
+  });
 
   try {
-    await fs.outputFile(
-      getPath(path, name, fileExtension),
-      getSchema({
-        schema,
-        target,
-        isRootKey,
-        specsName,
-        header,
-        specKey,
-        namingConvention,
-      }),
-    );
+    await fs.outputFile(schemaFilePath, schemaOutput);
   } catch (e) {
     throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
   }
@@ -114,7 +111,7 @@ export const writeSchemas = async ({
   await Promise.all(
     schemas.map((schema) =>
       writeSchema({
-        path: schemaPath,
+        schemaPath,
         schema,
         target,
         namingConvention,
@@ -128,8 +125,8 @@ export const writeSchemas = async ({
   );
 
   if (indexFiles) {
-    const schemaFilePath = upath.join(schemaPath, `/index${fileExtension}`);
-    await fs.ensureFile(schemaFilePath);
+    const indexFilePath = join(schemaPath, `/index${fileExtension}`);
+    await fs.ensureFile(indexFilePath);
 
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception, which list all duplicates, before attempting
@@ -156,27 +153,33 @@ export const writeSchemas = async ({
     }
 
     try {
-      const data = await fs.readFile(schemaFilePath);
+      const data = await fs.readFile(indexFilePath);
 
       const stringData = data.toString();
 
-      const ext = fileExtension.endsWith('.ts')
-        ? fileExtension.slice(0, -3)
-        : fileExtension;
+      const isExtensionTS = fileExtension.endsWith('.ts');
 
       const importStatements = schemas
-        .filter((schema) => {
-          const name = conventionName(schema.name, namingConvention);
+        .map((schema) => {
+          const schemaFilePath = join(
+            schemaPath,
+            conventionName(schema.name, namingConvention) + fileExtension,
+          );
+          const relativePath = getRelativeImportPath(
+            indexFilePath,
+            schemaFilePath,
+            !isExtensionTS,
+          );
 
+          return relativePath;
+        })
+        .filter((relativePath) => {
           return (
-            !stringData.includes(`export * from './${name}${ext}'`) &&
-            !stringData.includes(`export * from "./${name}${ext}"`)
+            !stringData.includes(`export * from '${relativePath}'`) &&
+            !stringData.includes(`export * from "${relativePath}"`)
           );
         })
-        .map(
-          (schema) =>
-            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
-        );
+        .map((relativePath) => `export * from '${relativePath}';`);
 
       const currentFileExports = (stringData
         .match(/export \* from(.*)('|")/g)
@@ -188,9 +191,9 @@ export const writeSchemas = async ({
 
       const fileContent = `${header}\n${exports}`;
 
-      await fs.writeFile(schemaFilePath, fileContent);
+      await fs.writeFile(indexFilePath, fileContent);
     } catch (e) {
-      throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
+      throw `Oups... 🍻. An Error occurred while writing schema index file ${indexFilePath} => ${e}`;
     }
   }
 };

@@ -9,7 +9,7 @@ import {
   NormalizedHookCommand,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa from 'execa';
+import { execa } from 'execa';
 import { parseArgsStringToArgv } from 'string-argv';
 
 export const executeHook = async (
