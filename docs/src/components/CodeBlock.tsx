@@ -72,7 +72,7 @@ const CodeBlock = ({
   if (language === 'jsx' && live === true) {
     return (
       <LiveProvider {...liveProviderProps}>
-        <div className="border relative rounded shadow-sm">
+        <div className="border relative rounded-sm shadow-xs">
           <LiveCodePreview />
           <EditableNotice />
           {isCollapsed ? (
@@ -90,7 +90,7 @@ const CodeBlock = ({
                 <LiveEditor
                   onChange={handleCodeChange}
                   style={liveEditorStyle}
-                  className="outline-none "
+                  className="outline-hidden "
                 />
                 <div className="absolute right-0 top-0 p-2">
                   <TWButton
@@ -143,7 +143,7 @@ const CodeBlock = ({
   return (
     <LiveProvider disabled {...liveProviderProps}>
       <div className="relative">
-        <LiveEditor style={liveEditorStyle} className="rounded shadow-sm" />
+        <LiveEditor style={liveEditorStyle} className="rounded shadow-xs" />
         <div className="absolute right-0 top-0 p-2">
           <TWButton size="xs" className="font-sans" onClick={onCopy}>
             {hasCopied ? 'Copied' : 'Copy'}

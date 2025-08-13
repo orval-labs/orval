@@ -68,8 +68,8 @@ export function Playground({ height }) {
           isSearchable={false}
           className="
             rounded-md
-            [&>div]:dark:bg-black
-            [&>div>div>div]:dark:text-gray-200
+            dark:[&>div]:bg-black
+            dark:[&>div>div>div]:text-gray-200
           "
           styles={{
             option: (styles, { isFocused }) => ({

@@ -50,20 +50,20 @@ const Home = (props) => {
                   </p>
 
                   <div className="mt-5  mx-auto sm:flex sm:justify-center lg:justify-start lg:mx-0 md:mt-8">
-                    <div className="rounded-md shadow">
+                    <div className="rounded-md shadow-sm">
                       <Link
                         href="/overview"
-                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-none focus:border-coral focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
+                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-hidden focus:border-coral focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
                       >
                         Get Started
                       </Link>
                     </div>
-                    <div className="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
+                    <div className="mt-3 rounded-md shadow-sm sm:mt-0 sm:ml-3">
                       <a
                         href={siteConfig.repoUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral-default bg-white hover:text-coral-light focus:outline-none focus:border-coral-light focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
+                        className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral-default bg-white hover:text-coral-light focus:outline-hidden focus:border-coral-light focus:shadow-outline-coral transition duration-150 ease-in-out md:py-4 md:text-lg md:px-10"
                       >
                         GitHub
                       </a>
@@ -183,7 +183,7 @@ my-app
               </h3>
             </div>
             <div>
-              <div className="grid grid-flow-row grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4 text-white max-w-screen-lg mx-auto text-lg">
+              <div className="grid grid-flow-row grid-cols-1 sm:grid-cols-2 md:grid-cols-3  gap-4 text-white max-w-(--breakpoint-lg) mx-auto text-lg">
                 <a className="mb-2">
                   <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
@@ -280,11 +280,11 @@ my-app
                 </a>
               ))}
             </div>
-            <div className="inline-flex rounded-md shadow mt-12">
+            <div className="inline-flex rounded-md shadow-sm mt-12">
               <a
                 href="https://github.com/sponsors/anymaniax"
                 target="_blank"
-                className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-hidden focus:shadow-outline transition duration-150 ease-in-out"
               >
                 Become a sponsor
               </a>
@@ -296,19 +296,19 @@ my-app
             <h2 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10">
               Ready to dive in?
             </h2>
-            <div className="mt-8 flex lg:flex-shrink-0 md:mt-0">
-              <div className="inline-flex rounded-md shadow">
+            <div className="mt-8 flex lg:shrink-0 md:mt-0">
+              <div className="inline-flex rounded-md shadow-sm">
                 <Link
                   href="/overview"
-                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-white bg-coral-default hover:bg-coral-light focus:outline-hidden focus:shadow-outline transition duration-150 ease-in-out"
                 >
                   Okay, let's get started!
                 </Link>
               </div>
-              <div className="ml-3 inline-flex rounded-md shadow">
+              <div className="ml-3 inline-flex rounded-md shadow-sm">
                 <a
                   href={siteConfig.repoUrl}
-                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral-default bg-white hover:text-coral-light focus:outline-none focus:shadow-outline transition duration-150 ease-in-out"
+                  className="inline-flex items-center justify-center text-center px-5 py-3 border border-transparent text-base leading-6 font-medium rounded-md text-coral-default bg-white hover:text-coral-light focus:outline-hidden focus:shadow-outline transition duration-150 ease-in-out"
                 >
                   GitHub
                 </a>

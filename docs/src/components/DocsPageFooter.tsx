@@ -22,7 +22,7 @@ export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
           {prevRoute && prevRoute.path ? (
             <NextLink
               href={removeFromLast(prevRoute.path, '.')}
-              className="flex-grow  block"
+              className="grow  block"
             >
               <span className="text-sm block text-gray-500 mb-1 font-semibold">
                 ← Prev
@@ -37,7 +37,7 @@ export const DocsPageFooter = React.memo(({ route, prevRoute, nextRoute }) => {
           {nextRoute && nextRoute.path && (
             <NextLink
               href={removeFromLast(nextRoute.path, '.')}
-              className="flex-grow text-right block"
+              className="grow text-right block"
             >
               <span className="text-sm block text-gray-500 mb-1 font-semibold">
                 Next →

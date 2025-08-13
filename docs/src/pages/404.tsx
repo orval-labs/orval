@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDocs } from '../components/LayoutDocs';
+import { LayoutDocs } from '@/components/LayoutDocs';
 
 export default function NotFound() {
   return (

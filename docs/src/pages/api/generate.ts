@@ -1,4 +1,4 @@
-import fs from 'fs';
+import fs from 'node:fs/promises';
 import { generate } from 'orval';
 import prettier from 'prettier';
 import yaml from 'yaml';
@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
     await generate(fullConfig);
 
-    const file = fs.readFileSync(`/tmp/endpoints.ts`, 'utf8');
+    const file = await fs.readFile(`/tmp/endpoints.ts`, 'utf8');
 
     res.status(200).json([
       {

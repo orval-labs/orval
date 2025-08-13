@@ -14,7 +14,7 @@ export const Search = () => {
         <svg
           width="1em"
           height="1em"
-          className="mr-3 align-middle text-gray-600 flex-shrink-0 group-hover:text-gray-700"
+          className="mr-3 align-middle text-gray-600 shrink-0 group-hover:text-gray-700"
           style={{
             marginBottom: 2,
           }}
@@ -33,7 +33,7 @@ export const Search = () => {
         Search docs
         <span className="ml-auto invisible lg:visible">
           <kbd
-            className="border border-gray-300 mr-1 bg-gray-100 align-middle p-0 inline-flex justify-center items-center  text-xs text-center mr-0 rounded group-hover:border-gray-300 transition duration-150 ease-in-out "
+            className="border border-gray-300 mr-1 bg-gray-100 align-middle p-0 inline-flex justify-center items-center  text-xs text-center mr-0 rounded-sm group-hover:border-gray-300 transition duration-150 ease-in-out "
             style={{
               minWidth: '1.8em',
             }}
@@ -41,7 +41,7 @@ export const Search = () => {
             ⌘
           </kbd>
           <kbd
-            className="border border-gray-300 bg-gray-100 align-middle p-0 inline-flex justify-center items-center  text-xs text-center ml-auto mr-0 rounded group-hover:border-gray-300 transition duration-150 ease-in-out "
+            className="border border-gray-300 bg-gray-100 align-middle p-0 inline-flex justify-center items-center  text-xs text-center ml-auto mr-0 rounded-sm group-hover:border-gray-300 transition duration-150 ease-in-out "
             style={{
               minWidth: '1.8em',
             }}

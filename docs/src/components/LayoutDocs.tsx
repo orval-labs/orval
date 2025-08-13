@@ -7,10 +7,10 @@ import { SidebarMobile } from '@/components/SidebarMobile';
 import { SidebarPost } from '@/components/SidebarPost';
 import { Sticky } from '@/components/Sticky';
 import { useIsMobile } from '@/components/useIsMobile';
-import { findRouteByPath } from 'lib/docs/findRouteByPath';
-import { removeFromLast } from 'lib/docs/utils';
-import { getRouteContext } from 'lib/get-route-context';
-import { getManifest } from 'manifests/getManifest';
+import { findRouteByPath } from '@/lib/docs/findRouteByPath';
+import { removeFromLast } from '@/lib/docs/utils';
+import { getRouteContext } from '@/lib/get-route-context';
+import { getManifest } from '@/manifests/getManifest';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import * as React from 'react';
@@ -45,7 +45,7 @@ export const LayoutDocs = (props) => {
   const { slug, tag } = getSlugAndTag(router.asPath);
   const { routes } = getManifest(tag);
 
-  const _route = findRouteByPath(removeFromLast(slug, '#'), routes); // @ts-ignore
+  const _route = findRouteByPath(removeFromLast(slug, '#'), routes);
 
   const isMobile = useIsMobile();
   const { route, prevRoute, nextRoute } = getRouteContext(_route, routes);
@@ -104,7 +104,7 @@ export const LayoutDocs = (props) => {
                 </main>
                 {props.meta.toc === false ? null : (
                   <div
-                    className="hidden xl:block ml-10 flex-shrink-0"
+                    className="hidden xl:block ml-10 shrink-0"
                     style={{
                       width: 200,
                     }}
