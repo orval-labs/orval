@@ -31,7 +31,6 @@
     "docsearch.js": "^2.6.3",
     "framer-motion": "^1.11.1",
     "gray-matter": "^4.0.3",
-    "intersection-observer": "^0.12.2",
     "next": "^15.4.6",
     "orval": "workspace:*",
     "prettier": "3.6.2",
