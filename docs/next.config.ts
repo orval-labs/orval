@@ -8,29 +8,51 @@ import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 import rehypeUnwrapImages from 'rehype-unwrap-images';
 import remarkToc from 'remark-toc';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import nextMdx from '@next/mdx';
 
 const withMdx = nextMdx({
   // By default only the `.mdx` extension is supported.
   extension: /\.mdx?$/,
   options: {
-    rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings],
+    rehypePlugins: [
+      rehypeSlug,
+      [
+        rehypeAutolinkHeadings,
+        {
+          behavior: 'append',
+          linkProperties: {
+            class: ['anchor'],
+            title: 'Direct link to heading',
+          },
+        },
+      ],
+    ],
     remarkPlugins: [
       // remarkEmoji,
       remarkGfm,
       remarkImages,
       rehypeUnwrapImages,
-      remarkToc,
+      [
+        remarkToc,
+        {
+          skip: 'Reference',
+          maxDepth: 6,
+        },
+      ],
+      remarkFrontmatter,
+      remarkMdxFrontmatter,
     ],
   },
 });
 
 const nextConfig: NextConfig = {
-  experimental: { 
+  experimental: {
     // fixes:
     // Module not found: ESM packages (chalk) need to be imported. Use 'import' to reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
     esmExternals: 'loose',
-   },
+  },
   // Support MDX files as pages:
   pageExtensions: ['md', 'mdx', 'tsx', 'ts', 'jsx', 'js'],
   rewrites: async () => [
