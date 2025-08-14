@@ -89,7 +89,9 @@ export default defineConfig({
     output: {
       target: '../generated/mock/petstore-tags-split/endpoints.ts',
       schemas: '../generated/mock/petstore-tags-split/model',
-      mock: true,
+      mock: {
+        seed: 1234,
+      },
       mode: 'tags-split',
       client: 'axios',
     },
@@ -101,7 +103,9 @@ export default defineConfig({
     output: {
       target: '../generated/mock/split/endpoints.ts',
       schemas: '../generated/mock/split/model',
-      mock: true,
+      mock: {
+        seed: [42, 101],
+      },
       mode: 'split',
       client: 'axios',
     },
