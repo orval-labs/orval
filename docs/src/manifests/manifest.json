@@ -26,7 +26,7 @@
       "heading": true,
       "routes": [
         {
-          "title": "Use your own base url",
+          "title": "Custom Base URL",
           "path": "/guides/set-base-url",
           "editUrl": "/guides/set-base-url.md"
         },

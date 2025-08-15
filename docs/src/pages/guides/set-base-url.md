@@ -1,6 +1,6 @@
 ---
-id: use-your-own-base-url
-title: Use your own base url
+id: set-base-url
+title: Custom Base URL
 ---
 
 Orval allows you to set a custom base url for each OpenAPI specification. This can be a part of the url that's been omitted from the specification or the entire url. You can also configure Orval to read the `servers` field in the specification.
@@ -17,11 +17,10 @@ module.exports = {
 };
 ```
 
-## Using the url from the OpenAPI specification
+## Base URL from the OpenAPI Specification
 
-If you want to use the url defined in your specification, described by the `servers` field, you can set `getBaseUrlFromSpecification`
-to `true`, which will make Orval correctly identify which base url to use for each operation. Read more about the different settings
-in the [output configuration](../reference/configuration/output#baseurl).
+To use the URL defined in the OpenAPI specification, described by the `servers` field, set `getBaseUrlFromSpecification`
+to `true`, which will make Orval correctly identify which base URL to use for each operation. Read more about configuration settings in the [output configuration reference](../reference/configuration/output#baseurl).
 
 ```ts
 module.exports = {
@@ -39,17 +38,17 @@ module.exports = {
 };
 ```
 
-It's also possible to configure the base url directly on your HTTP client instead.
+It's also possible to configure the base URL directly on the HTTP client instead.
 
 ## Axios
 
-You can set a default baseUrl for all requests:
+Axios allows setting a default `baseUrl` for all requests:
 
 ```ts
 axios.defaults.baseURL = '<BACKEND URL>'; // use your own URL here or environment variable
 ```
 
-You can also use an interceptor to do it:
+Or using an interceptor:
 
 ```ts
 axios.interceptors.request.use((config) => {
@@ -60,15 +59,15 @@ axios.interceptors.request.use((config) => {
 });
 ```
 
-There is also the possibility to create a custom axios instance. Check the [full guide](../guides/custom-axios) for more details.
+It is also possible to create a custom Axios instance. Check the [full guide](../guides/custom-axios) for more details.
 
 ```ts
 const AXIOS_INSTANCE = axios.create({ baseURL: '<BACKEND URL>' }); // use your own URL here or environment variable
 ```
 
-## Fetch client
+## Fetch Client
 
-Also, if you are using the `fetch` client, you can still set the request URL with the custom fetch client.
+It is possible to set a base URL by providing a custom Fetch client.
 
 ```ts
 const getUrl = (contextUrl: string): string => {
@@ -104,9 +103,9 @@ export const customFetch = async <T>(
 
 Please refer to the complete sample [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts)
 
-## Angular http client
+## Angular HTTP Client
 
-You can use an interceptor to automatically add the url of your API. Like you would do to add an authorization header.
+Angular allows setting an interceptor to automatically add the URL of the API.
 
 ```ts
 import { Injectable } from '@angular/core';
@@ -130,7 +129,7 @@ export class APIInterceptor implements HttpInterceptor {
 }
 ```
 
-Also remember to add the interceptor to your providers in your module.
+Remember to add the interceptor to your providers in your module.
 
 ```ts
 providers: [
@@ -141,7 +140,3 @@ providers: [
   },
 ];
 ```
-
-## Other client
-
-Depending on the client that you are using, you will need to add it by yourself
