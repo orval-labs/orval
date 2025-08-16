@@ -1,21 +1,32 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
+
+export interface HeaderData {
+  url: string | null;
+  text: string | undefined;
+  depth: number;
+}
 
 /**
  * Sets up Table of Contents highlighting. It requires that
  */
 export function useTocHighlight(
-  linkClassName,
-  linkActiveClassName,
-  topOffset,
-  getHeaderAnchors,
-  getHeaderDataFromAnchor,
-  getAnchorHeaderIdentifier,
+  linkClassName: string,
+  linkActiveClassName: string,
+  topOffset: number,
+  getHeaderAnchors: () => Element[],
+  getHeaderDataFromAnchor: (el: Element) => HeaderData,
+  getAnchorHeaderIdentifier: (el?: Element) => string | undefined,
 ) {
-  const [lastActiveLink, setLastActiveLink] = React.useState(undefined);
-  const [headings, setHeadings] = React.useState([]);
+  const [lastActiveLink, setLastActiveLink] = useState<Element | undefined>(
+    undefined,
+  );
+  const [headings, setHeadings] = useState<Array<HeaderData & { parent?: HeaderData | null }>>([]);
 
-  React.useEffect(() => {
-    const { anchors } = getHeaderAnchors().reduce(
+  useEffect(() => {
+    const { anchors } = getHeaderAnchors().reduce<{
+      lastParent: HeaderData | null;
+      anchors: Array<HeaderData & { parent?: HeaderData | null }>;
+    }>(
       (acc, el) => {
         const anchor = getHeaderDataFromAnchor(el);
         if (anchor.depth <= 2) {
@@ -35,15 +46,12 @@ export function useTocHighlight(
     setHeadings(anchors);
   }, [setHeadings]);
 
-  React.useEffect(() => {
-    let headersAnchors = [];
-    let links = [];
-
+  useEffect(() => {
     function setActiveLink() {
       function getActiveHeaderAnchor() {
         let index = 0;
         let activeHeaderAnchor = null;
-        headersAnchors = getHeaderAnchors();
+        const headersAnchors = getHeaderAnchors();
 
         while (index < headersAnchors.length && !activeHeaderAnchor) {
           const headerAnchor = headersAnchors[index];
@@ -64,23 +72,25 @@ export function useTocHighlight(
       if (activeHeaderAnchor) {
         let index = 0;
         let itemHighlighted = false;
-        links = document.getElementsByClassName(linkClassName);
+        const links = document.getElementsByClassName(linkClassName);
 
         while (index < links.length && !itemHighlighted) {
           const link = links[index];
-          const { href } = link;
-          const anchorValue = decodeURIComponent(
-            href.substring(href.indexOf('#') + 1),
-          );
+          if (link instanceof HTMLAnchorElement) {
+            const { href } = link;
+            const anchorValue = decodeURIComponent(
+              href.substring(href.indexOf('#') + 1),
+            );
 
-          if (getAnchorHeaderIdentifier(activeHeaderAnchor) === anchorValue) {
-            if (lastActiveLink) {
-              lastActiveLink.classList.remove(linkActiveClassName);
+            if (getAnchorHeaderIdentifier(activeHeaderAnchor) === anchorValue) {
+              if (lastActiveLink) {
+                lastActiveLink.classList.remove(linkActiveClassName);
+              }
+
+              link.classList.add(linkActiveClassName);
+              setLastActiveLink(link);
+              itemHighlighted = true;
             }
-
-            link.classList.add(linkActiveClassName);
-            setLastActiveLink(link);
-            itemHighlighted = true;
           }
 
           index += 1;
@@ -91,11 +101,13 @@ export function useTocHighlight(
     document.addEventListener('scroll', setActiveLink);
     document.addEventListener('resize', setActiveLink);
     setActiveLink();
+
     return () => {
       document.removeEventListener('scroll', setActiveLink);
       document.removeEventListener('resize', setActiveLink);
     };
   });
+
   return {
     headings,
     active:

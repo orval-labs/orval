@@ -1,16 +1,16 @@
 import process from 'node:process';
 import type { NextConfig } from 'next';
-// import remarkPlugins from './src/lib/docs/remark-plugins';
 import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
-// import remarkEmoji from 'remark-emoji';
+import rehypeAutolinkHeadings, { Options as AutolinkOptions } from 'rehype-autolink-headings';
+import remarkEmoji from 'remark-emoji';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 import rehypeUnwrapImages from 'rehype-unwrap-images';
-import remarkToc from 'remark-toc';
+import remarkToc, { Options as TocOptions } from 'remark-toc';
 import remarkFrontmatter from 'remark-frontmatter';
-import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
+import remarkMdxFrontmatter, { RemarkMdxFrontmatterOptions } from 'remark-mdx-frontmatter';
 import nextMdx from '@next/mdx';
+import recmaNextjsStaticProps from 'recma-nextjs-static-props';
 
 const withMdx = nextMdx({
   // By default only the `.mdx` extension is supported.
@@ -18,31 +18,28 @@ const withMdx = nextMdx({
   options: {
     rehypePlugins: [
       rehypeSlug,
+      rehypeUnwrapImages,
       [
         rehypeAutolinkHeadings,
         {
           behavior: 'append',
-          linkProperties: {
+          properties: {
             class: ['anchor'],
             title: 'Direct link to heading',
           },
-        },
+        } satisfies AutolinkOptions,
       ],
     ],
+    recmaPlugins: [recmaNextjsStaticProps],
     remarkPlugins: [
+      // remark-emoji@5.0.1 package throws 'ERR_PACKAGE_PATH_NOT_EXPORTED'
+      // https://github.com/rhysd/remark-emoji/issues/40
       // remarkEmoji,
       remarkGfm,
       remarkImages,
-      rehypeUnwrapImages,
-      [
-        remarkToc,
-        {
-          skip: 'Reference',
-          maxDepth: 6,
-        },
-      ],
       remarkFrontmatter,
-      remarkMdxFrontmatter,
+      [remarkMdxFrontmatter, { name: 'meta' } satisfies RemarkMdxFrontmatterOptions],
+      [remarkToc, { heading: 'toc', skip: 'Reference' } satisfies TocOptions],
     ],
   },
 });

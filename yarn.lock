@@ -26139,6 +26139,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"recma-nextjs-static-props@npm:^2.0.2":
+  version: 2.0.2
+  resolution: "recma-nextjs-static-props@npm:2.0.2"
+  dependencies:
+    "@types/estree": "npm:^1.0.0"
+    estree-util-scope: "npm:^1.0.0"
+    estree-walker: "npm:^3.0.0"
+    unified: "npm:^11.0.0"
+    unist-util-mdx-define: "npm:^1.0.0"
+  checksum: 10c0/e3d3147412808de7a7d2278098ca1c567565b1cc698e4aa15b8800d59ed6951c1afa197669eda873f752460241d5aaa7f949b8bc6a53b9a4c536f03ed3f91fb5
+  languageName: node
+  linkType: hard
+
 "recma-parse@npm:^1.0.0":
   version: 1.0.0
   resolution: "recma-parse@npm:1.0.0"

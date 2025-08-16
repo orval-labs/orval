@@ -10,7 +10,6 @@ import { siteConfig } from '@/siteConfig';
 import Highlight from '@/components/Highlight';
 import { Playground } from '@/components/playground/Playground';
 import { getSponsors } from '@/get-sponsors';
-import Image from 'next/image';
 
 const Home = (props) => {
   const { sponsors } = props;

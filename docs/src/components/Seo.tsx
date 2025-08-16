@@ -1,66 +1,75 @@
 import Head from 'next/head';
-import { withRouter } from 'next/router';
-import React from 'react';
+import { useRouter } from 'next/router';
+import { ComponentPropsWithoutRef } from 'react';
 
-export const Seo = withRouter(({ title, description, router, children }) => (
-  <Head>
-    {/* DEFAULT */}
+interface Props extends ComponentPropsWithoutRef<'head'> {
+  title: string;
+  description?: string;
+}
 
-    {title != undefined && <title key="title">{title} | orval</title>}
-    {description != undefined && (
-      <meta name="description" key="description" content={description} />
-    )}
-    <link rel="icon" type="image/x-icon" href="/images/favicon.svg" />
-    <link rel="apple-touch-icon" href="/images/favicon.svg" />
+export function Seo({ title, description, children }: Props) {
+  const router = useRouter();
 
-    {/* OPEN GRAPH */}
-    <meta property="og:type" key="og:type" content="website" />
-    <meta
-      property="og:url"
-      key="og:url"
-      content={`https://orval.dev${router.pathname}`}
-    />
-    {title != undefined && (
-      <meta property="og:title" content={title} key="og:title" />
-    )}
-    {description != undefined && (
+  return (
+    <Head>
+      {/* DEFAULT */}
+
+      {title != undefined && <title key="title">{title} | orval</title>}
+      {description != undefined && (
+        <meta name="description" key="description" content={description} />
+      )}
+      <link rel="icon" type="image/x-icon" href="/images/favicon.svg" />
+      <link rel="apple-touch-icon" href="/images/favicon.svg" />
+
+      {/* OPEN GRAPH */}
+      <meta property="og:type" key="og:type" content="website" />
       <meta
-        property="og:description"
-        key="og:description"
-        content={description}
+        property="og:url"
+        key="og:url"
+        content={`https://orval.dev${router.pathname}`}
       />
-    )}
-    <meta
-      property="og:image"
-      key="og:image"
-      content={`https://orval.dev/images/og-image.png`}
-    />
-
-    {/* TWITTER */}
-    <meta
-      name="twitter:card"
-      key="twitter:card"
-      content="summary_large_image"
-    />
-    <meta name="twitter:site" key="twitter:site" content="@anymaniax" />
-    <meta name="twitter:creator" key="twitter:creator" content="@anymaniax" />
-    {title != undefined && (
-      <meta name="twitter:title" key="twitter:title" content={title} />
-    )}
-    {description != undefined && (
+      {title != undefined && (
+        <meta property="og:title" content={title} key="og:title" />
+      )}
+      {description != undefined && (
+        <meta
+          property="og:description"
+          key="og:description"
+          content={description}
+        />
+      )}
       <meta
-        name="twitter:description"
-        key="twitter:description"
-        content={description}
+        property="og:image"
+        key="og:image"
+        content={`https://orval.dev/images/og-image.png`}
       />
-    )}
 
-    <meta
-      name="twitter:image"
-      key="twitter:image"
-      content={`https://orval.dev/images/og-image.png`}
-    />
+      {/* TWITTER */}
+      <meta
+        name="twitter:card"
+        key="twitter:card"
+        content="summary_large_image"
+      />
+      <meta name="twitter:site" key="twitter:site" content="@anymaniax" />
+      <meta name="twitter:creator" key="twitter:creator" content="@anymaniax" />
+      {title != undefined && (
+        <meta name="twitter:title" key="twitter:title" content={title} />
+      )}
+      {description != undefined && (
+        <meta
+          name="twitter:description"
+          key="twitter:description"
+          content={description}
+        />
+      )}
 
-    {children}
-  </Head>
-));
+      <meta
+        name="twitter:image"
+        key="twitter:image"
+        content={`https://orval.dev/images/og-image.png`}
+      />
+
+      {children}
+    </Head>
+  );
+}

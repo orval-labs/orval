@@ -2,7 +2,7 @@ import { useDocSearchKeyboardEvents } from '@docsearch/react';
 import Head from 'next/head';
 import Link from 'next/link';
 import Router from 'next/router';
-import React, { PropsWithChildren } from 'react';
+import React, { ComponentPropsWithoutRef } from 'react';
 import { createPortal } from 'react-dom';
 import { siteConfig } from '@/siteConfig';
 
@@ -11,7 +11,7 @@ let DocSearchModal = null;
 
 export const useSearch = () => React.useContext(SearchContext);
 
-interface SearchProviderProps {
+interface Props extends ComponentPropsWithoutRef<'div'> {
   searchParameters: { hitsPerPage: number };
 }
 
@@ -20,7 +20,7 @@ export function SearchProvider({
   searchParameters = {
     hitsPerPage: 5,
   },
-}: PropsWithChildren<SearchProviderProps>) {
+}: Props) {
   const [isShowing, setIsShowing] = React.useState(false);
 
   const onOpen = React.useCallback(function onOpen() {

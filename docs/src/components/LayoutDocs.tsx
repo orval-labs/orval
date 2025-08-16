@@ -1,27 +1,24 @@
-import { MDXProvider } from '@mdx-js/react';
-import { Nav } from '@/components/Nav';
-import { Sidebar } from '@/components/Sidebar';
-import { SidebarCategory } from '@/components/SidebarCategory';
-import { SidebarHeading } from '@/components/SidebarHeading';
-import { SidebarMobile } from '@/components/SidebarMobile';
-import { SidebarPost } from '@/components/SidebarPost';
-import { Sticky } from '@/components/Sticky';
-import { useIsMobile } from '@/components/useIsMobile';
 import { findRouteByPath } from '@/lib/docs/findRouteByPath';
 import { removeFromLast } from '@/lib/docs/utils';
 import { getRouteContext } from '@/lib/get-route-context';
 import { getManifest } from '@/manifests/getManifest';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
-import * as React from 'react';
-import { DocsPageFooter } from './DocsPageFooter';
+import { type ComponentPropsWithoutRef } from 'react';
+import { Sticky } from './Sticky';
+import { Nav } from './Nav';
 import { Footer } from './Footer';
-import s from './markdown.module.css';
-import MDXComponents from './MDXComponents';
-import { Seo } from './Seo';
 import { Toc } from './Toc';
+import { DocsPageFooter } from './DocsPageFooter';
+import { Seo } from './Seo';
+import { SidebarMobile } from './SidebarMobile';
+import { useIsMobile } from './useIsMobile';
+import { SidebarHeading } from './SidebarHeading';
+import { SidebarCategory } from './SidebarCategory';
+import { SidebarPost } from './SidebarPost';
+import { Sidebar } from './Sidebar';
+import s from './markdown.module.css';
 
-const getSlugAndTag = (path) => {
+function getSlugAndTag(path: string) {
   const parts = path.split('/');
 
   if (parts[2] === '1.5.8' || parts[2] === '2.1.4') {
@@ -34,30 +31,34 @@ const getSlugAndTag = (path) => {
   return {
     slug: path,
   };
-};
+}
 
 const addTagToSlug = (slug, tag) => {
   return tag ? `/docs/${tag}/${slug.replace('/docs/', '')}` : slug;
 };
 
-export const LayoutDocs = (props) => {
+interface Metadata {
+  id: string;
+  title: string;
+  description?: string;
+  toc?: boolean;
+}
+
+interface Props extends ComponentPropsWithoutRef<'div'> {
+  meta: Metadata;
+}
+
+export default function LayoutDocs({ meta, children }: Props) {
   const router = useRouter();
   const { slug, tag } = getSlugAndTag(router.asPath);
   const { routes } = getManifest(tag);
-
   const _route = findRouteByPath(removeFromLast(slug, '#'), routes);
-
   const isMobile = useIsMobile();
   const { route, prevRoute, nextRoute } = getRouteContext(_route, routes);
   const title = route && `${route.title}`;
 
   return (
     <>
-      {tag && (
-        <Head>
-          <meta name="robots" content="noindex" />
-        </Head>
-      )}
       <div>
         {isMobile ? (
           <>
@@ -73,10 +74,7 @@ export const LayoutDocs = (props) => {
             <Nav />
           </Sticky>
         )}
-        <Seo
-          title={title || props.meta.title}
-          description={props.meta.description}
-        />
+        <Seo title={title || meta.title} description={meta.description} />
         <div className="block">
           <>
             <div className="container mx-auto pb-12 pt-6 content">
@@ -113,7 +111,7 @@ export const LayoutDocs = (props) => {
                       <h4 className="font-semibold uppercase text-sm mb-2 mt-2 text-gray-500">
                         On this page
                       </h4>
-                      <Toc title={props.meta.title} />
+                      <Toc title={meta.title} />
                     </div>
                   </div>
                 )}
@@ -130,7 +128,7 @@ export const LayoutDocs = (props) => {
       `}</style>
     </>
   );
-};
+}
 
 function getCategoryPath(routes) {
   const route = routes.find((r) => r.path);
@@ -196,5 +194,3 @@ function SidebarRoutes({ isMobile, routes: currentRoutes, level = 1 }) {
     );
   });
 }
-
-LayoutDocs.displayName = 'LayoutDocs';

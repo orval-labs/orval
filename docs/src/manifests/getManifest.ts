@@ -3,6 +3,6 @@ import manifest from './manifest.json';
 const versions = {};
 
 export const versionList = Object.keys(versions);
-export const getManifest = (tag) => {
+export function getManifest(tag: string | undefined) {
   return tag ? versions[tag] : manifest;
 };

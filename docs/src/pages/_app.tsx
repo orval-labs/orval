@@ -7,7 +7,7 @@ import {
 import { SearchProvider } from '@/components/useSearch';
 import { useState } from 'react';
 import '@/styles/index.css';
-import type { AppProps } from 'next/app'
+import { AppProps } from 'next/app';
 
 export default function MyApp({ Component, pageProps }: AppProps) {
   const [queryClient] = useState(() => new QueryClient());

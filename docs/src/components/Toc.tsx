@@ -1,23 +1,24 @@
 import cx from 'classnames';
-import * as React from 'react';
 import styles from './Toc.module.css';
-import { useTocHighlight } from './useTocHighlight';
+import { HeaderData, useTocHighlight } from './useTocHighlight';
+import { ComponentPropsWithoutRef } from 'react';
+
 const TOP_OFFSET = 100;
 
 function getHeaderAnchors() {
   return [
-    ...document.getElementsByTagName('H1'),
+    ...document.getElementsByTagName('h1'),
     ...[...document.getElementsByClassName('anchor')].filter(
       (el) =>
-        el.parentNode.nodeName === 'H2' ||
-        el.parentNode.nodeName === 'H3' ||
-        el.parentNode.nodeName === 'H4' ||
-        el.parentNode.nodeName === 'H5',
+        el.parentNode?.nodeName === 'H2' ||
+        el.parentNode?.nodeName === 'H3' ||
+        el.parentNode?.nodeName === 'H4' ||
+        el.parentNode?.nodeName === 'H5',
     ),
   ].filter(Boolean);
 }
 
-function getHeaderDataFromAnchors(el) {
+function getHeaderDataFromAnchors(el: Element): HeaderData {
   return {
     url: el.getAttribute('href'),
     text: el.parentElement?.innerText,
@@ -25,14 +26,18 @@ function getHeaderDataFromAnchors(el) {
   };
 }
 
-export const Toc = ({ title }) => {
+interface Props extends ComponentPropsWithoutRef<'ul'> {
+  title: string;
+}
+
+export function Toc({ title }: Props) {
   const { headings, active } = useTocHighlight(
     styles.contents__link,
     styles['contents__link--active'],
     TOP_OFFSET,
     getHeaderAnchors,
     getHeaderDataFromAnchors,
-    (el) => el?.parentElement?.id,
+    (el?: Element) => el?.parentElement?.id,
   );
   return (
     <ul className={cx('space-y-3', styles.contents__list)}>
@@ -70,4 +75,4 @@ export const Toc = ({ title }) => {
         )}
     </ul>
   );
-};
+}
