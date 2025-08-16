@@ -1,5 +1,5 @@
 //import { Image, useTheme } from '@theguild/components';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
 import dynamic from 'next/dynamic';
@@ -38,20 +38,20 @@ export function Playground({ height }) {
   const [debounceConfig] = useDebounce(config, 500);
   const [debounceSchema] = useDebounce(schema, 500);
 
-  const generateApiQuery = useQuery(
-    [debounceConfig, debounceSchema, template],
-    async () =>
+  const generateApiQuery = useQuery({
+    queryKey: [debounceConfig, debounceSchema, template],
+
+    queryFn: async () =>
       (
         await axios.post('/api/generate', {
           config,
           schema,
         })
       ).data,
-    {
-      retry: false,
-      keepPreviousData: true,
-    },
-  );
+
+    retry: false,
+    placeholderData: keepPreviousData,
+  });
 
   const changeTemplate = (value) => {
     const [catName, index] = value.split('__');

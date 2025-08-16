@@ -64,11 +64,9 @@ export function SearchProvider({
           crossOrigin="true"
         />
       </Head>
-
       <SearchContext.Provider value={{ DocSearchModal, onOpen }}>
         {children}
       </SearchContext.Provider>
-
       {isShowing &&
         createPortal(
           <DocSearchModal
