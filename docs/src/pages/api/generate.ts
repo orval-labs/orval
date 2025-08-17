@@ -1,9 +1,13 @@
+import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'node:fs/promises';
 import { generate } from 'orval';
 import prettier from 'prettier';
 import yaml from 'yaml';
 
-export default async function handler(req, res) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
   const { schema, config } = req.body;
 
   try {
@@ -34,9 +38,10 @@ export default async function handler(req, res) {
         filename: 'endpoints.ts',
       },
     ]);
-  } catch {
+  } catch (err) {
+    const inDevEnvironment = process.env.NODE_ENV === 'development';
     res
       .status(400)
-      .json({ error: 'Impossible to generate code with this config' });
+      .json({ error: inDevEnvironment ? err.message : 'Impossible to generate code with this config' });
   }
 }

@@ -1,9 +1,8 @@
-import Highlight, { defaultProps } from 'prism-react-renderer';
-import CodeTheme from 'prism-react-renderer/themes/nightOwl';
+import { Highlight, themes } from 'prism-react-renderer';
 import * as React from 'react';
 // Original: https://raw.githubusercontent.com/PrismJS/prism-themes/master/themes/prism-ghcolors.css
 
-const theme = Object.assign({}, CodeTheme, {
+const theme = Object.assign({}, themes.nightOwl, {
   plain: {
     color: '#d6deed',
     backgroundColor: '#2b3035',
@@ -16,14 +15,11 @@ const theme = Object.assign({}, CodeTheme, {
 
 const Code = ({
   children,
-  codeString,
   className = 'language-js',
-  ...props
 }) => {
   const language = className.replace(/language-/, '');
   return (
     <Highlight
-      {...defaultProps}
       code={children.trim()}
       language={language}
       theme={theme}

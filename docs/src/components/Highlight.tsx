@@ -1,11 +1,10 @@
-import Highlight, { defaultProps } from 'prism-react-renderer';
-import CodeTheme from 'prism-react-renderer/themes/nightOwl';
+import { Highlight, themes } from 'prism-react-renderer';
 import * as React from 'react';
 import { LiveEditor, LiveError, LivePreview, LiveProvider } from 'react-live'; // Original: https://raw.githubusercontent.com/PrismJS/prism-themes/master/themes/prism-ghcolors.css
 
 /*:: import type { PrismTheme } from '../src/types' */
 
-const theme = Object.assign({}, CodeTheme, {
+const theme = Object.assign({}, themes.nightOwl, {
   plain: {
     color: '#d6deed',
     backgroundColor: '#2b3035',
@@ -68,12 +67,7 @@ const Code = ({
     );
   } else {
     return (
-      <Highlight
-        {...defaultProps}
-        code={children.trim()}
-        language={language}
-        theme={theme}
-      >
+      <Highlight code={children.trim()} language={language} theme={theme}>
         {({ className, style, tokens, getLineProps, getTokenProps }) => (
           <pre
             className={className + ' bg-gray-50 pb-4 pt-4 pr-4 overflow-scroll'}

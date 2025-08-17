@@ -32,6 +32,7 @@
     "next": "^15.4.6",
     "orval": "workspace:*",
     "prettier": "3.6.2",
+    "prism-react-renderer": "^2.4.1",
     "prismjs": "^1.21.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
