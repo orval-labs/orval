@@ -1,14 +1,18 @@
 import process from 'node:process';
 import type { NextConfig } from 'next';
 import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings, { Options as AutolinkOptions } from 'rehype-autolink-headings';
+import rehypeAutolinkHeadings, {
+  Options as AutolinkOptions,
+} from 'rehype-autolink-headings';
 import remarkEmoji from 'remark-emoji';
 import remarkGfm from 'remark-gfm';
 import remarkImages from 'remark-images';
 import rehypeUnwrapImages from 'rehype-unwrap-images';
 import remarkToc, { Options as TocOptions } from 'remark-toc';
 import remarkFrontmatter from 'remark-frontmatter';
-import remarkMdxFrontmatter, { RemarkMdxFrontmatterOptions } from 'remark-mdx-frontmatter';
+import remarkMdxFrontmatter, {
+  RemarkMdxFrontmatterOptions,
+} from 'remark-mdx-frontmatter';
 import nextMdx from '@next/mdx';
 import recmaNextjsStaticProps from 'recma-nextjs-static-props';
 
@@ -38,13 +42,17 @@ const withMdx = nextMdx({
       remarkGfm,
       remarkImages,
       remarkFrontmatter,
-      [remarkMdxFrontmatter, { name: 'meta' } satisfies RemarkMdxFrontmatterOptions],
-      [remarkToc, { heading: 'toc', skip: 'Reference' } satisfies TocOptions],
+      [
+        remarkMdxFrontmatter,
+        { name: 'meta' } satisfies RemarkMdxFrontmatterOptions,
+      ],
+      [remarkToc, { skip: 'Reference' } satisfies TocOptions],
     ],
   },
 });
 
 const nextConfig: NextConfig = {
+  transpilePackages: ['orval'],
   experimental: {
     // fixes:
     // Module not found: ESM packages (chalk) need to be imported. Use 'import' to reference the package instead. https://nextjs.org/docs/messages/import-esm-externals

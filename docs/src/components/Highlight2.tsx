@@ -1,5 +1,4 @@
 import { Highlight, themes } from 'prism-react-renderer';
-import * as React from 'react';
 // Original: https://raw.githubusercontent.com/PrismJS/prism-themes/master/themes/prism-ghcolors.css
 
 const theme = Object.assign({}, themes.nightOwl, {

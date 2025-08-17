@@ -4,9 +4,14 @@ import { generate } from 'orval';
 import prettier from 'prettier';
 import yaml from 'yaml';
 
+export interface GenerateOutput {
+  content: string;
+  filename: string;
+}
+
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse<GenerateOutput[] | { error: string }>,
 ) {
   const { schema, config } = req.body;
 
@@ -32,7 +37,7 @@ export default async function handler(
 
     res.status(200).json([
       {
-        content: prettier.format(file, {
+        content: await prettier.format(file, {
           parser: 'typescript',
         }),
         filename: 'endpoints.ts',
@@ -42,6 +47,10 @@ export default async function handler(
     const inDevEnvironment = process.env.NODE_ENV === 'development';
     res
       .status(400)
-      .json({ error: inDevEnvironment ? err.message : 'Impossible to generate code with this config' });
+      .json({
+        error: inDevEnvironment
+          ? err.message
+          : 'Impossible to generate code with this config',
+      });
   }
 }

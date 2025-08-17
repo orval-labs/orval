@@ -24,7 +24,7 @@ const Home = (props) => {
         <title>orval - Restful client generator</title>
       </Head>
       <div className="bg-gray-50 h-full min-h-full">
-        <Banner />
+        {/* <Banner /> */}
         <Sticky>
           <Nav />
         </Sticky>

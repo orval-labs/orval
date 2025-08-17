@@ -1,7 +1,18 @@
+import type { GenerateOutput } from '@/pages/api/generate';
 import { CodegenOutput } from './CodegenOutput';
 import { Editor } from './Editor';
 
-export const PlaygroundEditors = ({
+interface Props {
+  setSchema?: (value: string | undefined) => void;
+  schema?: string;
+  setConfig?: (value: string | undefined) => void;
+  config?: string;
+  error?: string;
+  output?: GenerateOutput[];
+  height?: string | number;
+}
+
+export function PlaygroundEditors({
   setSchema,
   schema,
   setConfig,
@@ -9,7 +20,7 @@ export const PlaygroundEditors = ({
   error,
   output,
   height,
-}) => {
+}: Props) {
   return (
     <div className="grid grid-cols-3">
       <div>
@@ -41,7 +52,7 @@ export const PlaygroundEditors = ({
       <div>
         <CodegenOutput
           editorProps={{
-            lang: 'text/typescript',
+            language: 'text/typescript',
             readOnly: true,
           }}
           error={error}
@@ -51,4 +62,4 @@ export const PlaygroundEditors = ({
       </div>
     </div>
   );
-};
+}

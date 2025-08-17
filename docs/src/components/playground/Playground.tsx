@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useDebounce } from 'use-debounce';
 import { EXAMPLES } from './Examples';
 import { PlaygroundEditors } from './PlaygroundEditors';
+import type { GenerateOutput } from '@/pages/api/generate';
 
 const groupedExamples = Object.entries(EXAMPLES).map(([catName, category]) => ({
   label: catName,
@@ -18,27 +19,31 @@ const groupedExamples = Object.entries(EXAMPLES).map(([catName, category]) => ({
 const DEFAULT_EXAMPLE = {
   catName: 'ReactQuery',
   index: 0,
-};
+} as const;
 
 // Imports Select dynamically only on the client to avoid hydration warnings in SSR (e.g. aria-activedescendant)
 const Select = dynamic(() => import('react-select'), {
   ssr: false,
 });
 
-export function Playground({ height }) {
+interface Props {
+  height?: string | number;
+}
+
+export function Playground({ height }: Props) {
   const [template, setTemplate] = useState(
     `${DEFAULT_EXAMPLE.catName}__${DEFAULT_EXAMPLE.index}`,
   );
-  const [schema, setSchema] = useState(
+  const [schema, setSchema] = useState<string | undefined>(
     EXAMPLES[DEFAULT_EXAMPLE.catName][DEFAULT_EXAMPLE.index].schema,
   );
-  const [config, setConfig] = useState(
+  const [config, setConfig] = useState<string | undefined>(
     EXAMPLES[DEFAULT_EXAMPLE.catName][DEFAULT_EXAMPLE.index].config,
   );
   const [debounceConfig] = useDebounce(config, 500);
   const [debounceSchema] = useDebounce(schema, 500);
 
-  const generateApiQuery = useQuery({
+  const generateApiQuery = useQuery<GenerateOutput[]>({
     queryKey: [debounceConfig, debounceSchema, template],
 
     queryFn: async () =>

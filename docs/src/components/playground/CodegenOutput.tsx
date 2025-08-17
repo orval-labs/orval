@@ -1,8 +1,22 @@
 import { basename } from 'path';
 import { useEffect, useState } from 'react';
 import { Editor } from './Editor';
+import type { GenerateOutput } from '@/pages/api/generate';
+import type { editor } from 'monaco-editor';
 
-export const CodegenOutput = ({ outputArray, editorProps, error, height }) => {
+interface Props {
+  outputArray?: GenerateOutput[];
+  editorProps?: editor.IStandaloneEditorConstructionOptions;
+  error?: string;
+  height?: string | number;
+}
+
+export function CodegenOutput({
+  outputArray,
+  editorProps,
+  error,
+  height,
+}: Props) {
   const [index, setIndex] = useState(0);
   const editorContent = error || outputArray?.[index].content || '';
 
@@ -24,4 +38,4 @@ export const CodegenOutput = ({ outputArray, editorProps, error, height }) => {
       <Editor {...editorProps} value={editorContent} height={height} />
     </>
   );
-};
+}

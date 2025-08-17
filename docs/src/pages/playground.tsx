@@ -4,7 +4,7 @@ import { Nav } from '@/components/Nav';
 import { Seo } from '@/components/Seo';
 import { Sticky } from '@/components/Sticky';
 import Head from 'next/head';
-import { Playground } from '../components/playground/Playground';
+import { Playground } from '@/components/playground/Playground';
 
 export const PlaygroundPage = () => {
   return (

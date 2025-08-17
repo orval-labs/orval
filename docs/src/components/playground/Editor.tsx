@@ -1,12 +1,18 @@
-import MonacoEditor from '@monaco-editor/react';
+import dynamic from 'next/dynamic';
+// https://github.com/suren-atoyan/monaco-react?tab=readme-ov-file#for-nextjs-users
+const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
+  ssr: false,
+});
 
-const canUseDOM = typeof window !== 'undefined';
+interface Props {
+  value?: string;
+  lang?: string;
+  readOnly?: boolean;
+  height?: string | number;
+  onEdit?: (value: string | undefined) => void;
+}
 
-export const Editor = ({ value, lang, readOnly, onEdit, height = 500 }) => {
-  if (!canUseDOM) {
-    return null;
-  }
-
+export function Editor({ value, lang, readOnly, onEdit, height = 500 }: Props) {
   return (
     <MonacoEditor
       height={height}
@@ -22,4 +28,4 @@ export const Editor = ({ value, lang, readOnly, onEdit, height = 500 }) => {
       onChange={onEdit}
     />
   );
-};
+}

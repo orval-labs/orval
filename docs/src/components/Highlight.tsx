@@ -1,5 +1,5 @@
 import { Highlight, themes } from 'prism-react-renderer';
-import * as React from 'react';
+import { useState } from 'react';
 import { LiveEditor, LiveError, LivePreview, LiveProvider } from 'react-live'; // Original: https://raw.githubusercontent.com/PrismJS/prism-themes/master/themes/prism-ghcolors.css
 
 /*:: import type { PrismTheme } from '../src/types' */
@@ -17,12 +17,11 @@ const theme = Object.assign({}, themes.nightOwl, {
 
 const Code = ({
   children,
-  codeString,
   className = 'language-js',
   ...props
 }) => {
   const language = className.replace(/language-/, '');
-  const [key, setKey] = React.useState(`${Math.random() * 7}`);
+  const [key, setKey] = useState(`${Math.random() * 7}`);
 
   if (props['live']) {
     return (
