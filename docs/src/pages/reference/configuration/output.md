@@ -1323,17 +1323,19 @@ module.exports = {
 **Generated code comparison:**
 
 Default behavior (`useOperationIdAsQueryKey: false`):
+
 ```typescript
 const getPetByIdQueryKey = (petId: string) => {
   return [`/pets/${petId}`] as const;
-}
+};
 ```
 
 With `useOperationIdAsQueryKey: true`:
+
 ```typescript
 const getPetByIdQueryKey = (petId: string) => {
   return ['getPetById', petId] as const;
-}
+};
 ```
 
 #### version
