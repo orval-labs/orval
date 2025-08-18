@@ -582,9 +582,17 @@ export const parseZodValidationSchemaDefinition = (
       }
 
       const union = args.map(
-        ({ functions }: { functions: [string, any][] }) => {
+        ({
+          functions,
+          consts: argConsts,
+        }: {
+          functions: [string, any][];
+          consts: string[];
+        }) => {
           const value = functions.map(parseProperty).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+          // consts are missing here
+          consts += argConsts?.join('\n');
           return valueWithZod;
         },
       );
@@ -665,7 +673,10 @@ ${Object.entries(args)
     : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-
+  // Some export consts includes `,` as prefix, adding replace to remove those
+  if (consts?.includes(',export')) {
+    consts = consts.replaceAll(',export', '\nexport');
+  }
   return { zod, consts };
 };
 
