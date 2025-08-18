@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { makeRouteSafe, normalizeQueryOptions, wrapRouteParameters } from './utils';
+import {
+  makeRouteSafe,
+  normalizeQueryOptions,
+  wrapRouteParameters,
+} from './utils';
 
 describe('wrapRouteParameters', () => {
   it('wraps parameters correctly', () => {
@@ -45,7 +49,7 @@ describe('normalizeQueryOptions', () => {
   it('should include useOperationIdAsQueryKey when provided', () => {
     const result = normalizeQueryOptions(
       { useOperationIdAsQueryKey: true },
-      '/workspace'
+      '/workspace',
     );
     expect(result.useOperationIdAsQueryKey).toBe(true);
   });
@@ -53,7 +57,7 @@ describe('normalizeQueryOptions', () => {
   it('should not include useOperationIdAsQueryKey when false', () => {
     const result = normalizeQueryOptions(
       { useOperationIdAsQueryKey: false },
-      '/workspace'
+      '/workspace',
     );
     expect(result.useOperationIdAsQueryKey).toBeUndefined();
   });
