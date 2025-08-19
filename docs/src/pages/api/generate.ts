@@ -44,13 +44,15 @@ export default async function handler(
       },
     ]);
   } catch (err) {
+    let errorMessage = 'Impossible to generate code with this config';
     const inDevEnvironment = process.env.NODE_ENV === 'development';
-    res
-      .status(400)
-      .json({
-        error: inDevEnvironment
-          ? err.message
-          : 'Impossible to generate code with this config',
-      });
+    if (inDevEnvironment) {
+      if (err instanceof Error) {
+        errorMessage = err.toString();
+      } else if (typeof err === 'string') {
+        errorMessage = err;
+      }
+    }
+    res.status(400).json({ error: errorMessage });
   }
 }
