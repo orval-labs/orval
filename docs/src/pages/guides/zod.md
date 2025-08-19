@@ -5,7 +5,7 @@ title: zod
 
 To create a `zod` schema, specify the client property as `zod`, and it will automatically generate in the target file. Ensure to configure `zod` properly in your project by referring to <a href="https://zod.dev/" target="_blank">Zod</a>.
 
-#### Example of orval.config.js
+## Example of orval.config.js
 
 ```js
 module.exports = {
@@ -32,7 +32,7 @@ export const createPetsBody = zod.object({
 });
 ```
 
-### How use generated `zod` object
+## How use generated `zod` object
 
 The `zod` object generated automatically can be utilized in the usual manner.
 

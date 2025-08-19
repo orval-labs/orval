@@ -3,7 +3,7 @@ id: configuration-output
 title: Output
 ---
 
-### target
+## target
 
 Type: `String`.
 
@@ -19,7 +19,7 @@ module.exports = {
 };
 ```
 
-### client
+## client
 
 Type: `String | Function`.
 
@@ -39,7 +39,7 @@ module.exports = {
 
 If you want you can provide a function to extend or create you custom client generator and this function receive a [GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
 
-### httpClient
+## httpClient
 
 Type: `String`.
 
@@ -61,7 +61,7 @@ module.exports = {
 If you want you can use the `fetch` API as an http client by specifying `fetch` in the `httpClient` option.
 `httpClient` only available when `swr`, `react-query`, `vue-query`, and `svelte-query` are specified as the `client` option.
 
-### schemas
+## schemas
 
 Type: `String`.
 
@@ -79,7 +79,7 @@ module.exports = {
 };
 ```
 
-### fileExtension
+## fileExtension
 
 Type: `String`.
 
@@ -109,7 +109,7 @@ src/gen/
     └── pets.ts
 ```
 
-### namingConvention
+## namingConvention
 
 Type: `String`.
 
@@ -144,7 +144,7 @@ src/gen/
     └── Pets.ts
 ```
 
-### workspace
+## workspace
 
 Type: `String`.
 
@@ -163,7 +163,7 @@ module.exports = {
 };
 ```
 
-### mode
+## mode
 
 Type: `String`.
 
@@ -181,7 +181,7 @@ module.exports = {
 };
 ```
 
-#### Value: single
+### Value: single
 
 Use to have one file with everything
 
@@ -204,7 +204,7 @@ my-app
 
 Here a single file petstore will be created in src with your specification implementation.
 
-#### Value: split
+### Value: split
 
 Use to have implementation, schemas, mock in different files
 
@@ -238,7 +238,7 @@ For Angular:
 
 => petstore.ts is petstore.service.ts
 
-#### Value: tags
+### Value: tags
 
 Use this mode if you want one file by tag. Tag is a reference of the OpenAPI specification tag. If you have a `pets` tag for all your pet calls then Orval will generate a file pets.ts in the target folder
 
@@ -267,7 +267,7 @@ For Angular:
 
 If you don't use the `schemas` property only one file will be created with all the models for every tag.
 
-#### Value: tags-split
+### Value: tags-split
 
 This mode is a combination of the tags and split mode. Orval will generate a folder for every tag in the target folder and split into multiple files in those folders.
 
@@ -294,7 +294,7 @@ my-app
 
 Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tag.
 
-### indexFiles
+## indexFiles
 
 Type: `Boolean`
 
@@ -315,7 +315,7 @@ module.exports = {
 };
 ```
 
-### title
+## title
 
 Type: `String` or `Function`.
 
@@ -331,7 +331,7 @@ module.exports = {
 };
 ```
 
-### baseUrl
+## baseUrl
 
 Type: `String | Object`.
 
@@ -352,7 +352,7 @@ module.exports = {
 };
 ```
 
-#### getBaseUrlFromSpecification
+### getBaseUrlFromSpecification
 
 Type: `boolean`
 
@@ -385,7 +385,7 @@ module.exports = {
 };
 ```
 
-#### variables
+### variables
 
 Type: `Dictionary`.
 
@@ -424,7 +424,7 @@ module.exports = {
 };
 ```
 
-#### index
+### index
 
 Type: `Number`.
 
@@ -454,7 +454,7 @@ module.exports = {
 };
 ```
 
-#### baseUrl
+### baseUrl
 
 Type: `String`.
 
@@ -488,7 +488,7 @@ module.exports = {
 };
 ```
 
-### mock
+## mock
 
 Type: `Boolean | Object | Function`.
 
@@ -526,7 +526,7 @@ If you want you can provide a function to extend or create you custom mock gener
 
 To discover all the available options, read below.
 
-#### type
+### type
 
 Type: `String`.
 
@@ -536,7 +536,7 @@ Valid values: `msw`, `cypress` (coming soon).
 
 Use to specify the mock type you want to generate.
 
-#### delay
+### delay
 
 Type: `Number | Function | false`.
 
@@ -545,32 +545,32 @@ Default Value: `1000`.
 Use to specify the delay time for the mock. It can either be a fixed number, false or a function that returns a number.
 Setting delay to false removes the delay call completely.
 
-#### delayFunctionLazyExecute
+### delayFunctionLazyExecute
 
 Type: `boolean`.
 
 Gives you the possibility to have functions that are passed to `delay` to be
 executed at runtime rather than when the mocks are generated.
 
-#### useExamples
+### useExamples
 
 Type: `Boolean`.
 
 Gives you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
 
-#### generateEachHttpStatus
+### generateEachHttpStatus
 
 Type: `Boolean`.
 
 Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification. By default only the 200 OK response is generated.
 
-#### baseUrl
+### baseUrl
 
 Type: `String`.
 
 Give you the possibility to set base url to your mock handlers.
 
-#### locale
+### locale
 
 Type: `String`.
 
@@ -578,7 +578,7 @@ Default Value: `en`.
 
 Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
-### indexMockFiles
+## indexMockFiles
 
 Type: `Boolean`
 
@@ -602,7 +602,7 @@ module.exports = {
 };
 ```
 
-### docs
+## docs
 
 Type: `Boolean | Object`.
 
@@ -620,13 +620,13 @@ When no output directory destination is specified in `config`, the file will be 
 
 For example configuration, see this [sample](https://github.com/orval-labs/orval/tree/master/samples/react-app/orval.config.ts).
 
-#### configPath
+### configPath
 
 Type: `String`.
 
 Use to specify a TypeDoc config filename. This can be useful if your project already has a TypeDoc config for other docs.
 
-### clean
+## clean
 
 Type: `Boolean | String[]`.
 
@@ -636,7 +636,7 @@ Can be used to clean generated files. Provide an array of glob if you want to cu
 
 Be careful clean all output target and schemas folder.
 
-### prettier
+## prettier
 
 Type: `Boolean`.
 
@@ -644,7 +644,7 @@ Default Value: `false`.
 
 Can be used to prettier generated files. You need to have prettier installed globally.
 
-### biome
+## biome
 
 Type: `Boolean`.
 
@@ -654,33 +654,33 @@ You can apply `lint` and `format` of [`biome`](https://biomejs.dev/) to the gene
 
 The automatically generated source code does not comply with some lint rules included in the default ruleset for `biome`, so please control them in the your `biome` configuration file.
 
-### headers
+## headers
 
 Type: `Boolean`.
 
 Use to enable the generation of the headers
 
-### tsconfig
+## tsconfig
 
 Type: `String | Tsconfig`.
 
 Should be automatically found and transparent for you.
 Can be used to specify the path to your `tsconfig` or directly your config.
 
-### packageJson
+## packageJson
 
 Type: `String`.
 
 Should be automatically found and transparent for you.
 Can be used to specify the path to your `package.json`.
 
-### override
+## override
 
 Type: `Object`.
 
 Give you the possibility to override the output like your mock implementation or transform the API implementation like you want
 
-#### transformer
+### transformer
 
 Type: `String` or `Function`.
 
@@ -700,7 +700,7 @@ module.exports = {
 };
 ```
 
-#### mutator
+### mutator
 
 Type: `String` or `Object`.
 
@@ -1219,18 +1219,36 @@ module.exports = {
 ```ts
 // custom-mutator-options.ts
 
-export const useCustomMutatorOptions = <T, TError, TData, TContext>(
-  options: UseMutationOptions<T, TError, TData, TContext> &
-    Required<
-      Pick<UseMutationOptions<T, TError, TData, TContext>, 'mutationFn'>
-    >,
-  /* Optional */ path: { url: string },
-  /* Optional */ operation: { operationId: string; operationName: string },
-) => {
+// custom-mutator-options.ts
+type OptionsWithMutationFn<
+  TData = unknown,
+  TError = Error,
+  TVariables = void,
+  TContext = unknown,
+> = UseMutationOptions<T, TError, TData, TContext> &
+  Required<Pick<UseMutationOptions<T, TError, TData, TContext>, 'mutationFn'>>;
+
+export const useCustomMutatorOptions = <
+  TData = unknown,
+  TError = Error,
+  TVariables = void,
+  TContext = unknown,
+>(
+  options: OptionsWithMutationFn<T, TError, TData, TContext>,
+): OptionsWithMutationFn<T, TError, TData, TContext> => {
   const queryClient = useQueryClient();
-  if (operation.operationId === 'createPet') {
-    queryClient.invalidateQueries({ queryKey: getGetPetsQueryKey() });
+  if (options.mutationKey?.[0] === 'petDestroy') {
+    // Note: `options.mutationKey?.[0]` is untyped.
+    options.onSuccess = (_data, variables, _context) => {
+      // Note: `variables` is untyped.
+      options.onSuccess?.(data, variables, context);
+      // Note: `queryKey` is hardcoded, can't use `getGetPetQueryKey()` as it would introduce circular dependencies.
+      queryClient.invalidateQueries({
+        queryKey: ['api', 'v2', 'pet', variables.id],
+      });
+    };
   }
+  // TODO: add more ifs for each mutation.
   return options;
 };
 ```
@@ -2482,7 +2500,7 @@ Type: `Boolean`
 
 Valid values: true or false. Defaults to false.
 
-Use this property to convert OpenAPI `int64` format to JavaScript `BigInt` objects instead of `number`.
+Use this property to convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
 
 Example:
 
@@ -2841,7 +2859,7 @@ export interface Pet {
 }
 ```
 
-### allParamsOptional
+## allParamsOptional
 
 Type: `Boolean`
 
@@ -2862,7 +2880,7 @@ module.exports = {
 };
 ```
 
-### urlEncodeParameters
+## urlEncodeParameters
 
 Type: `Boolean`
 
@@ -2880,7 +2898,7 @@ module.exports = {
 };
 ```
 
-### optionsParamRequired
+## optionsParamRequired
 
 Type: `Boolean`
 
@@ -2899,7 +2917,7 @@ module.exports = {
 };
 ```
 
-### propertySortOrder
+## propertySortOrder
 
 Type: `Alphabetical` | `Specification`
 

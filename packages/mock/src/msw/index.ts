@@ -25,6 +25,7 @@ const getMSWDependencies = (
   const exports = [
     { name: 'http', values: true },
     { name: 'HttpResponse', values: true },
+    { name: 'RequestHandlerOptions', values: false },
   ];
 
   if (hasDelay) {
@@ -32,10 +33,7 @@ const getMSWDependencies = (
   }
 
   return [
-    {
-      exports,
-      dependency: 'msw',
-    },
+    { exports, dependency: 'msw' },
     {
       exports: [{ name: 'faker', values: true }],
       dependency: locale
@@ -132,7 +130,7 @@ const generateDefinition = (
     ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
     : ${getResponseMockFunctionName}()`;
   const handlerImplementation = `
-export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
+export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
     delay !== false
       ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
@@ -153,7 +151,7 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
             : ''
         }
       })
-  })
+  }, options)
 }\n`;
 
   const includeResponseImports = !isTextPlain

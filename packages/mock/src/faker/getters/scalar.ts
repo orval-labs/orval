@@ -128,7 +128,8 @@ export const getMockScalar = ({
     case 'number':
     case 'integer': {
       const intFunction =
-        item.format === 'int64' && context.output.override.useBigInt
+        context.output.override.useBigInt &&
+        (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
       let value = getNullable(

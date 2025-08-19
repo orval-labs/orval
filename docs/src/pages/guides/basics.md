@@ -7,7 +7,7 @@ You should define a OpenAPI specification (example <a href="https://github.com/o
 
 And then create a file `orval.config.js` at root of your project:
 
-#### Example of orval.config.js
+## Example of orval.config.js
 
 ```js
 module.exports = {

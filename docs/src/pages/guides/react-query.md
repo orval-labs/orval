@@ -5,7 +5,7 @@ title: React query
 
 You should have an OpenAPI specification and an Orval config where you define the mode as react-query.
 
-#### Example with React query
+## Example with React query
 
 ```js
 module.exports = {
@@ -68,7 +68,7 @@ export const useShowPetById = <
 };
 ```
 
-### How use other query
+## How use other query
 
 With the following example Orval will generate a useQuery and useInfiniteQuery with a nextId queryparam. You can also override the config for each one with the options props.
 

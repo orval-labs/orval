@@ -36,7 +36,7 @@ Configuration options for the following are described on this page:
 </table>
 </div>
 
-### orval.config.js
+## orval.config.js
 
 ```js
 module.exports = {
@@ -50,7 +50,7 @@ module.exports = {
 };
 ```
 
-### orval.config.ts
+## orval.config.ts
 
 ```ts
 import { defineConfig } from 'orval';
