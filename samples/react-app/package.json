@@ -36,7 +36,7 @@
     ]
   },
   "devDependencies": {
-    "msw": "^2.10.4",
+    "msw": "^2.10.5",
     "orval": "workspace:*"
   },
   "msw": {
