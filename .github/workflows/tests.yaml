@@ -27,6 +27,12 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - name: Enable corepack
         run: corepack enable
+      # until setup-node have better support for corepack
+      # we have to enable caching in 2 steps
+      # https://github.com/actions/setup-node/issues/531
+      - uses: actions/setup-node@v4
+        with:
+          cache: 'yarn'
       - name: install
         run: yarn
       - name: build
