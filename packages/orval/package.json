@@ -6,9 +6,14 @@
   "files": [
     "dist"
   ],
-  "bin": "dist/bin/orval.js",
+  "bin": "./dist/bin/orval.js",
   "type": "commonjs",
-  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "keywords": [
     "rest",
     "client",

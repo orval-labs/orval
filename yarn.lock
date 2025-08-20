@@ -7420,7 +7420,7 @@ __metadata:
     typescript: "npm:^5.6.3"
     vitest: "npm:^3.2.4"
   bin:
-    orval: dist/bin/orval.js
+    orval: ./dist/bin/orval.js
   languageName: unknown
   linkType: soft
 
