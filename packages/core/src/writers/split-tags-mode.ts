@@ -3,6 +3,7 @@ import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
+  pascal,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
@@ -202,7 +203,10 @@ export const writeSplitTagsMode = async ({
               tag,
               tag + '.' + getMockFileExtensionByTypeName(output.mock!),
             );
-            fs.appendFile(indexFilePath, `export * from '${localMockPath}'\n`);
+            fs.appendFile(
+              indexFilePath,
+              `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`,
+            );
           }
         }
 
