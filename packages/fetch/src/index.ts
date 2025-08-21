@@ -39,7 +39,7 @@ export const generateRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
-  const _route = context.output.urlEncodeParameters
+  const implementationRoute = context.output.urlEncodeParameters
     ? makeRouteSafe(route)
     : route;
 
@@ -130,8 +130,8 @@ ${
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${_route}${'?${stringifiedParams}'}\` : \`${_route}\``
-      : `return \`${_route}\``
+      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}${'?${stringifiedParams}'}\` : \`${implementationRoute}\``
+      : `return \`${implementationRoute}\``
   }
 }\n`;
 
