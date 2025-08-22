@@ -220,7 +220,12 @@ export const getMockScalar = ({
 
       let mapValue = value;
 
-      if (combine && !value.startsWith('faker') && !value.startsWith('{')) {
+      if (
+        combine &&
+        !value.startsWith('faker') &&
+        !value.startsWith('{') &&
+        !value.startsWith('Array.from')
+      ) {
         mapValue = `{${value}}`;
       }
 
