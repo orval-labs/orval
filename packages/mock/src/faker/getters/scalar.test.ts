@@ -148,3 +148,31 @@ describe('getMockScalar (example handling with falsy values)', () => {
     expect(result.value).toBe('faker.datatype.boolean()');
   });
 });
+
+describe('getMockScalar (nested arrays handling)', () => {
+  it('should generate valid syntax for nested arrays (array of arrays)', () => {
+    const result = getMockScalar({
+      item: {
+        type: 'array' as const,
+        name: 'coordinates',
+        items: {
+          type: 'array',
+          items: { type: 'integer' },
+        },
+      },
+      imports: [],
+      operationId: 'test',
+      tags: [],
+      existingReferencedProperties: [],
+      splitMockImplementations: [],
+      context: { output: { override: {} } } as ContextSpecs,
+      combine: { separator: 'anyOf' as const, includedProperties: [] },
+    });
+    console.dir(result.value, { depth: null });
+
+    // Should avoid putting Array.from in an object {
+    expect(result.value).toBe(
+      'Array.from({ length: faker.number.int({ min: undefined, max: undefined }) }, (_, i) => i + 1).map(() => (Array.from({ length: faker.number.int({ min: undefined, max: undefined }) }, (_, i) => i + 1).map(() => (faker.number.int({min: undefined, max: undefined})))))',
+    );
+  });
+});
