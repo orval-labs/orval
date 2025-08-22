@@ -151,7 +151,6 @@ describe('getMockScalar (example handling with falsy values)', () => {
 
 describe('getMockScalar (nested arrays handling)', () => {
   it('should generate valid syntax for nested arrays (array of arrays)', () => {
-    // This reproduces the exact bug: array of arrays within anyOf
     const result = getMockScalar({
       item: {
         type: 'array' as const,
