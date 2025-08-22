@@ -1,6 +1,6 @@
 ---
 id: configuration-full-example
-title: Full example
+title: Full Example
 ---
 
 ```js
