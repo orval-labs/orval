@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "private": true,
-  "packageManager": "yarn@4.2.2",
+  "packageManager": "yarn@4.9.3",
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
