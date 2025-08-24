@@ -1,6 +1,7 @@
 import { setupWorker } from 'msw/browser';
-import { getPetsMock } from './endpoints/pets/pets.msw';
+import * as mocks from './endpoints/index.msw';
 
-const worker = setupWorker(...getPetsMock());
+const handlers = Object.entries(mocks).flatMap(([, getMock]) => getMock());
+const worker = setupWorker(...handlers);
 
 export { worker };

@@ -1,6 +1,7 @@
 import { setupServer } from 'msw/node';
-import { getPetsMock } from './endpoints/pets/pets.msw';
+import * as mocks from './endpoints/index.msw';
 
-const server = setupServer(...getPetsMock());
+const handlers = Object.entries(mocks).flatMap(([, getMock]) => getMock());
+const server = setupServer(...handlers);
 
 export { server };

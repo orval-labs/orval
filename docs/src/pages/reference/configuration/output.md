@@ -589,7 +589,8 @@ Type: `Boolean`
 
 Default Value: `false`.
 
-When set to `true`, adds a `index.msw.ts` file which exports all mock functions.
+When `true`, adds an `index.msw.ts` file which exports arrays with all mock functions.
+
 This is only valid when `mode` is `tags-split`.
 
 Example:
@@ -605,6 +606,13 @@ module.exports = {
     },
   },
 };
+```
+
+```ts
+// index.msw.ts
+export { getPetsMock } from './pets/pets.msw';
+export { getStoresMock } from './stores/stores.msw';
+// etc...
 ```
 
 ## docs
@@ -2890,7 +2898,7 @@ module.exports = {
 
 Type: `Boolean`
 
-Valid values: `true` or `false`. Defaults to `false`. **Note:** this only works for Tanstack Query clients for now.
+Valid values: `true` or `false`. Defaults to `false`. **Note:** this only works for Tanstack Query clients and fetch httpClients for now.
 
 Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become the default behaviour in the future, see https://github.com/orval-labs/orval/pull/895
 
