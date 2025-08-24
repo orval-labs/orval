@@ -1,9 +1,9 @@
 ---
 id: custom-axios-instance
-title: Custom Axios instance
+title: Custom Axios Instance
 ---
 
-You can add a mutator function to your config and setup a custom instance of axios.
+To set up a custom instance of Axios, add a mutator function to the configuration file.
 
 ```js
 module.exports = {
