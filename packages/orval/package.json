@@ -46,13 +46,14 @@
     "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
-    "test": "tsc --noEmit && vitest --passWithNoTests"
+    "test": "tsc --noEmit && vitest"
   },
   "devDependencies": {
     "@types/inquirer": "^9.0.6",
     "@types/js-yaml": "^4.0.8",
     "@types/lodash.uniq": "^4.5.8",
-    "typedoc-plugin-coverage": "^3.4.1"
+    "typedoc-plugin-coverage": "^3.4.1",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
