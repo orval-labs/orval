@@ -12,7 +12,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup --dts",
+    "build": "tsup",
     "dev": "tsup --watch src",
     "lint": "eslint src/**/*.ts",
     "test": "vitest"

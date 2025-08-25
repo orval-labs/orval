@@ -10,7 +10,7 @@
   "type": "commonjs",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/src/index.d.ts",
       "default": "./dist/index.js"
     }
   },
@@ -47,7 +47,7 @@
     "url": "git+https://github.com/orval-labs/orval.git"
   },
   "scripts": {
-    "build": "tsup --dts src/index.ts",
+    "build": "tsup",
     "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
