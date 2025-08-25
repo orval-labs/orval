@@ -138,10 +138,10 @@ export const getShowPetByIdMockHandler = (
 
 export const getPostApiV1UserLogoutMockHandler = (
   overrideResponse?:
-    | null
+    | void
     | ((
         info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<null> | null),
+      ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(

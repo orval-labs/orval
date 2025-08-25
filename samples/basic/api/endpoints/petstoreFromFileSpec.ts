@@ -98,7 +98,7 @@ export const listPets = <TData = AxiosResponse<PetsArray>>(
 /**
  * @summary Create a pet
  */
-export const createPets = <TData = AxiosResponse<null>>(
+export const createPets = <TData = AxiosResponse<void>>(
   createPetsBody: CreatePetsBody,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
