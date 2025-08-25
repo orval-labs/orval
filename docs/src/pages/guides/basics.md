@@ -3,9 +3,9 @@ id: basics
 title: Basics
 ---
 
-You should define a OpenAPI specification (example <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/petstore.yaml" target="_blank"> petstore.yaml</a>).
+Start by generating or defining an OpenAPI specification (example <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/petstore.yaml" target="_blank"> petstore.yaml</a>).
 
-And then create a file `orval.config.js` at root of your project:
+Then create a file `orval.config.js` at the root of your project:
 
 ## Example of orval.config.js
 
@@ -25,17 +25,17 @@ module.exports = {
 };
 ```
 
-The output options configure what and where you want to write the generated code.
+The output options configure how and where you want to write the generated code.
 
-- `mode` is where you define the way you want to generate your files (default: `single` - only one file with everything)
-- `target` is where the generated will be written by default
-- `schemas` is where the models will be written.
-- `mock` is when you want to generate mocks with the mocks generator (by default MSW). he will be generated in the target file. You can check <a href="https://mswjs.io/" target="_blank">MSW</a> to setup them correctly in your project.
+- `mode` specifies how files are generated (default: `single` - only one file with everything)
+- `target` specifies where the generated file(s) will be written by default
+- `schemas` specifies where the models will be written.
+- `mock` generates mocks with the mocks generator (by default MSW). Mocks will be generated in the target file. Refer to <a href="https://mswjs.io/" target="_blank">the MSW documentation</a> to set it up correctly in your project.
 
-The input options configures the imported specification and also what you want to override on it.
+The input options configure the imported specification and any optional overrides.
 
-- `target` is the specification file
-- `override` is to quickly override the input
-  - `transformer` to transform the specification like add a param to every call.
+- `target` specifies the path to the OpenAPI specification file
+- `override` specifies options to override the input specification
+  - `transformer` is used to transform the specification, such as adding a parameter to every request.
 
-Checkout the [orval configuration](../reference/configuration/overview) to see all available options.
+Consult the [orval configuration reference](../reference/configuration/overview) to see all available options.

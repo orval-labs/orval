@@ -1,11 +1,11 @@
 ---
 id: vue-query
-title: Vue query
+title: Vue Query
 ---
 
-You should have an OpenAPI specification and an Orval config where you define the mode as vue-query.
+Start by providing an OpenAPI specification and an Orval config file. To use Vue Query, define the `mode` in the Orval config to be `vue-query`.
 
-## Example with Vue query
+## Example with Vue Query
 
 ```js
 module.exports = {
@@ -24,11 +24,11 @@ module.exports = {
 };
 ```
 
-Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
+Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.
 
-The Vue query model will generate an implementation file with one custom hook per path in your OpenAPI Specification.
+The Vue Query mode will generate an implementation file with one custom hook per path in the OpenAPI Specification.
 
-Like the following example from this <a href="https://github.com/orval-labs/orval/blob/master/samples/vue-query/petstore.yaml" target="_blank">swagger</a>:
+For example, <a href="https://github.com/orval-labs/orval/blob/master/samples/vue-query/petstore.yaml" target="_blank">this Swagger specification</a> will generate the following hooks:
 
 ```ts
 export const showPetById = (
@@ -71,9 +71,9 @@ export const useShowPetById = <
 };
 ```
 
-## How use other query
+## How to Use Other Queries
 
-With the following example Orval will generate a useQuery and useInfiniteQuery with a nextId queryparam. You can also override the config for each one with the options props.
+Given the following configuration, Orval will generate useQuery and useInfiniteQuery hooks with a `nextId` query parameter. It is also possible to override the config for every hook with the `options` field.
 
 ```js
 module.exports = {
@@ -96,7 +96,7 @@ module.exports = {
 };
 ```
 
-If needed you can also override directly to an operation or a tag
+If needed, it is also possible to override the `query` options for a single operation or tag:
 
 ```js
 module.exports = {
@@ -118,4 +118,4 @@ module.exports = {
 };
 ```
 
-Checkout <a href="https://github.com/orval-labs/orval/tree/master/samples/vue-query" target="_blank">here</a> the full example
+Go <a href="https://github.com/orval-labs/orval/tree/master/samples/vue-query" target="_blank">here</a> for a full example

@@ -35,17 +35,12 @@ export const listPets = (params?: ListPetsParams, version: number = 1) => {
 /**
  * @summary Create a pet
  */
-export const createPets = <TData = AxiosResponse<null>>(
+export const createPets = <TData = AxiosResponse<void>>(
   createPetsBody: CreatePetsBody,
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios
-    .post(`/v${version}/pets`, createPetsBody, options)
-    .then((res) => {
-      if (res.data === '') res.data = null;
-      return res as TData;
-    });
+  return axios.post(`/v${version}/pets`, createPetsBody, options);
 };
 
 /**
@@ -78,7 +73,7 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 export type ListPetsResult = NonNullable<Awaited<ReturnType<typeof listPets>>>;
-export type CreatePetsResult = AxiosResponse<null>;
+export type CreatePetsResult = AxiosResponse<void>;
 export type ListPetsNestedArrayResult = AxiosResponse<PetsNestedArray>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;
 
@@ -186,10 +181,10 @@ export const getListPetsMockHandler = (
 
 export const getCreatePetsMockHandler = (
   overrideResponse?:
-    | null
+    | void
     | ((
         info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<null> | null),
+      ) => Promise<void> | void),
   options?: RequestHandlerOptions,
 ) => {
   return http.post(

@@ -36,7 +36,7 @@ export const getResponse = ({
     Object.entries(responses),
     operationName,
     context,
-    'null',
+    'void',
     (type) => `${type.key}-${type.value}`,
   );
 

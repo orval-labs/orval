@@ -3,7 +3,7 @@ id: client-with-zod
 title: Client with Zod
 ---
 
-If you want to use `zod` with your `swr` or `TanStack Query` client, you can do so by configuring it as follows.
+To use Zod with your SWR or TanStack Query client, do so by configuring it as follows.
 
 ## Example of orval.config.js
 
@@ -35,7 +35,7 @@ module.exports = {
 };
 ```
 
-Here we describe the generation of `zod` and the definition of `swr`. `petstoreZod` avoids conflicts in generated file names by specifying `.zod.ts` for `output.fileExtension` and not defining `schemas`. Also, `mock` only needs to be generated once, so it is defined only in `petstore`.
+Here we describe the configurations for generating Zod and the definition of SWR. `petstoreZod` avoids conflicts in the generated file names by specifying `.zod.ts` for `output.fileExtension` and not defining `schemas`. `mock` only needs to be generated once, so it is defined only in `petstore`.
 
 The files that are actually automatically generated are as follows:
 
@@ -49,7 +49,7 @@ samples/swr-with-zod/src/gen/
 └── models
 ```
 
-The automatically generated `swr` and `zod` definitions can be used in your application as follows:
+The automatically generated SWR and Zod definitions can be used in the application as follows:
 
 ```ts
 import { Pet } from './gen/models';

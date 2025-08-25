@@ -3,7 +3,7 @@ id: hono
 title: Hono
 ---
 
-If you want to generate a hono, define the `client` property to `hono` and a template of `Hono` will be generated in the target file and directory. You can check <a href="https://hono.dev/docs/getting-started/cloudflare-workers" target="_blank">Hono</a>.
+To generate a Hono template, define the `client` property to be `hono` and a template of Hono will be generated in the target file and directory. For further details, visit <a href="https://hono.dev/docs/getting-started/cloudflare-workers" target="_blank">the Hono documentation</a>.
 
 ## Example of orval.config.js
 
@@ -27,9 +27,9 @@ module.exports = {
 };
 ```
 
-## generate template
+## Generating the Template
 
-`orval` generates a file like the following:
+Orval generates files as follows:
 
 ```
 src/
@@ -46,16 +46,16 @@ src/
 └── petstore.zod.ts
 ```
 
-- petstore.ts: Initializes hono and defines endpoints.
+- petstore.ts: Initializes Hono and defines endpoints.
 - handlers: Contains templates for each endpoint.
 - petstore.schemas.ts: Defines request and response schemas.
-- petstore.validator.ts: Implements hono validator.
-- petstore.zod.ts: Defines schemas using zod for validation.
+- petstore.validator.ts: Implements Hono validator.
+- petstore.zod.ts: Defines schemas using Zod for validation.
 - petstore.context.ts: Defines context for endpoints.
 
-## implement endpoint proccess to handler
+## Implementing an Endpoint Process Handler
 
-`Orval` generates a handler template for `Hono`. For example, check out `listPets.ts`.
+Orval generates a handler template for Hono. For example, see `listPets.ts`.
 Validation is defined for request and response. Only the actual processing is not implemented.
 
 ```ts
@@ -73,7 +73,7 @@ export const listPetsHandlers = factory.createHandlers(
 );
 ```
 
-You can implement the API just by defining the response according to the response schema.
+It is possible to implement the API by defining the response according to the response schema.
 
 ```diff
 import { createFactory } from 'hono/factory';
@@ -97,21 +97,21 @@ export const listPetsHandlers = factory.createHandlers(
 );
 ```
 
-## run `Hono` dev server
+## Run Hono Dev Server
 
-you can run and check by `wrangler dev` commnad.
-The entrypoint is `src/petstore.ts` instead of `src/index.ts`.
+Use the `wrangler dev` command to run the Hono dev server.
+Set the entrypoint as `src/petstore.ts` instead of `src/index.ts`.
 
 ```bash
 yarn wrangler dev src/petstore.ts
 curl http://localhost:8787/pets #=> [{"id":1,"name":"doggie"}]
 ```
 
-Checkout <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-zod" target="_blank">here</a> the full example. And if you want to develop both the frontend and backend with `Typescript` using `Hono`, `fetch`, and `Next.js`, please check <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-fetch-client" target="_blank">here</a> as well.
+See the full example <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-zod" target="_blank">here</a>. To develop the frontend and backend with TypeScript using Hono, Fetch, and Next.js, see the sample app <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-fetch-client" target="_blank">here</a>.
 
-## Using composite routes and handlers split by tags in `OpenAPI`
+## Using Composite Routes and Handlers Split by Tags in OpenAPI
 
-If you want to using `tags` or `tags-split` mode, which splits handlers by tags defined in `OpenAPI`, but want to generate a composite single `hono` route file, define file path like a `src/routes.ts` to the `override.hono.compositeRoute` property and the `Hono` template generates a composite root file in the target file and directory.
+If you want to use `tags` or `tags-split` mode, which splits handlers by tags defined in OpenAPI, but want to generate a composite single Hono route file, define a file path such as `src/routes.ts` to the `override.hono.compositeRoute` property and the Hono template generates a composite root file in the target file and directory.
 
 ```js
 module.exports = {
@@ -134,7 +134,7 @@ module.exports = {
 };
 ```
 
-Then it will be generated as below:
+The files will be generated as below:
 
 ```
 src/
@@ -150,7 +150,7 @@ src/
     └── pets.ts
 ```
 
-`routes.ts` composites all routes as shown below:
+`routes.ts` composes all routes as shown below:
 
 ```ts:routes.ts
 import { Hono } from 'hono';
@@ -171,7 +171,7 @@ app.get('/pets/:petId', ...showPetByIdHandlers);
 export default app;
 ```
 
-You can prepare a hono server like `app.ts` and embed it like this:
+Prepare a Hono server like `app.ts` and embed it:
 
 ```ts:app.ts
 import { Hono } from 'hono';
@@ -184,11 +184,11 @@ app.route('/', routes);
 export default app;
 ```
 
-run `Hono` dev server as usual.
+Run the Hono dev server as usual.
 
 ```bash
 yarn wrangler dev src/app.ts
 curl http://localhost:8787/pets #=> [{"id":1,"name":"doggie"}]
 ```
 
-Checkout <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/composite-routes-with-tags-split" target="_blank">here</a> the full example.
+See the full example <a href="https://github.com/orval-labs/orval/tree/master/samples/hono/composite-routes-with-tags-split" target="_blank">here</a>.

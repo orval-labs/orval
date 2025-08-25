@@ -99,14 +99,11 @@ export const listPets = <TData = AxiosResponse<PetsArray>>(
 /**
  * @summary Create a pet
  */
-export const createPets = <TData = AxiosResponse<null>>(
+export const createPets = <TData = AxiosResponse<void>>(
   createPetsBody: CreatePetsBody,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.post(`/pets`, createPetsBody, options).then((res) => {
-    if (res.data === '') res.data = null;
-    return res as TData;
-  });
+  return axios.post(`/pets`, createPetsBody, options);
 };
 
 /**
@@ -133,6 +130,6 @@ export const showPetById = <TData = AxiosResponse<Pet>>(
 };
 
 export type ListPetsResult = AxiosResponse<PetsArray>;
-export type CreatePetsResult = AxiosResponse<null>;
+export type CreatePetsResult = AxiosResponse<void>;
 export type ListPetsNestedArrayResult = AxiosResponse<PetsNestedArray>;
 export type ShowPetByIdResult = AxiosResponse<Pet>;

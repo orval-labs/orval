@@ -1,3 +1,4 @@
+import { TEMPLATE_TAG_REGEX } from '@orval/core';
 import { ClientHeaderBuilder, pascal } from '@orval/core';
 import {
   camel,
@@ -38,6 +39,10 @@ export const generateRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
+  const implementationRoute = context.output.urlEncodeParameters
+    ? makeRouteSafe(route)
+    : route;
+
   const isRequestOptions = override?.requestOptions !== false;
   const isFormData = override?.formData.disabled === false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
@@ -114,13 +119,19 @@ ${
   });`
     : ''
 }
-
+  ${
+    context.output.urlEncodeParameters
+      ? `for (const [key, value] of normalizedParams) {
+    normalizedParams.set(key, encodeURIComponent(value));
+  }`
+      : ``
+  }
   ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${route}${'?${stringifiedParams}'}\` : \`${route}\``
-      : `return \`${route}\``
+      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}${'?${stringifiedParams}'}\` : \`${implementationRoute}\``
+      : `return \`${implementationRoute}\``
   }
 }\n`;
 
@@ -306,10 +317,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  return {
-    implementation: `${functionImplementation}\n`,
-    imports,
-  };
+  return { implementation: `${functionImplementation}\n`, imports };
 };
 
 const getHTTPStatusCodes = () => `
@@ -329,6 +337,9 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
     ? getHTTPStatusCodes()
     : '';
 };
+
+export const makeRouteSafe = (route: string): string =>
+  route.replaceAll(TEMPLATE_TAG_REGEX, `\${encodeURIComponent(String($1))}`);
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
