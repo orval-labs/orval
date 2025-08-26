@@ -15,9 +15,9 @@ import {
 } from '@orval/core';
 
 import {
-  fetchResponseTypeName,
   generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
+  fetchResponseTypeName,
 } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
