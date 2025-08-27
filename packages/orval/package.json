@@ -49,10 +49,9 @@
     "test": "tsc --noEmit && vitest"
   },
   "devDependencies": {
-    "@types/inquirer": "^9.0.6",
-    "@types/js-yaml": "^4.0.8",
-    "@types/lodash.uniq": "^4.5.8",
-    "typedoc-plugin-coverage": "^3.4.1",
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash.uniq": "^4.5.9",
     "vitest": "^3.2.4"
   },
   "dependencies": {
@@ -67,19 +66,20 @@
     "@orval/query": "7.11.2",
     "@orval/swr": "7.11.2",
     "@orval/zod": "7.11.2",
-    "ajv": "^8.17.1",
     "cac": "^6.7.14",
     "chalk": "^4.1.2",
     "chokidar": "^4.0.3",
     "enquirer": "^2.4.1",
     "execa": "^5.1.1",
     "find-up": "5.0.0",
-    "fs-extra": "^11.3.0",
+    "fs-extra": "^11.3.1",
+    "js-yaml": "4.1.0",
     "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.2.2",
+    "openapi3-ts": "4.5.0",
     "string-argv": "^0.3.2",
-    "tsconfck": "^2.0.1",
-    "typedoc": "^0.28.7",
+    "tsconfck": "^2.1.2",
+    "typedoc": "^0.28.9",
+    "typedoc-plugin-coverage": "^4.0.1",
     "typedoc-plugin-markdown": "^4.8.1",
     "typescript": "^5.6.3"
   }
