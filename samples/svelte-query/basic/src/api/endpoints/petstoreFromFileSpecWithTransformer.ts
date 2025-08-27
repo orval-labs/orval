@@ -126,7 +126,7 @@ export const createPets = (
   version: number = 1,
   signal?: AbortSignal,
 ) => {
-  return customInstance<null>({
+  return customInstance<void>({
     url: `/v${version}/pets`,
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
