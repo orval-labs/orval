@@ -22,6 +22,7 @@ import {
 } from '@orval/core';
 import {
   isZodVersionV4,
+  getZodDateFormat,
   getZodTimeFormat,
   getZodDateTimeFormat,
   getParameterFunctions,
