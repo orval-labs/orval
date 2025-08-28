@@ -20,10 +20,6 @@ export const isZodVersionV4 = (packageJson: PackageJson) => {
   return compareVersions(withoutRc, '4.0.0');
 };
 
-export const getZodDateFormat = (isZodV4: boolean) => {
-  return isZodV4 ? 'iso.date' : 'date';
-};
-
 export const getZodTimeFormat = (isZodV4: boolean) => {
   return isZodV4 ? 'iso.time' : 'time';
 };
