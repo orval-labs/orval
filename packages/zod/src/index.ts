@@ -327,7 +327,9 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.format === 'date') {
-        functions.push(['iso.date', undefined]);
+        const formatAPI = getZodDateFormat(isZodV4);
+
+        functions.push([formatAPI, undefined]);
         break;
       }
 
