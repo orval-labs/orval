@@ -1,14 +1,36 @@
-import pluginJs from '@eslint/js';
+// @ts-check
+import eslint from '@eslint/js';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
+import simpleImportSort from 'eslint-plugin-simple-import-sort';
+import eslintPluginUnicorn from 'eslint-plugin-unicorn';
+import turboConfig from 'eslint-config-turbo/flat';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
-/** @type {import('eslint').Linter.Config[]} */
-export default [
-  { files: ['**/*.{js,mjs,cjs,ts}'] },
-  { languageOptions: { globals: globals.browser } },
-  pluginJs.configs.recommended,
-  ...tseslint.configs.recommended,
+export default defineConfig(
+  globalIgnores([
+    'docs',
+    'tests/generated',
+    'samples',
+    '.husky',
+    '**/.yarn',
+    '**/.turbo',
+    '**/dist',
+  ]),
+  turboConfig,
+  eslint.configs.recommended,
+  tseslint.configs.strictTypeChecked,
+  tseslint.configs.stylisticTypeChecked,
   {
+    files: ['**/*.{js,mjs,cjs,ts}'],
+    languageOptions: {
+      parserOptions: {
+        globals: globals.builtin,
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-prototype-builtins': 'warn',
@@ -21,4 +43,16 @@ export default [
       '@typescript-eslint/no-unused-vars': 'warn',
     },
   },
-];
+  {
+    ...eslintPluginUnicorn.configs.recommended,
+    files: ['packages/**/*.{js,mjs,cjs,ts}'],
+    plugins: {
+      'simple-import-sort': simpleImportSort,
+    },
+    rules: {
+      'simple-import-sort/imports': 'error',
+      'simple-import-sort/exports': 'error',
+    },
+  },
+  eslintPluginPrettierRecommended, // also sets up eslint-config-prettier
+);
