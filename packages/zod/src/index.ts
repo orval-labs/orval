@@ -291,9 +291,7 @@ export const generateZodValidationSchemaDefinition = (
         context.output.override.useDates &&
         (schema.format === 'date' || schema.format === 'date-time')
       ) {
-        const formatAPI = getZodDateFormat(isZodV4);
-
-        functions.push([formatAPI, undefined]);
+        functions.push(['date', undefined]);
         break;
       }
 
