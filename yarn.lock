@@ -913,22 +913,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@ibm-cloud/openapi-ruleset@npm:^1.31.1":
-  version: 1.31.1
-  resolution: "@ibm-cloud/openapi-ruleset@npm:1.31.1"
+"@ibm-cloud/openapi-ruleset@npm:^1.32.1":
+  version: 1.32.1
+  resolution: "@ibm-cloud/openapi-ruleset@npm:1.32.1"
   dependencies:
     "@ibm-cloud/openapi-ruleset-utilities": "npm:1.9.0"
     "@stoplight/spectral-formats": "npm:^1.8.2"
     "@stoplight/spectral-functions": "npm:^1.9.3"
     "@stoplight/spectral-rulesets": "npm:^1.21.3"
     chalk: "npm:^4.1.2"
+    inflected: "npm:^2.1.0"
     jsonschema: "npm:^1.5.0"
     lodash: "npm:^4.17.21"
     loglevel: "npm:^1.9.2"
     loglevel-plugin-prefix: "npm:0.8.4"
     minimatch: "npm:^6.2.0"
     validator: "npm:^13.11.0"
-  checksum: 10c0/b81180e87b22a9ecef135fc9d25c7796ebeb0de6fd569164033249a1e96f41191d0c91d453d8692ace54ee3aa8cbe5a3377ec435c727b3b1c8e0740460f16ddf
+  checksum: 10c0/01d94cb1b1517bb80dc8e820eecfe9d0b9c9660494b0052dad4508c3579d5fab2d61ccb75769fe4b828cf43fcdaf6690053b37b520e8ca7293cc8e6e4e7084af
   languageName: node
   linkType: hard
 
@@ -1234,7 +1235,7 @@ __metadata:
   dependencies:
     "@apidevtools/swagger-parser": "npm:^10.1.1"
     "@faker-js/faker": "npm:^9.9.0"
-    "@ibm-cloud/openapi-ruleset": "npm:^1.31.1"
+    "@ibm-cloud/openapi-ruleset": "npm:^1.32.1"
     "@types/debug": "npm:^4.1.12"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/inquirer": "npm:^9.0.8"
@@ -5514,6 +5515,13 @@ __metadata:
   version: 1.0.0
   resolution: "index-to-position@npm:1.0.0"
   checksum: 10c0/7d723b62496d51691ac7c0607f05a8590d1d3193546ea86a0d4658e3e7d97573d900343ed805c1bfafe1e966ef902d70b971dd7e8d385370337f6f5be52068b5
+  languageName: node
+  linkType: hard
+
+"inflected@npm:^2.1.0":
+  version: 2.1.0
+  resolution: "inflected@npm:2.1.0"
+  checksum: 10c0/2002977295a20d3ff02bf2aa741daab6920c7e10d241e0c6396af97d60a821f0ff5cf7ed3605d0e3c42d789a53507a5c1c7dc274923667ad8e2d495dbc7d152c
   languageName: node
   linkType: hard
 
