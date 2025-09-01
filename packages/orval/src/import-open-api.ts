@@ -19,6 +19,7 @@ import {
 } from '@orval/core';
 import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
 import { getApiBuilder } from './api';
+import { JSONSchema6, JSONSchema7 } from 'json-schema';
 
 export const importOpenApi = async ({
   data,
@@ -59,7 +60,7 @@ const generateInputSpecs = async ({
   input,
   workspace,
 }: {
-  specs: Record<string, OpenAPIObject | unknown>;
+  specs: JSONSchema6 | JSONSchema7 | Record<string, OpenAPIObject | unknown>;
   input: InputOptions;
   workspace: string;
 }): Promise<Record<string, OpenAPIObject>> => {

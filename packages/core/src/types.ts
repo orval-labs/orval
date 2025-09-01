@@ -13,6 +13,7 @@ import type {
 // @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
 import type swagger2openapi from 'swagger2openapi';
 import { TypeDocOptions } from 'typedoc';
+import { JSONSchema6, JSONSchema7 } from 'json-schema';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -704,7 +705,7 @@ export const Verbs = {
 };
 
 export type ImportOpenApi = {
-  data: Record<string, unknown | OpenAPIObject>;
+  data: JSONSchema6 | JSONSchema7 | Record<string, unknown | OpenAPIObject>;
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   target: string;

@@ -56,7 +56,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.1.1",
+    "@apidevtools/swagger-parser": "^12.0.0",
     "@orval/angular": "7.11.2",
     "@orval/axios": "7.11.2",
     "@orval/core": "7.11.2",
