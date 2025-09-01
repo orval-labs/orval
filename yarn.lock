@@ -7311,7 +7311,7 @@ __metadata:
     tsconfck: "npm:^2.0.1"
     typedoc: "npm:^0.28.7"
     typedoc-plugin-coverage: "npm:^3.4.1"
-    typedoc-plugin-markdown: "npm:^4.8.0"
+    typedoc-plugin-markdown: "npm:^4.8.1"
     typescript: "npm:^5.6.3"
     vitest: "npm:^3.2.4"
   bin:
@@ -9430,12 +9430,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc-plugin-markdown@npm:^4.8.0":
-  version: 4.8.0
-  resolution: "typedoc-plugin-markdown@npm:4.8.0"
+"typedoc-plugin-markdown@npm:^4.8.1":
+  version: 4.8.1
+  resolution: "typedoc-plugin-markdown@npm:4.8.1"
   peerDependencies:
     typedoc: 0.28.x
-  checksum: 10c0/c97953b1999b8df8e45b760c927e2819a0b4697bb7eb99487defb536e9c2763263c2c37778e6c747a9712d4664a2b616a84c31b3b4616654337099dc8a131a4e
+  checksum: 10c0/8db5ff54982fb5337f1c91f3c851d46eb7cd4b425810cbcfcbbe498a468e716a08afcf40f8f803fc23e0124ad519ab6651da15ccf18269d36857ccf8c66bd8b5
   languageName: node
   linkType: hard
 
