@@ -36,7 +36,7 @@
     "@types/node": "^20.13.0",
     "@typescript-eslint/eslint-plugin": "^8.41.0",
     "@typescript-eslint/parser": "^8.38.0",
-    "dotenv-cli": "^7.4.1",
+    "dotenv-cli": "^10.0.0",
     "esbuild-plugin-alias": "^0.2.1",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^9.1.0",
