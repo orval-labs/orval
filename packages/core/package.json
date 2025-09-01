@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^10.1.1",
-    "@ibm-cloud/openapi-ruleset": "^1.31.1",
+    "@ibm-cloud/openapi-ruleset": "^1.32.1",
     "acorn": "^8.15.0",
     "ajv": "^8.17.1",
     "chalk": "^4.1.2",
