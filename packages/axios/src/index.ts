@@ -137,7 +137,7 @@ const generateAxiosImplementation = (
 
     return `const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}<${response.definition.success || 'unknown'}>>,`
         : ''
     }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
