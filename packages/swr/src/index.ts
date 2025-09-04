@@ -30,8 +30,8 @@ import {
   getSwrRequestSecondArg,
   getHttpRequestSecondArg,
   getSwrMutationFetcherOptionType,
-  getSwrMutationFetcherType,
   getSwrHeader,
+  getSwrMutationFetcherType,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -629,7 +629,7 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
 
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }): ${swrMutationFetcherType} => {
+  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }) => {
     return ${operationName}(${httpFnProperties}${
       swrMutationFetcherOptions.length
         ? (httpFnProperties.length ? ', ' : '') + 'options'
