@@ -133,7 +133,7 @@ export const getMockScalar = ({
           ? 'bigInt'
           : 'int';
       let value = getNullable(
-        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
         item.nullable,
       );
       if (type === 'number') {
