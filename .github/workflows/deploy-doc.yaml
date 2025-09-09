@@ -14,9 +14,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Use Node.js 20
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 20
+          # https://github.com/actions/setup-node/issues/1357
+          package-manager-cache: false
       - name: Install Vercel CLI
         run: |
           npm install -g vercel
