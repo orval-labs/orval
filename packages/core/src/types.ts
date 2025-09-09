@@ -10,8 +10,7 @@ import type {
   ResponsesObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
-// @ts-ignore // FIXME when running `yarn test` getting `orval:test: ../core/src/types.ts(12,34): error TS7016: Could not find a declaration file for module 'swagger2openapi'. '/home/maxim/orval/node_modules/swagger2openapi/index.js' implicitly has an 'any' type.`
-import type swagger2openapi from 'swagger2openapi';
+import type { ConvertInputOptions } from 'swagger2openapi';
 import { TypeDocOptions } from 'typedoc';
 import { JSONSchema6, JSONSchema7 } from 'json-schema';
 
@@ -162,7 +161,7 @@ export type NormalizedInputOptions = {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation: boolean | object;
   override: OverrideInput;
-  converterOptions: swagger2openapi.Options;
+  converterOptions: Partial<ConvertInputOptions>;
   parserOptions: SwaggerParserOptions;
   filters?: InputFiltersOption;
 };
@@ -256,7 +255,7 @@ export type InputOptions = {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation?: boolean | object;
   override?: OverrideInput;
-  converterOptions?: swagger2openapi.Options;
+  converterOptions?: Partial<ConvertInputOptions>;
   parserOptions?: SwaggerParserOptions;
   filters?: InputFiltersOption;
 };
