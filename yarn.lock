@@ -812,10 +812,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:^9.8.0":
-  version: 9.8.0
-  resolution: "@faker-js/faker@npm:9.8.0"
-  checksum: 10c0/f5db1125c1ea0115b9142fb4d4cb37cac2da4cd12ed02afb1cabf3b9600bd365bf480386250975a4fb200d77c00e8364dc8f61ac273a9dcdd2f2f42c3b29b0ec
+"@faker-js/faker@npm:^10":
+  version: 10.0.0
+  resolution: "@faker-js/faker@npm:10.0.0"
+  checksum: 10c0/7692f21cad661cd0cb150d72d4dff79322c892923c97a263c12ae74de45739306bea4e2630e8ac852dd4395ead2cb76be3715011395256c56e8a9b39acdcb97a
   languageName: node
   linkType: hard
 
@@ -7380,7 +7380,7 @@ __metadata:
     "@commitlint/config-conventional": "npm:^19.8.0"
     "@eslint/eslintrc": "npm:^3.2.0"
     "@eslint/js": "npm:^9.28.0"
-    "@faker-js/faker": "npm:^9.8.0"
+    "@faker-js/faker": "npm:^10"
     "@release-it-plugins/workspaces": "npm:^4.2.0"
     "@release-it/conventional-changelog": "npm:^10.0.1"
     "@types/node": "npm:^20.13.0"
