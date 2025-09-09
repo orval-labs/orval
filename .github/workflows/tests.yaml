@@ -18,17 +18,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
+          # disable setup-node@v5's caching to be able to setup yarn
+          # https://github.com/actions/setup-node/issues/1357
+          package-manager-cache: false
       - name: Enable corepack
         run: corepack enable
-      # until setup-node have better support for corepack
-      # we have to enable caching in 2 steps
+      # until setup-node have better support for corepack we have to setup yarn in 2 steps
       # https://github.com/actions/setup-node/issues/531
-      - uses: actions/setup-node@v4
-        with:
-          cache: 'yarn'
+      - uses: actions/setup-node@v5
       - name: install
         run: yarn
       - name: build
