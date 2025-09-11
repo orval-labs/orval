@@ -13,11 +13,11 @@ export default defineConfig({
       clean: true,
       override: {
         paramsSerializer: {
-          path: 'src/api/mutator/custom-params-serializer.ts',
+          path: 'src/orval/mutator/custom-params-serializer.ts',
         },
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.ts',
+            mutator: 'src/orval/mutator/response-type.ts',
             mock: {
               properties: () => {
                 return {
@@ -49,7 +49,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.js',
+        transformer: 'src/orval/transformer/add-version.js',
       },
     },
   },

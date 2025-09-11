@@ -14,12 +14,17 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch src",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
     "@orval/core": "7.11.2",
     "@orval/fetch": "7.11.2",
     "@orval/zod": "7.11.2",
     "openapi3-ts": "4.5.0"
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1"
   }
 }

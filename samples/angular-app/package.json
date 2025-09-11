@@ -8,7 +8,9 @@
     "watch": "ng build --watch --configuration development",
     "test": "CI=true ng test --no-watch",
     "lint": "ng lint",
-    "generate-api": "node ../../packages/orval/dist/bin/orval.js"
+    "generate-api": "node ../../packages/orval/dist/bin/orval.js",
+    "clean": "rimraf .turbo dist .angular src/api",
+    "nuke": "rimraf .turbo dist .angular src/api node_modules"
   },
   "private": true,
   "dependencies": {
@@ -28,6 +30,7 @@
     "@faker-js/faker": "^9.9.0",
     "msw": "^2.10.4",
     "orval": "link:../../packages/orval/dist",
+    "rimraf": "^6.0.1",
     "typescript": "~5.8.2",
     "vitest": "^3.2.4"
   },

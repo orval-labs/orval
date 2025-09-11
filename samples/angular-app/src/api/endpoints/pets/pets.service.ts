@@ -27,8 +27,8 @@ import type {
   SearchPetsParams,
 } from '../../model';
 
-import listPetsMutator from '../../mutator/response-type';
-import paramsSerializerMutator from '../../mutator/custom-params-serializer';
+import listPetsMutator from '../../../orval/mutator/response-type';
+import paramsSerializerMutator from '../../../orval/mutator/custom-params-serializer';
 
 interface HttpClientOptions {
   headers?: HttpHeaders | Record<string, string | string[]>;

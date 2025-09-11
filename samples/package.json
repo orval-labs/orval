@@ -12,6 +12,8 @@
   },
   "scripts": {
     "generate-api": "turbo run generate-api",
-    "test": "turbo test --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator"
+    "test": "turbo test --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator",
+    "clean": "rimraf .turbo",
+    "nuke": "rimraf .turbo .yarn node_modules"
   }
 }

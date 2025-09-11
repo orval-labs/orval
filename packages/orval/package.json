@@ -51,12 +51,15 @@
     "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
-    "test": "tsc --noEmit && vitest"
+    "test": "tsc --noEmit && vitest",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash.uniq": "^4.5.9",
+    "rimraf": "^6.0.1",
     "vitest": "^3.2.4"
   },
   "dependencies": {
