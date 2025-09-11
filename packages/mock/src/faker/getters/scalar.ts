@@ -138,7 +138,7 @@ export const getMockScalar = ({
       );
       if (type === 'number') {
         value = getNullable(
-          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}, ${item.multipleOf ? `multipleOf: ${item.multipleOf}` : `fractionDigits: ${mockOptions?.fractionDigits}`}})`,
+          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
           item.nullable,
         );
       }
