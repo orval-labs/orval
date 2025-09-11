@@ -15,7 +15,9 @@
     "build": "tsup",
     "dev": "tsup --watch src",
     "lint": "eslint src/**/*.ts",
-    "test": "vitest"
+    "test": "vitest",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
     "@orval/core": "7.11.2",
@@ -24,6 +26,7 @@
   },
   "devDependencies": {
     "@types/lodash.uniq": "^4.5.9",
+    "rimraf": "^6.0.1",
     "vitest": "^3.2.4"
   }
 }

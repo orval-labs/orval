@@ -20,13 +20,16 @@
     "generate:fetch": "yarn orval --config ./configs/fetch.config.ts",
     "generate:mcp": "yarn orval --config ./configs/mcp.config.ts",
     "generate:hono": "yarn orval --config ./configs/hono.config.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "clean": "rimraf .turbo dist generated",
+    "nuke": "rimraf .turbo dist generated .yarn node_modules"
   },
   "author": "Victor Bury",
   "license": "ISC",
   "devDependencies": {
     "npm-run-all": "^4.1.5",
     "orval": "link:../packages/orval/dist",
+    "rimraf": "^6.0.1",
     "typescript": "5.8.3"
   },
   "dependencies": {

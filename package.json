@@ -23,7 +23,11 @@
     "test:samples": "cd ./samples && yarn && yarn test",
     "test:ci": "CI=true yarn test && yarn test:samples",
     "lint": "turbo run lint",
-    "dev": "turbo run dev"
+    "dev": "turbo run dev",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules",
+    "clean:all": "turbo run clean",
+    "nuke:all": "turbo run nuke"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
@@ -48,7 +52,7 @@
     "npm-run-all": "^4.1.5",
     "prettier": "3.6.2",
     "release-it": "17.10.0",
-    "rimraf": "^5.0.5",
+    "rimraf": "^6.0.1",
     "tsup": "^8.5.0",
     "turbo": "^2.5.6",
     "typescript": "^5.2.2",

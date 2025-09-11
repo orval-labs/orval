@@ -14,7 +14,9 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch src",
-    "lint": "eslint src/**/*.ts"
+    "lint": "eslint src/**/*.ts",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
     "@orval/core": "7.11.2",
@@ -25,6 +27,7 @@
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
-    "@types/lodash.uniq": "^4.5.9"
+    "@types/lodash.uniq": "^4.5.9",
+    "rimraf": "^6.0.1"
   }
 }
