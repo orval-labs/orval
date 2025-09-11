@@ -1,4 +1,4 @@
-import { isString, log, PackageJson } from '@orval/core';
+import { dynamicImport, isString, log, PackageJson } from '@orval/core';
 import chalk from 'chalk';
 import findUp from 'find-up';
 import fs from 'fs-extra';
@@ -10,11 +10,9 @@ export const loadPackageJson = async (
   workspace = process.cwd(),
 ): Promise<PackageJson | undefined> => {
   if (!packageJson) {
-    const pkgPath = await findUp(['package.json'], {
-      cwd: workspace,
-    });
+    const pkgPath = await findUp(['package.json'], { cwd: workspace });
     if (pkgPath) {
-      const pkg = await import(pkgPath);
+      const pkg = await dynamicImport<any>(pkgPath, workspace);
       return await maybeReplaceCatalog(pkg, workspace);
     }
     return;

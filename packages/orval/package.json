@@ -6,9 +6,14 @@
   "files": [
     "dist"
   ],
-  "bin": "dist/bin/orval.js",
+  "bin": "./dist/bin/orval.js",
   "type": "commonjs",
-  "main": "dist/index.js",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "keywords": [
     "rest",
     "client",
@@ -42,7 +47,7 @@
     "url": "git+https://github.com/orval-labs/orval.git"
   },
   "scripts": {
-    "build": "tsup --dts src/index.ts",
+    "build": "tsup",
     "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint src/**/*.ts",
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
