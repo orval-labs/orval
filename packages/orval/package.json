@@ -49,7 +49,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint .",
     "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
     "test": "tsc --noEmit && vitest",
     "clean": "rimraf .turbo dist",
@@ -59,6 +59,7 @@
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "@types/lodash.uniq": "^4.5.9",
+    "eslint": "^9.35.0",
     "rimraf": "^6.0.1",
     "vitest": "^3.2.4"
   },

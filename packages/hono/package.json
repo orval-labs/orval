@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch src",
-    "lint": "eslint src/**/*.ts",
+    "lint": "eslint .",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -28,6 +28,7 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/lodash.uniq": "^4.5.9",
+    "eslint": "^9.35.0",
     "rimraf": "^6.0.1"
   }
 }
