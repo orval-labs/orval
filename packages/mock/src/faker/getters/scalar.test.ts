@@ -225,7 +225,7 @@ describe('getMockScalar (multipleOf handling)', () => {
     expect(result.value).toBe('faker.number.int({min: 0, max: 100})');
   });
 
-  it('should handle multipleOf for number (float) type', () => {
+  it('should include multipleOf for number type with Faker v9', () => {
     const numberType: SchemaObjectType = 'number';
     const result = getMockScalar({
       ...baseArg,
@@ -236,11 +236,51 @@ describe('getMockScalar (multipleOf handling)', () => {
         multipleOf: 0.5,
         name: 'test-item',
       },
-      context: createContext(),
+      context: createContext({ '@faker-js/faker': '^9.0.0' }),
     });
 
     expect(result.value).toBe(
       'faker.number.float({min: 0, max: 100, multipleOf: 0.5})',
+    );
+  });
+
+  it('should not include multipleOf when undefined for number type with Faker v9', () => {
+    const numberType: SchemaObjectType = 'number';
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: numberType,
+        minimum: 0,
+        maximum: 100,
+        multipleOf: undefined,
+        name: 'test-item',
+      },
+      mockOptions: { fractionDigits: 2 },
+      context: createContext({ '@faker-js/faker': '^9.0.0' }),
+    });
+
+    expect(result.value).toBe(
+      'faker.number.float({min: 0, max: 100, fractionDigits: 2})',
+    );
+  });
+
+  it('should not include multipleOf for number type with Faker v8', () => {
+    const numberType: SchemaObjectType = 'number';
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: numberType,
+        minimum: 0,
+        maximum: 100,
+        multipleOf: 0.5,
+        name: 'test-item',
+      },
+      mockOptions: { fractionDigits: 2 },
+      context: createContext({ '@faker-js/faker': '^8.0.0' }),
+    });
+
+    expect(result.value).toBe(
+      'faker.number.float({min: 0, max: 100, fractionDigits: 2})',
     );
   });
 
