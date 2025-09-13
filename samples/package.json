@@ -8,9 +8,11 @@
     "!./node_modules"
   ],
   "devDependencies": {
+    "prettier": "3.6.2",
     "turbo": "^1.13.3"
   },
   "scripts": {
+    "format": "prettier --config ../.prettierrc.json --ignore-path ../.prettierignore --write .",
     "generate-api": "turbo run generate-api",
     "test": "turbo test --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator",
     "clean": "rimraf .turbo",
