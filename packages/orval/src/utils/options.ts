@@ -743,6 +743,14 @@ const normalizeQueryOptions = (
     ...(!isUndefined(queryOptions.shouldSplitQueryKey)
       ? { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey }
       : {}),
+    ...(!isUndefined(globalOptions.useOperationIdAsQueryKey)
+      ? {
+          useOperationIdAsQueryKey: globalOptions.useOperationIdAsQueryKey,
+        }
+      : {}),
+    ...(!isUndefined(queryOptions.useOperationIdAsQueryKey)
+      ? { useOperationIdAsQueryKey: queryOptions.useOperationIdAsQueryKey }
+      : {}),
     ...(!isUndefined(globalOptions.signal)
       ? {
           signal: globalOptions.signal,
