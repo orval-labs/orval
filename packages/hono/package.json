@@ -29,6 +29,8 @@
     "@types/fs-extra": "^11.0.4",
     "@types/lodash.uniq": "^4.5.9",
     "eslint": "^9.35.0",
-    "rimraf": "^6.0.1"
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.2"
   }
 }

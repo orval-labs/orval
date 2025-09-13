@@ -1,6 +1,5 @@
 {
   "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
-  "include": ["generated/**/*", "regressions/**/*"],
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "es6",
