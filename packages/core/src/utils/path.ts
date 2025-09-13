@@ -1,4 +1,5 @@
 import basepath from 'path';
+
 import { isUrl } from './assertion';
 import { getExtension } from './extension';
 import { getFileInfo } from './file';
@@ -51,7 +52,7 @@ Object.entries(basepath).forEach(([propName, propValue]) => {
 });
 
 const { join, resolve, extname, dirname, basename, isAbsolute } = path;
-export { join, resolve, extname, dirname, basename, isAbsolute };
+export { basename, dirname, extname, isAbsolute, join, resolve };
 
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"

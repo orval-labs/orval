@@ -4,6 +4,7 @@ import fs from 'fs';
 import glob from 'globby';
 import mm from 'micromatch';
 import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
+
 import { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
@@ -11,7 +12,7 @@ import { createLogger, LogLevel } from './logger';
 import { joinSafe, normalizeSafe } from './path';
 
 export const getFileInfo = (
-  target: string = '',
+  target = '',
   {
     backupFilename = 'filename',
     extension = '.ts',
@@ -23,7 +24,7 @@ export const getFileInfo = (
   const dir = dirname(path);
   const filename = basename(
     path,
-    extension[0] !== '.' ? `.${extension}` : extension,
+    !extension.startsWith('.') ? `.${extension}` : extension,
   );
 
   return {
@@ -305,7 +306,7 @@ async function bundleFile(
         setup(build) {
           build.onResolve({ filter: /.*/ }, (args) => {
             const id = args.path;
-            if (id[0] !== '.' && !isAbsolute(id)) {
+            if (!id.startsWith('.') && !isAbsolute(id)) {
               return {
                 external: true,
               };

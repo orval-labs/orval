@@ -11,6 +11,7 @@ import {
   stringify,
 } from '@orval/core';
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { getMockScalar } from '../faker/getters';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
@@ -93,7 +94,7 @@ const getMockWithoutFunc = (
 
 const getMockScalarJsTypes = (
   definition: string,
-  mockOptionsWithoutFunc: { [key: string]: unknown },
+  mockOptionsWithoutFunc: Record<string, unknown>,
 ) => {
   const isArray = definition.endsWith('[]');
   const type = isArray ? definition.slice(0, -2) : definition;
@@ -135,7 +136,7 @@ export const getResponsesMockDefinition = ({
   returnType: string;
   responses: ResReqTypesValue[];
   imports: GeneratorImport[];
-  mockOptionsWithoutFunc: { [key: string]: unknown };
+  mockOptionsWithoutFunc: Record<string, unknown>;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;

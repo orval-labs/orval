@@ -1,18 +1,19 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
   camel,
-  pascal,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
+  pascal,
   upath,
 } from '../utils';
-import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { generateTargetForTags } from './target-tags';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -36,7 +37,7 @@ export const writeSplitTagsMode = async ({
     output.mock && !isFunction(output.mock) && output.mock.indexMockFiles
       ? upath.join(
           dirname,
-          'index.' + getMockFileExtensionByTypeName(output.mock!) + extension,
+          'index.' + getMockFileExtensionByTypeName(output.mock) + extension,
         )
       : undefined;
   if (indexFilePath) {

@@ -23,7 +23,9 @@ export const generateTarget = (
     output: options,
   });
 
-  const target = Object.values(builder.operations).reduce(
+  const target = Object.values(builder.operations).reduce<
+    Required<GeneratorTargetFull>
+  >(
     (acc, operation, index, arr) => {
       acc.imports.push(...operation.imports);
       acc.importsMock.push(...operation.importsMock);
@@ -65,8 +67,8 @@ export const generateTarget = (
         );
 
         const typescriptVersion =
-          options.packageJson?.dependencies?.['typescript'] ??
-          options.packageJson?.devDependencies?.['typescript'] ??
+          options.packageJson?.dependencies?.typescript ??
+          options.packageJson?.devDependencies?.typescript ??
           '4.4.0';
 
         const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
@@ -118,7 +120,7 @@ export const generateTarget = (
       formUrlEncoded: [],
       paramsSerializer: [],
       fetchReviver: [],
-    } as Required<GeneratorTargetFull>,
+    },
   );
 
   return {

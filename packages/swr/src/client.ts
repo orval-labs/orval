@@ -13,11 +13,10 @@ import {
   OutputHttpClient,
   toObjectString,
 } from '@orval/core';
-
 import {
   fetchResponseTypeName,
-  generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -66,7 +65,7 @@ const generateAxiosRequestFunction = (
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;

@@ -1,11 +1,12 @@
+// @ts-expect-error no types exists for this package :(
+import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
+import { Spectral } from '@stoplight/spectral-core';
 import { OpenAPIObject } from 'openapi3-ts/oas30';
+
 import {
   ibmOpenapiValidatorErrors,
   ibmOpenapiValidatorWarnings,
 } from './logger';
-// @ts-expect-error no types exists for this package :(
-import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
-import { Spectral } from '@stoplight/spectral-core';
 
 /**
  * Validate the spec with ibm-openapi-validator (with a custom pretty logger).

@@ -1,5 +1,6 @@
 import uniq from 'lodash.uniq';
 import uniqWith from 'lodash.uniqwith';
+
 import {
   GeneratorImport,
   GeneratorMutator,
@@ -7,7 +8,7 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { upath, conventionName } from '../utils';
+import { conventionName, upath } from '../utils';
 
 export const generateImports = ({
   imports = [],

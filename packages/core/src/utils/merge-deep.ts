@@ -13,11 +13,11 @@ export function mergeDeep<
       const sourceValue = acc[key];
 
       if (Array.isArray(sourceValue) && Array.isArray(value)) {
-        (acc[key] as any) = [...sourceValue, ...value];
+        acc[key] = [...sourceValue, ...value];
       } else if (isObject(sourceValue) && isObject(value)) {
-        (acc[key] as any) = mergeDeep(sourceValue, value);
+        acc[key] = mergeDeep(sourceValue, value);
       } else {
-        (acc[key] as any) = value;
+        acc[key] = value;
       }
 
       return acc;

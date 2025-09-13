@@ -17,9 +17,10 @@ import {
   upath,
   WriteSpecsBuilder,
 } from '@orval/core';
-import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
-import { getApiBuilder } from './api';
 import { JSONSchema6, JSONSchema7 } from 'json-schema';
+import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
+
+import { getApiBuilder } from './api';
 
 export const importOpenApi = async ({
   data,
@@ -104,7 +105,7 @@ const getApiSchemas = ({
   target: string;
   specs: Record<string, OpenAPIObject>;
 }) => {
-  return Object.entries(specs).reduce(
+  return Object.entries(specs).reduce<Record<string, GeneratorSchema[]>>(
     (acc, [specKey, spec]) => {
       const context: ContextSpecs = {
         specKey,
@@ -158,7 +159,7 @@ const getApiSchemas = ({
 
       return acc;
     },
-    {} as Record<string, GeneratorSchema[]>,
+    {},
   );
 };
 

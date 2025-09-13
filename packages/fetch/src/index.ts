@@ -4,20 +4,20 @@ import {
   camel,
   ClientBuilder,
   ClientGeneratorsBuilder,
+  generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterPropType,
-  stringify,
-  toObjectString,
-  generateBodyOptions,
   isObject,
   resolveRef,
+  stringify,
+  toObjectString,
 } from '@orval/core';
 import {
-  PathItemObject,
   ParameterObject,
+  PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject } from 'openapi3-ts/oas31';
@@ -44,7 +44,7 @@ export const generateRequestFunction = (
     : route;
 
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);
@@ -130,7 +130,7 @@ ${
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}${'?${stringifiedParams}'}\` : \`${implementationRoute}\``
+      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}?\${stringifiedParams}\` : \`${implementationRoute}\``
       : `return \`${implementationRoute}\``
   }
 }\n`;
@@ -296,7 +296,7 @@ export type ${responseTypeName} = ${compositeName} & {
 `;
 
   const implementation =
-    `${responseTypeImplementation}` +
+    responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
     `${fetchImplementation}\n`;
 

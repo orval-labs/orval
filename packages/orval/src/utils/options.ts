@@ -16,11 +16,13 @@ import {
   isString,
   isUndefined,
   isUrl,
+  JsDocOptions,
   mergeDeep,
   Mutator,
   NamingConvention,
   NormalizedHonoOptions,
   NormalizedHookOptions,
+  NormalizedJsDocOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOptions,
@@ -38,11 +40,10 @@ import {
   RefComponentSuffix,
   SwaggerParserOptions,
   upath,
-  NormalizedJsDocOptions,
-  JsDocOptions,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
+
 import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';
@@ -247,7 +248,7 @@ export const normalizeOptions = async (
           outputOptions.override?.header === false
             ? false
             : isFunction(outputOptions.override?.header)
-              ? outputOptions.override?.header!
+              ? outputOptions.override?.header
               : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         namingConvention: outputOptions.override?.namingConvention ?? {},
@@ -438,16 +439,12 @@ export const normalizePath = <T>(path: T, workspace: string) => {
 };
 
 const normalizeOperationsAndTags = (
-  operationsOrTags: {
-    [key: string]: OperationOptions;
-  },
+  operationsOrTags: Record<string, OperationOptions>,
   workspace: string,
   global: {
     query: NormalizedQueryOptions;
   },
-): {
-  [key: string]: NormalizedOperationOptions;
-} => {
+): Record<string, NormalizedOperationOptions> => {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -590,7 +587,7 @@ const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
 const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
   const keys = Object.keys(hooks) as unknown as Hook[];
 
-  return keys.reduce((acc, key: Hook) => {
+  return keys.reduce<NormalizedHookOptions>((acc, key: Hook) => {
     if (isString(hooks[key])) {
       return {
         ...acc,
@@ -614,7 +611,7 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
     }
 
     return acc;
-  }, {} as NormalizedHookOptions);
+  }, {});
 };
 
 const normalizeHonoOptions = (

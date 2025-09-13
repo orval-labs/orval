@@ -1,7 +1,6 @@
 import { keyword } from 'esutils';
 import type { ValueIteratee } from 'lodash';
 import uniqBy from 'lodash.uniqby';
-
 import {
   MediaTypeObject,
   ReferenceObject,
@@ -9,6 +8,7 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
+
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
@@ -49,9 +49,10 @@ const getResReqContentTypes = ({
 };
 
 export const getResReqTypes = (
-  responsesOrRequests: Array<
-    [string, ResponseObject | ReferenceObject | RequestBodyObject]
-  >,
+  responsesOrRequests: [
+    string,
+    ResponseObject | ReferenceObject | RequestBodyObject,
+  ][],
   name: string,
   context: ContextSpecs,
   defaultType = 'unknown',
@@ -304,7 +305,7 @@ const getSchemaFormDataAndUrlEncoded = ({
     if (combinedSchemas) {
       const shouldCast = !!schema.oneOf || !!schema.anyOf;
 
-      const combinedSchemasFormData = combinedSchemas!
+      const combinedSchemasFormData = combinedSchemas
         .map((schema) => {
           const { schema: combinedSchema, imports } = resolveRef<SchemaObject>(
             schema,

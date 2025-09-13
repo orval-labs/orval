@@ -4,6 +4,7 @@ import {
   GeneratorVerbOptions,
   GlobalMockOptions,
 } from '@orval/core';
+
 import { generateMSW, generateMSWImports } from './msw';
 
 export const DEFAULT_MOCK_OPTIONS: GlobalMockOptions = {

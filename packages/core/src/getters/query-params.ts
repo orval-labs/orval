@@ -1,4 +1,5 @@
 import { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveValue } from '../resolvers';
 import {
   ContextSpecs,
@@ -11,12 +12,12 @@ import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';
 
-type QueryParamsType = {
+interface QueryParamsType {
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: SchemaObject;
-};
+}
 
 const getQueryParamsTypes = (
   queryParams: GetterParameters['query'],
@@ -44,7 +45,7 @@ const getQueryParamsTypes = (
       es5IdentifierName: true,
     });
 
-    const schema = (schemaParam || content['application/json'].schema)!;
+    const schema = schemaParam || content['application/json'].schema;
 
     const resolvedValue = resolveValue({
       schema,

@@ -1,11 +1,11 @@
 import http from 'http';
 import https from 'https';
 
-export type Response<T = { [key: string]: unknown }> = {
+export interface Response<T = Record<string, unknown>> {
   status: http.IncomingMessage['statusCode'];
   headers: http.IncomingMessage['headers'];
   body: T;
-};
+}
 
 export const request = <T>(
   urlOptions: string | https.RequestOptions | URL,

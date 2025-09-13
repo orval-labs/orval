@@ -1,4 +1,6 @@
+import uniq from 'lodash.uniq';
 import { SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   ContextSpecs,
@@ -7,17 +9,16 @@ import {
   ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal, isSchema } from '../utils';
+import { getNumberWord, isSchema, pascal } from '../utils';
 import {
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
 } from './enum';
-import { getScalar } from './scalar';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import uniq from 'lodash.uniq';
+import { getScalar } from './scalar';
 
-type CombinedData = {
+interface CombinedData {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   originalSchema: (SchemaObject | undefined)[];
@@ -32,7 +33,7 @@ type CombinedData = {
    */
   allProperties: string[];
   requiredProperties: string[];
-};
+}
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 
@@ -78,9 +79,7 @@ const combineValues = ({
       (prop) =>
         !resolvedData.originalSchema.some(
           (schema) =>
-            schema &&
-            schema.properties?.[prop] &&
-            schema.required?.includes(prop),
+            schema?.properties?.[prop] && schema.required?.includes(prop),
         ),
     );
     if (overrideRequiredProperties.length) {

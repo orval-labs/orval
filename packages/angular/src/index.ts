@@ -48,7 +48,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, string> = new Map();
+const returnTypesToWrite = new Map<string, string>();
 
 export const getAngularDependencies: ClientDependenciesBuilder = () =>
   ANGULAR_DEPENDENCIES;
@@ -143,7 +143,7 @@ const generateImplementation = (
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;

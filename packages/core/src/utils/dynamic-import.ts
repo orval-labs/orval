@@ -1,5 +1,6 @@
-import { resolve, extname } from 'node:path';
+import { extname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
 import { isModule, isObject, isString } from './assertion';
 
 export const dynamicImport = async <T>(

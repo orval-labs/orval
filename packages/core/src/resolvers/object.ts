@@ -1,4 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import { ContextSpecs, ResolverValue } from '../types';
 import { jsDoc } from '../utils';

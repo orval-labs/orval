@@ -13,6 +13,7 @@ import {
   removeFilesAndEmptyFolders,
   upath,
 } from '@orval/core';
+
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -126,7 +127,7 @@ export const generateConfig = async (
         options?.projectName === undefined || project === options?.projectName,
     )
     .map(([, { input }]) => input.target)
-    .filter((target) => isString(target)) as string[];
+    .filter((target) => isString(target));
 
   if (options?.watch && fileToWatch.length) {
     startWatcher(

@@ -1,17 +1,17 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import {
   isObject,
+  isString,
   isUrl,
   log,
   NormalizedOptions,
-  upath,
   SwaggerParserOptions,
+  upath,
   WriteSpecsBuilder,
-  isString,
 } from '@orval/core';
 import chalk from 'chalk';
-import yaml from 'js-yaml';
 import fs from 'fs-extra';
+import yaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
 

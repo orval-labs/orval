@@ -3,7 +3,7 @@ import { camel, sanitize } from '@orval/core';
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
 const getRoutePath = (path: string): string => {
-  const matches = path.match(/([^{]*){?([\w*_-]*)}?(.*)/);
+  const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
   if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
 
   const prev = matches[1];

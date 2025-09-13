@@ -5,6 +5,7 @@ import type {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
+
 import {
   getBody,
   getOperationId,
@@ -53,7 +54,7 @@ const generateVerbOptions = async ({
   operation: OperationObject;
   route: string;
   pathRoute: string;
-  verbParameters?: Array<ReferenceObject | ParameterObject>;
+  verbParameters?: (ReferenceObject | ParameterObject)[];
   components?: ComponentsObject;
   context: ContextSpecs;
 }): Promise<GeneratorVerbOptions> => {
@@ -68,10 +69,12 @@ const generateVerbOptions = async ({
   } = operation;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operation.operationId!];
-  const overrideTag = Object.entries(output.override.tags).reduce(
+  const overrideTag = Object.entries(
+    output.override.tags,
+  ).reduce<NormalizedOperationOptions>(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as NormalizedOperationOptions,
+    {},
   );
 
   const override = mergeDeep(
@@ -122,7 +125,7 @@ const generateVerbOptions = async ({
   const params = getParams({
     route,
     pathParams: parameters.path,
-    operationId: operationId!,
+    operationId: operationId,
     context,
     output,
   });
@@ -171,7 +174,7 @@ const generateVerbOptions = async ({
       ? await generateMutator({
           output: output.target,
           name: 'paramsSerializer',
-          mutator: override.paramsSerializer as NormalizedMutator,
+          mutator: override.paramsSerializer,
           workspace: context.workspace,
           tsconfig: context.output.tsconfig,
         })
@@ -191,12 +194,12 @@ const generateVerbOptions = async ({
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
-    verb: verb as Verbs,
+    verb: verb,
     tags,
     route,
     pathRoute,
     summary: operation.summary,
-    operationId: operationId!,
+    operationId: operationId,
     operationName,
     response,
     body,
@@ -264,7 +267,7 @@ export const _filteredVerbs = (
   verbs: PathItemObject,
   filters: NormalizedInputOptions['filters'],
 ) => {
-  if (filters === undefined || filters.tags === undefined) {
+  if (filters?.tags === undefined) {
     return Object.entries(verbs);
   }
 

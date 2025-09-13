@@ -1,4 +1,4 @@
-export const count = (str: string = '', key: string) => {
+export const count = (str = '', key: string) => {
   if (!str) {
     return 0;
   }

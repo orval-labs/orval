@@ -1,4 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { SchemaType, Verbs } from '../types';
 import { extname } from './path';
 

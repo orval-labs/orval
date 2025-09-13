@@ -1,4 +1,5 @@
 import { ServerObject } from 'openapi3-ts/oas31';
+
 import { TEMPLATE_TAG_REGEX } from '../constants';
 import { BaseUrlFromConstant, BaseUrlFromSpec } from '../types';
 import { camel, sanitize } from '../utils';
@@ -8,7 +9,7 @@ const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
 const getRoutePath = (path: string): string => {
-  const matches = path.match(/([^{]*){?([\w*_-]*)}?(.*)/);
+  const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
   if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
 
   const prev = matches[1];
