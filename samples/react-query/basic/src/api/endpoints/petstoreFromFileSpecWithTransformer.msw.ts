@@ -19,7 +19,7 @@ export const getListPetsResponseMock = (): PetsArray =>
     id: (() => faker.number.int({ min: 1, max: 99999 }))(),
     name: (() => faker.person.lastName())(),
     age: faker.helpers.arrayElement([
-      faker.number.int({ min: 0, max: 30, multipleOf: undefined }),
+      faker.number.int({ min: 0, max: 30 }),
       undefined,
     ]),
     tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]),
@@ -45,14 +45,10 @@ export const getListPetsNestedArrayResponseMock = (
       { length: faker.number.int({ min: 1, max: 10 }) },
       (_, i) => i + 1,
     ).map(() => ({
-      id: faker.number.int({
-        min: undefined,
-        max: undefined,
-        multipleOf: undefined,
-      }),
+      id: faker.number.int({ min: undefined, max: undefined }),
       name: (() => faker.person.lastName())(),
       age: faker.helpers.arrayElement([
-        faker.number.int({ min: 0, max: 30, multipleOf: undefined }),
+        faker.number.int({ min: 0, max: 30 }),
         undefined,
       ]),
       tag: faker.helpers.arrayElement([
