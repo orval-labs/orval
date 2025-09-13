@@ -33,11 +33,7 @@ export const getCreatePetsResponseMock = (
     faker.string.alpha({ length: { min: 10, max: 20 } }),
     undefined,
   ]),
-  id: faker.number.int({
-    min: undefined,
-    max: undefined,
-    multipleOf: undefined,
-  }),
+  id: faker.number.int({ min: undefined, max: undefined }),
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
   email: faker.helpers.arrayElement([faker.internet.email(), undefined]),

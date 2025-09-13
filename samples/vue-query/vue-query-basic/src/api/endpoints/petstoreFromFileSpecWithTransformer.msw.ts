@@ -30,11 +30,7 @@ export const getListPetsResponseMock = (): Pets =>
 export const getCreatePetsResponseMock = (
   overrideResponse: Partial<Pet> = {},
 ): Pet => ({
-  id: faker.number.int({
-    min: undefined,
-    max: undefined,
-    multipleOf: undefined,
-  }),
+  id: faker.number.int({ min: undefined, max: undefined }),
   name: (() => faker.person.lastName())(),
   tag: (() => faker.person.lastName())(),
   status: faker.helpers.arrayElement([
