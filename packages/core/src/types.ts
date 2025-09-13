@@ -107,7 +107,7 @@ export type NormalizedOverrideOutput = {
   angular: Required<AngularOptions>;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
-  fetch: FetchOptions;
+  fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -632,8 +632,16 @@ export type SwrOptions = {
   swrInfiniteOptions?: any;
 };
 
+export type NormalizedFetchOptions = {
+  includeHttpResponseReturnType: boolean;
+  forceSuccessResponse: boolean;
+  explode: boolean;
+  jsonReviver?: Mutator;
+};
+
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
+  forceSuccessResponse?: boolean;
   explode?: boolean;
   jsonReviver?: Mutator;
 };
