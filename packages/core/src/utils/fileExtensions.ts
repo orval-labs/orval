@@ -8,7 +8,9 @@ export const getMockFileExtensionByTypeName = (
     return 'msw';
   }
   switch (mock.type) {
-    default: // case 'msw':
+    default: {
+      // case 'msw':
       return 'msw';
+    }
   }
 };

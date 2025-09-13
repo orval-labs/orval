@@ -4,20 +4,20 @@ import {
   camel,
   ClientBuilder,
   ClientGeneratorsBuilder,
+  generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterPropType,
-  stringify,
-  toObjectString,
-  generateBodyOptions,
   isObject,
   resolveRef,
+  stringify,
+  toObjectString,
 } from '@orval/core';
 import {
-  PathItemObject,
   ParameterObject,
+  PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject } from 'openapi3-ts/oas31';
@@ -44,7 +44,7 @@ export const generateRequestFunction = (
     : route;
 
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);
@@ -115,7 +115,7 @@ ${
 
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
-    ${!isExplodeParametersOnly ? nomalParamsImplementation : ''}
+    ${isExplodeParametersOnly ? '' : nomalParamsImplementation}
   });`
     : ''
 }
@@ -130,7 +130,7 @@ ${
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}${'?${stringifiedParams}'}\` : \`${implementationRoute}\``
+      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}?\${stringifiedParams}\` : \`${implementationRoute}\``
       : `return \`${implementationRoute}\``
   }
 }\n`;
@@ -177,7 +177,7 @@ ${
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
   status: ${
     r.key === 'default'
-      ? nonDefaultStatuses.length
+      ? nonDefaultStatuses.length > 0
         ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
         : 'number'
       : r.key
@@ -208,11 +208,9 @@ export type ${responseTypeName} = ${compositeName} & {
         prop.type === GetterPropType.NAMED_PATH_PARAMS,
     )
     .map((param) => {
-      if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
-        return param.destructured;
-      } else {
-        return param.name;
-      }
+      return param.type === GetterPropType.NAMED_PATH_PARAMS
+        ? param.destructured
+        : param.name;
     })
     .join(',');
 
@@ -239,9 +237,10 @@ export type ${responseTypeName} = ${compositeName} & {
       : []),
     ...(headers ? ['...headers'] : []),
   ];
-  const fetchHeadersOption = headersToAdd.length
-    ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
-    : '';
+  const fetchHeadersOption =
+    headersToAdd.length > 0
+      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+      : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
@@ -296,7 +295,7 @@ export type ${responseTypeName} = ${compositeName} & {
 `;
 
   const implementation =
-    `${responseTypeImplementation}` +
+    responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
     `${fetchImplementation}\n`;
 

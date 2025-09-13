@@ -1,11 +1,12 @@
+// @ts-expect-error no types exists for this package :(
+import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
+import { Spectral } from '@stoplight/spectral-core';
 import { OpenAPIObject } from 'openapi3-ts/oas30';
+
 import {
   ibmOpenapiValidatorErrors,
   ibmOpenapiValidatorWarnings,
 } from './logger';
-// @ts-expect-error no types exists for this package :(
-import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
-import { Spectral } from '@stoplight/spectral-core';
 
 /**
  * Validate the spec with ibm-openapi-validator (with a custom pretty logger).
@@ -31,20 +32,22 @@ export const ibmOpenapiValidator = async (
     const entry = { message, path: path.map((x) => x.toString()) };
     // 0: error, 1: "warning", see: https://github.com/IBM/openapi-validator/blob/a93e18a156108b6b946727d0b24bbcc69095b72e/packages/validator/src/spectral/spectral-validator.js#L222
     switch (severity) {
-      case 0:
+      case 0: {
         errors.push(entry);
         break;
-      case 1:
+      }
+      case 1: {
         warnings.push(entry);
         break;
+      }
     }
   }
 
-  if (warnings.length) {
+  if (warnings.length > 0) {
     ibmOpenapiValidatorWarnings(warnings);
   }
 
-  if (errors.length) {
+  if (errors.length > 0) {
     ibmOpenapiValidatorErrors(errors);
     process.exit(1);
   }

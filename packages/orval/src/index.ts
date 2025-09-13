@@ -1,12 +1,7 @@
-import {
-  GlobalOptions,
-  isString,
-  logError,
-  Options,
-  OptionsExport,
-} from '@orval/core';
+import { GlobalOptions, isString, logError, OptionsExport } from '@orval/core';
+
 import { generateConfig, generateSpec } from './generate';
-import { defineConfig, normalizeOptions } from './utils/options';
+import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
 
 const generate = async (
@@ -30,24 +25,26 @@ const generate = async (
       async () => {
         try {
           await generateSpec(workspace, normalizedOptions);
-        } catch (e) {
-          logError(e, options?.projectName);
+        } catch (error) {
+          logError(error, options?.projectName);
         }
       },
       normalizedOptions.input.target as string,
     );
   } else {
     try {
-      return await generateSpec(workspace, normalizedOptions);
-    } catch (e) {
-      logError(e, options?.projectName);
+      await generateSpec(workspace, normalizedOptions);
+      return;
+    } catch (error) {
+      logError(error, options?.projectName);
     }
   }
 };
 
-export { defineConfig };
-export { Options };
 export { generate };
 export * from '@orval/core';
 
 export default generate;
+
+export { defineConfig } from './utils/options';
+export { Options } from '@orval/core';

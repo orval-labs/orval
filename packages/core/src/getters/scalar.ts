@@ -1,15 +1,16 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
+
+import { resolveExampleRefs } from '../resolvers';
 import {
   ContextSpecs,
-  ScalarValue,
   OutputClient,
+  ScalarValue,
   SchemaWithConst,
 } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
-import { getObject } from './object';
 import { combineSchemas } from './combine';
-import { resolveExampleRefs } from '../resolvers';
+import { getObject } from './object';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -69,7 +70,7 @@ export const getScalar = ({
       };
     }
 
-    case 'boolean':
+    case 'boolean': {
       let value = 'boolean';
 
       const itemWithConst = item as SchemaWithConst;
@@ -88,6 +89,7 @@ export const getScalar = ({
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
+    }
 
     case 'array': {
       const { value, ...rest } = getArray({
@@ -106,12 +108,12 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = `${enumItems
+        value = enumItems
           .map((enumItem: string | null) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(` | `)}`;
+          .join(` | `);
 
         isEnum = true;
       }
@@ -120,10 +122,11 @@ export const getScalar = ({
         value = 'Blob';
       }
 
-      if (context.output.override.useDates) {
-        if (item.format === 'date' || item.format === 'date-time') {
-          value = 'Date';
-        }
+      if (
+        context.output.override.useDates &&
+        (item.format === 'date' || item.format === 'date-time')
+      ) {
+        value = 'Date';
       }
 
       const itemWithConst = item as SchemaWithConst;
@@ -144,7 +147,7 @@ export const getScalar = ({
       };
     }
 
-    case 'null':
+    case 'null': {
       return {
         value: 'null',
         isEnum: false,
@@ -154,6 +157,7 @@ export const getScalar = ({
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
       };
+    }
 
     case 'object':
     default: {
@@ -173,12 +177,12 @@ export const getScalar = ({
       }
 
       if (enumItems) {
-        const value = `${enumItems
+        const value = enumItems
           .map((enumItem: unknown) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(` | `)}`;
+          .join(` | `);
 
         return {
           value: value + nullable,

@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { WriteModeProps } from '../types';
 import {
@@ -94,13 +95,13 @@ export const writeTagsMode = async ({
             specsName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
-            options: !isFunction(output.mock) ? output.mock : undefined,
+            options: isFunction(output.mock) ? undefined : output.mock,
           });
         }
 
-        const schemasPath = !output.schemas
-          ? upath.join(dirname, filename + '.schemas' + extension)
-          : undefined;
+        const schemasPath = output.schemas
+          ? undefined
+          : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -161,11 +162,11 @@ export const writeTagsMode = async ({
         await fs.outputFile(implementationPath, data);
 
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
-      } catch (e) {
-        throw `Oups... 🍻. An Error occurred while writing tag ${tag} => ${e}`;
+      } catch (error) {
+        throw `Oups... 🍻. An Error occurred while writing tag ${tag} => ${error}`;
       }
     }),
   );
 
-  return generatedFilePathsArray.flatMap((it) => it);
+  return generatedFilePathsArray.flat();
 };

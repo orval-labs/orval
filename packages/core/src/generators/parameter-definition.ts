@@ -1,4 +1,5 @@
 import { ComponentsObject, ParameterObject } from 'openapi3-ts/oas30';
+
 import { resolveObject, resolveRef } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
@@ -8,7 +9,7 @@ export const generateParameterDefinition = (
   context: ContextSpecs,
   suffix: string,
 ): GeneratorSchema[] => {
-  return Object.entries(parameters).reduce(
+  return Object.entries(parameters).reduce<GeneratorSchema[]>(
     (acc, [parameterName, parameter]) => {
       const modelName = sanitize(`${pascal(parameterName)}${suffix}`, {
         underscore: '_',
@@ -26,20 +27,21 @@ export const generateParameterDefinition = (
         return acc;
       }
 
-      if (!schema.schema || imports.length) {
+      if (!schema.schema || imports.length > 0) {
         acc.push({
           name: modelName,
-          imports: imports.length
-            ? [
-                {
-                  name: imports[0].name,
-                  specKey: imports[0].specKey,
-                  schemaName: imports[0].schemaName,
-                },
-              ]
-            : [],
+          imports:
+            imports.length > 0
+              ? [
+                  {
+                    name: imports[0].name,
+                    specKey: imports[0].specKey,
+                    schemaName: imports[0].schemaName,
+                  },
+                ]
+              : [],
           model: `export type ${modelName} = ${
-            imports.length ? imports[0].name : 'unknown'
+            imports.length > 0 ? imports[0].name : 'unknown'
           };\n`,
         });
 
@@ -70,6 +72,6 @@ export const generateParameterDefinition = (
 
       return acc;
     },
-    [] as GeneratorSchema[],
+    [],
   );
 };

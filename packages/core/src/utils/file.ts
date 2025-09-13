@@ -1,9 +1,18 @@
+import fs from 'node:fs';
+import {
+  basename,
+  dirname,
+  extname,
+  isAbsolute,
+  join,
+  resolve,
+} from 'node:path';
+
 import chalk from 'chalk';
 import { build, PluginBuild } from 'esbuild';
-import fs from 'fs';
 import glob from 'globby';
 import mm from 'micromatch';
-import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
+
 import { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
@@ -11,7 +20,7 @@ import { createLogger, LogLevel } from './logger';
 import { joinSafe, normalizeSafe } from './path';
 
 export const getFileInfo = (
-  target: string = '',
+  target = '',
   {
     backupFilename = 'filename',
     extension = '.ts',
@@ -23,7 +32,7 @@ export const getFileInfo = (
   const dir = dirname(path);
   const filename = basename(
     path,
-    extension[0] !== '.' ? `.${extension}` : extension,
+    extension.startsWith('.') ? extension : `.${extension}`,
   );
 
   return {
@@ -144,7 +153,7 @@ export async function loadFile<File = any>(
         file = require(resolvedPath);
 
         debug(`cjs loaded in ${Date.now() - start}ms`);
-      } catch (e) {
+      } catch (error) {
         const ignored = new RegExp(
           [
             `Cannot use import statement`,
@@ -156,8 +165,8 @@ export async function loadFile<File = any>(
           ].join('|'),
         );
         //@ts-ignore
-        if (!ignored.test(e.message)) {
-          throw e;
+        if (!ignored.test(error.message)) {
+          throw error;
         }
       }
     }
@@ -175,11 +184,9 @@ export async function loadFile<File = any>(
         tsconfig?.compilerOptions,
       );
 
-      if (load) {
-        file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
-      } else {
-        file = code as any;
-      }
+      file = load
+        ? await loadFromBundledFile<File>(resolvedPath, code, isDefault)
+        : (code as any);
 
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
@@ -305,7 +312,7 @@ async function bundleFile(
         setup(build) {
           build.onResolve({ filter: /.*/ }, (args) => {
             const id = args.path;
-            if (id[0] !== '.' && !isAbsolute(id)) {
+            if (!id.startsWith('.') && !isAbsolute(id)) {
               return {
                 external: true,
               };
@@ -321,12 +328,15 @@ async function bundleFile(
             return {
               loader: args.path.endsWith('.ts') ? 'ts' : 'js',
               contents: contents
-                .replace(
+                .replaceAll(
                   /\bimport\.meta\.url\b/g,
                   JSON.stringify(`file://${args.path}`),
                 )
-                .replace(/\b__dirname\b/g, JSON.stringify(dirname(args.path)))
-                .replace(/\b__filename\b/g, JSON.stringify(args.path)),
+                .replaceAll(
+                  /\b__dirname\b/g,
+                  JSON.stringify(dirname(args.path)),
+                )
+                .replaceAll(/\b__filename\b/g, JSON.stringify(args.path)),
             };
           });
         },
@@ -399,7 +409,7 @@ export async function removeFilesAndEmptyFolders(
       if (contents.length === 0) {
         await fs.promises.rmdir(directory);
       }
-    } catch (error) {
+    } catch {
       // Directory might have been removed already or doesn't exist
       // Continue with next directory
     }

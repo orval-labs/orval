@@ -13,6 +13,7 @@ import {
   removeFilesAndEmptyFolders,
   upath,
 } from '@orval/core';
+
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -58,8 +59,8 @@ export const generateSpecs = async (
     if (options) {
       try {
         await generateSpec(workspace, options, projectName);
-      } catch (e) {
-        logError(e, projectName);
+      } catch (error) {
+        logError(error, projectName);
         process.exit(1);
       }
     } else {
@@ -75,9 +76,9 @@ export const generateSpecs = async (
     async (acc, [projectName, options]) => {
       try {
         acc.push(await generateSpec(workspace, options, projectName));
-      } catch (e) {
+      } catch (error) {
         hasErrors = true;
-        logError(e, projectName);
+        logError(error, projectName);
       }
       return acc;
     },
@@ -128,7 +129,7 @@ export const generateConfig = async (
     .map(([, { input }]) => input.target)
     .filter((target) => isString(target)) as string[];
 
-  if (options?.watch && fileToWatch.length) {
+  if (options?.watch && fileToWatch.length > 0) {
     startWatcher(
       options?.watch,
       () => generateSpecs(normalizedConfig, workspace, options?.projectName),

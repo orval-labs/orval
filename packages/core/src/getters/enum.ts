@@ -1,5 +1,6 @@
 import { keyword } from 'esutils';
 import { SchemaObject } from 'openapi3-ts/oas30';
+
 import { EnumGeneration, NamingConvention } from '../types';
 import { conventionName, isNumeric, sanitize } from '../utils';
 
@@ -182,10 +183,10 @@ const getNativeEnumItems = (
 };
 
 const toNumberKey = (value: string) => {
-  if (value[0] === '-') {
+  if (value.startsWith('-')) {
     return `NUMBER_MINUS_${value.slice(1)}`;
   }
-  if (value[0] === '+') {
+  if (value.startsWith('+')) {
     return `NUMBER_PLUS_${value.slice(1)}`;
   }
   return `NUMBER_${value}`;

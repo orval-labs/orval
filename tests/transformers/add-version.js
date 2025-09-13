@@ -10,13 +10,13 @@
  */
 export default (inputSchema) => ({
   ...inputSchema,
-  paths: Object.entries(inputSchema.paths).reduce(
-    (acc, [path, pathItem]) => ({
-      ...acc,
-      [`v{version}${path}`]: Object.entries(pathItem).reduce(
-        (pathItemAcc, [verb, operation]) => ({
-          ...pathItemAcc,
-          [verb]: {
+  paths: Object.fromEntries(
+    Object.entries(inputSchema.paths).map(([path, pathItem]) => [
+      `v{version}${path}`,
+      Object.fromEntries(
+        Object.entries(pathItem).map(([verb, operation]) => [
+          verb,
+          {
             ...operation,
             parameters: [
               ...(operation.parameters || []),
@@ -31,10 +31,8 @@ export default (inputSchema) => ({
               },
             ],
           },
-        }),
-        {},
+        ]),
       ),
-    }),
-    {},
+    ]),
   ),
 });

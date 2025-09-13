@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import { OpenAPIObject } from 'openapi3-ts/oas30';
 import { type ConvertInputOptions, convertObj } from 'swagger2openapi';
+
 import { log } from './logger';
 
 export const openApiConverter = async (
@@ -23,7 +24,7 @@ export const openApiConverter = async (
         resolve(schema);
       }
     });
-  } catch (e) {
-    throw `Oups... 🍻.\nPath: ${specKey}\nParsing Error: ${e}`;
+  } catch (error) {
+    throw `Oups... 🍻.\nPath: ${specKey}\nParsing Error: ${error}`;
   }
 };

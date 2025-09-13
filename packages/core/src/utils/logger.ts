@@ -1,5 +1,6 @@
+import readline from 'node:readline';
+
 import chalk from 'chalk';
-import readline from 'readline';
 export const log = console.log;
 
 export const startMessage = ({
@@ -10,14 +11,15 @@ export const startMessage = ({
   name: string;
   version: string;
   description: string;
-}) =>
+}) => {
   log(
     `🍻 Start ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
       description ? ` - ${description}` : ''
     }`,
   );
+};
 
-export const logError = (err: unknown, tag?: string) =>
+export const logError = (err: unknown, tag?: string) => {
   log(
     chalk.red(
       [
@@ -29,8 +31,9 @@ export const logError = (err: unknown, tag?: string) =>
         .join(' '),
     ),
   );
+};
 
-export const mismatchArgsMessage = (mismatchArgs: string[]) =>
+export const mismatchArgsMessage = (mismatchArgs: string[]) => {
   log(
     chalk.yellow(
       `${mismatchArgs.join(', ')} ${
@@ -38,13 +41,15 @@ export const mismatchArgsMessage = (mismatchArgs: string[]) =>
       } not defined in your configuration!`,
     ),
   );
+};
 
-export const createSuccessMessage = (backend?: string) =>
+export const createSuccessMessage = (backend?: string) => {
   log(
     `🎉 ${
       backend ? `${chalk.green(backend)} - ` : ''
     }Your OpenAPI spec has been converted into ready to use orval!`,
   );
+};
 
 export const ibmOpenapiValidatorWarnings = (
   warnings: {
@@ -54,9 +59,8 @@ export const ibmOpenapiValidatorWarnings = (
 ) => {
   log(chalk.yellow('(!) Warnings'));
 
-  warnings.forEach((i) =>
-    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`)),
-  );
+  for (const i of warnings)
+    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
 };
 
 export const ibmOpenapiValidatorErrors = (
@@ -67,9 +71,8 @@ export const ibmOpenapiValidatorErrors = (
 ) => {
   log(chalk.red('(!) Errors'));
 
-  errors.forEach((i) =>
-    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`)),
-  );
+  for (const i of errors)
+    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
 };
 
 export type LogType = 'error' | 'warn' | 'info';

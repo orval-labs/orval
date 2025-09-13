@@ -16,6 +16,7 @@ import {
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
 import { PathItemObject } from 'openapi3-ts/oas30';
+
 import {
   generateClientFooter,
   generateClientHeader,
@@ -49,7 +50,7 @@ export const getApiBuilder = async ({
 
         resolvedContext = {
           ...context,
-          ...(imports.length
+          ...(imports.length > 0
             ? {
                 specKey: imports[0].specKey,
               }
@@ -73,7 +74,7 @@ export const getApiBuilder = async ({
         });
       }
 
-      const schemas = verbsOptions.reduce(
+      const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, headers, body, response, props }) => {
           if (props) {
             acc.push(
@@ -91,12 +92,11 @@ export const getApiBuilder = async ({
             acc.push(headers.schema, ...headers.deps);
           }
 
-          acc.push(...body.schemas);
-          acc.push(...response.schemas);
+          acc.push(...body.schemas, ...response.schemas);
 
           return acc;
         },
-        [] as GeneratorSchema[],
+        [],
       );
 
       const fullRoute = getFullRoute(
@@ -122,9 +122,9 @@ export const getApiBuilder = async ({
         output,
       );
 
-      verbsOptions.forEach((verbOption) => {
+      for (const verbOption of verbsOptions) {
         acc.verbOptions[verbOption.operationId] = verbOption;
-      });
+      }
       acc.schemas.push(...schemas);
       acc.operations = { ...acc.operations, ...pathOperations };
 

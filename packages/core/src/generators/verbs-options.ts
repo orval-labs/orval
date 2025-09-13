@@ -5,6 +5,7 @@ import type {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
+
 import {
   getBody,
   getOperationId,
@@ -53,7 +54,7 @@ const generateVerbOptions = async ({
   operation: OperationObject;
   route: string;
   pathRoute: string;
-  verbParameters?: Array<ReferenceObject | ParameterObject>;
+  verbParameters?: (ReferenceObject | ParameterObject)[];
   components?: ComponentsObject;
   context: ContextSpecs;
 }): Promise<GeneratorVerbOptions> => {
@@ -68,10 +69,12 @@ const generateVerbOptions = async ({
   } = operation;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operation.operationId!];
-  const overrideTag = Object.entries(output.override.tags).reduce(
+  const overrideTag = Object.entries(
+    output.override.tags,
+  ).reduce<NormalizedOperationOptions>(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as NormalizedOperationOptions,
+    {},
   );
 
   const override = mergeDeep(
@@ -264,7 +267,7 @@ export const _filteredVerbs = (
   verbs: PathItemObject,
   filters: NormalizedInputOptions['filters'],
 ) => {
-  if (filters === undefined || filters.tags === undefined) {
+  if (filters?.tags === undefined) {
     return Object.entries(verbs);
   }
 

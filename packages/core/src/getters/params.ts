@@ -69,8 +69,8 @@ export const getParams = ({
     if (!schema) {
       return {
         name,
-        definition: `${name}${!required ? '?' : ''}: unknown`,
-        implementation: `${name}${!required ? '?' : ''}: unknown`,
+        definition: `${name}${required ? '' : '?'}: unknown`,
+        implementation: `${name}${required ? '' : '?'}: unknown`,
         default: false,
         required,
         imports: [],
@@ -81,7 +81,7 @@ export const getParams = ({
       schema,
       context: {
         ...context,
-        ...(pathParam.imports.length
+        ...(pathParam.imports.length > 0
           ? {
               specKey: pathParam.imports[0].specKey,
             }
@@ -101,9 +101,9 @@ export const getParams = ({
     const implementation = `${name}${
       !required && !resolvedValue.originalSchema!.default ? '?' : ''
     }${
-      !resolvedValue.originalSchema!.default
-        ? `: ${paramType}`
-        : `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
+      resolvedValue.originalSchema!.default
+        ? `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}`
+        : `: ${paramType}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
     return {

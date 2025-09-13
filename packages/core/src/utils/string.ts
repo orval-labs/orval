@@ -1,4 +1,5 @@
 import { keyword } from 'esutils';
+
 import {
   isBoolean,
   isFunction,
@@ -9,7 +10,7 @@ import {
 } from './assertion';
 
 export const stringify = (
-  data?: string | any[] | { [key: string]: any },
+  data?: string | any[] | Record<string, any>,
 ): string | undefined => {
   if (isUndefined(data) || isNull(data)) {
     return;
@@ -68,27 +69,27 @@ export const sanitize = (
   } = options ?? {};
   let newValue = value;
 
-  if (special !== true) {
-    newValue = newValue.replace(
+  if (!special) {
+    newValue = newValue.replaceAll(
       /[!"`'#%&,:;<>=@{}~\$\(\)\*\+\/\\\?\[\]\^\|]/g,
       '',
     );
   }
 
   if (whitespace !== true) {
-    newValue = newValue.replace(/[\s]/g, whitespace);
+    newValue = newValue.replaceAll(/[\s]/g, whitespace);
   }
 
   if (underscore !== true) {
-    newValue = newValue.replace(/['_']/g, underscore);
+    newValue = newValue.replaceAll(/['_']/g, underscore);
   }
 
   if (dot !== true) {
-    newValue = newValue.replace(/[.]/g, dot);
+    newValue = newValue.replaceAll(/[.]/g, dot);
   }
 
   if (dash !== true) {
-    newValue = newValue.replace(/[-]/g, dash);
+    newValue = newValue.replaceAll(/[-]/g, dash);
   }
 
   if (es5keyword) {
@@ -96,7 +97,7 @@ export const sanitize = (
   }
 
   if (es5IdentifierName) {
-    if (newValue.match(/^[0-9]/)) {
+    if (/^[0-9]/.test(newValue)) {
       newValue = `N${newValue}`;
     } else {
       newValue = keyword.isIdentifierNameES5(newValue)
@@ -109,7 +110,7 @@ export const sanitize = (
 };
 
 export const toObjectString = <T>(props: T[], path?: keyof T) => {
-  if (!props.length) {
+  if (props.length === 0) {
     return '';
   }
 
@@ -147,7 +148,7 @@ export const getNumberWord = (num: number) => {
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 };
 
-export const escape = (str: string | null, char: string = "'") =>
+export const escape = (str: string | null, char = "'") =>
   str?.replace(char, `\\${char}`);
 
 /**
@@ -160,22 +161,28 @@ export const escape = (str: string | null, char: string = "'") =>
  * @param input String to escape
  */
 export const jsStringEscape = (input: string) =>
-  input.replace(/["'\\\n\r\u2028\u2029]/g, (character) => {
+  input.replaceAll(/["'\\\n\r\u2028\u2029]/g, (character) => {
     switch (character) {
       case '"':
       case "'":
-      case '\\':
+      case '\\': {
         return '\\' + character;
+      }
       // Four possible LineTerminator characters need to be escaped:
-      case '\n':
-        return '\\n';
-      case '\r':
-        return '\\r';
-      case '\u2028':
-        return '\\u2028';
-      case '\u2029':
-        return '\\u2029';
-      default:
+      case '\n': {
+        return String.raw`\n`;
+      }
+      case '\r': {
+        return String.raw`\r`;
+      }
+      case '\u2028': {
+        return String.raw`\u2028`;
+      }
+      case '\u2029': {
+        return String.raw`\u2029`;
+      }
+      default: {
         return '';
+      }
     }
   });

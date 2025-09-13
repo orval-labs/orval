@@ -1,5 +1,6 @@
 import type SwaggerParser from '@apidevtools/swagger-parser';
 import type { allLocales } from '@faker-js/faker';
+import { JSONSchema6, JSONSchema7 } from 'json-schema';
 import type {
   InfoObject,
   OpenAPIObject,
@@ -12,7 +13,6 @@ import type {
 } from 'openapi3-ts/oas30';
 import type { ConvertInputOptions } from 'swagger2openapi';
 import { TypeDocOptions } from 'typedoc';
-import { JSONSchema6, JSONSchema7 } from 'json-schema';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -23,16 +23,12 @@ export interface Options {
 export type OptionsFn = () => Options | Promise<Options>;
 export type OptionsExport = Options | Promise<Options> | OptionsFn;
 
-export type Config = {
-  [project: string]: OptionsExport;
-};
+export type Config = Record<string, OptionsExport>;
 export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormalizedConfig = {
-  [project: string]: NormalizedOptions;
-};
+export type NormalizedConfig = Record<string, NormalizedOptions>;
 
 export interface NormalizedOptions {
   output: NormalizedOutputOptions;
@@ -75,8 +71,8 @@ export type NormalizedOverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: NormalizedMutator;
-  operations: { [key: string]: NormalizedOperationOptions };
-  tags: { [key: string]: NormalizedOperationOptions };
+  operations: Record<string, NormalizedOperationOptions>;
+  tags: Record<string, NormalizedOperationOptions>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -172,9 +168,7 @@ export type OutputClientFunc = (
 
 export type BaseUrlFromSpec = {
   getBaseUrlFromSpecification: true;
-  variables?: {
-    [variable: string]: string;
-  };
+  variables?: Record<string, string>;
   index?: number;
   baseUrl?: never;
 };
@@ -343,18 +337,14 @@ export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
   tags?: Record<string, { properties: Record<string, unknown> }>;
 };
 
-export type MockPropertiesObject = {
-  [key: string]: unknown;
-};
+export type MockPropertiesObject = Record<string, unknown>;
 export type MockPropertiesObjectFn = (
   specs: OpenAPIObject,
 ) => MockPropertiesObject;
 
 export type MockProperties = MockPropertiesObject | MockPropertiesObjectFn;
 
-export type MockDataObject = {
-  [key: string]: unknown;
-};
+export type MockDataObject = Record<string, unknown>;
 
 export type MockDataObjectFn = (specs: OpenAPIObject) => MockDataObject;
 
@@ -420,8 +410,8 @@ export type OverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: Mutator;
-  operations?: { [key: string]: OperationOptions };
-  tags?: { [key: string]: OperationOptions };
+  operations?: Record<string, OperationOptions>;
+  tags?: Record<string, OperationOptions>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
@@ -511,12 +501,12 @@ export type ZodOptions = {
     body?: boolean;
     response?: boolean;
   };
-  generate: {
-    param: boolean;
-    query: boolean;
-    header: boolean;
-    body: boolean;
-    response: boolean;
+  generate?: {
+    param?: boolean;
+    query?: boolean;
+    header?: boolean;
+    body?: boolean;
+    response?: boolean;
   };
   coerce?: {
     param?: boolean | ZodCoerceType[];
@@ -794,9 +784,7 @@ export type GeneratorApiResponse = {
   schemas: GeneratorSchema[];
 };
 
-export type GeneratorOperations = {
-  [operationId: string]: GeneratorOperation;
-};
+export type GeneratorOperations = Record<string, GeneratorOperation>;
 
 export type GeneratorTarget = {
   imports: GeneratorImport[];
