@@ -1,4 +1,5 @@
 import { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
+
 import { generalJSTypesWithArray } from '../constants';
 import { resolveRef } from '../resolvers';
 import { ContextSpecs, GetterBody, OverrideOutputContentType } from '../types';

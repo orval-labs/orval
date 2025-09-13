@@ -1,4 +1,5 @@
 import { keyword } from 'esutils';
+
 import {
   isBoolean,
   isFunction,
@@ -9,7 +10,7 @@ import {
 } from './assertion';
 
 export const stringify = (
-  data?: string | any[] | { [key: string]: any },
+  data?: string | any[] | Record<string, any>,
 ): string | undefined => {
   if (isUndefined(data) || isNull(data)) {
     return;
@@ -68,7 +69,7 @@ export const sanitize = (
   } = options ?? {};
   let newValue = value;
 
-  if (special !== true) {
+  if (!special) {
     newValue = newValue.replace(
       /[!"`'#%&,:;<>=@{}~\$\(\)\*\+\/\\\?\[\]\^\|]/g,
       '',
@@ -96,7 +97,7 @@ export const sanitize = (
   }
 
   if (es5IdentifierName) {
-    if (newValue.match(/^[0-9]/)) {
+    if (/^[0-9]/.exec(newValue)) {
       newValue = `N${newValue}`;
     } else {
       newValue = keyword.isIdentifierNameES5(newValue)
@@ -147,7 +148,7 @@ export const getNumberWord = (num: number) => {
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 };
 
-export const escape = (str: string | null, char: string = "'") =>
+export const escape = (str: string | null, char = "'") =>
   str?.replace(char, `\\${char}`);
 
 /**

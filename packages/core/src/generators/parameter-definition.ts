@@ -1,4 +1,5 @@
 import { ComponentsObject, ParameterObject } from 'openapi3-ts/oas30';
+
 import { resolveObject, resolveRef } from '../resolvers';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
@@ -8,7 +9,7 @@ export const generateParameterDefinition = (
   context: ContextSpecs,
   suffix: string,
 ): GeneratorSchema[] => {
-  return Object.entries(parameters).reduce(
+  return Object.entries(parameters).reduce<GeneratorSchema[]>(
     (acc, [parameterName, parameter]) => {
       const modelName = sanitize(`${pascal(parameterName)}${suffix}`, {
         underscore: '_',
@@ -70,6 +71,6 @@ export const generateParameterDefinition = (
 
       return acc;
     },
-    [] as GeneratorSchema[],
+    [],
   );
 };

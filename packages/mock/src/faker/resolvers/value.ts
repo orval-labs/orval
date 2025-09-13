@@ -8,11 +8,12 @@ import {
   pascal,
 } from '@orval/core';
 import { SchemaObject } from 'openapi3-ts/oas30';
+
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
-const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
+const isRegex = (key: string) => key.startsWith('/') && key.endsWith('/');
 
 export const resolveMockOverride = (
   properties: Record<string, unknown> | undefined = {},

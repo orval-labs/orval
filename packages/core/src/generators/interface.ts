@@ -1,4 +1,5 @@
 import type { SchemaObject } from 'openapi3-ts/oas30';
+
 import { getScalar } from '../getters';
 import type { ContextSpecs } from '../types';
 import { jsDoc } from '../utils';

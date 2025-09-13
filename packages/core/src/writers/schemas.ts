@@ -1,7 +1,8 @@
 import fs from 'fs-extra';
+
 import { generateImports } from '../generators';
 import { GeneratorSchema, NamingConvention } from '../types';
-import { upath, conventionName } from '../utils';
+import { conventionName, upath } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -178,9 +179,8 @@ export const writeSchemas = async ({
             `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
         );
 
-      const currentFileExports = (stringData
-        .match(/export \* from(.*)('|")/g)
-        ?.map((s) => s + ';') ?? []) as string[];
+      const currentFileExports =
+        stringData.match(/export \* from(.*)('|")/g)?.map((s) => s + ';') ?? [];
 
       const exports = [...currentFileExports, ...importStatements]
         .sort()

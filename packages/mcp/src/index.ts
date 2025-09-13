@@ -1,28 +1,27 @@
 import {
-  generateVerbImports,
+  camel,
   ClientBuilder,
   ClientExtraFilesBuilder,
   ClientGeneratorsBuilder,
   ClientHeaderBuilder,
   ContextSpecs,
   generateMutatorImports,
+  generateVerbImports,
   GeneratorMutator,
   GeneratorVerbOptions,
   getFileInfo,
+  getFullRoute,
   jsDoc,
   NormalizedOutputOptions,
-  upath,
-  camel,
   pascal,
-  getFullRoute,
+  upath,
 } from '@orval/core';
-import { generateZod } from '@orval/zod';
 import {
-  generateRequestFunction as generateFetchRequestFunction,
   generateClient,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
-
+import { generateZod } from '@orval/zod';
 import { InfoObject } from 'openapi3-ts/oas30';
 
 const getHeader = (
@@ -65,12 +64,12 @@ export const getMcpHeader: ClientHeaderBuilder = ({
 
       return imports;
     })
-    .reduce((acc, name) => {
+    .reduce<string[]>((acc, name) => {
       if (!acc.find((i) => i === name)) {
         acc.push(name);
       }
       return acc;
-    }, [] as string[]);
+    }, []);
 
   const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
     ',\n  ',
@@ -80,13 +79,13 @@ export const getMcpHeader: ClientHeaderBuilder = ({
   const relativeFetchClientPath = './http-client';
   const importFetchClientNames = Object.values(verbOptions)
     .flatMap((verbOption) => verbOption.operationName)
-    .reduce((acc, name) => {
+    .reduce<string[]>((acc, name) => {
       if (!acc.find((i) => i === name)) {
         acc.push(name);
       }
 
       return acc;
-    }, [] as string[]);
+    }, []);
 
   const importFetchClientImplementation = `import {\n  ${importFetchClientNames.join(
     ',\n  ',
@@ -141,7 +140,7 @@ ${handlerArgsTypes.join('\n')}
       })
       .join(', ');
 
-    fetchParams.push(`${pathParamsArgs}`);
+    fetchParams.push(pathParamsArgs);
   }
   if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
   if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
@@ -308,14 +307,14 @@ const generateZodFiles = async (
     ),
   );
 
-  const allMutators = zods.reduce(
+  const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
     (acc, z) => {
       (z.mutators ?? []).forEach((mutator) => {
         acc[mutator.name] = mutator;
       });
       return acc;
     },
-    {} as Record<string, GeneratorMutator>,
+    {},
   );
 
   const mutatorsImports = generateMutatorImports({
@@ -378,13 +377,13 @@ const generateHttpClinetFiles = async (
     : './' + filename + '.schemas';
   const importNames = clients
     .flatMap((client) => client.imports)
-    .reduce((acc, imp) => {
+    .reduce<string[]>((acc, imp) => {
       if (!acc.find((i) => i === imp.name)) {
         acc.push(imp.name);
       }
 
       return acc;
-    }, [] as string[]);
+    }, []);
   const importImplementation = `import { ${importNames.join(
     ',\n',
   )} } from '${relativeSchemasPath}';`;

@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { OutputClient, WriteModeProps } from '../types';
 import {
@@ -8,10 +9,10 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
-import { generateTarget } from './target';
-import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { generateTarget } from './target';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeSplitMode = async ({
   builder,

@@ -21,6 +21,7 @@ import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { TypeDocOptions } from 'typedoc';
+
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -46,17 +47,16 @@ export const writeSpecs = async (
   const { output } = options;
   const projectTitle = projectName || info.title;
 
-  const specsName = Object.keys(schemas).reduce(
-    (acc, specKey) => {
-      const basePath = upath.getSpecName(specKey, target);
-      const name = basePath.slice(1).split('/').join('-');
+  const specsName = Object.keys(schemas).reduce<
+    Record<keyof typeof schemas, string>
+  >((acc, specKey) => {
+    const basePath = upath.getSpecName(specKey, target);
+    const name = basePath.slice(1).split('/').join('-');
 
-      acc[specKey] = name;
+    acc[specKey] = name;
 
-      return acc;
-    },
-    {} as Record<keyof typeof schemas, string>,
-  );
+    return acc;
+  }, {});
 
   const header = getHeader(output.override.header, info as InfoObject);
 

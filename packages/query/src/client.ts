@@ -14,10 +14,9 @@ import {
   pascal,
   toObjectString,
 } from '@orval/core';
-
 import {
-  generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 import {
@@ -86,7 +85,7 @@ export const generateAxiosRequestFunction = (
   }
 
   const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData.disabled === false;
+  const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
@@ -359,7 +358,7 @@ export const getQueryErrorType = (
   } else {
     return httpClient === OutputHttpClient.AXIOS
       ? `AxiosError<${response.definition.errors || 'unknown'}>`
-      : `${response.definition.errors || 'unknown'}`;
+      : response.definition.errors || 'unknown';
   }
 };
 

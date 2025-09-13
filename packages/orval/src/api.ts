@@ -16,6 +16,7 @@ import {
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
 import { PathItemObject } from 'openapi3-ts/oas30';
+
 import {
   generateClientFooter,
   generateClientHeader,
@@ -73,7 +74,7 @@ export const getApiBuilder = async ({
         });
       }
 
-      const schemas = verbsOptions.reduce(
+      const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, headers, body, response, props }) => {
           if (props) {
             acc.push(
@@ -96,7 +97,7 @@ export const getApiBuilder = async ({
 
           return acc;
         },
-        [] as GeneratorSchema[],
+        [],
       );
 
       const fullRoute = getFullRoute(

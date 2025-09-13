@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import findUp from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
+
 import { normalizePath } from './options';
 
 export const loadPackageJson = async (

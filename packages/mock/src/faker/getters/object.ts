@@ -9,6 +9,7 @@ import {
   PropertySortOrder,
 } from '@orval/core';
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';

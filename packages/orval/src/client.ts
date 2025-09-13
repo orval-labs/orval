@@ -23,11 +23,11 @@ import {
 } from '@orval/core';
 import fetchClient from '@orval/fetch';
 import hono from '@orval/hono';
+import mcp from '@orval/mcp';
 import * as mock from '@orval/mock';
 import query from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
-import mcp from '@orval/mcp';
 
 const DEFAULT_CLIENT = OutputClient.AXIOS;
 

@@ -6,6 +6,7 @@ import {
   MockOptions,
   pascal,
 } from '@orval/core';
+
 import { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
@@ -138,7 +139,7 @@ export const combineSchemasMock = ({
       }
       return `${acc}${resolvedValue.value},`;
     },
-    `${separator === 'allOf' ? '' : 'faker.helpers.arrayElement(['}`,
+    separator === 'allOf' ? '' : 'faker.helpers.arrayElement([',
   );
   let finalValue =
     value === 'undefined'

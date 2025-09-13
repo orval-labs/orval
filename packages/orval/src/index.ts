@@ -5,6 +5,7 @@ import {
   Options,
   OptionsExport,
 } from '@orval/core';
+
 import { generateConfig, generateSpec } from './generate';
 import { defineConfig, normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -38,7 +39,8 @@ const generate = async (
     );
   } else {
     try {
-      return await generateSpec(workspace, normalizedOptions);
+      await generateSpec(workspace, normalizedOptions);
+      return;
     } catch (e) {
       logError(e, options?.projectName);
     }

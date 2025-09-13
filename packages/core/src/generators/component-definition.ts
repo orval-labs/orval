@@ -5,6 +5,7 @@ import {
   RequestBodyObject,
   ResponseObject,
 } from 'openapi3-ts/oas30';
+
 import { getResReqTypes } from '../getters';
 import { ContextSpecs, GeneratorSchema } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
@@ -20,7 +21,7 @@ export const generateComponentDefinition = (
     return [];
   }
 
-  return Object.entries(responses).reduce(
+  return Object.entries(responses).reduce<GeneratorSchema[]>(
     (
       acc,
       [name, response]: [
@@ -62,6 +63,6 @@ export const generateComponentDefinition = (
 
       return acc;
     },
-    [] as GeneratorSchema[],
+    [],
   );
 };

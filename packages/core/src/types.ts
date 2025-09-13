@@ -1,5 +1,6 @@
 import type SwaggerParser from '@apidevtools/swagger-parser';
 import type { allLocales } from '@faker-js/faker';
+import { JSONSchema6, JSONSchema7 } from 'json-schema';
 import type {
   InfoObject,
   OpenAPIObject,
@@ -12,7 +13,6 @@ import type {
 } from 'openapi3-ts/oas30';
 import type { ConvertInputOptions } from 'swagger2openapi';
 import { TypeDocOptions } from 'typedoc';
-import { JSONSchema6, JSONSchema7 } from 'json-schema';
 
 export interface Options {
   output?: string | OutputOptions;
@@ -23,16 +23,12 @@ export interface Options {
 export type OptionsFn = () => Options | Promise<Options>;
 export type OptionsExport = Options | Promise<Options> | OptionsFn;
 
-export type Config = {
-  [project: string]: OptionsExport;
-};
+export type Config = Record<string, OptionsExport>;
 export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormalizedConfig = {
-  [project: string]: NormalizedOptions;
-};
+export type NormalizedConfig = Record<string, NormalizedOptions>;
 
 export interface NormalizedOptions {
   output: NormalizedOutputOptions;
@@ -40,7 +36,7 @@ export interface NormalizedOptions {
   hooks: NormalizedHookOptions;
 }
 
-export type NormalizedOutputOptions = {
+export interface NormalizedOutputOptions {
   workspace?: string;
   target?: string;
   schemas?: string;
@@ -65,18 +61,18 @@ export type NormalizedOutputOptions = {
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
-};
+}
 
-export type NormalizedParamsSerializerOptions = {
+export interface NormalizedParamsSerializerOptions {
   qs?: Record<string, any>;
-};
+}
 
-export type NormalizedOverrideOutput = {
+export interface NormalizedOverrideOutput {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: NormalizedMutator;
-  operations: { [key: string]: NormalizedOperationOptions };
-  tags: { [key: string]: NormalizedOperationOptions };
+  operations: Record<string, NormalizedOperationOptions>;
+  tags: Record<string, NormalizedOperationOptions>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -123,17 +119,17 @@ export type NormalizedOverrideOutput = {
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   jsDoc: NormalizedJsDocOptions;
-};
+}
 
-export type NormalizedMutator = {
+export interface NormalizedMutator {
   path: string;
   name?: string;
   default: boolean;
   alias?: Record<string, string>;
   extension?: string;
-};
+}
 
-export type NormalizedOperationOptions = {
+export interface NormalizedOperationOptions {
   transformer?: OutputTransformer;
   mutator?: NormalizedMutator;
   mock?: {
@@ -155,36 +151,34 @@ export type NormalizedOperationOptions = {
   formUrlEncoded?: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
   requestOptions?: object | boolean;
-};
+}
 
-export type NormalizedInputOptions = {
+export interface NormalizedInputOptions {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation: boolean | object;
   override: OverrideInput;
   converterOptions: Partial<ConvertInputOptions>;
   parserOptions: SwaggerParserOptions;
   filters?: InputFiltersOption;
-};
+}
 
 export type OutputClientFunc = (
   clients: GeneratorClients,
 ) => ClientGeneratorsBuilder;
 
-export type BaseUrlFromSpec = {
+export interface BaseUrlFromSpec {
   getBaseUrlFromSpecification: true;
-  variables?: {
-    [variable: string]: string;
-  };
+  variables?: Record<string, string>;
   index?: number;
   baseUrl?: never;
-};
+}
 
-export type BaseUrlFromConstant = {
+export interface BaseUrlFromConstant {
   getBaseUrlFromSpecification: false;
   variables?: never;
   index?: never;
   baseUrl: string;
-};
+}
 
 export const PropertySortOrder = {
   ALPHABETICAL: 'Alphabetical',
@@ -213,7 +207,7 @@ export const EnumGeneration = {
 export type EnumGeneration =
   (typeof EnumGeneration)[keyof typeof EnumGeneration];
 
-export type OutputOptions = {
+export interface OutputOptions {
   workspace?: string;
   target?: string;
   schemas?: string;
@@ -239,26 +233,26 @@ export type OutputOptions = {
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
   propertySortOrder?: PropertySortOrder;
-};
+}
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
   validate?: boolean;
 };
 
-export type InputFiltersOption = {
+export interface InputFiltersOption {
   mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
-};
+}
 
-export type InputOptions = {
+export interface InputOptions {
   target: string | Record<string, unknown> | OpenAPIObject;
   validation?: boolean | object;
   override?: OverrideInput;
   converterOptions?: Partial<ConvertInputOptions>;
   parserOptions?: SwaggerParserOptions;
   filters?: InputFiltersOption;
-};
+}
 
 export const OutputClient = {
   ANGULAR: 'angular',
@@ -305,7 +299,7 @@ export const OutputMockType = {
 export type OutputMockType =
   (typeof OutputMockType)[keyof typeof OutputMockType];
 
-export type GlobalMockOptions = {
+export interface GlobalMockOptions {
   // This is the type of the mock that will be generated
   type: OutputMockType;
   // This is the option to use the examples from the openapi specification where possible to generate mock data
@@ -322,7 +316,7 @@ export type GlobalMockOptions = {
   // This is used to set the locale of the faker library
   locale?: keyof typeof allLocales;
   indexMockFiles?: boolean;
-};
+}
 
 export type OverrideMockOptions = Partial<GlobalMockOptions> & {
   arrayMin?: number;
@@ -343,18 +337,14 @@ export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
   tags?: Record<string, { properties: Record<string, unknown> }>;
 };
 
-export type MockPropertiesObject = {
-  [key: string]: unknown;
-};
+export type MockPropertiesObject = Record<string, unknown>;
 export type MockPropertiesObjectFn = (
   specs: OpenAPIObject,
 ) => MockPropertiesObject;
 
 export type MockProperties = MockPropertiesObject | MockPropertiesObjectFn;
 
-export type MockDataObject = {
-  [key: string]: unknown;
-};
+export type MockDataObject = Record<string, unknown>;
 
 export type MockDataObjectFn = (specs: OpenAPIObject) => MockDataObject;
 
@@ -372,19 +362,19 @@ type OutputTransformerFn = (verb: GeneratorVerbOptions) => GeneratorVerbOptions;
 
 type OutputTransformer = string | OutputTransformerFn;
 
-export type MutatorObject = {
+export interface MutatorObject {
   path: string;
   name?: string;
   default?: boolean;
   alias?: Record<string, string>;
   extension?: string;
-};
+}
 
 export type Mutator = string | MutatorObject;
 
-export type ParamsSerializerOptions = {
+export interface ParamsSerializerOptions {
   qs?: Record<string, any>;
-};
+}
 
 export const FormDataArrayHandling = {
   SERIALIZE: 'serialize',
@@ -416,12 +406,12 @@ export type FormDataType<TMutator> =
       arrayHandling: FormDataArrayHandling;
     };
 
-export type OverrideOutput = {
+export interface OverrideOutput {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: Mutator;
-  operations?: { [key: string]: OperationOptions };
-  tags?: { [key: string]: OperationOptions };
+  operations?: Record<string, OperationOptions>;
+  tags?: Record<string, OperationOptions>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header?: boolean | ((info: InfoObject) => string[] | string);
@@ -471,39 +461,39 @@ export type OverrideOutput = {
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   jsDoc?: JsDocOptions;
-};
+}
 
-export type JsDocOptions = {
+export interface JsDocOptions {
   filter?: (schema: Record<string, any>) => { key: string; value: string }[];
-};
+}
 
-export type NormalizedJsDocOptions = {
+export interface NormalizedJsDocOptions {
   filter?: (schema: Record<string, any>) => { key: string; value: string }[];
-};
+}
 
-export type OverrideOutputContentType = {
+export interface OverrideOutputContentType {
   include?: string[];
   exclude?: string[];
-};
+}
 
-export type NormalizedHonoOptions = {
+export interface NormalizedHonoOptions {
   handlers?: string;
   compositeRoute: string;
   validator: boolean | 'hono';
   validatorOutputPath: string;
-};
+}
 
-export type ZodDateTimeOptions = {
+export interface ZodDateTimeOptions {
   offset?: boolean;
   local?: boolean;
   precision?: number;
-};
+}
 
-export type ZodTimeOptions = {
+export interface ZodTimeOptions {
   precision?: -1 | 0 | 1 | 2 | 3;
-};
+}
 
-export type ZodOptions = {
+export interface ZodOptions {
   strict?: {
     param?: boolean;
     query?: boolean;
@@ -535,11 +525,11 @@ export type ZodOptions = {
   dateTimeOptions?: ZodDateTimeOptions;
   timeOptions?: ZodTimeOptions;
   generateEachHttpStatus?: boolean;
-};
+}
 
 export type ZodCoerceType = 'string' | 'number' | 'boolean' | 'bigint' | 'date';
 
-export type NormalizedZodOptions = {
+export interface NormalizedZodOptions {
   strict: {
     param: boolean;
     query: boolean;
@@ -571,16 +561,16 @@ export type NormalizedZodOptions = {
   generateEachHttpStatus: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
-};
+}
 
-export type HonoOptions = {
+export interface HonoOptions {
   handlers?: string;
   compositeRoute?: string;
   validator?: boolean | 'hono';
   validatorOutputPath?: string;
-};
+}
 
-export type NormalizedQueryOptions = {
+export interface NormalizedQueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
   useMutation?: boolean;
@@ -598,9 +588,9 @@ export type NormalizedQueryOptions = {
   shouldSplitQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
-};
+}
 
-export type QueryOptions = {
+export interface QueryOptions {
   useQuery?: boolean;
   useSuspenseQuery?: boolean;
   useMutation?: boolean;
@@ -618,35 +608,35 @@ export type QueryOptions = {
   shouldSplitQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
-};
+}
 
-export type AngularOptions = {
+export interface AngularOptions {
   provideIn?: 'root' | 'any' | boolean;
-};
+}
 
-export type SwrOptions = {
+export interface SwrOptions {
   useInfinite?: boolean;
   useSWRMutationForGet?: boolean;
   swrOptions?: any;
   swrMutationOptions?: any;
   swrInfiniteOptions?: any;
-};
+}
 
-export type FetchOptions = {
+export interface FetchOptions {
   includeHttpResponseReturnType?: boolean;
   explode?: boolean;
   jsonReviver?: Mutator;
-};
+}
 
 export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
 
 type InputTransformer = string | InputTransformerFn;
 
-export type OverrideInput = {
+export interface OverrideInput {
   transformer?: InputTransformer;
-};
+}
 
-export type OperationOptions = {
+export interface OperationOptions {
   transformer?: OutputTransformer;
   mutator?: Mutator;
   mock?: {
@@ -667,7 +657,7 @@ export type OperationOptions = {
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
   requestOptions?: object | boolean;
-};
+}
 
 export type Hook = 'afterAllFilesWrite';
 
@@ -703,13 +693,13 @@ export const Verbs = {
   HEAD: 'head' as Verbs,
 };
 
-export type ImportOpenApi = {
+export interface ImportOpenApi {
   data: JSONSchema6 | JSONSchema7 | Record<string, unknown | OpenAPIObject>;
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   target: string;
   workspace: string;
-};
+}
 
 export interface ContextSpecs {
   specKey: string;
@@ -767,13 +757,13 @@ export interface PackageJson {
   peerDependencies?: Record<string, string>;
 }
 
-export type GeneratorSchema = {
+export interface GeneratorSchema {
   name: string;
   model: string;
   imports: GeneratorImport[];
-};
+}
 
-export type GeneratorImport = {
+export interface GeneratorImport {
   name: string;
   schemaName?: string;
   isConstant?: boolean;
@@ -782,23 +772,21 @@ export type GeneratorImport = {
   default?: boolean;
   values?: boolean;
   syntheticDefaultImport?: boolean;
-};
+}
 
-export type GeneratorDependency = {
+export interface GeneratorDependency {
   exports: GeneratorImport[];
   dependency: string;
-};
+}
 
-export type GeneratorApiResponse = {
+export interface GeneratorApiResponse {
   operations: GeneratorOperations;
   schemas: GeneratorSchema[];
-};
+}
 
-export type GeneratorOperations = {
-  [operationId: string]: GeneratorOperation;
-};
+export type GeneratorOperations = Record<string, GeneratorOperation>;
 
-export type GeneratorTarget = {
+export interface GeneratorTarget {
   imports: GeneratorImport[];
   implementation: string;
   implementationMock: string;
@@ -809,9 +797,9 @@ export type GeneratorTarget = {
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
-};
+}
 
-export type GeneratorTargetFull = {
+export interface GeneratorTargetFull {
   imports: GeneratorImport[];
   implementation: string;
   implementationMock: {
@@ -826,9 +814,9 @@ export type GeneratorTargetFull = {
   formUrlEncoded?: GeneratorMutator[];
   paramsSerializer?: GeneratorMutator[];
   fetchReviver?: GeneratorMutator[];
-};
+}
 
-export type GeneratorOperation = {
+export interface GeneratorOperation {
   imports: GeneratorImport[];
   implementation: string;
   implementationMock: {
@@ -848,9 +836,9 @@ export type GeneratorOperation = {
   types?: {
     result: (title?: string) => string;
   };
-};
+}
 
-export type GeneratorVerbOptions = {
+export interface GeneratorVerbOptions {
   verb: Verbs;
   route: string;
   pathRoute: string;
@@ -873,30 +861,30 @@ export type GeneratorVerbOptions = {
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
   originalOperation: OperationObject;
-};
+}
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
 
-export type GeneratorOptions = {
+export interface GeneratorOptions {
   route: string;
   pathRoute: string;
   override: NormalizedOverrideOutput;
   context: ContextSpecs;
   mock?: GlobalMockOptions | ClientMockBuilder;
   output: string;
-};
+}
 
-export type GeneratorClient = {
+export interface GeneratorClient {
   implementation: string;
   imports: GeneratorImport[];
   mutators?: GeneratorMutator[];
-};
+}
 
-export type GeneratorMutatorParsingInfo = {
+export interface GeneratorMutatorParsingInfo {
   numberOfParams: number;
   returnNumberOfParams?: number;
-};
-export type GeneratorMutator = {
+}
+export interface GeneratorMutator {
   name: string;
   path: string;
   default: boolean;
@@ -906,7 +894,7 @@ export type GeneratorMutator = {
   hasThirdArg: boolean;
   isHook: boolean;
   bodyTypeName?: string;
-};
+}
 
 export type ClientBuilder = (
   verbOptions: GeneratorVerbOptions,
@@ -915,10 +903,10 @@ export type ClientBuilder = (
   output?: NormalizedOutputOptions,
 ) => GeneratorClient | Promise<GeneratorClient>;
 
-export type ClientFileBuilder = {
+export interface ClientFileBuilder {
   path: string;
   content: string;
-};
+}
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
@@ -958,16 +946,16 @@ export type ClientDependenciesBuilder = (
   override?: NormalizedOverrideOutput,
 ) => GeneratorDependency[];
 
-export type ClientMockGeneratorImplementation = {
+export interface ClientMockGeneratorImplementation {
   function: string;
   handlerName: string;
   handler: string;
-};
+}
 
-export type ClientMockGeneratorBuilder = {
+export interface ClientMockGeneratorBuilder {
   imports: GeneratorImport[];
   implementation: ClientMockGeneratorImplementation;
-};
+}
 
 export type ClientMockBuilder = (
   verbOptions: GeneratorVerbOptions,
@@ -985,7 +973,7 @@ export interface ClientGeneratorsBuilder {
 
 export type GeneratorClients = Record<OutputClient, ClientGeneratorsBuilder>;
 
-export type GetterResponse = {
+export interface GetterResponse {
   imports: GeneratorImport[];
   definition: {
     success: string;
@@ -1000,9 +988,9 @@ export type GetterResponse = {
   schemas: GeneratorSchema[];
 
   originalSchema?: ResponsesObject;
-};
+}
 
-export type GetterBody = {
+export interface GetterBody {
   originalSchema: ReferenceObject | RequestBodyObject;
   imports: GeneratorImport[];
   definition: string;
@@ -1012,30 +1000,30 @@ export type GetterBody = {
   formUrlEncoded?: string;
   contentType: string;
   isOptional: boolean;
-};
+}
 
-export type GetterParameters = {
+export interface GetterParameters {
   query: { parameter: ParameterObject; imports: GeneratorImport[] }[];
   path: { parameter: ParameterObject; imports: GeneratorImport[] }[];
   header: { parameter: ParameterObject; imports: GeneratorImport[] }[];
-};
+}
 
-export type GetterParam = {
+export interface GetterParam {
   name: string;
   definition: string;
   implementation: string;
   default: boolean;
   required: boolean;
   imports: GeneratorImport[];
-};
+}
 
 export type GetterParams = GetterParam[];
-export type GetterQueryParam = {
+export interface GetterQueryParam {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
   originalSchema?: SchemaObject;
-};
+}
 
 export type GetterPropType =
   | 'param'
@@ -1052,13 +1040,13 @@ export const GetterPropType = {
   HEADER: 'header',
 } as const;
 
-type GetterPropBase = {
+interface GetterPropBase {
   name: string;
   definition: string;
   implementation: string;
   default: boolean;
   required: boolean;
-};
+}
 
 export type GetterProp = GetterPropBase &
   (
@@ -1091,7 +1079,7 @@ export const SchemaType = {
   unknown: 'unknown',
 };
 
-export type ScalarValue = {
+export interface ScalarValue {
   value: string;
   isEnum: boolean;
   hasReadonlyProps: boolean;
@@ -1101,7 +1089,7 @@ export type ScalarValue = {
   isRef: boolean;
   example?: any;
   examples?: Record<string, any>;
-};
+}
 
 export type ResolverValue = ScalarValue & {
   originalSchema: SchemaObject;
@@ -1117,7 +1105,7 @@ export type ResReqTypesValue = ScalarValue & {
   originalSchema?: SchemaObject;
 };
 
-export type WriteSpecsBuilder = {
+export interface WriteSpecsBuilder {
   operations: GeneratorOperations;
   schemas: Record<string, GeneratorSchema[]>;
   verbOptions: Record<string, GeneratorVerbOptions>;
@@ -1129,27 +1117,27 @@ export type WriteSpecsBuilder = {
   extraFiles: ClientFileBuilder[];
   info: InfoObject;
   target: string;
-};
+}
 
-export type WriteModeProps = {
+export interface WriteModeProps {
   builder: WriteSpecsBuilder;
   output: NormalizedOutputOptions;
   workspace: string;
   specsName: Record<string, string>;
   header: string;
   needSchema: boolean;
-};
+}
 
-export type GeneratorApiOperations = {
+export interface GeneratorApiOperations {
   verbOptions: Record<string, GeneratorVerbOptions>;
   operations: GeneratorOperations;
   schemas: GeneratorSchema[];
-};
+}
 
-export type GeneratorClientExtra = {
+export interface GeneratorClientExtra {
   implementation: string;
   implementationMock: string;
-};
+}
 
 export type GeneratorClientTitle = (data: {
   outputClient?: OutputClient | OutputClientFunc;

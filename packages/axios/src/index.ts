@@ -49,7 +49,7 @@ const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
+const returnTypesToWrite = new Map<string, (title?: string) => string>();
 
 export const getAxiosDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
@@ -77,7 +77,7 @@ const generateAxiosImplementation = (
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;

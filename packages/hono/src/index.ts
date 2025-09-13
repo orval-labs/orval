@@ -1,4 +1,5 @@
 import {
+  camel,
   ClientBuilder,
   ClientExtraFilesBuilder,
   ClientFooterBuilder,
@@ -12,19 +13,19 @@ import {
   GeneratorVerbOptions,
   getFileInfo,
   getOrvalGeneratedTypes,
+  getParamsInPath,
   jsDoc,
   kebab,
   NormalizedMutator,
   NormalizedOutputOptions,
   pascal,
-  upath,
-  getParamsInPath,
   sanitize,
-  camel,
+  upath,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
 import { InfoObject } from 'openapi3-ts/oas30';
+
 import { getRoute } from './route';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
@@ -227,17 +228,16 @@ const getZvalidatorImports = (
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce<
+    Record<string, GeneratorVerbOptions[]>
+  >((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {});
 };
 
 const generateHandlers = async (
@@ -765,14 +765,14 @@ const generateZodFiles = async (
           };
         }
 
-        const allMutators = zods.reduce(
+        const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
           (acc, z) => {
             (z.mutators ?? []).forEach((mutator) => {
               acc[mutator.name] = mutator;
             });
             return acc;
           },
-          {} as Record<string, GeneratorMutator>,
+          {},
         );
 
         const mutatorsImports = generateMutatorImports({
@@ -817,14 +817,14 @@ const generateZodFiles = async (
     ),
   );
 
-  const allMutators = zods.reduce(
+  const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
     (acc, z) => {
       (z.mutators ?? []).forEach((mutator) => {
         acc[mutator.name] = mutator;
       });
       return acc;
     },
-    {} as Record<string, GeneratorMutator>,
+    {},
   );
 
   const mutatorsImports = generateMutatorImports({

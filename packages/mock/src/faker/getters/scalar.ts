@@ -10,7 +10,9 @@ import {
   pascal,
 } from '@orval/core';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+
 import type { MockDefinition, MockSchemaObject } from '../../types';
+import { isFakerVersionV9 } from '../compatibleV9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
@@ -18,7 +20,6 @@ import {
   resolveMockValue,
 } from '../resolvers';
 import { getMockObject } from './object';
-import { isFakerVersionV9 } from '../compatibleV9';
 
 export const getMockScalar = ({
   item,

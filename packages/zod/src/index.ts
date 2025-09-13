@@ -20,14 +20,6 @@ import {
   stringify,
   ZodCoerceType,
 } from '@orval/core';
-import {
-  isZodVersionV4,
-  getZodDateFormat,
-  getZodTimeFormat,
-  getZodDateTimeFormat,
-  getParameterFunctions,
-  getObjectFunctionName,
-} from './compatibleV4';
 import uniq from 'lodash.uniq';
 import {
   ParameterObject,
@@ -38,6 +30,15 @@ import {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+
+import {
+  getObjectFunctionName,
+  getParameterFunctions,
+  getZodDateFormat,
+  getZodDateTimeFormat,
+  getZodTimeFormat,
+  isZodVersionV4,
+} from './compatibleV4';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -92,10 +93,10 @@ const constsUniqueCounter: Record<string, number> = {};
 // https://github.com/colinhacks/zod#coercion-for-primitives
 const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
 
-export type ZodValidationSchemaDefinition = {
+export interface ZodValidationSchemaDefinition {
   functions: [string, any][];
   consts: string[];
-};
+}
 
 const minAndMaxTypes = ['number', 'string', 'array'];
 
@@ -115,21 +116,21 @@ const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
   if (schema.items && 'properties' in schema.items) {
     return {
       ...schema,
-      items: removeReadOnlyProperties(schema.items as SchemaObject),
+      items: removeReadOnlyProperties(schema.items),
     };
   }
   return schema;
 };
 
-type DateTimeOptions = {
+interface DateTimeOptions {
   offset?: boolean;
   local?: boolean;
   precision?: number;
-};
+}
 
-type TimeOptions = {
+interface TimeOptions {
   precision?: -1 | 0 | 1 | 2 | 3;
-};
+}
 
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | SchemaObject31 | undefined,
@@ -225,7 +226,7 @@ export const generateZodValidationSchemaDefinition = (
        * > Omitting this keyword has the same assertion behavior as an empty array.
        */
       if ('prefixItems' in schema) {
-        const schema31 = schema as SchemaObject31;
+        const schema31 = schema;
 
         if (schema31.prefixItems && schema31.prefixItems.length > 0) {
           functions.push([
@@ -718,9 +719,9 @@ const deference = (
     specKey: resolvedSpecKey ?? childContext.specKey,
   };
 
-  return Object.entries(resolvedSchema).reduce((acc, [key, value]) => {
+  return Object.entries(resolvedSchema).reduce<any>((acc, [key, value]) => {
     if (key === 'properties' && isObject(value)) {
-      acc[key] = Object.entries(value).reduce(
+      acc[key] = Object.entries(value).reduce<Record<string, SchemaObject>>(
         (props, [propKey, propSchema]) => {
           props[propKey] = deference(
             propSchema as SchemaObject | ReferenceObject,
@@ -728,7 +729,7 @@ const deference = (
           );
           return props;
         },
-        {} as Record<string, SchemaObject>,
+        {},
       );
     } else if (key === 'default' || key === 'example' || key === 'examples') {
       acc[key] = value;
@@ -737,7 +738,7 @@ const deference = (
     }
 
     return acc;
-  }, {} as any);
+  }, {});
 };
 
 const parseBodyAndResponse = ({
@@ -886,7 +887,12 @@ const parseParameters = ({
     };
   }
 
-  const defintionsByParameters = data.reduce(
+  const defintionsByParameters = data.reduce<
+    Record<
+      'headers' | 'queryParams' | 'params',
+      Record<string, { functions: [string, any][]; consts: string[] }>
+    >
+  >(
     (acc, val) => {
       const { schema: parameter } = resolveRef<ParameterObject>(val, context);
 
@@ -947,10 +953,7 @@ const parseParameters = ({
       headers: {},
       queryParams: {},
       params: {},
-    } as Record<
-      'headers' | 'queryParams' | 'params',
-      Record<string, { functions: [string, any][]; consts: string[] }>
-    >,
+    },
   );
 
   const headers: ZodValidationSchemaDefinition = {
@@ -1015,10 +1018,7 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters as (
-    | ParameterObject
-    | ReferenceObject
-  )[];
+  const parameters = spec?.[verb]?.parameters!;
   const parsedParameters = parseParameters({
     data: parameters,
     context,

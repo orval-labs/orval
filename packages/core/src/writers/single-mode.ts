@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
 import { WriteModeProps } from '../types';
 import {

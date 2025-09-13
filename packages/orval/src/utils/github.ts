@@ -3,6 +3,7 @@ import { upath } from '@orval/core';
 import { prompt } from 'enquirer';
 import fs from 'fs-extra';
 import https from 'https';
+
 import { request } from './request';
 
 export const getGithubSpecReq = ({

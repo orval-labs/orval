@@ -97,9 +97,7 @@ export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
     const [paramName, paramType] = prop.implementation.split(':');
     if (!paramType) return prop;
     const name =
-      prop.type === GetterPropType.NAMED_PATH_PARAMS
-        ? prop.name
-        : `${paramName}`;
+      prop.type === GetterPropType.NAMED_PATH_PARAMS ? prop.name : paramName;
 
     const [type, defaultValue] = paramType.split('=');
     return {

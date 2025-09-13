@@ -1,15 +1,16 @@
 import { SchemaObject } from 'openapi3-ts/oas30';
+
+import { resolveExampleRefs } from '../resolvers';
 import {
   ContextSpecs,
-  ScalarValue,
   OutputClient,
+  ScalarValue,
   SchemaWithConst,
 } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
-import { getObject } from './object';
 import { combineSchemas } from './combine';
-import { resolveExampleRefs } from '../resolvers';
+import { getObject } from './object';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -106,12 +107,12 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = `${enumItems
+        value = enumItems
           .map((enumItem: string | null) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(` | `)}`;
+          .join(` | `);
 
         isEnum = true;
       }
@@ -173,12 +174,12 @@ export const getScalar = ({
       }
 
       if (enumItems) {
-        const value = `${enumItems
+        const value = enumItems
           .map((enumItem: unknown) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(` | `)}`;
+          .join(` | `);
 
         return {
           value: value + nullable,
