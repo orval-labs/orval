@@ -3488,19 +3488,20 @@ __metadata:
   resolution: "@hono/composite-routes-with-tags-split@workspace:samples/hono/composite-routes-with-tags-split"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20250913.0"
+    "@hono/zod-validator": "npm:^0.7.2"
     hono: "npm:^4.9.7"
     orval: "workspace:*"
     wrangler: "npm:^3.114.14"
   languageName: unknown
   linkType: soft
 
-"@hono/zod-validator@npm:^0.4.3":
-  version: 0.4.3
-  resolution: "@hono/zod-validator@npm:0.4.3"
+"@hono/zod-validator@npm:^0.7.2":
+  version: 0.7.2
+  resolution: "@hono/zod-validator@npm:0.7.2"
   peerDependencies:
     hono: ">=3.9.0"
-    zod: ^3.19.1
-  checksum: 10c0/ad783cff6de379cee11f7b1fd54506b658a8e6e9f6066ba3656f340b0d75ab9a82aad7e67290df6f68fd0242244360215df0c8784fbeb18b60c9f6e1c2ca0807
+    zod: ^3.25.0 || ^4.0.0
+  checksum: 10c0/39471e33bb96163496d88919f86efee1f1ff9ee2bf9f2a2e12e2dd2d8f090c56c57abc38e58a707018e2e4da0e5a06d4a631a57d10a524fa8e70d3bbaa75ca45
   languageName: node
   linkType: hard
 
@@ -6929,7 +6930,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-query@npm:~5.62.0":
+"@tanstack/react-query@npm:~5.62.16":
   version: 5.62.16
   resolution: "@tanstack/react-query@npm:5.62.16"
   dependencies:
@@ -14889,6 +14890,7 @@ __metadata:
   resolution: "hono-app@workspace:samples/hono/hono-with-fetch-client/hono-app"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20250913.0"
+    "@hono/zod-validator": "npm:^0.7.2"
     hono: "npm:^4.9.7"
     wrangler: "npm:^3.114.14"
   languageName: unknown
@@ -14907,7 +14909,7 @@ __metadata:
   resolution: "hono-with-zod@workspace:samples/hono/hono-with-zod"
   dependencies:
     "@cloudflare/workers-types": "npm:^4.20250913.0"
-    "@hono/zod-validator": "npm:^0.4.3"
+    "@hono/zod-validator": "npm:^0.7.2"
     hono: "npm:^4.9.7"
     orval: "workspace:*"
     wrangler: "npm:^3.114.14"
@@ -19531,9 +19533,9 @@ __metadata:
     "@angular/common": "npm:^20.3.0"
     "@angular/core": "npm:^20.3.0"
     "@faker-js/faker": "npm:^9.9.0"
-    "@hono/zod-validator": "npm:^0.4.3"
+    "@hono/zod-validator": "npm:^0.7.2"
     "@modelcontextprotocol/sdk": "npm:1.18.0"
-    "@tanstack/react-query": "npm:~5.62.0"
+    "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tanstack/vue-query": "npm:^4.41.0"
     "@types/react": "npm:18.3.24"
@@ -21610,7 +21612,7 @@ __metadata:
   resolution: "react-query-basic@workspace:samples/react-query/basic"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@tanstack/react-query": "npm:~5.62.0"
+    "@tanstack/react-query": "npm:~5.62.16"
     "@types/node": "npm:^20.19.14"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -21651,7 +21653,7 @@ __metadata:
   resolution: "react-query-custom-fetch@workspace:samples/react-query/custom-fetch"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@tanstack/react-query": "npm:~5.62.0"
+    "@tanstack/react-query": "npm:~5.62.16"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     "@typescript-eslint/eslint-plugin": "npm:^8.43.0"
