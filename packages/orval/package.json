@@ -50,7 +50,7 @@
     "build": "tsup",
     "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint .",
-    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
+    "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
     "test": "tsc --noEmit && vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
