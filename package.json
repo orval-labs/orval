@@ -17,7 +17,7 @@
     "postrelease": "yarn build --force && yarn update-samples && yarn format",
     "prepare": "husky",
     "commitlint": "commitlint",
-    "update-samples": "cd ./samples && yarn && yarn generate-api --force",
+    "update-samples": "cd ./samples && yarn && yarn generate-api --force && yarn format",
     "build": "turbo run build",
     "test": "turbo run test",
     "test:samples": "cd ./samples && yarn && yarn test",
