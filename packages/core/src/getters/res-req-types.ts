@@ -1,7 +1,6 @@
 import { keyword } from 'esutils';
 import type { ValueIteratee } from 'lodash';
 import uniqBy from 'lodash.uniqby';
-
 import {
   MediaTypeObject,
   ReferenceObject,
@@ -9,6 +8,7 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
+
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
@@ -22,9 +22,11 @@ import { isReference } from '../utils/assertion';
 import { pascal } from '../utils/case';
 import { getNumberWord } from '../utils/string';
 
-const formDataContentTypes = ['multipart/form-data'];
+const formDataContentTypes = new Set(['multipart/form-data']);
 
-const formUrlEncodedContentTypes = ['application/x-www-form-urlencoded'];
+const formUrlEncodedContentTypes = new Set([
+  'application/x-www-form-urlencoded',
+]);
 
 const getResReqContentTypes = ({
   mediaType,
@@ -36,7 +38,7 @@ const getResReqContentTypes = ({
   context: ContextSpecs;
 }) => {
   if (!mediaType.schema) {
-    return undefined;
+    return;
   }
 
   const resolvedObject = resolveObject({
@@ -49,9 +51,10 @@ const getResReqContentTypes = ({
 };
 
 export const getResReqTypes = (
-  responsesOrRequests: Array<
-    [string, ResponseObject | ReferenceObject | RequestBodyObject]
-  >,
+  responsesOrRequests: [
+    string,
+    ResponseObject | ReferenceObject | RequestBodyObject,
+  ][],
   name: string,
   context: ContextSpecs,
   defaultType = 'unknown',
@@ -69,9 +72,8 @@ export const getResReqTypes = (
         const [contentType, mediaType] =
           Object.entries(bodySchema.content ?? {})[0] ?? [];
 
-        const isFormData = formDataContentTypes.includes(contentType);
-        const isFormUrlEncoded =
-          formUrlEncodedContentTypes.includes(contentType);
+        const isFormData = formDataContentTypes.has(contentType);
+        const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
 
         if ((!isFormData && !isFormUrlEncoded) || !mediaType?.schema) {
           return [
@@ -169,9 +171,9 @@ export const getResReqTypes = (
               return;
             }
 
-            const isFormData = formDataContentTypes.includes(contentType);
+            const isFormData = formDataContentTypes.has(contentType);
             const isFormUrlEncoded =
-              formUrlEncodedContentTypes.includes(contentType);
+              formUrlEncodedContentTypes.has(contentType);
 
             if ((!isFormData && !isFormUrlEncoded) || !propName) {
               return {
@@ -221,7 +223,7 @@ export const getResReqTypes = (
         );
 
         return contents
-          .filter((x) => x)
+          .filter(Boolean)
           .map((x) => ({ ...x, key })) as ResReqTypesValue[];
       }
 
@@ -240,10 +242,7 @@ export const getResReqTypes = (
       ] as ResReqTypesValue[];
     });
 
-  return uniqBy(
-    typesArray.flatMap((it) => it),
-    uniqueKey,
-  );
+  return uniqBy(typesArray.flat(), uniqueKey);
 };
 
 const getFormDataAdditionalImports = ({
@@ -333,7 +332,7 @@ const getSchemaFormDataAndUrlEncoded = ({
             })
           );
         })
-        .filter((x) => x)
+        .filter(Boolean)
         .join('\n');
 
       form += combinedSchemasFormData;
@@ -414,35 +413,32 @@ const resolveSchemaPropertiesToFormData = ({
 
       let formDataValue = '';
 
-      const formattedKeyPrefix = !isRequestBodyOptional
-        ? ''
-        : !keyword.isIdentifierNameES5(key)
-          ? '?.'
-          : '?';
-      const formattedKey = !keyword.isIdentifierNameES5(key)
-        ? `['${key}']`
-        : `.${key}`;
+      const formattedKeyPrefix = isRequestBodyOptional
+        ? keyword.isIdentifierNameES5(key)
+          ? '?'
+          : '?.'
+        : '';
+      const formattedKey = keyword.isIdentifierNameES5(key)
+        ? `.${key}`
+        : `['${key}']`;
 
       const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
       const nonOptionalValueKey = `${propName}${formattedKey}`;
 
       if (property.type === 'object') {
-        if (
+        formDataValue =
           context.output.override.formData.arrayHandling ===
           FormDataArrayHandling.EXPLODE
-        ) {
-          formDataValue = resolveSchemaPropertiesToFormData({
-            schema: property,
-            variableName,
-            propName: nonOptionalValueKey,
-            context,
-            isRequestBodyOptional,
-            keyPrefix: `${keyPrefix}${key}.`,
-            depth: depth + 1,
-          });
-        } else {
-          formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
-        }
+            ? resolveSchemaPropertiesToFormData({
+                schema: property,
+                variableName,
+                propName: nonOptionalValueKey,
+                context,
+                isRequestBodyOptional,
+                keyPrefix: `${keyPrefix}${key}.`,
+                depth: depth + 1,
+              })
+            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       } else if (property.type === 'array') {
         let valueStr = 'value';
         let hasNonPrimitiveChild = false;

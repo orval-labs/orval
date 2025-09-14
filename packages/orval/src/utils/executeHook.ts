@@ -28,8 +28,8 @@ export const executeHook = async (
       } else if (isObject(command)) {
         await executeObjectCommand(command as HookOption, args);
       }
-    } catch (e) {
-      logError(e, `Failed to run ${name} hook`);
+    } catch (error) {
+      logError(error, `Failed to run ${name} hook`);
     }
   }
 };

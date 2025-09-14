@@ -1,4 +1,5 @@
 import { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveValue } from '../resolvers';
 import {
   ContextSpecs,
@@ -62,7 +63,7 @@ const getQueryParamsTypes = (
       context,
     );
 
-    if (parameterImports.length) {
+    if (parameterImports.length > 0) {
       return {
         definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
           parameterImports[0].name
@@ -121,7 +122,7 @@ export const getQueryParams = ({
   context: ContextSpecs;
   suffix?: string;
 }): GetterQueryParam | undefined => {
-  if (!queryParams.length) {
+  if (queryParams.length === 0) {
     return;
   }
   const types = getQueryParamsTypes(queryParams, operationName, context);

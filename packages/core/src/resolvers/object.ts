@@ -1,4 +1,5 @@
 import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import { ContextSpecs, ResolverValue } from '../types';
 import { jsDoc } from '../utils';
@@ -35,11 +36,9 @@ const resolveObjectOriginal = ({
       (schema.type === 'string' ||
         (Array.isArray(schema.type) && schema.type.includes('string')));
 
-    if (isConstant) {
-      model += `${doc}export const ${propName} = ${constantIsString ? `'${schema.const}'` : schema.const} as const;\n`;
-    } else {
-      model += `${doc}export type ${propName} = ${resolvedValue.value};\n`;
-    }
+    model += isConstant
+      ? `${doc}export const ${propName} = ${constantIsString ? `'${schema.const}'` : schema.const} as const;\n`
+      : `${doc}export type ${propName} = ${resolvedValue.value};\n`;
 
     return {
       value: propName,

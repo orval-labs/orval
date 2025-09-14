@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import findUp from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
+
 import { normalizePath } from './options';
 
 export const loadPackageJson = async (
@@ -80,7 +81,7 @@ const performSubstitution = (
       }
       dependencies[packageName] = sub;
     } else if (version.startsWith('catalog:')) {
-      const catalogName = version.substring('catalog:'.length);
+      const catalogName = version.slice('catalog:'.length);
       const catalog = pnpmWorkspaceFile.catalogs?.[catalogName];
       if (!catalog) {
         log(

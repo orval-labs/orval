@@ -1,4 +1,5 @@
 import { ParameterObject, ReferenceObject } from 'openapi3-ts/oas30';
+
 import { resolveRef } from '../resolvers/ref';
 import { ContextSpecs, GetterParameters } from '../types';
 import { isReference } from '../utils';
@@ -10,7 +11,7 @@ export const getParameters = ({
   parameters: (ReferenceObject | ParameterObject)[];
   context: ContextSpecs;
 }): GetterParameters => {
-  return parameters.reduce(
+  return parameters.reduce<GetterParameters>(
     (acc, p) => {
       if (isReference(p)) {
         const { schema: parameter, imports } = resolveRef<ParameterObject>(
@@ -37,6 +38,6 @@ export const getParameters = ({
       path: [],
       query: [],
       header: [],
-    } as GetterParameters,
+    },
   );
 };

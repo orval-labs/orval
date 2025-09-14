@@ -17,9 +17,10 @@ import {
   upath,
   WriteSpecsBuilder,
 } from '@orval/core';
-import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
-import { getApiBuilder } from './api';
 import { JSONSchema6, JSONSchema7 } from 'json-schema';
+import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
+
+import { getApiBuilder } from './api';
 
 export const importOpenApi = async ({
   data,
@@ -104,7 +105,7 @@ const getApiSchemas = ({
   target: string;
   specs: Record<string, OpenAPIObject>;
 }) => {
-  return Object.entries(specs).reduce(
+  return Object.entries(specs).reduce<Record<string, GeneratorSchema[]>>(
     (acc, [specKey, spec]) => {
       const context: ContextSpecs = {
         specKey,
@@ -150,7 +151,7 @@ const getApiSchemas = ({
         ...parameters,
       ];
 
-      if (!schemas.length) {
+      if (schemas.length === 0) {
         return acc;
       }
 
@@ -158,12 +159,12 @@ const getApiSchemas = ({
 
       return acc;
     },
-    {} as Record<string, GeneratorSchema[]>,
+    {},
   );
 };
 
 const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
-  const keysToOmit = [
+  const keysToOmit = new Set([
     'openapi',
     'info',
     'servers',
@@ -172,30 +173,30 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
     'security',
     'tags',
     'externalDocs',
-  ];
+  ]);
 
   const cleanedSpec = Object.fromEntries(
-    Object.entries(spec).filter(([key]) => !keysToOmit.includes(key)),
+    Object.entries(spec).filter(([key]) => !keysToOmit.has(key)),
   );
 
   if (specKey && isSchema(cleanedSpec)) {
     const name = upath.getSchemaFileName(specKey);
 
-    const additionalKeysToOmit = [
+    const additionalKeysToOmit = new Set([
       'type',
       'properties',
       'allOf',
       'oneOf',
       'anyOf',
       'items',
-    ];
+    ]);
 
     return {
       [name]: cleanedSpec as SchemasObject,
       ...getAllSchemas(
         Object.fromEntries(
           Object.entries(cleanedSpec).filter(
-            ([key]) => !additionalKeysToOmit.includes(key),
+            ([key]) => !additionalKeysToOmit.has(key),
           ),
         ),
       ),

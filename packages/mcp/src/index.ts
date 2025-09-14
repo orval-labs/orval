@@ -1,28 +1,27 @@
 import {
-  generateVerbImports,
+  camel,
   ClientBuilder,
   ClientExtraFilesBuilder,
   ClientGeneratorsBuilder,
   ClientHeaderBuilder,
   ContextSpecs,
   generateMutatorImports,
+  generateVerbImports,
   GeneratorMutator,
   GeneratorVerbOptions,
   getFileInfo,
+  getFullRoute,
   jsDoc,
   NormalizedOutputOptions,
-  upath,
-  camel,
   pascal,
-  getFullRoute,
+  upath,
 } from '@orval/core';
-import { generateZod } from '@orval/zod';
 import {
-  generateRequestFunction as generateFetchRequestFunction,
   generateClient,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
-
+import { generateZod } from '@orval/zod';
 import { InfoObject } from 'openapi3-ts/oas30';
 
 const getHeader = (
@@ -65,12 +64,12 @@ export const getMcpHeader: ClientHeaderBuilder = ({
 
       return imports;
     })
-    .reduce((acc, name) => {
+    .reduce<string[]>((acc, name) => {
       if (!acc.find((i) => i === name)) {
         acc.push(name);
       }
       return acc;
-    }, [] as string[]);
+    }, []);
 
   const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
     ',\n  ',
@@ -80,13 +79,13 @@ export const getMcpHeader: ClientHeaderBuilder = ({
   const relativeFetchClientPath = './http-client';
   const importFetchClientNames = Object.values(verbOptions)
     .flatMap((verbOption) => verbOption.operationName)
-    .reduce((acc, name) => {
+    .reduce<string[]>((acc, name) => {
       if (!acc.find((i) => i === name)) {
         acc.push(name);
       }
 
       return acc;
-    }, [] as string[]);
+    }, []);
 
   const importFetchClientImplementation = `import {\n  ${importFetchClientNames.join(
     ',\n  ',
@@ -123,16 +122,17 @@ export const generateMcp: ClientBuilder = async (verbOptions, options) => {
   }
 
   const handlerArgsName = `${verbOptions.operationName}Args`;
-  const handlerArgsImplementation = handlerArgsTypes.length
-    ? `
+  const handlerArgsImplementation =
+    handlerArgsTypes.length > 0
+      ? `
 export type ${handlerArgsName} = {
 ${handlerArgsTypes.join('\n')}
 }
 `
-    : '';
+      : '';
 
   const fetchParams = [];
-  if (verbOptions.params.length) {
+  if (verbOptions.params.length > 0) {
     const pathParamsArgs = verbOptions.params
       .map((param) => {
         const paramName = param.name.split(': ')[0];
@@ -141,14 +141,14 @@ ${handlerArgsTypes.join('\n')}
       })
       .join(', ');
 
-    fetchParams.push(`${pathParamsArgs}`);
+    fetchParams.push(pathParamsArgs);
   }
   if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
   if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
 
   const handlerName = `${verbOptions.operationName}Handler`;
   const handlerImplementation = `
-export const ${handlerName} = async (${handlerArgsTypes.length ? `args: ${handlerArgsName}` : ''}) => {
+export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}` : ''}) => {
   const res = await ${verbOptions.operationName}(${fetchParams.join(', ')});
 
   return {
@@ -185,7 +185,7 @@ export const generateServer = async (
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
       const imputSchemaTypes = [];
-      if (verbOption.params.length)
+      if (verbOption.params.length > 0)
         imputSchemaTypes.push(
           `  pathParams: ${verbOption.operationName}Params`,
         );
@@ -196,11 +196,12 @@ export const generateServer = async (
       if (verbOption.body.definition)
         imputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
 
-      const imputSchemaImplementation = imputSchemaTypes.length
-        ? `  {
+      const imputSchemaImplementation =
+        imputSchemaTypes.length > 0
+          ? `  {
   ${imputSchemaTypes.join(',\n  ')}
   },`
-        : '';
+          : '';
 
       const toolImplementation = `
 server.tool(
@@ -219,7 +220,7 @@ server.tool(
 
       if (verbOption.headers)
         imports.push(`  ${verbOption.operationName}Header`);
-      if (verbOption.params.length)
+      if (verbOption.params.length > 0)
         imports.push(`  ${verbOption.operationName}Params`);
       if (verbOption.queryParams)
         imports.push(`  ${verbOption.operationName}QueryParams`);
@@ -310,9 +311,9 @@ const generateZodFiles = async (
 
   const allMutators = zods.reduce(
     (acc, z) => {
-      (z.mutators ?? []).forEach((mutator) => {
+      for (const mutator of z.mutators ?? []) {
         acc[mutator.name] = mutator;
-      });
+      }
       return acc;
     },
     {} as Record<string, GeneratorMutator>,

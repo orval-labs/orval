@@ -1,5 +1,4 @@
 import { defineConfig } from 'orval';
-import transformer from '../transformers/add-version.js';
 
 export default defineConfig({
   petstore: {
@@ -12,7 +11,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -29,7 +28,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -46,7 +45,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -61,7 +60,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -76,7 +75,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -91,7 +90,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -107,7 +106,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },

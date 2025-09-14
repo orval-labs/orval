@@ -167,7 +167,7 @@ export default defineConfig({
           useInfinite: true,
           useSWRMutationForGet: true,
           swrOptions: {
-            dedupingInterval: 10000,
+            dedupingInterval: 10_000,
           },
           swrMutationOptions: {
             revalidate: true,

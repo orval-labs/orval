@@ -1,6 +1,7 @@
-import { Parser, ecmaVersion } from 'acorn';
+import { ecmaVersion, Parser } from 'acorn';
 import chalk from 'chalk';
 import fs from 'fs-extra';
+
 import {
   GeneratorMutator,
   GeneratorMutatorParsingInfo,
@@ -54,13 +55,13 @@ export const generateMutator = async ({
     rawFile.includes(`export type ${BODY_TYPE_NAME}`) ||
     rawFile.includes(`export interface ${BODY_TYPE_NAME}`);
 
-  const errorTypeName = !mutator.default
-    ? 'ErrorType'
-    : `${pascal(name)}ErrorType`;
+  const errorTypeName = mutator.default
+    ? `${pascal(name)}ErrorType`
+    : 'ErrorType';
 
-  const bodyTypeName = !mutator.default
-    ? BODY_TYPE_NAME
-    : `${pascal(name)}${BODY_TYPE_NAME}`;
+  const bodyTypeName = mutator.default
+    ? `${pascal(name)}${BODY_TYPE_NAME}`
+    : BODY_TYPE_NAME;
 
   const { file, cached } = await loadFile<string>(importPath, {
     isDefault: false,
@@ -100,9 +101,9 @@ export const generateMutator = async ({
       default: isDefault,
       hasErrorType,
       errorTypeName,
-      hasSecondArg: !isHook
-        ? mutatorInfo.numberOfParams > 1
-        : mutatorInfo.returnNumberOfParams! > 1,
+      hasSecondArg: isHook
+        ? mutatorInfo.returnNumberOfParams! > 1
+        : mutatorInfo.numberOfParams > 1,
       hasThirdArg: mutatorInfo.numberOfParams > 2,
       isHook,
       ...(hasBodyType ? { bodyTypeName } : {}),
@@ -151,7 +152,7 @@ const removeComments = (file: string) => {
   const commentRegex = /\/\/.*|\/\*[\s\S]*?\*\//g;
 
   // Remove comments from the rawFile string
-  const cleanedFile = file.replace(commentRegex, '');
+  const cleanedFile = file.replaceAll(commentRegex, '');
 
   return cleanedFile;
 };
@@ -227,7 +228,7 @@ const parseFile = (
     );
 
     return parseFunction(ast, property.value.body.name);
-  } catch (e) {
+  } catch {
     return;
   }
 };

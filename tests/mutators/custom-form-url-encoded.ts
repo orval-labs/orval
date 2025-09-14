@@ -3,9 +3,9 @@ export const customFormUrlEncoded = <Body extends Record<string, string>>(
 ): URLSearchParams => {
   const formData = new URLSearchParams();
 
-  Object.entries(body).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(body)) {
     formData.append(key, value);
-  });
+  }
 
   return formData;
 };

@@ -1,17 +1,17 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import {
   isObject,
+  isString,
   isUrl,
   log,
   NormalizedOptions,
-  upath,
   SwaggerParserOptions,
+  upath,
   WriteSpecsBuilder,
-  isString,
 } from '@orval/core';
 import chalk from 'chalk';
-import yaml from 'js-yaml';
 import fs from 'fs-extra';
+import yaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
 
@@ -25,13 +25,13 @@ const resolveSpecs = async (
     if (validate) {
       try {
         await SwaggerParser.validate(path, options);
-      } catch (e: any) {
-        if (e?.name === 'ParserError') {
-          throw e;
+      } catch (error: any) {
+        if (error?.name === 'ParserError') {
+          throw error;
         }
 
         if (!isOnlySchema) {
-          log(`⚠️  ${chalk.yellow(e)}`);
+          log(`⚠️  ${chalk.yellow(error)}`);
         }
       }
     }

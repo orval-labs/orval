@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 import { isString, logError, startMessage } from '@orval/core';
 import { cac } from 'cac';
-import { generateConfig, generateSpec } from '../generate';
+
 import pkg from '../../package.json';
+import { generateConfig, generateSpec } from '../generate';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
 
@@ -61,8 +62,8 @@ cli
           async () => {
             try {
               await generateSpec(process.cwd(), normalizedOptions);
-            } catch (e) {
-              logError(e);
+            } catch (error) {
+              logError(error);
             }
           },
           normalizedOptions.input.target as string,
@@ -70,8 +71,8 @@ cli
       } else {
         try {
           await generateSpec(process.cwd(), normalizedOptions);
-        } catch (e) {
-          logError(e);
+        } catch (error) {
+          logError(error);
         }
       }
     } else {

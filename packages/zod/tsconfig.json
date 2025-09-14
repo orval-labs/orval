@@ -1,7 +1,4 @@
 {
-  "extends": "../../tsconfig.base.json",
-  "include": ["src/**/*.ts"],
-  "compilerOptions": {
-    "outDir": "dist"
-  }
+  "extends": "../../tsconfig.base.json"
+  // config that covers all files so eslint can use type checked rules
 }

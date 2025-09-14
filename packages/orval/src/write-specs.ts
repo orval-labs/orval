@@ -21,6 +21,7 @@ import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import { InfoObject } from 'openapi3-ts/oas30';
 import { TypeDocOptions } from 'typedoc';
+
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -46,17 +47,16 @@ export const writeSpecs = async (
   const { output } = options;
   const projectTitle = projectName || info.title;
 
-  const specsName = Object.keys(schemas).reduce(
-    (acc, specKey) => {
-      const basePath = upath.getSpecName(specKey, target);
-      const name = basePath.slice(1).split('/').join('-');
+  const specsName = Object.keys(schemas).reduce<
+    Record<keyof typeof schemas, string>
+  >((acc, specKey) => {
+    const basePath = upath.getSpecName(specKey, target);
+    const name = basePath.slice(1).split('/').join('-');
 
-      acc[specKey] = name;
+    acc[specKey] = name;
 
-      return acc;
-    },
-    {} as Record<keyof typeof schemas, string>,
-  );
+    return acc;
+  }, {});
 
   const header = getHeader(output.override.header, info as InfoObject);
 
@@ -69,9 +69,9 @@ export const writeSpecs = async (
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
-        const schemaPath = !isRootKey(specKey, target)
-          ? upath.join(rootSchemaPath, specsName[specKey])
-          : rootSchemaPath;
+        const schemaPath = isRootKey(specKey, target)
+          ? rootSchemaPath
+          : upath.join(rootSchemaPath, specsName[specKey]);
 
         return writeSchemas({
           schemaPath,
@@ -149,7 +149,7 @@ export const writeSpecs = async (
     }
   }
 
-  if (builder.extraFiles.length) {
+  if (builder.extraFiles.length > 0) {
     await Promise.all(
       builder.extraFiles.map(async (file) =>
         fs.outputFile(file.path, file.content),
@@ -190,10 +190,10 @@ export const writeSpecs = async (
   if (output.biome) {
     try {
       await execa('biome', ['check', '--write', ...paths]);
-    } catch (e: any) {
+    } catch (error: any) {
       const message =
-        e.exitCode === 1
-          ? e.stdout + e.stderr
+        error.exitCode === 1
+          ? error.stdout + error.stderr
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
 
       log(chalk.yellow(message));
@@ -237,10 +237,10 @@ export const writeSpecs = async (
       } else {
         throw new Error('TypeDoc not initialised');
       }
-    } catch (e: any) {
+    } catch (error: any) {
       const message =
-        e.exitCode === 1
-          ? e.stdout + e.stderr
+        error.exitCode === 1
+          ? error.stdout + error.stderr
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
       log(chalk.yellow(message));
@@ -252,14 +252,18 @@ export const writeSpecs = async (
 
 const getWriteMode = (mode: OutputMode) => {
   switch (mode) {
-    case OutputMode.SPLIT:
+    case OutputMode.SPLIT: {
       return writeSplitMode;
-    case OutputMode.TAGS:
+    }
+    case OutputMode.TAGS: {
       return writeTagsMode;
-    case OutputMode.TAGS_SPLIT:
+    }
+    case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
+    }
     case OutputMode.SINGLE:
-    default:
+    default: {
       return writeSingleMode;
+    }
   }
 };

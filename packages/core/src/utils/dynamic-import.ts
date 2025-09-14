@@ -1,5 +1,6 @@
-import { resolve, extname } from 'node:path';
+import { extname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+
 import { isModule, isObject, isString } from './assertion';
 
 export const dynamicImport = async <T>(
@@ -28,7 +29,7 @@ export const dynamicImport = async <T>(
       return data;
     }
 
-    return Promise.resolve<T>(toImport);
+    return toImport;
   } catch (error) {
     throw `Oups... 🍻. Path: ${toImport} => ${error}`;
   }

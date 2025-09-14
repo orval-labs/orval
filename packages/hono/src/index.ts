@@ -1,4 +1,5 @@
 import {
+  camel,
   ClientBuilder,
   ClientExtraFilesBuilder,
   ClientFooterBuilder,
@@ -12,19 +13,19 @@ import {
   GeneratorVerbOptions,
   getFileInfo,
   getOrvalGeneratedTypes,
+  getParamsInPath,
   jsDoc,
   kebab,
   NormalizedMutator,
   NormalizedOutputOptions,
   pascal,
-  upath,
-  getParamsInPath,
   sanitize,
-  camel,
+  upath,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
 import { InfoObject } from 'openapi3-ts/oas30';
+
 import { getRoute } from './route';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
@@ -117,7 +118,7 @@ export const generateHono: ClientBuilder = async (verbOptions, options) => {
   return {
     implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
     imports: [
-      ...verbOptions.params.map((param) => param.imports).flat(),
+      ...verbOptions.params.flatMap((param) => param.imports),
       ...verbOptions.body.imports,
       ...(verbOptions.queryParams
         ? [
@@ -147,7 +148,7 @@ const getHonoHandlers = ({
     if (verbOption.headers) {
       currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
     }
-    if (verbOption.params.length) {
+    if (verbOption.params.length > 0) {
       currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
     }
     if (verbOption.queryParams) {
@@ -194,7 +195,7 @@ const getZvalidatorImports = (
         imports.push(`${verbOption.operationName}Header`);
       }
 
-      if (verbOption.params.length) {
+      if (verbOption.params.length > 0) {
         imports.push(`${verbOption.operationName}Params`);
       }
 
@@ -227,17 +228,16 @@ const getZvalidatorImports = (
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce<
+    Record<string, GeneratorVerbOptions[]>
+  >((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {});
 };
 
 const generateHandlers = async (
@@ -266,7 +266,7 @@ const generateHandlers = async (
 
         const hasZValidator =
           !!verbOption.headers ||
-          !!verbOption.params.length ||
+          verbOption.params.length > 0 ||
           !!verbOption.queryParams ||
           !!verbOption.body.definition;
 
@@ -354,7 +354,7 @@ ${getHonoHandlers({
         const hasZValidator = verbs.some(
           (verb) =>
             !!verb.headers ||
-            !!verb.params.length ||
+            verb.params.length > 0 ||
             !!verb.queryParams ||
             !!verb.body.definition,
         );
@@ -449,7 +449,7 @@ const factory = createFactory();`;
   const hasZValidator = Object.values(verbOptions).some(
     (verb) =>
       !!verb.headers ||
-      !!verb.params.length ||
+      verb.params.length > 0 ||
       !!verb.queryParams ||
       !!verb.body.definition ||
       (verb.response.contentTypes.length === 1 &&
@@ -547,7 +547,7 @@ const factory = createFactory();`;
 
 const getContext = (verbOption: GeneratorVerbOptions) => {
   let paramType = '';
-  if (verbOption.params.length) {
+  if (verbOption.params.length > 0) {
     const params = getParamsInPath(verbOption.pathRoute).map((name) => {
       const param = verbOption.params.find(
         (p) => p.name === sanitize(camel(name), { es5keyword: true }),
@@ -555,7 +555,7 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
       const definition = param?.definition.split(':')[1];
       const required = param?.required ?? false;
       return {
-        definition: `${name}${!required ? '?' : ''}:${definition}`,
+        definition: `${name}${required ? '' : '?'}:${definition}`,
       };
     });
     paramType = `param: {\n ${params
@@ -624,8 +624,8 @@ const generateContext = async (
         const imps = verbs
           .flatMap((verb) => {
             const imports: GeneratorImport[] = [];
-            if (verb.params.length) {
-              imports.push(...verb.params.map((param) => param.imports).flat());
+            if (verb.params.length > 0) {
+              imports.push(...verb.params.flatMap((param) => param.imports));
             }
 
             if (verb.queryParams) {
@@ -682,8 +682,8 @@ const generateContext = async (
   const imps = Object.values(verbOptions)
     .flatMap((verb) => {
       const imports: GeneratorImport[] = [];
-      if (verb.params.length) {
-        imports.push(...verb.params.map((param) => param.imports).flat());
+      if (verb.params.length > 0) {
+        imports.push(...verb.params.flatMap((param) => param.imports));
       }
 
       if (verb.queryParams) {
@@ -767,9 +767,9 @@ const generateZodFiles = async (
 
         const allMutators = zods.reduce(
           (acc, z) => {
-            (z.mutators ?? []).forEach((mutator) => {
+            for (const mutator of z.mutators ?? []) {
               acc[mutator.name] = mutator;
-            });
+            }
             return acc;
           },
           {} as Record<string, GeneratorMutator>,
@@ -819,9 +819,9 @@ const generateZodFiles = async (
 
   const allMutators = zods.reduce(
     (acc, z) => {
-      (z.mutators ?? []).forEach((mutator) => {
+      for (const mutator of z.mutators ?? []) {
         acc[mutator.name] = mutator;
-      });
+      }
       return acc;
     },
     {} as Record<string, GeneratorMutator>,

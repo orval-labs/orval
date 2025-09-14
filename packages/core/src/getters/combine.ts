@@ -1,4 +1,6 @@
+import uniq from 'lodash.uniq';
 import { SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   ContextSpecs,
@@ -7,15 +9,14 @@ import {
   ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal, isSchema } from '../utils';
+import { getNumberWord, isSchema, pascal } from '../utils';
 import {
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
 } from './enum';
-import { getScalar } from './scalar';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import uniq from 'lodash.uniq';
+import { getScalar } from './scalar';
 
 type CombinedData = {
   imports: GeneratorImport[];
@@ -47,7 +48,7 @@ const combineValues = ({
   separator: Separator;
   context: ContextSpecs;
 }) => {
-  const isAllEnums = resolvedData.isEnum.every((v) => v);
+  const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums) {
     return `${resolvedData.values.join(` | `)}${
@@ -78,12 +79,10 @@ const combineValues = ({
       (prop) =>
         !resolvedData.originalSchema.some(
           (schema) =>
-            schema &&
-            schema.properties?.[prop] &&
-            schema.required?.includes(prop),
+            schema?.properties?.[prop] && schema.required?.includes(prop),
         ),
     );
-    if (overrideRequiredProperties.length) {
+    if (overrideRequiredProperties.length > 0) {
       return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
     }
     return joined;
@@ -107,7 +106,7 @@ const combineValues = ({
       );
       values.push(
         `${resolvedData.values[i]}${
-          missingProperties.length
+          missingProperties.length > 0
             ? ` & {${missingProperties.map((p) => `${p}?: never`).join('; ')}}`
             : ''
         }`,
@@ -142,7 +141,7 @@ export const combineSchemas = ({
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
       let propName = name ? name + pascal(separator) : undefined;
-      if (propName && acc.schemas.length) {
+      if (propName && acc.schemas.length > 0) {
         propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
       }
 
@@ -206,7 +205,7 @@ export const combineSchemas = ({
     } as CombinedData,
   );
 
-  const isAllEnums = resolvedData.isEnum.every((v) => v);
+  const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
@@ -223,12 +222,10 @@ export const combineSchemas = ({
       schemas: [
         ...resolvedData.schemas,
         {
-          imports: [
-            ...resolvedData.imports.map<GeneratorImport>((toImport) => ({
-              ...toImport,
-              values: true,
-            })),
-          ],
+          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
+            ...toImport,
+            values: true,
+          })),
           model: newEnum,
           name: name,
         },

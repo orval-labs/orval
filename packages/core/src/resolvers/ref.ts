@@ -6,7 +6,8 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
-import { RefInfo, getRefInfo } from '../getters/ref';
+
+import { getRefInfo, RefInfo } from '../getters/ref';
 import { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
 
@@ -118,24 +119,22 @@ export const resolveExampleRefs = (
   if (!examples) {
     return undefined;
   }
-  if (Array.isArray(examples)) {
-    return examples.map((example) => {
-      if (isReference(example)) {
-        const { schema } = resolveRef<ExampleObject>(example, context);
-        return schema.value;
-      }
-      return example;
-    });
-  } else {
-    return Object.entries(examples).reduce((acc, [key, example]) => {
-      let schema = example;
-      if (isReference(example)) {
-        schema = resolveRef<ExampleObject>(example, context).schema.value;
-      }
-      return {
-        ...acc,
-        [key]: schema,
-      };
-    }, {});
-  }
+  return Array.isArray(examples)
+    ? examples.map((example) => {
+        if (isReference(example)) {
+          const { schema } = resolveRef<ExampleObject>(example, context);
+          return schema.value;
+        }
+        return example;
+      })
+    : Object.entries(examples).reduce((acc, [key, example]) => {
+        let schema = example;
+        if (isReference(example)) {
+          schema = resolveRef<ExampleObject>(example, context).schema.value;
+        }
+        return {
+          ...acc,
+          [key]: schema,
+        };
+      }, {});
 };
