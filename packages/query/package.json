@@ -20,8 +20,8 @@
     "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
-    "@orval/core": "7.11.2",
-    "@orval/fetch": "7.11.2",
+    "@orval/core": "workspace:*",
+    "@orval/fetch": "workspace:*",
     "chalk": "^4.1.2",
     "lodash.omitby": "^4.6.0"
   },

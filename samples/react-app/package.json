@@ -2,23 +2,11 @@
   "name": "react-app",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@faker-js/faker": "^9.8.0",
-    "@types/node": "^14.14.13",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
-    "axios": "^1.8.2",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
-    "react-query": "^3.34.19",
-    "react-scripts": "^5.0.1",
-    "typescript": "^5.2.2"
-  },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "generate-api": "node ../../packages/orval/dist/bin/orval.js"
+    "generate-api": "orval"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -35,9 +23,21 @@
       "last 1 safari version"
     ]
   },
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@types/node": "^20.19.14",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "axios": "^1.12.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-query": "^3.39.3",
+    "react-scripts": "^5.0.1",
+    "typescript": "~5.8.3"
+  },
   "devDependencies": {
-    "msw": "^2.0.2",
-    "orval": "link:../../packages/orval/dist"
+    "msw": "^2.11.2",
+    "orval": "workspace:*"
   },
   "msw": {
     "workerDirectory": "public"

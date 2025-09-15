@@ -13,11 +13,12 @@
     "test": {
       "outputs": []
     },
-    "clean": {
-      "cache": false
-    },
-    "nuke": {
-      "cache": false
+    "clean": { "cache": false },
+    "//#clean": { "cache": false },
+    "nuke": { "cache": false },
+    "//#nuke": { "cache": false },
+    "generate-api": {
+      "dependsOn": ["orval#build"]
     }
   }
 }
