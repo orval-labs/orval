@@ -24,18 +24,118 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 
 // src/bin/orval.ts
-var import_core14 = require("@orval/core");
+var import_core13 = require("@orval/core");
 var import_cac = require("cac");
 
+// package.json
+var package_default = {
+  name: "orval",
+  description: "A swagger client generator for typescript",
+  version: "7.11.2",
+  license: "MIT",
+  files: [
+    "dist"
+  ],
+  bin: "./dist/bin/orval.js",
+  type: "commonjs",
+  exports: {
+    ".": {
+      types: "./dist/src/index.d.ts",
+      default: "./dist/index.js"
+    }
+  },
+  keywords: [
+    "rest",
+    "client",
+    "swagger",
+    "open-api",
+    "fetch",
+    "data fetching",
+    "code-generation",
+    "angular",
+    "react",
+    "react-query",
+    "svelte",
+    "svelte-query",
+    "vue",
+    "vue-query",
+    "msw",
+    "mock",
+    "axios",
+    "vue-query",
+    "vue",
+    "swr",
+    "zod",
+    "hono"
+  ],
+  author: {
+    name: "Victor Bury",
+    email: "victor@anymaniax.com"
+  },
+  repository: {
+    type: "git",
+    url: "git+https://github.com/TheHaff/orval.git"
+  },
+  scripts: {
+    build: "tsup",
+    prepare: "npm run build",
+    dev: "tsup --watch src --onSuccess 'yarn generate-api'",
+    lint: "eslint .",
+    "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
+    test: "tsc --noEmit && vitest",
+    clean: "rimraf .turbo dist",
+    nuke: "rimraf .turbo dist node_modules"
+  },
+  devDependencies: {
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash.uniq": "^4.5.9",
+    eslint: "^9.35.0",
+    "openapi-types": "^12.1.3",
+    rimraf: "^6.0.1",
+    tsup: "^8.5.0",
+    typescript: "^5.9.2",
+    vitest: "^3.2.4"
+  },
+  dependencies: {
+    "@apidevtools/swagger-parser": "^12.0.0",
+    "@orval/angular": "workspace:*",
+    "@orval/axios": "workspace:*",
+    "@orval/core": "workspace:*",
+    "@orval/fetch": "workspace:*",
+    "@orval/hono": "workspace:*",
+    "@orval/mcp": "workspace:*",
+    "@orval/mock": "workspace:*",
+    "@orval/query": "workspace:*",
+    "@orval/swr": "workspace:*",
+    "@orval/zod": "workspace:*",
+    cac: "^6.7.14",
+    chalk: "^4.1.2",
+    chokidar: "^4.0.3",
+    enquirer: "^2.4.1",
+    execa: "^5.1.1",
+    "find-up": "5.0.0",
+    "fs-extra": "^11.3.1",
+    "js-yaml": "4.1.0",
+    "lodash.uniq": "^4.5.0",
+    "openapi3-ts": "4.5.0",
+    "string-argv": "^0.3.2",
+    tsconfck: "^2.1.2",
+    typedoc: "^0.28.12",
+    "typedoc-plugin-coverage": "^4.0.1",
+    "typedoc-plugin-markdown": "^4.8.1"
+  }
+};
+
 // src/generate.ts
-var import_core13 = require("@orval/core");
+var import_core12 = require("@orval/core");
 
 // src/import-specs.ts
 var import_swagger_parser = __toESM(require("@apidevtools/swagger-parser"));
-var import_core5 = require("@orval/core");
+var import_core4 = require("@orval/core");
 var import_chalk = __toESM(require("chalk"));
-var import_js_yaml = __toESM(require("js-yaml"));
 var import_fs_extra = __toESM(require("fs-extra"));
+var import_js_yaml = __toESM(require("js-yaml"));
 
 // src/import-open-api.ts
 var import_core3 = require("@orval/core");
@@ -50,11 +150,11 @@ var import_axios = __toESM(require("@orval/axios"));
 var import_core = require("@orval/core");
 var import_fetch = __toESM(require("@orval/fetch"));
 var import_hono = __toESM(require("@orval/hono"));
+var import_mcp = __toESM(require("@orval/mcp"));
 var mock = __toESM(require("@orval/mock"));
 var import_query = __toESM(require("@orval/query"));
 var import_swr = __toESM(require("@orval/swr"));
 var import_zod = __toESM(require("@orval/zod"));
-var import_mcp = __toESM(require("@orval/mcp"));
 var DEFAULT_CLIENT = import_core.OutputClient.AXIOS;
 var getGeneratorClient = (outputClient, output) => {
   const GENERATOR_CLIENT = {
@@ -291,7 +391,7 @@ var getApiBuilder = async ({
         resolvedVerbs = schema;
         resolvedContext = {
           ...context,
-          ...imports.length ? {
+          ...imports.length > 0 ? {
             specKey: imports[0].specKey
           } : {}
         };
@@ -324,8 +424,7 @@ var getApiBuilder = async ({
           if (headers) {
             acc2.push(headers.schema, ...headers.deps);
           }
-          acc2.push(...body.schemas);
-          acc2.push(...response.schemas);
+          acc2.push(...body.schemas, ...response.schemas);
           return acc2;
         },
         []
@@ -352,9 +451,9 @@ var getApiBuilder = async ({
         },
         output
       );
-      verbsOptions.forEach((verbOption) => {
+      for (const verbOption of verbsOptions) {
         acc.verbOptions[verbOption.operationId] = verbOption;
-      });
+      }
       acc.schemas.push(...schemas);
       acc.operations = { ...acc.operations, ...pathOperations };
       return acc;
@@ -385,7 +484,6 @@ var getApiBuilder = async ({
 };
 
 // src/import-open-api.ts
-var import_core4 = require("@orval/core");
 var importOpenApi = async ({
   data,
   input,
@@ -471,7 +569,10 @@ var getApiSchemas = ({
           (op) => op.path.startsWith(specKey) || specKey === target
         );
         if (specFilteredOperations.length > 0) {
-          parsedSchemas = (0, import_core3.filterSchemasByDependencies)(specFilteredOperations, parsedSchemas);
+          parsedSchemas = (0, import_core3.filterSchemasByDependencies)(
+            specFilteredOperations,
+            parsedSchemas
+          );
         }
       }
       const schemaDefinition = (0, import_core3.generateSchemasDefinition)(
@@ -501,7 +602,7 @@ var getApiSchemas = ({
         ...bodyDefinition,
         ...parameters
       ];
-      if (!schemas.length) {
+      if (schemas.length === 0) {
         return acc;
       }
       acc[specKey] = schemas;
@@ -511,7 +612,7 @@ var getApiSchemas = ({
   );
 };
 var getAllSchemas = (spec, specKey) => {
-  const keysToOmit = [
+  const keysToOmit = /* @__PURE__ */ new Set([
     "openapi",
     "info",
     "servers",
@@ -520,26 +621,26 @@ var getAllSchemas = (spec, specKey) => {
     "security",
     "tags",
     "externalDocs"
-  ];
+  ]);
   const cleanedSpec = Object.fromEntries(
-    Object.entries(spec).filter(([key]) => !keysToOmit.includes(key))
+    Object.entries(spec).filter(([key]) => !keysToOmit.has(key))
   );
   if (specKey && (0, import_core3.isSchema)(cleanedSpec)) {
     const name = import_core3.upath.getSchemaFileName(specKey);
-    const additionalKeysToOmit = [
+    const additionalKeysToOmit = /* @__PURE__ */ new Set([
       "type",
       "properties",
       "allOf",
       "oneOf",
       "anyOf",
       "items"
-    ];
+    ]);
     return {
       [name]: cleanedSpec,
       ...getAllSchemas(
         Object.fromEntries(
           Object.entries(cleanedSpec).filter(
-            ([key]) => !additionalKeysToOmit.includes(key)
+            ([key]) => !additionalKeysToOmit.has(key)
           )
         )
       )
@@ -568,9 +669,9 @@ var getFilteredOperations = (spec, filters) => {
     return [];
   }
   const operations = [];
-  const filteredPaths = (0, import_core4._filteredPaths)(spec.paths, filters);
+  const filteredPaths = (0, import_core3._filteredPaths)(spec.paths, filters);
   filteredPaths.forEach(([pathRoute, verbs]) => {
-    const filteredVerbs = (0, import_core4._filteredVerbs)(verbs, filters, pathRoute);
+    const filteredVerbs = (0, import_core3._filteredVerbs)(verbs, filters, pathRoute);
     filteredVerbs.forEach(([method, operation]) => {
       operations.push({
         operation,
@@ -588,12 +689,12 @@ var resolveSpecs = async (path, { validate, ...options }, isUrl3, isOnlySchema) 
     if (validate) {
       try {
         await import_swagger_parser.default.validate(path, options);
-      } catch (e) {
-        if (e?.name === "ParserError") {
-          throw e;
+      } catch (error) {
+        if (error?.name === "ParserError") {
+          throw error;
         }
         if (!isOnlySchema) {
-          (0, import_core5.log)(`\u26A0\uFE0F  ${import_chalk.default.yellow(e)}`);
+          (0, import_core4.log)(`\u26A0\uFE0F  ${import_chalk.default.yellow(error)}`);
         }
       }
     }
@@ -602,7 +703,7 @@ var resolveSpecs = async (path, { validate, ...options }, isUrl3, isOnlySchema) 
       return data;
     }
     return Object.fromEntries(
-      Object.entries(data).sort().map(([key, value]) => [import_core5.upath.resolve(key), value])
+      Object.entries(data).sort().map(([key, value]) => [import_core4.upath.resolve(key), value])
     );
   } catch {
     const file = await import_fs_extra.default.readFile(path, "utf8");
@@ -613,7 +714,7 @@ var resolveSpecs = async (path, { validate, ...options }, isUrl3, isOnlySchema) 
 };
 var importSpecs = async (workspace, options) => {
   const { input, output } = options;
-  if (!(0, import_core5.isString)(input.target)) {
+  if (!(0, import_core4.isString)(input.target)) {
     return importOpenApi({
       data: { [workspace]: input.target },
       input,
@@ -622,7 +723,7 @@ var importSpecs = async (workspace, options) => {
       workspace
     });
   }
-  const isPathUrl = (0, import_core5.isUrl)(input.target);
+  const isPathUrl = (0, import_core4.isUrl)(input.target);
   const data = await resolveSpecs(
     input.target,
     input.parserOptions,
@@ -639,117 +740,20 @@ var importSpecs = async (workspace, options) => {
 };
 
 // src/utils/options.ts
-var import_core9 = require("@orval/core");
+var import_core8 = require("@orval/core");
 var import_mock2 = require("@orval/mock");
 var import_chalk3 = __toESM(require("chalk"));
 
-// package.json
-var package_default = {
-  name: "orval",
-  description: "A swagger client generator for typescript",
-  version: "7.11.2",
-  license: "MIT",
-  files: [
-    "dist"
-  ],
-  bin: "./dist/bin/orval.js",
-  type: "commonjs",
-  exports: {
-    ".": {
-      types: "./dist/src/index.d.ts",
-      default: "./dist/index.js"
-    }
-  },
-  keywords: [
-    "rest",
-    "client",
-    "swagger",
-    "open-api",
-    "fetch",
-    "data fetching",
-    "code-generation",
-    "angular",
-    "react",
-    "react-query",
-    "svelte",
-    "svelte-query",
-    "vue",
-    "vue-query",
-    "msw",
-    "mock",
-    "axios",
-    "vue-query",
-    "vue",
-    "swr",
-    "zod",
-    "hono"
-  ],
-  author: {
-    name: "Victor Bury",
-    email: "victor@anymaniax.com"
-  },
-  repository: {
-    type: "git",
-    url: "git+https://github.com/hafsteinningason/orval.git"
-  },
-  scripts: {
-    build: "tsup",
-    prepare: "npm run build",
-    dev: "tsup --watch src --onSuccess 'yarn generate-api'",
-    lint: "eslint src/**/*.ts",
-    "generate-api": "node ./dist/bin/orval.js --config ../../samples/react-query/basic/orval.config.ts",
-    test: "tsc --noEmit && vitest",
-    clean: "rimraf .turbo dist",
-    nuke: "rimraf .turbo dist node_modules"
-  },
-  devDependencies: {
-    "@types/fs-extra": "^11.0.4",
-    "@types/js-yaml": "^4.0.9",
-    "@types/lodash.uniq": "^4.5.9",
-    rimraf: "^6.0.1",
-    vitest: "^3.2.4"
-  },
-  dependencies: {
-    "@apidevtools/swagger-parser": "^12.0.0",
-    "@orval/angular": "7.11.2",
-    "@orval/axios": "7.11.2",
-    "@orval/core": "7.11.2",
-    "@orval/fetch": "7.11.2",
-    "@orval/hono": "7.11.2",
-    "@orval/mcp": "7.11.2",
-    "@orval/mock": "7.11.2",
-    "@orval/query": "7.11.2",
-    "@orval/swr": "7.11.2",
-    "@orval/zod": "7.11.2",
-    cac: "^6.7.14",
-    chalk: "^4.1.2",
-    chokidar: "^4.0.3",
-    enquirer: "^2.4.1",
-    execa: "^5.1.1",
-    "find-up": "5.0.0",
-    "fs-extra": "^11.3.1",
-    "js-yaml": "4.1.0",
-    "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.5.0",
-    "string-argv": "^0.3.2",
-    tsconfck: "^2.1.2",
-    typedoc: "^0.28.9",
-    "typedoc-plugin-coverage": "^4.0.1",
-    "typedoc-plugin-markdown": "^4.8.1",
-    typescript: "^5.6.3"
-  }
-};
-
 // src/utils/github.ts
-var import_core6 = require("@orval/core");
+var import_core5 = require("@orval/core");
 var import_enquirer = require("enquirer");
 var import_fs_extra2 = __toESM(require("fs-extra"));
 
 // src/utils/request.ts
-var import_https = __toESM(require("https"));
+var import_node_https = __toESM(require("https"));
 var request = (urlOptions, data) => {
   return new Promise((resolve, reject) => {
-    const req = import_https.default.request(urlOptions, (res) => {
+    const req = import_node_https.default.request(urlOptions, (res) => {
       let body = "";
       res.on("data", (chunk) => body += chunk.toString());
       res.on("error", reject);
@@ -814,7 +818,7 @@ var getGithubAcessToken = async (githubTokenPath) => {
     return githubToken;
   }
   if (await import_fs_extra2.default.pathExists(githubTokenPath)) {
-    return import_fs_extra2.default.readFile(githubTokenPath, "utf-8");
+    return import_fs_extra2.default.readFile(githubTokenPath, "utf8");
   } else {
     const answers = await (0, import_enquirer.prompt)([
       {
@@ -836,7 +840,7 @@ var getGithubAcessToken = async (githubTokenPath) => {
   }
 };
 var getGithubOpenApi = async (url) => {
-  const githubTokenPath = import_core6.upath.join(__dirname, ".githubToken");
+  const githubTokenPath = import_core5.upath.join(__dirname, ".githubToken");
   const accessToken = await getGithubAcessToken(githubTokenPath);
   const [info] = url.split("github.com/").slice(-1);
   const [owner, repo, , branch, ...paths] = info.split("/");
@@ -861,11 +865,11 @@ var getGithubOpenApi = async (url) => {
       }
     }
     return body.data?.repository?.object.text;
-  } catch (e) {
-    if (!e.body) {
-      throw `Oups... \u{1F37B}. ${e}`;
+  } catch (error) {
+    if (!error.body) {
+      throw `Oups... \u{1F37B}. ${error}`;
     }
-    if (e.body.message === "Bad credentials") {
+    if (error.body.message === "Bad credentials") {
       const answers = await (0, import_enquirer.prompt)([
         {
           type: "confirm",
@@ -877,7 +881,7 @@ var getGithubOpenApi = async (url) => {
         await import_fs_extra2.default.unlink(githubTokenPath);
       }
     }
-    throw e.body.message || `Oups... \u{1F37B}. ${e}`;
+    throw error.body.message || `Oups... \u{1F37B}. ${error}`;
   }
 };
 var githubResolver = {
@@ -891,7 +895,7 @@ var githubResolver = {
 };
 
 // src/utils/package-json.ts
-var import_core7 = require("@orval/core");
+var import_core6 = require("@orval/core");
 var import_chalk2 = __toESM(require("chalk"));
 var import_find_up = __toESM(require("find-up"));
 var import_fs_extra3 = __toESM(require("fs-extra"));
@@ -900,7 +904,7 @@ var loadPackageJson = async (packageJson, workspace = process.cwd()) => {
   if (!packageJson) {
     const pkgPath = await (0, import_find_up.default)(["package.json"], { cwd: workspace });
     if (pkgPath) {
-      const pkg = await (0, import_core7.dynamicImport)(pkgPath, workspace);
+      const pkg = await (0, import_core6.dynamicImport)(pkgPath, workspace);
       return await maybeReplaceCatalog(pkg, workspace);
     }
     return;
@@ -917,12 +921,12 @@ var maybeReplaceCatalog = async (pkg, workspace) => {
     ...Object.entries(pkg.dependencies ?? {}),
     ...Object.entries(pkg.devDependencies ?? {}),
     ...Object.entries(pkg.peerDependencies ?? {})
-  ].some(([, value]) => (0, import_core7.isString)(value) && value.startsWith("catalog:"))) {
+  ].some(([, value]) => (0, import_core6.isString)(value) && value.startsWith("catalog:"))) {
     return pkg;
   }
   const filePath = await (0, import_find_up.default)("pnpm-workspace.yaml", { cwd: workspace });
   if (!filePath) {
-    (0, import_core7.log)(
+    (0, import_core6.log)(
       `\u26A0\uFE0F  ${import_chalk2.default.yellow("package.json contains pnpm catalog: in dependencies, but no pnpm-workspace.yaml was found.")}`
     );
     return pkg;
@@ -939,31 +943,31 @@ var performSubstitution = (dependencies, pnpmWorkspaceFile) => {
   for (const [packageName, version] of Object.entries(dependencies)) {
     if (version === "catalog:" || version === "catalog:default") {
       if (!pnpmWorkspaceFile.catalog) {
-        (0, import_core7.log)(
+        (0, import_core6.log)(
           `\u26A0\uFE0F  ${import_chalk2.default.yellow(`when reading from pnpm-workspace.yaml, catalog: substitution for the package '${packageName}' failed as there were no default catalog.`)}`
         );
         continue;
       }
       const sub = pnpmWorkspaceFile.catalog[packageName];
       if (!sub) {
-        (0, import_core7.log)(
+        (0, import_core6.log)(
           `\u26A0\uFE0F  ${import_chalk2.default.yellow(`when reading from pnpm-workspace.yaml, catalog: substitution for the package '${packageName}' failed as there were no matching package in the default catalog.`)}`
         );
         continue;
       }
       dependencies[packageName] = sub;
     } else if (version.startsWith("catalog:")) {
-      const catalogName = version.substring("catalog:".length);
+      const catalogName = version.slice("catalog:".length);
       const catalog = pnpmWorkspaceFile.catalogs?.[catalogName];
       if (!catalog) {
-        (0, import_core7.log)(
+        (0, import_core6.log)(
           `\u26A0\uFE0F  ${import_chalk2.default.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(pnpmWorkspaceFile.catalogs ?? {}).join(", ")})`)}`
         );
         continue;
       }
       const sub = catalog[packageName];
       if (!sub) {
-        (0, import_core7.log)(
+        (0, import_core6.log)(
           `\u26A0\uFE0F  ${import_chalk2.default.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(", ")})`)}`
         );
         continue;
@@ -974,12 +978,12 @@ var performSubstitution = (dependencies, pnpmWorkspaceFile) => {
 };
 
 // src/utils/tsconfig.ts
-var import_core8 = require("@orval/core");
+var import_core7 = require("@orval/core");
 var import_find_up2 = __toESM(require("find-up"));
 var import_fs_extra4 = __toESM(require("fs-extra"));
 var import_tsconfck = require("tsconfck");
 var loadTsconfig = async (tsconfig, workspace = process.cwd()) => {
-  if ((0, import_core8.isUndefined)(tsconfig)) {
+  if ((0, import_core7.isUndefined)(tsconfig)) {
     const configPath = await (0, import_find_up2.default)(["tsconfig.json", "jsconfig.json"], {
       cwd: workspace
     });
@@ -989,7 +993,7 @@ var loadTsconfig = async (tsconfig, workspace = process.cwd()) => {
     }
     return;
   }
-  if ((0, import_core8.isString)(tsconfig)) {
+  if ((0, import_core7.isString)(tsconfig)) {
     const normalizedPath = normalizePath(tsconfig, workspace);
     if (import_fs_extra4.default.existsSync(normalizedPath)) {
       const config = await (0, import_tsconfck.parse)(normalizedPath);
@@ -1000,7 +1004,7 @@ var loadTsconfig = async (tsconfig, workspace = process.cwd()) => {
     }
     return;
   }
-  if ((0, import_core8.isObject)(tsconfig)) {
+  if ((0, import_core7.isObject)(tsconfig)) {
     return tsconfig;
   }
   return;
@@ -1008,12 +1012,12 @@ var loadTsconfig = async (tsconfig, workspace = process.cwd()) => {
 
 // src/utils/options.ts
 var createFormData = (workspace, formData) => {
-  const defaultArrayHandling = import_core9.FormDataArrayHandling.SERIALIZE;
+  const defaultArrayHandling = import_core8.FormDataArrayHandling.SERIALIZE;
   if (formData === void 0)
     return { disabled: false, arrayHandling: defaultArrayHandling };
-  if ((0, import_core9.isBoolean)(formData))
+  if ((0, import_core8.isBoolean)(formData))
     return { disabled: !formData, arrayHandling: defaultArrayHandling };
-  if ((0, import_core9.isString)(formData))
+  if ((0, import_core8.isString)(formData))
     return {
       disabled: false,
       mutator: normalizeMutator(workspace, formData),
@@ -1032,17 +1036,17 @@ var createFormData = (workspace, formData) => {
   };
 };
 var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOptions = {}) => {
-  const options = await ((0, import_core9.isFunction)(optionsExport) ? optionsExport() : optionsExport);
+  const options = await ((0, import_core8.isFunction)(optionsExport) ? optionsExport() : optionsExport);
   if (!options.input) {
-    (0, import_core9.createLogger)().error(import_chalk3.default.red(`Config require an input`));
+    (0, import_core8.createLogger)().error(import_chalk3.default.red(`Config require an input`));
     process.exit(1);
   }
   if (!options.output) {
-    (0, import_core9.createLogger)().error(import_chalk3.default.red(`Config require an output`));
+    (0, import_core8.createLogger)().error(import_chalk3.default.red(`Config require an output`));
     process.exit(1);
   }
-  const inputOptions = (0, import_core9.isString)(options.input) ? { target: options.input } : options.input;
-  const outputOptions = (0, import_core9.isString)(options.output) ? { target: options.output } : options.output;
+  const inputOptions = (0, import_core8.isString)(options.input) ? { target: options.input } : options.input;
+  const outputOptions = (0, import_core8.isString)(options.output) ? { target: options.output } : options.output;
   const outputWorkspace = normalizePath(
     outputOptions.workspace || "",
     workspace
@@ -1060,15 +1064,15 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
   let mock2;
   if (typeof mockOption === "boolean" && mockOption) {
     mock2 = import_mock2.DEFAULT_MOCK_OPTIONS;
-  } else if ((0, import_core9.isFunction)(mockOption)) {
+  } else if ((0, import_core8.isFunction)(mockOption)) {
     mock2 = mockOption;
-  } else if (!mockOption) {
-    mock2 = void 0;
-  } else {
+  } else if (mockOption) {
     mock2 = {
       ...import_mock2.DEFAULT_MOCK_OPTIONS,
       ...mockOption
     };
+  } else {
+    mock2 = void 0;
   }
   const defaultFileExtension = ".ts";
   const globalQueryOptions = {
@@ -1092,7 +1096,7 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
         )
       },
       converterOptions: inputOptions.converterOptions ?? {},
-      parserOptions: (0, import_core9.mergeDeep)(
+      parserOptions: (0, import_core8.mergeDeep)(
         parserDefaultOptions,
         inputOptions.parserOptions ?? {}
       ),
@@ -1101,11 +1105,11 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
     output: {
       target: globalOptions.output ? normalizePath(globalOptions.output, process.cwd()) : normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
-      namingConvention: outputOptions.namingConvention || import_core9.NamingConvention.CAMEL_CASE,
+      namingConvention: outputOptions.namingConvention || import_core8.NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension || defaultFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : void 0,
-      client: outputOptions.client ?? client ?? import_core9.OutputClient.AXIOS_FUNCTIONS,
-      httpClient: outputOptions.httpClient ?? httpClient ?? import_core9.OutputHttpClient.AXIOS,
+      client: outputOptions.client ?? client ?? import_core8.OutputClient.AXIOS_FUNCTIONS,
+      httpClient: outputOptions.httpClient ?? httpClient ?? import_core8.OutputHttpClient.AXIOS,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock: mock2,
       clean: outputOptions.clean ?? clean ?? false,
@@ -1150,34 +1154,34 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
           outputWorkspace,
           outputOptions.override?.formData
         ),
-        formUrlEncoded: (!(0, import_core9.isBoolean)(outputOptions.override?.formUrlEncoded) ? normalizeMutator(
+        formUrlEncoded: ((0, import_core8.isBoolean)(outputOptions.override?.formUrlEncoded) ? outputOptions.override?.formUrlEncoded : normalizeMutator(
           outputWorkspace,
           outputOptions.override?.formUrlEncoded
-        ) : outputOptions.override?.formUrlEncoded) ?? true,
+        )) ?? true,
         paramsSerializer: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.paramsSerializer
         ),
-        header: outputOptions.override?.header === false ? false : (0, import_core9.isFunction)(outputOptions.override?.header) ? outputOptions.override?.header : getDefaultFilesHeader,
+        header: outputOptions.override?.header === false ? false : (0, import_core8.isFunction)(outputOptions.override?.header) ? outputOptions.override?.header : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
         namingConvention: outputOptions.override?.namingConvention ?? {},
         components: {
           schemas: {
-            suffix: import_core9.RefComponentSuffix.schemas,
+            suffix: import_core8.RefComponentSuffix.schemas,
             itemSuffix: outputOptions.override?.components?.schemas?.itemSuffix ?? "Item",
-            ...outputOptions.override?.components?.schemas ?? {}
+            ...outputOptions.override?.components?.schemas
           },
           responses: {
-            suffix: import_core9.RefComponentSuffix.responses,
-            ...outputOptions.override?.components?.responses ?? {}
+            suffix: import_core8.RefComponentSuffix.responses,
+            ...outputOptions.override?.components?.responses
           },
           parameters: {
-            suffix: import_core9.RefComponentSuffix.parameters,
-            ...outputOptions.override?.components?.parameters ?? {}
+            suffix: import_core8.RefComponentSuffix.parameters,
+            ...outputOptions.override?.components?.parameters
           },
           requestBodies: {
-            suffix: import_core9.RefComponentSuffix.requestBodies,
-            ...outputOptions.override?.components?.requestBodies ?? {}
+            suffix: import_core8.RefComponentSuffix.requestBodies,
+            ...outputOptions.override?.components?.requestBodies
           }
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
@@ -1242,7 +1246,7 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {}
         },
         swr: {
-          ...outputOptions.override?.swr ?? {}
+          ...outputOptions.override?.swr
         },
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? "root"
@@ -1250,7 +1254,7 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
         fetch: {
           includeHttpResponseReturnType: outputOptions.override?.fetch?.includeHttpResponseReturnType ?? true,
           explode: outputOptions.override?.fetch?.explode ?? true,
-          ...outputOptions.override?.fetch ?? {}
+          ...outputOptions.override?.fetch
         },
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations: outputOptions.override?.useDeprecatedOperations ?? true,
@@ -1260,16 +1264,16 @@ var normalizeOptions = async (optionsExport, workspace = process.cwd(), globalOp
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,
       optionsParamRequired: outputOptions.optionsParamRequired ?? false,
-      propertySortOrder: outputOptions.propertySortOrder ?? import_core9.PropertySortOrder.SPECIFICATION
+      propertySortOrder: outputOptions.propertySortOrder ?? import_core8.PropertySortOrder.SPECIFICATION
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {}
   };
   if (!normalizedOptions.input.target) {
-    (0, import_core9.createLogger)().error(import_chalk3.default.red(`Config require an input target`));
+    (0, import_core8.createLogger)().error(import_chalk3.default.red(`Config require an input target`));
     process.exit(1);
   }
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    (0, import_core9.createLogger)().error(
+    (0, import_core8.createLogger)().error(
       import_chalk3.default.red(`Config require an output target or schemas`)
     );
     process.exit(1);
@@ -1281,36 +1285,36 @@ var parserDefaultOptions = {
   resolve: { github: githubResolver }
 };
 var normalizeMutator = (workspace, mutator) => {
-  if ((0, import_core9.isObject)(mutator)) {
+  if ((0, import_core8.isObject)(mutator)) {
     if (!mutator.path) {
-      (0, import_core9.createLogger)().error(import_chalk3.default.red(`Mutator need a path`));
+      (0, import_core8.createLogger)().error(import_chalk3.default.red(`Mutator need a path`));
       process.exit(1);
     }
     return {
       ...mutator,
-      path: import_core9.upath.resolve(workspace, mutator.path),
+      path: import_core8.upath.resolve(workspace, mutator.path),
       default: (mutator.default || !mutator.name) ?? false
     };
   }
-  if ((0, import_core9.isString)(mutator)) {
+  if ((0, import_core8.isString)(mutator)) {
     return {
-      path: import_core9.upath.resolve(workspace, mutator),
+      path: import_core8.upath.resolve(workspace, mutator),
       default: true
     };
   }
   return mutator;
 };
 var normalizePathOrUrl = (path, workspace) => {
-  if ((0, import_core9.isString)(path) && !(0, import_core9.isUrl)(path)) {
+  if ((0, import_core8.isString)(path) && !(0, import_core8.isUrl)(path)) {
     return normalizePath(path, workspace);
   }
   return path;
 };
 var normalizePath = (path, workspace) => {
-  if (!(0, import_core9.isString)(path)) {
+  if (!(0, import_core8.isString)(path)) {
     return path;
   }
-  return import_core9.upath.resolve(workspace, path);
+  return import_core8.upath.resolve(workspace, path);
 };
 var normalizeOperationsAndTags = (operationsOrTags, workspace, global) => {
   return Object.fromEntries(
@@ -1399,7 +1403,7 @@ var normalizeOperationsAndTags = (operationsOrTags, workspace, global) => {
             ...mutator ? { mutator: normalizeMutator(workspace, mutator) } : {},
             ...createFormData(workspace, formData),
             ...formUrlEncoded ? {
-              formUrlEncoded: !(0, import_core9.isBoolean)(formUrlEncoded) ? normalizeMutator(workspace, formUrlEncoded) : formUrlEncoded
+              formUrlEncoded: (0, import_core8.isBoolean)(formUrlEncoded) ? formUrlEncoded : normalizeMutator(workspace, formUrlEncoded)
             } : {},
             ...paramsSerializer ? {
               paramsSerializer: normalizeMutator(
@@ -1415,18 +1419,18 @@ var normalizeOperationsAndTags = (operationsOrTags, workspace, global) => {
 };
 var normalizeOutputMode = (mode) => {
   if (!mode) {
-    return import_core9.OutputMode.SINGLE;
+    return import_core8.OutputMode.SINGLE;
   }
-  if (!Object.values(import_core9.OutputMode).includes(mode)) {
-    (0, import_core9.createLogger)().warn(import_chalk3.default.yellow(`Unknown the provided mode => ${mode}`));
-    return import_core9.OutputMode.SINGLE;
+  if (!Object.values(import_core8.OutputMode).includes(mode)) {
+    (0, import_core8.createLogger)().warn(import_chalk3.default.yellow(`Unknown the provided mode => ${mode}`));
+    return import_core8.OutputMode.SINGLE;
   }
   return mode;
 };
 var normalizeHooks = (hooks) => {
   const keys = Object.keys(hooks);
   return keys.reduce((acc, key) => {
-    if ((0, import_core9.isString)(hooks[key])) {
+    if ((0, import_core8.isString)(hooks[key])) {
       return {
         ...acc,
         [key]: [hooks[key]]
@@ -1436,12 +1440,12 @@ var normalizeHooks = (hooks) => {
         ...acc,
         [key]: hooks[key]
       };
-    } else if ((0, import_core9.isFunction)(hooks[key])) {
+    } else if ((0, import_core8.isFunction)(hooks[key])) {
       return {
         ...acc,
         [key]: [hooks[key]]
       };
-    } else if ((0, import_core9.isObject)(hooks[key])) {
+    } else if ((0, import_core8.isObject)(hooks[key])) {
       return {
         ...acc,
         [key]: [hooks[key]]
@@ -1452,10 +1456,10 @@ var normalizeHooks = (hooks) => {
 };
 var normalizeHonoOptions = (hono2 = {}, workspace) => {
   return {
-    ...hono2.handlers ? { handlers: import_core9.upath.resolve(workspace, hono2.handlers) } : {},
+    ...hono2.handlers ? { handlers: import_core8.upath.resolve(workspace, hono2.handlers) } : {},
     compositeRoute: hono2.compositeRoute ?? "",
     validator: hono2.validator ?? true,
-    validatorOutputPath: hono2.validatorOutputPath ? import_core9.upath.resolve(workspace, hono2.validatorOutputPath) : ""
+    validatorOutputPath: hono2.validatorOutputPath ? import_core8.upath.resolve(workspace, hono2.validatorOutputPath) : ""
   };
 };
 var normalizeJSDocOptions = (jsdoc = {}) => {
@@ -1470,12 +1474,12 @@ var normalizeQueryOptions = (queryOptions = {}, outputWorkspace, globalOptions =
     );
   }
   return {
-    ...!(0, import_core9.isUndefined)(queryOptions.usePrefetch) ? { usePrefetch: queryOptions.usePrefetch } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.useQuery) ? { useQuery: queryOptions.useQuery } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.useSuspenseQuery) ? { useSuspenseQuery: queryOptions.useSuspenseQuery } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.useMutation) ? { useMutation: queryOptions.useMutation } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.useInfinite) ? { useInfinite: queryOptions.useInfinite } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.useSuspenseInfiniteQuery) ? { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery } : {},
+    ...(0, import_core8.isUndefined)(queryOptions.usePrefetch) ? {} : { usePrefetch: queryOptions.usePrefetch },
+    ...(0, import_core8.isUndefined)(queryOptions.useQuery) ? {} : { useQuery: queryOptions.useQuery },
+    ...(0, import_core8.isUndefined)(queryOptions.useSuspenseQuery) ? {} : { useSuspenseQuery: queryOptions.useSuspenseQuery },
+    ...(0, import_core8.isUndefined)(queryOptions.useMutation) ? {} : { useMutation: queryOptions.useMutation },
+    ...(0, import_core8.isUndefined)(queryOptions.useInfinite) ? {} : { useInfinite: queryOptions.useInfinite },
+    ...(0, import_core8.isUndefined)(queryOptions.useSuspenseInfiniteQuery) ? {} : { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery },
     ...queryOptions.useInfiniteQueryParam ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam } : {},
     ...queryOptions.options ? { options: queryOptions.options } : {},
     ...globalOptions.queryKey ? {
@@ -1502,30 +1506,30 @@ var normalizeQueryOptions = (queryOptions = {}, outputWorkspace, globalOptions =
         queryOptions?.mutationOptions
       )
     } : {},
-    ...!(0, import_core9.isUndefined)(globalOptions.shouldExportQueryKey) ? {
+    ...(0, import_core8.isUndefined)(globalOptions.shouldExportQueryKey) ? {} : {
       shouldExportQueryKey: globalOptions.shouldExportQueryKey
-    } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.shouldExportQueryKey) ? { shouldExportQueryKey: queryOptions.shouldExportQueryKey } : {},
-    ...!(0, import_core9.isUndefined)(globalOptions.shouldExportHttpClient) ? {
+    },
+    ...(0, import_core8.isUndefined)(queryOptions.shouldExportQueryKey) ? {} : { shouldExportQueryKey: queryOptions.shouldExportQueryKey },
+    ...(0, import_core8.isUndefined)(globalOptions.shouldExportHttpClient) ? {} : {
       shouldExportHttpClient: globalOptions.shouldExportHttpClient
-    } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.shouldExportHttpClient) ? { shouldExportHttpClient: queryOptions.shouldExportHttpClient } : {},
-    ...!(0, import_core9.isUndefined)(globalOptions.shouldExportMutatorHooks) ? {
+    },
+    ...(0, import_core8.isUndefined)(queryOptions.shouldExportHttpClient) ? {} : { shouldExportHttpClient: queryOptions.shouldExportHttpClient },
+    ...(0, import_core8.isUndefined)(globalOptions.shouldExportMutatorHooks) ? {} : {
       shouldExportMutatorHooks: globalOptions.shouldExportMutatorHooks
-    } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.shouldExportMutatorHooks) ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks } : {},
-    ...!(0, import_core9.isUndefined)(globalOptions.shouldSplitQueryKey) ? {
+    },
+    ...(0, import_core8.isUndefined)(queryOptions.shouldExportMutatorHooks) ? {} : { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks },
+    ...(0, import_core8.isUndefined)(globalOptions.shouldSplitQueryKey) ? {} : {
       shouldSplitQueryKey: globalOptions.shouldSplitQueryKey
-    } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.shouldSplitQueryKey) ? { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey } : {},
-    ...!(0, import_core9.isUndefined)(globalOptions.signal) ? {
+    },
+    ...(0, import_core8.isUndefined)(queryOptions.shouldSplitQueryKey) ? {} : { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey },
+    ...(0, import_core8.isUndefined)(globalOptions.signal) ? {} : {
       signal: globalOptions.signal
-    } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.signal) ? { signal: queryOptions.signal } : {},
-    ...!(0, import_core9.isUndefined)(globalOptions.version) ? {
+    },
+    ...(0, import_core8.isUndefined)(queryOptions.signal) ? {} : { signal: queryOptions.signal },
+    ...(0, import_core8.isUndefined)(globalOptions.version) ? {} : {
       version: globalOptions.version
-    } : {},
-    ...!(0, import_core9.isUndefined)(queryOptions.version) ? { version: queryOptions.version } : {}
+    },
+    ...(0, import_core8.isUndefined)(queryOptions.version) ? {} : { version: queryOptions.version }
   };
 };
 var getDefaultFilesHeader = ({
@@ -1541,7 +1545,7 @@ var getDefaultFilesHeader = ({
 ];
 
 // src/utils/watcher.ts
-var import_core10 = require("@orval/core");
+var import_core9 = require("@orval/core");
 var startWatcher = async (watchOptions, watchFn, defaultTarget = ".") => {
   if (!watchOptions) return;
   const { watch } = await import("chokidar");
@@ -1549,7 +1553,7 @@ var startWatcher = async (watchOptions, watchFn, defaultTarget = ".") => {
   const watchPaths = typeof watchOptions === "boolean" ? defaultTarget : Array.isArray(watchOptions) ? watchOptions.filter(
     (path) => typeof path === "string"
   ) : watchOptions;
-  (0, import_core10.log)(
+  (0, import_core9.log)(
     `Watching for changes in ${Array.isArray(watchPaths) ? watchPaths.map((v) => '"' + v + '"').join(" | ") : '"' + watchPaths + '"'}`
   );
   const watcher = watch(watchPaths, {
@@ -1557,40 +1561,40 @@ var startWatcher = async (watchOptions, watchFn, defaultTarget = ".") => {
     ignored
   });
   watcher.on("all", async (type, file) => {
-    (0, import_core10.log)(`Change detected: ${type} ${file}`);
+    (0, import_core9.log)(`Change detected: ${type} ${file}`);
     try {
       await watchFn();
-    } catch (e) {
-      (0, import_core10.logError)(e);
+    } catch (error) {
+      (0, import_core9.logError)(error);
     }
   });
 };
 
 // src/write-specs.ts
-var import_core12 = require("@orval/core");
+var import_core11 = require("@orval/core");
 var import_chalk5 = __toESM(require("chalk"));
 var import_execa2 = __toESM(require("execa"));
 var import_fs_extra5 = __toESM(require("fs-extra"));
 var import_lodash = __toESM(require("lodash.uniq"));
 
 // src/utils/executeHook.ts
-var import_core11 = require("@orval/core");
+var import_core10 = require("@orval/core");
 var import_chalk4 = __toESM(require("chalk"));
 var import_execa = __toESM(require("execa"));
 var import_string_argv = require("string-argv");
 var executeHook = async (name, commands = [], args = []) => {
-  (0, import_core11.log)(import_chalk4.default.white(`Running ${name} hook...`));
+  (0, import_core10.log)(import_chalk4.default.white(`Running ${name} hook...`));
   for (const command of commands) {
     try {
-      if ((0, import_core11.isString)(command)) {
+      if ((0, import_core10.isString)(command)) {
         await executeCommand(command, args);
-      } else if ((0, import_core11.isFunction)(command)) {
+      } else if ((0, import_core10.isFunction)(command)) {
         await command(args);
-      } else if ((0, import_core11.isObject)(command)) {
+      } else if ((0, import_core10.isObject)(command)) {
         await executeObjectCommand(command, args);
       }
-    } catch (e) {
-      (0, import_core11.logError)(e, `Failed to run ${name} hook`);
+    } catch (error) {
+      (0, import_core10.logError)(error, `Failed to run ${name} hook`);
     }
   }
 };
@@ -1602,9 +1606,9 @@ async function executeObjectCommand(command, args) {
   if (command.injectGeneratedDirsAndFiles === false) {
     args = [];
   }
-  if ((0, import_core11.isString)(command.command)) {
+  if ((0, import_core10.isString)(command.command)) {
     await executeCommand(command.command, args);
-  } else if ((0, import_core11.isFunction)(command.command)) {
+  } else if ((0, import_core10.isFunction)(command.command)) {
     await command.command();
   }
 }
@@ -1615,29 +1619,26 @@ var getHeader = (option, info) => {
     return "";
   }
   const header = option(info);
-  return Array.isArray(header) ? (0, import_core12.jsDoc)({ description: header }) : header;
+  return Array.isArray(header) ? (0, import_core11.jsDoc)({ description: header }) : header;
 };
 var writeSpecs = async (builder, workspace, options, projectName) => {
   const { info = { title: "", version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName || info.title;
-  const specsName = Object.keys(schemas).reduce(
-    (acc, specKey) => {
-      const basePath = import_core12.upath.getSpecName(specKey, target);
-      const name = basePath.slice(1).split("/").join("-");
-      acc[specKey] = name;
-      return acc;
-    },
-    {}
-  );
+  const specsName = Object.keys(schemas).reduce((acc, specKey) => {
+    const basePath = import_core11.upath.getSpecName(specKey, target);
+    const name = basePath.slice(1).split("/").join("-");
+    acc[specKey] = name;
+    return acc;
+  }, {});
   const header = getHeader(output.override.header, info);
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
     const fileExtension = ["tags", "tags-split", "split"].includes(output.mode) ? ".ts" : output.fileExtension ?? ".ts";
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas2]) => {
-        const schemaPath = !(0, import_core12.isRootKey)(specKey, target) ? import_core12.upath.join(rootSchemaPath, specsName[specKey]) : rootSchemaPath;
-        return (0, import_core12.writeSchemas)({
+        const schemaPath = (0, import_core11.isRootKey)(specKey, target) ? rootSchemaPath : import_core11.upath.join(rootSchemaPath, specsName[specKey]);
+        return (0, import_core11.writeSchemas)({
           schemaPath,
           schemas: schemas2,
           target,
@@ -1645,7 +1646,7 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
           fileExtension,
           specsName,
           specKey,
-          isRootKey: (0, import_core12.isRootKey)(specKey, target),
+          isRootKey: (0, import_core11.isRootKey)(specKey, target),
           header,
           indexFiles: output.indexFiles
         });
@@ -1667,20 +1668,20 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
   if (output.workspace) {
     const workspacePath = output.workspace;
     const imports = implementationPaths.filter(
-      (path) => !output.mock || !path.endsWith(`.${(0, import_core12.getMockFileExtensionByTypeName)(output.mock)}.ts`)
+      (path) => !output.mock || !path.endsWith(`.${(0, import_core11.getMockFileExtensionByTypeName)(output.mock)}.ts`)
     ).map(
-      (path) => import_core12.upath.relativeSafe(
+      (path) => import_core11.upath.relativeSafe(
         workspacePath,
-        (0, import_core12.getFileInfo)(path).pathWithoutExtension
+        (0, import_core11.getFileInfo)(path).pathWithoutExtension
       )
     );
     if (output.schemas) {
       imports.push(
-        import_core12.upath.relativeSafe(workspacePath, (0, import_core12.getFileInfo)(output.schemas).dirname)
+        import_core11.upath.relativeSafe(workspacePath, (0, import_core11.getFileInfo)(output.schemas).dirname)
       );
     }
     if (output.indexFiles) {
-      const indexFile = import_core12.upath.join(workspacePath, "/index.ts");
+      const indexFile = import_core11.upath.join(workspacePath, "/index.ts");
       if (await import_fs_extra5.default.pathExists(indexFile)) {
         const data = await import_fs_extra5.default.readFile(indexFile, "utf8");
         const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
@@ -1698,7 +1699,7 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
       implementationPaths = [indexFile, ...implementationPaths];
     }
   }
-  if (builder.extraFiles.length) {
+  if (builder.extraFiles.length > 0) {
     await Promise.all(
       builder.extraFiles.map(
         async (file) => import_fs_extra5.default.outputFile(file.path, file.content)
@@ -1710,7 +1711,7 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
     ];
   }
   const paths = [
-    ...output.schemas ? [(0, import_core12.getFileInfo)(output.schemas).dirname] : [],
+    ...output.schemas ? [(0, import_core11.getFileInfo)(output.schemas).dirname] : [],
     ...implementationPaths
   ];
   if (options.hooks.afterAllFilesWrite) {
@@ -1724,7 +1725,7 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
     try {
       await (0, import_execa2.default)("prettier", ["--write", ...paths]);
     } catch {
-      (0, import_core12.log)(
+      (0, import_core11.log)(
         import_chalk5.default.yellow(
           `\u26A0\uFE0F  ${projectTitle ? `${projectTitle} - ` : ""}Globally installed prettier not found`
         )
@@ -1734,9 +1735,9 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
   if (output.biome) {
     try {
       await (0, import_execa2.default)("biome", ["check", "--write", ...paths]);
-    } catch (e) {
-      const message = e.exitCode === 1 ? e.stdout + e.stderr : `\u26A0\uFE0F  ${projectTitle ? `${projectTitle} - ` : ""}biome not found`;
-      (0, import_core12.log)(import_chalk5.default.yellow(message));
+    } catch (error) {
+      const message = error.exitCode === 1 ? error.stdout + error.stderr : `\u26A0\uFE0F  ${projectTitle ? `${projectTitle} - ` : ""}biome not found`;
+      (0, import_core11.log)(import_chalk5.default.yellow(message));
     }
   }
   if (output.docs) {
@@ -1773,24 +1774,28 @@ var writeSpecs = async (builder, workspace, options, projectName) => {
       } else {
         throw new Error("TypeDoc not initialised");
       }
-    } catch (e) {
-      const message = e.exitCode === 1 ? e.stdout + e.stderr : `\u26A0\uFE0F  ${projectTitle ? `${projectTitle} - ` : ""}Unable to generate docs`;
-      (0, import_core12.log)(import_chalk5.default.yellow(message));
+    } catch (error) {
+      const message = error.exitCode === 1 ? error.stdout + error.stderr : `\u26A0\uFE0F  ${projectTitle ? `${projectTitle} - ` : ""}Unable to generate docs`;
+      (0, import_core11.log)(import_chalk5.default.yellow(message));
     }
   }
-  (0, import_core12.createSuccessMessage)(projectTitle);
+  (0, import_core11.createSuccessMessage)(projectTitle);
 };
 var getWriteMode = (mode) => {
   switch (mode) {
-    case import_core12.OutputMode.SPLIT:
-      return import_core12.writeSplitMode;
-    case import_core12.OutputMode.TAGS:
-      return import_core12.writeTagsMode;
-    case import_core12.OutputMode.TAGS_SPLIT:
-      return import_core12.writeSplitTagsMode;
-    case import_core12.OutputMode.SINGLE:
-    default:
-      return import_core12.writeSingleMode;
+    case import_core11.OutputMode.SPLIT: {
+      return import_core11.writeSplitMode;
+    }
+    case import_core11.OutputMode.TAGS: {
+      return import_core11.writeTagsMode;
+    }
+    case import_core11.OutputMode.TAGS_SPLIT: {
+      return import_core11.writeSplitTagsMode;
+    }
+    case import_core11.OutputMode.SINGLE:
+    default: {
+      return import_core11.writeSingleMode;
+    }
   }
 };
 
@@ -1799,18 +1804,18 @@ var generateSpec = async (workspace, options, projectName) => {
   if (options.output.clean) {
     const extraPatterns = Array.isArray(options.output.clean) ? options.output.clean : [];
     if (options.output.target) {
-      await (0, import_core13.removeFilesAndEmptyFolders)(
+      await (0, import_core12.removeFilesAndEmptyFolders)(
         ["**/*", "!**/*.d.ts", ...extraPatterns],
-        (0, import_core13.getFileInfo)(options.output.target).dirname
+        (0, import_core12.getFileInfo)(options.output.target).dirname
       );
     }
     if (options.output.schemas) {
-      await (0, import_core13.removeFilesAndEmptyFolders)(
+      await (0, import_core12.removeFilesAndEmptyFolders)(
         ["**/*", "!**/*.d.ts", ...extraPatterns],
-        (0, import_core13.getFileInfo)(options.output.schemas).dirname
+        (0, import_core12.getFileInfo)(options.output.schemas).dirname
       );
     }
-    (0, import_core13.log)(`${projectName ? `${projectName}: ` : ""}Cleaning output folder`);
+    (0, import_core12.log)(`${projectName ? `${projectName}: ` : ""}Cleaning output folder`);
   }
   const writeSpecBuilder = await importSpecs(workspace, options);
   await writeSpecs(writeSpecBuilder, workspace, options, projectName);
@@ -1821,25 +1826,25 @@ var generateSpecs = async (config, workspace, projectName) => {
     if (options) {
       try {
         await generateSpec(workspace, options, projectName);
-      } catch (e) {
-        (0, import_core13.logError)(e, projectName);
+      } catch (error) {
+        (0, import_core12.logError)(error, projectName);
         process.exit(1);
       }
     } else {
-      (0, import_core13.logError)("Project not found");
+      (0, import_core12.logError)("Project not found");
       process.exit(1);
     }
     return;
   }
   let hasErrors;
-  const accumulate = await (0, import_core13.asyncReduce)(
+  const accumulate = await (0, import_core12.asyncReduce)(
     Object.entries(config),
     async (acc, [projectName2, options]) => {
       try {
         acc.push(await generateSpec(workspace, options, projectName2));
-      } catch (e) {
+      } catch (error) {
         hasErrors = true;
-        (0, import_core13.logError)(e, projectName2);
+        (0, import_core12.logError)(error, projectName2);
       }
       return acc;
     },
@@ -1853,15 +1858,15 @@ var generateConfig = async (configFile, options) => {
     path,
     file: configExternal,
     error
-  } = await (0, import_core13.loadFile)(configFile, {
+  } = await (0, import_core12.loadFile)(configFile, {
     defaultFileName: "orval.config"
   });
   if (!configExternal) {
     throw `failed to load from ${path} => ${error}`;
   }
-  const workspace = import_core13.upath.dirname(path);
-  const config = await ((0, import_core13.isFunction)(configExternal) ? configExternal() : configExternal);
-  const normalizedConfig = await (0, import_core13.asyncReduce)(
+  const workspace = import_core12.upath.dirname(path);
+  const config = await ((0, import_core12.isFunction)(configExternal) ? configExternal() : configExternal);
+  const normalizedConfig = await (0, import_core12.asyncReduce)(
     Object.entries(config),
     async (acc, [key, value]) => {
       acc[key] = await normalizeOptions(value, workspace, options);
@@ -1871,8 +1876,8 @@ var generateConfig = async (configFile, options) => {
   );
   const fileToWatch = Object.entries(normalizedConfig).filter(
     ([project]) => options?.projectName === void 0 || project === options?.projectName
-  ).map(([, { input }]) => input.target).filter((target) => (0, import_core13.isString)(target));
-  if (options?.watch && fileToWatch.length) {
+  ).map(([, { input }]) => input.target).filter((target) => (0, import_core12.isString)(target));
+  if (options?.watch && fileToWatch.length > 0) {
     startWatcher(
       options?.watch,
       () => generateSpecs(normalizedConfig, workspace, options?.projectName),
@@ -1885,7 +1890,7 @@ var generateConfig = async (configFile, options) => {
 
 // src/bin/orval.ts
 var cli = (0, import_cac.cac)("orval");
-(0, import_core14.startMessage)({
+(0, import_core13.startMessage)({
   name: package_default.name,
   version: package_default.version,
   description: package_default.description
@@ -1901,7 +1906,7 @@ cli.command(
   "-w, --watch [path]",
   "Watch mode, if path is not specified, it watches the input target"
 ).option("--clean [path]", "Clean output directory").option("--prettier [path]", "Prettier generated files").option("--biome [path]", "biome generated files").option("--tsconfig [path]", "path to your tsconfig file").action(async (paths, cmd) => {
-  if (!cmd.config && (0, import_core14.isString)(cmd.input) && (0, import_core14.isString)(cmd.output)) {
+  if (!cmd.config && (0, import_core13.isString)(cmd.input) && (0, import_core13.isString)(cmd.output)) {
     const normalizedOptions = await normalizeOptions({
       input: cmd.input,
       output: {
@@ -1921,8 +1926,8 @@ cli.command(
         async () => {
           try {
             await generateSpec(process.cwd(), normalizedOptions);
-          } catch (e) {
-            (0, import_core14.logError)(e);
+          } catch (error) {
+            (0, import_core13.logError)(error);
           }
         },
         normalizedOptions.input.target
@@ -1930,8 +1935,8 @@ cli.command(
     } else {
       try {
         await generateSpec(process.cwd(), normalizedOptions);
-      } catch (e) {
-        (0, import_core14.logError)(e);
+      } catch (error) {
+        (0, import_core13.logError)(error);
       }
     }
   } else {

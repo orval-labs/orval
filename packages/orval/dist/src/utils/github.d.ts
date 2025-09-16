@@ -1,5 +1,5 @@
+import https from 'node:https';
 import SwaggerParser from '@apidevtools/swagger-parser';
-import https from 'https';
 export declare const getGithubSpecReq: ({ accessToken, repo, owner, branch, path, }: {
     accessToken: string;
     repo: string;
