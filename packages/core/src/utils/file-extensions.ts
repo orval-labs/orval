@@ -1,4 +1,4 @@
-import { ClientMockBuilder, GlobalMockOptions } from '../types';
+import type { ClientMockBuilder, GlobalMockOptions } from '../types';
 import { isFunction } from './assertion';
 
 export const getMockFileExtensionByTypeName = (

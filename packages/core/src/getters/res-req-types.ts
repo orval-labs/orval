@@ -1,7 +1,7 @@
 import { keyword } from 'esutils';
 import type { ValueIteratee } from 'lodash';
 import uniqBy from 'lodash.uniqby';
-import {
+import type {
   MediaTypeObject,
   ReferenceObject,
   RequestBodyObject,
@@ -12,10 +12,10 @@ import {
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
-  ContextSpecs,
+  type ContextSpecs,
   FormDataArrayHandling,
-  GeneratorImport,
-  ResReqTypesValue,
+  type GeneratorImport,
+  type ResReqTypesValue,
 } from '../types';
 import { camel } from '../utils';
 import { isReference } from '../utils/assertion';

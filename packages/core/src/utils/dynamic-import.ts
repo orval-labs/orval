@@ -1,4 +1,4 @@
-import { extname, resolve } from 'node:path';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 import { isModule, isObject, isString } from './assertion';
@@ -14,11 +14,11 @@ export const dynamicImport = async <T>(
 
   try {
     if (isString(toImport)) {
-      const path = resolve(from, toImport);
+      const filePath = path.resolve(from, toImport);
       // use pathToFileURL to solve issue #1332.
       // https://github.com/nodejs/node/issues/31710
-      const fileUrl = pathToFileURL(path);
-      const isJson = extname(fileUrl.href) === '.json';
+      const fileUrl = pathToFileURL(filePath);
+      const isJson = path.extname(fileUrl.href) === '.json';
       const data = isJson
         ? await import(fileUrl.href, { with: { type: 'json' } })
         : await import(fileUrl.href);

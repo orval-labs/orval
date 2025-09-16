@@ -2,9 +2,9 @@ import uniq from 'lodash.uniq';
 import uniqWith from 'lodash.uniqwith';
 
 import {
-  GeneratorImport,
-  GeneratorMutator,
-  GeneratorVerbOptions,
+  type GeneratorImport,
+  type GeneratorMutator,
+  type GeneratorVerbOptions,
   GetterPropType,
   NamingConvention,
 } from '../types';

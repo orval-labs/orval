@@ -1,15 +1,15 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpecs,
+  type GeneratorImport,
   getRefInfo,
   isReference,
   isRootKey,
-  MockOptions,
+  type MockOptions,
   pascal,
 } from '@orval/core';
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject } from 'openapi3-ts/oas30';
 
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 

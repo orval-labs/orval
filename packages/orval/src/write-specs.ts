@@ -5,12 +5,12 @@ import {
   isRootKey,
   jsDoc,
   log,
-  NormalizedOptions,
+  type NormalizedOptions,
   OutputMode,
   upath,
   writeSchemas,
   writeSingleMode,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
@@ -19,8 +19,8 @@ import chalk from 'chalk';
 import execa from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
-import { InfoObject } from 'openapi3-ts/oas30';
-import { TypeDocOptions } from 'typedoc';
+import type { InfoObject } from 'openapi3-ts/oas30';
+import type { TypeDocOptions } from 'typedoc';
 
 import { executeHook } from './utils';
 

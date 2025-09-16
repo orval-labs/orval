@@ -1,6 +1,6 @@
 import type SwaggerParser from '@apidevtools/swagger-parser';
 import type { allLocales } from '@faker-js/faker';
-import { JSONSchema6, JSONSchema7 } from 'json-schema';
+import type { JSONSchema6, JSONSchema7 } from 'json-schema';
 import type {
   InfoObject,
   OpenAPIObject,
@@ -12,7 +12,7 @@ import type {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 import type { ConvertInputOptions } from 'swagger2openapi';
-import { TypeDocOptions } from 'typedoc';
+import type { TypeDocOptions } from 'typedoc';
 
 export interface Options {
   output?: string | OutputOptions;

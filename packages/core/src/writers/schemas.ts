@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
 import { generateImports } from '../generators';
-import { GeneratorSchema, NamingConvention } from '../types';
+import { type GeneratorSchema, NamingConvention } from '../types';
 import { conventionName, upath } from '../utils';
 
 const getSchema = ({

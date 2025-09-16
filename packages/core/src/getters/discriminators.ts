@@ -1,6 +1,6 @@
-import { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
+import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
 
-import { ContextSpecs } from '../types';
+import type { ContextSpecs } from '../types';
 import { pascal } from '../utils';
 import { getRefInfo } from './ref';
 

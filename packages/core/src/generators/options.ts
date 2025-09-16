@@ -1,10 +1,10 @@
 import {
-  GeneratorMutator,
-  GeneratorSchema,
-  GetterBody,
-  GetterQueryParam,
-  GetterResponse,
-  ParamsSerializerOptions,
+  type GeneratorMutator,
+  type GeneratorSchema,
+  type GetterBody,
+  type GetterQueryParam,
+  type GetterResponse,
+  type ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';

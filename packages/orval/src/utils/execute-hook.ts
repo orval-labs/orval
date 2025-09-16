@@ -1,12 +1,12 @@
 import {
-  Hook,
-  HookOption,
+  type Hook,
+  type HookOption,
   isFunction,
   isObject,
   isString,
   log,
   logError,
-  NormalizedHookCommand,
+  type NormalizedHookCommand,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';

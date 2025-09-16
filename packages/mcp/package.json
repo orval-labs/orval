@@ -12,8 +12,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch src",
+    "build": "tsdown --config-loader unconfig",
+    "dev": "tsdown --config-loader unconfig --watch src",
     "lint": "eslint .",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
@@ -27,7 +27,7 @@
   "devDependencies": {
     "eslint": "^9.35.0",
     "rimraf": "^6.0.1",
-    "tsup": "^8.5.0",
+    "tsdown": "^0.15.2",
     "typescript": "^5.9.2"
   }
 }

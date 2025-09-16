@@ -1,9 +1,9 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import { resolveExampleRefs } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
-import { ContextSpecs, ScalarValue } from '../types';
+import type { ContextSpecs, ScalarValue } from '../types';
 import { compareVersions } from '../utils';
 
 /**

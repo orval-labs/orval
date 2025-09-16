@@ -1,10 +1,10 @@
 import {
-  ContextSpecs,
-  GetterBody,
-  GetterParams,
-  GetterProps,
+  type ContextSpecs,
+  type GetterBody,
+  type GetterParams,
+  type GetterProps,
   GetterPropType,
-  GetterQueryParam,
+  type GetterQueryParam,
   OutputClient,
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';

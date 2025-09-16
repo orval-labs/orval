@@ -1,4 +1,9 @@
-import { GlobalOptions, isString, logError, OptionsExport } from '@orval/core';
+import {
+  type GlobalOptions,
+  isString,
+  logError,
+  type OptionsExport,
+} from '@orval/core';
 
 import { generateConfig, generateSpec } from './generate';
 import { normalizeOptions } from './utils/options';
@@ -47,4 +52,4 @@ export * from '@orval/core';
 export default generate;
 
 export { defineConfig } from './utils/options';
-export { Options } from '@orval/core';
+export type { Options } from '@orval/core';

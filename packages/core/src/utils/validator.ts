@@ -1,7 +1,7 @@
 // @ts-expect-error no types exists for this package :(
 import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
 import { Spectral } from '@stoplight/spectral-core';
-import { OpenAPIObject } from 'openapi3-ts/oas30';
+import type { OpenAPIObject } from 'openapi3-ts/oas30';
 
 import {
   ibmOpenapiValidatorErrors,

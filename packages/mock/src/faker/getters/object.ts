@@ -1,16 +1,16 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpecs,
+  type GeneratorImport,
   getKey,
   isBoolean,
   isReference,
-  MockOptions,
+  type MockOptions,
   pascal,
   PropertySortOrder,
 } from '@orval/core';
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';
 import { combineSchemasMock } from './combine';

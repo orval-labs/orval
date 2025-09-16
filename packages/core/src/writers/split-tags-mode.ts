@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, WriteModeProps } from '../types';
+import { OutputClient, type WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
@@ -10,7 +10,7 @@ import {
   pascal,
   upath,
 } from '../utils';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
+import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
