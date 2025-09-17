@@ -1,7 +1,7 @@
-import { ServerObject } from 'openapi3-ts/oas31';
+import type { ServerObject } from 'openapi3-ts/oas31';
 
 import { TEMPLATE_TAG_REGEX } from '../constants';
-import { BaseUrlFromConstant, BaseUrlFromSpec } from '../types';
+import type { BaseUrlFromConstant, BaseUrlFromSpec } from '../types';
 import { camel, sanitize } from '../utils';
 
 const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path

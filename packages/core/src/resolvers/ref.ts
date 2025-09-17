@@ -1,4 +1,4 @@
-import {
+import type {
   ExampleObject,
   ParameterObject,
   ReferenceObject,
@@ -7,8 +7,8 @@ import {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 
-import { getRefInfo, RefInfo } from '../getters/ref';
-import { ContextSpecs, GeneratorImport } from '../types';
+import { getRefInfo, type RefInfo } from '../getters/ref';
+import type { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
 
 type ComponentObject =

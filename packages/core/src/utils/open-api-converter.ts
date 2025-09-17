@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { OpenAPIObject } from 'openapi3-ts/oas30';
+import type { OpenAPIObject } from 'openapi3-ts/oas30';
 import { type ConvertInputOptions, convertObj } from 'swagger2openapi';
 
 import { log } from './logger';

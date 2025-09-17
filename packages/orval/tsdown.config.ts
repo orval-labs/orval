@@ -1,6 +1,6 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
 
-import { baseOptions } from '../tsup.base';
+import { baseOptions } from '../tsdown.base';
 
 export default defineConfig({
   ...baseOptions,

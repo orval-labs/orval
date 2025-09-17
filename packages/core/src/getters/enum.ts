@@ -1,5 +1,5 @@
 import { keyword } from 'esutils';
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject } from 'openapi3-ts/oas30';
 
 import { EnumGeneration, NamingConvention } from '../types';
 import { conventionName, isNumeric, sanitize } from '../utils';

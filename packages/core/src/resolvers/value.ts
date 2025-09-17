@@ -1,7 +1,7 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import { getScalar } from '../getters';
-import { ContextSpecs, ResolverValue, SchemaType } from '../types';
+import { type ContextSpecs, type ResolverValue, SchemaType } from '../types';
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
 

@@ -1,13 +1,12 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import {
-  isObject,
   isString,
   isUrl,
   log,
-  NormalizedOptions,
-  SwaggerParserOptions,
+  type NormalizedOptions,
+  type SwaggerParserOptions,
   upath,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '@orval/core';
 import chalk from 'chalk';
 import fs from 'fs-extra';

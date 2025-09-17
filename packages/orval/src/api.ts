@@ -1,21 +1,21 @@
 import {
   asyncReduce,
-  ContextSpecs,
+  type ContextSpecs,
   generateVerbsOptions,
-  GeneratorApiBuilder,
-  GeneratorApiOperations,
-  GeneratorSchema,
+  type GeneratorApiBuilder,
+  type GeneratorApiOperations,
+  type GeneratorSchema,
   getFullRoute,
   getRoute,
   GetterPropType,
   isReference,
   logError,
-  NormalizedInputOptions,
-  NormalizedOutputOptions,
+  type NormalizedInputOptions,
+  type NormalizedOutputOptions,
   resolveRef,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
-import { PathItemObject } from 'openapi3-ts/oas30';
+import type { PathItemObject } from 'openapi3-ts/oas30';
 
 import {
   generateClientFooter,

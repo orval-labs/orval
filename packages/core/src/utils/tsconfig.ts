@@ -1,4 +1,4 @@
-import { Tsconfig } from '../types';
+import type { Tsconfig } from '../types';
 
 export const isSyntheticDefaultImportsAllow = (config?: Tsconfig) => {
   if (!config) {

@@ -1,4 +1,4 @@
-import { GeneratorSchema } from '../types';
+import type { GeneratorSchema } from '../types';
 
 export const generateModelInline = (acc: string, model: string): string =>
   acc + `${model}\n`;

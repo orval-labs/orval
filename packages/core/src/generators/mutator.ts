@@ -1,8 +1,8 @@
-import { ecmaVersion, Parser } from 'acorn';
+import { type ecmaVersion, Parser } from 'acorn';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import {
+import type {
   GeneratorMutator,
   GeneratorMutatorParsingInfo,
   NormalizedMutator,

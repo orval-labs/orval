@@ -1,6 +1,6 @@
 import uniqBy from 'lodash.uniqby';
 
-import { GeneratorImport, NormalizedOutputOptions } from '../types';
+import type { GeneratorImport, NormalizedOutputOptions } from '../types';
 import { conventionName, upath } from '../utils';
 
 export const generateImportsForBuilder = (

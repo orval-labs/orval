@@ -1,7 +1,7 @@
-import { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import { resolveValue } from '../resolvers';
-import {
+import type {
   ContextSpecs,
   GeneratorImport,
   GeneratorSchema,

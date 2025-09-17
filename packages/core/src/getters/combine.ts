@@ -1,12 +1,12 @@
 import uniq from 'lodash.uniq';
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject } from 'openapi3-ts/oas30';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
-  ContextSpecs,
-  GeneratorImport,
-  GeneratorSchema,
-  ScalarValue,
+  type ContextSpecs,
+  type GeneratorImport,
+  type GeneratorSchema,
+  type ScalarValue,
   SchemaType,
 } from '../types';
 import { getNumberWord, isSchema, pascal } from '../utils';

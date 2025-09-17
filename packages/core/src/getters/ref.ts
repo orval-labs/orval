@@ -1,6 +1,6 @@
-import { ReferenceObject } from 'openapi3-ts/oas30';
+import type { ReferenceObject } from 'openapi3-ts/oas30';
 
-import { ContextSpecs, NormalizedOverrideOutput } from '../types';
+import type { ContextSpecs, NormalizedOverrideOutput } from '../types';
 import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';

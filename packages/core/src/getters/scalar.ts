@@ -1,12 +1,7 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject } from 'openapi3-ts/oas30';
 
 import { resolveExampleRefs } from '../resolvers';
-import {
-  ContextSpecs,
-  OutputClient,
-  ScalarValue,
-  SchemaWithConst,
-} from '../types';
+import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { combineSchemas } from './combine';

@@ -1,13 +1,13 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpecs,
+  type GeneratorImport,
   isReference,
   isSchema,
-  MockOptions,
+  type MockOptions,
   pascal,
 } from '@orval/core';
 
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
 export const combineSchemasMock = ({

@@ -8,7 +8,7 @@ export * from './doc';
 export * from './dynamic-import';
 export * from './extension';
 export * from './file';
-export * from './fileExtensions';
+export * from './file-extensions';
 export * from './is-body-verb';
 export * from './logger';
 export * from './merge-deep';

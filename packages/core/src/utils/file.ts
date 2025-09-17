@@ -1,22 +1,15 @@
 import fs from 'node:fs';
-import {
-  basename,
-  dirname,
-  extname,
-  isAbsolute,
-  join,
-  resolve,
-} from 'node:path';
+import path from 'node:path';
 
 import chalk from 'chalk';
-import { build, PluginBuild } from 'esbuild';
+import { build, type PluginBuild } from 'esbuild';
 import glob from 'globby';
 import mm from 'micromatch';
 
-import { Tsconfig } from '../types';
+import type { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
-import { createLogger, LogLevel } from './logger';
+import { createLogger, type LogLevel } from './logger';
 import { joinSafe, normalizeSafe } from './path';
 
 export const getFileInfo = (
@@ -27,16 +20,18 @@ export const getFileInfo = (
   }: { backupFilename?: string; extension?: string } = {},
 ) => {
   const isDir = isDirectory(target);
-  const path = isDir ? join(target, backupFilename + extension) : target;
-  const pathWithoutExtension = path.replace(/\.[^/.]+$/, '');
-  const dir = dirname(path);
-  const filename = basename(
-    path,
+  const filePath = isDir
+    ? path.join(target, backupFilename + extension)
+    : target;
+  const pathWithoutExtension = filePath.replace(/\.[^/.]+$/, '');
+  const dir = path.dirname(filePath);
+  const filename = path.basename(
+    filePath,
     extension.startsWith('.') ? extension : `.${extension}`,
   );
 
   return {
-    path,
+    path: filePath,
     pathWithoutExtension,
     extension,
     isDirectory: isDir,
@@ -83,18 +78,18 @@ export async function loadFile<File = any>(
 
   if (filePath) {
     // explicit path is always resolved from cwd
-    resolvedPath = resolve(filePath);
+    resolvedPath = path.resolve(filePath);
     isTS = filePath.endsWith('.ts');
   } else if (defaultFileName) {
     // implicit file loaded from inline root (if present)
     // otherwise from cwd
-    const jsFile = resolve(root, `${defaultFileName}.js`);
+    const jsFile = path.resolve(root, `${defaultFileName}.js`);
     if (fs.existsSync(jsFile)) {
       resolvedPath = jsFile;
     }
 
     if (!resolvedPath) {
-      const mjsFile = resolve(root, `${defaultFileName}.mjs`);
+      const mjsFile = path.resolve(root, `${defaultFileName}.mjs`);
       if (fs.existsSync(mjsFile)) {
         resolvedPath = mjsFile;
         isMjs = true;
@@ -102,14 +97,14 @@ export async function loadFile<File = any>(
     }
 
     if (!resolvedPath) {
-      const cjsFile = resolve(root, `${defaultFileName}.cjs`);
+      const cjsFile = path.resolve(root, `${defaultFileName}.cjs`);
       if (fs.existsSync(cjsFile)) {
         resolvedPath = cjsFile;
       }
     }
 
     if (!resolvedPath) {
-      const tsFile = resolve(root, `${defaultFileName}.ts`);
+      const tsFile = path.resolve(root, `${defaultFileName}.ts`);
       if (fs.existsSync(tsFile)) {
         resolvedPath = tsFile;
         isTS = true;
@@ -179,7 +174,7 @@ export async function loadFile<File = any>(
       const { code } = await bundleFile(
         resolvedPath,
         isMjs,
-        root || dirname(normalizeResolvedPath),
+        root || path.dirname(normalizeResolvedPath),
         alias,
         tsconfig?.compilerOptions,
       );
@@ -251,12 +246,12 @@ async function bundleFile(
                         const find = mm.scan(match);
                         const replacement = mm.scan(alias[match]);
 
-                        const base = resolve(workspace, replacement.base);
+                        const base = path.resolve(workspace, replacement.base);
                         const newPath = find.base
                           ? id.replace(find.base, base)
                           : joinSafe(base, id);
 
-                        const ext = extname(newPath);
+                        const ext = path.extname(newPath);
 
                         const aliased = ext ? newPath : `${newPath}.ts`;
 
@@ -283,12 +278,12 @@ async function bundleFile(
                           compilerOptions?.paths[match][0],
                         );
 
-                        const base = resolve(workspace, replacement.base);
+                        const base = path.resolve(workspace, replacement.base);
                         const newPath = find.base
                           ? id.replace(find.base, base)
                           : joinSafe(base, id);
 
-                        const ext = extname(newPath);
+                        const ext = path.extname(newPath);
 
                         const aliased = ext ? newPath : `${newPath}.ts`;
 
@@ -312,7 +307,7 @@ async function bundleFile(
         setup(build) {
           build.onResolve({ filter: /.*/ }, (args) => {
             const id = args.path;
-            if (!id.startsWith('.') && !isAbsolute(id)) {
+            if (!id.startsWith('.') && !path.isAbsolute(id)) {
               return {
                 external: true,
               };
@@ -334,7 +329,7 @@ async function bundleFile(
                 )
                 .replaceAll(
                   /\b__dirname\b/g,
-                  JSON.stringify(dirname(args.path)),
+                  JSON.stringify(path.dirname(args.path)),
                 )
                 .replaceAll(/\b__filename\b/g, JSON.stringify(args.path)),
             };
@@ -359,7 +354,7 @@ async function loadFromBundledFile<File = unknown>(
   bundledCode: string,
   isDefault: boolean,
 ): Promise<File> {
-  const extension = extname(fileName);
+  const extension = path.extname(fileName);
   const defaultLoader = require.extensions[extension]!;
   require.extensions[extension] = (module: NodeModule, filename: string) => {
     if (filename === fileName) {

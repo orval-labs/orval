@@ -1,24 +1,24 @@
 import {
   asyncReduce,
-  ContextSpecs,
+  type ContextSpecs,
   dynamicImport,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
-  GeneratorSchema,
+  type GeneratorSchema,
   ibmOpenapiValidator,
-  ImportOpenApi,
-  InputOptions,
+  type ImportOpenApi,
+  type InputOptions,
   isObject,
   isReference,
   isSchema,
-  NormalizedOutputOptions,
+  type NormalizedOutputOptions,
   openApiConverter,
   upath,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '@orval/core';
-import { JSONSchema6, JSONSchema7 } from 'json-schema';
-import { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
+import type { JSONSchema6, JSONSchema7 } from 'json-schema';
+import type { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
 
 import { getApiBuilder } from './api';
 

@@ -1,4 +1,4 @@
-import { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
+import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
 import { pascal } from '../utils';
 import { getSpecName } from '../utils/path';
 

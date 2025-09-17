@@ -1,6 +1,6 @@
-import { ResponsesObject } from 'openapi3-ts/oas30';
+import type { ResponsesObject } from 'openapi3-ts/oas30';
 
-import {
+import type {
   ContextSpecs,
   GetterResponse,
   OverrideOutputContentType,

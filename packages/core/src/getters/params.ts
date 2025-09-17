@@ -1,5 +1,5 @@
 import { resolveValue } from '../resolvers';
-import {
+import type {
   ContextSpecs,
   GetterParameters,
   GetterParams,
