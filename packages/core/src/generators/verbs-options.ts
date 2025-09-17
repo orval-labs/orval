@@ -239,7 +239,7 @@ export const generateVerbsOptions = ({
   context: ContextSpecs;
 }): Promise<GeneratorVerbsOptions> =>
   asyncReduce(
-    _filteredVerbs(verbs, input.filters),
+    _filteredVerbs(verbs, input.filters, pathRoute),
     async (acc, [verb, operation]: [string, OperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
@@ -263,25 +263,155 @@ export const generateVerbsOptions = ({
 export const _filteredVerbs = (
   verbs: PathItemObject,
   filters: NormalizedInputOptions['filters'],
+  pathRoute?: string,
 ) => {
-  if (filters?.tags === undefined) {
+  if (
+    filters === undefined ||
+    (filters.tags === undefined && filters.paths === undefined)
+  ) {
     return Object.entries(verbs);
   }
 
   const filterTags = filters.tags || [];
+  const filterPaths = filters.paths || [];
   const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
-    ([, operation]: [string, OperationObject]) => {
-      const operationTags = operation.tags ?? [];
+    ([verb, operation]: [string, OperationObject]) => {
+      // Check for method-specific path filtering
+      if (filters.paths && pathRoute) {
+        const isMethodSpecificFilter =
+          Array.isArray(filterPaths) &&
+          filterPaths.length > 0 &&
+          Array.isArray(filterPaths[0]);
 
-      const isMatch = operationTags.some((tag) =>
-        filterTags.some((filterTag) =>
-          filterTag instanceof RegExp ? filterTag.test(tag) : filterTag === tag,
-        ),
-      );
+        if (isMethodSpecificFilter) {
+          // Method-specific filtering: [path, [methods]]
+          const pathMatch = filterPaths.some((filterItem) => {
+            if (!Array.isArray(filterItem) || filterItem.length !== 2)
+              return false;
 
-      return filterMode === 'exclude' ? !isMatch : isMatch;
+            const [filterPath, methods] = filterItem as [
+              string | RegExp,
+              string[],
+            ];
+            const pathMatches =
+              filterPath instanceof RegExp
+                ? filterPath.test(pathRoute)
+                : filterPath === pathRoute;
+
+            if (!pathMatches) return false;
+
+            // Check if this specific verb is in the allowed methods
+            return methods.includes(verb.toLowerCase());
+          });
+
+          if (filterMode === 'exclude') {
+            return !pathMatch;
+          } else {
+            return pathMatch;
+          }
+        }
+      }
+
+      // Regular tag filtering
+      if (filters.tags) {
+        const operationTags = operation.tags || [];
+
+        const isMatch = operationTags.some((tag) =>
+          filterTags.some((filterTag) =>
+            filterTag instanceof RegExp
+              ? filterTag.test(tag)
+              : filterTag === tag,
+          ),
+        );
+
+        return filterMode === 'exclude' ? !isMatch : isMatch;
+      }
+
+      // If only path filters are specified (not method-specific),
+      // we need to check if the path matches the filter
+      if (filters.paths && pathRoute) {
+        const isMatch = filterPaths.some((filterPath) =>
+          filterPath instanceof RegExp
+            ? filterPath.test(pathRoute)
+            : filterPath === pathRoute,
+        );
+
+        return filterMode === 'exclude' ? !isMatch : isMatch;
+      }
+
+      return true;
+    },
+  );
+};
+
+export const _filteredPaths = (
+  paths: Record<string, PathItemObject>,
+  filters: NormalizedInputOptions['filters'],
+) => {
+  if (filters === undefined || filters.paths === undefined) {
+    return Object.entries(paths);
+  }
+
+  const filterPaths = filters.paths || [];
+  const filterMode = filters.mode || 'include';
+
+  return Object.entries(paths).filter(
+    ([pathRoute, verbs]: [string, PathItemObject]) => {
+      // Check if this is method-specific filtering (array of tuples)
+      const isMethodSpecificFilter =
+        Array.isArray(filterPaths) &&
+        filterPaths.length > 0 &&
+        Array.isArray(filterPaths[0]);
+
+      if (isMethodSpecificFilter) {
+        // Method-specific filtering: [path, [methods]]
+        const isMatch = filterPaths.some((filterItem) => {
+          if (!Array.isArray(filterItem) || filterItem.length !== 2)
+            return false;
+
+          const [filterPath, methods] = filterItem as [
+            string | RegExp,
+            string[],
+          ];
+          const pathMatches =
+            filterPath instanceof RegExp
+              ? filterPath.test(pathRoute)
+              : filterPath === pathRoute;
+
+          if (!pathMatches) return false;
+
+          // Check if any of the specified methods exist in this path
+          return methods.some((method: string) => {
+            const lowerMethod = method.toLowerCase();
+            return lowerMethod === 'get'
+              ? !!verbs.get
+              : lowerMethod === 'post'
+                ? !!verbs.post
+                : lowerMethod === 'put'
+                  ? !!verbs.put
+                  : lowerMethod === 'delete'
+                    ? !!verbs.delete
+                    : lowerMethod === 'patch'
+                      ? !!verbs.patch
+                      : lowerMethod === 'head'
+                        ? !!verbs.head
+                        : false;
+          });
+        });
+
+        return filterMode === 'exclude' ? !isMatch : isMatch;
+      } else {
+        // Simple path filtering (backward compatibility)
+        const isMatch = filterPaths.some((filterPath) =>
+          filterPath instanceof RegExp
+            ? filterPath.test(pathRoute)
+            : filterPath === pathRoute,
+        );
+
+        return filterMode === 'exclude' ? !isMatch : isMatch;
+      }
     },
   );
 };

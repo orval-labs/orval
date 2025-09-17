@@ -26,6 +26,50 @@ export default defineConfig({
     },
     output: '../generated/default/petstore-filter-exclude-mode/endpoints.ts',
   },
+  'petstore-filter-paths': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        paths: ['/pets', /health/],
+      },
+    },
+    output: '../generated/default/petstore-filter-paths/endpoints.ts',
+  },
+  'petstore-filter-paths-exclude': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        mode: 'exclude',
+        paths: ['/pets/{petId}'],
+      },
+    },
+    output: '../generated/default/petstore-filter-paths-exclude/endpoints.ts',
+  },
+  'petstore-filter-paths-methods': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        paths: [
+          ['/pets', ['get', 'post']],
+          ['/pets/{petId}
+            ', ['get', 'put']],
+        ],
+      },
+    },
+    output: '../generated/default/petstore-filter-paths-methods/endpoints.ts',
+  },
+  'petstore-filter-paths-methods-exclude': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        mode: 'exclude',
+        paths: [
+          ['/pets', ['delete']],
+        ],
+      },
+    },
+    output: '../generated/default/petstore-filter-paths-methods-exclude/endpoints.ts',
+  },
   'petstore-transfomer': {
     output: {
       target: '../generated/default/petstore-transformer/endpoints.ts',
