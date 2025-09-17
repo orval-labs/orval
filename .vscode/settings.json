@@ -4,5 +4,12 @@
     "turbo.json": "jsonc"
   },
   "editor.formatOnSave": true,
-  "editor.defaultFormatter": "dbaeumer.vscode-eslint"
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "debug.javascript.terminalOptions": {
+    "skipFiles": [
+      "**/node_modules/**",
+      "<node_internals>/**",
+      "**/node/corepack/**"
+    ]
+  }
 }
