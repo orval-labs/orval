@@ -40,7 +40,12 @@ export const importOpenApi = async ({
   const specs = await generateInputSpecs({ specs: data, input, workspace });
 
   // Get filtered operations for schema dependency analysis
-  const filteredOperations = input.filters?.schemaDependencyAnalysis
+  // Enable dependency analysis automatically when path filters are used
+  const hasPathFilters = input.filters?.paths && input.filters.paths.length > 0;
+  const shouldAnalyzeDependencies =
+    input.filters?.schemaDependencyAnalysis ?? hasPathFilters;
+
+  const filteredOperations = shouldAnalyzeDependencies
     ? getFilteredOperations(specs[target], input.filters)
     : undefined;
 
@@ -142,16 +147,18 @@ const getApiSchemas = ({
         : getAllSchemas(spec, specKey);
 
       // Apply schema dependency analysis if enabled and we have filtered operations
-      if (input.filters?.schemaDependencyAnalysis && filteredOperations) {
+      if (filteredOperations && filteredOperations.length > 0) {
         const specFilteredOperations = filteredOperations.filter(
           (op) => op.path.startsWith(specKey) || specKey === target,
         );
 
         if (specFilteredOperations.length > 0) {
-          parsedSchemas = filterSchemasByDependencies(
+          const dependencySchemas = filterSchemasByDependencies(
             specFilteredOperations,
             parsedSchemas,
           );
+          // Merge dependency schemas with original schemas to preserve explicit schema filters
+          parsedSchemas = { ...parsedSchemas, ...dependencySchemas };
         }
       }
 

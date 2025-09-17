@@ -404,7 +404,9 @@ var importOpenApi = async ({
   workspace
 }) => {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
-  const filteredOperations = input.filters?.schemaDependencyAnalysis ? getFilteredOperations(specs[target], input.filters) : void 0;
+  const hasPathFilters = input.filters?.paths && input.filters.paths.length > 0;
+  const shouldAnalyzeDependencies = input.filters?.schemaDependencyAnalysis ?? hasPathFilters;
+  const filteredOperations = shouldAnalyzeDependencies ? getFilteredOperations(specs[target], input.filters) : void 0;
   const schemas = getApiSchemas({
     input,
     output,
@@ -476,15 +478,16 @@ var getApiSchemas = ({
         output
       };
       let parsedSchemas = spec.openapi ? spec.components?.schemas : getAllSchemas(spec, specKey);
-      if (input.filters?.schemaDependencyAnalysis && filteredOperations) {
+      if (filteredOperations && filteredOperations.length > 0) {
         const specFilteredOperations = filteredOperations.filter(
           (op) => op.path.startsWith(specKey) || specKey === target
         );
         if (specFilteredOperations.length > 0) {
-          parsedSchemas = (0, import_core3.filterSchemasByDependencies)(
+          const dependencySchemas = (0, import_core3.filterSchemasByDependencies)(
             specFilteredOperations,
             parsedSchemas
           );
+          parsedSchemas = { ...parsedSchemas, ...dependencySchemas };
         }
       }
       const schemaDefinition = (0, import_core3.generateSchemasDefinition)(

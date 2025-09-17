@@ -51,8 +51,7 @@ export default defineConfig({
       filters: {
         paths: [
           ['/pets', ['get', 'post']],
-          ['/pets/{petId}
-            ', ['get', 'put']],
+          ['/pets/{petId}', ['get', 'put']],
         ],
       },
     },
@@ -63,12 +62,25 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
       filters: {
         mode: 'exclude',
-        paths: [
-          ['/pets', ['delete']],
-        ],
+        paths: [['/pets', ['delete']]],
       },
     },
-    output: '../generated/default/petstore-filter-paths-methods-exclude/endpoints.ts',
+    output:
+      '../generated/default/petstore-filter-paths-methods-exclude/endpoints.ts',
+  },
+  'petstore-filter-paths-schema-dependency': {
+    input: {
+      target: '../specifications/petstore.yaml',
+      filters: {
+        paths: ['/health'],
+      },
+    },
+    output: {
+      target:
+        '../generated/default/petstore-filter-paths-schema-dependency/endpoints.ts',
+      schemas:
+        '../generated/default/petstore-filter-paths-schema-dependency/model',
+    },
   },
   'petstore-transfomer': {
     output: {
