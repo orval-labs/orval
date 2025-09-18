@@ -16,7 +16,7 @@ import {
   writeTagsMode,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa from 'execa';
+import execa, { type ExecaError } from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import type { InfoObject } from 'openapi3-ts/oas30';
@@ -190,10 +190,11 @@ export const writeSpecs = async (
   if (output.biome) {
     try {
       await execa('biome', ['check', '--write', ...paths]);
-    } catch (error: any) {
+    } catch (error) {
+      const errorExeca = error as ExecaError;
       const message =
-        error.exitCode === 1
-          ? error.stdout + error.stderr
+        errorExeca.exitCode === 1
+          ? errorExeca.stdout + errorExeca.stderr
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
 
       log(chalk.yellow(message));
@@ -235,12 +236,12 @@ export const writeSpecs = async (
       if (project) {
         await app.generateDocs(project, app.options.getValue('out') as string);
       } else {
-        throw new Error('TypeDoc not initialised');
+        throw new Error('TypeDoc not initialized');
       }
-    } catch (error: any) {
+    } catch (error) {
       const message =
-        error.exitCode === 1
-          ? error.stdout + error.stderr
+        error instanceof Error
+          ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
       log(chalk.yellow(message));

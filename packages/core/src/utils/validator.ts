@@ -49,6 +49,6 @@ export const ibmOpenapiValidator = async (
 
   if (errors.length > 0) {
     ibmOpenapiValidatorErrors(errors);
-    process.exit(1);
+    throw new Error('Spec validation failed');
   }
 };
