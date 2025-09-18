@@ -28,7 +28,7 @@ export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormalizedConfig = Record<string, NormalizedOptions>;
+export type NormalizedConfig = Record<string, NormalizedOptions | undefined>;
 
 export interface NormalizedOptions {
   output: NormalizedOutputOptions;
@@ -1209,4 +1209,12 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
 
 export interface SchemaWithConst extends SchemaObject {
   const: string;
+}
+
+export class ErrorWithTag extends Error {
+  tag: string;
+  constructor(message: string, tag: string, options?: ErrorOptions) {
+    super(message, options);
+    this.tag = tag;
+  }
 }

@@ -94,13 +94,11 @@ export const normalizeOptions = async (
     : optionsExport);
 
   if (!options.input) {
-    createLogger().error(chalk.red(`Config require an input`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an input`));
   }
 
   if (!options.output) {
-    createLogger().error(chalk.red(`Config require an output`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an output`));
   }
 
   const inputOptions = isString(options.input)
@@ -376,15 +374,11 @@ export const normalizeOptions = async (
   };
 
   if (!normalizedOptions.input.target) {
-    createLogger().error(chalk.red(`Config require an input target`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    createLogger().error(
-      chalk.red(`Config require an output target or schemas`),
-    );
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an output target or schemas`));
   }
 
   return normalizedOptions;
@@ -401,8 +395,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {

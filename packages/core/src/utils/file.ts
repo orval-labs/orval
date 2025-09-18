@@ -114,15 +114,14 @@ export async function loadFile<File = any>(
 
   if (!resolvedPath) {
     if (filePath) {
-      createLogger(logLevel).error(chalk.red(`File not found => ${filePath}`));
+      throw new Error(chalk.red(`File not found => ${filePath}`));
     } else if (defaultFileName) {
-      createLogger(logLevel).error(
+      throw new Error(
         chalk.red(`File not found => ${defaultFileName}.{js,mjs,cjs,ts}`),
       );
     } else {
-      createLogger(logLevel).error(chalk.red(`File not found`));
+      throw new Error(chalk.red(`File not found`));
     }
-    process.exit(1);
   }
 
   const normalizeResolvedPath = normalizeSafe(resolvedPath);

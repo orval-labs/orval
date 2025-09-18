@@ -121,7 +121,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
     return body.data?.repository?.object.text;
   } catch (error: any) {
     if (!error.body) {
-      throw `Oups... 🍻. ${error}`;
+      throw new Error(`Oups... 🍻. ${error}`);
     }
 
     if (error.body.message === 'Bad credentials') {
@@ -137,7 +137,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
         await fs.unlink(githubTokenPath);
       }
     }
-    throw error.body.message || `Oups... 🍻. ${error}`;
+    throw new Error(error.body.message || `Oups... 🍻. ${error}`);
   }
 };
 

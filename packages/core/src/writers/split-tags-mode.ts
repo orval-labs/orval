@@ -217,7 +217,9 @@ export const writeSplitTagsMode = async ({
           ...(mockPath ? [mockPath] : []),
         ];
       } catch (error) {
-        throw `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${error}`;
+        throw new Error(
+          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${error}`,
+        );
       }
     }),
   );

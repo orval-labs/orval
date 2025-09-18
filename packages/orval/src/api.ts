@@ -9,7 +9,6 @@ import {
   getRoute,
   GetterPropType,
   isReference,
-  logError,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   resolveRef,
@@ -105,8 +104,7 @@ export const getApiBuilder = async ({
         output.baseUrl,
       );
       if (!output.target) {
-        logError('Output does not have a target');
-        process.exit(1);
+        throw new Error('Output does not have a target');
       }
       const pathOperations = await generateOperations(
         output.client,

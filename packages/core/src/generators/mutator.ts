@@ -81,12 +81,11 @@ export const generateMutator = async ({
     );
 
     if (!mutatorInfo) {
-      createLogger().error(
+      throw new Error(
         chalk.red(
           `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
         ),
       );
-      process.exit(1);
     }
 
     const path = getImport(output, mutator);

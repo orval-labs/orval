@@ -25,6 +25,6 @@ export const openApiConverter = async (
       }
     });
   } catch (error) {
-    throw `Oups... 🍻.\nPath: ${specKey}\nParsing Error: ${error}`;
+    throw new Error(`Oups... 🍻.\nPath: ${specKey}\nParsing Error: ${error}`);
   }
 };

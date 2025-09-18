@@ -1,5 +1,4 @@
 import {
-  createLogger,
   getIsBodyVerb,
   GetterProps,
   GetterPropType,
@@ -71,8 +70,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {

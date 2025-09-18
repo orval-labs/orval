@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { isString, logError, startMessage } from '@orval/core';
+import { ErrorWithTag, isString, logError, startMessage } from '@orval/core';
 import { cac } from 'cac';
 
 import pkg from '../../package.json';
@@ -57,13 +57,14 @@ cli
       });
 
       if (cmd.watch) {
-        startWatcher(
+        await startWatcher(
           cmd.watch,
           async () => {
             try {
               await generateSpec(process.cwd(), normalizedOptions);
             } catch (error) {
               logError(error);
+              process.exit(1);
             }
           },
           normalizedOptions.input.target as string,
@@ -72,7 +73,12 @@ cli
         try {
           await generateSpec(process.cwd(), normalizedOptions);
         } catch (error) {
-          logError(error);
+          if (error instanceof ErrorWithTag) {
+            logError(error.cause, error.tag);
+          } else {
+            logError(error);
+          }
+          process.exit(1);
         }
       }
     } else {
