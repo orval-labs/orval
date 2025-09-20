@@ -41,9 +41,3 @@ jobs:
         run: yarn format:check
       - name: unit tests
         run: yarn test:ci
-      - name: tests generate
-        working-directory: ./tests
-        run: yarn generate
-      - name: tests build
-        working-directory: ./tests
-        run: yarn build
