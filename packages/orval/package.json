@@ -44,11 +44,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/orval-labs/orval.git"
+    "url": "git+https://github.com/TheHaff/orval.git"
   },
   "scripts": {
-    "build": "tsdown --config-loader unconfig",
-    "dev": "tsdown --config-loader unconfig --watch src --onSuccess 'yarn generate-api'",
+    "build": "tsup",
+    "prepare": "npm run build",
+    "dev": "tsup --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint .",
     "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
     "test": "tsc --noEmit && vitest",
@@ -62,7 +63,7 @@
     "eslint": "^9.35.0",
     "openapi-types": "^12.1.3",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.2",
+    "tsup": "^8.0.2",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
