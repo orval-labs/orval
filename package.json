@@ -27,7 +27,7 @@
     "format:staged": "lint-staged",
     "format:samples": "prettier --write samples",
     "prerelease": "yarn build && yarn workspace orval-tests clean && yarn workspace orval-tests generate && yarn workspace orval-tests build",
-    "release": "yarn prerelease && dotenv release-it && yarn postrelease",
+    "release": "yarn prerelease && dotenv release-it --npm.publishArgs=\"--registry=https://registry.npmjs.org\" && yarn postrelease",
     "postrelease": "yarn build --force && yarn update-samples && yarn format",
     "prepare": "husky",
     "commitlint": "commitlint",
