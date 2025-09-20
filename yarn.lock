@@ -2202,6 +2202,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@commander-js/extra-typings@npm:^14.0.0":
+  version: 14.0.0
+  resolution: "@commander-js/extra-typings@npm:14.0.0"
+  peerDependencies:
+    commander: ~14.0.0
+  checksum: 10c0/b064889e254e1c895886ec8148ac6e0d9bfa3c0336b9ee58124178308819dcf008f15e2a7abdc89b6c1ac3bdbd8003d8cfdaf363971d41dcce64b28c9714af12
+  languageName: node
+  linkType: hard
+
 "@commitlint/cli@npm:^19.8.1":
   version: 19.8.1
   resolution: "@commitlint/cli@npm:19.8.1"
@@ -10705,6 +10714,13 @@ __metadata:
   version: 13.1.0
   resolution: "commander@npm:13.1.0"
   checksum: 10c0/7b8c5544bba704fbe84b7cab2e043df8586d5c114a4c5b607f83ae5060708940ed0b5bd5838cf8ce27539cde265c1cbd59ce3c8c6b017ed3eec8943e3a415164
+  languageName: node
+  linkType: hard
+
+"commander@npm:^14.0.1":
+  version: 14.0.1
+  resolution: "commander@npm:14.0.1"
+  checksum: 10c0/64439c0651ddd01c1d0f48c8f08e97c18a0a1fa693879451f1203ad01132af2c2aa85da24cf0d8e098ab9e6dc385a756be670d2999a3c628ec745c3ec124587b
   languageName: node
   linkType: hard
 
@@ -19704,6 +19720,7 @@ __metadata:
   resolution: "orval@workspace:packages/orval"
   dependencies:
     "@apidevtools/swagger-parser": "npm:^12.0.0"
+    "@commander-js/extra-typings": "npm:^14.0.0"
     "@orval/angular": "workspace:*"
     "@orval/axios": "workspace:*"
     "@orval/core": "workspace:*"
@@ -19717,9 +19734,9 @@ __metadata:
     "@types/fs-extra": "npm:^11.0.4"
     "@types/js-yaml": "npm:^4.0.9"
     "@types/lodash.uniq": "npm:^4.5.9"
-    cac: "npm:^6.7.14"
     chalk: "npm:^4.1.2"
     chokidar: "npm:^4.0.3"
+    commander: "npm:^14.0.1"
     enquirer: "npm:^2.4.1"
     eslint: "npm:^9.35.0"
     execa: "npm:^5.1.1"
