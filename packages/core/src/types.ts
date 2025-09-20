@@ -586,6 +586,7 @@ export type NormalizedQueryOptions = {
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
   shouldSplitQueryKey?: boolean;
+  useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -606,6 +607,7 @@ export type QueryOptions = {
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
   shouldSplitQueryKey?: boolean;
+  useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
