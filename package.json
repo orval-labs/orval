@@ -39,9 +39,8 @@
     "lint:samples": "turbo run lint --filter='./samples/**'",
     "dev": "turbo run dev --filter='./packages/*'",
     "clean": "rimraf .turbo",
-    "nuke": "rimraf .turbo .yarn node_modules",
-    "clean:all": "turbo run clean",
-    "nuke:all": "turbo run nuke"
+    "clean:all": "yarn workspaces foreach -A run clean",
+    "nuke:all": "yarn workspaces foreach -A run nuke && rimraf .turbo .yarn node_modules"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
