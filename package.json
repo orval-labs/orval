@@ -15,10 +15,6 @@
       "name": "node",
       "version": ">=24",
       "onFail": "error"
-    },
-    "packageManager": {
-      "name": "yarn",
-      "onFail": "error"
     }
   },
   "scripts": {
