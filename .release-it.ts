@@ -2,6 +2,8 @@ import type { Config } from 'release-it';
 
 export default {
   npm: {
+    // version is already bumped by @release-it-plugins/workspaces
+    allowSameVersion: true,
     // https://github.com/release-it/release-it/blob/main/docs/npm.md#yarn
     publishArgs: ['--registry=https://registry.npmjs.org'],
   },
