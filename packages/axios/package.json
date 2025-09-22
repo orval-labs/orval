@@ -24,10 +24,10 @@
     "@orval/core": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "^9.38.0",
-    "rimraf": "^6.0.1",
-    "tsdown": "^0.15.9",
-    "typescript": "^5.9.3"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
   },
   "stableVersion": "8.0.0-rc.0"
 }

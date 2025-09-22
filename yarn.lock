@@ -3301,7 +3301,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@eslint/js@npm:9.38.0, @eslint/js@npm:^9.38.0":
+"@eslint/js@npm:9.38.0":
   version: 9.38.0
   resolution: "@eslint/js@npm:9.38.0"
   checksum: 10c0/b4a0d561ab93f0b1bc6a3f5e3f83764c9cccade59f2c54f1d718c1dcc71ac4d1be97bef7300cca641932d72e7555c79a7bf07e4e4ce1d0a1ddccc84d6440d2a6
@@ -5223,10 +5223,10 @@ __metadata:
   resolution: "@orval/angular@workspace:packages/angular"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "npm:^9.38.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    typescript: "npm:^5.9.3"
+    eslint: "catalog:"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5235,10 +5235,10 @@ __metadata:
   resolution: "@orval/axios@workspace:packages/axios"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "npm:^9.38.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    typescript: "npm:^5.9.3"
+    eslint: "catalog:"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5259,19 +5259,19 @@ __metadata:
     compare-versions: "npm:^6.1.1"
     debug: "npm:^4.4.3"
     esbuild: "npm:^0.25.11"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     esutils: "npm:2.0.3"
     fs-extra: "npm:^11.3.2"
     globby: "npm:15.0.0"
     openapi-types: "npm:^12.1.3"
     openapi3-ts: "npm:4.5.0"
     remeda: "npm:^2.32.0"
-    rimraf: "npm:^6.0.1"
+    rimraf: "catalog:"
     swagger2openapi: "npm:^7.0.8"
-    tsdown: "npm:^0.15.9"
+    tsdown: "catalog:"
     typedoc: "npm:^0.28.14"
-    typescript: "npm:^5.9.3"
-    vitest: "npm:^4.0.6"
+    typescript: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5280,11 +5280,11 @@ __metadata:
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     openapi3-ts: "npm:4.5.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    typescript: "npm:^5.9.3"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5296,13 +5296,13 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/zod": "workspace:*"
     "@types/fs-extra": "npm:^11.0.4"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     fs-extra: "npm:^11.3.2"
     openapi3-ts: "npm:4.5.0"
     remeda: "npm:^2.32.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    typescript: "npm:^5.9.3"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5313,11 +5313,11 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
     "@orval/zod": "workspace:*"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     openapi3-ts: "npm:4.5.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    typescript: "npm:^5.9.3"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5326,12 +5326,12 @@ __metadata:
   resolution: "@orval/mock@workspace:packages/mock"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     openapi3-ts: "npm:4.5.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    typescript: "npm:^5.9.3"
-    vitest: "npm:^4.0.6"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5342,11 +5342,11 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
     chalk: "npm:^5.6.2"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     remeda: "npm:^2.32.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    vitest: "npm:^4.0.6"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5356,9 +5356,9 @@ __metadata:
   dependencies:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
-    eslint: "npm:^9.38.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
+    eslint: "catalog:"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -5367,12 +5367,12 @@ __metadata:
   resolution: "@orval/zod@workspace:packages/zod"
   dependencies:
     "@orval/core": "workspace:*"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     openapi3-ts: "npm:4.5.0"
     remeda: "npm:^2.32.0"
-    rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.9"
-    vitest: "npm:^4.0.6"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -7325,7 +7325,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^22.18.12":
+"@types/node@npm:22.18.12, @types/node@npm:^22.18.12":
   version: 22.18.12
   resolution: "@types/node@npm:22.18.12"
   dependencies:
@@ -12752,55 +12752,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint@npm:^8.3.0":
-  version: 8.57.1
-  resolution: "eslint@npm:8.57.1"
-  dependencies:
-    "@eslint-community/eslint-utils": "npm:^4.2.0"
-    "@eslint-community/regexpp": "npm:^4.6.1"
-    "@eslint/eslintrc": "npm:^2.1.4"
-    "@eslint/js": "npm:8.57.1"
-    "@humanwhocodes/config-array": "npm:^0.13.0"
-    "@humanwhocodes/module-importer": "npm:^1.0.1"
-    "@nodelib/fs.walk": "npm:^1.2.8"
-    "@ungap/structured-clone": "npm:^1.2.0"
-    ajv: "npm:^6.12.4"
-    chalk: "npm:^4.0.0"
-    cross-spawn: "npm:^7.0.2"
-    debug: "npm:^4.3.2"
-    doctrine: "npm:^3.0.0"
-    escape-string-regexp: "npm:^4.0.0"
-    eslint-scope: "npm:^7.2.2"
-    eslint-visitor-keys: "npm:^3.4.3"
-    espree: "npm:^9.6.1"
-    esquery: "npm:^1.4.2"
-    esutils: "npm:^2.0.2"
-    fast-deep-equal: "npm:^3.1.3"
-    file-entry-cache: "npm:^6.0.1"
-    find-up: "npm:^5.0.0"
-    glob-parent: "npm:^6.0.2"
-    globals: "npm:^13.19.0"
-    graphemer: "npm:^1.4.0"
-    ignore: "npm:^5.2.0"
-    imurmurhash: "npm:^0.1.4"
-    is-glob: "npm:^4.0.0"
-    is-path-inside: "npm:^3.0.3"
-    js-yaml: "npm:^4.1.0"
-    json-stable-stringify-without-jsonify: "npm:^1.0.1"
-    levn: "npm:^0.4.1"
-    lodash.merge: "npm:^4.6.2"
-    minimatch: "npm:^3.1.2"
-    natural-compare: "npm:^1.4.0"
-    optionator: "npm:^0.9.3"
-    strip-ansi: "npm:^6.0.1"
-    text-table: "npm:^0.2.0"
-  bin:
-    eslint: bin/eslint.js
-  checksum: 10c0/1fd31533086c1b72f86770a4d9d7058ee8b4643fd1cfd10c7aac1ecb8725698e88352a87805cf4b2ce890aa35947df4b4da9655fb7fdfa60dbb448a43f6ebcf1
-  languageName: node
-  linkType: hard
-
-"eslint@npm:^9.38.0":
+"eslint@npm:9.38.0, eslint@npm:^9.38.0":
   version: 9.38.0
   resolution: "eslint@npm:9.38.0"
   dependencies:
@@ -12846,6 +12798,54 @@ __metadata:
   bin:
     eslint: bin/eslint.js
   checksum: 10c0/51b0978dce04233580263fd4b5c4f128ecffdcde44fbddfedb5bced48a60d4fc619f5ae91800a1461a78a860b14c77a5081b0b2cf628b705580b70126a11e14b
+  languageName: node
+  linkType: hard
+
+"eslint@npm:^8.3.0":
+  version: 8.57.1
+  resolution: "eslint@npm:8.57.1"
+  dependencies:
+    "@eslint-community/eslint-utils": "npm:^4.2.0"
+    "@eslint-community/regexpp": "npm:^4.6.1"
+    "@eslint/eslintrc": "npm:^2.1.4"
+    "@eslint/js": "npm:8.57.1"
+    "@humanwhocodes/config-array": "npm:^0.13.0"
+    "@humanwhocodes/module-importer": "npm:^1.0.1"
+    "@nodelib/fs.walk": "npm:^1.2.8"
+    "@ungap/structured-clone": "npm:^1.2.0"
+    ajv: "npm:^6.12.4"
+    chalk: "npm:^4.0.0"
+    cross-spawn: "npm:^7.0.2"
+    debug: "npm:^4.3.2"
+    doctrine: "npm:^3.0.0"
+    escape-string-regexp: "npm:^4.0.0"
+    eslint-scope: "npm:^7.2.2"
+    eslint-visitor-keys: "npm:^3.4.3"
+    espree: "npm:^9.6.1"
+    esquery: "npm:^1.4.2"
+    esutils: "npm:^2.0.2"
+    fast-deep-equal: "npm:^3.1.3"
+    file-entry-cache: "npm:^6.0.1"
+    find-up: "npm:^5.0.0"
+    glob-parent: "npm:^6.0.2"
+    globals: "npm:^13.19.0"
+    graphemer: "npm:^1.4.0"
+    ignore: "npm:^5.2.0"
+    imurmurhash: "npm:^0.1.4"
+    is-glob: "npm:^4.0.0"
+    is-path-inside: "npm:^3.0.3"
+    js-yaml: "npm:^4.1.0"
+    json-stable-stringify-without-jsonify: "npm:^1.0.1"
+    levn: "npm:^0.4.1"
+    lodash.merge: "npm:^4.6.2"
+    minimatch: "npm:^3.1.2"
+    natural-compare: "npm:^1.4.0"
+    optionator: "npm:^0.9.3"
+    strip-ansi: "npm:^6.0.1"
+    text-table: "npm:^0.2.0"
+  bin:
+    eslint: bin/eslint.js
+  checksum: 10c0/1fd31533086c1b72f86770a4d9d7058ee8b4643fd1cfd10c7aac1ecb8725698e88352a87805cf4b2ce890aa35947df4b4da9655fb7fdfa60dbb448a43f6ebcf1
   languageName: node
   linkType: hard
 
@@ -18504,11 +18504,11 @@ __metadata:
     openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    rimraf: "npm:^6.0.1"
+    rimraf: "catalog:"
     rxjs: "npm:~7.8.2"
     svelte: "npm:^5.43.2"
     swr: "npm:^2.3.6"
-    typescript: "npm:5.8.3"
+    typescript: "catalog:"
     vue: "npm:^3.5.22"
     zod: "npm:^3.25.76"
   languageName: unknown
@@ -18520,10 +18520,10 @@ __metadata:
   dependencies:
     "@commitlint/cli": "npm:^20.1.0"
     "@commitlint/config-conventional": "npm:^20.0.0"
-    "@eslint/js": "npm:^9.38.0"
-    "@types/node": "npm:^22.18.12"
+    "@eslint/js": "catalog:"
+    "@types/node": "catalog:"
     esbuild-plugin-alias: "npm:^0.2.1"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     eslint-config-prettier: "npm:^10.1.8"
     eslint-config-turbo: "npm:^2.5.8"
     eslint-plugin-prettier: "npm:^5.5.4"
@@ -18532,12 +18532,12 @@ __metadata:
     globals: "npm:^16.4.0"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.6"
-    prettier: "npm:3.6.2"
-    rimraf: "npm:^6.0.1"
+    prettier: "catalog:"
+    rimraf: "catalog:"
     turbo: "npm:^2.6.0"
-    typescript: "npm:^5.9.3"
+    typescript: "catalog:"
     typescript-eslint: "npm:^8.46.2"
-    vitest: "npm:^4.0.6"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
@@ -18563,7 +18563,7 @@ __metadata:
     chokidar: "npm:^4.0.3"
     commander: "npm:^14.0.1"
     enquirer: "npm:^2.4.1"
-    eslint: "npm:^9.38.0"
+    eslint: "catalog:"
     execa: "npm:^9.6.0"
     find-up: "npm:8.0.0"
     fs-extra: "npm:^11.3.2"
@@ -18572,15 +18572,15 @@ __metadata:
     openapi-types: "npm:^12.1.3"
     openapi3-ts: "npm:4.5.0"
     remeda: "npm:^2.32.0"
-    rimraf: "npm:^6.0.1"
+    rimraf: "catalog:"
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^3.1.6"
-    tsdown: "npm:^0.15.9"
+    tsdown: "catalog:"
     typedoc: "npm:^0.28.14"
     typedoc-plugin-coverage: "npm:^4.0.2"
     typedoc-plugin-markdown: "npm:^4.9.0"
-    typescript: "npm:^5.9.3"
-    vitest: "npm:^4.0.6"
+    typescript: "catalog:"
+    vitest: "catalog:"
   bin:
     orval: ./dist/bin/orval.js
   languageName: unknown
@@ -21035,18 +21035,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rimraf@npm:^2.5.2":
-  version: 2.7.1
-  resolution: "rimraf@npm:2.7.1"
-  dependencies:
-    glob: "npm:^7.1.3"
-  bin:
-    rimraf: ./bin.js
-  checksum: 10c0/4eef73d406c6940927479a3a9dee551e14a54faf54b31ef861250ac815172bade86cc6f7d64a4dc5e98b65e4b18a2e1c9ff3b68d296be0c748413f092bb0dd40
-  languageName: node
-  linkType: hard
-
-"rimraf@npm:^6.0.1":
+"rimraf@npm:6.0.1, rimraf@npm:^6.0.1":
   version: 6.0.1
   resolution: "rimraf@npm:6.0.1"
   dependencies:
@@ -21055,6 +21044,17 @@ __metadata:
   bin:
     rimraf: dist/esm/bin.mjs
   checksum: 10c0/b30b6b072771f0d1e73b4ca5f37bb2944ee09375be9db5f558fcd3310000d29dfcfa93cf7734d75295ad5a7486dc8e40f63089ced1722a664539ffc0c3ece8c6
+  languageName: node
+  linkType: hard
+
+"rimraf@npm:^2.5.2":
+  version: 2.7.1
+  resolution: "rimraf@npm:2.7.1"
+  dependencies:
+    glob: "npm:^7.1.3"
+  bin:
+    rimraf: ./bin.js
+  checksum: 10c0/4eef73d406c6940927479a3a9dee551e14a54faf54b31ef861250ac815172bade86cc6f7d64a4dc5e98b65e4b18a2e1c9ff3b68d296be0c748413f092bb0dd40
   languageName: node
   linkType: hard
 
@@ -23702,7 +23702,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsdown@npm:^0.15.9":
+"tsdown@npm:0.15.9":
   version: 0.15.9
   resolution: "tsdown@npm:0.15.9"
   dependencies:
@@ -24057,13 +24057,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:5.8.3, typescript@npm:~5.8.3":
-  version: 5.8.3
-  resolution: "typescript@npm:5.8.3"
+"typescript@npm:5.9.3, typescript@npm:~5.9.3":
+  version: 5.9.3
+  resolution: "typescript@npm:5.9.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
+  checksum: 10c0/6bd7552ce39f97e711db5aa048f6f9995b53f1c52f7d8667c1abdc1700c68a76a308f579cd309ce6b53646deb4e9a1be7c813a93baaf0a28ccd536a30270e1c5
   languageName: node
   linkType: hard
 
@@ -24077,23 +24077,23 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.9.3, typescript@npm:~5.9.3":
-  version: 5.9.3
-  resolution: "typescript@npm:5.9.3"
+"typescript@npm:~5.8.3":
+  version: 5.8.3
+  resolution: "typescript@npm:5.8.3"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/6bd7552ce39f97e711db5aa048f6f9995b53f1c52f7d8667c1abdc1700c68a76a308f579cd309ce6b53646deb4e9a1be7c813a93baaf0a28ccd536a30270e1c5
+  checksum: 10c0/5f8bb01196e542e64d44db3d16ee0e4063ce4f3e3966df6005f2588e86d91c03e1fb131c2581baf0fb65ee79669eea6e161cd448178986587e9f6844446dbb48
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.8.3#optional!builtin<compat/typescript>":
-  version: 5.8.3
-  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
+"typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.9.3#optional!builtin<compat/typescript>":
+  version: 5.9.3
+  resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
+  checksum: 10c0/ad09fdf7a756814dce65bc60c1657b40d44451346858eea230e10f2e95a289d9183b6e32e5c11e95acc0ccc214b4f36289dcad4bf1886b0adb84d711d336a430
   languageName: node
   linkType: hard
 
@@ -24107,13 +24107,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.9.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A~5.9.3#optional!builtin<compat/typescript>":
-  version: 5.9.3
-  resolution: "typescript@patch:typescript@npm%3A5.9.3#optional!builtin<compat/typescript>::version=5.9.3&hash=5786d5"
+"typescript@patch:typescript@npm%3A~5.8.3#optional!builtin<compat/typescript>":
+  version: 5.8.3
+  resolution: "typescript@patch:typescript@npm%3A5.8.3#optional!builtin<compat/typescript>::version=5.8.3&hash=5786d5"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 10c0/ad09fdf7a756814dce65bc60c1657b40d44451346858eea230e10f2e95a289d9183b6e32e5c11e95acc0ccc214b4f36289dcad4bf1886b0adb84d711d336a430
+  checksum: 10c0/39117e346ff8ebd87ae1510b3a77d5d92dae5a89bde588c747d25da5c146603a99c8ee588c7ef80faaf123d89ed46f6dbd918d534d641083177d5fac38b8a1cb
   languageName: node
   linkType: hard
 
@@ -24658,7 +24658,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitest@npm:^4.0.6":
+"vitest@npm:4.0.6, vitest@npm:^4.0.6":
   version: 4.0.6
   resolution: "vitest@npm:4.0.6"
   dependencies:

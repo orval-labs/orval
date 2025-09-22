@@ -27,10 +27,10 @@
     "remeda": "^2.32.0"
   },
   "devDependencies": {
-    "eslint": "^9.38.0",
-    "rimraf": "^6.0.1",
-    "tsdown": "^0.15.9",
-    "vitest": "^4.0.6"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
   },
   "stableVersion": "8.0.0-rc.0"
 }
