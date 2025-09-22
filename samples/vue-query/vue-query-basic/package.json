@@ -30,6 +30,11 @@
     "vitest": "^3.2.4",
     "vue-tsc": "^2.2.12"
   },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
   "msw": {
     "workerDirectory": "public"
   }
