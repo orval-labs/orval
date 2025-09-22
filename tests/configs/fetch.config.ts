@@ -260,10 +260,10 @@ export default defineConfig({
       target: '../specifications/parameters.yaml',
     },
   },
-  throwOnError: {
+  forceSuccessResponse: {
     output: {
-      target: '../generated/fetch/throw-on-error/endpoints.ts',
-      schemas: '../generated/fetch/throw-on-error/model',
+      target: '../generated/fetch/force-success-response/endpoints.ts',
+      schemas: '../generated/fetch/force-success-response/model',
       client: 'fetch',
       override: {
         fetch: {
