@@ -3,8 +3,8 @@ import { siteConfig } from 'siteConfig';
 import { Search } from './Search';
 
 export const Nav = () => (
-  <div className="bg-white border-b border-gray-200">
-    <div className="container mx-auto">
+  <header className="bg-white border-b border-gray-200">
+    <nav className="container mx-auto">
       <div className="flex flex-wrap items-center">
         <div className="w-60 flex items-center h-16 pt-4 md:pt-0">
           <Link href="/" as="/">
@@ -78,6 +78,6 @@ export const Nav = () => (
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </nav>
+  </header>
 );

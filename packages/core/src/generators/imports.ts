@@ -1,13 +1,14 @@
 import uniq from 'lodash.uniq';
 import uniqWith from 'lodash.uniqwith';
+
 import {
-  GeneratorImport,
-  GeneratorMutator,
-  GeneratorVerbOptions,
+  type GeneratorImport,
+  type GeneratorMutator,
+  type GeneratorVerbOptions,
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { upath, conventionName } from '../utils';
+import { conventionName, upath } from '../utils';
 
 export const generateImports = ({
   imports = [],
@@ -24,7 +25,7 @@ export const generateImports = ({
   specKey: string;
   namingConvention?: NamingConvention;
 }) => {
-  if (!imports.length) {
+  if (imports.length === 0) {
     return '';
   }
 
@@ -40,7 +41,7 @@ export const generateImports = ({
       const fileName = conventionName(name, namingConvention);
 
       if (specKey && !isSameSpecKey) {
-        const path = specKey !== target ? specsName[specKey] : '';
+        const path = specKey === target ? '' : specsName[specKey];
 
         if (!isRootKey && specKey) {
           return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
@@ -140,9 +141,9 @@ const generateDependency = ({
       e.default &&
       (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
   );
-  const syntheticDefaultImportDep = !isAllowSyntheticDefaultImports
-    ? deps.find((e) => e.syntheticDefaultImport)
-    : undefined;
+  const syntheticDefaultImportDep = isAllowSyntheticDefaultImports
+    ? undefined
+    : deps.find((e) => e.syntheticDefaultImport);
 
   const depsString = uniq(
     deps
@@ -196,8 +197,8 @@ export const addDependency = ({
     return implementation.match(pattern);
   });
 
-  if (!toAdds.length) {
-    return undefined;
+  if (toAdds.length === 0) {
+    return;
   }
 
   const groupedBySpecKey = toAdds.reduce<

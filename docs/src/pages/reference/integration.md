@@ -3,7 +3,7 @@ id: integration
 title: Integration
 ---
 
-### Import script
+## Import script
 
 Orval gives you the possibility to import Orval.
 

@@ -251,6 +251,7 @@ export default defineConfig({
       target: '../generated/fetch/dateParams/endpoints.ts',
       schemas: '../generated/fetch/dateParams/model',
       client: 'fetch',
+      urlEncodeParameters: true,
       mode: 'tags-split',
       override: {
         useDates: true,

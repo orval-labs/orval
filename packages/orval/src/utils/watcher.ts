@@ -36,8 +36,8 @@ export const startWatcher = async (
 
     try {
       await watchFn();
-    } catch (e) {
-      logError(e);
+    } catch (error) {
+      logError(error);
     }
   });
 };

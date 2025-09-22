@@ -1,4 +1,5 @@
-import basepath from 'path';
+import basepath from 'node:path';
+
 import { isUrl } from './assertion';
 import { getExtension } from './extension';
 import { getFileInfo } from './file';
@@ -22,36 +23,28 @@ const isString = (val: any) => {
   return false;
 };
 
-Object.entries(basepath).forEach(([propName, propValue]) => {
+for (const [propName, propValue] of Object.entries(basepath)) {
   if (isFunction(propValue)) {
     // @ts-ignore
     path[propName] = ((propName) => {
       return (...args: any[]) => {
         args = args.map((p) => {
-          if (isString(p)) {
-            return toUnix(p);
-          } else {
-            return p;
-          }
+          return isString(p) ? toUnix(p) : p;
         });
 
         // @ts-ignore
         const result = basepath[propName](...args);
-        if (isString(result)) {
-          return toUnix(result);
-        } else {
-          return result;
-        }
+        return isString(result) ? toUnix(result) : result;
       };
     })(propName);
   } else {
     // @ts-ignore
     path[propName] = propValue;
   }
-});
+}
 
 const { join, resolve, extname, dirname, basename, isAbsolute } = path;
-export { join, resolve, extname, dirname, basename, isAbsolute };
+export { basename, dirname, extname, isAbsolute, join, resolve };
 
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"
@@ -94,8 +87,8 @@ export const getSchemaFileName = (path: string) => {
 export const separator = '/';
 
 const toUnix = function (value: string) {
-  value = value.replace(/\\/g, '/');
-  value = value.replace(/(?<!^)\/+/g, '/'); // replace doubles except beginning for UNC path
+  value = value.replaceAll('\\', '/');
+  value = value.replaceAll(/(?<!^)\/+/g, '/'); // replace doubles except beginning for UNC path
   return value;
 };
 
@@ -110,11 +103,7 @@ export const normalizeSafe = (value: string) => {
   ) {
     result = './' + result;
   } else if (value.startsWith('//') && !result.startsWith('//')) {
-    if (value.startsWith('//./')) {
-      result = '//.' + result;
-    } else {
-      result = '/' + result;
-    }
+    result = value.startsWith('//./') ? '//.' + result : '/' + result;
   }
   return result;
 };
@@ -131,11 +120,7 @@ export const joinSafe = function (...values: string[]) {
     ) {
       result = './' + result;
     } else if (firstValue.startsWith('//') && !result.startsWith('//')) {
-      if (firstValue.startsWith('//./')) {
-        result = '//.' + result;
-      } else {
-        result = '/' + result;
-      }
+      result = firstValue.startsWith('//./') ? '//.' + result : '/' + result;
     }
   }
   return result;

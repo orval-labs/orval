@@ -1,24 +1,22 @@
 import {
-  GeneratorOperation,
-  GeneratorTarget,
-  GeneratorTargetFull,
-  NormalizedOutputOptions,
+  type GeneratorOperation,
+  type GeneratorTarget,
+  type GeneratorTargetFull,
+  type NormalizedOutputOptions,
   OutputClient,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
 const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
   ...operation,
-  tags: operation.tags.length ? operation.tags : ['default'],
+  tags: operation.tags.length > 0 ? operation.tags : ['default'],
 });
 
 const generateTargetTags = (
-  currentAcc: { [key: string]: GeneratorTargetFull },
+  currentAcc: Record<string, GeneratorTargetFull>,
   operation: GeneratorOperation,
-): {
-  [key: string]: GeneratorTargetFull;
-} => {
+): Record<string, GeneratorTargetFull> => {
   const tag = kebab(operation.tags[0]);
   const currentOperation = currentAcc[tag];
 
@@ -100,7 +98,7 @@ export const generateTargetForTags = (
 
   const allTargetTags = Object.values(builder.operations)
     .map(addDefaultTagIfEmpty)
-    .reduce(
+    .reduce<Record<string, GeneratorTargetFull>>(
       (acc, operation, index, arr) => {
         const targetTags = generateTargetTags(acc, operation);
 
@@ -119,8 +117,8 @@ export const generateTargetForTags = (
               .map(({ operationName }) => operationName);
 
             const typescriptVersion =
-              options.packageJson?.dependencies?.['typescript'] ??
-              options.packageJson?.devDependencies?.['typescript'] ??
+              options.packageJson?.dependencies?.typescript ??
+              options.packageJson?.devDependencies?.typescript ??
               '4.4.0';
 
             const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
@@ -185,7 +183,7 @@ export const generateTargetForTags = (
 
         return targetTags;
       },
-      {} as { [key: string]: GeneratorTargetFull },
+      {},
     );
 
   return Object.entries(allTargetTags).reduce<Record<string, GeneratorTarget>>(

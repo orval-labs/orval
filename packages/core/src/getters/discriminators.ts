@@ -1,7 +1,8 @@
-import { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
-import { ContextSpecs } from '../types';
-import { getRefInfo } from './ref';
+import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
+
+import type { ContextSpecs } from '../types';
 import { pascal } from '../utils';
+import { getRefInfo } from './ref';
 
 export const resolveDiscriminators = (
   schemas: SchemasObject,
@@ -22,7 +23,7 @@ export const resolveDiscriminators = (
           const name = pascal(originalName);
           subTypeSchema =
             transformedSchemas[name] ?? transformedSchemas[originalName];
-        } catch (e) {
+        } catch {
           subTypeSchema = transformedSchemas[mappingValue];
         }
 

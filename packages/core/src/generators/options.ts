@@ -1,10 +1,10 @@
 import {
-  GeneratorMutator,
-  GeneratorSchema,
-  GetterBody,
-  GetterQueryParam,
-  GetterResponse,
-  ParamsSerializerOptions,
+  type GeneratorMutator,
+  type GeneratorSchema,
+  type GetterBody,
+  type GetterQueryParam,
+  type GetterResponse,
+  type ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';
@@ -63,9 +63,9 @@ export const generateAxiosOptions = ({
       return 'options';
     }
     if (hasSignal) {
-      return !isExactOptionalPropertyTypes
-        ? 'signal'
-        : '...(signal ? { signal } : {})';
+      return isExactOptionalPropertyTypes
+        ? '...(signal ? { signal } : {})'
+        : 'signal';
     }
     return '';
   }
@@ -82,9 +82,9 @@ export const generateAxiosOptions = ({
     }
 
     if (hasSignal) {
-      value += !isExactOptionalPropertyTypes
-        ? '\n        signal,'
-        : '\n        ...(signal ? { signal } : {}),';
+      value += isExactOptionalPropertyTypes
+        ? '\n        ...(signal ? { signal } : {}),'
+        : '\n        signal,';
     }
   }
 
@@ -126,13 +126,11 @@ export const generateAxiosOptions = ({
     queryParams &&
     (paramsSerializer || paramsSerializerOptions?.qs)
   ) {
-    if (paramsSerializer) {
-      value += `\n        paramsSerializer: ${paramsSerializer.name},`;
-    } else {
-      value += `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-        paramsSerializerOptions!.qs,
-      )}),`;
-    }
+    value += paramsSerializer
+      ? `\n        paramsSerializer: ${paramsSerializer.name},`
+      : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+          paramsSerializerOptions!.qs,
+        )}),`;
   }
 
   return value;
@@ -241,11 +239,7 @@ export const generateQueryParamsAxiosConfig = (
   let value = '';
 
   if (queryParams) {
-    if (isVue) {
-      value += ',\n        params: unref(params)';
-    } else {
-      value += ',\n        params';
-    }
+    value += isVue ? ',\n        params: unref(params)' : ',\n        params';
   }
 
   if (response.isBlob) {

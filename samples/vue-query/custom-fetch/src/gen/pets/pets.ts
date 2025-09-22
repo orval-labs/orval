@@ -198,15 +198,21 @@ export function useListPets<
     request?: SecondParameter<typeof customFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
   const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
     TData,
     TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
 
   return query;
 }
@@ -518,15 +524,21 @@ export function useShowPetById<
     request?: SecondParameter<typeof customFetch>;
   },
   queryClient?: QueryClient,
-): UseQueryReturnType<TData, TError> & { queryKey: DataTag<QueryKey, TData> } {
+): UseQueryReturnType<TData, TError> & {
+  queryKey: DataTag<QueryKey, TData, TError>;
+} {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = useQuery(queryOptions, queryClient) as UseQueryReturnType<
     TData,
     TError
-  > & { queryKey: DataTag<QueryKey, TData> };
+  > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = unref(queryOptions).queryKey as DataTag<QueryKey, TData>;
+  query.queryKey = unref(queryOptions).queryKey as DataTag<
+    QueryKey,
+    TData,
+    TError
+  >;
 
   return query;
 }

@@ -3,9 +3,9 @@ id: msw
 title: MSW
 ---
 
-If you want to generate a mock, define the `mock` property to `true` and a mock of `MSW` will be generated in the target file. You can check <a href="https://mswjs.io/" target="_blank">MSW</a> to configure MSW correctly in your project.
+To generate mocks, define the `mock` property to `true` and a mock of `MSW` will be generated in the target file. Visit <a href="https://mswjs.io/" target="_blank">the MSW documentation</a> to configure MSW correctly in your project.
 
-#### Example of orval.config.js
+## Example of orval.config.js
 
 ```js
 module.exports = {
@@ -26,10 +26,10 @@ module.exports = {
 The mock definition consists of the following three functions.
 
 1. A function that returns a mocked value of a schema object
-2. A function that returns the value of binding the mock object to the http request handler of `MSW`
-3. A function that returns an `Array` that aggregates all handlers in the file.
+2. A function that returns the value of binding the mock object to the HTTP request handler of MSW
+3. A function that returns an array that aggregates all handlers in the file.
 
-#### A function that returns a mocked value of a schema object
+## A Function That Returns a Mocked Value of a Schema Object
 
 A function that returns a mock object will be generated as shown below:
 
@@ -47,7 +47,7 @@ export const getShowPetByIdResponseMock = (
 ```
 
 The value is implemented in `faker.js`.
-If you want to overwrite part of the object, you can write the mock value by specifying it as a function argument.
+To overwrite part of the object, modify the mock property by specifying it as a function argument.
 
 ```typescript
 import { getShowPetByIdMock } from 'pets.msw';
@@ -57,9 +57,9 @@ console.log(pet);
 // => { id: 7272122785202176, ​name: "override", tag: undefined }
 ```
 
-#### A function that returns the value of binding the mock object to the http request handler of `MSW`
+## A Function That Returns the Value of Binding the Mock Object to the HTTP Request Handler of MSW
 
-A function is generated that returns the value of the mock object bound to the `MSW` http request handler as shown below:
+A function is generated that returns the value of the mock object bound to the MSW HTTP request handler as shown below:
 
 ```typescript
 import { HttpResponse, delay, http } from 'msw';
@@ -92,7 +92,7 @@ export const getShowPetByIdMockHandler = (
 };
 ```
 
-If you want to overwrite mocked http response object, you can write the object by specifying it as a function argument.
+To overwrite the mocked HTTP response object, provide the object by specifying it as a function argument.
 
 ```typescript
 import { Pet } from './gen/model/pet';
@@ -105,7 +105,7 @@ console.log(showPetByIdMockHandler);
 // => Object { info: {…}, isUsed: false, resolver: async getShowPetByIdMockHandler(), resolverGenerator: undefined, resolverGeneratorResult: undefined, options: {} }
 ```
 
-You can also pass a function as an argument, which will be called every time a request is made to the API.
+It is also possible to pass a function as an argument, which will be called every time a request is made to the API.
 
 ```ts
 getShowPetByIdMockHandler((info) => {
@@ -115,7 +115,7 @@ getShowPetByIdMockHandler((info) => {
 });
 ```
 
-For example, if you want to use the generated mock in a test to verify that the API was called, you can use it as follows:
+For example, to use the generated mock in a test to verify that the API was called, do as follows:
 
 ```ts
 import { expect, vi } from 'vitest';
@@ -135,9 +135,9 @@ const mock = [
 expect(mockFn).toHaveBeenCalledTimes(1);
 ```
 
-#### A function that returns an `Array` that aggregates all handlers in the file.
+## A Function That Returns an array That Aggregates All Handlers in the File.
 
-Aggregate all functions that return handlers and generate a function that returns as an `Array` as below:
+Aggregate all functions that return handlers and generate a function that returns as an array as below:
 
 ```typescript
 export const getPetsMock = () => [
@@ -147,7 +147,7 @@ export const getPetsMock = () => [
 ];
 ```
 
-You can run the `MSW` server using this function.
+Run the MSW server using this function.
 
 ```typescript
 import { getPetsMock } from 'petstore.msw';
@@ -155,4 +155,17 @@ import { setupServer } from 'msw/node';
 
 const server = setupServer();
 server.use(...getPetsMock());
+```
+
+You can also turn on [`indexMockFiles`](../reference/configuration/output#indexmockfiles) which will allow you dynamically import all mock handlers.
+
+```ts
+// node.ts
+import * as mocks from './endpoints/index.msw';
+import { setupServer } from 'msw/node';
+
+const handlers = Object.entries(mocks).flatMap(([, getMock]) => getMock());
+const server = setupServer(...handlers);
+
+export { server };
 ```

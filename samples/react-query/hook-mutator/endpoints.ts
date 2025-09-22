@@ -117,7 +117,7 @@ export function useListPets<
  * @summary Create a pet
  */
 export const useCreatePetsHook = () => {
-  const createPets = useCustomInstance<null>();
+  const createPets = useCustomInstance<void>();
 
   return useCallback(
     (createPetsBody: CreatePetsBody, signal?: AbortSignal) => {

@@ -1,5 +1,6 @@
-import { ResponsesObject } from 'openapi3-ts/oas30';
-import {
+import type { ResponsesObject } from 'openapi3-ts/oas30';
+
+import type {
   ContextSpecs,
   GetterResponse,
   OverrideOutputContentType,
@@ -36,7 +37,7 @@ export const getResponse = ({
     Object.entries(responses),
     operationName,
     context,
-    'null',
+    'void',
     (type) => `${type.key}-${type.value}`,
   );
 

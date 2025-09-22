@@ -1,12 +1,12 @@
 import {
-  Hook,
-  HookOption,
+  type Hook,
+  type HookOption,
   isFunction,
   isObject,
   isString,
   log,
   logError,
-  NormalizedHookCommand,
+  type NormalizedHookCommand,
 } from '@orval/core';
 import chalk from 'chalk';
 import execa from 'execa';
@@ -28,8 +28,8 @@ export const executeHook = async (
       } else if (isObject(command)) {
         await executeObjectCommand(command as HookOption, args);
       }
-    } catch (e) {
-      logError(e, `Failed to run ${name} hook`);
+    } catch (error) {
+      logError(error, `Failed to run ${name} hook`);
     }
   }
 };

@@ -1,17 +1,19 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, WriteModeProps } from '../types';
+import { OutputClient, type WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
+  pascal,
   upath,
 } from '../utils';
+import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
-import { generateImportsForBuilder } from './generate-imports-for-builder';
 
 export const writeSplitTagsMode = async ({
   builder,
@@ -104,12 +106,12 @@ export const writeSplitTagsMode = async ({
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
-          options: !isFunction(output.mock) ? output.mock : undefined,
+          options: isFunction(output.mock) ? undefined : output.mock,
         });
 
-        const schemasPath = !output.schemas
-          ? upath.join(dirname, filename + '.schemas' + extension)
-          : undefined;
+        const schemasPath = output.schemas
+          ? undefined
+          : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -202,7 +204,10 @@ export const writeSplitTagsMode = async ({
               tag,
               tag + '.' + getMockFileExtensionByTypeName(output.mock!),
             );
-            fs.appendFile(indexFilePath, `export * from '${localMockPath}'\n`);
+            fs.appendFile(
+              indexFilePath,
+              `export { get${pascal(tag)}Mock } from '${localMockPath}'\n`,
+            );
           }
         }
 
@@ -211,11 +216,13 @@ export const writeSplitTagsMode = async ({
           ...(schemasPath ? [schemasPath] : []),
           ...(mockPath ? [mockPath] : []),
         ];
-      } catch (e) {
-        throw `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${e}`;
+      } catch (error) {
+        throw new Error(
+          `Oups... 🍻. An Error occurred while splitting tag ${tag} => ${error}`,
+        );
       }
     }),
   );
 
-  return generatedFilePathsArray.flatMap((it) => it);
+  return generatedFilePathsArray.flat();
 };

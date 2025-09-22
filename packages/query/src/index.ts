@@ -32,6 +32,7 @@ import {
   Verbs,
 } from '@orval/core';
 import omitBy from 'lodash.omitby';
+
 import {
   AXIOS_DEPENDENCIES,
   generateQueryRequestFunction,
@@ -227,9 +228,9 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
   const useReactQueryV3 =
-    override?.query.version !== undefined
-      ? override?.query.version <= 3
-      : hasReactQuery && !hasReactQueryV4;
+    override?.query.version === undefined
+      ? hasReactQuery && !hasReactQueryV4
+      : override?.query.version <= 3;
 
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
@@ -423,7 +424,10 @@ const QueryType = {
   SUSPENSE_INFINITE: 'suspenseInfiniteQuery' as QueryType,
 };
 
-const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
+const INFINITE_QUERY_PROPERTIES = new Set([
+  'getNextPageParam',
+  'getPreviousPageParam',
+]);
 
 const generateQueryOptions = ({
   params,
@@ -447,12 +451,12 @@ const generateQueryOptions = ({
           (_, key) =>
             (type !== QueryType.INFINITE ||
               type !== QueryType.SUSPENSE_INFINITE) &&
-            INFINITE_QUERY_PROPERTIES.includes(key),
+            INFINITE_QUERY_PROPERTIES.has(key),
         ),
       )?.slice(1, -1)}`
     : '';
 
-  if (!params.length || isSuspenseQuery(type)) {
+  if (params.length === 0 || isSuspenseQuery(type)) {
     if (options) {
       return `${queryConfig} ...queryOptions`;
     }
@@ -501,7 +505,7 @@ const getQueryOptionsDefinition = ({
   initialData?: 'defined' | 'undefined';
 }) => {
   const isMutatorHook = mutator?.isHook;
-  const prefix = !hasSvelteQueryV4 ? 'Use' : 'Create';
+  const prefix = hasSvelteQueryV4 ? 'Create' : 'Use';
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
@@ -594,7 +598,7 @@ const generateQueryArguments = ({
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}${
-      initialData !== 'defined' ? '?' : ''
+      initialData === 'defined' ? '' : '?'
     }: ${definition}`;
   }
 
@@ -975,15 +979,15 @@ const generateQueryImplementation = ({
 ${hookOptions}
 
   const queryKey =  ${
-    !queryKeyMutator
-      ? `${
-          !hasVueQueryV4 ? 'queryOptions?.queryKey ?? ' : ''
-        }${queryKeyFnName}(${queryKeyProperties});`
-      : `${queryKeyMutator.name}({ ${queryProperties} }${
+    queryKeyMutator
+      ? `${queryKeyMutator.name}({ ${queryProperties} }${
           queryKeyMutator.hasSecondArg
             ? `, { url: \`${route}\`, queryOptions }`
             : ''
         });`
+      : `${
+          hasVueQueryV4 ? '' : 'queryOptions?.queryKey ?? '
+        }${queryKeyFnName}(${queryKeyProperties});`
   }
 
   ${
@@ -1027,9 +1031,9 @@ ${hookOptions}
       }
 
    return  ${
-     !queryOptionsMutator
-       ? `{ queryKey, queryFn, ${queryOptionsImp}}`
-       : 'customOptions'
+     queryOptionsMutator
+       ? 'customOptions'
+       : `{ queryKey, queryFn, ${queryOptionsImp}}`
    } as ${queryOptionFnReturnType} ${
      isVue(outputClient)
        ? ''
@@ -1166,7 +1170,7 @@ const generateQueryHook = async (
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
-  let mutators = undefined;
+  let mutators;
 
   // Allows operationQueryOptions (which is the Orval config override for the operationId)
   // to override non-GET verbs
@@ -1299,7 +1303,7 @@ const generateQueryHook = async (
       if (!params) return '';
       // Handle parameters with default values: "param?: Type = value" -> "param: Type = value" (remove optional marker)
       // Handle regular parameters: "param: Type" -> "param?: Type"
-      return params.replace(
+      return params.replaceAll(
         /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
         (match, paramName, optionalMarker, type, defaultValue, suffix) => {
           // If parameter has a default value, don't add '?' (it's already effectively optional)
@@ -1333,7 +1337,7 @@ const generateQueryHook = async (
     }] as const;
     }`;
 
-    implementation += `${!queryKeyMutator ? queryKeyFn : ''}
+    implementation += `${queryKeyMutator ? '' : queryKeyFn}
 
     ${queries.reduce(
       (acc, queryOption) =>
@@ -1497,9 +1501,9 @@ ${hooksOptionImplementation}
 
 
   return  ${
-    !mutationOptionsMutator
-      ? '{ mutationFn, ...mutationOptions }'
-      : 'customOptions'
+    mutationOptionsMutator
+      ? 'customOptions'
+      : '{ mutationFn, ...mutationOptions }'
   }}`;
 
     const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
@@ -1558,10 +1562,10 @@ ${mutationOptionsFn}
 
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   return `${
-    !params.hasAwaitedType
-      ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
+    params.hasAwaitedType
+      ? ''
+      : `type AwaitedInput<T> = PromiseLike<T> | T;\n
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
-      : ''
   }
 ${
   params.isRequestOptions && params.isMutator

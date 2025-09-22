@@ -1,18 +1,19 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpecs,
+  type GeneratorImport,
   getRefInfo,
   isReference,
   isRootKey,
-  MockOptions,
+  type MockOptions,
   pascal,
 } from '@orval/core';
-import { SchemaObject } from 'openapi3-ts/oas30';
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
-const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
+const isRegex = (key: string) => key.startsWith('/') && key.endsWith('/');
 
 export const resolveMockOverride = (
   properties: Record<string, unknown> | undefined = {},
@@ -21,7 +22,7 @@ export const resolveMockOverride = (
   const path = item.path ? item.path : `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
-      const regex = new RegExp(key.slice(1, key.length - 1));
+      const regex = new RegExp(key.slice(1, -1));
       if (regex.test(item.name) || regex.test(path)) {
         return true;
       }
@@ -153,11 +154,9 @@ export const resolveMockValue = ({
         splitMockImplementations?.push(func);
       }
 
-      if (newSchema.nullable) {
-        scalar.value = `${funcName}()`;
-      } else {
-        scalar.value = `{...${funcName}()}`;
-      }
+      scalar.value = newSchema.nullable
+        ? `${funcName}()`
+        : `{...${funcName}()}`;
 
       scalar.imports.push({
         name: newSchema.name,

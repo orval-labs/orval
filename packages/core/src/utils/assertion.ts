@@ -1,4 +1,5 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { SchemaType, Verbs } from '../types';
 import { extname } from './path';
 
@@ -44,7 +45,7 @@ export function isFunction(x: any): x is Function {
 }
 
 export function isUndefined(x: any): x is undefined {
-  return typeof x === 'undefined';
+  return x === undefined;
 }
 
 export function isNull(x: any): x is null {
@@ -83,7 +84,7 @@ export const isUrl = (str: string) => {
   let givenURL;
   try {
     givenURL = new URL(str);
-  } catch (error) {
+  } catch {
     return false;
   }
   return givenURL.protocol === 'http:' || givenURL.protocol === 'https:';

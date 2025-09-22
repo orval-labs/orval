@@ -1,18 +1,19 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
 import {
-  ContextSpecs,
+  type ContextSpecs,
   PropertySortOrder,
-  ScalarValue,
+  type ScalarValue,
   SchemaType,
-  SchemaWithConst,
+  type SchemaWithConst,
 } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
-import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 
 /**
  * Return the output type from an object

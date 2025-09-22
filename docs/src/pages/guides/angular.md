@@ -3,9 +3,9 @@ id: angular
 title: Angular
 ---
 
-You should have an OpenAPI specification and an Orval config where you define the mode as Angular.
+Start by providing an OpenAPI specification and an Orval config file. To use Angular, define the `mode` in the Orval config to be `angular`.
 
-#### Example with angular
+## Example with angular
 
 ```js
 module.exports = {
@@ -24,20 +24,27 @@ module.exports = {
 };
 ```
 
-Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
+Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.
 
-The Angular mode will generate automatically two classes. One abstract with the definition and a service with the implementation. You should add the service inside a module and use it where you want.
+The Angular client will automatically generate two classes:
 
-You can checkout an example <a href="https://github.com/orval-labs/orval/tree/master/samples/angular-app" target="_blank">here</a>
+1. An abstract class with the definition
+2. A service with the implementation.
+   Add the service inside a module to use it where you need it.
 
-### How to set a backend url
+Check out an example <a href="https://github.com/orval-labs/orval/tree/master/samples/angular-app" target="_blank">here</a>
 
-You can use an interceptor to automatically add the url of your API. Like you would do to add an authorization header.
+## How to Set a Backend URL
 
-### How use mock
+Use an interceptor to automatically add an API URL, similar to how an authorization header is added.
+
+<!--
+The following section is outdated. Both links are dead. This needs to be updated before it is re-introduced.
+
+ ## How to Use Mocks
 
 You should define your mock inside the environment file. If you don't do that you will add all the dependencies to your bundle.
 
 You can for example add a property `modules` and add a MockModule inside which will setup your mocks. You can check an example <a href="https://github.com/orval-labs/orval/tree/master/samples/angular-app/src/api/mocks" target="_blank">here</a>
 
-You can also check the msw example <a href="https://github.com/mswjs/examples/tree/master/examples/rest-angular" target="_blank">here</a>
+You can also check the msw example <a href="https://github.com/mswjs/examples/tree/master/examples/rest-angular" target="_blank">here</a> -->

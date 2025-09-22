@@ -3,21 +3,21 @@ id: overview
 title: Overview
 ---
 
-`orval` is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
+Orval is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, in either YAML or JSON format.
 
 ## Motivation
 
-I often use a swagger as contract between the frontend and backend team. And before Orval, I used the <a href="https://editor.swagger.io" target="_blank">swagger editor</a> or <a href="https://swagger.io/tools/swagger-codegen" target="_blank">swagger codegen</a> but that wasn't enough for my need. That's why I started Orval.
+Developers often use swagger as a contract between the frontend and backend. Before Orval, tools such as <a href="https://editor.swagger.io" target="_blank">Swagger Editor</a> or <a href="https://swagger.io/tools/swagger-codegen" target="_blank">Swagger Codegen</a> did the job. But that is not enough for modern development needs. Enter Orval.
 
 Main goals:
 
-- Generate typescript models
-- Generate HTTP Calls
-- Generate Mocks with <a href="https://mswjs.io/" target="_blank">MSW</a>
+- Generate TypeScript models
+- Generate HTTP request functions
+- Generate mocks with <a href="https://mswjs.io/" target="_blank">MSW</a>
 
-The default generated client use axios and can be used by fetch API or your favourite Javascript framework like Angular, React or Vue. It's just a function who takes an instance of axios or function of fetch API in argument and return an object where each key is a function who setup a call HTTP. [Learn more](./guides/basics)
+The default generated clients use Axios, but you may configure any client and underlying HTTP client, for your project needs. Orval supports most major JavaScript frameworks such as Angular, React or Vue. [Learn more about configuring Orval](./guides/basics)
 
 Orval can also generate the following client:
 
-- [React query with axios](./guides/react-query)
+- [React query with Axios](./guides/react-query)
 - [Angular with HttpClient](./guides/angular)

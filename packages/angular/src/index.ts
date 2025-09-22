@@ -48,7 +48,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, string> = new Map();
+const returnTypesToWrite = new Map<string, string>();
 
 export const getAngularDependencies: ClientDependenciesBuilder = () =>
   ANGULAR_DEPENDENCIES;
@@ -116,11 +116,11 @@ export const generateAngularFooter: ClientFooterBuilder = ({
 }) => {
   let footer = '};\n\n';
 
-  operationNames.forEach((operationName) => {
+  for (const operationName of operationNames) {
     if (returnTypesToWrite.has(operationName)) {
       footer += returnTypesToWrite.get(operationName) + '\n';
     }
-  });
+  }
 
   return footer;
 };
@@ -143,7 +143,7 @@ const generateImplementation = (
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
@@ -159,11 +159,9 @@ const generateImplementation = (
 
   returnTypesToWrite.set(
     operationName,
-    `export type ${pascal(operationName)}ClientResult = ${
-      dataType === 'null'
-        ? 'never' // NonNullable<null> is the type never
-        : `NonNullable<${dataType}>`
-    };`,
+    `export type ${pascal(
+      operationName,
+    )}ClientResult = NonNullable<${dataType}>`,
   );
 
   if (mutator) {

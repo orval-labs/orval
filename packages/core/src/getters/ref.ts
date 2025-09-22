@@ -1,5 +1,6 @@
-import { ReferenceObject } from 'openapi3-ts/oas30';
-import { ContextSpecs, NormalizedOverrideOutput } from '../types';
+import type { ReferenceObject } from 'openapi3-ts/oas30';
+
+import type { ContextSpecs, NormalizedOverrideOutput } from '../types';
 import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
@@ -50,7 +51,7 @@ export const getRefInfo = (
   const refPaths = ref
     ?.slice(1)
     .split('/')
-    .map((part) => decodeURIComponent(part.replace(regex, '/')));
+    .map((part) => decodeURIComponent(part.replaceAll(regex, '/')));
 
   const getOverrideSuffix = (
     override: NormalizedOverrideOutput,

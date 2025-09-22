@@ -1,7 +1,7 @@
-import { ContextSpecs } from '../types';
+import type { ContextSpecs } from '../types';
 
-const search = '\\*/'; // Find '*/'
-const replacement = '*\\/'; // Replace With '*\/'
+const search = String.raw`\*/`; // Find '*/'
+const replacement = String.raw`*\/`; // Replace With '*\/'
 
 const regex = new RegExp(search, 'g');
 
@@ -50,7 +50,7 @@ export function jsDoc(
     Array.isArray(description)
       ? description.filter((d) => !d.includes('eslint-disable'))
       : [description || '']
-  ).map((line) => line.replace(regex, replacement));
+  ).map((line) => line.replaceAll(regex, replacement));
 
   const count = [
     description,
@@ -76,7 +76,7 @@ export function jsDoc(
   const eslintDisable = Array.isArray(description)
     ? description
         .find((d) => d.includes('eslint-disable'))
-        ?.replace(regex, replacement)
+        ?.replaceAll(regex, replacement)
     : undefined;
   let doc = `${eslintDisable ? `/* ${eslintDisable} */\n` : ''}/**`;
 
@@ -96,7 +96,7 @@ export function jsDoc(
   function tryAppendStringDocLine(key: string, value?: string) {
     if (value) {
       appendPrefix();
-      doc += ` @${key} ${value.replace(regex, replacement)}`;
+      doc += ` @${key} ${value.replaceAll(regex, replacement)}`;
     }
   }
 
@@ -115,7 +115,7 @@ export function jsDoc(
   }
 
   tryAppendBooleanDocLine('deprecated', deprecated);
-  tryAppendStringDocLine('summary', summary?.replace(regex, replacement));
+  tryAppendStringDocLine('summary', summary?.replaceAll(regex, replacement));
   tryAppendNumberDocLine('minLength', minLength);
   tryAppendNumberDocLine('maxLength', maxLength);
   tryAppendNumberDocLine('minimum', minimum);
@@ -127,7 +127,7 @@ export function jsDoc(
   tryAppendBooleanDocLine('nullable', nullable);
   tryAppendStringDocLine('pattern', pattern);
 
-  doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';
+  doc += oneLine ? ' ' : `\n ${tryOneLine ? '  ' : ''}`;
 
   doc += '*/\n';
 
@@ -140,11 +140,11 @@ export function keyValuePairsToJsDoc(
     value: string;
   }[],
 ) {
-  if (!keyValues.length) return '';
+  if (keyValues.length === 0) return '';
   let doc = '/**\n';
-  keyValues.forEach(({ key, value }) => {
+  for (const { key, value } of keyValues) {
     doc += ` * @${key} ${value}\n`;
-  });
+  }
   doc += ' */\n';
   return doc;
 }

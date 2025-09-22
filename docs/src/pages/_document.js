@@ -8,7 +8,7 @@ class MyDocument extends Document {
 
   render() {
     return (
-      <Html>
+      <Html lang="en">
         <Head>
           <script
             defer
@@ -20,7 +20,13 @@ class MyDocument extends Document {
             rel="stylesheet"
           />
         </Head>
-        <body className="font-sans antialiased text-gray-900">
+        <body className="font-sans antialiased text-gray-900 relative">
+          <a
+            href="#main-landmark"
+            className="transition left-0 bg-white text-primary-content absolute p-3 m-3 -translate-y-16 focus:translate-y-0 z-20"
+          >
+            Skip to main content
+          </a>
           <Main />
           <NextScript />
         </body>

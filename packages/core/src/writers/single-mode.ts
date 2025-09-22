@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import type { WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -91,7 +92,7 @@ export const writeSingleMode = async ({
         specsName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
-        options: !isFunction(output.mock) ? output.mock : undefined,
+        options: isFunction(output.mock) ? undefined : output.mock,
       });
     }
 
@@ -143,7 +144,9 @@ export const writeSingleMode = async ({
     await fs.outputFile(path, data);
 
     return [path];
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
+  } catch (error) {
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing file => ${error}`,
+    );
   }
 };

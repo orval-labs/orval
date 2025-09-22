@@ -1,7 +1,8 @@
 import fs from 'fs-extra';
+
 import { generateImports } from '../generators';
-import { GeneratorSchema, NamingConvention } from '../types';
-import { upath, conventionName } from '../utils';
+import { type GeneratorSchema, NamingConvention } from '../types';
+import { conventionName, upath } from '../utils';
 
 const getSchema = ({
   schema: { imports, model },
@@ -33,7 +34,7 @@ const getSchema = ({
     specKey,
     namingConvention,
   });
-  file += imports.length ? '\n\n' : '\n';
+  file += imports.length > 0 ? '\n\n' : '\n';
   file += model;
   return file;
 };
@@ -83,8 +84,10 @@ export const writeSchema = async ({
         namingConvention,
       }),
     );
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
+  } catch (error) {
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
+    );
   }
 };
 
@@ -136,20 +139,20 @@ export const writeSchemas = async ({
     // multiple writes on the same file.
     const schemaNamesSet = new Set<string>();
     const duplicateNamesMap = new Map<string, number>();
-    schemas.forEach((schema) => {
-      if (!schemaNamesSet.has(schema.name)) {
-        schemaNamesSet.add(schema.name);
-      } else {
+    for (const schema of schemas) {
+      if (schemaNamesSet.has(schema.name)) {
         duplicateNamesMap.set(
           schema.name,
           (duplicateNamesMap.get(schema.name) || 1) + 1,
         );
+      } else {
+        schemaNamesSet.add(schema.name);
       }
-    });
-    if (duplicateNamesMap.size) {
+    }
+    if (duplicateNamesMap.size > 0) {
       throw new Error(
         'Duplicate schema names detected:\n' +
-          Array.from(duplicateNamesMap)
+          [...duplicateNamesMap]
             .map((duplicate) => `  ${duplicate[1]}x ${duplicate[0]}`)
             .join('\n'),
       );
@@ -189,8 +192,10 @@ export const writeSchemas = async ({
       const fileContent = `${header}\n${exports}`;
 
       await fs.writeFile(schemaFilePath, fileContent);
-    } catch (e) {
-      throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
+    } catch (error) {
+      throw new Error(
+        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,
+      );
     }
   }
 };

@@ -1,5 +1,4 @@
 import { defineConfig } from 'orval';
-import transformer from '../transformers/add-version.js';
 
 export default defineConfig({
   petstore: {
@@ -36,7 +35,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -418,7 +417,7 @@ export default defineConfig({
       override: {
         jsDoc: {
           filter: (schema) => {
-            const allowlist = [
+            const allowlist = new Set([
               'type',
               'format',
               'maxLength',
@@ -431,9 +430,9 @@ export default defineConfig({
               'pattern',
               'nullable',
               'enum',
-            ];
+            ]);
             return Object.entries(schema || {})
-              .filter(([key]) => allowlist.includes(key))
+              .filter(([key]) => allowlist.has(key))
               .map(([key, value]) => {
                 return {
                   key,

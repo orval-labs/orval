@@ -1,18 +1,20 @@
 import {
   asyncReduce,
-  ConfigExternal,
+  type ConfigExternal,
+  ErrorWithTag,
   getFileInfo,
-  GlobalOptions,
+  type GlobalOptions,
   isFunction,
   isString,
   loadFile,
   log,
   logError,
-  NormalizedConfig,
-  NormalizedOptions,
+  type NormalizedConfig,
+  type NormalizedOptions,
   removeFilesAndEmptyFolders,
   upath,
 } from '@orval/core';
+
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -58,34 +60,34 @@ export const generateSpecs = async (
     if (options) {
       try {
         await generateSpec(workspace, options, projectName);
-      } catch (e) {
-        logError(e, projectName);
-        process.exit(1);
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : 'unknown error';
+        throw new ErrorWithTag(errorMsg, projectName, { cause: error });
       }
     } else {
-      logError('Project not found');
-      process.exit(1);
+      throw new Error('Project not found');
     }
     return;
   }
 
   let hasErrors: true | undefined;
-  const accumulate = await asyncReduce(
-    Object.entries(config),
-    async (acc, [projectName, options]) => {
-      try {
-        acc.push(await generateSpec(workspace, options, projectName));
-      } catch (e) {
-        hasErrors = true;
-        logError(e, projectName);
-      }
-      return acc;
-    },
-    [] as void[],
-  );
+  for (const [projectName, options] of Object.entries(config)) {
+    if (!options) {
+      hasErrors = true;
+      logError('No options found', projectName);
+      continue;
+    }
+    try {
+      await generateSpec(workspace, options, projectName);
+    } catch (error) {
+      hasErrors = true;
+      logError(error, projectName);
+    }
+  }
 
-  if (hasErrors) process.exit(1);
-  return accumulate;
+  if (hasErrors)
+    throw new Error('One or more project failed, see above for details');
 };
 
 export const generateConfig = async (
@@ -101,7 +103,7 @@ export const generateConfig = async (
   });
 
   if (!configExternal) {
-    throw `failed to load from ${path} => ${error}`;
+    throw new Error(`failed to load from ${path} => ${error}`);
   }
 
   const workspace = upath.dirname(path);
@@ -123,18 +125,16 @@ export const generateConfig = async (
   const fileToWatch = Object.entries(normalizedConfig)
     .filter(
       ([project]) =>
-        options?.projectName === undefined || project === options?.projectName,
+        options?.projectName === undefined || project === options.projectName,
     )
-    .map(([, { input }]) => input.target)
+    .map(([, options]) => options?.input.target)
     .filter((target) => isString(target)) as string[];
 
-  if (options?.watch && fileToWatch.length) {
-    startWatcher(
-      options?.watch,
-      () => generateSpecs(normalizedConfig, workspace, options?.projectName),
-      fileToWatch,
-    );
-  } else {
-    await generateSpecs(normalizedConfig, workspace, options?.projectName);
-  }
+  await (options?.watch && fileToWatch.length > 0
+    ? startWatcher(
+        options.watch,
+        () => generateSpecs(normalizedConfig, workspace, options.projectName),
+        fileToWatch,
+      )
+    : generateSpecs(normalizedConfig, workspace, options?.projectName));
 };

@@ -10,7 +10,9 @@ import {
   pascal,
 } from '@orval/core';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+
 import type { MockDefinition, MockSchemaObject } from '../../types';
+import { isFakerVersionV9 } from '../compatibleV9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
@@ -18,7 +20,6 @@ import {
   resolveMockValue,
 } from '../resolvers';
 import { getMockObject } from './object';
-import { isFakerVersionV9 } from '../compatibleV9';
 
 export const getMockScalar = ({
   item,
@@ -100,7 +101,7 @@ export const getMockScalar = ({
 
   const ALL_FORMAT = {
     ...DEFAULT_FORMAT_MOCK,
-    ...(mockOptions?.format ?? {}),
+    ...mockOptions?.format,
   };
 
   if (item.format && ALL_FORMAT[item.format]) {
@@ -128,16 +129,17 @@ export const getMockScalar = ({
     case 'number':
     case 'integer': {
       const intFunction =
-        item.format === 'int64' && context.output.override.useBigInt
+        context.output.override.useBigInt &&
+        (item.format === 'int64' || item.format === 'uint64')
           ? 'bigInt'
           : 'int';
       let value = getNullable(
-        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
         item.nullable,
       );
       if (type === 'number') {
         value = getNullable(
-          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}, ${item.multipleOf ? `multipleOf: ${item.multipleOf}` : `fractionDigits: ${mockOptions?.fractionDigits}`}})`,
+          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
           item.nullable,
         );
       }
@@ -219,7 +221,12 @@ export const getMockScalar = ({
 
       let mapValue = value;
 
-      if (combine && !value.startsWith('faker') && !value.startsWith('{')) {
+      if (
+        combine &&
+        !value.startsWith('faker') &&
+        !value.startsWith('{') &&
+        !value.startsWith('Array.from')
+      ) {
         mapValue = `{${value}}`;
       }
 
@@ -261,12 +268,13 @@ export const getMockScalar = ({
       };
     }
 
-    case 'null':
+    case 'null': {
       return {
         value: 'null',
         imports: [],
         name: item.name,
       };
+    }
 
     default: {
       if (item.enum) {
@@ -276,7 +284,6 @@ export const getMockScalar = ({
           enumImports,
           context,
           existingReferencedProperties,
-          undefined,
         );
 
         return {
@@ -315,7 +322,7 @@ function getItemType(item: MockSchemaObject) {
   const uniqTypes = new Set(item.enum.map((value) => typeof value));
   if (uniqTypes.size > 1) return;
 
-  const type = Array.from(uniqTypes.values()).at(0);
+  const type = [...uniqTypes.values()].at(0);
   if (!type) return;
   return ['string', 'number'].includes(type) ? type : undefined;
 }
@@ -325,7 +332,7 @@ const getEnum = (
   imports: GeneratorImport[],
   context: ContextSpecs,
   existingReferencedProperties: string[],
-  type: 'string' | 'number' | undefined,
+  type?: 'string' | 'number',
 ) => {
   if (!item.enum) return '';
   const joindEnumValues = item.enum
@@ -343,9 +350,9 @@ const getEnum = (
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
       imports.push({
         name: item.name,
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
+        ...(isRootKey(context.specKey, context.target)
+          ? {}
+          : { specKey: context.specKey }),
       });
     } else {
       enumValue += ` as ${existingReferencedProperties[existingReferencedProperties.length - 1]}['${item.name}']`;
@@ -354,9 +361,9 @@ const getEnum = (
         name: existingReferencedProperties[
           existingReferencedProperties.length - 1
         ],
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
+        ...(isRootKey(context.specKey, context.target)
+          ? {}
+          : { specKey: context.specKey }),
       });
     }
   } else {
@@ -369,9 +376,9 @@ const getEnum = (
     imports.push({
       name: item.name,
       values: true,
-      ...(!isRootKey(context.specKey, context.target)
-        ? { specKey: context.specKey }
-        : {}),
+      ...(isRootKey(context.specKey, context.target)
+        ? {}
+        : { specKey: context.specKey }),
     });
   }
 

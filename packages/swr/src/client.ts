@@ -13,11 +13,10 @@ import {
   OutputHttpClient,
   toObjectString,
 } from '@orval/core';
-
 import {
-  generateRequestFunction as generateFetchRequestFunction,
-  generateFetchHeader,
   fetchResponseTypeName,
+  generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -41,11 +40,9 @@ export const generateSwrRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
-  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
-    return generateAxiosRequestFunction(verbOptions, options);
-  } else {
-    return generateFetchRequestFunction(verbOptions, options);
-  }
+  return options.context.output.httpClient === OutputHttpClient.AXIOS
+    ? generateAxiosRequestFunction(verbOptions, options)
+    : generateFetchRequestFunction(verbOptions, options);
 };
 
 const generateAxiosRequestFunction = (
@@ -66,7 +63,7 @@ const generateAxiosRequestFunction = (
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
@@ -150,7 +147,7 @@ const generateAxiosRequestFunction = (
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;

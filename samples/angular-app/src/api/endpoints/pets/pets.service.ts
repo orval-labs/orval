@@ -27,8 +27,8 @@ import type {
   SearchPetsParams,
 } from '../../model';
 
-import listPetsMutator from '../../mutator/response-type';
-import paramsSerializerMutator from '../../mutator/custom-params-serializer';
+import listPetsMutator from '../../../orval/mutator/response-type';
+import paramsSerializerMutator from '../../../orval/mutator/custom-params-serializer';
 
 interface HttpClientOptions {
   headers?: HttpHeaders | Record<string, string | string[]>;
@@ -99,22 +99,22 @@ export class PetsService {
   /**
    * @summary Create a pet
    */
-  createPets<TData = null>(
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
     version?: number,
     options?: HttpClientOptions & { observe?: 'body' },
   ): Observable<TData>;
-  createPets<TData = null>(
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
     version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<TData>>;
-  createPets<TData = null>(
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  createPets<TData = null>(
+  createPets<TData = void>(
     createPetsBody: CreatePetsBody,
     version: number = 1,
     options?: HttpClientOptions & { observe?: any },
@@ -178,25 +178,25 @@ export class PetsService {
    * Upload image of the pet.
    * @summary Uploads an image.
    */
-  uploadFile<TData = null>(
+  uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
     version?: number,
     options?: HttpClientOptions & { observe?: 'body' },
   ): Observable<TData>;
-  uploadFile<TData = null>(
+  uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
     version?: number,
     options?: HttpClientOptions & { observe: 'events' },
   ): Observable<HttpEvent<TData>>;
-  uploadFile<TData = null>(
+  uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
     version?: number,
     options?: HttpClientOptions & { observe: 'response' },
   ): Observable<AngularHttpResponse<TData>>;
-  uploadFile<TData = null>(
+  uploadFile<TData = void>(
     petId: number,
     uploadFileBody: Blob,
     version: number = 1,
@@ -241,8 +241,8 @@ export class PetsService {
 
 export type SearchPetsClientResult = NonNullable<Pets>;
 export type ListPetsClientResult = NonNullable<Pets>;
-export type CreatePetsClientResult = never;
+export type CreatePetsClientResult = NonNullable<void>;
 export type ShowPetByIdClientResult = NonNullable<Pet>;
 export type ShowPetTextClientResult = NonNullable<string>;
-export type UploadFileClientResult = never;
+export type UploadFileClientResult = NonNullable<void>;
 export type DownloadFileClientResult = NonNullable<Blob>;

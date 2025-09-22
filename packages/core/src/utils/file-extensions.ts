@@ -1,4 +1,4 @@
-import { ClientMockBuilder, GlobalMockOptions } from '../types';
+import type { ClientMockBuilder, GlobalMockOptions } from '../types';
 import { isFunction } from './assertion';
 
 export const getMockFileExtensionByTypeName = (
@@ -8,7 +8,9 @@ export const getMockFileExtensionByTypeName = (
     return 'msw';
   }
   switch (mock.type) {
-    default: // case 'msw':
+    default: {
+      // case 'msw':
       return 'msw';
+    }
   }
 };

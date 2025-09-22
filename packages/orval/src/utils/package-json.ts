@@ -1,8 +1,9 @@
-import { isString, log, PackageJson } from '@orval/core';
+import { dynamicImport, isString, log, type PackageJson } from '@orval/core';
 import chalk from 'chalk';
 import findUp from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
+
 import { normalizePath } from './options';
 
 export const loadPackageJson = async (
@@ -10,11 +11,9 @@ export const loadPackageJson = async (
   workspace = process.cwd(),
 ): Promise<PackageJson | undefined> => {
   if (!packageJson) {
-    const pkgPath = await findUp(['package.json'], {
-      cwd: workspace,
-    });
+    const pkgPath = await findUp(['package.json'], { cwd: workspace });
     if (pkgPath) {
-      const pkg = await import(pkgPath);
+      const pkg = await dynamicImport<any>(pkgPath, workspace);
       return await maybeReplaceCatalog(pkg, workspace);
     }
     return;
@@ -82,7 +81,7 @@ const performSubstitution = (
       }
       dependencies[packageName] = sub;
     } else if (version.startsWith('catalog:')) {
-      const catalogName = version.substring('catalog:'.length);
+      const catalogName = version.slice('catalog:'.length);
       const catalog = pnpmWorkspaceFile.catalogs?.[catalogName];
       if (!catalog) {
         log(

@@ -7,6 +7,7 @@
 import { faker } from '@faker-js/faker';
 
 import { HttpResponse, delay, http } from 'msw';
+import type { RequestHandlerOptions } from 'msw';
 
 import type { Pet, Pets } from '../models';
 
@@ -68,21 +69,26 @@ export const getListPetsMockHandler = (
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
       ) => Promise<Pets> | Pets),
+  options?: RequestHandlerOptions,
 ) => {
-  return http.get('*/pets', async (info) => {
-    await delay(1000);
+  return http.get(
+    '*/pets',
+    async (info) => {
+      await delay(1000);
 
-    return new HttpResponse(
-      JSON.stringify(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getListPetsResponseMock(),
-      ),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    );
-  });
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === 'function'
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getListPetsResponseMock(),
+        ),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    },
+    options,
+  );
 };
 
 export const getCreatePetsMockHandler = (
@@ -91,21 +97,26 @@ export const getCreatePetsMockHandler = (
     | ((
         info: Parameters<Parameters<typeof http.post>[1]>[0],
       ) => Promise<Pet> | Pet),
+  options?: RequestHandlerOptions,
 ) => {
-  return http.post('*/pets', async (info) => {
-    await delay(1000);
+  return http.post(
+    '*/pets',
+    async (info) => {
+      await delay(1000);
 
-    return new HttpResponse(
-      JSON.stringify(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getCreatePetsResponseMock(),
-      ),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    );
-  });
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === 'function'
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getCreatePetsResponseMock(),
+        ),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    },
+    options,
+  );
 };
 
 export const getShowPetByIdMockHandler = (
@@ -114,21 +125,26 @@ export const getShowPetByIdMockHandler = (
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
       ) => Promise<Pet> | Pet),
+  options?: RequestHandlerOptions,
 ) => {
-  return http.get('*/pets/:petId', async (info) => {
-    await delay(1000);
+  return http.get(
+    '*/pets/:petId',
+    async (info) => {
+      await delay(1000);
 
-    return new HttpResponse(
-      JSON.stringify(
-        overrideResponse !== undefined
-          ? typeof overrideResponse === 'function'
-            ? await overrideResponse(info)
-            : overrideResponse
-          : getShowPetByIdResponseMock(),
-      ),
-      { status: 200, headers: { 'Content-Type': 'application/json' } },
-    );
-  });
+      return new HttpResponse(
+        JSON.stringify(
+          overrideResponse !== undefined
+            ? typeof overrideResponse === 'function'
+              ? await overrideResponse(info)
+              : overrideResponse
+            : getShowPetByIdResponseMock(),
+        ),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      );
+    },
+    options,
+  );
 };
 export const getSwaggerPetstoreMock = () => [
   getListPetsMockHandler(),
