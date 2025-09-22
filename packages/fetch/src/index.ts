@@ -1,23 +1,22 @@
-import { TEMPLATE_TAG_REGEX } from '@orval/core';
 import { ClientHeaderBuilder, pascal } from '@orval/core';
 import {
   camel,
   ClientBuilder,
   ClientGeneratorsBuilder,
-  generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   GeneratorOptions,
   GeneratorVerbOptions,
   GetterPropType,
-  isObject,
-  resolveRef,
   stringify,
   toObjectString,
+  generateBodyOptions,
+  isObject,
+  resolveRef,
 } from '@orval/core';
 import {
-  ParameterObject,
   PathItemObject,
+  ParameterObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
 import { SchemaObject } from 'openapi3-ts/oas31';
@@ -39,12 +38,8 @@ export const generateRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
-  const implementationRoute = context.output.urlEncodeParameters
-    ? makeRouteSafe(route)
-    : route;
-
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = !override?.formData.disabled;
+  const isFormData = override?.formData.disabled === false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);
@@ -115,23 +110,17 @@ ${
 
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
-    ${isExplodeParametersOnly ? '' : nomalParamsImplementation}
+    ${!isExplodeParametersOnly ? nomalParamsImplementation : ''}
   });`
     : ''
 }
-  ${
-    context.output.urlEncodeParameters
-      ? `for (const [key, value] of normalizedParams) {
-    normalizedParams.set(key, encodeURIComponent(value));
-  }`
-      : ``
-  }
+
   ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${implementationRoute}?\${stringifiedParams}\` : \`${implementationRoute}\``
-      : `return \`${implementationRoute}\``
+      ? `return stringifiedParams.length > 0 ? \`${route}${'?${stringifiedParams}'}\` : \`${route}\``
+      : `return \`${route}\``
   }
 }\n`;
 
@@ -173,11 +162,12 @@ ${
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
       return {
         name,
+        success: response.types.success.some((s) => s.key === r.key),
         value: `export type ${name} = {
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
   status: ${
     r.key === 'default'
-      ? nonDefaultStatuses.length > 0
+      ? nonDefaultStatuses.length
         ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
         : 'number'
       : r.key
@@ -186,18 +176,37 @@ ${
       };
     });
 
-  const compositeName = `${responseTypeName}Composite`;
-  const compositeResponse = `${compositeName} = ${responseDataTypes.map((r) => r.name).join(' | ')}`;
+  const successName = `${responseTypeName}Success`;
+  const errorName = `${responseTypeName}Error`;
+  const hasSuccess = responseDataTypes.some((r) => r.success);
+  const hasError = responseDataTypes.some((r) => !r.success);
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
     ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
     
-export type ${compositeResponse};
-    
-export type ${responseTypeName} = ${compositeName} & {
+${
+  hasSuccess
+    ? `export type ${successName} = (${responseDataTypes
+        .filter((r) => r.success)
+        .map((r) => r.name)
+        .join(' | ')}) & {
   headers: Headers;
-}\n\n`
+}`
+    : ''
+};
+${
+  hasError
+    ? `export type ${errorName} = (${responseDataTypes
+        .filter((r) => !r.success)
+        .map((r) => r.name)
+        .join(' | ')}) & {
+  headers: Headers;
+}`
+    : ''
+};
+
+${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${responseTypeName} = (${hasError && hasSuccess ? `${successName} | ${errorName}` : hasSuccess ? successName : errorName})\n\n`}`
     : '';
 
   const getUrlFnProperties = props
@@ -208,14 +217,19 @@ export type ${responseTypeName} = ${compositeName} & {
         prop.type === GetterPropType.NAMED_PATH_PARAMS,
     )
     .map((param) => {
-      return param.type === GetterPropType.NAMED_PATH_PARAMS
-        ? param.destructured
-        : param.name;
+      if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
+        return param.destructured;
+      } else {
+        return param.name;
+      }
     })
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const returnType = `Promise<${responseTypeName}>`;
+  const returnType =
+    override.fetch.forceSuccessResponse && hasSuccess
+      ? `Promise<${successName}>`
+      : `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
@@ -237,10 +251,9 @@ export type ${responseTypeName} = ${compositeName} & {
       : []),
     ...(headers ? ['...headers'] : []),
   ];
-  const fetchHeadersOption =
-    headersToAdd.length > 0
-      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
-      : '';
+  const fetchHeadersOption = headersToAdd.length
+    ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+    : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
@@ -263,19 +276,27 @@ export type ${responseTypeName} = ${compositeName} & {
   }
 `;
   const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
+  const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
+    ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
+    const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
+    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = body ? JSON.parse(body${reviver}) : {}
+    err.info = data;
+    err.status = ${isNdJson ? 'stream' : 'res'}.status;
+    throw err;
+  }`;
   const fetchResponseImplementation = isNdJson
-    ? `const stream = await fetch(${fetchFnOptions})
-
-  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${responseTypeName}` : `return stream`}
+    ? `  const stream = await fetch(${fetchFnOptions});
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : `return stream`}
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const body = [204, 205, 304].includes(res.status) ? null : await res.text()
-  const data: ${responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
-
-  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${responseTypeName}` : 'return data'}
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
+  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -295,7 +316,7 @@ export type ${responseTypeName} = ${compositeName} & {
 `;
 
   const implementation =
-    responseTypeImplementation +
+    `${responseTypeImplementation}` +
     `${getUrlFnImplementation}\n` +
     `${fetchImplementation}\n`;
 
@@ -316,7 +337,10 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  return { implementation: `${functionImplementation}\n`, imports };
+  return {
+    implementation: `${functionImplementation}\n`,
+    imports,
+  };
 };
 
 const getHTTPStatusCodes = () => `
@@ -336,9 +360,6 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
     ? getHTTPStatusCodes()
     : '';
 };
-
-export const makeRouteSafe = (route: string): string =>
-  route.replaceAll(TEMPLATE_TAG_REGEX, `\${encodeURIComponent(String($1))}`);
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,

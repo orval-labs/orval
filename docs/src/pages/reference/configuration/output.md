@@ -1012,11 +1012,87 @@ By default, the Fetch client follows the OpenAPI specification for query paramet
 
 To maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), set this value to `false`.
 
-#### jsonReviver
+##### forceSuccessResponse
 
-Type: `String | Object`
+Type: `Boolean`.
+Default: `false`
 
-Accepts a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#reviver" target="_blank">reviver</a> function passed to the parse function in the Fetch client. It is recommended to use this to revive dates when setting <a href="#usedates">useDates</a> to `true`
+By default, the Fetch client either returns a success or failure response. This depends on how the specification is set up and what the response code of the request is.
+When using `fetch` along with libraries such as `react-query`, that expects an error to be thrown on an error response, this default behaviour is not wanted.
+
+By setting this setting to `true`, Orval will generate code that is typed to always return the successful response type and throw an error when an error response is returned from the request.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+export type createPetsResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type createPetsResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type createPetsResponseSuccess = createPetsResponse200 & {
+  headers: Headers;
+};
+export type createPetsResponseError = createPetsResponseDefault & {
+  headers: Headers;
+};
+
+export const createPets = async (
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  options?: RequestInit,
+): Promise<createPetsResponseSuccess> => {
+  const res = await fetch(getCreatePetsUrl(params), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createPetsBody),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+    const err: globalThis.Error & {
+      info?: createPetsResponseError['data'];
+      status?: number;
+    } = new globalThis.Error();
+    const data: createPetsResponseError['data'] = body ? JSON.parse(body) : {};
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: createPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as createPetsResponseSuccess;
+};
+```
+
+##### jsonReviver
+
+Type: `String` or `Object`
+
+Allows you to provide a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#reviver" target="_blank">reviver</a> function to the fetch client when it parses JSON. It is recommended to use this to revive dates when setting <a href="#usedates">useDates</a> to `true`
 
 Example:
 

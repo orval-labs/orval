@@ -58,6 +58,11 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'swr',
       httpClient: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',

@@ -351,6 +351,8 @@ export const normalizeOptions = async (
           includeHttpResponseReturnType:
             outputOptions.override?.fetch?.includeHttpResponseReturnType ??
             true,
+          forceSuccessResponse:
+            outputOptions.override?.fetch?.forceSuccessResponse ?? false,
           explode: outputOptions.override?.fetch?.explode ?? true,
           ...outputOptions.override?.fetch,
         },

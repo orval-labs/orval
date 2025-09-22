@@ -81,14 +81,19 @@ export type findPetsByStatusResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
-export type findPetsByStatusResponseComposite =
-  | findPetsByStatusResponse200
-  | findPetsByStatusResponse400
-  | findPetsByStatusResponseDefault;
-
-export type findPetsByStatusResponse = findPetsByStatusResponseComposite & {
+export type findPetsByStatusResponseSuccess = findPetsByStatusResponse200 & {
   headers: Headers;
 };
+export type findPetsByStatusResponseError = (
+  | findPetsByStatusResponse400
+  | findPetsByStatusResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type findPetsByStatusResponse =
+  | findPetsByStatusResponseSuccess
+  | findPetsByStatusResponseError;
 
 export const getFindPetsByStatusUrl = (params?: FindPetsByStatusParams) => {
   const normalizedParams = new URLSearchParams();
@@ -116,8 +121,8 @@ export const findPetsByStatus = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: findPetsByStatusResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: findPetsByStatusResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -140,14 +145,19 @@ export type findPetsByTagsResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
-export type findPetsByTagsResponseComposite =
-  | findPetsByTagsResponse200
-  | findPetsByTagsResponse400
-  | findPetsByTagsResponseDefault;
-
-export type findPetsByTagsResponse = findPetsByTagsResponseComposite & {
+export type findPetsByTagsResponseSuccess = findPetsByTagsResponse200 & {
   headers: Headers;
 };
+export type findPetsByTagsResponseError = (
+  | findPetsByTagsResponse400
+  | findPetsByTagsResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type findPetsByTagsResponse =
+  | findPetsByTagsResponseSuccess
+  | findPetsByTagsResponseError;
 
 export const getFindPetsByTagsUrl = (params?: FindPetsByTagsParams) => {
   const normalizedParams = new URLSearchParams();
@@ -180,8 +190,8 @@ export const findPetsByTags = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: findPetsByTagsResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: findPetsByTagsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -209,15 +219,20 @@ export type getPetByIdResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
-export type getPetByIdResponseComposite =
-  | getPetByIdResponse200
-  | getPetByIdResponse400
-  | getPetByIdResponse404
-  | getPetByIdResponseDefault;
-
-export type getPetByIdResponse = getPetByIdResponseComposite & {
+export type getPetByIdResponseSuccess = getPetByIdResponse200 & {
   headers: Headers;
 };
+export type getPetByIdResponseError = (
+  | getPetByIdResponse400
+  | getPetByIdResponse404
+  | getPetByIdResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type getPetByIdResponse =
+  | getPetByIdResponseSuccess
+  | getPetByIdResponseError;
 
 export const getGetPetByIdUrl = (petId: number) => {
   return `https://petstore3.swagger.io/api/v3/pet/${petId}`;
@@ -233,8 +248,8 @@ export const getPetById = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: getPetByIdResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: getPetByIdResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -257,14 +272,19 @@ export type updatePetWithFormResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
-export type updatePetWithFormResponseComposite =
-  | updatePetWithFormResponse200
-  | updatePetWithFormResponse400
-  | updatePetWithFormResponseDefault;
-
-export type updatePetWithFormResponse = updatePetWithFormResponseComposite & {
+export type updatePetWithFormResponseSuccess = updatePetWithFormResponse200 & {
   headers: Headers;
 };
+export type updatePetWithFormResponseError = (
+  | updatePetWithFormResponse400
+  | updatePetWithFormResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type updatePetWithFormResponse =
+  | updatePetWithFormResponseSuccess
+  | updatePetWithFormResponseError;
 
 export const getUpdatePetWithFormUrl = (
   petId: number,
@@ -296,8 +316,8 @@ export const updatePetWithForm = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: updatePetWithFormResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: updatePetWithFormResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -320,14 +340,19 @@ export type deletePetResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
-export type deletePetResponseComposite =
-  | deletePetResponse200
-  | deletePetResponse400
-  | deletePetResponseDefault;
-
-export type deletePetResponse = deletePetResponseComposite & {
+export type deletePetResponseSuccess = deletePetResponse200 & {
   headers: Headers;
 };
+export type deletePetResponseError = (
+  | deletePetResponse400
+  | deletePetResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type deletePetResponse =
+  | deletePetResponseSuccess
+  | deletePetResponseError;
 
 export const getDeletePetUrl = (petId: number) => {
   return `https://petstore3.swagger.io/api/v3/pet/${petId}`;
@@ -343,8 +368,8 @@ export const deletePet = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: deletePetResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: deletePetResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -362,13 +387,16 @@ export type getInventoryResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type getInventoryResponseComposite =
-  | getInventoryResponse200
-  | getInventoryResponseDefault;
-
-export type getInventoryResponse = getInventoryResponseComposite & {
+export type getInventoryResponseSuccess = getInventoryResponse200 & {
   headers: Headers;
 };
+export type getInventoryResponseError = getInventoryResponseDefault & {
+  headers: Headers;
+};
+
+export type getInventoryResponse =
+  | getInventoryResponseSuccess
+  | getInventoryResponseError;
 
 export const getGetInventoryUrl = () => {
   return `https://petstore3.swagger.io/api/v3/store/inventory`;
@@ -383,8 +411,8 @@ export const getInventory = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: getInventoryResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: getInventoryResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -412,15 +440,20 @@ export type getOrderByIdResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
-export type getOrderByIdResponseComposite =
-  | getOrderByIdResponse200
-  | getOrderByIdResponse400
-  | getOrderByIdResponse404
-  | getOrderByIdResponseDefault;
-
-export type getOrderByIdResponse = getOrderByIdResponseComposite & {
+export type getOrderByIdResponseSuccess = getOrderByIdResponse200 & {
   headers: Headers;
 };
+export type getOrderByIdResponseError = (
+  | getOrderByIdResponse400
+  | getOrderByIdResponse404
+  | getOrderByIdResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type getOrderByIdResponse =
+  | getOrderByIdResponseSuccess
+  | getOrderByIdResponseError;
 
 export const getGetOrderByIdUrl = (orderId: number) => {
   return `https://petstore3.swagger.io/api/v3/store/order/${orderId}`;
@@ -436,8 +469,8 @@ export const getOrderById = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: getOrderByIdResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: getOrderByIdResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -465,15 +498,20 @@ export type deleteOrderResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
-export type deleteOrderResponseComposite =
-  | deleteOrderResponse200
-  | deleteOrderResponse400
-  | deleteOrderResponse404
-  | deleteOrderResponseDefault;
-
-export type deleteOrderResponse = deleteOrderResponseComposite & {
+export type deleteOrderResponseSuccess = deleteOrderResponse200 & {
   headers: Headers;
 };
+export type deleteOrderResponseError = (
+  | deleteOrderResponse400
+  | deleteOrderResponse404
+  | deleteOrderResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type deleteOrderResponse =
+  | deleteOrderResponseSuccess
+  | deleteOrderResponseError;
 
 export const getDeleteOrderUrl = (orderId: number) => {
   return `https://petstore3.swagger.io/api/v3/store/order/${orderId}`;
@@ -489,8 +527,8 @@ export const deleteOrder = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: deleteOrderResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: deleteOrderResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -513,14 +551,19 @@ export type loginUserResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400>;
 };
 
-export type loginUserResponseComposite =
-  | loginUserResponse200
-  | loginUserResponse400
-  | loginUserResponseDefault;
-
-export type loginUserResponse = loginUserResponseComposite & {
+export type loginUserResponseSuccess = loginUserResponse200 & {
   headers: Headers;
 };
+export type loginUserResponseError = (
+  | loginUserResponse400
+  | loginUserResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type loginUserResponse =
+  | loginUserResponseSuccess
+  | loginUserResponseError;
 
 export const getLoginUserUrl = (params?: LoginUserParams) => {
   const normalizedParams = new URLSearchParams();
@@ -548,8 +591,8 @@ export const loginUser = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: loginUserResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: loginUserResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -567,13 +610,16 @@ export type logoutUserResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200>;
 };
 
-export type logoutUserResponseComposite =
-  | logoutUserResponse200
-  | logoutUserResponseDefault;
-
-export type logoutUserResponse = logoutUserResponseComposite & {
+export type logoutUserResponseSuccess = logoutUserResponse200 & {
   headers: Headers;
 };
+export type logoutUserResponseError = logoutUserResponseDefault & {
+  headers: Headers;
+};
+
+export type logoutUserResponse =
+  | logoutUserResponseSuccess
+  | logoutUserResponseError;
 
 export const getLogoutUserUrl = () => {
   return `https://petstore3.swagger.io/api/v3/user/logout`;
@@ -588,8 +634,8 @@ export const logoutUser = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: logoutUserResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: logoutUserResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -617,15 +663,20 @@ export type getUserByNameResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
-export type getUserByNameResponseComposite =
-  | getUserByNameResponse200
-  | getUserByNameResponse400
-  | getUserByNameResponse404
-  | getUserByNameResponseDefault;
-
-export type getUserByNameResponse = getUserByNameResponseComposite & {
+export type getUserByNameResponseSuccess = getUserByNameResponse200 & {
   headers: Headers;
 };
+export type getUserByNameResponseError = (
+  | getUserByNameResponse400
+  | getUserByNameResponse404
+  | getUserByNameResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type getUserByNameResponse =
+  | getUserByNameResponseSuccess
+  | getUserByNameResponseError;
 
 export const getGetUserByNameUrl = (username: string) => {
   return `https://petstore3.swagger.io/api/v3/user/${username}`;
@@ -641,8 +692,8 @@ export const getUserByName = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: getUserByNameResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: getUserByNameResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
@@ -670,15 +721,20 @@ export type deleteUserResponseDefault = {
   status: Exclude<HTTPStatusCodes, 200 | 400 | 404>;
 };
 
-export type deleteUserResponseComposite =
-  | deleteUserResponse200
-  | deleteUserResponse400
-  | deleteUserResponse404
-  | deleteUserResponseDefault;
-
-export type deleteUserResponse = deleteUserResponseComposite & {
+export type deleteUserResponseSuccess = deleteUserResponse200 & {
   headers: Headers;
 };
+export type deleteUserResponseError = (
+  | deleteUserResponse400
+  | deleteUserResponse404
+  | deleteUserResponseDefault
+) & {
+  headers: Headers;
+};
+
+export type deleteUserResponse =
+  | deleteUserResponseSuccess
+  | deleteUserResponseError;
 
 export const getDeleteUserUrl = (username: string) => {
   return `https://petstore3.swagger.io/api/v3/user/${username}`;
@@ -694,8 +750,8 @@ export const deleteUser = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
-  const data: deleteUserResponse['data'] = body ? JSON.parse(body) : {};
 
+  const data: deleteUserResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
     status: res.status,
