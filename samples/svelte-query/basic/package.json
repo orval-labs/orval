@@ -37,6 +37,11 @@
     "@tanstack/svelte-query": "^4.41.0",
     "axios": "^1.12.2"
   },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
   "msw": {
     "workerDirectory": "static"
   }

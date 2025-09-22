@@ -39,6 +39,11 @@
     "msw": "^2.11.2",
     "orval": "workspace:*"
   },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
   "msw": {
     "workerDirectory": "public"
   }

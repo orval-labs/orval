@@ -19,5 +19,10 @@
     "@faker-js/faker": "^9.9.0",
     "axios": "^1.12.2",
     "msw": "^2.11.2"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
   }
 }
