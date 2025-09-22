@@ -93,6 +93,7 @@ export const listPets = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
   const data: listPetsResponse['data'] = body ? JSON.parse(body) : {};
   return { data, status: res.status, headers: res.headers } as listPetsResponse;
 };
@@ -137,6 +138,7 @@ export const createPets = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
   const data: createPetsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
@@ -185,6 +187,7 @@ export const updatePets = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
   const data: updatePetsResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
@@ -231,6 +234,7 @@ export const showPetById = async (
   });
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+
   const data: showPetByIdResponse['data'] = body ? JSON.parse(body) : {};
   return {
     data,
