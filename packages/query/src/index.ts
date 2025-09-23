@@ -1328,13 +1328,6 @@ const generateQueryHook = async (
         ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
         : `\`${route}\``;
 
-    const queryKeyPathParams = props
-      .filter(
-        (prop) =>
-          prop.type === GetterPropType.NAMED_PATH_PARAMS ||
-          prop.type === GetterPropType.PARAM,
-      )
-      .map((prop) => prop.name);
 
     // Use operation ID as query key if enabled, otherwise use route string
     const queryKeyIdentifier = override.query.useOperationIdAsQueryKey
