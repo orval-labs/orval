@@ -1,5 +1,6 @@
 {
   "name": "hono-app",
+  "private": true,
   "scripts": {
     "dev": "wrangler dev src/petstore.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts"
