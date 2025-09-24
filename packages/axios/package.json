@@ -1,6 +1,6 @@
 {
   "name": "@orval/axios",
-  "version": "7.12.1",
+  "version": "7.12.2",
   "license": "MIT",
   "exports": {
     ".": {
