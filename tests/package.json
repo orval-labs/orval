@@ -4,6 +4,7 @@
   "description": "",
   "author": "Victor Bury",
   "license": "ISC",
+  "private": true,
   "scripts": {
     "generate": "run-p 'generate:*'",
     "generate:cli": "orval --input ./specifications/petstore.yaml --output ./generated/cli/petstore/endpoints.ts",

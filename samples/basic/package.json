@@ -2,6 +2,7 @@
   "name": "basic",
   "version": "1.0.0",
   "description": "",
+  "private": true,
   "main": "index.html",
   "scripts": {
     "generate-api": "orval",
