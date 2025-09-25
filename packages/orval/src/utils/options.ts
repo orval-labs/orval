@@ -739,6 +739,19 @@ const normalizeQueryOptions = (
       : {
           signal: globalOptions.signal,
         }),
+    ...(isUndefined(globalOptions.useOperationIdAsQueryKey)
+      ? {}
+      : {
+          useOperationIdAsQueryKey: globalOptions.useOperationIdAsQueryKey,
+        }),
+    ...(isUndefined(queryOptions.useOperationIdAsQueryKey)
+      ? {}
+      : { useOperationIdAsQueryKey: queryOptions.useOperationIdAsQueryKey }),
+    ...(isUndefined(globalOptions.signal)
+      ? {}
+      : {
+          signal: globalOptions.signal,
+        }),
     ...(isUndefined(queryOptions.signal)
       ? {}
       : { signal: queryOptions.signal }),

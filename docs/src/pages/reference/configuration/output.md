@@ -1372,6 +1372,48 @@ Default Value: `false`.
 
 Use to make Orval generate query keys as arrays instead of strings.
 
+#### useOperationIdAsQueryKey
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Use to generate query keys using the OpenAPI operation ID instead of the route path. This provides more stable and semantic query keys that don't change when route paths are modified.
+
+**Example:**
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useOperationIdAsQueryKey: true,
+        },
+      },
+    },
+  },
+};
+```
+
+**Generated code comparison:**
+
+Default behavior (`useOperationIdAsQueryKey: false`):
+
+```typescript
+const getPetByIdQueryKey = (petId: string) => {
+  return [`/pets/${petId}`] as const;
+};
+```
+
+With `useOperationIdAsQueryKey: true`:
+
+```typescript
+const getPetByIdQueryKey = (petId: string) => {
+  return ['getPetById', petId] as const;
+};
+```
+
 #### version
 
 Type: `number`.
