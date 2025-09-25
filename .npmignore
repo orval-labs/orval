@@ -1,5 +1,0 @@
-*
-!dist/**/*
-!README.md
-!package.json
-dist/**/*.d.ts.map
