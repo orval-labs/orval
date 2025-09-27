@@ -47,6 +47,7 @@ import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
+import { httpResolver } from './http-resolver';
 
 /**
  * Type helper to make it easier to use orval.config.ts
@@ -388,7 +389,7 @@ export const normalizeOptions = async (
 
 const parserDefaultOptions = {
   validate: true,
-  resolve: { github: githubResolver },
+  resolve: { github: githubResolver, http: httpResolver },
 } as SwaggerParserOptions;
 
 const normalizeMutator = (
