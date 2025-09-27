@@ -726,9 +726,8 @@ const getQueryFnArguments = ({
 };
 
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type },
+  queryOption: { name, queryParam, options, type, queryKeyFnName },
   operationName,
-  queryKeyFnName,
   queryProperties,
   queryKeyProperties,
   queryParams,
@@ -759,10 +758,10 @@ const generateQueryImplementation = ({
     options?: object | boolean;
     type: QueryType;
     queryParam?: string;
+    queryKeyFnName: string;
   };
   isRequestOptions: boolean;
   operationName: string;
-  queryKeyFnName: string;
   queryProperties: string;
   queryKeyProperties: string;
   params: GetterParams;
@@ -1262,6 +1261,7 @@ const generateQueryHook = async (
               options: query?.options,
               type: QueryType.INFINITE,
               queryParam: query?.useInfiniteQueryParam,
+              queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
@@ -1271,6 +1271,7 @@ const generateQueryHook = async (
               name: operationName,
               options: query?.options,
               type: QueryType.QUERY,
+              queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
@@ -1280,6 +1281,7 @@ const generateQueryHook = async (
               name: camel(`${operationName}-suspense`),
               options: query?.options,
               type: QueryType.SUSPENSE_QUERY,
+              queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
@@ -1291,12 +1293,12 @@ const generateQueryHook = async (
               options: query?.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: query?.useInfiniteQueryParam,
+              queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
     ];
 
-    const queryKeyFnName = camel(`get-${operationName}-queryKey`);
     // Convert "param: Type" to "param?: Type" for queryKey functions
     // to enable cache invalidation without type assertion
     const makeParamsOptional = (params: string) => {
@@ -1316,41 +1318,63 @@ const generateQueryHook = async (
       );
     };
 
-    const queryKeyProps = makeParamsOptional(
-      toObjectString(
-        props.filter((prop) => prop.type !== GetterPropType.HEADER),
-        'implementation',
-      ),
+    const uniqueQueryOptionsByKeys = queries.filter(
+      (obj, index, self) =>
+        index ===
+        self.findIndex((t) => t.queryKeyFnName === obj.queryKeyFnName),
     );
 
-    const routeString =
-      isVue(outputClient) || override.query.shouldSplitQueryKey
-        ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
-        : `\`${route}\``;
+    implementation += `
+${
+  !queryKeyMutator
+    ? uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
+        const queryKeyProps = makeParamsOptional(
+          toObjectString(
+            props.filter((prop) => prop.type !== GetterPropType.HEADER),
+            'implementation',
+          ),
+        );
 
-    // Use operation ID as query key if enabled, otherwise use route string
-    const queryKeyIdentifier = override.query.useOperationIdAsQueryKey
-      ? operationName
-      : routeString;
+        const routeString =
+          isVue(outputClient) || override.query.shouldSplitQueryKey
+            ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
+            : `\`${route}\``;
 
-    // Note: do not unref() params in Vue - this will make key lose reactivity
-    const queryKeyFn = `${
-      override.query.shouldExportQueryKey ? 'export ' : ''
-    }const ${queryKeyFnName} = (${queryKeyProps}) => {
-    return [${queryKeyIdentifier}${queryParams ? ', ...(params ? [params]: [])' : ''}${
-      body.implementation ? `, ${body.implementation}` : ''
-    }] as const;
-    }`;
+        // Use operation ID as query key if enabled, otherwise use route string
+        const queryKeyIdentifier = override.query.useOperationIdAsQueryKey
+          ? operationName
+          : routeString;
 
-    implementation += `${queryKeyMutator ? '' : queryKeyFn}
+        // Note: do not unref() params in Vue - this will make key lose reactivity
+        const queryKeyFn = `
+${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
+    return [
+    ${[
+      queryOption.type === QueryType.INFINITE ||
+      queryOption.type === QueryType.SUSPENSE_INFINITE
+        ? `'infinate'`
+        : '',
+      queryKeyIdentifier,
+      queryParams ? '...(params ? [params]: [])' : '',
+      body.implementation,
+    ]
+      .filter((x) => !!x)
+      .join(', ')}
+    ] as const;
+    }
+`;
+        return acc + queryKeyFn;
+      }, '')
+    : ''
+}`;
 
-    ${queries.reduce(
-      (acc, queryOption) =>
+    implementation += `
+    ${queries.reduce((acc, queryOption) => {
+      return (
         acc +
         generateQueryImplementation({
           queryOption,
           operationName,
-          queryKeyFnName,
           queryProperties,
           queryKeyProperties,
           params,
@@ -1378,9 +1402,9 @@ const generateQueryHook = async (
           usePrefetch: query.usePrefetch,
           useQuery: query.useQuery,
           useInfinite: query.useInfinite,
-        }),
-      '',
-    )}
+        })
+      );
+    }, '')}
 `;
 
     mutators =

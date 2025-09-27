@@ -63,6 +63,17 @@ export const listPets = (
   });
 };
 
+export const getListPetsInfiniteQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
+) => {
+  return [
+    'infinate',
+    `/v${version}/pets`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
 export const getListPetsQueryKey = (
   params?: ListPetsParams,
   version: number = 1,
@@ -95,7 +106,7 @@ export const getListPetsInfiniteQueryOptions = <
   const { query: queryOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
+    queryOptions?.queryKey ?? getListPetsInfiniteQueryKey(params, version);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listPets>>,
@@ -556,7 +567,7 @@ export const getListPetsSuspenseInfiniteQueryOptions = <
   const { query: queryOptions } = options ?? {};
 
   const queryKey =
-    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
+    queryOptions?.queryKey ?? getListPetsInfiniteQueryKey(params, version);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listPets>>,
