@@ -14,8 +14,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 20
-          package-manager-cache: false # disable built-in caching
+          node-version: 24
+          package-manager-cache: false
 
       - name: Enable Corepack
         run: corepack enable
@@ -57,4 +57,3 @@ jobs:
 
       - name: Publish workspaces to npm
         run: yarn workspaces foreach --all --no-private -v -p npm publish --tolerate-republish
-```
