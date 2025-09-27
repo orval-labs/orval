@@ -1,0 +1,2 @@
+export declare const startWatcher: (watchOptions: boolean | string | (string | boolean)[], watchFn: () => Promise<any>, defaultTarget?: string | string[]) => Promise<void>;
+//# sourceMappingURL=watcher.d.ts.map
