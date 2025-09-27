@@ -164,7 +164,7 @@ module.exports = {
 
 Type: `Object`.
 
-Default Value: `{ resolve: { github: githubResolver }, validate: true }`.
+Default Value: `{ resolve: { github: githubResolver, http: { safeUrlResolver: false } }, validate: true }`.
 
 Orval utilizes a parser to process multiple file specifications. This behavior can be customized using the `parserOptions` property. See the [available options](https://apidevtools.com/swagger-parser/options.html) for configuration.
 By default, Orval includes a GitHub parser, but you can add your own for private specifications or other specific needs.
