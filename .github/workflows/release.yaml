@@ -11,10 +11,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Configure Git
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 24
+          node-version: 20 # or use node-version-file: '.nvmrc'
           package-manager-cache: false
 
       - name: Enable Corepack
@@ -23,9 +28,7 @@ jobs:
       - name: Cache Yarn dependencies
         uses: actions/cache@v4
         with:
-          path: |
-            .yarn/cache
-            **/.yarn/berry/cache
+          path: .yarn/cache
           key: yarn-${{ hashFiles('**/yarn.lock') }}
           restore-keys: |
             yarn-
@@ -35,9 +38,7 @@ jobs:
 
       - name: Run build & tests
         run: |
-          cd tests
-          yarn clean
-          cd ..
+          cd tests && yarn clean && cd ..
           yarn clean
           yarn clean:all
           yarn build
@@ -45,15 +46,16 @@ jobs:
           yarn update-samples
           yarn test:samples
 
-      - name: Run release-it
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: yarn release
-
       - name: Configure npm authentication
         run: |
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set npmAuthToken ${{ secrets.NPM_TOKEN }}
 
+      - name: Run release-it
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: yarn release
+
       - name: Publish workspaces to npm
-        run: yarn workspaces foreach --all --no-private -v -p npm publish --tolerate-republish
+        run: yarn workspaces foreach --all --no-private -v npm publish --tolerate-republish
