@@ -174,6 +174,7 @@ export const generateZodValidationSchemaDefinition = (
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
+  const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
 
   let defaultVarName: string | undefined;
@@ -478,13 +479,19 @@ export const generateZodValidationSchemaDefinition = (
       if (min === 1) {
         functions.push(['min', `${min}`]);
       } else {
-        consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
+        consts.push(`export const ${name}Min${constsCounterValue} = ${min};`);
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
     if (max !== undefined) {
-      consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
+      consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
       functions.push(['max', `${name}Max${constsCounterValue}`]);
+    }
+    if (multipleOf !== undefined) {
+      consts.push(
+        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
+      );
+      functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
   }
 
