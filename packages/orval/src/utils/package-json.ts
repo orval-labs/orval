@@ -21,7 +21,7 @@ export const loadPackageJson = async (
 
   const normalizedPath = normalizePath(packageJson, workspace);
   if (fs.existsSync(normalizedPath)) {
-    const pkg = await dynamicImport<any>(normalizedPath);
+    const pkg = await dynamicImport<unknown>(normalizedPath);
 
     return await maybeReplaceCatalog(pkg, workspace);
   }
