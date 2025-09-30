@@ -19,7 +19,7 @@ $ orval
 
 ### Input
 
-The `--input` option, shorthand `-i`, can be used to set the path or link to your OpenApi specification.
+The `--input` option, shorthand `-i`, can be used to set the path or link to your OpenAPI specification.
 
 ```bash
 $ orval --input ./petstore.yaml
@@ -63,7 +63,7 @@ $ orval --watch ./src
 
 ### Clean
 
-The `--clean`, can be used to clean generated files. Be carefull clean all output target and schemas folder.
+The `--clean`, can be used to clean generated files. Be careful clean all output target and schemas folder.
 
 ```bash
 $ orval --clean
@@ -75,18 +75,18 @@ $ orval --clean ./src
 
 ### Prettier
 
-The `--prettier`, can be used to prettier generated files. You need to have prettier in your global dependencies.
+The `--prettier`, can be used to prettier generated files. You need to have prettier installed globally.
 
 ```bash
 $ orval --prettier
 ```
 
-### tslint
+### biome
 
-The `--tslint`, can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
+The `--biome`, can be used to [`Biome`](https://biomejs.dev/) generated files. You need to have `Biome` in your global dependencies.
 
 ```bash
-$ orval --tslint
+$ orval --biome
 ```
 
 ### tsconfig

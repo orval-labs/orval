@@ -1,0 +1,107 @@
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: AnyOf Schema
+  license:
+    name: MIT
+paths:
+  /pets:
+    post:
+      summary: Create a pet
+      operationId: createPets
+      tags:
+        - pets
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AllOfPet'
+      responses:
+        '204':
+          description: Ok
+  /not-has-properties-with-all-of-pets:
+    get:
+      operationId: getNotHasPropertiesWithAllOfPets
+      tags:
+        - pets
+      description: |-
+        Not has properties with allOf pets.
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Pet'
+                  - $ref: '#/components/schemas/PetDetail'
+                  - type: object
+                    properties:
+                      category:
+                        type: string
+                    required:
+                      - category
+                  - type: object
+                    properties:
+                      color:
+                        type: string
+                    required:
+                      - color
+  /rested-ref-in-all-of-pets:
+    get:
+      operationId: getNestedRefInAllOfPets
+      tags:
+        - pets
+      description: |-
+        Nested ref in allOf pets.
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PetRef'
+                  - $ref: '#/components/schemas/PetDetail'
+
+components:
+  schemas:
+    AllOfPet:
+      allOf:
+        - $ref: '#/components/schemas/Pet'
+        - $ref: '#/components/schemas/PetDetail'
+    NestedPet:
+      allOf:
+        - $ref: '#/components/schemas/DoublyNestedPet'
+        - type: object
+          properties:
+            nest:
+              type: integer
+    DoublyNestedPet:
+      type: object
+      properties:
+        doubleNest:
+          type: integer
+    Pet:
+      allOf:
+        - $ref: '#/components/schemas/NestedPet'
+        - type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: integer
+              format: int64
+            name:
+              type: string
+    PetDetail:
+      type: object
+      required:
+        - tag
+      properties:
+        tag:
+          type: string
+    PetRef:
+      $ref: '#/components/schemas/Pet'

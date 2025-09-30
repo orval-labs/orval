@@ -1,5 +1,4 @@
 import { defineConfig } from 'orval';
-import transformer from '../transformers/add-version.js';
 
 export default defineConfig({
   petstore: {
@@ -12,7 +11,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -29,7 +28,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -46,7 +45,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -61,7 +60,37 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/axios/split/endpoints.ts',
+      schemas: '../generated/axios/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
+      },
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/axios/tags/endpoints.ts',
+      schemas: '../generated/axios/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+      override: {
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -77,7 +106,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },

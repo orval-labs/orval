@@ -1,53 +1,62 @@
 {
   "name": "@orval/core",
-  "version": "6.19.1",
+  "version": "7.13.0",
   "license": "MIT",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.d.ts.map"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --minify --clean --dts --splitting",
-    "dev": "tsup ./src/index.ts --clean --watch src",
-    "lint": "eslint src/**/*.ts",
-    "test": "vitest --global test.ts"
+    "build": "tsdown --config-loader unconfig",
+    "dev": "tsdown --config-loader unconfig --watch src",
+    "lint": "eslint .",
+    "test": "vitest",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "devDependencies": {
-    "@types/chalk": "^2.2.0",
-    "@types/debug": "^4.1.7",
-    "@types/fs-extra": "^9.0.13",
-    "@types/inquirer": "^8.2.2",
-    "@types/lodash.get": "^4.4.7",
-    "@types/lodash.isempty": "^4.4.7",
-    "@types/lodash.omit": "^4.5.7",
-    "@types/lodash.uniq": "^4.5.7",
-    "@types/lodash.uniqby": "^4.7.7",
-    "@types/lodash.uniqwith": "^4.5.7",
-    "@types/micromatch": "^4.0.2",
-    "@types/validator": "^13.7.5"
+    "@faker-js/faker": "^9.9.0",
+    "@types/debug": "^4.1.12",
+    "@types/esutils": "^2.0.2",
+    "@types/fs-extra": "^11.0.4",
+    "@types/lodash.isempty": "^4.4.9",
+    "@types/lodash.uniq": "^4.5.9",
+    "@types/lodash.uniqby": "^4.7.9",
+    "@types/lodash.uniqwith": "^4.5.9",
+    "@types/micromatch": "^4.0.9",
+    "@types/swagger2openapi": "^7.0.4",
+    "eslint": "^9.35.0",
+    "openapi-types": "^12.1.3",
+    "rimraf": "^6.0.1",
+    "tsdown": "^0.15.2",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^10.1.0",
-    "acorn": "^8.8.0",
-    "ajv": "^8.11.0",
+    "@apidevtools/swagger-parser": "^12.0.0",
+    "@ibm-cloud/openapi-ruleset": "^1.32.1",
+    "@stoplight/spectral-core": "^1.20.0",
+    "acorn": "^8.15.0",
     "chalk": "^4.1.2",
-    "compare-versions": "^6.1.0",
-    "debug": "^4.3.4",
-    "esbuild": "^0.15.3",
+    "compare-versions": "^6.1.1",
+    "debug": "^4.4.3",
+    "esbuild": "^0.25.9",
     "esutils": "2.0.3",
-    "fs-extra": "^10.1.0",
+    "fs-extra": "^11.3.1",
     "globby": "11.1.0",
-    "ibm-openapi-validator": "^0.97.3",
-    "lodash.get": "^4.4.2",
     "lodash.isempty": "^4.4.0",
-    "lodash.omit": "^4.5.0",
     "lodash.uniq": "^4.5.0",
     "lodash.uniqby": "^4.7.0",
     "lodash.uniqwith": "^4.5.0",
-    "micromatch": "^4.0.5",
-    "openapi3-ts": "^3.0.0",
+    "micromatch": "^4.0.8",
+    "openapi3-ts": "4.5.0",
     "swagger2openapi": "^7.0.8",
-    "validator": "^13.7.0"
+    "typedoc": "^0.28.12"
   }
 }

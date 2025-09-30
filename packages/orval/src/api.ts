@@ -1,24 +1,27 @@
 import {
   asyncReduce,
-  ContextSpecs,
+  type ContextSpecs,
   generateVerbsOptions,
-  GeneratorApiBuilder,
-  GeneratorApiOperations,
-  GeneratorSchema,
+  type GeneratorApiBuilder,
+  type GeneratorApiOperations,
+  type GeneratorSchema,
+  getFullRoute,
   getRoute,
   GetterPropType,
   isReference,
-  NormalizedInputOptions,
-  NormalizedOutputOptions,
+  type NormalizedInputOptions,
+  type NormalizedOutputOptions,
   resolveRef,
 } from '@orval/core';
-import { generateMSWImports } from '@orval/msw';
-import { PathItemObject } from 'openapi3-ts';
+import { generateMockImports } from '@orval/mock';
+import type { PathItemObject } from 'openapi3-ts/oas30';
+
 import {
   generateClientFooter,
   generateClientHeader,
   generateClientImports,
   generateClientTitle,
+  generateExtraFiles,
   generateOperations,
 } from './client';
 
@@ -46,7 +49,7 @@ export const getApiBuilder = async ({
 
         resolvedContext = {
           ...context,
-          ...(imports.length
+          ...(imports.length > 0
             ? {
                 specKey: imports[0].specKey,
               }
@@ -59,6 +62,7 @@ export const getApiBuilder = async ({
         input,
         output,
         route,
+        pathRoute,
         context: resolvedContext,
       });
 
@@ -69,7 +73,7 @@ export const getApiBuilder = async ({
         });
       }
 
-      const schemas = verbsOptions.reduce(
+      const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, headers, body, response, props }) => {
           if (props) {
             acc.push(
@@ -87,20 +91,20 @@ export const getApiBuilder = async ({
             acc.push(headers.schema, ...headers.deps);
           }
 
-          acc.push(...body.schemas);
-          acc.push(...response.schemas);
+          acc.push(...body.schemas, ...response.schemas);
 
           return acc;
         },
-        [] as GeneratorSchema[],
+        [],
       );
 
-      let fullRoute = route;
-      if (output.baseUrl) {
-        if (output.baseUrl.endsWith('/') && route.startsWith('/')) {
-          fullRoute = route.slice(1);
-        }
-        fullRoute = `${output.baseUrl}${fullRoute}`;
+      const fullRoute = getFullRoute(
+        route,
+        verbs.servers ?? context.specs[context.specKey].servers,
+        output.baseUrl,
+      );
+      if (!output.target) {
+        throw new Error('Output does not have a target');
       }
       const pathOperations = await generateOperations(
         output.client,
@@ -110,11 +114,15 @@ export const getApiBuilder = async ({
           pathRoute,
           override: output.override,
           context: resolvedContext,
-          mock: !!output.mock,
+          mock: output.mock,
           output: output.target,
         },
+        output,
       );
 
+      for (const verbOption of verbsOptions) {
+        acc.verbOptions[verbOption.operationId] = verbOption;
+      }
       acc.schemas.push(...schemas);
       acc.operations = { ...acc.operations, ...pathOperations };
 
@@ -122,17 +130,27 @@ export const getApiBuilder = async ({
     },
     {
       operations: {},
+      verbOptions: {},
       schemas: [],
     } as GeneratorApiOperations,
+  );
+
+  const extraFiles = await generateExtraFiles(
+    output.client,
+    api.verbOptions,
+    output,
+    context,
   );
 
   return {
     operations: api.operations,
     schemas: api.schemas,
+    verbOptions: api.verbOptions,
     title: generateClientTitle,
     header: generateClientHeader,
     footer: generateClientFooter,
     imports: generateClientImports,
-    importsMock: generateMSWImports,
+    importsMock: generateMockImports,
+    extraFiles,
   };
 };

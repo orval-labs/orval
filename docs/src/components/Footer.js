@@ -2,47 +2,50 @@ import Link from 'next/link';
 import { siteConfig } from '../siteConfig';
 export const Footer = (props) => {
   return (
-    <div className="bg-gray-50 border-t border-gray-200">
+    <footer className="bg-gray-50 border-t border-gray-200">
       <div className="container mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           <div className="grid grid-cols-2 gap-8 xl:col-span-2">
             <div className="md:grid md:grid-cols-2 md:gap-8">
               <div>
-                <h4 className="text-sm leading-5 font-semibold tracking-wider text-gray-400 uppercase">
+                <h2 className="text-sm leading-5 font-semibold tracking-wider text-gray-500 uppercase">
                   Resources
-                </h4>
+                </h2>
                 <ul className="mt-4">
                   <li>
-                    <Link href="/overview">
-                      <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
-                        Docs
-                      </a>
+                    <Link
+                      href="/overview"
+                      className="text-base leading-6 text-gray-500 hover:text-gray-900"
+                    >
+                      Docs
                     </Link>
                   </li>
                   <li className="mt-4">
-                    <Link href={`${siteConfig.repoUrl}/tree/master/samples`}>
-                      <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
-                        Examples
-                      </a>
+                    <Link
+                      href={`${siteConfig.repoUrl}/tree/master/samples`}
+                      className="text-base leading-6 text-gray-500 hover:text-gray-900"
+                    >
+                      Examples
                     </Link>
                   </li>
                   <li className="mt-4">
-                    <Link href="/reference/configuration">
-                      <a className="text-base leading-6 text-gray-500 hover:text-gray-900">
-                        API Reference
-                      </a>
+                    <Link
+                      href="/reference/configuration"
+                      className="text-base leading-6 text-gray-500 hover:text-gray-900"
+                    >
+                      API Reference
                     </Link>
                   </li>
                 </ul>
               </div>
               <div className="mt-12 md:mt-0">
-                <h4 className="text-sm leading-5 font-semibold tracking-wider text-gray-400 uppercase">
+                <h2 className="text-sm leading-5 font-semibold tracking-wider text-gray-500 uppercase">
                   Community
-                </h4>
+                </h2>
                 <ul className="mt-4">
                   <li className="mt-4">
                     <a
-                      href="https://github.com/anymaniax/orval/releases"
+                      href="https://github.com/orval-labs/orval/releases"
                       className="text-base leading-6 text-gray-500 hover:text-gray-900"
                     >
                       Releases
@@ -51,12 +54,12 @@ export const Footer = (props) => {
                   <li className="mt-4">
                     <a
                       className="github-button"
-                      href="https://github.com/anymaniax/orval"
+                      href="https://github.com/orval-labs/orval"
                       data-color-scheme="no-preference: light; light: light; dark: dark;"
                       data-icon="octicon-star"
                       data-size="large"
                       data-show-count="true"
-                      aria-label="Star anymaniax/orval on GitHub"
+                      aria-label="Star orval-labs/orval on GitHub"
                     >
                       Star
                     </a>
@@ -70,7 +73,7 @@ export const Footer = (props) => {
           <div className="flex md:order-2">
             <a
               href="https://twitter.com/anymaniax"
-              className="ml-6 text-gray-400 hover:text-gray-500"
+              className="ml-6 text-gray-500 hover:text-gray-600"
             >
               <span className="sr-only">Twitter</span>
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -78,8 +81,8 @@ export const Footer = (props) => {
               </svg>
             </a>
             <a
-              href="https://github.com/anymaniax"
-              className="ml-6 text-gray-400 hover:text-gray-500"
+              href="https://github.com/orval-labs"
+              className="ml-6 text-gray-500 hover:text-gray-600"
             >
               <span className="sr-only">GitHub</span>
               <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -91,12 +94,12 @@ export const Footer = (props) => {
               </svg>
             </a>
           </div>
-          <p className="mt-8 text-base leading-6 text-gray-400 md:mt-0 md:order-1">
+          <p className="mt-8 text-base leading-6 text-gray-500 md:mt-0 md:order-1">
             {siteConfig.copyright}
           </p>
         </div>
       </div>
-    </div>
+    </footer>
   );
 };
 Footer.displayName = 'Footer';

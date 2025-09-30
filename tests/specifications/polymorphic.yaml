@@ -19,14 +19,26 @@ paths:
 components:
   schemas:
     DescendantOne:
+      required:
+        - value
       type: object
       allOf:
         - $ref: '#/components/schemas/ParentType'
         - type: object
+          required:
+            - count
           properties:
             value:
               type: boolean
+            count:
+              type: integer
+              format: int32
+            otherCount:
+              type: integer
+              format: int32
     DescendantTwo:
+      required:
+        - value
       type: object
       allOf:
         - $ref: '#/components/schemas/ParentType'
@@ -35,10 +47,10 @@ components:
             value:
               type: string
     ParentType:
+      required:
+        - type
       type: object
       properties:
-        value:
-          type: object
         key:
           type: string
         type:

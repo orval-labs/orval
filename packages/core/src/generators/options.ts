@@ -1,13 +1,13 @@
-import { VERBS_WITH_BODY } from '../constants';
 import {
-  GeneratorMutator,
-  GeneratorSchema,
-  GetterBody,
-  GetterQueryParam,
-  GetterResponse,
+  type GeneratorMutator,
+  type GeneratorSchema,
+  type GetterBody,
+  type GetterQueryParam,
+  type GetterResponse,
+  type ParamsSerializerOptions,
   Verbs,
 } from '../types';
-import { isObject, stringify } from '../utils';
+import { getIsBodyVerb, isObject, stringify } from '../utils';
 
 export const generateBodyOptions = (
   body: GetterBody,
@@ -36,6 +36,10 @@ export const generateAxiosOptions = ({
   headers,
   requestOptions,
   hasSignal,
+  isVue,
+  isAngular,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
@@ -43,16 +47,25 @@ export const generateAxiosOptions = ({
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
   hasSignal: boolean;
+  isVue: boolean;
+  isAngular: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
-  if (!queryParams && !headers && !response.isBlob) {
+  if (
+    !queryParams &&
+    !headers &&
+    !response.isBlob &&
+    response.definition.success !== 'string'
+  ) {
     if (isRequestOptions) {
       return 'options';
     }
     if (hasSignal) {
-      return !isExactOptionalPropertyTypes
-        ? 'signal'
-        : '...(signal ? { signal } : {})';
+      return isExactOptionalPropertyTypes
+        ? '...(signal ? { signal } : {})'
+        : 'signal';
     }
     return '';
   }
@@ -69,18 +82,21 @@ export const generateAxiosOptions = ({
     }
 
     if (hasSignal) {
-      value += !isExactOptionalPropertyTypes
-        ? '\n        signal,'
-        : '\n        ...(signal ? { signal } : {}),';
+      value += isExactOptionalPropertyTypes
+        ? '\n        ...(signal ? { signal } : {}),'
+        : '\n        signal,';
     }
   }
 
   if (
-    response.isBlob &&
-    (!isObject(requestOptions) ||
-      !requestOptions.hasOwnProperty('responseType'))
+    !isObject(requestOptions) ||
+    !requestOptions.hasOwnProperty('responseType')
   ) {
-    value += `\n        responseType: 'blob',`;
+    if (response.isBlob) {
+      value += `\n        responseType: 'blob',`;
+    } else if (response.definition.success === 'string') {
+      value += `\n        responseType: 'text',`;
+    }
   }
 
   if (isObject(requestOptions)) {
@@ -91,12 +107,30 @@ export const generateAxiosOptions = ({
     value += '\n    ...options,';
 
     if (queryParams) {
-      value += '\n        params: {...params, ...options?.params},';
+      if (isVue) {
+        value += '\n        params: {...unref(params), ...options?.params},';
+      } else if (isAngular && paramsSerializer) {
+        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
+      } else {
+        value += '\n        params: {...params, ...options?.params},';
+      }
     }
 
     if (headers) {
       value += '\n        headers: {...headers, ...options?.headers},';
     }
+  }
+
+  if (
+    !isAngular &&
+    queryParams &&
+    (paramsSerializer || paramsSerializerOptions?.qs)
+  ) {
+    value += paramsSerializer
+      ? `\n        paramsSerializer: ${paramsSerializer.name},`
+      : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+          paramsSerializerOptions!.qs,
+        )}),`;
   }
 
   return value;
@@ -115,6 +149,9 @@ export const generateOptions = ({
   isAngular,
   isExactOptionalPropertyTypes,
   hasSignal,
+  isVue,
+  paramsSerializer,
+  paramsSerializerOptions,
 }: {
   route: string;
   body: GetterBody;
@@ -128,9 +165,11 @@ export const generateOptions = ({
   isAngular?: boolean;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  isVue?: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
-  const bodyOptions = isBodyVerb
+  const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
     : '';
 
@@ -141,6 +180,10 @@ export const generateOptions = ({
     requestOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    isVue: isVue ?? false,
+    isAngular: isAngular ?? false,
+    paramsSerializer,
+    paramsSerializerOptions,
   });
 
   const options = axiosOptions ? `{${axiosOptions}}` : '';
@@ -160,7 +203,7 @@ export const generateOptions = ({
   }
 
   return `\n      \`${route}\`,${
-    isBodyVerb ? bodyOptions || 'undefined,' : ''
+    getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : ''
   }${axiosOptions === 'options' ? axiosOptions : options}\n    `;
 };
 
@@ -186,6 +229,7 @@ export const generateBodyMutatorConfig = (
 
 export const generateQueryParamsAxiosConfig = (
   response: GetterResponse,
+  isVue: boolean,
   queryParams?: GetterQueryParam,
 ) => {
   if (!queryParams && !response.isBlob) {
@@ -195,7 +239,7 @@ export const generateQueryParamsAxiosConfig = (
   let value = '';
 
   if (queryParams) {
-    value += ',\n        params';
+    value += isVue ? ',\n        params: unref(params)' : ',\n        params';
   }
 
   if (response.isBlob) {
@@ -214,9 +258,9 @@ export const generateMutatorConfig = ({
   verb,
   isFormData,
   isFormUrlEncoded,
-  isBodyVerb,
   hasSignal,
   isExactOptionalPropertyTypes,
+  isVue,
 }: {
   route: string;
   body: GetterBody;
@@ -226,16 +270,17 @@ export const generateMutatorConfig = ({
   verb: Verbs;
   isFormData: boolean;
   isFormUrlEncoded: boolean;
-  isBodyVerb: boolean;
   hasSignal: boolean;
   isExactOptionalPropertyTypes: boolean;
+  isVue?: boolean;
 }) => {
-  const bodyOptions = isBodyVerb
+  const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
     : '';
 
   const queryParamsOptions = generateQueryParamsAxiosConfig(
     response,
+    isVue ?? false,
     queryParams,
   );
 
@@ -244,11 +289,11 @@ export const generateMutatorConfig = ({
         headers ? '...headers' : ''
       }}`
     : headers
-    ? ',\n      headers'
-    : '';
+      ? ',\n      headers'
+      : '';
 
-  return `{url: \`${route}\`, method: '${verb}'${headerOptions}${bodyOptions}${queryParamsOptions}${
-    !isBodyVerb && hasSignal
+  return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
+    hasSignal
       ? `, ${
           isExactOptionalPropertyTypes
             ? '...(signal ? { signal }: {})'

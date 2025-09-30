@@ -1,0 +1,19 @@
+{
+  "name": "@hono/composite-routes-with-tags-split",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
+    "deploy": "wrangler deploy --minify src/index.ts",
+    "generate-api": "orval"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.2",
+    "hono": "^4.9.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250913.0",
+    "orval": "workspace:*",
+    "wrangler": "^3.114.14"
+  }
+}

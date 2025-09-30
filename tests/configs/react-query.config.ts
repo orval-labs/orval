@@ -13,6 +13,128 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  noContentWithDefault: {
+    output: {
+      target: '../generated/react-query/no-content-with-default/endpoints.ts',
+      schemas: '../generated/react-query/no-content-with-default/model',
+      mode: 'split',
+      client: 'react-query',
+      mock: {
+        type: 'msw',
+        delay: 0,
+        useExamples: true,
+      },
+      headers: true,
+    },
+    input: {
+      target: '../specifications/no-content-with-default.yaml',
+    },
+  },
+  petstoreTagsSplit: {
+    output: {
+      target: '../generated/react-query/petstore-tags-split/endpoints.ts',
+      schemas: '../generated/react-query/petstore-tags-split/model',
+      mock: true,
+      mode: 'tags-split',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplit: {
+    output: {
+      target: '../generated/react-query/split/endpoints.ts',
+      schemas: '../generated/react-query/split/model',
+      mock: true,
+      mode: 'split',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreTags: {
+    output: {
+      target: '../generated/react-query/tags/endpoints.ts',
+      schemas: '../generated/react-query/tags/model',
+      mock: true,
+      mode: 'tags',
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreSplitQueryKey: {
+    output: {
+      target: '../generated/react-query/split-query-key/endpoints.ts',
+      schemas: '../generated/react-query/split-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreCustomMutatorOptions: {
+    output: {
+      target: '../generated/react-query/custom-mutator-options/endpoints.ts',
+      schemas: '../generated/react-query/custom-mutator-options/model',
+      client: 'react-query',
+      override: {
+        query: {
+          mutationOptions: {
+            path: '../mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  httpClientFetch: {
+    output: {
+      target: '../generated/react-query/http-client-fetch/endpoints.ts',
+      schemas: '../generated/react-query/http-client-fetch/model',
+      mode: 'tags-split',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  httpClientFetchWithIncludeHttpResponseReturnType: {
+    output: {
+      target:
+        '../generated/react-query/http-client-fetch-with-include-http-response-return-type/endpoints.ts',
+      schemas:
+        '../generated/react-query/http-client-fetch-with-include-http-response-return-type/model',
+      mode: 'tags-split',
+      client: 'react-query',
+      httpClient: 'fetch',
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/react-query/mutator/endpoints.ts',
@@ -25,7 +147,8 @@ export default defineConfig({
           name: 'customInstance',
         },
         query: {
-          useQuery: true,
+          useSuspenseQuery: true,
+          useSuspenseInfiniteQuery: true,
           useInfinite: true,
           useInfiniteQueryParam: 'limit',
         },
@@ -62,6 +185,26 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  httpClientFetchWithCustomFetch: {
+    output: {
+      target:
+        '../generated/react-query/http-client-fetch-with-custom-fetch/endpoints.ts',
+      schemas:
+        '../generated/react-query/http-client-fetch-with-custom-fetch/model',
+      client: 'react-query',
+      httpClient: 'fetch',
+      mock: true,
+      override: {
+        mutator: {
+          path: '../mutators/custom-fetch.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
   mutatorMultiArguments: {
@@ -130,6 +273,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  hookMutatorWithExtension: {
+    output: {
+      target: '../generated/react-query/hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/hook-mutator/model',
+      client: 'react-query',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance.ts',
+          name: 'useCustomInstance',
+          extension: '.js',
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   hookMutatorWithSecondParameter: {
     output: {
       target:
@@ -148,10 +308,30 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  tagHookMutator: {
+    output: {
+      target: '../generated/react-query/tag-hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/tag-hook-mutator/model',
+      client: 'react-query',
+      override: {
+        tags: {
+          pets: {
+            mutator: {
+              path: '../mutators/use-custom-instance.ts',
+              name: 'useCustomInstance',
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   formData: {
     output: {
-      target: '../generated/react-query/formData/endpoints.ts',
-      schemas: '../generated/react-query/formData/model',
+      target: '../generated/react-query/form-data/endpoints.ts',
+      schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
       mock: true,
       override: {
@@ -184,8 +364,8 @@ export default defineConfig({
   },
   formDataMutator: {
     output: {
-      target: '../generated/react-query/form-data/endpoints.ts',
-      schemas: '../generated/react-query/form-data/model',
+      target: '../generated/react-query/form-data-with-mutator/endpoints.ts',
+      schemas: '../generated/react-query/form-data-with-mutator/model',
       client: 'react-query',
       mock: true,
       override: {
@@ -280,6 +460,20 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  mockWithoutDelay: {
+    output: {
+      target: '../generated/react-query/mockWithoutDelay/endpoints.ts',
+      schemas: '../generated/react-query/mockWithoutDelay/model',
+      client: 'react-query',
+      mock: {
+        type: 'msw',
+        delay: false,
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   polymorphic: {
     output: {
       target: '../generated/react-query/polymorphic/endpoints.ts',
@@ -306,6 +500,17 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  specialCharacters: {
+    output: {
+      target: '../generated/react-query/special-characters/endpoints.ts',
+      schemas: '../generated/react-query/special-characters/model',
+      client: 'react-query',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/models-with-special-char.yaml',
     },
   },
 });

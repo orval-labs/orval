@@ -17,7 +17,6 @@ import {
   pascal,
   sanitize,
   toObjectString,
-  VERBS_WITH_BODY,
 } from '@orval/core';
 
 const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -36,11 +35,29 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
+const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'qs',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+    ],
+    dependency: 'qs',
+  },
+];
+
+const returnTypesToWrite = new Map<string, (title?: string) => string>();
 
 export const getAxiosDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
-) => [...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : [])];
+  hasParamsSerializerOptions: boolean,
+) => [
+  ...(hasGlobalMutator ? [] : AXIOS_DEPENDENCIES),
+  ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+];
 
 const generateAxiosImplementation = (
   {
@@ -55,17 +72,18 @@ const generateAxiosImplementation = (
     override,
     formData,
     formUrlEncoded,
+    paramsSerializer,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData !== false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
-    !!context.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-    context.tsconfig,
+    context.output.tsconfig,
   );
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -75,7 +93,6 @@ const generateAxiosImplementation = (
     isFormData,
     isFormUrlEncoded,
   });
-  const isBodyVerb = VERBS_WITH_BODY.includes(verb);
 
   if (mutator) {
     const mutatorConfig = generateMutatorConfig({
@@ -87,7 +104,6 @@ const generateAxiosImplementation = (
       verb,
       isFormData,
       isFormUrlEncoded,
-      isBodyVerb,
       hasSignal: false,
       isExactOptionalPropertyTypes,
     });
@@ -121,7 +137,7 @@ const generateAxiosImplementation = (
 
     return `const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options?: SecondParameter<typeof ${mutator.name}>,`
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}<${response.definition.success || 'unknown'}>>,`
         : ''
     }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
@@ -141,6 +157,8 @@ const generateAxiosImplementation = (
     requestOptions: override?.requestOptions,
     isFormData,
     isFormUrlEncoded,
+    paramsSerializer,
+    paramsSerializerOptions: override?.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });
@@ -159,7 +177,7 @@ const generateAxiosImplementation = (
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;
@@ -178,16 +196,10 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
 }) => `
 ${
   isRequestOptions && isMutator
-    ? `// eslint-disable-next-line
-  type SecondParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  args: infer P,
-) => any
-  ? P
-  : never;\n\n`
+    ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
+  ${noFunction ? '' : `export const ${title} = () => {\n`}`;
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
@@ -208,12 +220,12 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
 \n`;
   }
 
-  operationNames.forEach((operationName) => {
+  for (const operationName of operationNames) {
     if (returnTypesToWrite.has(operationName)) {
       const func = returnTypesToWrite.get(operationName)!;
-      footer += func(!noFunction ? title : undefined) + '\n';
+      footer += func(noFunction ? undefined : title) + '\n';
     }
-  });
+  }
 
   return footer;
 };

@@ -1,6 +1,7 @@
-import { ContentObject, SchemaObject } from 'openapi3-ts';
+import type { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveValue } from '../resolvers';
-import {
+import type {
   ContextSpecs,
   GeneratorImport,
   GeneratorSchema,
@@ -8,7 +9,7 @@ import {
   GetterQueryParam,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
-import { getEnum } from './enum';
+import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
 import { getKey } from './keys';
 
 type QueryParamsType = {
@@ -46,33 +47,42 @@ const getQueryParamsTypes = (
 
     const schema = (schemaParam || content['application/json'].schema)!;
 
-    const resolvedeValue = resolveValue({
+    const resolvedValue = resolveValue({
       schema,
       context,
       name: queryName,
     });
 
     const key = getKey(name);
-    const doc = jsDoc(parameter);
+    const doc = jsDoc(
+      {
+        description: parameter.description,
+        ...schema,
+      },
+      void 0,
+      context,
+    );
 
-    if (parameterImports.length) {
+    if (parameterImports.length > 0) {
       return {
         definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
           parameterImports[0].name
         };`,
         imports: parameterImports,
         schemas: [],
-        originalSchema: resolvedeValue.originalSchema,
+        originalSchema: resolvedValue.originalSchema,
       };
     }
 
-    if (resolvedeValue.isEnum && !resolvedeValue.isRef) {
+    if (resolvedValue.isEnum && !resolvedValue.isRef) {
       const enumName = queryName;
-
       const enumValue = getEnum(
-        resolvedeValue.value,
+        resolvedValue.value,
         enumName,
-        resolvedeValue.originalSchema?.['x-enumNames'],
+        getEnumNames(resolvedValue.originalSchema),
+        context.output.override.enumGenerationType,
+        getEnumDescriptions(resolvedValue.originalSchema),
+        context.output.override.namingConvention?.enum,
       );
 
       return {
@@ -81,22 +91,22 @@ const getQueryParamsTypes = (
         }: ${enumName};`,
         imports: [{ name: enumName }],
         schemas: [
-          ...resolvedeValue.schemas,
-          { name: enumName, model: enumValue, imports: resolvedeValue.imports },
+          ...resolvedValue.schemas,
+          { name: enumName, model: enumValue, imports: resolvedValue.imports },
         ],
-        originalSchema: resolvedeValue.originalSchema,
+        originalSchema: resolvedValue.originalSchema,
       };
     }
 
     const definition = `${doc}${key}${
       !required || schema.default ? '?' : ''
-    }: ${resolvedeValue.value};`;
+    }: ${resolvedValue.value};`;
 
     return {
       definition,
-      imports: resolvedeValue.imports,
-      schemas: resolvedeValue.schemas,
-      originalSchema: resolvedeValue.originalSchema,
+      imports: resolvedValue.imports,
+      schemas: resolvedValue.schemas,
+      originalSchema: resolvedValue.originalSchema,
     };
   });
 };
@@ -112,7 +122,7 @@ export const getQueryParams = ({
   context: ContextSpecs;
   suffix?: string;
 }): GetterQueryParam | undefined => {
-  if (!queryParams.length) {
+  if (queryParams.length === 0) {
     return;
   }
   const types = getQueryParamsTypes(queryParams, operationName, context);

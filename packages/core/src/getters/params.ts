@@ -1,5 +1,10 @@
 import { resolveValue } from '../resolvers';
-import { ContextSpecs, GetterParameters, GetterParams } from '../types';
+import type {
+  ContextSpecs,
+  GetterParameters,
+  GetterParams,
+  NormalizedOutputOptions,
+} from '../types';
 import { camel, sanitize, stringify } from '../utils';
 
 /**
@@ -16,7 +21,6 @@ export const getParamsInPath = (path: string) => {
   let n;
   const output = [];
   const templatePathRegex = /\{(.*?)\}/g;
-  // tslint:disable-next-line:no-conditional-assignment
   while ((n = templatePathRegex.exec(path)) !== null) {
     output.push(n[1]);
   }
@@ -29,11 +33,13 @@ export const getParams = ({
   pathParams = [],
   operationId,
   context,
+  output,
 }: {
   route: string;
   pathParams?: GetterParameters['query'];
   operationId: string;
   context: ContextSpecs;
+  output: NormalizedOutputOptions;
 }): GetterParams => {
   const params = getParamsInPath(route);
   return params.map((p) => {
@@ -63,8 +69,8 @@ export const getParams = ({
     if (!schema) {
       return {
         name,
-        definition: `${name}${!required ? '?' : ''}: unknown`,
-        implementation: `${name}${!required ? '?' : ''}: unknown`,
+        definition: `${name}${required ? '' : '?'}: unknown`,
+        implementation: `${name}${required ? '' : '?'}: unknown`,
         default: false,
         required,
         imports: [],
@@ -75,7 +81,7 @@ export const getParams = ({
       schema,
       context: {
         ...context,
-        ...(pathParam.imports.length
+        ...(pathParam.imports.length > 0
           ? {
               specKey: pathParam.imports[0].specKey,
             }
@@ -83,16 +89,21 @@ export const getParams = ({
       },
     });
 
+    let paramType = resolvedValue.value;
+    if (output.allParamsOptional) {
+      paramType = `${paramType} | undefined | null`; // TODO: maybe check that `paramType` isn't already undefined or null
+    }
+
     const definition = `${name}${
       !required || resolvedValue.originalSchema!.default ? '?' : ''
-    }: ${resolvedValue.value}`;
+    }: ${paramType}`;
 
     const implementation = `${name}${
       !required && !resolvedValue.originalSchema!.default ? '?' : ''
     }${
-      !resolvedValue.originalSchema!.default
-        ? `: ${resolvedValue.value}`
-        : `= ${stringify(resolvedValue.originalSchema!.default)}`
+      resolvedValue.originalSchema!.default
+        ? `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}`
+        : `: ${paramType}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
     return {

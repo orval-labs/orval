@@ -1,0 +1,35 @@
+openapi: 3.0.0
+info:
+  title: AllOf required in parent
+  version: '1.0'
+paths:
+  '/':
+    get:
+      responses:
+        '200':
+          description: ExampleResponse
+          content:
+            application/json:
+              schema:
+                required:
+                  - data
+                  - total_count
+                allOf:
+                  - $ref: '#/components/schemas/Foo'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Bar'
+components:
+  schemas:
+    Foo:
+      type: object
+      properties:
+        total_count:
+          type: number
+    Bar:
+      type: object
+      properties:
+        username:
+          type: string

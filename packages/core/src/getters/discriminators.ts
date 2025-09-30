@@ -1,5 +1,7 @@
-import { SchemasObject } from 'openapi3-ts';
-import { ContextSpecs } from '../types';
+import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
+
+import type { ContextSpecs } from '../types';
+import { pascal } from '../utils';
 import { getRefInfo } from './ref';
 
 export const resolveDiscriminators = (
@@ -16,21 +18,30 @@ export const resolveDiscriminators = (
         let subTypeSchema;
 
         try {
-          const { name } = getRefInfo(mappingValue, context);
-          subTypeSchema = transformedSchemas[name];
-        } catch (e) {
+          const { originalName } = getRefInfo(mappingValue, context);
+          // name from getRefInfo may contain a suffix, which we don't want
+          const name = pascal(originalName);
+          subTypeSchema =
+            transformedSchemas[name] ?? transformedSchemas[originalName];
+        } catch {
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
         if (!subTypeSchema) {
           continue;
         }
-
+        const property = subTypeSchema.properties?.[
+          propertyName
+        ] as SchemaObject;
         subTypeSchema.properties = {
           ...subTypeSchema.properties,
           [propertyName]: {
             type: 'string',
-            enum: [mappingKey],
+            enum: [
+              ...(property?.enum?.filter((value) => value !== mappingKey) ??
+                []),
+              mappingKey,
+            ],
           },
         };
         subTypeSchema.required = [

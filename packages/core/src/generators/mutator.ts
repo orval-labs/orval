@@ -1,7 +1,8 @@
-import acorn, { Parser } from 'acorn';
+import { type ecmaVersion, Parser } from 'acorn';
 import chalk from 'chalk';
 import fs from 'fs-extra';
-import {
+
+import type {
   GeneratorMutator,
   GeneratorMutatorParsingInfo,
   NormalizedMutator,
@@ -19,7 +20,7 @@ const getImport = (output: string, mutator: NormalizedMutator) => {
     upath.relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
 
-  return pathWithoutExtension;
+  return `${pathWithoutExtension}${mutator.extension || ''}`;
 };
 
 export const generateMutator = async ({
@@ -42,7 +43,9 @@ export const generateMutator = async ({
   const importName = mutator.name ? mutator.name : `${name}Mutator`;
   const importPath = mutator.path;
 
-  const rawFile = await fs.readFile(importPath, 'utf8');
+  let rawFile = await fs.readFile(importPath, 'utf8');
+
+  rawFile = removeComments(rawFile);
 
   const hasErrorType =
     rawFile.includes('export type ErrorType') ||
@@ -52,13 +55,13 @@ export const generateMutator = async ({
     rawFile.includes(`export type ${BODY_TYPE_NAME}`) ||
     rawFile.includes(`export interface ${BODY_TYPE_NAME}`);
 
-  const errorTypeName = !mutator.default
-    ? 'ErrorType'
-    : `${pascal(name)}ErrorType`;
+  const errorTypeName = mutator.default
+    ? `${pascal(name)}ErrorType`
+    : 'ErrorType';
 
-  const bodyTypeName = !mutator.default
-    ? BODY_TYPE_NAME
-    : `${pascal(name)}${BODY_TYPE_NAME}`;
+  const bodyTypeName = mutator.default
+    ? `${pascal(name)}${BODY_TYPE_NAME}`
+    : BODY_TYPE_NAME;
 
   const { file, cached } = await loadFile<string>(importPath, {
     isDefault: false,
@@ -78,12 +81,11 @@ export const generateMutator = async ({
     );
 
     if (!mutatorInfo) {
-      createLogger().error(
+      throw new Error(
         chalk.red(
           `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
         ),
       );
-      process.exit(1);
     }
 
     const path = getImport(output, mutator);
@@ -98,9 +100,9 @@ export const generateMutator = async ({
       default: isDefault,
       hasErrorType,
       errorTypeName,
-      hasSecondArg: !isHook
-        ? mutatorInfo.numberOfParams > 1
-        : mutatorInfo.returnNumberOfParams! > 1,
+      hasSecondArg: isHook
+        ? mutatorInfo.returnNumberOfParams! > 1
+        : mutatorInfo.numberOfParams > 1,
       hasThirdArg: mutatorInfo.numberOfParams > 2,
       isHook,
       ...(hasBodyType ? { bodyTypeName } : {}),
@@ -128,9 +130,7 @@ export const generateMutator = async ({
   }
 };
 
-const getEcmaVersion = (
-  target?: TsConfigTarget,
-): acorn.ecmaVersion | undefined => {
+const getEcmaVersion = (target?: TsConfigTarget): ecmaVersion | undefined => {
   if (!target) {
     return;
   }
@@ -140,16 +140,26 @@ const getEcmaVersion = (
   }
 
   try {
-    return Number(target.toLowerCase().replace('es', '')) as acorn.ecmaVersion;
+    return Number(target.toLowerCase().replace('es', '')) as ecmaVersion;
   } catch {
     return;
   }
 };
 
+const removeComments = (file: string) => {
+  // Regular expression to match single-line and multi-line comments
+  const commentRegex = /\/\/.*|\/\*[\s\S]*?\*\//g;
+
+  // Remove comments from the rawFile string
+  const cleanedFile = file.replaceAll(commentRegex, '');
+
+  return cleanedFile;
+};
+
 const parseFile = (
   file: string,
   name: string,
-  ecmaVersion: acorn.ecmaVersion = 6,
+  ecmaVersion: ecmaVersion = 6,
 ): GeneratorMutatorParsingInfo | undefined => {
   try {
     const ast = Parser.parse(file, { ecmaVersion }) as any;
@@ -217,7 +227,7 @@ const parseFile = (
     );
 
     return parseFunction(ast, property.value.body.name);
-  } catch (e) {
+  } catch {
     return;
   }
 };
@@ -247,10 +257,22 @@ const parseFunction = (
       (b: any) => b.type === 'ReturnStatement',
     );
 
+    // If the function directly returns an arrow function
     if (returnStatement?.argument?.params) {
       return {
         numberOfParams: node.params.length,
         returnNumberOfParams: returnStatement.argument.params.length,
+      };
+      // If the function returns a CallExpression (e.g., return useCallback(...))
+    } else if (
+      returnStatement?.argument?.type === 'CallExpression' &&
+      returnStatement.argument.arguments?.[0]?.type ===
+        'ArrowFunctionExpression'
+    ) {
+      const arrowFn = returnStatement.argument.arguments[0];
+      return {
+        numberOfParams: node.params.length,
+        returnNumberOfParams: arrowFn.params.length,
       };
     }
     return {
@@ -279,6 +301,15 @@ const parseFunction = (
     return {
       numberOfParams: declaration.init.params.length,
       returnNumberOfParams: returnStatement.argument.params.length,
+    };
+  } else if (
+    returnStatement?.argument?.type === 'CallExpression' &&
+    returnStatement.argument.arguments?.[0]?.type === 'ArrowFunctionExpression'
+  ) {
+    const arrowFn = returnStatement.argument.arguments[0];
+    return {
+      numberOfParams: declaration.init.params.length,
+      returnNumberOfParams: arrowFn.params.length,
     };
   }
 

@@ -1,11 +1,11 @@
-export const customFormData = <Body extends Record<string, string | Blob>>(
+export const customFormData = <Body extends Record<string, any>>(
   body: Body,
 ): FormData => {
   const formData = new FormData();
 
-  Object.entries(body).forEach(([key, value]) => {
+  for (const [key, value] of Object.entries(body)) {
     formData.append(key, value);
-  });
+  }
 
   return formData;
 };

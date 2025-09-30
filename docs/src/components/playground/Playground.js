@@ -2,7 +2,8 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { useState } from 'react';
-import Select from 'react-select';
+import dynamic from 'next/dynamic';
+import { useDebounce } from 'use-debounce';
 import { EXAMPLES } from './Examples';
 import { PlaygroundEditors } from './PlaygroundEditors';
 
@@ -19,6 +20,11 @@ const DEFAULT_EXAMPLE = {
   index: 0,
 };
 
+// Imports Select dynamically only on the client to avoid hydration warnings in SSR (e.g. aria-activedescendant)
+const Select = dynamic(() => import('react-select'), {
+  ssr: false,
+});
+
 export function Playground({ height }) {
   const [template, setTemplate] = useState(
     `${DEFAULT_EXAMPLE.catName}__${DEFAULT_EXAMPLE.index}`,
@@ -29,19 +35,21 @@ export function Playground({ height }) {
   const [config, setConfig] = useState(
     EXAMPLES[DEFAULT_EXAMPLE.catName][DEFAULT_EXAMPLE.index].config,
   );
+  const [debounceConfig] = useDebounce(config, 500);
+  const [debounceSchema] = useDebounce(schema, 500);
 
-  const { data: output, error } = useQuery(
-    [config, schema, template],
-    async () => {
-      const response = await axios.post('/api/generate', {
-        config,
-        schema,
-      });
-
-      return response.data;
-    },
+  const generateApiQuery = useQuery(
+    [debounceConfig, debounceSchema, template],
+    async () =>
+      (
+        await axios.post('/api/generate', {
+          config,
+          schema,
+        })
+      ).data,
     {
       retry: false,
+      keepPreviousData: true,
     },
   );
 
@@ -54,7 +62,7 @@ export function Playground({ height }) {
 
   return (
     <div>
-      <div className="mx-auto mb-4 w-1/2">
+      <div className="mx-auto mb-4 w-1/2 relative z-20">
         <h3 className="mb-2 text-center">Choose Live Example:</h3>
         <Select
           isSearchable={false}
@@ -93,15 +101,17 @@ export function Playground({ height }) {
           options={groupedExamples}
         />
       </div>
-      <PlaygroundEditors
-        setSchema={setSchema}
-        schema={schema}
-        setConfig={setConfig}
-        config={config}
-        error={error?.response?.data?.error}
-        output={output}
-        height={height}
-      />
+      {generateApiQuery.data || generateApiQuery.error ? (
+        <PlaygroundEditors
+          setSchema={setSchema}
+          schema={schema}
+          setConfig={setConfig}
+          config={config}
+          error={generateApiQuery.error?.response?.data?.error}
+          output={generateApiQuery.data}
+          height={height}
+        />
+      ) : null}
     </div>
   );
 }

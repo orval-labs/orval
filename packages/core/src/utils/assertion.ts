@@ -1,5 +1,5 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import validatorIsUrl from 'validator/lib/isURL';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { SchemaType, Verbs } from '../types';
 import { extname } from './path';
 
@@ -45,11 +45,11 @@ export function isFunction(x: any): x is Function {
 }
 
 export function isUndefined(x: any): x is undefined {
-  return typeof x === 'undefined';
+  return x === undefined;
 }
 
 export function isNull(x: any): x is null {
-  return typeof x === null;
+  return x === null;
 }
 
 export function isSchema(x: any): x is SchemaObject {
@@ -80,8 +80,12 @@ export const isRootKey = (specKey: string, target: string) => {
   return specKey === target;
 };
 
-const LOCALHOST_REGEX = /^https?:\/\/\w+(\.\w+)*(:[0-9]+)?(\/.*)?$/;
-
 export const isUrl = (str: string) => {
-  return validatorIsUrl(str) || LOCALHOST_REGEX.test(str);
+  let givenURL;
+  try {
+    givenURL = new URL(str);
+  } catch {
+    return false;
+  }
+  return givenURL.protocol === 'http:' || givenURL.protocol === 'https:';
 };

@@ -1,6 +1,8 @@
+import readline from 'node:readline';
+
 import chalk from 'chalk';
-import readline from 'readline';
-export const log = console.log; // tslint:disable-line:no-console
+
+export const log = console.log;
 
 export const startMessage = ({
   name,
@@ -11,15 +13,25 @@ export const startMessage = ({
   version: string;
   description: string;
 }) =>
+  `🍻 ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
+    description ? ` - ${description}` : ''
+  }`;
+
+export const logError = (err: unknown, tag?: string) => {
   log(
-    `🍻 Start ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
-      description ? ` - ${description}` : ''
-    }`,
+    chalk.red(
+      [
+        '🛑',
+        tag ? `${tag} -` : undefined,
+        err instanceof Error ? err.stack : err,
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ),
   );
+};
 
-export const errorMessage = (err: string) => log(chalk.red(err));
-
-export const mismatchArgsMessage = (mismatchArgs: string[]) =>
+export const mismatchArgsMessage = (mismatchArgs: string[]) => {
   log(
     chalk.yellow(
       `${mismatchArgs.join(', ')} ${
@@ -27,38 +39,38 @@ export const mismatchArgsMessage = (mismatchArgs: string[]) =>
       } not defined in your configuration!`,
     ),
   );
+};
 
-export const createSuccessMessage = (backend?: string) =>
+export const createSuccessMessage = (backend?: string) => {
   log(
     `🎉 ${
       backend ? `${chalk.green(backend)} - ` : ''
     }Your OpenAPI spec has been converted into ready to use orval!`,
   );
+};
 
 export const ibmOpenapiValidatorWarnings = (
   warnings: {
-    path: string;
+    path: string[];
     message: string;
   }[],
 ) => {
   log(chalk.yellow('(!) Warnings'));
 
-  warnings.forEach((i) =>
-    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path}`)),
-  );
+  for (const i of warnings)
+    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
 };
 
 export const ibmOpenapiValidatorErrors = (
   errors: {
-    path: string;
+    path: string[];
     message: string;
   }[],
 ) => {
   log(chalk.red('(!) Errors'));
 
-  errors.forEach((i) =>
-    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path}`)),
-  );
+  for (const i of errors)
+    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
 };
 
 export type LogType = 'error' | 'warn' | 'info';
@@ -122,8 +134,8 @@ export function createLogger(
             type === 'info'
               ? chalk.cyan.bold(prefix)
               : type === 'warn'
-              ? chalk.yellow.bold(prefix)
-              : chalk.red.bold(prefix);
+                ? chalk.yellow.bold(prefix)
+                : chalk.red.bold(prefix);
           return `${chalk.dim(new Date().toLocaleTimeString())} ${tag} ${msg}`;
         } else {
           return msg;

@@ -1,19 +1,20 @@
 import {
   asyncReduce,
-  ConfigExternal,
-  upath,
-  errorMessage,
+  type ConfigExternal,
+  ErrorWithTag,
   getFileInfo,
-  GlobalOptions,
+  type GlobalOptions,
   isFunction,
   isString,
   loadFile,
   log,
-  NormalizedOptions,
-  NormizaledConfig,
-  removeFiles,
+  logError,
+  type NormalizedConfig,
+  type NormalizedOptions,
+  removeFilesAndEmptyFolders,
+  upath,
 } from '@orval/core';
-import chalk from 'chalk';
+
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
@@ -30,13 +31,13 @@ export const generateSpec = async (
       : [];
 
     if (options.output.target) {
-      await removeFiles(
+      await removeFilesAndEmptyFolders(
         ['**/*', '!**/*.d.ts', ...extraPatterns],
         getFileInfo(options.output.target).dirname,
       );
     }
     if (options.output.schemas) {
-      await removeFiles(
+      await removeFilesAndEmptyFolders(
         ['**/*', '!**/*.d.ts', ...extraPatterns],
         getFileInfo(options.output.schemas).dirname,
       );
@@ -49,7 +50,7 @@ export const generateSpec = async (
 };
 
 export const generateSpecs = async (
-  config: NormizaledConfig,
+  config: NormalizedConfig,
   workspace: string,
   projectName?: string,
 ) => {
@@ -59,34 +60,34 @@ export const generateSpecs = async (
     if (options) {
       try {
         await generateSpec(workspace, options, projectName);
-      } catch (e) {
-        log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
-        process.exit(1)
+      } catch (error) {
+        const errorMsg =
+          error instanceof Error ? error.message : 'unknown error';
+        throw new ErrorWithTag(errorMsg, projectName, { cause: error });
       }
     } else {
-      errorMessage('Project not found');
-      process.exit(1);
+      throw new Error('Project not found');
     }
     return;
   }
 
-  let hasErrors: true | undefined
-  const accumulate = asyncReduce(
-    Object.entries(config),
-    async (acc, [projectName, options]) => {
-      try {
-        acc.push(await generateSpec(workspace, options, projectName));
-      } catch (e) {
-        hasErrors = true
-        log(chalk.red(`🛑  ${projectName ? `${projectName} - ` : ''}${e}`));
-      }
-      return acc;
-    },
-    [] as void[],
-  );
+  let hasErrors: true | undefined;
+  for (const [projectName, options] of Object.entries(config)) {
+    if (!options) {
+      hasErrors = true;
+      logError('No options found', projectName);
+      continue;
+    }
+    try {
+      await generateSpec(workspace, options, projectName);
+    } catch (error) {
+      hasErrors = true;
+      logError(error, projectName);
+    }
+  }
 
-  if (hasErrors) process.exit(1)
-  return accumulate
+  if (hasErrors)
+    throw new Error('One or more project failed, see above for details');
 };
 
 export const generateConfig = async (
@@ -102,7 +103,7 @@ export const generateConfig = async (
   });
 
   if (!configExternal) {
-    throw `failed to load from ${path} => ${error}`;
+    throw new Error(`failed to load from ${path} => ${error}`);
   }
 
   const workspace = upath.dirname(path);
@@ -118,24 +119,22 @@ export const generateConfig = async (
 
       return acc;
     },
-    {} as NormizaledConfig,
+    {} as NormalizedConfig,
   );
 
   const fileToWatch = Object.entries(normalizedConfig)
     .filter(
       ([project]) =>
-        options?.projectName === undefined || project === options?.projectName,
+        options?.projectName === undefined || project === options.projectName,
     )
-    .map(([, { input }]) => input.target)
+    .map(([, options]) => options?.input.target)
     .filter((target) => isString(target)) as string[];
 
-  if (options?.watch && fileToWatch.length) {
-    startWatcher(
-      options?.watch,
-      () => generateSpecs(normalizedConfig, workspace, options?.projectName),
-      fileToWatch,
-    );
-  } else {
-    await generateSpecs(normalizedConfig, workspace, options?.projectName);
-  }
+  await (options?.watch && fileToWatch.length > 0
+    ? startWatcher(
+        options.watch,
+        () => generateSpecs(normalizedConfig, workspace, options.projectName),
+        fileToWatch,
+      )
+    : generateSpecs(normalizedConfig, workspace, options?.projectName));
 };

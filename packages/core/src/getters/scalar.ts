@@ -1,7 +1,10 @@
-import { SchemaObject } from 'openapi3-ts';
-import { ContextSpecs, ScalarValue } from '../types';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+
+import { resolveExampleRefs } from '../resolvers';
+import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
+import { combineSchemas } from './combine';
 import { getObject } from './object';
 
 /**
@@ -20,6 +23,7 @@ export const getScalar = ({
   context: ContextSpecs;
 }): ScalarValue => {
   const nullable = item.nullable ? ' | null' : '';
+
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
   if (!item.type && item.items) {
@@ -30,14 +34,22 @@ export const getScalar = ({
     case 'number':
     case 'integer': {
       let value =
-        item.format === 'int64' && context.override.useBigInt
+        context.output.override.useBigInt &&
+        (item.format === 'int64' || item.format === 'uint64')
           ? 'bigint'
           : 'number';
       let isEnum = false;
 
       if (enumItems) {
-        value = enumItems.map((enumItem: string) => `${enumItem}`).join(' | ');
+        value = enumItems
+          .map((enumItem: number | null) => `${enumItem}`)
+          .join(' | ');
         isEnum = true;
+      }
+
+      const itemWithConst = item as SchemaWithConst;
+      if (itemWithConst.const !== undefined) {
+        value = itemWithConst.const;
       }
 
       return {
@@ -48,19 +60,31 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
-    case 'boolean':
+    case 'boolean': {
+      let value = 'boolean';
+
+      const itemWithConst = item as SchemaWithConst;
+      if (itemWithConst.const !== undefined) {
+        value = itemWithConst.const;
+      }
+
       return {
-        value: 'boolean' + nullable,
+        value: value + nullable,
         type: 'boolean',
         isEnum: false,
         schemas: [],
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
+    }
 
     case 'array': {
       const { value, ...rest } = getArray({
@@ -79,12 +103,12 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = `'${enumItems
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+        value = enumItems
+          .map((enumItem: string | null) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `);
 
         isEnum = true;
       }
@@ -93,10 +117,16 @@ export const getScalar = ({
         value = 'Blob';
       }
 
-      if (context.override.useDates) {
-        if (item.format === 'date' || item.format === 'date-time') {
-          value = 'Date';
-        }
+      if (
+        context.output.override.useDates &&
+        (item.format === 'date' || item.format === 'date-time')
+      ) {
+        value = 'Date';
+      }
+
+      const itemWithConst = item as SchemaWithConst;
+      if (itemWithConst.const) {
+        value = `'${itemWithConst.const}'`;
       }
 
       return {
@@ -107,10 +137,12 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
       };
     }
 
-    case 'null':
+    case 'null': {
       return {
         value: 'null',
         isEnum: false,
@@ -120,16 +152,32 @@ export const getScalar = ({
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
       };
+    }
 
     case 'object':
     default: {
+      if (Array.isArray(item.type)) {
+        return combineSchemas({
+          schema: {
+            anyOf: item.type.map((type) => ({
+              ...item,
+              type,
+            })),
+          },
+          name,
+          separator: 'anyOf',
+          context,
+          nullable,
+        });
+      }
+
       if (enumItems) {
-        const value = `'${enumItems
-          .map((enumItem: string) =>
-            isString(enumItem) ? escape(enumItem) : `${enumItem}`,
+        const value = enumItems
+          .map((enumItem: unknown) =>
+            isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(`' | '`)}'`;
+          .join(` | `);
 
         return {
           value: value + nullable,
@@ -139,6 +187,8 @@ export const getScalar = ({
           schemas: [],
           isRef: false,
           hasReadonlyProps: item.readOnly || false,
+          example: item.example,
+          examples: resolveExampleRefs(item.examples, context),
         };
       }
 

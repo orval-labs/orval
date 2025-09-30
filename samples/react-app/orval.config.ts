@@ -19,7 +19,7 @@ export default defineConfig({
             mock: {
               properties: () => {
                 return {
-                  '[].id': () => faker.datatype.number({ min: 1, max: 99999 }),
+                  '[].id': () => faker.number.int({ min: 1, max: 99999 }),
                 };
               },
             },
@@ -27,10 +27,10 @@ export default defineConfig({
           showPetById: {
             mock: {
               data: () => ({
-                id: faker.datatype.number({ min: 1, max: 99 }),
-                name: faker.name.firstName(),
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
                 tag: faker.helpers.arrayElement([
-                  faker.random.word(),
+                  faker.word.sample(),
                   undefined,
                 ]),
               }),
@@ -39,7 +39,7 @@ export default defineConfig({
         },
         mock: {
           properties: {
-            '/tag|name/': () => faker.name.lastName(),
+            '/tag|name/': () => faker.person.lastName(),
           },
         },
       },
@@ -48,6 +48,39 @@ export default defineConfig({
       target: './petstore.yaml',
       override: {
         transformer: 'src/api/transformer/add-version.js',
+      },
+    },
+  },
+  'petstore-file-with-docs-markdown': {
+    input: './petstore.yaml',
+    output: {
+      target: 'src/api/endpoints/petstoreFromFileSpecWithDocsMarkdown.ts',
+      docs: {
+        out: './docs-markdown',
+        disableSources: true,
+      },
+    },
+  },
+  'petstore-file-with-docs-html': {
+    input: './petstore.yaml',
+    output: {
+      target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtml.ts',
+      docs: {
+        theme: 'default',
+        out: './docs-html',
+        disableSources: true,
+      },
+    },
+  },
+  'petstore-file-with-docs-options-plugin': {
+    input: './petstore.yaml',
+    output: {
+      target: 'src/api/endpoints/petstoreFromFileSpecWithDocsHtmlPlugin.ts',
+      docs: {
+        theme: 'default',
+        out: './docs-html-plugin',
+        plugin: ['typedoc-plugin-coverage'],
+        disableSources: true,
       },
     },
   },

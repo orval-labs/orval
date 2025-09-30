@@ -1,23 +1,26 @@
+import { NamingConvention } from '../types';
+
 const unicodes = function (s: string, prefix: string) {
   prefix = prefix || '';
-  return s.replace(/(^|-)/g, '$1\\u' + prefix).replace(/,/g, '\\u' + prefix);
+  return s
+    .replaceAll(/(^|-)/g, String.raw`$1\u` + prefix)
+    .replaceAll(',', String.raw`\u` + prefix);
 };
 
 const symbols = unicodes('20-26,28-2F,3A-40,5B-60,7B-7E,A0-BF,D7,F7', '00');
 const lowers = 'a-z' + unicodes('DF-F6,F8-FF', '00');
 const uppers = 'A-Z' + unicodes('C0-D6,D8-DE', '00');
-const impropers =
-  'A|An|And|As|At|But|By|En|For|If|In|Of|On|Or|The|To|Vs?\\.?|Via';
+const impropers = String.raw`A|An|And|As|At|But|By|En|For|If|In|Of|On|Or|The|To|Vs?\.?|Via`;
 
 const regexps = {
   capitalize: new RegExp('(^|[' + symbols + '])([' + lowers + '])', 'g'),
   pascal: new RegExp('(^|[' + symbols + '])+([' + lowers + uppers + '])', 'g'),
   fill: new RegExp('[' + symbols + ']+(.|$)', 'g'),
   sentence: new RegExp(
-    '(^\\s*|[\\?\\!\\.]+"?\\s+"?|,\\s+")([' + lowers + '])',
+    String.raw`(^\s*|[\?\!\.]+"?\s+"?|,\s+")([` + lowers + '])',
     'g',
   ),
-  improper: new RegExp('\\b(' + impropers + ')\\b', 'g'),
+  improper: new RegExp(String.raw`\b(` + impropers + String.raw`)\b`, 'g'),
   relax: new RegExp(
     '([^' +
       uppers +
@@ -68,11 +71,12 @@ const relax = (
 };
 
 const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
-  s = s == null ? '' : s + ''; // force to string
+  s = s == undefined ? '' : s + ''; // force to string
   if (!isUpper && regexps.upper.test(s)) {
     s = low.call(s);
   }
   if (!isFill && !regexps.hole.test(s)) {
+    // eslint-disable-next-line no-var
     var holey = fill(s, ' ');
     if (regexps.hole.test(holey)) {
       s = holey;
@@ -89,7 +93,7 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
 };
 
 // Caches the previously converted strings to improve performance
-let pascalMemory: Record<string, string> = {};
+const pascalMemory: Record<string, string> = {};
 
 export const pascal = (s: string) => {
   if (pascalMemory[s]) {
@@ -102,7 +106,7 @@ export const pascal = (s: string) => {
     s = low.call(s);
   }
 
-  const pascalString = (s.match(/[a-zA-Z0-9]+/g) || [])
+  const pascalString = (s?.match(/[a-zA-Z0-9\u00C0-\u017F]+/g) || [])
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join('');
 
@@ -139,4 +143,28 @@ export const upper = (
     fillWith,
     isDeapostrophe,
   );
+};
+
+export const conventionName = (name: string, convention: NamingConvention) => {
+  let nameConventionTransform = camel;
+  switch (convention) {
+    case NamingConvention.PASCAL_CASE: {
+      nameConventionTransform = pascal;
+
+      break;
+    }
+    case NamingConvention.SNAKE_CASE: {
+      nameConventionTransform = snake;
+
+      break;
+    }
+    case NamingConvention.KEBAB_CASE: {
+      nameConventionTransform = kebab;
+
+      break;
+    }
+    // No default
+  }
+
+  return nameConventionTransform(name);
 };

@@ -1,16 +1,18 @@
 import {
-  createLogger,
+  getIsBodyVerb,
+  GetterProps,
+  GetterPropType,
   isObject,
   isString,
   Mutator,
   NormalizedMutator,
   NormalizedQueryOptions,
-  QueryOptions,
   OutputClient,
   OutputClientFunc,
+  QueryOptions,
+  TEMPLATE_TAG_REGEX,
   upath,
-  GetterProps,
-  GetterPropType,
+  Verbs,
 } from '@orval/core';
 import chalk from 'chalk';
 
@@ -19,6 +21,7 @@ export const normalizeQueryOptions = (
   outputWorkspace: string,
 ): NormalizedQueryOptions => {
   return {
+    ...(queryOptions.usePrefetch ? { usePrefetch: true } : {}),
     ...(queryOptions.useQuery ? { useQuery: true } : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam
@@ -47,18 +50,30 @@ export const normalizeQueryOptions = (
         }
       : {}),
     ...(queryOptions.signal ? { signal: true } : {}),
+    ...(queryOptions.shouldExportMutatorHooks
+      ? { shouldExportMutatorHooks: true }
+      : {}),
+    ...(queryOptions.shouldExportQueryKey
+      ? { shouldExportQueryKey: true }
+      : {}),
+    ...(queryOptions.shouldExportHttpClient
+      ? { shouldExportHttpClient: true }
+      : {}),
+    ...(queryOptions.shouldSplitQueryKey ? { shouldSplitQueryKey: true } : {}),
+    ...(queryOptions.useOperationIdAsQueryKey
+      ? { useOperationIdAsQueryKey: true }
+      : {}),
   };
 };
 
 // Temporary duplicate code before next major release
-const normalizeMutator = <T>(
+const normalizeMutator = (
   workspace: string,
   mutator?: Mutator,
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {
@@ -83,9 +98,7 @@ export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
     const [paramName, paramType] = prop.implementation.split(':');
     if (!paramType) return prop;
     const name =
-      prop.type === GetterPropType.NAMED_PATH_PARAMS
-        ? prop.name
-        : `${paramName}`;
+      prop.type === GetterPropType.NAMED_PATH_PARAMS ? prop.name : paramName;
 
     const [type, defaultValue] = paramType.split('=');
     return {
@@ -108,5 +121,22 @@ export const vueUnRefParams = (props: GetterProps): string => {
     .join('\n');
 };
 
+export const wrapRouteParameters = (
+  route: string,
+  prepend: string,
+  append: string,
+): string => route.replaceAll(TEMPLATE_TAG_REGEX, `\${${prepend}$1${append}}`);
+
+export const makeRouteSafe = (route: string): string =>
+  wrapRouteParameters(route, 'encodeURIComponent(String(', '))');
+
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;
+
+export const getHasSignal = ({
+  overrideQuerySignal = false,
+  verb,
+}: {
+  verb: Verbs;
+  overrideQuerySignal?: boolean;
+}) => overrideQuerySignal && (!getIsBodyVerb(verb) || verb === Verbs.POST);

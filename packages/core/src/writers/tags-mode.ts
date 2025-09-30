@@ -1,15 +1,18 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import type { WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
+  isFunction,
   isSyntheticDefaultImportsAllow,
   kebab,
   upath,
 } from '../utils';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeTagsMode = async ({
   builder,
@@ -20,6 +23,7 @@ export const writeTagsMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
+    extension: output.fileExtension,
   });
 
   const target = generateTargetForTags(builder, output);
@@ -34,51 +38,70 @@ export const writeTagsMode = async ({
         const {
           imports,
           implementation,
-          implementationMSW,
-          importsMSW,
+          implementationMock,
+          importsMock,
           mutators,
           clientMutators,
           formData,
           formUrlEncoded,
+          fetchReviver,
+          paramsSerializer,
         } = target;
 
         let data = header;
 
         const schemasPathRelative = output.schemas
-          ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+          ? upath.relativeSafe(
+              dirname,
+              getFileInfo(output.schemas, { extension: output.fileExtension })
+                .dirname,
+            )
           : './' + filename + '.schemas';
+
+        const importsForBuilder = generateImportsForBuilder(
+          output,
+          imports.filter(
+            (imp) => !importsMock.some((impMock) => imp.name === impMock.name),
+          ),
+          schemasPathRelative,
+        );
 
         data += builder.imports({
           client: output.client,
           implementation,
-          imports: [
-            {
-              exports: imports.filter(
-                (imp) => !importsMSW.some((impMSW) => imp.name === impMSW.name),
-              ),
-              dependency: schemasPathRelative,
-            },
-          ],
+          imports: importsForBuilder,
           specsName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
+          hasTagsMutator: Object.values(output.override.tags).some(
+            (tag) => !!tag.mutator,
+          ),
+          hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,
+          output,
         });
 
         if (output.mock) {
+          const importsMockForBuilder = generateImportsForBuilder(
+            output,
+            importsMock,
+            schemasPathRelative,
+          );
+
           data += builder.importsMock({
-            implementation: implementationMSW,
-            imports: [{ exports: importsMSW, dependency: schemasPathRelative }],
+            implementation: implementationMock,
+            imports: importsMockForBuilder,
             specsName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
+            options: isFunction(output.mock) ? undefined : output.mock,
           });
         }
 
-        const schemasPath = !output.schemas
-          ? upath.join(dirname, filename + '.schemas' + extension)
-          : undefined;
+        const schemasPath = output.schemas
+          ? undefined
+          : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -104,10 +127,23 @@ export const writeTagsMode = async ({
           data += generateMutatorImports({ mutators: formUrlEncoded });
         }
 
+        if (paramsSerializer) {
+          data += generateMutatorImports({ mutators: paramsSerializer });
+        }
+
+        if (fetchReviver) {
+          data += generateMutatorImports({ mutators: fetchReviver });
+        }
+
         data += '\n\n';
 
         if (implementation.includes('NonReadonly<')) {
           data += getOrvalGeneratedTypes();
+          data += '\n';
+        }
+
+        if (implementation.includes('TypedResponse<')) {
+          data += getTypedResponse();
           data += '\n';
         }
 
@@ -116,7 +152,7 @@ export const writeTagsMode = async ({
         if (output.mock) {
           data += '\n\n';
 
-          data += implementationMSW;
+          data += implementationMock;
         }
 
         const implementationPath = upath.join(
@@ -126,11 +162,13 @@ export const writeTagsMode = async ({
         await fs.outputFile(implementationPath, data);
 
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
-      } catch (e) {
-        throw `Oups... 🍻. An Error occurred while writing tag ${tag} => ${e}`;
+      } catch (error) {
+        throw new Error(
+          `Oups... 🍻. An Error occurred while writing tag ${tag} => ${error}`,
+        );
       }
     }),
   );
 
-  return generatedFilePathsArray.flatMap((it) => it);
+  return generatedFilePathsArray.flat();
 };

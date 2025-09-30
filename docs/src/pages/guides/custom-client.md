@@ -1,6 +1,9 @@
-### Custom client
+---
+id: custom-client
+title: Custom HTTP Client
+---
 
-You can add a mutator function to your config and setup a custom instance of your prefered HTTP client.
+To set up a custom HTTP client, add a mutator function to the configuration file, and setup a custom instance of your preferred HTTP client.
 
 ```js
 module.exports = {
@@ -24,25 +27,29 @@ module.exports = {
 
 const baseURL = '<BACKEND URL>'; // use your own URL here or environment variable
 
-export const customInstance = async <T>({
-  url,
-  method,
-  params,
-  data,
-}: {
-  url: string;
-  method: 'get' | 'post' | 'put' | 'delete' | 'patch';
-  params?: any;
-  data?: BodyType<unknown>;
-  responseType?: string;
-}): Promise<T> => {
-  const response = await fetch(
-    `${baseURL}${url}` + new URLSearchParams(params),
-    {
-      method,
-      ...(data ? { body: JSON.stringify(data) } : {}),
-    },
-  );
+export const customInstance = async <T>(
+  url: string,
+  {
+    method,
+    params,
+    body,
+  }: {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    params?: any;
+    body?: BodyType<unknown>;
+    responseType?: string;
+  },
+): Promise<T> => {
+  let targetUrl = `${baseURL}${url}`;
+
+  if (params) {
+    targetUrl += '?' + new URLSearchParams(params);
+  }
+
+  const response = await fetch(targetUrl, {
+    method,
+    body,
+  });
 
   return response.json();
 };
@@ -55,3 +62,57 @@ export type ErrorType<Error> = AxiosError<Error>;
 // (if the custom instance is processing data before sending it, like changing the case for example)
 export type BodyType<BodyData> = CamelCase<BodyType>;
 ```
+
+Alternatively, refer to the using custom Fetch with Next.js sample app [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts).
+
+## Angular
+
+The Angular client allows adding mutator functions to the configuration to set up your preferred HTTP client.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        mutator: 'src/api/mutator/response-type.ts'
+      }
+    }
+    ...
+  },
+};
+```
+
+```ts
+// response-type.ts
+
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+const responseType = <Result>(
+  {
+    url,
+    method,
+    params,
+    data,
+  }: {
+    url: string;
+    method: string;
+    params?: any;
+    data?: any;
+    headers?: any;
+  },
+  http: HttpClient,
+): Observable<Result> =>
+  http.request<Result>(method, url, {
+    params,
+    body: data,
+    responseType: 'json',
+  });
+
+export default responseType;
+```
+
+Refer to Angular sample app for more details.
+
+https://github.com/orval-labs/orval/tree/master/samples/angular-app

@@ -1,8 +1,17 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
-import { resolveObject, resolveRef, resolveValue } from '../resolvers';
-import { ContextSpecs, ScalarValue, SchemaType } from '../types';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
+import { resolveExampleRefs, resolveValue } from '../resolvers';
+import { resolveObject } from '../resolvers/object';
+import {
+  type ContextSpecs,
+  PropertySortOrder,
+  type ScalarValue,
+  SchemaType,
+  type SchemaWithConst,
+} from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
 
@@ -32,6 +41,8 @@ export const getObject = ({
       type: 'object',
       isRef: true,
       hasReadonlyProps: item.readOnly || false,
+      example: item.example,
+      examples: resolveExampleRefs(item.examples, context),
     };
   }
 
@@ -47,9 +58,14 @@ export const getObject = ({
     });
   }
 
-  if (item.type instanceof Array) {
+  if (Array.isArray(item.type)) {
     return combineSchemas({
-      schema: { anyOf: item.type.map((type) => ({ type })) },
+      schema: {
+        anyOf: item.type.map((type) => ({
+          ...item,
+          type,
+        })),
+      },
       name,
       separator: 'anyOf',
       context,
@@ -58,100 +74,121 @@ export const getObject = ({
   }
 
   if (item.properties && Object.entries(item.properties).length > 0) {
-    return Object.entries(item.properties)
-      .sort((a, b) => {
+    const entries = Object.entries(item.properties);
+    if (context.output.propertySortOrder === PropertySortOrder.ALPHABETICAL) {
+      entries.sort((a, b) => {
         return a[0].localeCompare(b[0]);
-      })
-      .reduce(
-        (
-          acc,
-          [key, schema]: [string, ReferenceObject | SchemaObject],
-          index,
-          arr,
-        ) => {
-          const isRequired = (
-            Array.isArray(item.required) ? item.required : []
-          ).includes(key);
+      });
+    }
+    return entries.reduce(
+      (
+        acc,
+        [key, schema]: [string, ReferenceObject | SchemaObject],
+        index,
+        arr,
+      ) => {
+        const isRequired = (
+          Array.isArray(item.required) ? item.required : []
+        ).includes(key);
 
-          let propName = '';
+        let propName = '';
 
-          if (name) {
-            const isKeyStartWithUnderscore = key.startsWith('_');
+        if (name) {
+          const isKeyStartWithUnderscore = key.startsWith('_');
 
-            propName += pascal(
-              `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
-            );
-          }
-
-          const allSpecSchemas =
-            context.specs[context.target]?.components?.schemas ?? {};
-
-          const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
-            (schemaName) => pascal(schemaName) === propName,
+          propName += pascal(
+            `${isKeyStartWithUnderscore ? '_' : ''}${name}_${key}`,
           );
+        }
 
-          if (isNameAlreadyTaken) {
-            propName = propName + 'Property';
-          }
+        const allSpecSchemas =
+          context.specs[context.target]?.components?.schemas ?? {};
 
-          const resolvedValue = resolveObject({
-            schema,
-            propName,
-            context,
-          });
+        const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
+          (schemaName) => pascal(schemaName) === propName,
+        );
 
-          const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
-          if (!index) {
-            acc.value += '{';
-          }
+        if (isNameAlreadyTaken) {
+          propName = propName + 'Property';
+        }
 
-          const doc = jsDoc(schema as SchemaObject, true);
+        const resolvedValue = resolveObject({
+          schema,
+          propName,
+          context,
+        });
 
-          acc.hasReadonlyProps ||= isReadOnly || false;
-          acc.imports.push(...resolvedValue.imports);
-          acc.value += `\n  ${doc ? `${doc}  ` : ''}${
-            isReadOnly ? 'readonly ' : ''
-          }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
-          acc.schemas.push(...resolvedValue.schemas);
+        const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
+        if (!index) {
+          acc.value += '{';
+        }
 
-          if (arr.length - 1 === index) {
-            if (item.additionalProperties) {
-              if (isBoolean(item.additionalProperties)) {
-                acc.value += `\n  [key: string]: any;\n }`;
-              } else {
-                const resolvedValue = resolveValue({
-                  schema: item.additionalProperties,
-                  name,
-                  context,
-                });
-                acc.value += `\n  [key: string]: ${resolvedValue.value};\n}`;
-              }
+        const doc = jsDoc(schema as SchemaObject, true, context);
+
+        acc.hasReadonlyProps ||= isReadOnly || false;
+
+        const aliasedImports = getAliasedImports({
+          name,
+          context,
+          resolvedValue,
+          existingImports: acc.imports,
+        });
+
+        acc.imports.push(...aliasedImports);
+
+        const propValue = getImportAliasForRefOrValue({
+          context,
+          resolvedValue,
+          imports: aliasedImports,
+        });
+
+        acc.value += `\n  ${doc ? `${doc}  ` : ''}${
+          isReadOnly && !context.output.override.suppressReadonlyModifier
+            ? 'readonly '
+            : ''
+        }${getKey(key)}${isRequired ? '' : '?'}: ${propValue};`;
+        acc.schemas.push(...resolvedValue.schemas);
+
+        if (arr.length - 1 === index) {
+          if (item.additionalProperties) {
+            if (isBoolean(item.additionalProperties)) {
+              acc.value += `\n  [key: string]: unknown;\n }`;
             } else {
-              acc.value += '\n}';
+              const resolvedValue = resolveValue({
+                schema: item.additionalProperties,
+                name,
+                context,
+              });
+              acc.value += `\n  [key: string]: ${resolvedValue.value};\n}`;
             }
-
-            acc.value += nullable;
+          } else {
+            acc.value += '\n}';
           }
 
-          return acc;
-        },
-        {
-          imports: [],
-          schemas: [],
-          value: '',
-          isEnum: false,
-          type: 'object' as SchemaType,
-          isRef: false,
-          schema: {},
-          hasReadonlyProps: false,
-        } as ScalarValue,
-      );
+          acc.value += nullable;
+        }
+
+        return acc;
+      },
+      {
+        imports: [],
+        schemas: [],
+        value: '',
+        isEnum: false,
+        type: 'object' as SchemaType,
+        isRef: false,
+        schema: {},
+        hasReadonlyProps: false,
+        example: item.example,
+        examples: resolveExampleRefs(item.examples, context),
+      } as ScalarValue,
+    );
   }
 
   if (item.additionalProperties) {
     if (isBoolean(item.additionalProperties)) {
       return {
-        value: `{ [key: string]: any }` + nullable,
+        value: `{ [key: string]: unknown }` + nullable,
         imports: [],
         schemas: [],
         isEnum: false,
@@ -176,9 +213,23 @@ export const getObject = ({
     };
   }
 
+  const itemWithConst = item as SchemaWithConst;
+  if (itemWithConst.const) {
+    return {
+      value: `'${itemWithConst.const}'` + nullable,
+      imports: [],
+      schemas: [],
+      isEnum: false,
+      type: 'string',
+      isRef: false,
+      hasReadonlyProps: item.readOnly || false,
+    };
+  }
+
   return {
     value:
-      item.type === 'object' ? '{ [key: string]: any }' : 'unknown' + nullable,
+      (item.type === 'object' ? '{ [key: string]: unknown }' : 'unknown') +
+      nullable,
     imports: [],
     schemas: [],
     isEnum: false,

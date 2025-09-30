@@ -36,6 +36,7 @@ logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.yarn
 
 # Runtime data
 pids
@@ -100,5 +101,6 @@ typings/
 /.idea
 
 package-lock.json
-tests/generated/**
+tests/generated
 .turbo
+.next

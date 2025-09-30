@@ -1,79 +1,93 @@
 import {
-  GeneratorOperation,
-  GeneratorTarget,
-  GeneratorTargetFull,
-  NormalizedOutputOptions,
+  type GeneratorOperation,
+  type GeneratorTarget,
+  type GeneratorTargetFull,
+  type NormalizedOutputOptions,
   OutputClient,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
 const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
   ...operation,
-  tags: operation.tags.length ? operation.tags : ['default'],
+  tags: operation.tags.length > 0 ? operation.tags : ['default'],
 });
 
 const generateTargetTags = (
-  currentAcc: { [key: string]: GeneratorTargetFull },
+  currentAcc: Record<string, GeneratorTargetFull>,
   operation: GeneratorOperation,
-): {
-  [key: string]: GeneratorTargetFull;
-} => {
-  return operation.tags.map(kebab).reduce((acc, tag) => {
-    const currentOperation = acc[tag];
+): Record<string, GeneratorTargetFull> => {
+  const tag = kebab(operation.tags[0]);
+  const currentOperation = currentAcc[tag];
 
-    if (!currentOperation) {
-      acc[tag] = {
-        imports: operation.imports,
-        importsMSW: operation.importsMSW,
-        mutators: operation.mutator ? [operation.mutator] : [],
-        clientMutators: operation.clientMutators ?? [],
-        formData: operation.formData ? [operation.formData] : [],
-        formUrlEncoded: operation.formUrlEncoded
-          ? [operation.formUrlEncoded]
-          : [],
-        implementation: operation.implementation,
-        implementationMSW: {
-          function: operation.implementationMSW.function,
-          handler: operation.implementationMSW.handler,
-        },
-      };
-
-      return acc;
-    }
-
-    acc[tag] = {
-      implementation:
-        currentOperation.implementation + operation.implementation,
-      imports: [...currentOperation.imports, ...operation.imports],
-      importsMSW: [...currentOperation.importsMSW, ...operation.importsMSW],
-      implementationMSW: {
-        function:
-          currentOperation.implementationMSW.function +
-          operation.implementationMSW.function,
-        handler:
-          currentOperation.implementationMSW.handler +
-          operation.implementationMSW.handler,
-      },
-      mutators: operation.mutator
-        ? [...(currentOperation.mutators ?? []), operation.mutator]
-        : currentOperation.mutators,
-      clientMutators: operation.clientMutators
-        ? [
-            ...(currentOperation.clientMutators ?? []),
-            ...operation.clientMutators,
-          ]
-        : currentOperation.clientMutators,
-      formData: operation.formData
-        ? [...(currentOperation.formData ?? []), operation.formData]
-        : currentOperation.formData,
+  if (!currentOperation) {
+    currentAcc[tag] = {
+      imports: operation.imports,
+      importsMock: operation.importsMock,
+      mutators: operation.mutator ? [operation.mutator] : [],
+      clientMutators: operation.clientMutators ?? [],
+      formData: operation.formData ? [operation.formData] : [],
       formUrlEncoded: operation.formUrlEncoded
-        ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
-        : currentOperation.formUrlEncoded,
+        ? [operation.formUrlEncoded]
+        : [],
+      paramsSerializer: operation.paramsSerializer
+        ? [operation.paramsSerializer]
+        : [],
+      fetchReviver: operation.fetchReviver ? [operation.fetchReviver] : [],
+      implementation: operation.implementation,
+      implementationMock: {
+        function: operation.implementationMock.function,
+        handler: operation.implementationMock.handler,
+        handlerName: '  ' + operation.implementationMock.handlerName + '()',
+      },
     };
 
-    return acc;
-  }, currentAcc);
+    return currentAcc;
+  }
+
+  currentAcc[tag] = {
+    implementation: currentOperation.implementation + operation.implementation,
+    imports: [...currentOperation.imports, ...operation.imports],
+    importsMock: [...currentOperation.importsMock, ...operation.importsMock],
+    implementationMock: {
+      function:
+        currentOperation.implementationMock.function +
+        operation.implementationMock.function,
+      handler:
+        currentOperation.implementationMock.handler +
+        operation.implementationMock.handler,
+      handlerName:
+        currentOperation.implementationMock.handlerName +
+        ',\n  ' +
+        operation.implementationMock.handlerName +
+        '()',
+    },
+    mutators: operation.mutator
+      ? [...(currentOperation.mutators ?? []), operation.mutator]
+      : currentOperation.mutators,
+    clientMutators: operation.clientMutators
+      ? [
+          ...(currentOperation.clientMutators ?? []),
+          ...operation.clientMutators,
+        ]
+      : currentOperation.clientMutators,
+    formData: operation.formData
+      ? [...(currentOperation.formData ?? []), operation.formData]
+      : currentOperation.formData,
+    formUrlEncoded: operation.formUrlEncoded
+      ? [...(currentOperation.formUrlEncoded ?? []), operation.formUrlEncoded]
+      : currentOperation.formUrlEncoded,
+    paramsSerializer: operation.paramsSerializer
+      ? [
+          ...(currentOperation.paramsSerializer ?? []),
+          operation.paramsSerializer,
+        ]
+      : currentOperation.paramsSerializer,
+    fetchReviver: operation.fetchReviver
+      ? [...(currentOperation.fetchReviver ?? []), operation.fetchReviver]
+      : currentOperation.fetchReviver,
+  };
+  return currentAcc;
 };
 
 export const generateTargetForTags = (
@@ -84,84 +98,101 @@ export const generateTargetForTags = (
 
   const allTargetTags = Object.values(builder.operations)
     .map(addDefaultTagIfEmpty)
-    .reduce((acc, operation, index, arr) => {
-      const targetTags = generateTargetTags(acc, operation);
+    .reduce<Record<string, GeneratorTargetFull>>(
+      (acc, operation, index, arr) => {
+        const targetTags = generateTargetTags(acc, operation);
 
-      if (index === arr.length - 1) {
-        return Object.entries(targetTags).reduce<
-          Record<string, GeneratorTargetFull>
-        >((acc, [tag, target]) => {
-          const isMutator = !!target.mutators?.some((mutator) =>
-            isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
-          );
-          const operationNames = Object.values(builder.operations)
-            .filter(({ tags }) => tags.includes(tag))
-            .map(({ operationName }) => operationName);
+        if (index === arr.length - 1) {
+          return Object.entries(targetTags).reduce<
+            Record<string, GeneratorTargetFull>
+          >((acc, [tag, target]) => {
+            const isMutator = !!target.mutators?.some((mutator) =>
+              isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
+            );
+            const operationNames = Object.values(builder.operations)
+              // Operations can have multiple tags, but they are grouped by the first
+              // tag, therefore we only want to handle the case where the tag
+              // is the first in the list of tags.
+              .filter(({ tags }) => tags.map(kebab).indexOf(kebab(tag)) === 0)
+              .map(({ operationName }) => operationName);
 
-          const typescriptVersion =
-            options.packageJson?.dependencies?.['typescript'] ??
-            options.packageJson?.devDependencies?.['typescript'] ??
-            '4.4.0';
+            const typescriptVersion =
+              options.packageJson?.dependencies?.typescript ??
+              options.packageJson?.devDependencies?.typescript ??
+              '4.4.0';
 
-          const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
+            const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
 
-          const titles = builder.title({
-            outputClient: options.client,
-            title: pascal(tag),
-            customTitleFunc: options.override.title,
-          });
+            const titles = builder.title({
+              outputClient: options.client,
+              title: pascal(tag),
+              customTitleFunc: options.override.title,
+              output: options,
+            });
 
-          const footer = builder.footer({
-            outputClient: options?.client,
-            operationNames,
-            hasMutator: !!target.mutators?.length,
-            hasAwaitedType,
-            titles,
-          });
+            const footer = builder.footer({
+              outputClient: options?.client,
+              operationNames,
+              hasMutator: !!target.mutators?.length,
+              hasAwaitedType,
+              titles,
+              output: options,
+            });
 
-          const header = builder.header({
-            outputClient: options.client,
-            isRequestOptions: options.override.requestOptions !== false,
-            isMutator,
-            isGlobalMutator: !!options.override.mutator,
-            provideIn: options.override.angular.provideIn,
-            hasAwaitedType,
-            titles,
-          });
+            const header = builder.header({
+              outputClient: options.client,
+              isRequestOptions: options.override.requestOptions !== false,
+              isMutator,
+              isGlobalMutator: !!options.override.mutator,
+              provideIn: options.override.angular.provideIn,
+              hasAwaitedType,
+              titles,
+              output: options,
+              verbOptions: builder.verbOptions,
+              tag,
+              clientImplementation: target.implementation,
+            });
 
-          acc[tag] = {
-            implementation:
-              header.implementation +
-              target.implementation +
-              footer.implementation,
-            implementationMSW: {
-              function: target.implementationMSW.function,
-              handler:
-                header.implementationMSW +
-                target.implementationMSW.handler +
-                footer.implementationMSW,
-            },
-            imports: target.imports,
-            importsMSW: target.importsMSW,
-            mutators: target.mutators,
-            clientMutators: target.clientMutators,
-            formData: target.formData,
-            formUrlEncoded: target.formUrlEncoded,
-          };
+            acc[tag] = {
+              implementation:
+                header.implementation +
+                target.implementation +
+                footer.implementation,
+              implementationMock: {
+                function: target.implementationMock.function,
+                handler:
+                  target.implementationMock.handler +
+                  header.implementationMock +
+                  target.implementationMock.handlerName +
+                  footer.implementationMock,
+                handlerName: target.implementationMock.handlerName,
+              },
+              imports: target.imports,
+              importsMock: target.importsMock,
+              mutators: target.mutators,
+              clientMutators: target.clientMutators,
+              formData: target.formData,
+              formUrlEncoded: target.formUrlEncoded,
+              paramsSerializer: target.paramsSerializer,
+              fetchReviver: target.fetchReviver,
+            };
 
-          return acc;
-        }, {});
-      }
+            return acc;
+          }, {});
+        }
 
-      return targetTags;
-    }, {} as { [key: string]: GeneratorTargetFull });
+        return targetTags;
+      },
+      {},
+    );
 
   return Object.entries(allTargetTags).reduce<Record<string, GeneratorTarget>>(
     (acc, [tag, target]) => {
       acc[tag] = {
         ...target,
-        implementationMSW:
-          target.implementationMSW.function + target.implementationMSW.handler,
+        implementationMock:
+          target.implementationMock.function +
+          target.implementationMock.handler,
       };
 
       return acc;

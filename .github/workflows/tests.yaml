@@ -14,25 +14,30 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [16.x]
+        node-version: [20.x]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node-version }}
+          # disable setup-node@v5's caching to be able to setup yarn
+          # https://github.com/actions/setup-node/issues/1357
+          package-manager-cache: false
+      - name: Enable corepack
+        run: corepack enable
+      # until setup-node have better support for corepack we have to setup yarn in 2 steps
+      # https://github.com/actions/setup-node/issues/531
+      - uses: actions/setup-node@v5
       - name: install
         run: yarn
       - name: build
         run: yarn build
+      - name: samples up to date
+        uses: nickcharlton/diff-check@v1.0.0
+        with:
+          command: yarn update-samples
+      - name: formatting
+        run: yarn format:check
       - name: unit tests
         run: yarn test:ci
-      - name: tests install
-        working-directory: ./tests
-        run: yarn
-      - name: tests generate
-        working-directory: ./tests
-        run: yarn generate
-      - name: tests build
-        working-directory: ./tests
-        run: yarn build

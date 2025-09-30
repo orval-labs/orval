@@ -1,7 +1,13 @@
-import { ReferenceObject, RequestBodyObject } from 'openapi3-ts';
+import type { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
+
 import { generalJSTypesWithArray } from '../constants';
-import { ContextSpecs, GetterBody, OverrideOutputContentType } from '../types';
-import { camel } from '../utils';
+import { resolveRef } from '../resolvers';
+import type {
+  ContextSpecs,
+  GetterBody,
+  OverrideOutputContentType,
+} from '../types';
+import { camel, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 export const getBody = ({
@@ -16,7 +22,7 @@ export const getBody = ({
   contentType?: OverrideOutputContentType;
 }): GetterBody => {
   const allBodyTypes = getResReqTypes(
-    [[context.override.components.requestBodies.suffix, requestBody]],
+    [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
     context,
   );
@@ -46,11 +52,34 @@ export const getBody = ({
   const nonReadonlyDefinition =
     hasReadonlyProps && definition ? `NonReadonly<${definition}>` : definition;
 
-  const implementation =
+  let implementation =
     generalJSTypesWithArray.includes(definition.toLowerCase()) ||
     filteredBodyTypes.length > 1
-      ? camel(operationName) + context.override.components.requestBodies.suffix
+      ? camel(operationName) +
+        context.output.override.components.requestBodies.suffix
       : camel(definition);
+
+  let isOptional = false;
+  if (implementation) {
+    implementation = sanitize(implementation, {
+      underscore: '_',
+      whitespace: '_',
+      dash: true,
+      es5keyword: true,
+      es5IdentifierName: true,
+    });
+    if (isReference(requestBody)) {
+      const { schema: bodySchema } = resolveRef<RequestBodyObject>(
+        requestBody,
+        context,
+      );
+      if (bodySchema.required !== undefined) {
+        isOptional = !bodySchema.required;
+      }
+    } else if (requestBody.required !== undefined) {
+      isOptional = !requestBody.required;
+    }
+  }
 
   return {
     originalSchema: requestBody,
@@ -58,6 +87,7 @@ export const getBody = ({
     implementation,
     imports,
     schemas,
+    isOptional,
     ...(filteredBodyTypes.length === 1
       ? {
           formData: filteredBodyTypes[0].formData,

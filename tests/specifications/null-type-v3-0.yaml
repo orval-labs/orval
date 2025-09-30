@@ -1,0 +1,111 @@
+openapi: 3.0.0
+info:
+  title: Nullables
+  description: 'OpenAPI 3.0 Nullable types'
+  version: 1.0.0
+tags:
+  - name: nullables
+    description: Nullable types
+servers:
+  - url: http://localhost
+paths:
+  /nullable:
+    get:
+      tags:
+        - nullables
+      summary: Nullable response
+      operationId: fetchNullable
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                nullable: true
+                type: 'string'
+  /nullable-object:
+    get:
+      tags:
+        - nullables
+      summary: Nullable object with nullable properties response
+      operationId: fetchNullableObject
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableObject'
+  /nullable-any-object-key:
+    get:
+      tags:
+        - nullables
+      summary: Nullable object without properties response
+      operationId: fetchNullableAnyObject
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableAnyObject'
+  /nullable-string-enum:
+    get:
+      tags:
+        - nullables
+      summary: Nullable string enums
+      operationId: fetchNullableEnums
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableStringEnum'
+components:
+  schemas:
+    ObjectWithNullableItems:
+      type: object
+      properties:
+        nullableObject:
+          $ref: '#/components/schemas/NullableAnyObject'
+    NullableObject:
+      type: object
+      nullable: true
+      properties:
+        name:
+          type: 'string'
+          nullable: true
+    NullableAnyObject:
+      type: object
+      nullable: true
+
+    # Nullable Enums
+    NullableStringEnum:
+      type: string
+      nullable: true
+      enum:
+        - ONE
+        - TWO
+        - THREE
+        - null
+    NullableNumberEnum:
+      type: number
+      nullable: true
+      enum:
+        - 1
+        - 2
+        - 3
+        - null
+    NullOnlyStringEnum:
+      type: string
+      nullable: true
+      enum:
+        - null
+    NullOnlyNumberEnum:
+      type: number
+      nullable: true
+      enum:
+        - null
+    EmptyEnum:
+      enum: []

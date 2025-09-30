@@ -1,22 +1,36 @@
 {
   "name": "@orval/query",
-  "version": "6.19.1",
+  "version": "7.13.0",
   "license": "MIT",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.d.ts.map"
   ],
   "scripts": {
-    "build": "tsup ./src/index.ts --target node12 --minify --clean --dts --splitting",
-    "dev": "tsup ./src/index.ts --target node12 --clean --watch src",
-    "lint": "eslint src/**/*.ts"
+    "build": "tsdown --config-loader unconfig",
+    "dev": "tsdown --config-loader unconfig --watch src",
+    "lint": "eslint .",
+    "test": "vitest",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
-    "@orval/core": "6.19.1",
+    "@orval/core": "workspace:*",
+    "@orval/fetch": "workspace:*",
+    "chalk": "^4.1.2",
     "lodash.omitby": "^4.6.0"
   },
   "devDependencies": {
-    "@types/lodash.omitby": "^4.6.7"
+    "@types/lodash.omitby": "^4.6.9",
+    "eslint": "^9.35.0",
+    "rimraf": "^6.0.1",
+    "tsdown": "^0.15.2",
+    "vitest": "^3.2.4"
   }
 }

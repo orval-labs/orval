@@ -1,13 +1,14 @@
-import get from 'lodash.get';
-import {
+import type {
+  ExampleObject,
   ParameterObject,
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
-} from 'openapi3-ts';
-import { RefInfo, getRefInfo } from '../getters/ref';
-import { ContextSpecs, GeneratorImport } from '../types';
+} from 'openapi3-ts/oas30';
+
+import { getRefInfo, type RefInfo } from '../getters/ref';
+import type { ContextSpecs, GeneratorImport } from '../types';
 import { isReference } from '../utils';
 
 type ComponentObject =
@@ -24,13 +25,22 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   schema: Schema;
   imports: GeneratorImport[];
 } => {
-  // the schema is refering to another object
+  // the schema is referring to another object
   if ((schema as any)?.schema?.$ref) {
     const resolvedRef = resolveRef<Schema>(
       (schema as any)?.schema,
       context,
       imports,
     );
+    if ('examples' in schema) {
+      schema.examples = resolveExampleRefs(schema.examples, context);
+    }
+    if ('examples' in resolvedRef.schema) {
+      resolvedRef.schema.examples = resolveExampleRefs(
+        resolvedRef.schema.examples,
+        context,
+      );
+    }
     return {
       schema: {
         ...schema,
@@ -41,6 +51,9 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   }
 
   if (!isReference(schema)) {
+    if ('examples' in schema) {
+      schema.examples = resolveExampleRefs(schema.examples, context);
+    }
     return { schema: schema as Schema, imports };
   }
 
@@ -50,7 +63,7 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   } = getSchema(schema, context);
 
   if (!currentSchema) {
-    throw `Oups... 🍻. Ref not found: ${schema.$ref}`;
+    throw new Error(`Oops... 🍻. Ref not found: ${schema.$ref}`);
   }
 
   return resolveRef<Schema>(
@@ -72,7 +85,12 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
   const { specKey, refPaths } = refInfo;
 
   let schemaByRefPaths: Schema | undefined =
-    refPaths && get(context.specs[specKey || context.specKey], refPaths);
+    refPaths && Array.isArray(refPaths)
+      ? refPaths.reduce(
+          (obj: any, key: string) => (obj && key in obj ? obj[key] : undefined),
+          context.specs[specKey || context.specKey],
+        )
+      : undefined;
 
   if (!schemaByRefPaths) {
     schemaByRefPaths = context.specs?.[
@@ -91,3 +109,32 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
     refInfo,
   };
 }
+
+type Example = ExampleObject | ReferenceObject;
+type Examples = Example[] | Record<string, Example> | undefined;
+export const resolveExampleRefs = (
+  examples: Examples,
+  context: ContextSpecs,
+): Examples => {
+  if (!examples) {
+    return undefined;
+  }
+  return Array.isArray(examples)
+    ? examples.map((example) => {
+        if (isReference(example)) {
+          const { schema } = resolveRef<ExampleObject>(example, context);
+          return schema.value;
+        }
+        return example;
+      })
+    : Object.entries(examples).reduce((acc, [key, example]) => {
+        let schema = example;
+        if (isReference(example)) {
+          schema = resolveRef<ExampleObject>(example, context).schema.value;
+        }
+        return {
+          ...acc,
+          [key]: schema,
+        };
+      }, {});
+};

@@ -16,3 +16,9 @@ Using Yarn:
 ```
 $ yarn add orval -D
 ```
+
+Using pnpm:
+
+```
+$ pnpm add orval -D
+```

@@ -1,4 +1,5 @@
-import { OperationObject } from 'openapi3-ts';
+import { OperationObject } from 'openapi3-ts/oas30';
+import { describe, expect, it } from 'vitest';
 import { getOperationId } from './operation';
 
 describe('getOperationId getter', () => {

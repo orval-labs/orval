@@ -1,16 +1,16 @@
 import SwaggerParser from '@apidevtools/swagger-parser';
 import {
-  isObject,
+  isString,
   isUrl,
   log,
-  NormalizedOptions,
+  type NormalizedOptions,
+  type SwaggerParserOptions,
   upath,
-  SwaggerParserOptions,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '@orval/core';
 import chalk from 'chalk';
-import yaml from 'js-yaml';
 import fs from 'fs-extra';
+import yaml from 'js-yaml';
 
 import { importOpenApi } from './import-open-api';
 
@@ -24,13 +24,13 @@ const resolveSpecs = async (
     if (validate) {
       try {
         await SwaggerParser.validate(path, options);
-      } catch (e: any) {
-        if (e?.name === 'ParserError') {
-          throw e;
+      } catch (error) {
+        if (error instanceof Error && error.name === 'ParserError') {
+          throw error;
         }
 
         if (!isOnlySchema) {
-          log(`⚠️  ${chalk.yellow(e)}`);
+          log(`⚠️  ${chalk.yellow(error)}`);
         }
       }
     }
@@ -43,7 +43,9 @@ const resolveSpecs = async (
 
     // normalizing slashes after SwaggerParser
     return Object.fromEntries(
-      Object.entries(data).map(([key, value]) => [upath.resolve(key), value]),
+      Object.entries(data)
+        .sort()
+        .map(([key, value]) => [upath.resolve(key), value]),
     );
   } catch {
     const file = await fs.readFile(path, 'utf8');
@@ -60,7 +62,7 @@ export const importSpecs = async (
 ): Promise<WriteSpecsBuilder> => {
   const { input, output } = options;
 
-  if (isObject(input.target)) {
+  if (!isString(input.target)) {
     return importOpenApi({
       data: { [workspace]: input.target },
       input,

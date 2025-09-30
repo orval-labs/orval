@@ -3,7 +3,7 @@ id: configuration-input
 title: Input
 ---
 
-### target
+## target
 
 Type: `String`.
 
@@ -19,13 +19,16 @@ module.exports = {
 };
 ```
 
-### validation
+## validation
 
-Type: `Boolean`.
+Type: `Boolean | Object`
 
-Default Value: `false`.
+Default value: `false`.
 
-To enforce the best quality as possible of specification, we have integrated the amazing <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>. We strongly encourage you to setup your custom rules with a `.validaterc` file, you can find all useful information about this configuration <a href="https://github.com/IBM/openapi-validator/#configuration" target="_blank">here</a>.
+To enforce the quality of your OpenAPI specification, Orval supports validating specifications with the <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>.
+
+Specifying `true` will by default use the <a href="https://github.com/IBM/openapi-validator/blob/main/docs/ibm-cloud-rules.md"><em>IBM Cloud Validation Ruleset</em></a>.
+Specifying an `Object` will use the provided ruleset instead. Learn more about creating rulesets <a href="https://docs.stoplight.io/docs/spectral/aa15cdee143a1-java-script-ruleset-format">here</a>.
 
 ```js
 module.exports = {
@@ -37,19 +40,19 @@ module.exports = {
 };
 ```
 
-### override
+## override
 
 Type: `Object`.
 
-Give you the possibility to override the specification
+Allows overriding the specification
 
-#### transformer
+### transformer
 
-Type: `String` or `Function`.
+Type: `String | Function`.
 
-Valid values: path or implementation of the transformer function.
+Valid values: path or implementation of a transformer function.
 
-This function is executed when you generate and take in argument an <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/OpenApi.ts#L18" target="_blank">OpenAPIObject</a> and should return an <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/OpenApi.ts#L18" target="_blank">OpenAPIObject</a>.
+This function is executed when Orval generates clients. The function should accept an argument of the type <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12" target="_blank">OpenAPIObject</a>, and should return a transformed <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12" target="_blank">OpenAPIObject</a>.
 
 ```js
 module.exports = {
@@ -61,22 +64,33 @@ module.exports = {
 };
 ```
 
-Example of transformer <a href="https://github.com/anymaniax/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
+An example of a transformer function can be found <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
 
-### filters
+## filters
 
 Type: `Object`.
 
-If specified, Orval only generates the endpoints after applying the filter.
-It is possible to filter on `tags`.
+Default value: `{}`.
 
-For instance the example below only generates the endpoints that contain the tag `pets`.
+If specified, Orval only generates the endpoints after applying the filter.
+
+### mode
+
+Type: `String`.
+
+Valid values: `include`, `exclude`.
+
+Default value: `include`.
+
+This settings determines whether the provided `tags` or `schemas` are excluded or included from the specification.
+For instance, the example below generates endpoints that do not contain the tag `pets`.
 
 ```js
 module.exports = {
   petstore: {
     input: {
       filters: {
+        mode: 'exclude',
         tags: ['pets'],
       },
     },
@@ -84,33 +98,78 @@ module.exports = {
 };
 ```
 
-### converterOptions
+### tags
 
-Type: `Object`.
+Type: `(String | RegExp)[]`.
 
-Default Value: `{}`.
+Default Value: `[]`.
 
-Orval convert Swagger 2.0 definitions into OpenApi 3.0.x. You can use the converterOptions property to provide custom config for that. Check [here](https://github.com/anymaniax/orval/blob/next/src/types/swagger2openapi.d.ts#L10) available options.
+This option allows filtering on `tags`. For instance ,the example below only generates the endpoints that contain the tag `pets` or matches the regular expression `/health/`.
 
 ```js
 module.exports = {
   petstore: {
     input: {
-      converterOptions: true,
+      filters: {
+        tags: ['pets', /health/],
+      },
     },
   },
 };
 ```
 
-### parserOptions
+### schemas
+
+Type: `(String | RegExp)[]`.
+
+Only schema names that match the specified `String` or `RegExp` will be automatically generated.
+For instance, the example below only generates the schema object that matches string `Error` or regular expression `/Cat/`.
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      filters: {
+        schemas: ['Error', /Cat/],
+      },
+    },
+  },
+};
+```
+
+## converterOptions
 
 Type: `Object`.
 
-Default Value: `{ resolve: { github: githubResolver }, validate: true }`.
+Default Value: `{}`.
 
-Orval use a parser to handle multiple files specification. You can use the parserOptions property to provide custom config for that parser. Check [here](https://apitools.dev/swagger-parser/docs/options.html) available options. Be default Orval add a github parser but you can add own if you have a private specification or other requirement.
+Orval converts Swagger 2.0 definitions into OpenAPI 3.0.x using [swagger2openapi](https://github.com/Mermade/oas-kit/tree/main/packages/swagger2openapi). Use the `converterOptions` property to provide custom config for that. See the available options [here](https://github.com/orval-labs/orval/blob/next/src/types/swagger2openapi.d.ts#L10).
 
-Your specification is automatically validated by default.
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      converterOptions: {
+        patch: true,
+        indent: 2,
+      },
+    },
+  },
+};
+```
+
+## parserOptions
+
+Type: `Object`.
+
+Default Value: `{ resolve: { github: githubResolver, http: { safeUrlResolver: false } }, validate: true }`.
+
+Orval utilizes a parser to process multiple file specifications. This behavior can be customized using the `parserOptions` property. See the [available options](https://apidevtools.com/swagger-parser/options.html) for configuration.
+By default, Orval includes a GitHub parser, but you can add your own for private specifications or other specific needs.
+
+The specification is automatically validated by default.
 
 ```js
 module.exports = {

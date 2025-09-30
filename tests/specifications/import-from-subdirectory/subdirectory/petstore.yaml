@@ -12,3 +12,5 @@ components:
         id:
           type: integer
           format: int64
+        file:
+          $ref: 'another-file.yaml#/components/schemas/AnotherSchema'

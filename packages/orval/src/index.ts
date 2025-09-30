@@ -1,13 +1,12 @@
 import {
-  GlobalOptions,
+  type GlobalOptions,
   isString,
-  log,
-  Options,
-  OptionsExport,
+  logError,
+  type OptionsExport,
 } from '@orval/core';
-import chalk from 'chalk';
+
 import { generateConfig, generateSpec } from './generate';
-import { defineConfig, normalizeOptions } from './utils/options';
+import { normalizeOptions } from './utils/options';
 import { startWatcher } from './utils/watcher';
 
 const generate = async (
@@ -31,33 +30,26 @@ const generate = async (
       async () => {
         try {
           await generateSpec(workspace, normalizedOptions);
-        } catch (e) {
-          log(
-            chalk.red(
-              `🛑  ${
-                options?.projectName ? `${options?.projectName} - ` : ''
-              }${e}`,
-            ),
-          );
+        } catch (error) {
+          logError(error, options?.projectName);
         }
       },
       normalizedOptions.input.target as string,
     );
   } else {
     try {
-      return await generateSpec(workspace, normalizedOptions);
-    } catch (e) {
-      log(
-        chalk.red(
-          `🛑  ${options?.projectName ? `${options?.projectName} - ` : ''}${e}`,
-        ),
-      );
+      await generateSpec(workspace, normalizedOptions);
+      return;
+    } catch (error) {
+      logError(error, options?.projectName);
     }
   }
 };
 
-export { defineConfig };
-export { Options };
 export { generate };
+export * from '@orval/core';
 
 export default generate;
+
+export { defineConfig } from './utils/options';
+export type { Options } from '@orval/core';

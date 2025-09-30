@@ -2,16 +2,17 @@
   "name": "react-query-form-data-mutator",
   "version": "0.1.0",
   "private": true,
-  "devDependencies": {
-    "orval": "link:../../../packages/orval/dist",
-    "prettier": "^3.0.3"
-  },
   "scripts": {
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
+    "generate-api": "orval",
+    "test": "tsc --noEmit endpoints.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^8.0.2",
-    "axios": "^0.26.1",
-    "react-query": "^3.34.19"
+    "@faker-js/faker": "^9.9.0",
+    "axios": "^1.12.2",
+    "react": "^18.3.1",
+    "react-query": "^3.39.3"
+  },
+  "devDependencies": {
+    "orval": "workspace:*"
   }
 }

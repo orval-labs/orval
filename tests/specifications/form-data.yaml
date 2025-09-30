@@ -18,15 +18,7 @@ paths:
         content:
           multipart/form-data:
             schema:
-              type: object
-              required:
-                - 'name'
-                - 'tag'
-              properties:
-                name:
-                  type: string
-                tag:
-                  type: string
+              $ref: '#/components/schemas/Pet'
       responses:
         '200':
           description: Created Pet
@@ -44,6 +36,9 @@ components:
   schemas:
     Pet:
       type: object
+      oneOf:
+        - $ref: '#/components/schemas/PetBase'
+        - $ref: '#/components/schemas/PetExtended'
       required:
         - id
         - name
@@ -51,13 +46,6 @@ components:
         '@id':
           type: string
           format: iri-reference
-        id:
-          type: integer
-          format: int64
-        name:
-          type: string
-        tag:
-          type: string
         email:
           type: string
           format: email
@@ -77,4 +65,22 @@ components:
           type: integer
           format: int32
         message:
+          type: string
+
+    PetBase:
+      type: object
+      properties:
+        name:
+          type: string
+        tag:
+          type: string
+    PetExtended:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
           type: string

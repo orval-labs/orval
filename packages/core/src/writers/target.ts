@@ -1,9 +1,9 @@
 import {
-  GeneratorTarget,
-  GeneratorTargetFull,
-  NormalizedOutputOptions,
+  type GeneratorTarget,
+  type GeneratorTargetFull,
+  type NormalizedOutputOptions,
   OutputClient,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, pascal } from '../utils';
 
@@ -20,15 +20,24 @@ export const generateTarget = (
     outputClient: options.client,
     title: pascal(builder.info.title),
     customTitleFunc: options.override.title,
+    output: options,
   });
 
-  const target = Object.values(builder.operations).reduce(
+  const target = Object.values(builder.operations).reduce<
+    Required<GeneratorTargetFull>
+  >(
     (acc, operation, index, arr) => {
       acc.imports.push(...operation.imports);
-      acc.importsMSW.push(...operation.importsMSW);
+      acc.importsMock.push(...operation.importsMock);
       acc.implementation += operation.implementation + '\n';
-      acc.implementationMSW.function += operation.implementationMSW.function;
-      acc.implementationMSW.handler += operation.implementationMSW.handler;
+      acc.implementationMock.function += operation.implementationMock.function;
+      acc.implementationMock.handler += operation.implementationMock.handler;
+
+      const handlerNameSeparator =
+        acc.implementationMock.handlerName.length > 0 ? ',\n  ' : '  ';
+      acc.implementationMock.handlerName +=
+        handlerNameSeparator + operation.implementationMock.handlerName + '()';
+
       if (operation.mutator) {
         acc.mutators.push(operation.mutator);
       }
@@ -39,9 +48,16 @@ export const generateTarget = (
       if (operation.formUrlEncoded) {
         acc.formUrlEncoded.push(operation.formUrlEncoded);
       }
+      if (operation.paramsSerializer) {
+        acc.paramsSerializer.push(operation.paramsSerializer);
+      }
 
       if (operation.clientMutators) {
         acc.clientMutators.push(...operation.clientMutators);
+      }
+
+      if (operation.fetchReviver) {
+        acc.fetchReviver.push(operation.fetchReviver);
       }
 
       if (index === arr.length - 1) {
@@ -50,8 +66,8 @@ export const generateTarget = (
         );
 
         const typescriptVersion =
-          options.packageJson?.dependencies?.['typescript'] ??
-          options.packageJson?.devDependencies?.['typescript'] ??
+          options.packageJson?.dependencies?.typescript ??
+          options.packageJson?.devDependencies?.typescript ??
           '4.4.0';
 
         const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
@@ -64,41 +80,51 @@ export const generateTarget = (
           provideIn: options.override.angular.provideIn,
           hasAwaitedType,
           titles,
+          output: options,
+          verbOptions: builder.verbOptions,
+          clientImplementation: acc.implementation,
         });
+
         acc.implementation = header.implementation + acc.implementation;
-        acc.implementationMSW.handler =
-          header.implementationMSW + acc.implementationMSW.handler;
+        acc.implementationMock.handler =
+          acc.implementationMock.handler +
+          header.implementationMock +
+          acc.implementationMock.handlerName;
 
         const footer = builder.footer({
           outputClient: options?.client,
           operationNames,
-          hasMutator: !!acc.mutators.length,
+          hasMutator: acc.mutators.length > 0,
           hasAwaitedType,
           titles,
+          output: options,
         });
         acc.implementation += footer.implementation;
-        acc.implementationMSW.handler += footer.implementationMSW;
+        acc.implementationMock.handler += footer.implementationMock;
       }
       return acc;
     },
     {
       imports: [],
       implementation: '',
-      implementationMSW: {
+      implementationMock: {
         function: '',
         handler: '',
+        handlerName: '',
       },
-      importsMSW: [],
+      importsMock: [],
       mutators: [],
       clientMutators: [],
       formData: [],
       formUrlEncoded: [],
-    } as Required<GeneratorTargetFull>,
+      paramsSerializer: [],
+      fetchReviver: [],
+    },
   );
 
   return {
     ...target,
-    implementationMSW:
-      target.implementationMSW.function + target.implementationMSW.handler,
+    implementationMock:
+      target.implementationMock.function + target.implementationMock.handler,
   };
 };

@@ -1,0 +1,99 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: AnyOf Schema
+  license:
+    name: MIT
+paths:
+  /test:
+    get:
+      summary: Gets one of the items
+      operationId: getItems
+      parameters:
+        - name: test
+          in: query
+          schema:
+            anyOf:
+              - $ref: '#/components/schemas/A'
+              - type: string
+                enum: ['B']
+              - type: string
+                enum: ['C']
+      responses:
+        '204':
+          description: Ok
+  /any-of-included-all-of-pet:
+    get:
+      summary: Gets anyOf included allOf pets
+      operationId: getAnyOfIncludedAllOfPets
+      responses:
+        '200':
+          description: Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+  /any-of-included-all-of-and-shared-schema-pet:
+    get:
+      summary: Gets anyOf included allOf and shared schema pets
+      operationId: getAnyOfIncludedAllOfAndSharedSchemaPets
+      responses:
+        '200':
+          description: Pet
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatDetail'
+components:
+  schemas:
+    A:
+      type: string
+      enum:
+        - A
+    Pet:
+      anyOf:
+        - $ref: '#/components/schemas/Cat'
+        - $ref: '#/components/schemas/Dog'
+    Cat:
+      type: object
+      required:
+        - color
+      properties:
+        color:
+          type: string
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/DogType'
+        - $ref: '#/components/schemas/DogDetail'
+    DogType:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+    DogDetail:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+    CatDetail:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          anyOf:
+            - $ref: '#/components/schemas/Cat'
+            - $ref: '#/components/schemas/CatExpandDetail'
+    CatExpandDetail:
+      allOf:
+        - $ref: '#/components/schemas/Cat'
+        - type: object
+          required:
+            - url
+          properties:
+            url:
+              type: string

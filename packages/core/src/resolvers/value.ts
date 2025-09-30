@@ -1,6 +1,7 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { getScalar } from '../getters';
-import { ContextSpecs, ResolverValue, SchemaType } from '../types';
+import { type ContextSpecs, type ResolverValue, SchemaType } from '../types';
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
 
@@ -23,7 +24,7 @@ export const resolveValue = ({
 
     const importSpecKey =
       resolvedImport.specKey ||
-      (context.specKey !== context.target ? context.specKey : undefined);
+      (context.specKey === context.target ? undefined : context.specKey);
 
     let hasReadonlyProps = false;
 

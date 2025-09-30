@@ -1,10 +1,11 @@
 import {
-  ContextSpecs,
-  GetterBody,
-  GetterParams,
-  GetterProps,
+  type ContextSpecs,
+  type GetterBody,
+  type GetterParams,
+  type GetterProps,
   GetterPropType,
-  GetterQueryParam,
+  type GetterQueryParam,
+  OutputClient,
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
@@ -25,25 +26,21 @@ export const getProps = ({
 }): GetterProps => {
   const bodyProp = {
     name: body.implementation,
-    definition: `${body.implementation}: ${body.definition}`,
-    implementation: `${body.implementation}: ${body.definition}`,
+    definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
+    implementation: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
     default: false,
-    required: true,
+    required: !body.isOptional,
     type: GetterPropType.BODY,
   };
 
   const queryParamsProp = {
     name: 'params',
-    definition: `params${queryParams?.isOptional ? '?' : ''}: ${
-      queryParams?.schema.name
-    }`,
-    implementation: `params${queryParams?.isOptional ? '?' : ''}: ${
-      queryParams?.schema.name
-    }`,
+    definition: getQueryParamDefinition(queryParams, context),
+    implementation: getQueryParamDefinition(queryParams, context),
     default: false,
-    required: !isUndefined(queryParams?.isOptional)
-      ? !queryParams?.isOptional
-      : false,
+    required: isUndefined(queryParams?.isOptional)
+      ? !context.output.allParamsOptional
+      : !queryParams?.isOptional && !context.output.allParamsOptional,
     type: GetterPropType.QUERY_PARAM,
   };
 
@@ -56,12 +53,12 @@ export const getProps = ({
       headers?.schema.name
     }`,
     default: false,
-    required: !isUndefined(headers?.isOptional) ? !headers?.isOptional : false,
+    required: isUndefined(headers?.isOptional) ? false : !headers?.isOptional,
     type: GetterPropType.HEADER,
   };
 
   let paramGetterProps: GetterProps;
-  if (context.override.useNamedParameters && params.length > 0) {
+  if (context.output.override.useNamedParameters && params.length > 0) {
     const parameterTypeName = `${pascal(operationName)}PathParameters`;
 
     const name = 'pathParams';
@@ -75,7 +72,9 @@ export const getProps = ({
 
     const implementation = `{ ${params
       .map((property) =>
-        property.default ? property.implementation : property.name,
+        property.default
+          ? `${property.name} = ${property.default}` // if we use property.implementation, we will get `{ version: number = 1 }: ListPetsPathParameters = {}` which isn't valid
+          : property.name,
       )
       .join(', ')} }: ${parameterTypeName}${isOptional ? ' = {}' : ''}`;
 
@@ -117,3 +116,14 @@ export const getProps = ({
 
   return sortedProps;
 };
+
+function getQueryParamDefinition(
+  queryParams: GetterQueryParam | undefined,
+  context: ContextSpecs,
+): string {
+  let paramType = queryParams?.schema.name;
+  if (OutputClient.ANGULAR === context.output.client) {
+    paramType = `DeepNonNullable<${paramType}>`;
+  }
+  return `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${paramType}`;
+}
