@@ -22,7 +22,7 @@
     "@octokit/graphql": "^5.0.4",
     "@reactions/component": "^2.0.2",
     "@tanstack/react-query": "^4.22.0",
-    "axios": "^1.8.4",
+    "axios": "^1.12.0",
     "body-scroll-lock": "^3.1.5",
     "classnames": "^2.5.1",
     "copy-to-clipboard": "^3.3.3",
