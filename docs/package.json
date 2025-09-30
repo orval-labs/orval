@@ -70,7 +70,7 @@
     "tailwindcss": "^3.3.5"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "volta": {
     "node": "18.18.2"
