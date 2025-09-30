@@ -138,6 +138,10 @@ const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
   return !!hasSvelteQuery && !hasSvelteQueryV4;
 };
 
+const isSvelteQueryV6 = (packageJson: PackageJson | undefined) => {
+  return isQueryV6(packageJson, 'svelte-query');
+};
+
 export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions,
@@ -354,6 +358,21 @@ const isQueryV5 = (
   const withoutRc = version.split('-')[0];
 
   return compareVersions(withoutRc, '5.0.0');
+};
+
+const isQueryV6 = (
+  packageJson: PackageJson | undefined,
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '6.0.0');
 };
 
 const isQueryV5WithDataTagError = (
@@ -746,6 +765,7 @@ const generateQueryImplementation = ({
   route,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  hasSvelteQueryV6,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
@@ -779,6 +799,7 @@ const generateQueryImplementation = ({
   route: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  hasSvelteQueryV6: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
@@ -1082,9 +1103,11 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  const ${queryResultVarName} = ${camel(
-    `${operationPrefix}-${type}`,
-  )}(${queryOptionsVarName} ${optionalQueryClientArgument ? ', queryClient' : ''}) as ${returnType};
+  const ${queryResultVarName} = ${camel(`${operationPrefix}-${type}`)}(${
+    hasSvelteQueryV6
+      ? `() => ({ ...${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+      : `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`
+  }) as ${returnType};
 
   ${queryResultVarName}.queryKey = ${
     isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName
@@ -1100,7 +1123,11 @@ ${
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  await queryClient.${prefetchFnName}(${queryOptionsVarName});
+  await queryClient.${prefetchFnName}(${
+    hasSvelteQueryV6
+      ? `() => ({ ...${queryOptionsVarName} })`
+      : queryOptionsVarName
+  });
 
   return queryClient;
 }\n`
@@ -1144,6 +1171,9 @@ const generateQueryHook = async (
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
     (!isSvelteQueryV3(context.output.packageJson) || queryVersion === 4);
+  const hasSvelteQueryV6 =
+    OutputClient.SVELTE_QUERY === outputClient &&
+    isSvelteQueryV6(context.output.packageJson);
 
   const hasQueryV5 =
     queryVersion === 5 ||
@@ -1371,6 +1401,7 @@ const generateQueryHook = async (
           route,
           hasVueQueryV4,
           hasSvelteQueryV4,
+          hasSvelteQueryV6,
           hasQueryV5,
           hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError,
@@ -1548,8 +1579,10 @@ ${mutationOptionsFn}
         isRequestOptions ? 'options' : 'mutationOptions'
       });
 
-      return ${operationPrefix}Mutation(${mutationOptionsVarName} ${
-        optionalQueryClientArgument ? ', queryClient' : ''
+      return ${operationPrefix}Mutation(${
+        hasSvelteQueryV6
+          ? `() => ({ ...${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+          : `${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`
       });
     }
     `;
