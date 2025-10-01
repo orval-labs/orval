@@ -21,7 +21,7 @@
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/compiler-sfc": "^3.5.21",
-    "jsdom": "^23.2.0",
+    "jsdom": "^27.0.0",
     "msw": "^2.11.2",
     "orval": "workspace:*",
     "tsd": "^0.29.0",
