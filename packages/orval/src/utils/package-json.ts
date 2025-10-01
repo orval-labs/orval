@@ -37,9 +37,8 @@ export const loadPackageJson = async (
   return;
 };
 
-// check package.json has required fields
 const isPackageJson = (obj: any): obj is PackageJson =>
-  typeof obj === 'object' && obj !== null && 'name' in obj && 'version' in obj;
+  typeof obj === 'object' && obj !== null;
 
 const maybeReplaceCatalog = async (
   pkg: PackageJson,
