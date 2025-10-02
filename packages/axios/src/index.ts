@@ -177,7 +177,7 @@ const generateAxiosImplementation = (
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
-    return axiosInstance${
+    return axios${
       isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
@@ -200,7 +200,7 @@ ${
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${noFunction ? '' : `export const ${title} = (axiosInstance: AxiosInstance = axios.create()) => {\n`}`;
+  ${noFunction ? '' : `export const ${title} = (axios: AxiosInstance = axios.create()) => {\n`}`;
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
