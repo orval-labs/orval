@@ -47,7 +47,7 @@ jobs:
         run: |
           VERSION=${{ github.event.inputs.version }}
           echo "Bumping all workspaces to version $VERSION"
-          yarn workspaces foreach -Av version $VERSION --no-git-tag-version --no-commit-hooks
+          yarn workspaces foreach -Av version $VERSION
           yarn update-samples
           git add .
           git commit -m "chore(release): bump version to v$VERSION" || echo "No changes to commit"
