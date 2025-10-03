@@ -39,21 +39,12 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Bump versions and create release branch
+      - name: Update versions and samples
         run: |
           VERSION=${{ github.event.inputs.version }}
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          BRANCH="release/v$VERSION"
-          git checkout -b $BRANCH
-
+          echo "Updating all workspace versions to $VERSION"
           yarn workspaces foreach -Av version $VERSION
           yarn update-samples
-
-          git add .
-          git commit -m "chore(release): bump version to v$VERSION"
-          git push origin $BRANCH
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v6
