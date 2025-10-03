@@ -20,8 +20,23 @@ jobs:
         with:
           node-version: 24
 
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v4
+        with:
+          path: .yarn/cache
+          key: yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-
+
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
+        
+      - name: Run build
+        run: |
+          yarn build
 
       - name: Configure npm authentication
         run: |
