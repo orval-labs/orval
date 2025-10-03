@@ -1,0 +1,54 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.2.3)'
+        required: true
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Bump versions and create release branch
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="release/v$VERSION"
+          git checkout -b $BRANCH
+
+          yarn workspaces foreach -Av version $VERSION
+          yarn update-samples
+
+          git add .
+          git commit -m "chore(release): bump version to v$VERSION"
+          git push origin $BRANCH
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore(release): bump version to v${{ github.event.inputs.version }}"
+          branch: release/v${{ github.event.inputs.version }}
+          base: master
+          title: "Release v${{ github.event.inputs.version }}"
+          body: |
+            This PR prepares the release of version v${{ github.event.inputs.version }}.
+            Once merged into master, the publish workflow will trigger.
