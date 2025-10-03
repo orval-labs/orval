@@ -1,7 +1,12 @@
 name: Release
 
 on:
-  workflow_dispatch: # Only run when manually triggered
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version number to release (e.g. 1.2.3)"
+        required: true
+        type: string
 
 jobs:
   release:
@@ -10,6 +15,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0 # needed for tags
 
       - name: Configure Git
         run: |
@@ -19,7 +26,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 20 # or use node-version-file: '.nvmrc'
+          node-version: 20
           package-manager-cache: false
 
       - name: Enable Corepack
@@ -36,6 +43,27 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Bump workspace versions and commit
+        run: |
+          VERSION=${{ github.event.inputs.version }}
+          echo "Bumping all workspaces to version $VERSION"
+          yarn workspaces foreach -Av version $VERSION --no-git-tag-version --no-commit-hooks
+          yarn update-samples
+          git add .
+          git commit -m "chore(release): bump version to v$VERSION" || echo "No changes to commit"
+          git tag v$VERSION
+          git push origin HEAD
+          git push origin v$VERSION
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: Release v${{ github.event.inputs.version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Run build & tests
         run: |
           cd tests && yarn clean && cd ..
@@ -43,19 +71,12 @@ jobs:
           yarn clean:all
           yarn build
           yarn test
-          yarn update-samples
           yarn test:samples
 
       - name: Configure npm authentication
         run: |
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set npmAuthToken ${{ secrets.NPM_TOKEN }}
-
-      - name: Run release-it
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: yarn release
 
       - name: Publish workspaces to npm
         run: yarn workspaces foreach --all --no-private -v npm publish --tolerate-republish
