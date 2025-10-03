@@ -6,6 +6,9 @@ on:
       version:
         description: 'Version number (e.g., 1.2.3)'
         required: true
+        
+permissions:
+  contents: write
 
 jobs:
   prepare:
