@@ -1,15 +1,16 @@
 name: Publish Release
 
 on:
-  push:
-    branches:
-      - master
+  pull_request:
+    types:
+      - closed
 
 permissions:
   contents: write
 
 jobs:
   publish:
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -38,8 +39,7 @@ jobs:
         run: yarn install --immutable
         
       - name: Run build
-        run: |
-          yarn build
+        run: yarn build
 
       - name: Configure npm authentication
         run: |
