@@ -1,7 +1,7 @@
 {
   "name": "vue-query-custom-fetch",
   "private": true,
-  "version": "0.0.0",
+  "version": "7.13.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
