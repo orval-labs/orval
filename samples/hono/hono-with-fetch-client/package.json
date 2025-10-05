@@ -1,6 +1,6 @@
 {
   "name": "hono-with-fetch-client",
-  "version": "0.1.0",
+  "version": "7.13.1",
   "private": true,
   "scripts": {
     "generate-api": "orval"
