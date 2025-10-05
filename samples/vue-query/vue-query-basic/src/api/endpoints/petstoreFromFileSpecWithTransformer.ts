@@ -52,6 +52,19 @@ export const listPets = (
   });
 };
 
+export const getListPetsInfiniteQueryKey = (
+  params?: MaybeRef<ListPetsParams>,
+  version: MaybeRef<number | undefined | null> = 1,
+) => {
+  return [
+    'infinate',
+    'v',
+    version,
+    'pets',
+    ...(params ? [params] : []),
+  ] as const;
+};
+
 export const getListPetsQueryKey = (
   params?: MaybeRef<ListPetsParams>,
   version: MaybeRef<number | undefined | null> = 1,
@@ -82,7 +95,7 @@ export const getListPetsInfiniteQueryOptions = <
 ) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = getListPetsQueryKey(params, version);
+  const queryKey = getListPetsInfiniteQueryKey(params, version);
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listPets>>,
@@ -337,6 +350,13 @@ export const showPetById = (
   });
 };
 
+export const getShowPetByIdInfiniteQueryKey = (
+  petId?: MaybeRef<string | undefined | null>,
+  version: MaybeRef<number | undefined | null> = 1,
+) => {
+  return ['infinate', 'v', version, 'pets', petId] as const;
+};
+
 export const getShowPetByIdQueryKey = (
   petId?: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
@@ -362,7 +382,7 @@ export const getShowPetByIdInfiniteQueryOptions = <
 ) => {
   const { query: queryOptions } = options ?? {};
 
-  const queryKey = getShowPetByIdQueryKey(petId, version);
+  const queryKey = getShowPetByIdInfiniteQueryKey(petId, version);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
