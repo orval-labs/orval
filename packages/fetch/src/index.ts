@@ -90,7 +90,9 @@ export const generateRequestFunction = (
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
-      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString()));
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString());
+      });
       return;
     }
       `
