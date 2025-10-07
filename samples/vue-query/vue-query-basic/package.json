@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "7.13.1",
+  "version": "7.13.2",
   "private": true,
   "scripts": {
     "dev": "vite",

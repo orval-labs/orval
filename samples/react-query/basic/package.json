@@ -1,6 +1,6 @@
 {
   "name": "react-query-basic",
-  "version": "7.13.1",
+  "version": "7.13.2",
   "private": true,
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
