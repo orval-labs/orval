@@ -1,6 +1,6 @@
 {
   "name": "react-query-form-url-encoded",
-  "version": "7.13.1",
+  "version": "7.13.2",
   "private": true,
   "scripts": {
     "generate-api": "orval",
