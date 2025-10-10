@@ -34,7 +34,6 @@ export const Toc = ({ title }) => {
     getHeaderDataFromAnchors,
     (el) => el?.parentElement?.id,
   );
-
   return (
     <ul className={cx('space-y-3', styles.contents__list)}>
       <li className="text-sm">
@@ -45,25 +44,29 @@ export const Toc = ({ title }) => {
       {headings &&
         headings.length > 0 &&
         headings.map((h, i) =>
-          h.url ? (
-            <li
-              key={`heading-${h.url}-${i}`}
-              className={cx('text-sm ', {
-                'pl-2': h?.depth === 3,
-                'pl-4': h?.depth === 4,
-                'pl-6': h?.depth === 5,
-                hidden:
-                  h.depth &&
-                  h.depth > 3 &&
-                  active?.parent?.url !== h.parent?.url &&
-                  active?.url !== h.parent?.url,
-              })}
-            >
-              <a className={styles.contents__link} href={h.url}>
-                {h.text}
-              </a>
-            </li>
-          ) : null,
+          h.url
+            ? (console.log(h),
+              (
+                <li
+                  key={`heading-${h.url}-${i}`}
+                  className={cx('text-sm ', {
+                    'pl-1': h?.depth === 2,
+                    'pl-2': h?.depth === 3,
+                    'pl-4': h?.depth === 4,
+                    'pl-6': h?.depth === 5,
+                    hidden:
+                      h.depth &&
+                      h.depth > 2 &&
+                      active?.parent?.url !== h.parent?.url &&
+                      active?.url !== h.parent?.url,
+                  })}
+                >
+                  <a className={styles.contents__link} href={h.url}>
+                    {h.text}
+                  </a>
+                </li>
+              ))
+            : null,
         )}
     </ul>
   );

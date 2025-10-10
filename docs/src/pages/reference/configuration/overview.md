@@ -3,7 +3,7 @@ id: configuration
 title: Configuration
 ---
 
-This page is a reference to the different ways of configuring your Orval projects.
+This page is a reference to the different ways of configuring Orval projects.
 
 Using an `orval.config.(js|mjs|ts)` configuration file, placed at the root of a project, you can provide a list of options that changes the default behaviour of the Orval generated files.
 
@@ -20,23 +20,23 @@ Configuration options for the following are described on this page:
   <tbody>
     <tr>
       <td className="border px-4 py-2">Input</td>
-      <td className="border px-4 py-2">Directly the path to the specification or the configuration of the imported specification and also what you want to override on it.
+      <td className="border px-4 py-2">The path to the specification, or a configuration object specifying how to transform the specification before generation.
       </td>
     </tr>
     <tr className="bg-gray-100">
       <td className="border px-4 py-2">Output</td>
-      <td className="border px-4 py-2">Directly the path to where you want to generate your models and HTTP calls or the configuration of what and where you want to write the generated code.</td>
+      <td className="border px-4 py-2">The output path for Orval's auto-generated files, or a configuration object specifying what is generated and how, as well as where to save the generated files.</td>
     </tr>
     <tr>
       <td className="border px-4 py-2">Hooks</td>
-      <td className="border px-4 py-2">Allows you to run scripts on certain events.
+      <td className="border px-4 py-2">Allows running scripts on certain events.
       </td>
     </tr>
   </tbody>
 </table>
 </div>
 
-### orval.config.js
+## orval.config.js
 
 ```js
 module.exports = {
@@ -50,7 +50,7 @@ module.exports = {
 };
 ```
 
-### orval.config.ts
+## orval.config.ts
 
 ```ts
 import { defineConfig } from 'orval';

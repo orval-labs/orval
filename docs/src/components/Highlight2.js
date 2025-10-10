@@ -37,35 +37,35 @@ const Code = ({
             lineHeight: '1.5',
           }}
         >
-          {tokens.map((line, i) => (
-            <div
-              key={i}
-              {...getLineProps({
-                line,
-                key: i,
-              })}
-            >
-              {tokens.length > 1 ? (
-                <span
-                  aria-hidden="true"
-                  className="select-none text-gray-300 text-right w-5 inline-block mx-2"
-                >
-                  {i + 1}
-                </span>
-              ) : (
-                <span className="mx-2 w-5" />
-              )}{' '}
-              {line.map((token, key) => (
-                <span
-                  key={key}
-                  {...getTokenProps({
+          {tokens.map((line, i) => {
+            // Fixes React warning: 'key' must be passed directly in JSX, not via spread
+            const { key: lineKey, ...lineProps } = getLineProps({
+              line,
+              key: i,
+            });
+
+            return (
+              <div key={lineKey} {...lineProps}>
+                {tokens.length > 1 ? (
+                  <span
+                    aria-hidden="true"
+                    className="select-none text-gray-300 text-right w-5 inline-block mx-2"
+                  >
+                    {i + 1}
+                  </span>
+                ) : (
+                  <span className="mx-2 w-5" />
+                )}
+                {line.map((token, j) => {
+                  const { key: tokenKey, ...tokenProps } = getTokenProps({
                     token,
-                    key,
-                  })}
-                />
-              ))}
-            </div>
-          ))}
+                    key: j,
+                  });
+                  return <span key={tokenKey} {...tokenProps} />;
+                })}
+              </div>
+            );
+          })}
         </pre>
       )}
     </Highlight>

@@ -1,12 +1,14 @@
 import uniq from 'lodash.uniq';
 import uniqWith from 'lodash.uniqwith';
+
 import {
-  GeneratorImport,
-  GeneratorMutator,
-  GeneratorVerbOptions,
+  type GeneratorImport,
+  type GeneratorMutator,
+  type GeneratorVerbOptions,
   GetterPropType,
+  NamingConvention,
 } from '../types';
-import { camel, upath } from '../utils';
+import { conventionName, upath } from '../utils';
 
 export const generateImports = ({
   imports = [],
@@ -14,14 +16,16 @@ export const generateImports = ({
   isRootKey,
   specsName,
   specKey: currentSpecKey,
+  namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
   specKey: string;
+  namingConvention?: NamingConvention;
 }) => {
-  if (!imports.length) {
+  if (imports.length === 0) {
     return '';
   }
 
@@ -31,25 +35,28 @@ export const generateImports = ({
       a.name === b.name && a.default === b.default && a.specKey === b.specKey,
   )
     .sort()
-    .map(({ specKey, name, values, alias }) => {
+    .map(({ specKey, name, values, alias, isConstant }) => {
       const isSameSpecKey = currentSpecKey === specKey;
+
+      const fileName = conventionName(name, namingConvention);
+
       if (specKey && !isSameSpecKey) {
-        const path = specKey !== target ? specsName[specKey] : '';
+        const path = specKey === target ? '' : specsName[specKey];
 
         if (!isRootKey && specKey) {
-          return `import ${!values ? 'type ' : ''}{ ${name}${
+          return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
             alias ? ` as ${alias}` : ''
-          } } from \'../${upath.join(path, camel(name))}\';`;
+          } } from \'../${upath.join(path, fileName)}\';`;
         }
 
-        return `import ${!values ? 'type ' : ''}{ ${name}${
+        return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
           alias ? ` as ${alias}` : ''
-        } } from \'./${upath.join(path, camel(name))}\';`;
+        } } from \'./${upath.join(path, fileName)}\';`;
       }
 
-      return `import ${!values ? 'type ' : ''}{ ${name}${
+      return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from \'./${camel(name)}\';`;
+      } } from \'./${fileName}\';`;
     })
     .join('\n');
 };
@@ -77,30 +84,32 @@ export const generateMutatorImports = ({
 
     if (implementation && (mutator.hasErrorType || mutator.bodyTypeName)) {
       let errorImportName = '';
+      const targetErrorImportName = mutator.default
+        ? `ErrorType as ${mutator.errorTypeName}`
+        : mutator.errorTypeName;
       if (
         mutator.hasErrorType &&
         implementation.includes(mutator.errorTypeName) &&
-        !acc.includes(mutator.errorTypeName)
+        !acc.includes(`{ ${targetErrorImportName} `)
       ) {
-        errorImportName = mutator.default
-          ? `ErrorType as ${mutator.errorTypeName}`
-          : mutator.errorTypeName;
+        errorImportName = targetErrorImportName;
       }
 
       let bodyImportName = '';
+      const targetBodyImportName = mutator.default
+        ? `BodyType as ${mutator.bodyTypeName}`
+        : mutator.bodyTypeName;
       if (
         mutator.bodyTypeName &&
         implementation.includes(mutator.bodyTypeName) &&
-        !acc.includes(mutator.bodyTypeName)
+        !acc.includes(` ${targetBodyImportName} }`)
       ) {
-        bodyImportName = mutator.default
-          ? `BodyType as ${mutator.bodyTypeName}`
-          : mutator.bodyTypeName;
+        bodyImportName = targetBodyImportName!;
       }
 
       if (bodyImportName || errorImportName) {
         acc += `import type { ${errorImportName}${
-          errorImportName && bodyImportName ? ', ' : ''
+          errorImportName && bodyImportName ? ' , ' : ''
         }${bodyImportName} } from '${path}';`;
         acc += '\n';
       }
@@ -132,9 +141,9 @@ const generateDependency = ({
       e.default &&
       (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
   );
-  const syntheticDefaultImportDep = !isAllowSyntheticDefaultImports
-    ? deps.find((e) => e.syntheticDefaultImport)
-    : undefined;
+  const syntheticDefaultImportDep = isAllowSyntheticDefaultImports
+    ? undefined
+    : deps.find((e) => e.syntheticDefaultImport);
 
   const depsString = uniq(
     deps
@@ -161,7 +170,7 @@ const generateDependency = ({
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
   }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
     key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
-  }'`;
+  }';`;
 
   return importString;
 };
@@ -188,8 +197,8 @@ export const addDependency = ({
     return implementation.match(pattern);
   });
 
-  if (!toAdds.length) {
-    return undefined;
+  if (toAdds.length === 0) {
+    return;
   }
 
   const groupedBySpecKey = toAdds.reduce<
@@ -217,42 +226,44 @@ export const addDependency = ({
     return acc;
   }, {});
 
-  return Object.entries(groupedBySpecKey)
-    .map(([key, { values, types }]) => {
-      let dep = '';
+  return (
+    Object.entries(groupedBySpecKey)
+      .map(([key, { values, types }]) => {
+        let dep = '';
 
-      if (values) {
-        dep += generateDependency({
-          deps: values,
-          isAllowSyntheticDefaultImports,
-          dependency,
-          specsName,
-          key,
-          onlyTypes: false,
-        });
-      }
-
-      if (types) {
-        let uniqueTypes = types;
         if (values) {
-          uniqueTypes = types.filter(
-            (t) => !values.some((v) => v.name === t.name),
-          );
-          dep += '\n';
+          dep += generateDependency({
+            deps: values,
+            isAllowSyntheticDefaultImports,
+            dependency,
+            specsName,
+            key,
+            onlyTypes: false,
+          });
         }
-        dep += generateDependency({
-          deps: uniqueTypes,
-          isAllowSyntheticDefaultImports,
-          dependency,
-          specsName,
-          key,
-          onlyTypes: true,
-        });
-      }
 
-      return dep;
-    })
-    .join('\n');
+        if (types) {
+          let uniqueTypes = types;
+          if (values) {
+            uniqueTypes = types.filter(
+              (t) => !values.some((v) => v.name === t.name),
+            );
+            dep += '\n';
+          }
+          dep += generateDependency({
+            deps: uniqueTypes,
+            isAllowSyntheticDefaultImports,
+            dependency,
+            specsName,
+            key,
+            onlyTypes: true,
+          });
+        }
+
+        return dep;
+      })
+      .join('\n') + '\n'
+  );
 };
 
 const getLibName = (code: string) => {

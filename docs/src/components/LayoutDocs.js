@@ -87,7 +87,10 @@ export const LayoutDocs = (props) => {
                   </Sidebar>
                 )}
 
-                <div className={s['markdown'] + ' w-full docs'}>
+                <main
+                  id="main-landmark"
+                  className={s['markdown'] + ' w-full docs scroll-mt-24'}
+                >
                   <h1 id="_top">{props.meta.title}</h1>
                   <MDXProvider components={MDXComponents}>
                     {props.children}
@@ -98,7 +101,7 @@ export const LayoutDocs = (props) => {
                     prevRoute={prevRoute}
                     nextRoute={nextRoute}
                   />
-                </div>
+                </main>
                 {props.meta.toc === false ? null : (
                   <div
                     className="hidden xl:block ml-10 flex-shrink-0"

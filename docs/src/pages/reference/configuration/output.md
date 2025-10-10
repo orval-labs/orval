@@ -3,11 +3,11 @@ id: configuration-output
 title: Output
 ---
 
-### target
+## target
 
 Type: `String`.
 
-Valid values: path to the file which will contains the implementation.
+Valid values: path to the file containing the generated code.
 
 ```js
 module.exports = {
@@ -19,7 +19,7 @@ module.exports = {
 };
 ```
 
-### client
+## client
 
 Type: `String | Function`.
 
@@ -37,9 +37,9 @@ module.exports = {
 };
 ```
 
-If you want you can provide a function to extend or create you custom client generator and this function receive a [GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) in argument and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
+The valid values specify the default client generators provided by Orval. It is possible to provide a function to extend or create a custom client generator. The function should accept a [GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) argument, and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
 
-### httpClient
+## httpClient
 
 Type: `String`.
 
@@ -58,16 +58,16 @@ module.exports = {
 };
 ```
 
-If you want you can use the `fetch` API as an http client by specifying `fetch` in the `httpClient` option.
-`httpClient` only available when `swr`, `react-query`, `vue-query`, and `svelte-query` are specified as the `client` option.
+Specifying `fetch` as the `httpClient` option will use the Fetch API as the HTTP client instead of Axios.
+This property is only valid when `swr`, `react-query`, `vue-query`, and `svelte-query` are specified as the `client` option.
 
-### schemas
+## schemas
 
 Type: `String`.
 
-Valid values: path to the folder where you want to generate all your models.
+Valid values: path to the folder where the generated models are written.
 
-Default Value: same as the target.
+Default Value: same as the `target`.
 
 ```js
 module.exports = {
@@ -79,7 +79,7 @@ module.exports = {
 };
 ```
 
-### fileExtension
+## fileExtension
 
 Type: `String`.
 
@@ -91,10 +91,10 @@ Specify the file extension for files generated automatically. Modes such as `tag
 module.exports = {
   petstore: {
     output: {
-      mode: 'split'
-      target: './/gen/endpoints',
+      mode: 'split',
+      target: './gen/endpoints',
       schemas: './gen/model',
-      fileExtension: '.gen.ts'
+      fileExtension: '.gen.ts',
     },
   },
 };
@@ -109,13 +109,48 @@ src/gen/
     └── pets.ts
 ```
 
-### workspace
+## namingConvention
 
 Type: `String`.
 
-Valid values: path to the folder which will contains all the generated files. This value will be use as a base for all the other path used in the orval config.
+Valid values: `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
 
-If you provide this option, an `index.ts` file will be also created with all the available exports
+Default Value: `camelCase`.
+
+Specify the naming convention for the generated **files**.
+
+If you're looking for **property keys** naming convention, see [namingConvention](#namingconvention-for-property-keys).
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      namingConvention: 'PascalCase',
+      mode: 'split',
+      target: './gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.gen.ts',
+    },
+  },
+};
+```
+
+```
+src/gen/
+├── endpoints
+│   └── SwaggerPetstore.gen.ts
+└── model
+    ├── ListPetsParams.ts
+    └── Pets.ts
+```
+
+## workspace
+
+Type: `String`.
+
+Valid values: path to the folder which will contains all the generated files. This value will be use as a base for all the other paths used in the Orval config.
+
+If this option is provided, an `index.ts` file will also be created with all the available exports
 
 ```js
 module.exports = {
@@ -128,7 +163,7 @@ module.exports = {
 };
 ```
 
-### mode
+## mode
 
 Type: `String`.
 
@@ -146,9 +181,11 @@ module.exports = {
 };
 ```
 
-#### Value: single
+### Value: single
 
-Use to have one file with everything
+Generates everything into a single file.
+
+For example:
 
 ```js
 module.exports = {
@@ -167,11 +204,11 @@ my-app
     └── petstore.ts
 ```
 
-Here a single file petstore will be created in src with your specification implementation.
+Here a single file petstore will be created in the src-folder with the specification implementation.
 
-#### Value: split
+### Value: split
 
-Use to have implementation, schemas, mock in different files
+Splits implementation, schemas and mocks into different files
 
 ```js
 module.exports = {
@@ -193,7 +230,7 @@ my-app
     └── petstore.ts
 ```
 
-Here depending on the configuration, you will have multiple files named petstore with a prefix created in src.
+Depending on the configuration, there will be multiple files created in src named petstore with a suffix to differentiate them.
 
 - petstore.schemas.ts
 - petstore.ts
@@ -203,9 +240,9 @@ For Angular:
 
 => petstore.ts is petstore.service.ts
 
-#### Value: tags
+### Value: tags
 
-Use this mode if you want one file by tag. Tag is a reference of the OpenAPI specification tag. If you have a `pets` tag for all your pet calls then Orval will generate a file pets.ts in the target folder
+Use this mode to generate one file per tag. A tag is equivalent to an OpenAPI specification tag. Given a `pets` tag for all pet calls, Orval will generate a file named pets.ts in the target folder
 
 ```js
 module.exports = {
@@ -230,11 +267,11 @@ For Angular:
 
 => petstore.ts is petstore.service.ts
 
-If you don't use the `schemas` property only one file will be created with all the models for every tag.
+If the `schemas` property is not set, only one file per tag will be created, containing the model as well.
 
-#### Value: tags-split
+### Value: tags-split
 
-This mode is a combination of the tags and split mode. Orval will generate a folder for every tag in the target folder and split into multiple files in those folders.
+A combination of the tags and split mode. Orval will generate a folder for every tag in the target folder, and split the files into multiple files in those folders.
 
 ```js
 module.exports = {
@@ -257,15 +294,17 @@ my-app
         └── petstore.ts
 ```
 
-Same as the tags mode if you don't use the `schemas` property only one file will be created with all the models for every tag.
+Equivalent to the `tags` mode, if the `schemas` property is not set, only one file per tag will be created, containing the model as well.
 
-### indexFiles
+## indexFiles
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to true.
+Valid values: `true` or `false`
 
-Specify whether to place `index.ts` in `schemas` generation.
+Default value: `true`
+
+Specifies whether an `index.ts` file is generated during `schemas` generation.
 
 Example:
 
@@ -280,9 +319,9 @@ module.exports = {
 };
 ```
 
-### title
+## title
 
-Type: `String` or `Function`.
+Type: `String | Function`.
 
 Valid values: path or implementation of the function.
 
@@ -296,7 +335,7 @@ module.exports = {
 };
 ```
 
-### baseUrl
+## baseUrl
 
 Type: `String | Object`.
 
@@ -317,12 +356,16 @@ module.exports = {
 };
 ```
 
-#### getBaseUrlFromSpecification
+### getBaseUrlFromSpecification
 
 Type: `boolean`
 
-Set to `true` to make Orval read the url from the `servers` fields in the specification. If a path has defined a `servers` field,
-that url will be used, otherwise the url from the whole specification's `servers` field will be used.
+Valid values: `true` or `false`
+
+Default value: `true`
+
+When set to `true`, Orval reads the URL from the `servers` fields in the specification. If a path has defined a `servers` field,
+that URL will be used, otherwise the URL from the specification's root `servers` field will be used.
 If set to `false`, a constant `baseUrl` must be set.
 
 Example:
@@ -350,7 +393,7 @@ module.exports = {
 };
 ```
 
-#### variables
+### variables
 
 Type: `Dictionary`.
 
@@ -389,14 +432,14 @@ module.exports = {
 };
 ```
 
-#### index
+### index
 
 Type: `Number`.
 
 Only valid when `getBaseUrlFromSpecification` is `true`.
-Since the `servers` field allows for multiple urls to be defined, you can decide which index of urls to pick here.
-If this is not defined, the first url will be used.
-If the defined index is out of range of the array, the last url in the array will be selected.
+Since the `servers` field allows for multiple URL to be defined, this options specifies which index of the URL array to pick.
+If this is not defined, the first URL will be used.
+If the defined index is out of range of the array, the last URL in the array will be selected.
 
 Example:
 
@@ -419,12 +462,12 @@ module.exports = {
 };
 ```
 
-#### baseUrl
+### baseUrl
 
 Type: `String`.
 
 Only valid when `getBaseUrlFromSpecification` is `false`.
-Behaves the same as setting the baseUrl as a string directly.
+Behaves the same way as setting the baseUrl as a string directly.
 
 Example:
 
@@ -453,13 +496,13 @@ module.exports = {
 };
 ```
 
-### mock
+## mock
 
 Type: `Boolean | Object | Function`.
 
 Default Value: `false`.
 
-Will generate your mock using <a href="https://github.com/faker-js/faker" target="_blank">faker</a> and <a href="https://mswjs.io/" target="_blank">msw</a> by default (if value set to true).
+If the value is set to `true`, Orval will generate mocks using <a href="https://github.com/faker-js/faker" target="_blank">Faker</a> and <a href="https://mswjs.io/" target="_blank">MSW</a> by default.
 
 ```js
 module.exports = {
@@ -471,7 +514,7 @@ module.exports = {
 };
 ```
 
-The mock options can take some properties to customize the generation if you set it to an object. If you set it to `true`, the default options will be used. The default options are:
+The mock options also accepts a configuration object customizing the generation. If the property is set to `true`, the default options will be used. The default options are:
 
 ```js
 module.exports = {
@@ -487,11 +530,9 @@ module.exports = {
 };
 ```
 
-If you want you can provide a function to extend or create you custom mock generator and check [here](https://github.com/orval-labs/orval/blob/master/src/types/generator.ts#L132) the type.
+By providing a function, it is possible to extend or create a custom mock generator. See the expected type [here](https://github.com/orval-labs/orval/blob/307fd610a2a8b139268bed5a10d035988b91060a/packages/core/src/types.ts#L972).
 
-To discover all the available options, read below.
-
-#### type
+### type
 
 Type: `String`.
 
@@ -499,57 +540,57 @@ Default Value: `msw`.
 
 Valid values: `msw`, `cypress` (coming soon).
 
-Use to specify the mock type you want to generate.
+Specifies the type of mocks to be generate.
 
-#### delay
+### delay
 
 Type: `Number | Function | false`.
 
 Default Value: `1000`.
 
-Use to specify the delay time for the mock. It can either be a fixed number, false or a function that returns a number.
+Specifies the delay time for the mock. It can either be a fixed number, false or a function that returns a number.
 Setting delay to false removes the delay call completely.
 
-#### delayFunctionLazyExecute
+### delayFunctionLazyExecute
 
 Type: `boolean`.
 
-Gives you the possibility to have functions that are passed to `delay` to be
-executed at runtime rather than when the mocks are generated.
+When set to `true`, functions that are passed to `delay` will be executed at runtime rather than when the mocks are generated.
 
-#### useExamples
-
-Type: `Boolean`.
-
-Gives you the possibility to use the `example`/`examples` fields from your OpenAPI specification as mock values.
-
-#### generateEachHttpStatus
+### useExamples
 
 Type: `Boolean`.
 
-Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification. By default only the 200 OK response is generated.
+When set to `true`, uses the `example`/`examples` fields from the OpenAPI specification as mock values.
 
-#### baseUrl
+### generateEachHttpStatus
+
+Type: `Boolean`.
+
+When set to `true`, generates mocks for all the HTTP statuses in the `responses` fields in the OpenAPI specification. By default only the 200 OK response is generated.
+
+### baseUrl
 
 Type: `String`.
 
-Give you the possibility to set base url to your mock handlers.
+Sets the base URL of the mock handlers.
 
-#### locale
+### locale
 
 Type: `String`.
 
 Default Value: `en`.
 
-Give you the possibility to set the locale for the mock generation. It is used by faker, see the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
+Sets the locale for the mock generation. It is used by Faker. See the list of available options [here](https://fakerjs.dev/guide/localization.html#available-locales). It should also be strongly typed using `defineConfig`.
 
-### indexMockFiles
+## indexMockFiles
 
 Type: `Boolean`
 
 Default Value: `false`.
 
-When `true`, adds a `index.msw.ts` file which exports all mock functions.
+When `true`, adds an `index.msw.ts` file which exports arrays with all mock functions.
+
 This is only valid when `mode` is `tags-split`.
 
 Example:
@@ -567,97 +608,98 @@ module.exports = {
 };
 ```
 
-### docs
+```ts
+// index.msw.ts
+export { getPetsMock } from './pets/pets.msw';
+export { getStoresMock } from './stores/stores.msw';
+// etc...
+```
+
+## docs
 
 Type: `Boolean | Object`.
 
 Default Value: `false`.
 
-Will generate API docs using [TypeDoc](https://typedoc.org/). by default these docs will be in Markdown format.
+Will generate API docs using [TypeDoc](https://typedoc.org/). By default the docs will be in Markdown format.
 
-TypeDoc can be configured by passing the [options](https://typedoc.org/options/) to the `docs` object or by creating a config file e.g. `typedoc.config.mjs` in your project root (see the [config docs](https://typedoc.org/options/configuration/#options) for a full list of supported file names) or by passing a config filename to the `configPath` option below.
+TypeDoc can be configured by passing the [options](https://typedoc.org/options/) to the `docs` object or by creating a config file e.g. `typedoc.config.mjs` in the project root (see the [config docs](https://typedoc.org/options/configuration/#options) for a full list of supported file names) or by passing a config filename to the `configPath` option below.
 
 See the TypeDoc [configuration documentation](https://typedoc.org/options/) for more details.
 
-The `docs` option can take some properties to customize the generation if you set it to an object. If you set it to `true`, the default options will be used.
+The `docs` option can take some properties to customize the generation if you set it to an object. If set to `true`, the default options will be used.
 
 When no output directory destination is specified in `config`, the file will be output to the `docs` directory by default.
 
-#### configPath
+For example configuration, see this [sample](https://github.com/orval-labs/orval/tree/master/samples/react-app/orval.config.ts).
+
+### configPath
 
 Type: `String`.
 
-Use to specify a TypeDoc config filename. This can be useful if your project already has a TypeDoc config for other docs.
+Specifies the TypeDoc config filename. This can be useful if your project already has a TypeDoc config for other docs.
 
-### clean
+## clean
 
 Type: `Boolean | String[]`.
 
 Default Value: `false`.
 
-Can be used to clean generated files. Provide an array of glob if you want to customize what is deleted.
+Can be used to clean generated files. Provide an array of glob to customize what is deleted.
 
-Be careful clean all output target and schemas folder.
+This will clean all output target and schemas folders.
 
-### prettier
-
-Type: `Boolean`.
-
-Default Value: `false`.
-
-Can be used to prettier generated files. You need to have prettier in your dependencies.
-
-### tslint
+## prettier
 
 Type: `Boolean`.
 
 Default Value: `false`.
 
-Can be used to specify `tslint` ([TSLint is deprecated in favour of eslint + plugins](https://github.com/palantir/tslint#tslint)) as typescript linter instead of `eslint`. You need to have tslint in your dependencies.
+Can be used to run prettier on the generated files. This requires prettier to be installed globally.
 
-### biome
+## biome
 
 Type: `Boolean`.
 
 Default Value: `false`.
 
-You can apply `lint` and `format` of [`biome`](https://biomejs.dev/) to the generated file. You need to have `@biomejs/biome` in your dependencies.
+When set to `true`, will apply `lint` and `format` of [`biome`](https://biomejs.dev/) to the generated file. The project must have `@biomejs/biome` in its dependencies.
 
-The automatically generated source code does not comply with some lint rules included in the default ruleset for `biome`, so please control them in the your `biome` configuration file.
+The automatically generated source code does not comply with some lint rules included in the default ruleset for `biome`, so please control them in the the project's `biome` configuration file.
 
-### headers
+## headers
 
 Type: `Boolean`.
 
-Use to enable the generation of the headers
+When set to `true`, enables the generation of the headers
 
-### tsconfig
+## tsconfig
 
 Type: `String | Tsconfig`.
 
-Should be automatically found and transparent for you.
-Can be used to specify the path to your `tsconfig` or directly your config.
+Should be automatically found.
+To use a different configuration, specify the path to the project's `tsconfig` or directly define the config in this property.
 
-### packageJson
+## packageJson
 
 Type: `String`.
 
-Should be automatically found and transparent for you.
+Should be automatically found.
 Can be used to specify the path to your `package.json`.
 
-### override
+## override
 
 Type: `Object`.
 
-Give you the possibility to override the output like your mock implementation or transform the API implementation like you want
+Allows overriding the output to specify mock generation or transforming the API implementation to your project's needs.
 
-#### transformer
+### transformer
 
 Type: `String` or `Function`.
 
 Valid values: path or implementation of the transformer function.
 
-This function is executed for each call when you generate and take in argument a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L556" target="_blank">GeneratorVerbOptions</a>
+This function is executed for each call when you generate and take in argument a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L823" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L823" target="_blank">GeneratorVerbOptions</a>
 
 ```js
 module.exports = {
@@ -671,15 +713,15 @@ module.exports = {
 };
 ```
 
-#### mutator
+### mutator
 
-Type: `String` or `Object`.
+Type: `String | Object`.
 
 Valid values: path of the mutator function or object with a path and name.
 
-If you provide an object you can also add a default property to use an export default function.
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
 
-This function is executed for each call when this one is executed. It takes all the options passed to the verb as an argument and should return a promise with your custom implementation or preferred HTTP client.
+This function is executed for each call's execution. It takes all the options passed to the verb as an argument, and should return a `Promise` with the custom implementation or preferred HTTP client.
 
 Possible arguments:
 
@@ -696,7 +738,7 @@ interface RequestConfig {
 }
 ```
 
-- The second argument is only provided for the Angular client and give an instance of HttpClient
+- The second argument is only provided for the Angular client and provides an instance of HttpClient
 
 Example:
 
@@ -741,7 +783,7 @@ export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
 export type ErrorType<Error> = AxiosError<Error>;
 ```
 
-- If your file have some alias you will also need to define them in the mutator object.
+- If the file has some alias you will also need to define them in the mutator object.
 
 Example:
 
@@ -788,7 +830,7 @@ module.exports = {
 };
 ```
 
-- If you use one of the following clients `react-query`, `vue-query` and `svelte-query`. You can also provide a hook like this
+- When using the `react-query`, `vue-query` or `svelte-query` client, it is possible to provide a hook.
 
 Example:
 
@@ -845,7 +887,7 @@ export default useCustomInstance;
 export type ErrorType<Error> = AxiosError<Error>;
 ```
 
-- If you use ES modules (`"type": "module"`). You can also provide a hook like this
+- If you use ES modules (`"type": "module"`), you can also provide a hook like this
 
 Example:
 
@@ -867,23 +909,23 @@ module.exports = {
 
 The generated file will import the mutator with a `.js` extension.
 
-#### header
+### header
 
 Type: `Boolean | Function`.
 
 Default Value: `true`.
 
-Use this property to disable the auto generation of the file header
+Use this property to disable the automatic generation of the file header.
 
-You can provide a function to customize the way you want the generate the file header. You will receive the info object of the specification in argument and you should return an array of string.
+You can provide a function to customize the file header is generated. The function should take an argument of type `InfoObject`, and should return a `string[]`.
 
 ```ts
 module.exports = {
   petstore: {
     output: {
       override: {
-        header: (info: InfoObject): String[] => [
-          `Generated by orval 🍺`,
+        header: (info: InfoObject): string[] => [
+          `Generated by Orval 🍺`,
           `Do not edit manually.`,
           ...(info.title ? [info.title] : []),
           ...(info.description ? [info.description] : []),
@@ -895,11 +937,47 @@ module.exports = {
 };
 ```
 
-#### fetch
+### namingConvention (property keys)
 
 Type: `Object`.
 
-Give options to the generated `fetch` client.
+Change output naming convention generated **for property keys**.
+
+**By default, preserves keys** naming convention as is.
+
+If you're looking **for file** naming convention, see [namingConvention](#namingconvention).
+
+```ts
+
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        namingConvention: {
+          enum: 'PascalCase',
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+#### enum
+
+Type: `String`.
+
+Changes naming convention for **enum** keys. All generated [enum types](#enumgenerationtype) supported.
+
+Valid values: : `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
+_same as for file_ [namingConvention](#namingconvention).
+
+### fetch
+
+Type: `Object`.
+
+Options related to the generated Fetch client.
 
 ```js
 module.exports = {
@@ -917,19 +995,143 @@ module.exports = {
 };
 ```
 
-##### includeHttpResponseReturnType
+#### includeHttpResponseReturnType
 
 Type: `Boolean`.
 Default: `true`
 
-When using `fetch` for `client` or `httpClient`, the `fetch` response type includes http status for easier processing by the application.
-If you want to return a defined return type instead of an automatically generated return type, set this value to `false`.
+When using `fetch` for `client` or `httpClient`, the Fetch response type includes HTTP status for easier processing by the application.
+To return a defined return type instead of an automatically generated return type, set this value to `false`.
 
-#### query
+#### explode
+
+Type: `Boolean`.
+Default: `true`
+
+By default, the Fetch client follows the OpenAPI specification for query parameter explode behavior. This means that query parameters will be exploded unless explicitly set to `false` in the OpenAPI schema.
+
+To maintain backward compatibility with the previous behavior (where only parameters with `explode: true` are exploded), set this value to `false`.
+
+##### forceSuccessResponse
+
+Type: `Boolean`.
+Default: `false`
+
+By default, the Fetch client either returns a success or failure response. This depends on how the specification is set up and what the response code of the request is.
+When using `fetch` along with libraries such as `react-query`, that expects an error to be thrown on an error response, this default behaviour is not wanted.
+
+By setting this setting to `true`, Orval will generate code that is typed to always return the successful response type and throw an error when an error response is returned from the request.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+export type createPetsResponse200 = {
+  data: Pet;
+  status: 200;
+};
+
+export type createPetsResponseDefault = {
+  data: Error;
+  status: Exclude<HTTPStatusCodes, 200>;
+};
+
+export type createPetsResponseSuccess = createPetsResponse200 & {
+  headers: Headers;
+};
+export type createPetsResponseError = createPetsResponseDefault & {
+  headers: Headers;
+};
+
+export const createPets = async (
+  createPetsBody: CreatePetsBody,
+  params: CreatePetsParams,
+  options?: RequestInit,
+): Promise<createPetsResponseSuccess> => {
+  const res = await fetch(getCreatePetsUrl(params), {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createPetsBody),
+  });
+
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  if (!res.ok) {
+    const err: globalThis.Error & {
+      info?: createPetsResponseError['data'];
+      status?: number;
+    } = new globalThis.Error();
+    const data: createPetsResponseError['data'] = body ? JSON.parse(body) : {};
+    err.info = data;
+    err.status = res.status;
+    throw err;
+  }
+  const data: createPetsResponseSuccess['data'] = body ? JSON.parse(body) : {};
+  return {
+    data,
+    status: res.status,
+    headers: res.headers,
+  } as createPetsResponseSuccess;
+};
+```
+
+##### jsonReviver
+
+Type: `String` or `Object`
+
+Allows you to provide a <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#reviver" target="_blank">reviver</a> function to the fetch client when it parses JSON. It is recommended to use this to revive dates when setting <a href="#usedates">useDates</a> to `true`
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          jsonReviver: {
+            path: './api/mutator/custom-reviver.ts',
+            name: 'customReviver',
+            // default: true
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+```ts
+// custom-reviver.ts
+const isoDateFormat =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
+
+export function customReviver(key: string, value: unknown) {
+  if (value && typeof value === 'string' && isoDateFormat.test(value)) {
+    return new Date(value);
+  }
+  return value;
+}
+```
+
+### query
 
 Type: `Object`.
 
-Give you the possibility to override the generated <a href="https://react-query.tanstack.com/" target="_blank">query</a>
+Overrides the generated <a href="https://react-query.tanstack.com/" target="_blank">query</a>
 
 ```js
 module.exports = {
@@ -953,30 +1155,34 @@ module.exports = {
 };
 ```
 
-##### useQuery
+#### useQuery
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">useQuery</a> custom hook. If the query key isn't provided that's the default hook generated.
+Use to generate <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">useQuery</a> hooks.
+If the query key isn't provided that's the default hook generated.
 
-##### useMutation
-
-Type: `Boolean`.
-
-Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useMutation" target="_blank">useMutation</a> custom hook.
-
-##### useInfinite
+#### useMutation
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://tanstack.com/query/latest/docs/react/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> custom hook.
+Use to generate <a href="https://tanstack.com/query/latest/docs/react/reference/useMutation" target="_blank">useMutation</a> hooks.
+The hook will only be generated if the operation is not a `GET` operation, and not configured to generate a [query](#useQuery).
 
-##### usePrefetch
+The [operations override](#operations) will take precedence if both are configured.
+
+#### useInfinite
 
 Type: `Boolean`.
 
-Use to generate a <a href="https://tanstack.com/query/v4/docs/react/guides/prefetching" target="_blank">prefetching</a> functions.
-This may be useful for the NextJS SSR or any prefetching situations.
+Use to generate <a href="https://tanstack.com/query/latest/docs/react/reference/useInfiniteQuery" target="_blank">useInfiniteQuery</a> hooks.
+
+#### usePrefetch
+
+Type: `Boolean`.
+
+Use to generate <a href="https://tanstack.com/query/v4/docs/react/guides/prefetching" target="_blank">prefetching</a> functions.
+This may be useful for NextJS SSR or similar prefetching use cases.
 
 Example generated function:
 
@@ -1003,25 +1209,25 @@ export const prefetchGetCategories = async <
 };
 ```
 
-##### useInfiniteQueryParam
+#### useInfiniteQueryParam
 
 Type: `String`.
 
 Use to automatically add to the request the query param provided by the useInfiniteQuery when you use `getFetchMore` function.
 
-##### options (deprecated use queryOptions instead)
+#### options (deprecated use queryOptions instead)
 
 Type: `Object`.
 
 Use to override the query config. Check available options <a href="https://tanstack.com/query/latest/docs/react/reference/useQuery" target="_blank">here</a>
 
-##### queryKey
+#### queryKey
 
-Type: `String` or `Object`.
+Type: `String | Object`.
 
 Valid values: path of the `queryKey` function or object with a path and name.
 
-If you provide an object you can also add a default property to use an export default function.
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
 
 Example:
 
@@ -1043,13 +1249,13 @@ module.exports = {
 };
 ```
 
-##### queryOptions
+#### queryOptions
 
-Type: `String` or `Object`.
+Type: `String | Object`.
 
 Valid values: path of the `queryOptions` function or object with a path and name.
 
-If you provide an object you can also add a default property to use an export default function.
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
 
 Example:
 
@@ -1071,13 +1277,13 @@ module.exports = {
 };
 ```
 
-##### mutationOptions
+#### mutationOptions
 
-Type: `String` or `Object`.
+Type: `String | Object`.
 
 Valid values: path of the `mutationOptions` function or object with a path and name.
 
-If you provide an object you can also add a default property to use an export default function.
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
 
 Example:
 
@@ -1089,7 +1295,7 @@ module.exports = {
         query: {
           mutationOptions: {
             path: './api/mutator/custom-mutator-options.ts',
-            name: 'customMutatorOptionsFn',
+            name: 'useCustomMutatorOptions',
             // default: true
           },
         },
@@ -1099,21 +1305,116 @@ module.exports = {
 };
 ```
 
-##### signal
+```ts
+// custom-mutator-options.ts
+
+// custom-mutator-options.ts
+type OptionsWithMutationFn<
+  TData = unknown,
+  TError = Error,
+  TVariables = void,
+  TContext = unknown,
+> = UseMutationOptions<T, TError, TData, TContext> &
+  Required<Pick<UseMutationOptions<T, TError, TData, TContext>, 'mutationFn'>>;
+
+export const useCustomMutatorOptions = <
+  TData = unknown,
+  TError = Error,
+  TVariables = void,
+  TContext = unknown,
+>(
+  options: OptionsWithMutationFn<T, TError, TData, TContext>,
+): OptionsWithMutationFn<T, TError, TData, TContext> => {
+  const queryClient = useQueryClient();
+  if (options.mutationKey?.[0] === 'petDestroy') {
+    // Note: `options.mutationKey?.[0]` is untyped.
+    options.onSuccess = (_data, variables, _context) => {
+      // Note: `variables` is untyped.
+      options.onSuccess?.(data, variables, context);
+      // Note: `queryKey` is hardcoded, can't use `getGetPetQueryKey()` as it would introduce circular dependencies.
+      queryClient.invalidateQueries({
+        queryKey: ['api', 'v2', 'pet', variables.id],
+      });
+    };
+  }
+  // TODO: add more ifs for each mutation.
+  return options;
+};
+```
+
+#### signal
 
 Type: `Boolean`.
 
 Use to remove the generation of the abort signal provided by <a href="https://react-query.tanstack.com/" target="_blank">query</a>
 
-##### shouldExportMutatorHooks
+#### shouldExportMutatorHooks
 
 Type: `Boolean`.
 
 Default Value: `true`.
 
-Use to stop the export of mutator hooks. Useful if you want to rely soley on useQuery, useSuspenseQuery, etc.
+Use to stop the export of mutator hooks. Useful if you want to rely solely on useQuery, useSuspenseQuery, etc.
 
-##### version
+#### shouldExportQueryKey
+
+Type: `Boolean`.
+
+Default Value: `true`.
+
+Use to stop the export of query keys.
+
+#### shouldSplitQueryKey
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Use to make Orval generate query keys as arrays instead of strings.
+
+#### useOperationIdAsQueryKey
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Use to generate query keys using the OpenAPI operation ID instead of the route path. This provides more stable and semantic query keys that don't change when route paths are modified.
+
+**Example:**
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useOperationIdAsQueryKey: true,
+        },
+      },
+    },
+  },
+};
+```
+
+**Generated code comparison:**
+
+Default behavior (`useOperationIdAsQueryKey: false`):
+
+```typescript
+const getPetByIdQueryKey = (petId: string) => {
+  return [`/pets/${petId}`] as const;
+};
+```
+
+With `useOperationIdAsQueryKey: true`:
+
+```typescript
+const getPetByIdQueryKey = (petId: string) => {
+  return ['getPetById', petId] as const;
+};
+```
+
+#### version
 
 Type: `number`.
 
@@ -1121,11 +1422,11 @@ Default Value: `Detect from package json`.
 
 Use to specify a version for the generated hooks. This is useful if you want to force a version for the hooks.
 
-#### angular
+### angular
 
 Type: `Object`.
 
-Give you specific options for the angular client
+Allows specifying options for the Angular client
 
 ```js
 module.exports = {
@@ -1143,9 +1444,9 @@ module.exports = {
 };
 ```
 
-##### provideIn
+#### provideIn
 
-Type: `Boolean` or `String`.
+Type: `Boolean | String`.
 
 Valid values: `true`, `false`, `'root'`, `'any'`, `''`.
 
@@ -1153,11 +1454,11 @@ Default Value: `'root'`.
 
 Can be used to set the value of `providedIn` on the generated Angular services. If `false`, no `providedIn` will be set. If `true` or not specified, it will fall back to the default value: `root`.
 
-#### swr
+### swr
 
 Type: `Object`.
 
-Give options to the generated `swr` client. It is also possible to extend the generated functions.
+Options for generating the `swr` client. It is also possible to extend the generated functions.
 
 ```js
 module.exports = {
@@ -1175,17 +1476,41 @@ module.exports = {
 };
 ```
 
-##### useInfinite
+#### useInfinite
 
 Type: `Boolean`.
 
 Use to generate a <a href="https://swr.vercel.app/docs/pagination#useswrinfinite" target="_blank">useSWRInfinite</a> custom hook.
 
-##### swrOptions
+#### useSWRMutationForGet
+
+Type: `Boolean`.
+
+Use to generate a <a href="https://swr.vercel.app/docs/mutation#useswrmutation" target="_blank">useSWRMutation</a> custom hook for get request.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          swrOptions: {
+            useSWRMutationForGet: true,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+#### swrOptions
 
 Type: `Object`.
 
-Use to override the `useSwr` options. Check available options [here](https://swr.vercel.app/docs/api#options)
+Use to override the `useSwr` options. See available options [here](https://swr.vercel.app/docs/api#options)
 
 Example:
 
@@ -1205,11 +1530,11 @@ module.exports = {
 };
 ```
 
-##### swrMutationOptions
+#### swrMutationOptions
 
 Type: `Object`.
 
-Use to override the `useSWRMutation` options. Check available options [here](https://swr.vercel.app/docs/mutation#useswrmutation-parameters)
+Use to override the `useSWRMutation` options. See available options [here](https://swr.vercel.app/docs/mutation#useswrmutation-parameters)
 
 Example:
 
@@ -1229,11 +1554,11 @@ module.exports = {
 };
 ```
 
-##### swrInfiniteOptions
+#### swrInfiniteOptions
 
 Type: `Object`.
 
-Use to override the `useSWRInfinite` options. Check available options [here](https://swr.vercel.app/docs/pagination#parameters)
+Use to override the `useSWRInfinite` options. See available options [here](https://swr.vercel.app/docs/pagination#parameters)
 
 Example:
 
@@ -1253,11 +1578,11 @@ module.exports = {
 };
 ```
 
-#### zod
+### zod
 
 Type: `Object`.
 
-Give you specific options for the zod client
+Options for generating the Zod client
 
 ```js
 module.exports = {
@@ -1288,21 +1613,19 @@ module.exports = {
 };
 ```
 
-##### strict
+#### strict
 
 Type: `Object`.
 
 Default Value: `false`.
 
-Use to set the strict mode for the zod schema. If you set it to true, the schema will be generated with the strict mode.
+Use to set the strict mode for the Zod schema. If set to `true`, the schema will be generated with strict mode.
 
-##### generate
+#### generate
 
 Type: `Object`.
 
-Default Value: `true`.
-
-Use to set the which type of schemas you want to generate for the zod schema.
+Use to define the Zod schemas to be generated.
 
 example:
 
@@ -1328,17 +1651,15 @@ module.exports = {
 };
 ```
 
-In the above example exclude response body validations not generated
+In the above example, response body validations are not generated
 
-##### coerce
+#### coerce
 
 Type: `Object`.
 
-Default Value: `false`.
+Use to configure [coercion](https://zod.dev/api?id=coercion) for the Zod schema. If set to `true`, the schema will be generated with the coerce on all possible types.
 
-Use to set the coerce for the zod schema. If you set it to true, the schema will be generated with the coerce on possible types.
-
-You can also provide an array of coerce types to only generate the coerce types for the specified types.
+If an array of coerce types are provided, coercion is only generated for the specified types.
 
 example:
 
@@ -1361,11 +1682,11 @@ module.exports = {
 };
 ```
 
-##### preprocess
+#### preprocess
 
 Type: `Object`.
 
-Use to add preprocess function to a zod schema. You can use a custom mutator to preprocess the data before it is validated.
+Use to add a preprocess function to a Zod schema. Provide a custom mutator to preprocess the data before it is validated.
 
 example:
 
@@ -1390,11 +1711,11 @@ module.exports = {
 };
 ```
 
-##### generateEachHttpStatus
+#### generateEachHttpStatus
 
 Type: `Boolean`.
 
-Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification. By default only the 200 OK response is generated.
+Allows generating mocks for all the HTTP statuses in the `responses` fields of the provided OpenAPI specification. By default only the 200 OK response is generated.
 
 ```js
 module.exports = {
@@ -1412,17 +1733,77 @@ module.exports = {
 };
 ```
 
-#### mock
+#### dateTimeOptions
 
 Type: `Object`.
 
-Give you the possibility to override the generated mock
+Default Value: `{}`.
 
-##### properties
+Use to set options for Zod `datetime` fields. These options are passed directly to zod `datetime` validation.
 
-Type: `Object` or `Function`.
+Example:
 
-You can use this to override the generated mock per property. Properties can take a function who take the specification in argument and should return un object or directly the object. Each key of this object can be a regex or directly the path of the property to override and the value can be a function which return the wanted value or directly the value. If you use a function this will be executed at runtime.
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          dateTimeOptions: {
+            local: true,
+            offset: true,
+            precision: 3,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+Read more about datetimes in the [Zod documentation](https://zod.dev/?id=datetimes).
+
+#### timeOptions
+
+Type: `Object`.
+
+Default Value: `{}`.
+
+Use to set options for Zod `time` fields. These options are passed directly to Zod `time` validation.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          timeOptions: {
+            precision: -1,
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+Read more about times in the [Zod documentation](https://zod.dev/?id=times).
+
+### mock
+
+Type: `Object`.
+
+Allows overriding the generated mock.
+
+#### properties
+
+Type: `Object | Function`.
+
+Use this to override the generated mock per property. Properties can either be a function that receives the specification as an argument and returns an object, or it can be a static object.
+
+Each key of this object can be a regex or the path of the property to override. The value can either be a function returning a value, or a static value. If a function is provided, it will be executed at runtime.
 
 ```js
 module.exports = {
@@ -1443,11 +1824,12 @@ module.exports = {
 };
 ```
 
-##### format
+#### format
 
 Type: `Object`.
 
-Give you the possibility to put a value for a `format`. In your specification, if you put a `format: email` to a property Orval will automatically generate a random email for you. See the default available format <a href="https://github.com/orval-labs/orval/blob/master/packages/mock/src/faker/constants.ts" target="_blank">here</a>.
+Allows providing values for `format` in the OpenAPI specification.
+For example, if `format: email` is on a property in the OpenAPI specification, Orval will automatically generate a random email. See the default available format <a href="https://github.com/orval-labs/orval/blob/master/packages/mock/src/faker/constants.ts" target="_blank">here</a>.
 
 ```js
 module.exports = {
@@ -1466,11 +1848,11 @@ module.exports = {
 };
 ```
 
-##### required
+#### required
 
 Type: `Boolean`.
 
-Give you the possibility to set every property as required.
+Sets every property to be required.
 
 ```js
 module.exports = {
@@ -1486,11 +1868,11 @@ module.exports = {
 };
 ```
 
-##### delay
+#### delay
 
-Type: `number`, `Function` or `false`.
+Type: `Number | Function | false`.
 
-Give you the possibility to set delay time for mock. It can either be a fixed number, false or a function that returns a number.
+Sets the delay time for the mock. It can either be a fixed number, false or a function that returns a number.
 Setting delay to false removes the delay call completely.
 
 Default Value: `1000`
@@ -1509,24 +1891,23 @@ module.exports = {
 };
 ```
 
-##### delayFunctionLazyExecute
+#### delayFunctionLazyExecute
 
 Type: `boolean`.
 
-Gives you the possibility to have functions that are passed to `delay` to be
-executed at runtime rather than when the mocks are generated.
+When set to `true`, the function passed to `delay` will be executed at runtime rather than when the mocks are generated.
 
-##### generateEachHttpStatus
+#### generateEachHttpStatus
 
 Type: `Boolean`.
 
-Gives you the possibility to generate mocks for all the HTTP statuses in the `responses` fields in your OpenAPI specification.
+When set to `true`, Orval will generate mocks for all the HTTP statuses in the `responses` fields of the provided OpenAPI specification.
 
-##### arrayMin
+#### arrayMin
 
 Type: `Number`.
 
-Set the minimum length of generated arrays for properties that specify multiple items. (Default is `1`)
+Sets the default minimum length of generated arrays for properties that specify multiple items. Used if `minItems` is not defined for the property. (Default is `1`)
 
 ```js
 module.exports = {
@@ -1542,11 +1923,11 @@ module.exports = {
 };
 ```
 
-##### arrayMax
+#### arrayMax
 
 Type: `Number`.
 
-Set the maximum length of generated arrays for properties that specify multiple items. (Default is `10`)
+Sets the default maximum length of generated arrays for properties that specify multiple items. Used if `maxItems` is not defined for the property. (Default is `10`)
 
 ```js
 module.exports = {
@@ -1562,9 +1943,109 @@ module.exports = {
 };
 ```
 
-##### useExamples
+#### stringMin
 
-An extension of the global mock option. If set to `true`, the mock generator will use the `example` property of the specification to generate the mock. If the `example` property is not set, the mock generator will fallback to the default behavior. Will override the global option.
+Type: `Number`.
+
+Sets the default minimum length of generated strings. Used if `minLength` is not defined for the property. (Default is `10`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          stringMin: 5,
+        },
+      },
+    },
+  },
+};
+```
+
+#### stringMax
+
+Type: `Number`.
+
+Sets the default maximum length of generated strings. Used if `maxLength` is not defined for the property. (Default is `20`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          stringMax: 15,
+        },
+      },
+    },
+  },
+};
+```
+
+#### numberMin
+
+Type: `Number`.
+
+Sets the default minimum value of generated numbers. Used if `minimum` is not defined for the property.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          numberMin: 5,
+        },
+      },
+    },
+  },
+};
+```
+
+#### numberMax
+
+Type: `Number`.
+
+Sets the default maximum value of generated numbers. Used if `maximum` is not defined for the property.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          numberMax: 15,
+        },
+      },
+    },
+  },
+};
+```
+
+#### fractionDigits
+
+Type: `Number`.
+
+Sets number of decimals displayed in floating-point numbers. (Default is `2`)
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          fractionDigits: 1,
+        },
+      },
+    },
+  },
+};
+```
+
+#### useExamples
+
+An extension of the global mock option. If set to `true`, the mock generator will use the `example` property of the specification to generate the mock. If the `example` property is not set, the mock generator will fall back to the default behavior. Will override the global option.
 
 ```js
 module.exports = {
@@ -1580,17 +2061,123 @@ module.exports = {
 };
 ```
 
-##### baseUrl
+#### baseUrl
 
 Type: `String`.
 
-Give you the possibility to set base url to your mock handlers. Will override the global option.
+Sets the base URL in the mock handlers. Will override the global option.
 
-#### components
+### hono
+
+Type: `Object`
+
+Overrides the generated `hono` files
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+          validatorOutputPath: 'src/validator.ts',
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+};
+```
+
+#### handlers
+
+Type: `String`.
+
+Changes the output path for the `hono` handlers.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+        },
+      },
+    },
+  },
+};
+```
+
+The files will be generated as below:
+
+```
+src/
+├── handlers
+│   ├── createPets.ts
+│   ├── listPets.ts
+│   ├── showPetById.ts
+│   └── updatePets.ts
+├── index.ts
+├── mutators.ts
+├── petstore.context.ts
+├── petstore.schemas.ts
+├── petstore.ts
+├── petstore.validator.ts
+└── petstore.zod.ts
+```
+
+#### validatorOutputPath
+
+Type: `String`.
+
+Changes the validator output path
+
+#### compositeRoute
+
+Type: `String`.
+
+When a string is provided, Orval will generate a single composite route file, containing all routes to the provided path.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+};
+```
+
+The files will be generated as below:
+
+```
+src/
+├── endpoints
+│   ├── pets
+│   │   ├── pets.context.ts
+│   │   ├── pets.handlers.ts
+│   │   └── pets.zod.ts
+│   └── validator.ts
+├── routes.ts
+└── schemas
+    ├── pet.ts
+    └── pets.ts
+```
+
+### components
 
 Type: `Object`.
 
-Give you the possibility to override the models
+Allows overriding the generated model names by adding a suffix to each name.
 
 ```js
 module.exports = {
@@ -1617,17 +2204,17 @@ module.exports = {
 };
 ```
 
-#### operations
+### operations
 
 Type: `Object`.
 
-Give you the possibility to override the generated mock by <a href="https://swagger.io/docs/specification/paths-and-operations/" target="_blank">operationId</a>.
+Allows overriding the generated mocks by <a href="https://swagger.io/docs/specification/paths-and-operations/" target="_blank">operationId</a>.
 
-Each key of the object should be an operationId and take as value an object.
+Each key of the `operations` object should be an `operationId` from the schema, and take as value an object.
 
-The value object can take the same properties as the override property (mutator,query,transformer,mock).
+The value object can take the same properties as the `override` property (`mutator`,`query`,`transformer`,`mock`).
 
-The mock options have one more possibility the data property. Which can take a function or the value directly. The function will be executed at runtime.
+The `mock` object allows an additional property; the `data` property. This property can take a function or the value directly. The function will be executed at runtime.
 
 ```js
 module.exports = {
@@ -1665,38 +2252,41 @@ module.exports = {
 };
 ```
 
-#### tags
+### tags
 
 Type: `Object`.
 
-Exactly the same as the `override.operations` but this time you can do it by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
+Equivalent to `override.operations`, except overrides are done by <a href="https://swagger.io/docs/specification/grouping-operations-with-tags/" target="_blank">tags</a>
 
-#### operationName
+### operationName
 
 Type: `Function`.
 
+Type signature:
+
 ```ts
-// type signature
 (operation: OperationObject, route: string, verb: Verbs) => string;
 ```
 
-Function to override the generate operation name.
+Function to override the generated operation names.
 
-#### requestOptions
+### requestOptions
 
 Type: `Object | Boolean`.
 
-Use this property to provide a config to your http client or completely remove the request options property from the generated files.
+Use this property to provide a config to the HTTP client or completely remove the request options property from the generated files.
 
-#### formData
+### formData
 
-Type: `Boolean` or `String` or `Object`.
+Type: `Boolean | String | Object`.
 
 Valid values: path of the formData function or object with a path and name.
 
-Use this property to disable the auto generation of form data if you use multipart
+This allows defining how the names of form entries are handled regarding arrays.
 
-If you provide an object you can also add a default property to use an export default function.
+Use this property to disable the auto generation of form data when using multipart
+
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
 
 Example:
 
@@ -1725,15 +2315,151 @@ export const customFormDataFn = <Body>(body: Body): FormData => {
 };
 ```
 
-#### formUrlEncoded
+#### mutator
 
-Type: `Boolean` or `String` or `Object`.
+Type: `String` | `Object`
+
+Equivalent to providing the mutator directly to the `formData` property, while also allowing the use of the `arrayHandling` property.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          mutator: {
+            path: './api/mutator/custom-form-data-fn.ts',
+            name: 'customFormDataFn',
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+#### arrayHandling
+
+Type: `serialize | serialize-with-brackets | explode`
+
+Default Value: `serialize`
+
+Specifies how FormData generation handles arrays.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          mutator: {
+            path: './api/mutator/custom-form-data-fn.ts',
+            name: 'customFormDataFn',
+          },
+          arrayHandling: 'serialize-with-brackets',
+        },
+      },
+    },
+  },
+};
+```
+
+For all of the following examples, this specification is used:
+
+```yaml
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: number
+        relatives:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              colors:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - white
+                    - black
+                    - green
+```
+
+Setting the value to `serialize` results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value) =>
+    formData.append(`relatives`, JSON.stringify(value)),
+  );
+}
+```
+
+Setting the value to `serialize-with-brackets` results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value) =>
+    formData.append(`relatives[]`, JSON.stringify(value)),
+  );
+}
+```
+
+Setting the value to `explode` results in the following generated code:
+
+```ts
+const formData = new FormData();
+if (pet.name !== undefined) {
+  formData.append(`name`, pet.name);
+}
+if (pet.age !== undefined) {
+  formData.append(`age`, pet.age.toString());
+}
+if (pet.relatives !== undefined) {
+  pet.relatives.forEach((value, index) => {
+    if (value.name !== undefined) {
+      formData.append(`relatives[${index}].name`, value.name);
+    }
+    if (value.colors !== undefined) {
+      value.colors.forEach((value, index1) =>
+        formData.append(`relatives[${index}].colors[${index1}]`, value),
+      );
+    }
+  });
+}
+```
+
+### formUrlEncoded
+
+Type: `Boolean | String | Object`.
 
 Valid values: path of the formUrlEncoded function or object with a path and name.
 
 Use this property to disable the auto generation of form url encoded
 
-If you provide an object you can also add a default property to use an export default function.
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
 
 Example:
 
@@ -1762,15 +2488,19 @@ export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
 };
 ```
 
-#### paramsSerializer
+### paramsSerializer
 
-Type: `String` or `Object`.
+Type: `String | Object`.
+
+IMPORTANT: This is only valid when using Axios or Angular.
 
 Valid values: path of the paramsSerializer function or object with a path and name.
 
-Use this property to add a custom params serializer to all requests that use query params.
+Use this property to add a custom parameter serializer to all requests that use query parameters.
 
-If you provide an object you can also add a default property to use an export default function.
+If an object is provided, it is also possible to add a `default` property to use the default exported function.
+
+If this is not specified, params are serialized as per Axios default.
 
 Example:
 
@@ -1801,13 +2531,16 @@ export const customParamsSerializerFn = (
 };
 ```
 
-#### paramsSerializerOptions
+### paramsSerializerOptions
 
 Type: `Object`
 
-Use this property to add a default params serializer. Current options are: `qs`.
+IMPORTANT: This is only valid when using Axios.
 
-All options are then passed to the chosen serializer.
+Use this property to specify how parameters are serialized. This is only taken into account when `paramsSerializer` is not defined.
+Currently, `qs` is the only available option. Read more about `qs` and its settings [here](https://www.npmjs.com/package/qs).
+
+If this is not specified, parameters are serialized as per Axios default.
 
 Example:
 
@@ -1827,11 +2560,11 @@ module.exports = {
 };
 ```
 
-#### useDates
+### useDates
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false.
+Valid values: `true` or `false`. Defaults to `false`.
 
 Use this property to convert OpenAPI `date` or `datetime` to JavaScript `Date` objects instead of `string`.
 
@@ -1849,7 +2582,8 @@ module.exports = {
 };
 ```
 
-**Note:** You must provide and Axios converter to convert these to dates as this just makes the TypeScript definition a Date.
+**Note:** You must provide an Axios converter to convert the serialised date strings to `Date` objects. This option only affects the TypeScript definition. If using `fetch` as your client, you can provide a `jsonReviver` override function.
+
 You can choose to use any Date library you want like Moment, Luxon, or native JS Dates.
 
 ```ts
@@ -1890,13 +2624,15 @@ export function handleDates(body: any) {
 }
 ```
 
-#### useBigInt
+**Note:** If you are using `fetch` as your client and `useDates` is set to `true`, query parameters of type Date will be stringified using toISOString()
+
+### useBigInt
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false.
+Valid values: `true` or `false`. Defaults to `false`.
 
-Use this property to convert OpenAPI `int64` format to JavaScript `BigInt` objects instead of `number`.
+Use this property to convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
 
 Example:
 
@@ -1912,13 +2648,13 @@ module.exports = {
 };
 ```
 
-#### coerceTypes
+### coerceTypes
 
 Type: `Boolean`
 
 Deprecated: Use `zod.coerce` instead.
 
-Valid values: true or false. Defaults to false.
+Valid values: `true` or `false`. Defaults to `false`.
 
 Use this property to enable [type coercion](https://zod.dev/?id=coercion-for-primitives) for [Zod](https://zod.dev/) schemas (only applies to query parameters schemas).
 
@@ -1938,7 +2674,7 @@ module.exports = {
 };
 ```
 
-#### useNamedParameters
+### useNamedParameters
 
 Type: `Boolean`.
 
@@ -1960,11 +2696,11 @@ module.exports = {
 };
 ```
 
-#### useTypeOverInterfaces
+### useTypeOverInterfaces
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false.
+Valid values: `true` or `false`. Defaults to `false`.
 
 Use this property to use TypeScript `type` instead of `interface`.
 
@@ -1982,11 +2718,11 @@ module.exports = {
 };
 ```
 
-#### useDeprecatedOperations
+### useDeprecatedOperations
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to true.
+Valid values: `true` or `false`. Defaults to `true`.
 
 Use this property to include/exclude generating any operation marked `"deprecated": true` in OpenAPI.
 
@@ -2004,11 +2740,11 @@ module.exports = {
 };
 ```
 
-#### contentType
+### contentType
 
 Type: `Object`
 
-Use this property to include or exclude some content types
+Use this property to include or exclude content types
 
 Example:
 
@@ -2027,13 +2763,13 @@ module.exports = {
 };
 ```
 
-#### useNativeEnums
+### useNativeEnums (deprecated, use 'enumGenerationType="enum"' instead)
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false.
+Valid values: `true` or `false`. Defaults to `false`.
 
-Use this property to generate native Typescript `enum` instead of `type` and `const` combo.
+Use this property to generate native Typescript `enum` instead of a combined `type` and `const`.
 
 Example:
 
@@ -2049,7 +2785,57 @@ module.exports = {
 };
 ```
 
-#### suppressReadonlyModifier
+### enumGenerationType
+
+Type: `const | enum | union`
+
+Default Value: `const`.
+
+This is used to specify how enums are generated. `const` generates a const object, `enum` generates a native enum and `union` generates a simple union type.
+To change the name of the generated enum keys, you can extend your OpenAPI schema with x-enumNames. Read more [here](../../guides/enums).
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        enumGenerationType: 'const',
+      },
+    },
+  },
+};
+```
+
+Result when `enumGenerationType` is `const`:
+
+```ts
+export type Example = (typeof Example)[keyof typeof Example];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const Example = {
+  foo: 'foo',
+  bar: 'bar',
+  baz: 'baz',
+} as const;
+```
+
+Result when `enumGenerationType` is `enum`:
+
+```ts
+export enum Example {
+  foo = 'foo',
+  bar = 'bar',
+  baz = 'baz',
+}
+```
+
+Result when `enumGenerationType` is `union`:
+
+```ts
+export const Example = 'foo' | 'bar' | 'baz';
+```
+
+### suppressReadonlyModifier
 
 Type: `Boolean`
 
@@ -2071,7 +2857,141 @@ module.exports = {
 };
 ```
 
-### allParamsOptional
+#### jsDoc
+
+##### filter
+
+Type: `Object`.
+
+A configuration object that allows you to customize `JSDoc` generation by optionally providing a filter function that transforms schema entries into key-value pairs.
+
+Example:
+
+```ts
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        jsDoc: {
+          filter: (schema) => {
+            const allowlist = [
+              'type',
+              'format',
+              'maxLength',
+              'minLength',
+              'description',
+              'minimum',
+              'maximum',
+              'exclusiveMinimum',
+              'exclusiveMaximum',
+              'pattern',
+              'nullable',
+              'enum',
+            ];
+            return Object.entries(schema || {})
+              .filter(([key]) => allowlist.includes(key))
+              .map(([key, value]) => {
+                return {
+                  key,
+                  value,
+                };
+              })
+              .sort((a, b) => {
+                return a.key.length - b.key.length;
+              });
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+Input:
+
+```yaml
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      oneOf:
+        - $ref: '#/components/schemas/Dog'
+        - $ref: '#/components/schemas/Cat'
+      properties:
+        '@id':
+          type: string
+          format: iri-reference
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+        email:
+          type: string
+          format: email
+        callingCode:
+          type: string
+          enum: ['+33', '+420', '+33'] # intentional duplicated value
+        country:
+          type: string
+          enum: ["People's Republic of China", 'Uruguay']
+```
+
+Result:
+
+```ts
+export interface Pet {
+  /**
+   * @type integer
+   * @format int64
+   */
+  id: number;
+  /**
+   * @type string
+   * @maxLength 0
+   * @minLength 40
+   * @description Name of pet
+   */
+  name: string;
+  /**
+   * @type integer
+   * @format int32
+   * @minimum 0
+   * @maximum 30
+   * @exclusiveMinimum true
+   * @exclusiveMaximum true
+   */
+  age?: number;
+  /**
+   * @type string
+   * @pattern ^\\d{3}-\\d{2}-\\d{4}$
+   * @nullable true
+   */
+  tag?: string | null;
+  /**
+   * @type string
+   * @format email
+   */
+  email?: string;
+  /**
+   * @type string
+   * @enum +33,+420,+33
+   */
+  callingCode?: PetCallingCode;
+  /**
+   * @type string
+   * @enum People's Republic of China,Uruguay
+   */
+  country?: PetCountry;
+}
+```
+
+## allParamsOptional
 
 Type: `Boolean`
 
@@ -2079,8 +2999,8 @@ Valid Values: `true` or `false`.
 
 Default Value: `false`.
 
-Applies to all clients, but probably only makes sense for `Tanstack Query`.
-Use this property to make all parameters optional except the path parameter. This is useful to take advantage of the `Orval`'s auto-enable feature for `Tanstack Query`, see https://github.com/orval-labs/orval/pull/894
+Applies to all clients, but is usually just relevant for `Tanstack Query`.
+Use this property to make all parameters optional except the path parameter. This is useful to take advantage of Orval's auto-enable feature for `Tanstack Query`, see https://github.com/orval-labs/orval/pull/894
 
 ```js
 module.exports = {
@@ -2092,13 +3012,13 @@ module.exports = {
 };
 ```
 
-### urlEncodeParameters
+## urlEncodeParameters
 
 Type: `Boolean`
 
-Valid values: true or false. Defaults to false. **Note:** this only works for Tanstack Query clients for now.
+Valid values: `true` or `false`. Defaults to `false`. **Note:** this only works for Tanstack Query clients and fetch httpClients for now.
 
-Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become a default in the future, see https://github.com/orval-labs/orval/pull/895
+Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become the default behaviour in the future, see https://github.com/orval-labs/orval/pull/895
 
 ```js
 module.exports = {
@@ -2110,14 +3030,14 @@ module.exports = {
 };
 ```
 
-### optionsParamRequired
+## optionsParamRequired
 
 Type: `Boolean`
 
 Valid Values: `true` or `false`.
 
 Default Value: `false`.
-Use this property to make the second `options` parameter required (such as when using a custom axios instance)
+Use this property to make the second `options` parameter required (such as when using a custom Axios instance)
 
 ```js
 module.exports = {
@@ -2129,12 +3049,13 @@ module.exports = {
 };
 ```
 
-### propertySortOrder
+## propertySortOrder
 
-Type: `Alphabetical` | `Specification`
+Type: `Alphabetical | Specification`
 
 Default Value: `Specification`
-This enables you to specify how properties in the models are sorted, either alphabetically or in the order they appear in the specification.
+
+Specifies how properties in the models are sorted, either alphabetically or in the order they appear in the specification.
 
 ```js
 module.exports = {

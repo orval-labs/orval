@@ -11,6 +11,7 @@ import {
   stringify,
 } from '@orval/core';
 import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { getMockScalar } from '../faker/getters';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
@@ -21,7 +22,7 @@ const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
       ? `(${value})()`
       : stringify(value as string)!;
 
-    acc[key] = implementation?.replace(
+    acc[key] = implementation?.replaceAll(
       /import_faker.defaults|import_faker.faker/g,
       'faker',
     );
@@ -34,7 +35,12 @@ const getMockWithoutFunc = (
 ): MockOptions => ({
   arrayMin: override?.mock?.arrayMin,
   arrayMax: override?.mock?.arrayMax,
+  stringMin: override?.mock?.stringMin,
+  stringMax: override?.mock?.stringMax,
+  numberMin: override?.mock?.numberMin,
+  numberMax: override?.mock?.numberMax,
   required: override?.mock?.required,
+  fractionDigits: override?.mock?.fractionDigits,
   ...(override?.mock?.properties
     ? {
         properties: getMockPropertiesWithoutFunc(
@@ -88,28 +94,31 @@ const getMockWithoutFunc = (
 
 const getMockScalarJsTypes = (
   definition: string,
-  mockOptionsWithoutFunc: { [key: string]: unknown },
+  mockOptionsWithoutFunc: Record<string, unknown>,
 ) => {
   const isArray = definition.endsWith('[]');
   const type = isArray ? definition.slice(0, -2) : definition;
 
   switch (type) {
-    case 'number':
+    case 'number': {
       return isArray
         ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
             `max: ${mockOptionsWithoutFunc.arrayMax}}` +
             `)}, () => faker.number.int())`
         : 'faker.number.int()';
-    case 'string':
+    }
+    case 'string': {
       return isArray
         ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc?.arrayMin},` +
             `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
             `)}, () => faker.word.sample())`
         : 'faker.word.sample()';
-    default:
+    }
+    default: {
       return 'undefined';
+    }
   }
 };
 
@@ -130,7 +139,7 @@ export const getResponsesMockDefinition = ({
   returnType: string;
   responses: ResReqTypesValue[];
   imports: GeneratorImport[];
-  mockOptionsWithoutFunc: { [key: string]: unknown };
+  mockOptionsWithoutFunc: Record<string, unknown>;
   transformer?: (value: unknown, definition: string) => string;
   context: ContextSpecs;
   mockOptions?: GlobalMockOptions;
@@ -261,15 +270,20 @@ export const getMockDefinition = ({
 };
 
 export const getMockOptionsDataOverride = (
+  operationTags: string[],
   operationId: string,
   override: NormalizedOverrideOutput,
 ) => {
-  const responseOverride = override?.operations?.[operationId]?.mock?.data;
+  const responseOverride =
+    override?.operations?.[operationId]?.mock?.data ||
+    operationTags
+      .map((operationTag) => override?.tags?.[operationTag]?.mock?.data)
+      .find((e) => e !== undefined);
   const implementation = isFunction(responseOverride)
     ? `(${responseOverride})()`
     : stringify(responseOverride);
 
-  return implementation?.replace(
+  return implementation?.replaceAll(
     /import_faker.defaults|import_faker.faker/g,
     'faker',
   );

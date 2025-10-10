@@ -1,17 +1,18 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, WriteModeProps } from '../types';
+import { OutputClient, type WriteModeProps } from '../types';
 import {
-  camel,
+  conventionName,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
-import { generateTarget } from './target';
-import { getOrvalGeneratedTypes } from './types';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
+import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
+import { generateTarget } from './target';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeSplitMode = async ({
   builder,
@@ -22,7 +23,10 @@ export const writeSplitMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
-      backupFilename: camel(builder.info.title),
+      backupFilename: conventionName(
+        builder.info.title,
+        output.namingConvention,
+      ),
       extension: output.fileExtension,
     });
 
@@ -36,6 +40,7 @@ export const writeSplitMode = async ({
       formData,
       formUrlEncoded,
       paramsSerializer,
+      fetchReviver,
     } = generateTarget(builder, output);
 
     let implementationData = header;
@@ -87,12 +92,12 @@ export const writeSplitMode = async ({
       specsName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
-      options: !isFunction(output.mock) ? output.mock : undefined,
+      options: isFunction(output.mock) ? undefined : output.mock,
     });
 
-    const schemasPath = !output.schemas
-      ? upath.join(dirname, filename + '.schemas' + extension)
-      : undefined;
+    const schemasPath = output.schemas
+      ? undefined
+      : upath.join(dirname, filename + '.schemas' + extension);
 
     if (schemasPath && needSchema) {
       const schemasData = header + generateModelsInline(builder.schemas);
@@ -132,8 +137,20 @@ export const writeSplitMode = async ({
       });
     }
 
+    if (fetchReviver) {
+      implementationData += generateMutatorImports({
+        mutators: fetchReviver,
+      });
+    }
+
     if (implementation.includes('NonReadonly<')) {
       implementationData += getOrvalGeneratedTypes();
+      implementationData += '\n';
+    }
+
+    if (implementation.includes('TypedResponse<')) {
+      implementationData += getTypedResponse();
+      implementationData += '\n';
     }
 
     implementationData += `\n${implementation}`;
@@ -169,7 +186,9 @@ export const writeSplitMode = async ({
       ...(schemasPath ? [schemasPath] : []),
       ...(mockPath ? [mockPath] : []),
     ];
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
+  } catch (error) {
+    throw new Error(
+      `Oups... 🍻. An Error occurred while splitting => ${error}`,
+    );
   }
 };

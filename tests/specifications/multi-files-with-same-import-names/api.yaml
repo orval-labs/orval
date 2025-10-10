@@ -1,0 +1,63 @@
+openapi: '3.0.3'
+info:
+  title: My bff service
+  version: '0.0.1'
+servers:
+  - description: Remote
+    url: '/bff/'
+  - description: Local
+    url: '/'
+paths:
+  /test:
+    get:
+      responses:
+        200:
+          description: Ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+
+components:
+  schemas:
+    Response:
+      type: object
+      properties:
+        petFromComponents:
+          $ref: '#/components/schemas/Pet'
+        petFromService1:
+          $ref: './external-backend-service1.yaml#/components/schemas/Pet'
+        petFromService2:
+          $ref: './external-backend-service2.yaml#/components/schemas/Pet'
+        petFromService3:
+          $ref: './3.yaml#/components/schemas/Pet'
+        petWithAllOf:
+          allOf:
+            - $ref: './3.yaml#/components/schemas/Pet'
+            - $ref: './external-backend-service2.yaml#/components/schemas/Pet'
+            - $ref: './external-backend-service1.yaml#/components/schemas/Pet'
+            - $ref: '#/components/schemas/Pet'
+        petWithOneOf:
+          oneOf:
+            - $ref: '#/components/schemas/Pet'
+            - $ref: './3.yaml#/components/schemas/Pet'
+            - $ref: './external-backend-service2.yaml#/components/schemas/Pet'
+            - $ref: './external-backend-service1.yaml#/components/schemas/Pet'
+        petWithAnyOf:
+          anyOf:
+            - $ref: './external-backend-service1.yaml#/components/schemas/Pet'
+            - $ref: './external-backend-service2.yaml#/components/schemas/Pet'
+            - $ref: './3.yaml#/components/schemas/Pet'
+            - $ref: '#/components/schemas/Pet'
+    Pet:
+      type: object
+      properties:
+        name:
+          type: string
+        from:
+          type: string
+          description: Field from bff
+          enum:
+            - bff
+      required:
+        - from

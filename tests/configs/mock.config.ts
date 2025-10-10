@@ -20,6 +20,10 @@ export default defineConfig({
           delay: 500,
           arrayMin: 3,
           arrayMax: 5,
+          stringMin: 10,
+          stringMax: 30,
+          numberMin: 0,
+          numberMax: 100,
           useExamples: true,
           baseUrl: 'https://petstore.swagger.io/v1',
         },
@@ -64,11 +68,10 @@ export default defineConfig({
       schemas: '../generated/mock/petstore-custom-mock-builder/model',
       client: 'axios',
       mock: (verbOptions, _) => {
-        const imports = [];
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
-          imports: imports,
+          imports: [],
           implementation: {
             function: '',
             handlerName: handlerName,
@@ -156,6 +159,9 @@ export default defineConfig({
       override: {
         useDates: true,
         useBigInt: true,
+        mock: {
+          fractionDigits: 1,
+        },
       },
     },
   },

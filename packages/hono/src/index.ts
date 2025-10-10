@@ -1,4 +1,5 @@
 import {
+  camel,
   ClientBuilder,
   ClientExtraFilesBuilder,
   ClientFooterBuilder,
@@ -9,20 +10,22 @@ import {
   GeneratorDependency,
   GeneratorImport,
   GeneratorMutator,
-  GeneratorOptions,
   GeneratorVerbOptions,
   getFileInfo,
   getOrvalGeneratedTypes,
+  getParamsInPath,
   jsDoc,
   kebab,
   NormalizedMutator,
   NormalizedOutputOptions,
   pascal,
+  sanitize,
   upath,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
 import { InfoObject } from 'openapi3-ts/oas30';
+
 import { getRoute } from './route';
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
@@ -94,7 +97,7 @@ export const getHonoFooter: ClientFooterBuilder = () => 'export default app';
 
 const generateHonoRoute = (
   { operationName, verb }: GeneratorVerbOptions,
-  { pathRoute }: GeneratorOptions,
+  pathRoute: string,
 ) => {
   const path = getRoute(pathRoute);
 
@@ -103,12 +106,19 @@ app.${verb.toLowerCase()}('${path}',...${operationName}Handlers)`;
 };
 
 export const generateHono: ClientBuilder = async (verbOptions, options) => {
-  const routeImplementation = generateHonoRoute(verbOptions, options);
+  if (options.override.hono.compositeRoute) {
+    return {
+      implementation: '',
+      imports: [],
+    };
+  }
+
+  const routeImplementation = generateHonoRoute(verbOptions, options.pathRoute);
 
   return {
     implementation: routeImplementation ? `${routeImplementation}\n\n` : '',
     imports: [
-      ...verbOptions.params.map((param) => param.imports).flat(),
+      ...verbOptions.params.flatMap((param) => param.imports),
       ...verbOptions.body.imports,
       ...(verbOptions.queryParams
         ? [
@@ -138,7 +148,7 @@ const getHonoHandlers = ({
     if (verbOption.headers) {
       currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
     }
-    if (verbOption.params.length) {
+    if (verbOption.params.length > 0) {
       currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
     }
     if (verbOption.queryParams) {
@@ -173,51 +183,61 @@ const getValidatorOutputRelativePath = (
 };
 
 const getZvalidatorImports = (
-  verbOption: GeneratorVerbOptions,
+  verbOptions: GeneratorVerbOptions[],
+  importPath: string,
   isHonoValidator: boolean,
 ) => {
-  const imports = [];
+  const importImplementation = verbOptions
+    .flatMap((verbOption) => {
+      const imports = [];
 
-  if (verbOption.headers) {
-    imports.push(`${verbOption.operationName}Header`);
-  }
+      if (verbOption.headers) {
+        imports.push(`${verbOption.operationName}Header`);
+      }
 
-  if (verbOption.params.length) {
-    imports.push(`${verbOption.operationName}Params`);
-  }
+      if (verbOption.params.length > 0) {
+        imports.push(`${verbOption.operationName}Params`);
+      }
 
-  if (verbOption.queryParams) {
-    imports.push(`${verbOption.operationName}QueryParams`);
-  }
+      if (verbOption.queryParams) {
+        imports.push(`${verbOption.operationName}QueryParams`);
+      }
 
-  if (verbOption.body.definition) {
-    imports.push(`${verbOption.operationName}Body`);
-  }
+      if (verbOption.body.definition) {
+        imports.push(`${verbOption.operationName}Body`);
+      }
 
-  if (
-    !isHonoValidator &&
-    !!verbOption.response.originalSchema?.['200']?.content?.['application/json']
-  ) {
-    imports.push(`${verbOption.operationName}Response`);
-  }
+      if (
+        !isHonoValidator &&
+        !!verbOption.response.originalSchema?.['200']?.content?.[
+          'application/json'
+        ]
+      ) {
+        imports.push(`${verbOption.operationName}Response`);
+      }
 
-  return imports.join(',\n');
+      return imports.join(',\n');
+    })
+    .join(',\n');
+
+  return importImplementation
+    ? `import {\n${importImplementation}\n} from '${importPath}'`
+    : '';
 };
 
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce(
-    (acc, value) => {
-      const tag = value.tags[0];
-      if (!acc[tag]) {
-        acc[tag] = [];
-      }
-      acc[tag].push(value);
-      return acc;
-    },
-    {} as Record<string, GeneratorVerbOptions[]>,
-  );
+  return Object.values(verbOptions).reduce<
+    Record<string, GeneratorVerbOptions[]>
+  >((acc, value) => {
+    const tag = value.tags[0];
+    if (!acc[tag]) {
+      acc[tag] = [];
+    }
+    acc[tag].push(value);
+    return acc;
+  }, {});
 };
 
 const generateHandlers = async (
@@ -246,7 +266,7 @@ const generateHandlers = async (
 
         const hasZValidator =
           !!verbOption.headers ||
-          !!verbOption.params.length ||
+          verbOption.params.length > 0 ||
           !!verbOption.queryParams ||
           !!verbOption.body.definition;
 
@@ -292,10 +312,11 @@ const generateHandlers = async (
         }
 
         const zodImports = output.override.hono.validator
-          ? `import { ${getZvalidatorImports(
-              verbOption,
+          ? getZvalidatorImports(
+              [verbOption],
+              `${outputPath}.zod`,
               output.override.hono.validator === 'hono',
-            )} } from '${outputPath}.zod';`
+            )
           : '';
 
         const content = `import { createFactory } from 'hono/factory';${validatorImport}
@@ -333,7 +354,7 @@ ${getHonoHandlers({
         const hasZValidator = verbs.some(
           (verb) =>
             !!verb.headers ||
-            !!verb.params.length ||
+            verb.params.length > 0 ||
             !!verb.queryParams ||
             !!verb.body.definition,
         );
@@ -368,17 +389,16 @@ ${getHonoHandlers({
           };
         }
 
-        const outputRelativePath = `./${kebab(tag)}`;
-
         let validatorImport = '';
         if (hasZValidator) {
           if (output.override.hono.validator === true) {
-            const validatorPath = output.override.hono.validatorOutputPath
-              ? getValidatorOutputRelativePath(
-                  output.override.hono.validatorOutputPath,
-                  handlerPath,
-                )
-              : `${outputRelativePath}.validator`;
+            const validatorOutputPath =
+              output.override.hono.validatorOutputPath ||
+              `${dirname}/${filename}.validator${extension}`;
+            const validatorPath = getValidatorOutputRelativePath(
+              validatorOutputPath,
+              handlerPath,
+            );
 
             validatorImport = `\nimport { zValidator } from '${validatorPath}';`;
           } else if (output.override.hono.validator === 'hono') {
@@ -386,22 +406,21 @@ ${getHonoHandlers({
           }
         }
 
+        const outputRelativePath = `./${kebab(tag)}`;
+
         const zodImports = output.override.hono.validator
-          ? `import { ${Object.values(verbs)
-              .map((verb) =>
-                getZvalidatorImports(
-                  verb,
-                  output.override.hono.validator === 'hono',
-                ),
-              )
-              .join(',\n')} } from '${outputRelativePath}.zod'`
+          ? getZvalidatorImports(
+              Object.values(verbs),
+              `${outputRelativePath}.zod`,
+              output.override.hono.validator === 'hono',
+            )
           : '';
 
         let content = `import { createFactory } from 'hono/factory';${validatorImport}
 import { ${Object.values(verbs)
           .map((verb) => `${pascal(verb.operationName)}Context`)
           .join(',\n')} } from '${outputRelativePath}.context';
-${zodImports};
+${zodImports}
 
 const factory = createFactory();`;
 
@@ -430,7 +449,7 @@ const factory = createFactory();`;
   const hasZValidator = Object.values(verbOptions).some(
     (verb) =>
       !!verb.headers ||
-      !!verb.params.length ||
+      verb.params.length > 0 ||
       !!verb.queryParams ||
       !!verb.body.definition ||
       (verb.response.contentTypes.length === 1 &&
@@ -489,11 +508,11 @@ const factory = createFactory();`;
   }
 
   const zodImports = output.override.hono.validator
-    ? `import { ${Object.values(verbOptions)
-        .map((verb) =>
-          getZvalidatorImports(verb, output.override.hono.validator === 'hono'),
-        )
-        .join(',\n')} } from '${outputRelativePath}.zod';`
+    ? getZvalidatorImports(
+        Object.values(verbOptions),
+        `${outputRelativePath}.zod`,
+        output.override.hono.validator === 'hono',
+      )
     : '';
 
   let content = `import { createFactory } from 'hono/factory';${validatorImport}
@@ -527,11 +546,22 @@ const factory = createFactory();`;
 };
 
 const getContext = (verbOption: GeneratorVerbOptions) => {
-  const paramType = verbOption.params.length
-    ? `param: {\n ${verbOption.params
-        .map((property) => property.definition)
-        .join(',\n    ')},\n },`
-    : '';
+  let paramType = '';
+  if (verbOption.params.length > 0) {
+    const params = getParamsInPath(verbOption.pathRoute).map((name) => {
+      const param = verbOption.params.find(
+        (p) => p.name === sanitize(camel(name), { es5keyword: true }),
+      );
+      const definition = param?.definition.split(':')[1];
+      const required = param?.required ?? false;
+      return {
+        definition: `${name}${required ? '' : '?'}:${definition}`,
+      };
+    });
+    paramType = `param: {\n ${params
+      .map((property) => property.definition)
+      .join(',\n    ')},\n },`;
+  }
 
   const queryType = verbOption.queryParams
     ? `query: ${verbOption.queryParams?.schema.name},`
@@ -594,8 +624,8 @@ const generateContext = async (
         const imps = verbs
           .flatMap((verb) => {
             const imports: GeneratorImport[] = [];
-            if (verb.params.length) {
-              imports.push(...verb.params.map((param) => param.imports).flat());
+            if (verb.params.length > 0) {
+              imports.push(...verb.params.flatMap((param) => param.imports));
             }
 
             if (verb.queryParams) {
@@ -610,16 +640,21 @@ const generateContext = async (
 
             return imports;
           })
-          .filter((imp) => contexts.includes(imp.name));
+          .filter((imp) => contexts.includes(imp.name))
+          .filter(
+            (imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i,
+          );
 
         if (contexts.includes('NonReadonly<')) {
           content += getOrvalGeneratedTypes();
           content += '\n';
         }
 
-        content += `import { ${imps
-          .map((imp) => imp.name)
-          .join(',\n')} } from '${relativeSchemasPath}';\n\n`;
+        if (imps.length > 0) {
+          const importSchemas = imps.map((imp) => imp.name).join(',\n  ');
+
+          content += `import {\n  ${importSchemas}\n} from '${relativeSchemasPath}';\n\n`;
+        }
 
         content += contexts;
 
@@ -647,8 +682,8 @@ const generateContext = async (
   const imps = Object.values(verbOptions)
     .flatMap((verb) => {
       const imports: GeneratorImport[] = [];
-      if (verb.params.length) {
-        imports.push(...verb.params.map((param) => param.imports).flat());
+      if (verb.params.length > 0) {
+        imports.push(...verb.params.flatMap((param) => param.imports));
       }
 
       if (verb.queryParams) {
@@ -663,7 +698,8 @@ const generateContext = async (
 
       return imports;
     })
-    .filter((imp) => contexts.includes(imp.name));
+    .filter((imp) => contexts.includes(imp.name))
+    .filter((imp, i, arr) => arr.findIndex((v) => v.name === imp.name) === i);
 
   if (contexts.includes('NonReadonly<')) {
     content += getOrvalGeneratedTypes();
@@ -703,7 +739,7 @@ const generateZodFiles = async (
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
 
-    return Promise.all(
+    const builderContexts = await Promise.all(
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
         const zods = await Promise.all(
           verbs.map((verbOption) =>
@@ -722,11 +758,18 @@ const generateZodFiles = async (
           ),
         );
 
+        if (zods.every((z) => z.implementation === '')) {
+          return {
+            content: '',
+            path: '',
+          };
+        }
+
         const allMutators = zods.reduce(
           (acc, z) => {
-            (z.mutators ?? []).forEach((mutator) => {
+            for (const mutator of z.mutators ?? []) {
               acc[mutator.name] = mutator;
-            });
+            }
             return acc;
           },
           {} as Record<string, GeneratorMutator>,
@@ -751,6 +794,10 @@ const generateZodFiles = async (
         };
       }),
     );
+
+    return Promise.all(
+      builderContexts.filter((context) => context.content !== ''),
+    );
   }
 
   const zods = await Promise.all(
@@ -772,9 +819,9 @@ const generateZodFiles = async (
 
   const allMutators = zods.reduce(
     (acc, z) => {
-      (z.mutators ?? []).forEach((mutator) => {
+      for (const mutator of z.mutators ?? []) {
         acc[mutator.name] = mutator;
-      });
+      }
       return acc;
     },
     {} as Record<string, GeneratorMutator>,
@@ -962,17 +1009,103 @@ export const zValidator =
   };
 };
 
+const generateCompositeRoutes = async (
+  verbOptions: Record<string, GeneratorVerbOptions>,
+  output: NormalizedOutputOptions,
+  context: ContextSpecs,
+) => {
+  const targetInfo = getFileInfo(output.target);
+  const compositeRouteInfo = getFileInfo(output.override.hono.compositeRoute);
+
+  const header = getHeader(
+    output.override.header,
+    context.specs[context.specKey].info,
+  );
+
+  const routes = Object.values(verbOptions)
+    .map((verbOption) => {
+      return generateHonoRoute(verbOption, verbOption.pathRoute);
+    })
+    .join(';');
+
+  const importHandlers = Object.values(verbOptions);
+
+  let ImportHandlersImplementation = '';
+  if (output.override.hono.handlers) {
+    const handlerFileInfo = getFileInfo(output.override.hono.handlers);
+    const operationNames = importHandlers.map(
+      (verbOption) => verbOption.operationName,
+    );
+
+    ImportHandlersImplementation = operationNames
+      .map((operationName) => {
+        const importHandlerName = `${operationName}Handlers`;
+
+        const handlersPath = upath.relativeSafe(
+          compositeRouteInfo.dirname,
+          upath.join(handlerFileInfo.dirname ?? '', `./${operationName}`),
+        );
+
+        return `import { ${importHandlerName} } from '${handlersPath}';`;
+      })
+      .join('\n');
+  } else {
+    const tags = importHandlers.map((verbOption) =>
+      kebab(verbOption.tags[0] ?? 'default'),
+    );
+    const uniqueTags = tags.filter((t, i) => tags.indexOf(t) === i);
+
+    ImportHandlersImplementation = uniqueTags
+      .map((tag) => {
+        const importHandlerNames = importHandlers
+          .filter((verbOption) => verbOption.tags[0] === tag)
+          .map((verbOption) => ` ${verbOption.operationName}Handlers`)
+          .join(`, \n`);
+
+        const handlersPath = upath.relativeSafe(
+          compositeRouteInfo.dirname,
+          upath.join(targetInfo.dirname ?? '', tag),
+        );
+
+        return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers';`;
+      })
+      .join('\n');
+  }
+
+  const honoImport = `import { Hono } from 'hono';`;
+  const honoInitialization = `\nconst app = new Hono()`;
+  const honoAppExport = `\nexport default app`;
+
+  const content = `${header}${honoImport}
+${ImportHandlersImplementation}
+${honoInitialization}
+${routes}
+${honoAppExport}
+`;
+
+  return [
+    {
+      content,
+      path: output.override.hono.compositeRoute || '',
+    },
+  ];
+};
+
 export const generateExtraFiles: ClientExtraFilesBuilder = async (
   verbOptions,
   output,
   context,
 ) => {
-  const [handlers, contexts, zods, validator] = await Promise.all([
-    generateHandlers(verbOptions, output),
-    generateContext(verbOptions, output, context),
-    generateZodFiles(verbOptions, output, context),
-    generateZvalidator(output, context),
-  ]);
+  const [handlers, contexts, zods, validator, compositeRoutes] =
+    await Promise.all([
+      generateHandlers(verbOptions, output),
+      generateContext(verbOptions, output, context),
+      generateZodFiles(verbOptions, output, context),
+      generateZvalidator(output, context),
+      output.override.hono.compositeRoute
+        ? generateCompositeRoutes(verbOptions, output, context)
+        : [],
+    ]);
 
   return [
     ...handlers,
@@ -982,6 +1115,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     output.override.hono.validator !== 'hono'
       ? [validator]
       : []),
+    ...compositeRoutes,
   ];
 };
 

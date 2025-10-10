@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import type { WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
@@ -11,7 +12,7 @@ import {
 } from '../utils';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
-import { getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeTagsMode = async ({
   builder,
@@ -43,6 +44,7 @@ export const writeTagsMode = async ({
           clientMutators,
           formData,
           formUrlEncoded,
+          fetchReviver,
           paramsSerializer,
         } = target;
 
@@ -93,13 +95,13 @@ export const writeTagsMode = async ({
             specsName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
-            options: !isFunction(output.mock) ? output.mock : undefined,
+            options: isFunction(output.mock) ? undefined : output.mock,
           });
         }
 
-        const schemasPath = !output.schemas
-          ? upath.join(dirname, filename + '.schemas' + extension)
-          : undefined;
+        const schemasPath = output.schemas
+          ? undefined
+          : upath.join(dirname, filename + '.schemas' + extension);
 
         if (schemasPath && needSchema) {
           const schemasData = header + generateModelsInline(builder.schemas);
@@ -129,10 +131,19 @@ export const writeTagsMode = async ({
           data += generateMutatorImports({ mutators: paramsSerializer });
         }
 
+        if (fetchReviver) {
+          data += generateMutatorImports({ mutators: fetchReviver });
+        }
+
         data += '\n\n';
 
         if (implementation.includes('NonReadonly<')) {
           data += getOrvalGeneratedTypes();
+          data += '\n';
+        }
+
+        if (implementation.includes('TypedResponse<')) {
+          data += getTypedResponse();
           data += '\n';
         }
 
@@ -151,11 +162,13 @@ export const writeTagsMode = async ({
         await fs.outputFile(implementationPath, data);
 
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
-      } catch (e) {
-        throw `Oups... 🍻. An Error occurred while writing tag ${tag} => ${e}`;
+      } catch (error) {
+        throw new Error(
+          `Oups... 🍻. An Error occurred while writing tag ${tag} => ${error}`,
+        );
       }
     }),
   );
 
-  return generatedFilePathsArray.flatMap((it) => it);
+  return generatedFilePathsArray.flat();
 };

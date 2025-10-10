@@ -1,45 +1,53 @@
 import {
-  ClientMockBuilder,
-  ConfigExternal,
+  type ClientMockBuilder,
+  type ConfigExternal,
   createLogger,
-  GlobalMockOptions,
-  GlobalOptions,
-  HonoOptions,
-  Hook,
-  HookFunction,
-  HookOption,
-  HooksOptions,
+  FormDataArrayHandling,
+  type GlobalMockOptions,
+  type GlobalOptions,
+  type HonoOptions,
+  type Hook,
+  type HookFunction,
+  type HookOption,
+  type HooksOptions,
   isBoolean,
   isFunction,
   isObject,
   isString,
   isUndefined,
   isUrl,
+  type JsDocOptions,
   mergeDeep,
-  Mutator,
-  NormalizedHonoOptions,
-  NormalizedHookOptions,
-  NormalizedMutator,
-  NormalizedOperationOptions,
-  NormalizedOptions,
-  NormalizedQueryOptions,
-  OperationOptions,
-  OptionsExport,
+  type Mutator,
+  NamingConvention,
+  type NormalizedHonoOptions,
+  type NormalizedHookOptions,
+  type NormalizedJsDocOptions,
+  type NormalizedMutator,
+  type NormalizedOperationOptions,
+  type NormalizedOptions,
+  type NormalizedOverrideOutput,
+  type NormalizedQueryOptions,
+  type OperationOptions,
+  type OptionsExport,
   OutputClient,
   OutputHttpClient,
   OutputMode,
+  type OverrideOutput,
   PropertySortOrder,
-  QueryOptions,
+  type QueryOptions,
   RefComponentSuffix,
-  SwaggerParserOptions,
+  type SwaggerParserOptions,
   upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
+
 import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
+import { httpResolver } from './http-resolver';
 
 /**
  * Type helper to make it easier to use orval.config.ts
@@ -48,6 +56,34 @@ import { loadTsconfig } from './tsconfig';
 export function defineConfig(options: ConfigExternal): ConfigExternal {
   return options;
 }
+
+const createFormData = (
+  workspace: string,
+  formData: OverrideOutput['formData'],
+): NormalizedOverrideOutput['formData'] => {
+  const defaultArrayHandling = FormDataArrayHandling.SERIALIZE;
+  if (formData === undefined)
+    return { disabled: false, arrayHandling: defaultArrayHandling };
+  if (isBoolean(formData))
+    return { disabled: !formData, arrayHandling: defaultArrayHandling };
+  if (isString(formData))
+    return {
+      disabled: false,
+      mutator: normalizeMutator(workspace, formData),
+      arrayHandling: defaultArrayHandling,
+    };
+  if ('mutator' in formData || 'arrayHandling' in formData)
+    return {
+      disabled: false,
+      mutator: normalizeMutator(workspace, formData.mutator),
+      arrayHandling: formData.arrayHandling ?? defaultArrayHandling,
+    };
+  return {
+    disabled: false,
+    mutator: normalizeMutator(workspace, formData),
+    arrayHandling: defaultArrayHandling,
+  };
+};
 
 export const normalizeOptions = async (
   optionsExport: OptionsExport,
@@ -59,13 +95,11 @@ export const normalizeOptions = async (
     : optionsExport);
 
   if (!options.input) {
-    createLogger().error(chalk.red(`Config require an input`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an input`));
   }
 
   if (!options.output) {
-    createLogger().error(chalk.red(`Config require an output`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an output`));
   }
 
   const inputOptions = isString(options.input)
@@ -81,8 +115,7 @@ export const normalizeOptions = async (
     workspace,
   );
 
-  const { clean, prettier, client, httpClient, mode, tslint, biome } =
-    globalOptions;
+  const { clean, prettier, client, httpClient, mode, biome } = globalOptions;
 
   const tsconfig = await loadTsconfig(
     outputOptions.tsconfig || globalOptions.tsconfig,
@@ -99,14 +132,14 @@ export const normalizeOptions = async (
   if (typeof mockOption === 'boolean' && mockOption) {
     mock = DEFAULT_MOCK_OPTIONS;
   } else if (isFunction(mockOption)) {
-    // do nothing
-  } else if (!mockOption) {
-    mock = undefined;
-  } else {
+    mock = mockOption;
+  } else if (mockOption) {
     mock = {
       ...DEFAULT_MOCK_OPTIONS,
       ...mockOption,
     };
+  } else {
+    mock = undefined;
   }
 
   const defaultFileExtension = '.ts';
@@ -118,6 +151,7 @@ export const normalizeOptions = async (
     shouldExportMutatorHooks: true,
     shouldExportHttpClient: true,
     shouldExportQueryKey: true,
+    shouldSplitQueryKey: false,
     ...normalizeQueryOptions(outputOptions.override?.query, workspace),
   };
 
@@ -145,6 +179,8 @@ export const normalizeOptions = async (
         ? normalizePath(globalOptions.output, process.cwd())
         : normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizePath(outputOptions.schemas, outputWorkspace),
+      namingConvention:
+        outputOptions.namingConvention || NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension || defaultFileExtension,
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
@@ -155,7 +191,6 @@ export const normalizeOptions = async (
       clean: outputOptions.clean ?? clean ?? false,
       docs: outputOptions.docs ?? false,
       prettier: outputOptions.prettier ?? prettier ?? false,
-      tslint: outputOptions.tslint ?? tslint ?? false,
       biome: outputOptions.biome ?? biome ?? false,
       tsconfig,
       packageJson,
@@ -169,7 +204,10 @@ export const normalizeOptions = async (
         mock: {
           arrayMin: outputOptions.override?.mock?.arrayMin ?? 1,
           arrayMax: outputOptions.override?.mock?.arrayMax ?? 10,
-          ...(outputOptions.override?.mock ?? {}),
+          stringMin: outputOptions.override?.mock?.stringMin ?? 10,
+          stringMax: outputOptions.override?.mock?.stringMax ?? 20,
+          fractionDigits: outputOptions.override?.mock?.fractionDigits ?? 2,
+          ...outputOptions.override?.mock,
         },
         operations: normalizeOperationsAndTags(
           outputOptions.override?.operations ?? {},
@@ -189,20 +227,17 @@ export const normalizeOptions = async (
           outputWorkspace,
           outputOptions.override?.mutator,
         ),
-        formData:
-          (!isBoolean(outputOptions.override?.formData)
-            ? normalizeMutator(
-                outputWorkspace,
-                outputOptions.override?.formData,
-              )
-            : outputOptions.override?.formData) ?? true,
+        formData: createFormData(
+          outputWorkspace,
+          outputOptions.override?.formData,
+        ),
         formUrlEncoded:
-          (!isBoolean(outputOptions.override?.formUrlEncoded)
-            ? normalizeMutator(
+          (isBoolean(outputOptions.override?.formUrlEncoded)
+            ? outputOptions.override?.formUrlEncoded
+            : normalizeMutator(
                 outputWorkspace,
                 outputOptions.override?.formUrlEncoded,
-              )
-            : outputOptions.override?.formUrlEncoded) ?? true,
+              )) ?? true,
         paramsSerializer: normalizeMutator(
           outputWorkspace,
           outputOptions.override?.paramsSerializer,
@@ -214,27 +249,29 @@ export const normalizeOptions = async (
               ? outputOptions.override?.header!
               : getDefaultFilesHeader,
         requestOptions: outputOptions.override?.requestOptions ?? true,
+        namingConvention: outputOptions.override?.namingConvention ?? {},
         components: {
           schemas: {
             suffix: RefComponentSuffix.schemas,
             itemSuffix:
               outputOptions.override?.components?.schemas?.itemSuffix ?? 'Item',
-            ...(outputOptions.override?.components?.schemas ?? {}),
+            ...outputOptions.override?.components?.schemas,
           },
           responses: {
             suffix: RefComponentSuffix.responses,
-            ...(outputOptions.override?.components?.responses ?? {}),
+            ...outputOptions.override?.components?.responses,
           },
           parameters: {
             suffix: RefComponentSuffix.parameters,
-            ...(outputOptions.override?.components?.parameters ?? {}),
+            ...outputOptions.override?.components?.parameters,
           },
           requestBodies: {
             suffix: RefComponentSuffix.requestBodies,
-            ...(outputOptions.override?.components?.requestBodies ?? {}),
+            ...outputOptions.override?.components?.requestBodies,
           },
         },
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
+        jsDoc: normalizeJSDocOptions(outputOptions.override?.jsDoc),
         query: globalQueryOptions,
         zod: {
           strict: {
@@ -302,9 +339,11 @@ export const normalizeOptions = async (
           },
           generateEachHttpStatus:
             outputOptions.override?.zod?.generateEachHttpStatus ?? false,
+          dateTimeOptions: outputOptions.override?.zod?.dateTimeOptions ?? {},
+          timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         swr: {
-          ...(outputOptions.override?.swr ?? {}),
+          ...outputOptions.override?.swr,
         },
         angular: {
           provideIn: outputOptions.override?.angular?.provideIn ?? 'root',
@@ -313,12 +352,18 @@ export const normalizeOptions = async (
           includeHttpResponseReturnType:
             outputOptions.override?.fetch?.includeHttpResponseReturnType ??
             true,
-          ...(outputOptions.override?.fetch ?? {}),
+          forceSuccessResponse:
+            outputOptions.override?.fetch?.forceSuccessResponse ?? false,
+          explode: outputOptions.override?.fetch?.explode ?? true,
+          ...outputOptions.override?.fetch,
         },
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
-        useNativeEnums: outputOptions.override?.useNativeEnums ?? false,
+        enumGenerationType:
+          (outputOptions.override?.useNativeEnums ?? false)
+            ? 'enum'
+            : (outputOptions.override?.enumGenerationType ?? 'const'),
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
       },
@@ -332,15 +377,11 @@ export const normalizeOptions = async (
   };
 
   if (!normalizedOptions.input.target) {
-    createLogger().error(chalk.red(`Config require an input target`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    createLogger().error(
-      chalk.red(`Config require an output target or schemas`),
-    );
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an output target or schemas`));
   }
 
   return normalizedOptions;
@@ -348,7 +389,7 @@ export const normalizeOptions = async (
 
 const parserDefaultOptions = {
   validate: true,
-  resolve: { github: githubResolver },
+  resolve: { github: githubResolver, http: httpResolver },
 } as SwaggerParserOptions;
 
 const normalizeMutator = (
@@ -357,8 +398,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {
@@ -394,16 +434,12 @@ export const normalizePath = <T>(path: T, workspace: string) => {
 };
 
 const normalizeOperationsAndTags = (
-  operationsOrTags: {
-    [key: string]: OperationOptions;
-  },
+  operationsOrTags: Record<string, OperationOptions>,
   workspace: string,
   global: {
     query: NormalizedQueryOptions;
   },
-): {
-  [key: string]: NormalizedOperationOptions;
-} => {
+): Record<string, NormalizedOperationOptions> => {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -496,6 +532,8 @@ const normalizeOperationsAndTags = (
                     },
                     generateEachHttpStatus:
                       zod?.generateEachHttpStatus ?? false,
+                    dateTimeOptions: zod?.dateTimeOptions ?? {},
+                    timeOptions: zod?.timeOptions ?? {},
                   },
                 }
               : {}),
@@ -505,18 +543,12 @@ const normalizeOperationsAndTags = (
             ...(mutator
               ? { mutator: normalizeMutator(workspace, mutator) }
               : {}),
-            ...(formData
-              ? {
-                  formData: !isBoolean(formData)
-                    ? normalizeMutator(workspace, formData)
-                    : formData,
-                }
-              : {}),
+            ...createFormData(workspace, formData),
             ...(formUrlEncoded
               ? {
-                  formUrlEncoded: !isBoolean(formUrlEncoded)
-                    ? normalizeMutator(workspace, formUrlEncoded)
-                    : formUrlEncoded,
+                  formUrlEncoded: isBoolean(formUrlEncoded)
+                    ? formUrlEncoded
+                    : normalizeMutator(workspace, formUrlEncoded),
                 }
               : {}),
             ...(paramsSerializer
@@ -550,7 +582,7 @@ const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
 const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
   const keys = Object.keys(hooks) as unknown as Hook[];
 
-  return keys.reduce((acc, key: Hook) => {
+  return keys.reduce<NormalizedHookOptions>((acc, key: Hook) => {
     if (isString(hooks[key])) {
       return {
         ...acc,
@@ -574,7 +606,7 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
     }
 
     return acc;
-  }, {} as NormalizedHookOptions);
+  }, {});
 };
 
 const normalizeHonoOptions = (
@@ -585,10 +617,19 @@ const normalizeHonoOptions = (
     ...(hono.handlers
       ? { handlers: upath.resolve(workspace, hono.handlers) }
       : {}),
+    compositeRoute: hono.compositeRoute ?? '',
     validator: hono.validator ?? true,
     validatorOutputPath: hono.validatorOutputPath
       ? upath.resolve(workspace, hono.validatorOutputPath)
       : '',
+  };
+};
+
+const normalizeJSDocOptions = (
+  jsdoc: JsDocOptions = {},
+): NormalizedJsDocOptions => {
+  return {
+    ...jsdoc,
   };
 };
 
@@ -604,24 +645,24 @@ const normalizeQueryOptions = (
   }
 
   return {
-    ...(!isUndefined(queryOptions.usePrefetch)
-      ? { usePrefetch: queryOptions.usePrefetch }
-      : {}),
-    ...(!isUndefined(queryOptions.useQuery)
-      ? { useQuery: queryOptions.useQuery }
-      : {}),
-    ...(!isUndefined(queryOptions.useSuspenseQuery)
-      ? { useSuspenseQuery: queryOptions.useSuspenseQuery }
-      : {}),
-    ...(!isUndefined(queryOptions.useMutation)
-      ? { useMutation: queryOptions.useMutation }
-      : {}),
-    ...(!isUndefined(queryOptions.useInfinite)
-      ? { useInfinite: queryOptions.useInfinite }
-      : {}),
-    ...(!isUndefined(queryOptions.useSuspenseInfiniteQuery)
-      ? { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }
-      : {}),
+    ...(isUndefined(queryOptions.usePrefetch)
+      ? {}
+      : { usePrefetch: queryOptions.usePrefetch }),
+    ...(isUndefined(queryOptions.useQuery)
+      ? {}
+      : { useQuery: queryOptions.useQuery }),
+    ...(isUndefined(queryOptions.useSuspenseQuery)
+      ? {}
+      : { useSuspenseQuery: queryOptions.useSuspenseQuery }),
+    ...(isUndefined(queryOptions.useMutation)
+      ? {}
+      : { useMutation: queryOptions.useMutation }),
+    ...(isUndefined(queryOptions.useInfinite)
+      ? {}
+      : { useInfinite: queryOptions.useInfinite }),
+    ...(isUndefined(queryOptions.useSuspenseInfiniteQuery)
+      ? {}
+      : { useSuspenseInfiniteQuery: queryOptions.useSuspenseInfiniteQuery }),
     ...(queryOptions.useInfiniteQueryParam
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
@@ -662,46 +703,67 @@ const normalizeQueryOptions = (
           ),
         }
       : {}),
-    ...(!isUndefined(globalOptions.shouldExportQueryKey)
-      ? {
+    ...(isUndefined(globalOptions.shouldExportQueryKey)
+      ? {}
+      : {
           shouldExportQueryKey: globalOptions.shouldExportQueryKey,
-        }
-      : {}),
-    ...(!isUndefined(queryOptions.shouldExportQueryKey)
-      ? { shouldExportQueryKey: queryOptions.shouldExportQueryKey }
-      : {}),
-    ...(!isUndefined(globalOptions.shouldExportHttpClient)
-      ? {
+        }),
+    ...(isUndefined(queryOptions.shouldExportQueryKey)
+      ? {}
+      : { shouldExportQueryKey: queryOptions.shouldExportQueryKey }),
+    ...(isUndefined(globalOptions.shouldExportHttpClient)
+      ? {}
+      : {
           shouldExportHttpClient: globalOptions.shouldExportHttpClient,
-        }
-      : {}),
-    ...(!isUndefined(queryOptions.shouldExportHttpClient)
-      ? { shouldExportHttpClient: queryOptions.shouldExportHttpClient }
-      : {}),
-    ...(!isUndefined(globalOptions.shouldExportMutatorHooks)
-      ? {
+        }),
+    ...(isUndefined(queryOptions.shouldExportHttpClient)
+      ? {}
+      : { shouldExportHttpClient: queryOptions.shouldExportHttpClient }),
+    ...(isUndefined(globalOptions.shouldExportMutatorHooks)
+      ? {}
+      : {
           shouldExportMutatorHooks: globalOptions.shouldExportMutatorHooks,
-        }
-      : {}),
-    ...(!isUndefined(queryOptions.shouldExportMutatorHooks)
-      ? { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }
-      : {}),
-    ...(!isUndefined(globalOptions.signal)
-      ? {
+        }),
+    ...(isUndefined(queryOptions.shouldExportMutatorHooks)
+      ? {}
+      : { shouldExportMutatorHooks: queryOptions.shouldExportMutatorHooks }),
+    ...(isUndefined(globalOptions.shouldSplitQueryKey)
+      ? {}
+      : {
+          shouldSplitQueryKey: globalOptions.shouldSplitQueryKey,
+        }),
+    ...(isUndefined(queryOptions.shouldSplitQueryKey)
+      ? {}
+      : { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey }),
+    ...(isUndefined(globalOptions.signal)
+      ? {}
+      : {
           signal: globalOptions.signal,
-        }
-      : {}),
-    ...(!isUndefined(queryOptions.signal)
-      ? { signal: queryOptions.signal }
-      : {}),
-    ...(!isUndefined(globalOptions.version)
-      ? {
+        }),
+    ...(isUndefined(globalOptions.useOperationIdAsQueryKey)
+      ? {}
+      : {
+          useOperationIdAsQueryKey: globalOptions.useOperationIdAsQueryKey,
+        }),
+    ...(isUndefined(queryOptions.useOperationIdAsQueryKey)
+      ? {}
+      : { useOperationIdAsQueryKey: queryOptions.useOperationIdAsQueryKey }),
+    ...(isUndefined(globalOptions.signal)
+      ? {}
+      : {
+          signal: globalOptions.signal,
+        }),
+    ...(isUndefined(queryOptions.signal)
+      ? {}
+      : { signal: queryOptions.signal }),
+    ...(isUndefined(globalOptions.version)
+      ? {}
+      : {
           version: globalOptions.version,
-        }
-      : {}),
-    ...(!isUndefined(queryOptions.version)
-      ? { version: queryOptions.version }
-      : {}),
+        }),
+    ...(isUndefined(queryOptions.version)
+      ? {}
+      : { version: queryOptions.version }),
   };
 };
 

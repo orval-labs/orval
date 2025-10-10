@@ -1,5 +1,4 @@
 import {
-  createLogger,
   getIsBodyVerb,
   GetterProps,
   GetterPropType,
@@ -60,6 +59,10 @@ export const normalizeQueryOptions = (
     ...(queryOptions.shouldExportHttpClient
       ? { shouldExportHttpClient: true }
       : {}),
+    ...(queryOptions.shouldSplitQueryKey ? { shouldSplitQueryKey: true } : {}),
+    ...(queryOptions.useOperationIdAsQueryKey
+      ? { useOperationIdAsQueryKey: true }
+      : {}),
   };
 };
 
@@ -70,8 +73,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {
@@ -96,9 +98,7 @@ export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
     const [paramName, paramType] = prop.implementation.split(':');
     if (!paramType) return prop;
     const name =
-      prop.type === GetterPropType.NAMED_PATH_PARAMS
-        ? prop.name
-        : `${paramName}`;
+      prop.type === GetterPropType.NAMED_PATH_PARAMS ? prop.name : paramName;
 
     const [type, defaultValue] = paramType.split('=');
     return {

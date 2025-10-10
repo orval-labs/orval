@@ -1,4 +1,5 @@
 import {
+  ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -13,8 +14,10 @@ import {
   pascal,
   toObjectString,
 } from '@orval/core';
-
-import { generateRequestFunction as generateFetchRequestFunction } from '@orval/fetch';
+import {
+  generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
+} from '@orval/fetch';
 
 import {
   getHasSignal,
@@ -45,11 +48,9 @@ export const generateQueryRequestFunction = (
   options: GeneratorOptions,
   isVue: boolean,
 ) => {
-  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
-    return generateAxiosRequestFunction(verbOptions, options, isVue);
-  } else {
-    return generateFetchRequestFunction(verbOptions, options);
-  }
+  return options.context.output.httpClient === OutputHttpClient.AXIOS
+    ? generateAxiosRequestFunction(verbOptions, options, isVue)
+    : generateFetchRequestFunction(verbOptions, options);
 };
 
 export const generateAxiosRequestFunction = (
@@ -82,7 +83,7 @@ export const generateAxiosRequestFunction = (
   }
 
   const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData !== false;
+  const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
@@ -115,7 +116,7 @@ export const generateAxiosRequestFunction = (
       isVue,
     });
 
-    const bodyDefinition = body.definition.replace('[]', '\\[\\]');
+    const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
     const propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
@@ -132,7 +133,7 @@ export const generateAxiosRequestFunction = (
       : '';
 
     if (mutator.isHook) {
-      return `${
+      const ret = `${
         override.query.shouldExportMutatorHooks ? 'export ' : ''
       }const use${pascal(operationName)}Hook = () => {
         const ${operationName} = ${mutator.name}<${
@@ -150,6 +151,27 @@ export const generateAxiosRequestFunction = (
         }, [${operationName}])
       }
     `;
+
+      const vueRet = `${
+        override.query.shouldExportMutatorHooks ? 'export ' : ''
+      }const use${pascal(operationName)}Hook = () => {
+        const ${operationName} = ${mutator.name}<${
+          response.definition.success || 'unknown'
+        }>();
+
+        return (\n    ${propsImplementation}\n ${
+          isRequestOptions && mutator.hasSecondArg
+            ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
+            : ''
+        }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {${bodyForm}
+        return ${operationName}(
+          ${mutatorConfig},
+          ${requestOptions});
+        }
+      }
+    `;
+
+      return isVue ? vueRet : ret;
     }
 
     return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
@@ -194,13 +216,13 @@ export const generateAxiosRequestFunction = (
 
   const queryProps = toObjectString(props, 'implementation');
 
-  const httpRequestFunctionImplementation = `export const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
+  const httpRequestFunctionImplementation = `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${
     response.definition.success || 'unknown'
   }>> => {
     ${isVue ? vueUnRefParams(props) : ''}
     ${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;
@@ -334,7 +356,7 @@ export const getQueryErrorType = (
   } else {
     return httpClient === OutputHttpClient.AXIOS
       ? `AxiosError<${response.definition.errors || 'unknown'}>`
-      : `${response.definition.errors || 'unknown'}`;
+      : response.definition.errors || 'unknown';
   }
 };
 
@@ -352,16 +374,16 @@ export const getHooksOptionImplementation = (
   return isRequestOptions
     ? `const mutationKey = ['${operationName}'];
 const {mutation: mutationOptions${
-        !mutator
-          ? options
-          : mutator?.hasSecondArg
+        mutator
+          ? mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
+          : options
       }} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
       : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${!mutator ? (httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined') : ''}};`
+      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${mutator ? '' : httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined'}};`
     : '';
 };
 
@@ -374,11 +396,11 @@ export const getMutationRequestArgs = (
     httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
 
   return isRequestOptions
-    ? !mutator
-      ? options
-      : mutator?.hasSecondArg
+    ? mutator
+      ? mutator?.hasSecondArg
         ? 'requestOptions'
         : ''
+      : options
     : '';
 };
 
@@ -395,4 +417,10 @@ export const getHttpFunctionQueryProps = (
   }
 
   return queryProperties;
+};
+
+export const getQueryHeader: ClientHeaderBuilder = (params) => {
+  return params.output.httpClient === OutputHttpClient.FETCH
+    ? generateFetchHeader(params)
+    : '';
 };

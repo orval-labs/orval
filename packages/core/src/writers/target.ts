@@ -1,9 +1,9 @@
 import {
-  GeneratorTarget,
-  GeneratorTargetFull,
-  NormalizedOutputOptions,
+  type GeneratorTarget,
+  type GeneratorTargetFull,
+  type NormalizedOutputOptions,
   OutputClient,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, pascal } from '../utils';
 
@@ -23,7 +23,9 @@ export const generateTarget = (
     output: options,
   });
 
-  const target = Object.values(builder.operations).reduce(
+  const target = Object.values(builder.operations).reduce<
+    Required<GeneratorTargetFull>
+  >(
     (acc, operation, index, arr) => {
       acc.imports.push(...operation.imports);
       acc.importsMock.push(...operation.importsMock);
@@ -31,9 +33,8 @@ export const generateTarget = (
       acc.implementationMock.function += operation.implementationMock.function;
       acc.implementationMock.handler += operation.implementationMock.handler;
 
-      const handlerNameSeparator = acc.implementationMock.handlerName.length
-        ? ',\n  '
-        : '  ';
+      const handlerNameSeparator =
+        acc.implementationMock.handlerName.length > 0 ? ',\n  ' : '  ';
       acc.implementationMock.handlerName +=
         handlerNameSeparator + operation.implementationMock.handlerName + '()';
 
@@ -55,14 +56,18 @@ export const generateTarget = (
         acc.clientMutators.push(...operation.clientMutators);
       }
 
+      if (operation.fetchReviver) {
+        acc.fetchReviver.push(operation.fetchReviver);
+      }
+
       if (index === arr.length - 1) {
         const isMutator = acc.mutators.some((mutator) =>
           isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
         );
 
         const typescriptVersion =
-          options.packageJson?.dependencies?.['typescript'] ??
-          options.packageJson?.devDependencies?.['typescript'] ??
+          options.packageJson?.dependencies?.typescript ??
+          options.packageJson?.devDependencies?.typescript ??
           '4.4.0';
 
         const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
@@ -89,7 +94,7 @@ export const generateTarget = (
         const footer = builder.footer({
           outputClient: options?.client,
           operationNames,
-          hasMutator: !!acc.mutators.length,
+          hasMutator: acc.mutators.length > 0,
           hasAwaitedType,
           titles,
           output: options,
@@ -113,7 +118,8 @@ export const generateTarget = (
       formData: [],
       formUrlEncoded: [],
       paramsSerializer: [],
-    } as Required<GeneratorTargetFull>,
+      fetchReviver: [],
+    },
   );
 
   return {

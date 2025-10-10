@@ -13,6 +13,23 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  noContentWithDefault: {
+    output: {
+      target: '../generated/react-query/no-content-with-default/endpoints.ts',
+      schemas: '../generated/react-query/no-content-with-default/model',
+      mode: 'split',
+      client: 'react-query',
+      mock: {
+        type: 'msw',
+        delay: 0,
+        useExamples: true,
+      },
+      headers: true,
+    },
+    input: {
+      target: '../specifications/no-content-with-default.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/react-query/petstore-tags-split/endpoints.ts',
@@ -49,6 +66,39 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreSplitQueryKey: {
+    output: {
+      target: '../generated/react-query/split-query-key/endpoints.ts',
+      schemas: '../generated/react-query/split-query-key/model',
+      client: 'react-query',
+      override: {
+        query: {
+          shouldSplitQueryKey: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreCustomMutatorOptions: {
+    output: {
+      target: '../generated/react-query/custom-mutator-options/endpoints.ts',
+      schemas: '../generated/react-query/custom-mutator-options/model',
+      client: 'react-query',
+      override: {
+        query: {
+          mutationOptions: {
+            path: '../mutators/custom-mutation.ts',
+            name: 'useCustomMutation',
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   httpClientFetch: {
     output: {
       target: '../generated/react-query/http-client-fetch/endpoints.ts',
@@ -56,6 +106,11 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'react-query',
       httpClient: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -445,6 +500,17 @@ export default defineConfig({
       override: {
         transformer: '../transformers/add-version.js',
       },
+    },
+  },
+  specialCharacters: {
+    output: {
+      target: '../generated/react-query/special-characters/endpoints.ts',
+      schemas: '../generated/react-query/special-characters/model',
+      client: 'react-query',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/models-with-special-char.yaml',
     },
   },
 });

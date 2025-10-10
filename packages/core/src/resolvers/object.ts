@@ -1,6 +1,7 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { getEnum } from '../getters/enum';
-import { ContextSpecs, ResolverValue } from '../types';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
+import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
+import type { ContextSpecs, ResolverValue } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
 
@@ -28,14 +29,25 @@ const resolveObjectOriginal = ({
     resolvedValue?.type === 'object' &&
     new RegExp(/{|&|\|/).test(resolvedValue.value)
   ) {
+    let model = '';
+    const isConstant = 'const' in schema;
+    const constantIsString =
+      'type' in schema &&
+      (schema.type === 'string' ||
+        (Array.isArray(schema.type) && schema.type.includes('string')));
+
+    model += isConstant
+      ? `${doc}export const ${propName} = ${constantIsString ? `'${schema.const}'` : schema.const} as const;\n`
+      : `${doc}export type ${propName} = ${resolvedValue.value};\n`;
+
     return {
       value: propName,
-      imports: [{ name: propName }],
+      imports: [{ name: propName, isConstant }],
       schemas: [
         ...resolvedValue.schemas,
         {
           name: propName,
-          model: `${doc}export type ${propName} = ${resolvedValue.value};\n`,
+          model,
           imports: resolvedValue.imports,
         },
       ],
@@ -51,14 +63,14 @@ const resolveObjectOriginal = ({
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
-      resolvedValue.originalSchema?.['x-enumNames'],
-      context.output.override.useNativeEnums,
+      getEnumNames(resolvedValue.originalSchema),
+      context.output.override.enumGenerationType,
+      getEnumDescriptions(resolvedValue.originalSchema),
+      context.output.override.namingConvention?.enum,
     );
 
     return {
-      value: context.output.override.useNativeEnums
-        ? `keyof typeof ${propName}`
-        : propName,
+      value: propName,
       imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,

@@ -1,4 +1,4 @@
-import { compare, CompareOperator } from 'compare-versions';
+import { compare, type CompareOperator } from 'compare-versions';
 
 export const compareVersions = (
   firstVersion: string,

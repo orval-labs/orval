@@ -1,14 +1,11 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
-import {
-  ContextSpecs,
-  ScalarValue,
-  OutputClient,
-  SchemaWithConst,
-} from '../types';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+
+import { resolveExampleRefs } from '../resolvers';
+import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
+import { combineSchemas } from './combine';
 import { getObject } from './object';
-import { resolveExampleRefs } from '../resolvers';
 
 /**
  * Return the typescript equivalent of open-api data type
@@ -25,12 +22,7 @@ export const getScalar = ({
   name?: string;
   context: ContextSpecs;
 }): ScalarValue => {
-  // NOTE: Angular client does not support nullable types
-  const isAngularClient = context.output.client === OutputClient.ANGULAR;
-  const typeIncludesNull =
-    Array.isArray(item.type) && item.type.includes('null');
-  const nullable =
-    (typeIncludesNull || item.nullable) && !isAngularClient ? ' | null' : '';
+  const nullable = item.nullable ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
@@ -42,7 +34,8 @@ export const getScalar = ({
     case 'number':
     case 'integer': {
       let value =
-        item.format === 'int64' && context.output.override.useBigInt
+        context.output.override.useBigInt &&
+        (item.format === 'int64' || item.format === 'uint64')
           ? 'bigint'
           : 'number';
       let isEnum = false;
@@ -72,7 +65,7 @@ export const getScalar = ({
       };
     }
 
-    case 'boolean':
+    case 'boolean': {
       let value = 'boolean';
 
       const itemWithConst = item as SchemaWithConst;
@@ -91,6 +84,7 @@ export const getScalar = ({
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
+    }
 
     case 'array': {
       const { value, ...rest } = getArray({
@@ -109,12 +103,12 @@ export const getScalar = ({
       let isEnum = false;
 
       if (enumItems) {
-        value = `${enumItems
+        value = enumItems
           .map((enumItem: string | null) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(` | `)}`;
+          .join(` | `);
 
         isEnum = true;
       }
@@ -123,10 +117,11 @@ export const getScalar = ({
         value = 'Blob';
       }
 
-      if (context.output.override.useDates) {
-        if (item.format === 'date' || item.format === 'date-time') {
-          value = 'Date';
-        }
+      if (
+        context.output.override.useDates &&
+        (item.format === 'date' || item.format === 'date-time')
+      ) {
+        value = 'Date';
       }
 
       const itemWithConst = item as SchemaWithConst;
@@ -147,7 +142,7 @@ export const getScalar = ({
       };
     }
 
-    case 'null':
+    case 'null': {
       return {
         value: 'null',
         isEnum: false,
@@ -157,16 +152,32 @@ export const getScalar = ({
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
       };
+    }
 
     case 'object':
     default: {
+      if (Array.isArray(item.type)) {
+        return combineSchemas({
+          schema: {
+            anyOf: item.type.map((type) => ({
+              ...item,
+              type,
+            })),
+          },
+          name,
+          separator: 'anyOf',
+          context,
+          nullable,
+        });
+      }
+
       if (enumItems) {
-        const value = `${enumItems
+        const value = enumItems
           .map((enumItem: unknown) =>
             isString(enumItem) ? `'${escape(enumItem)}'` : `${enumItem}`,
           )
           .filter(Boolean)
-          .join(` | `)}`;
+          .join(` | `);
 
         return {
           value: value + nullable,

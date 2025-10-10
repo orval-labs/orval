@@ -9,7 +9,6 @@ import {
   GeneratorMutator,
   GeneratorOptions,
   GeneratorVerbOptions,
-  getFileInfo,
   getNumberWord,
   getRefInfo,
   isBoolean,
@@ -18,6 +17,7 @@ import {
   jsStringEscape,
   pascal,
   resolveRef,
+  stringify,
   ZodCoerceType,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
@@ -31,12 +31,22 @@ import {
 } from 'openapi3-ts/oas30';
 import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
+import {
+  getObjectFunctionName,
+  getParameterFunctions,
+  getZodDateFormat,
+  getZodDateTimeFormat,
+  getZodTimeFormat,
+  isZodVersionV4,
+} from './compatibleV4';
+
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       {
-        name: 'z',
-        alias: 'zod',
+        default: true,
+        name: 'zod',
+        syntheticDefaultImport: true,
         values: true,
       },
     ],
@@ -49,20 +59,21 @@ export const getZodDependencies = () => ZOD_DEPENDENCIES;
 /**
  * values that may appear in "type". Equals SchemaObjectType
  */
-const possibleSchemaTypes = [
+const possibleSchemaTypes = new Set([
   'integer',
   'number',
   'string',
   'boolean',
   'object',
+  'strictObject',
   'null',
   'array',
-];
+]);
 
-const resolveZodType = (schema: SchemaObject) => {
+const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
   const schemaTypeValue = schema.type;
   const type = Array.isArray(schemaTypeValue)
-    ? schemaTypeValue.find((t) => possibleSchemaTypes.includes(t))
+    ? schemaTypeValue.find((t) => possibleSchemaTypes.has(t))
     : schemaTypeValue;
 
   // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
@@ -71,24 +82,32 @@ const resolveZodType = (schema: SchemaObject) => {
   }
 
   switch (type) {
-    case 'integer':
+    case 'integer': {
       return 'number';
-    default:
+    }
+    default: {
       return type ?? 'any';
+    }
   }
 };
 
 const constsUniqueCounter: Record<string, number> = {};
 
 // https://github.com/colinhacks/zod#coercion-for-primitives
-const COERCIBLE_TYPES = ['string', 'number', 'boolean', 'bigint', 'date'];
+const COERCIBLE_TYPES = new Set([
+  'string',
+  'number',
+  'boolean',
+  'bigint',
+  'date',
+]);
 
 export type ZodValidationSchemaDefinition = {
   functions: [string, any][];
   consts: string[];
 };
 
-const minAndMaxTypes = ['number', 'string', 'array'];
+const minAndMaxTypes = new Set(['number', 'string', 'array']);
 
 const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
   if (schema.properties) {
@@ -112,13 +131,26 @@ const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
   return schema;
 };
 
+type DateTimeOptions = {
+  offset?: boolean;
+  local?: boolean;
+  precision?: number;
+};
+
+type TimeOptions = {
+  precision?: -1 | 0 | 1 | 2 | 3;
+};
+
 export const generateZodValidationSchemaDefinition = (
-  schema: SchemaObject | undefined,
+  schema: SchemaObject | SchemaObject31 | undefined,
   context: ContextSpecs,
   name: string,
   strict: boolean,
+  isZodV4: boolean,
   rules?: {
     required?: boolean;
+    dateTimeOptions?: DateTimeOptions;
+    timeOptions?: TimeOptions;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -137,17 +169,57 @@ export const generateZodValidationSchemaDefinition = (
 
   const functions: [string, any][] = [];
   const type = resolveZodType(schema);
-  const required =
-    schema.default !== undefined ? false : rules?.required ?? false;
+  const required = rules?.required ?? false;
   const nullable =
-    schema.nullable ??
+    ('nullable' in schema && schema.nullable) ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
+  const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
 
+  let defaultVarName: string | undefined;
+  if (schema.default !== undefined) {
+    defaultVarName = `${name}Default${constsCounterValue}`;
+    let defaultValue: string;
+
+    const isDateType =
+      schema.type === 'string' &&
+      (schema.format === 'date' || schema.format === 'date-time') &&
+      context.output.override.useDates;
+
+    if (isDateType) {
+      defaultValue = `new Date("${escape(schema.default)}")`;
+    } else if (isObject(schema.default)) {
+      const entries = Object.entries(schema.default)
+        .map(([key, value]) => {
+          if (isString(value)) {
+            return `${key}: "${escape(value)}"`;
+          }
+
+          if (Array.isArray(value)) {
+            const arrayItems = value.map((item) =>
+              isString(item) ? `"${escape(item)}"` : `${item}`,
+            );
+            return `${key}: [${arrayItems.join(', ')}]`;
+          }
+
+          return `${key}: ${value}`;
+        })
+        .join(', ');
+      defaultValue = `{ ${entries} }`;
+    } else {
+      const rawStringified = stringify(schema.default);
+      defaultValue =
+        rawStringified === undefined
+          ? 'null'
+          : rawStringified.replaceAll("'", '"');
+    }
+    consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+  }
+
   switch (type) {
-    case 'tuple':
+    case 'tuple': {
       /**
        *
        * > 10.3.1.1. prefixItems
@@ -174,6 +246,7 @@ export const generateZodValidationSchemaDefinition = (
                 deference(item as SchemaObject | ReferenceObject, context),
                 context,
                 camel(`${name}-${idx}-item`),
+                isZodV4,
                 strict,
                 {
                   required: true,
@@ -182,29 +255,30 @@ export const generateZodValidationSchemaDefinition = (
             ),
           ]);
 
-          if (schema.items) {
-            if (
-              (max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length
-            ) {
-              // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
-              functions.push([
-                'rest',
-                generateZodValidationSchemaDefinition(
-                  schema.items as SchemaObject | undefined,
-                  context,
-                  camel(`${name}-item`),
-                  strict,
-                  {
-                    required: true,
-                  },
-                ),
-              ]);
-            }
+          if (
+            schema.items &&
+            (max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length
+          ) {
+            // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
+            functions.push([
+              'rest',
+              generateZodValidationSchemaDefinition(
+                schema.items as SchemaObject | undefined,
+                context,
+                camel(`${name}-item`),
+                strict,
+                isZodV4,
+                {
+                  required: true,
+                },
+              ),
+            ]);
           }
         }
       }
       break;
-    case 'array':
+    }
+    case 'array': {
       functions.push([
         'array',
         generateZodValidationSchemaDefinition(
@@ -212,12 +286,14 @@ export const generateZodValidationSchemaDefinition = (
           context,
           camel(`${name}-item`),
           strict,
+          isZodV4,
           {
             required: true,
           },
         ),
       ]);
       break;
+    }
     case 'string': {
       if (schema.enum && type === 'string') {
         break;
@@ -231,15 +307,64 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
-      functions.push([type as string, undefined]);
+      if (schema.format === 'binary') {
+        functions.push(['instanceof', 'File']);
+        break;
+      }
+
+      if (isZodV4) {
+        if (
+          ![
+            'date',
+            'time',
+            'date-time',
+            'email',
+            'uri',
+            'hostname',
+            'uuid',
+          ].includes(schema.format || '')
+        ) {
+          if ('const' in schema) {
+            functions.push(['literal', `"${schema.const}"`]);
+          } else {
+            functions.push([type as string, undefined]);
+          }
+          break;
+        }
+      } else {
+        if ('const' in schema) {
+          functions.push(['literal', `"${schema.const}"`]);
+        } else {
+          functions.push([type as string, undefined]);
+        }
+      }
 
       if (schema.format === 'date') {
-        functions.push(['date', undefined]);
+        const formatAPI = getZodDateFormat(isZodV4);
+
+        functions.push([formatAPI, undefined]);
+        break;
+      }
+
+      if (schema.format === 'time') {
+        const options = context.output.override.zod?.timeOptions;
+        const formatAPI = getZodTimeFormat(isZodV4);
+
+        functions.push([
+          formatAPI,
+          options ? JSON.stringify(options) : undefined,
+        ]);
         break;
       }
 
       if (schema.format === 'date-time') {
-        functions.push(['datetime', undefined]);
+        const options = context.output.override.zod?.dateTimeOptions;
+        const formatAPI = getZodDateTimeFormat(isZodV4);
+
+        functions.push([
+          formatAPI,
+          options ? JSON.stringify(options) : undefined,
+        ]);
         break;
       }
 
@@ -282,6 +407,7 @@ export const generateZodValidationSchemaDefinition = (
               context,
               camel(name),
               strict,
+              isZodV4,
               {
                 required: true,
               },
@@ -292,8 +418,10 @@ export const generateZodValidationSchemaDefinition = (
       }
 
       if (schema.properties) {
+        const objectType = getObjectFunctionName(isZodV4, strict);
+
         functions.push([
-          'object',
+          objectType,
           Object.keys(schema.properties)
             .map((key) => ({
               [key]: generateZodValidationSchemaDefinition(
@@ -301,6 +429,7 @@ export const generateZodValidationSchemaDefinition = (
                 context,
                 camel(`${name}-${key}`),
                 strict,
+                isZodV4,
                 {
                   required: schema.required?.includes(key),
                 },
@@ -309,7 +438,7 @@ export const generateZodValidationSchemaDefinition = (
             .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
         ]);
 
-        if (strict) {
+        if (strict && !isZodV4) {
           functions.push(['strict', undefined]);
         }
 
@@ -326,6 +455,7 @@ export const generateZodValidationSchemaDefinition = (
             context,
             name,
             strict,
+            isZodV4,
             {
               required: true,
             },
@@ -335,24 +465,34 @@ export const generateZodValidationSchemaDefinition = (
         break;
       }
 
+      if (schema.enum) {
+        break;
+      }
+
       functions.push([type as string, undefined]);
 
       break;
     }
   }
 
-  if (minAndMaxTypes.includes(type)) {
+  if (minAndMaxTypes.has(type)) {
     if (min !== undefined) {
       if (min === 1) {
         functions.push(['min', `${min}`]);
       } else {
-        consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
+        consts.push(`export const ${name}Min${constsCounterValue} = ${min};`);
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
     if (max !== undefined) {
-      consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
+      consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
       functions.push(['max', `${name}Max${constsCounterValue}`]);
+    }
+    if (multipleOf !== undefined) {
+      consts.push(
+        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
+      );
+      functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
   }
 
@@ -370,23 +510,37 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
 
-  if (schema.enum && type !== 'number') {
-    functions.push([
-      'enum',
-      [
-        `[${schema.enum
-          .map((value) => (isString(value) ? `'${escape(value)}'` : `${value}`))
-          .join(', ')}]`,
-      ],
-    ]);
+  if (schema.enum) {
+    if (schema.enum.every((value) => isString(value))) {
+      functions.push([
+        'enum',
+        `[${schema.enum.map((value) => `'${escape(value)}'`).join(', ')}]`,
+      ]);
+    } else {
+      functions.push([
+        'oneOf',
+        schema.enum.map((value) => ({
+          functions: [
+            ['literal', isString(value) ? `'${escape(value)}'` : value],
+          ],
+          consts: [],
+        })),
+      ]);
+    }
   }
 
-  if (!required && nullable) {
+  if (!required && schema.default) {
+    functions.push(['default', defaultVarName]);
+  } else if (!required && nullable) {
     functions.push(['nullish', undefined]);
   } else if (nullable) {
     functions.push(['nullable', undefined]);
   } else if (!required) {
     functions.push(['optional', undefined]);
+  }
+
+  if (schema.description) {
+    functions.push(['describe', `'${jsStringEscape(schema.description)}'`]);
   }
 
   return { functions, consts: uniq(consts) };
@@ -396,9 +550,11 @@ export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpecs,
   coerceTypes: boolean | ZodCoerceType[] = false,
-  preprocessResponse?: GeneratorMutator,
+  strict: boolean,
+  isZodV4: boolean,
+  preprocess?: GeneratorMutator,
 ): { zod: string; consts: string } => {
-  if (!input.functions.length) {
+  if (input.functions.length === 0) {
     return { zod: '', consts: '' };
   }
 
@@ -406,11 +562,22 @@ export const parseZodValidationSchemaDefinition = (
 
   const parseProperty = (property: [string, any]): string => {
     const [fn, args = ''] = property;
+
     if (fn === 'allOf') {
       return args.reduce(
-        (acc: string, { functions }: { functions: [string, any][] }) => {
+        (
+          acc: string,
+          {
+            functions,
+            consts: argConsts,
+          }: { functions: [string, any][]; consts: string[] },
+        ) => {
           const value = functions.map(parseProperty).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+
+          if (argConsts.length > 0) {
+            consts += argConsts.join('\n');
+          }
 
           if (!acc) {
             acc += valueWithZod;
@@ -424,34 +591,29 @@ export const parseZodValidationSchemaDefinition = (
         '',
       );
     }
-
     if (fn === 'oneOf' || fn === 'anyOf') {
-      return args.reduce(
-        (
-          acc: string,
-          {
-            functions,
-            consts: argConsts,
-          }: { functions: [string, any][]; consts: string[] },
-        ) => {
+      // Can't use zod.union() with a single item
+      if (args.length === 1) {
+        return args[0].functions.map(parseProperty).join('');
+      }
+
+      const union = args.map(
+        ({
+          functions,
+          consts: argConsts,
+        }: {
+          functions: [string, any][];
+          consts: string[];
+        }) => {
           const value = functions.map(parseProperty).join('');
           const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-
-          if (argConsts.length) {
-            consts += argConsts.join('');
-          }
-
-          if (!acc) {
-            acc += valueWithZod;
-            return acc;
-          }
-
-          acc += `.or(${valueWithZod})`;
-
-          return acc;
+          // consts are missing here
+          consts += argConsts?.join('\n');
+          return valueWithZod;
         },
-        '',
       );
+
+      return `.union([${union}])`;
     }
 
     if (fn === 'additionalProperties') {
@@ -461,8 +623,10 @@ export const parseZodValidationSchemaDefinition = (
       return `zod.record(zod.string(), ${valueWithZod})`;
     }
 
-    if (fn === 'object') {
-      return `zod.object({
+    if (fn === 'object' || fn === 'strictObject') {
+      const objectType = getObjectFunctionName(isZodV4, strict);
+
+      return `zod.${objectType}({
 ${Object.entries(args)
   .map(([key, schema]) => {
     const value = (schema as ZodValidationSchemaDefinition).functions
@@ -484,13 +648,16 @@ ${Object.entries(args)
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
 
-    if (fn === 'strict') {
+    if (fn === 'strict' && !isZodV4) {
       return '.strict()';
     }
 
     if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
-        .map((x) => 'zod' + x.functions.map(parseProperty).join(','))
+        .map((x) => {
+          const value = x.functions.map(parseProperty).join('');
+          return `${value.startsWith('.') ? 'zod' : ''}${value}`;
+        })
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
@@ -500,7 +667,7 @@ ${Object.entries(args)
       coerceTypes &&
       (Array.isArray(coerceTypes)
         ? coerceTypes.includes(fn as ZodCoerceType)
-        : COERCIBLE_TYPES.includes(fn));
+        : COERCIBLE_TYPES.has(fn));
 
     if (
       (fn !== 'date' && shouldCoerceType) ||
@@ -515,14 +682,17 @@ ${Object.entries(args)
   consts += input.consts.join('\n');
 
   const schema = input.functions.map(parseProperty).join('');
-  const value = preprocessResponse
-    ? `.preprocess(${preprocessResponse.name}, ${
+  const value = preprocess
+    ? `.preprocess(${preprocess.name}, ${
         schema.startsWith('.') ? 'zod' : ''
       }${schema})`
     : schema;
 
   const zod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
-
+  // Some export consts includes `,` as prefix, adding replace to remove those
+  if (consts?.includes(',export')) {
+    consts = consts.replaceAll(',export', '\nexport');
+  }
   return { zod, consts };
 };
 
@@ -566,10 +736,26 @@ const deference = (
     specKey: resolvedSpecKey ?? childContext.specKey,
   };
 
-  return Object.entries(resolvedSchema).reduce((acc, [key, value]) => {
-    acc[key] = deferenceScalar(value, resolvedContext);
+  return Object.entries(resolvedSchema).reduce<any>((acc, [key, value]) => {
+    if (key === 'properties' && isObject(value)) {
+      acc[key] = Object.entries(value).reduce<Record<string, SchemaObject>>(
+        (props, [propKey, propSchema]) => {
+          props[propKey] = deference(
+            propSchema as SchemaObject | ReferenceObject,
+            resolvedContext,
+          );
+          return props;
+        },
+        {},
+      );
+    } else if (key === 'default' || key === 'example' || key === 'examples') {
+      acc[key] = value;
+    } else {
+      acc[key] = deferenceScalar(value, resolvedContext);
+    }
+
     return acc;
-  }, {} as any);
+  }, {});
 };
 
 const parseBodyAndResponse = ({
@@ -578,6 +764,7 @@ const parseBodyAndResponse = ({
   name,
   strict,
   generate,
+  isZodV4,
   parseType,
 }: {
   data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
@@ -585,6 +772,7 @@ const parseBodyAndResponse = ({
   name: string;
   strict: boolean;
   generate: boolean;
+  isZodV4: boolean;
   parseType: 'body' | 'response';
 }): {
   input: ZodValidationSchemaDefinition;
@@ -606,17 +794,18 @@ const parseBodyAndResponse = ({
     context,
   ).schema;
 
-  if (!resolvedRef.content?.['application/json']?.schema) {
+  const schema =
+    resolvedRef.content?.['application/json']?.schema ||
+    resolvedRef.content?.['multipart/form-data']?.schema;
+
+  if (!schema) {
     return {
       input: { functions: [], consts: [] },
       isArray: false,
     };
   }
 
-  const resolvedJsonSchema = deference(
-    resolvedRef.content['application/json'].schema,
-    context,
-  );
+  const resolvedJsonSchema = deference(schema, context);
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
@@ -637,14 +826,15 @@ const parseBodyAndResponse = ({
         context,
         name,
         strict,
+        isZodV4,
         {
           required: true,
         },
       ),
       isArray: true,
       rules: {
-        ...(typeof min !== 'undefined' ? { min } : {}),
-        ...(typeof max !== 'undefined' ? { max } : {}),
+        ...(min === undefined ? {} : { min }),
+        ...(max === undefined ? {} : { max }),
       },
     };
   }
@@ -657,6 +847,7 @@ const parseBodyAndResponse = ({
       context,
       name,
       strict,
+      isZodV4,
       {
         required: true,
       },
@@ -669,12 +860,14 @@ const parseParameters = ({
   data,
   context,
   operationName,
+  isZodV4,
   strict,
   generate,
 }: {
   data: (ParameterObject | ReferenceObject)[] | undefined;
   context: ContextSpecs;
   operationName: string;
+  isZodV4: boolean;
   strict: {
     param: boolean;
     query: boolean;
@@ -711,7 +904,12 @@ const parseParameters = ({
     };
   }
 
-  const defintionsByParameters = data.reduce(
+  const defintionsByParameters = data.reduce<
+    Record<
+      'headers' | 'queryParams' | 'params',
+      Record<string, { functions: [string, any][]; consts: string[] }>
+    >
+  >(
     (acc, val) => {
       const { schema: parameter } = resolveRef<ParameterObject>(val, context);
 
@@ -720,6 +918,7 @@ const parseParameters = ({
       }
 
       const schema = deference(parameter.schema, context);
+      schema.description = parameter.description;
 
       const mapStrict = {
         path: strict.param,
@@ -738,6 +937,7 @@ const parseParameters = ({
         context,
         camel(`${operationName}-${parameter.in}-${parameter.name}`),
         mapStrict[parameter.in as 'path' | 'query' | 'header'] ?? false,
+        isZodV4,
         {
           required: parameter.required,
         },
@@ -770,10 +970,7 @@ const parseParameters = ({
       headers: {},
       queryParams: {},
       params: {},
-    } as Record<
-      'headers' | 'queryParams' | 'params',
-      Record<string, { functions: [string, any][]; consts: string[] }>
-    >,
+    },
   );
 
   const headers: ZodValidationSchemaDefinition = {
@@ -781,12 +978,14 @@ const parseParameters = ({
     consts: [],
   };
 
-  if (Object.keys(defintionsByParameters.headers).length) {
-    headers.functions.push(['object', defintionsByParameters.headers]);
+  if (Object.keys(defintionsByParameters.headers).length > 0) {
+    const parameterFunctions = getParameterFunctions(
+      isZodV4,
+      strict.header,
+      defintionsByParameters.headers,
+    );
 
-    if (strict.header) {
-      headers.functions.push(['strict', undefined]);
-    }
+    headers.functions.push(...parameterFunctions);
   }
 
   const queryParams: ZodValidationSchemaDefinition = {
@@ -794,12 +993,14 @@ const parseParameters = ({
     consts: [],
   };
 
-  if (Object.keys(defintionsByParameters.queryParams).length) {
-    queryParams.functions.push(['object', defintionsByParameters.queryParams]);
+  if (Object.keys(defintionsByParameters.queryParams).length > 0) {
+    const parameterFunctions = getParameterFunctions(
+      isZodV4,
+      strict.query,
+      defintionsByParameters.queryParams,
+    );
 
-    if (strict.query) {
-      queryParams.functions.push(['strict', undefined]);
-    }
+    queryParams.functions.push(...parameterFunctions);
   }
 
   const params: ZodValidationSchemaDefinition = {
@@ -807,12 +1008,14 @@ const parseParameters = ({
     consts: [],
   };
 
-  if (Object.keys(defintionsByParameters.params).length) {
-    params.functions.push(['object', defintionsByParameters.params]);
+  if (Object.keys(defintionsByParameters.params).length > 0) {
+    const parameterFunctions = getParameterFunctions(
+      isZodV4,
+      strict.param,
+      defintionsByParameters.params,
+    );
 
-    if (strict.param) {
-      params.functions.push(['strict', undefined]);
-    }
+    params.functions.push(...parameterFunctions);
   }
 
   return {
@@ -826,18 +1029,18 @@ const generateZodRoute = async (
   { operationName, verb, override }: GeneratorVerbOptions,
   { pathRoute, context, output }: GeneratorOptions,
 ) => {
+  const isZodV4 =
+    !!context.output.packageJson && isZodVersionV4(context.output.packageJson);
   const spec = context.specs[context.specKey].paths[pathRoute] as
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters as (
-    | ParameterObject
-    | ReferenceObject
-  )[];
+  const parameters = spec?.[verb]?.parameters!;
   const parsedParameters = parseParameters({
     data: parameters,
     context,
     operationName,
+    isZodV4,
     strict: override.zod.strict,
     generate: override.zod.generate,
   });
@@ -849,6 +1052,7 @@ const generateZodRoute = async (
     name: camel(`${operationName}-body`),
     strict: override.zod.strict.body,
     generate: override.zod.generate.body,
+    isZodV4,
     parseType: 'body',
   });
 
@@ -864,14 +1068,28 @@ const generateZodRoute = async (
       name: camel(`${operationName}-${code}-response`),
       strict: override.zod.strict.response,
       generate: override.zod.generate.response,
+      isZodV4,
       parseType: 'response',
     }),
   );
+
+  const preprocessParams = override.zod.preprocess?.param
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessParams`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
 
   const inputParams = parseZodValidationSchemaDefinition(
     parsedParameters.params,
     context,
     override.zod.coerce.param,
+    override.zod.strict.param,
+    isZodV4,
+    preprocessParams,
   );
 
   if (override.coerceTypes) {
@@ -880,21 +1098,61 @@ const generateZodRoute = async (
     );
   }
 
+  const preprocessQueryParams = override.zod.preprocess?.query
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessQueryParams`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
     override.zod.coerce.query ?? override.coerceTypes,
+    override.zod.strict.query,
+    isZodV4,
+    preprocessQueryParams,
   );
+
+  const preprocessHeader = override.zod.preprocess?.header
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessHeader`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
+
   const inputHeaders = parseZodValidationSchemaDefinition(
     parsedParameters.headers,
     context,
     override.zod.coerce.header,
+    override.zod.strict.header,
+    isZodV4,
+    preprocessHeader,
   );
+
+  const preprocessBody = override.zod.preprocess?.body
+    ? await generateMutator({
+        output,
+        mutator: override.zod.preprocess.response,
+        name: `${operationName}PreprocessBody`,
+        workspace: context.workspace,
+        tsconfig: context.output.tsconfig,
+      })
+    : undefined;
 
   const inputBody = parseZodValidationSchemaDefinition(
     parsedBody.input,
     context,
     override.zod.coerce.body,
+    override.zod.strict.body,
+    isZodV4,
+    preprocessBody,
   );
 
   const preprocessResponse = override.zod.preprocess?.response
@@ -912,6 +1170,8 @@ const generateZodRoute = async (
       parsedResponse.input,
       context,
       override.zod.coerce.response,
+      override.zod.strict.response,
+      isZodV4,
       preprocessResponse,
     ),
   );
@@ -956,34 +1216,32 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)${
               : `export const ${operationName}Body = ${inputBody.zod}`,
           ]
         : []),
-      ...inputResponses
-        .map((inputResponse, index) => {
-          const operationResponse = camel(
-            `${operationName}-${responses[index][0]}-response`,
-          );
-          return [
-            ...(inputResponse.consts ? [inputResponse.consts] : []),
-            ...(inputResponse.zod
-              ? [
-                  parsedResponses[index].isArray
-                    ? `export const ${operationResponse}Item = ${
-                        inputResponse.zod
-                      }
+      ...inputResponses.flatMap((inputResponse, index) => {
+        const operationResponse = camel(
+          `${operationName}-${responses[index][0]}-response`,
+        );
+        return [
+          ...(inputResponse.consts ? [inputResponse.consts] : []),
+          ...(inputResponse.zod
+            ? [
+                parsedResponses[index].isArray
+                  ? `export const ${operationResponse}Item = ${
+                      inputResponse.zod
+                    }
 export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                        parsedResponses[index].rules?.min
-                          ? `.min(${parsedResponses[index].rules?.min})`
-                          : ''
-                      }${
-                        parsedResponses[index].rules?.max
-                          ? `.max(${parsedResponses[index].rules?.max})`
-                          : ''
-                      }`
-                    : `export const ${operationResponse} = ${inputResponse.zod}`,
-                ]
-              : []),
-          ];
-        })
-        .flat(),
+                      parsedResponses[index].rules?.min
+                        ? `.min(${parsedResponses[index].rules?.min})`
+                        : ''
+                    }${
+                      parsedResponses[index].rules?.max
+                        ? `.max(${parsedResponses[index].rules?.max})`
+                        : ''
+                    }`
+                  : `export const ${operationResponse} = ${inputResponse.zod}`,
+              ]
+            : []),
+        ];
+      }),
     ].join('\n\n'),
     mutators: preprocessResponse ? [preprocessResponse] : [],
   };

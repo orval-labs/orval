@@ -18,7 +18,7 @@ export const CodegenOutput = ({ outputArray, editorProps, error, height }) => {
             <div onClick={() => setIndex(i)} key={outputItem.filename}>
               {basename(outputItem.filename)}
             </div>
-          ))}
+          )) || 'endpoints.ts'}
         </div>
       </div>
       <Editor {...editorProps} value={editorContent} height={height} />

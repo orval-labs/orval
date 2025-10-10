@@ -1,11 +1,12 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+
 import { getScalar } from '../getters';
-import { ContextSpecs } from '../types';
+import type { ContextSpecs } from '../types';
 import { jsDoc } from '../utils';
 
 /**
  * Generate the interface string
- * A eslint|tslint comment is insert if the resulted object is empty
+ * An eslint comment is insert if the resulted object is empty
  *
  * @param name interface name
  * @param schema
@@ -33,30 +34,38 @@ export const generateInterface = ({
   model += jsDoc(schema);
 
   if (isEmptyObject) {
-    if (context.output.tslint) {
-      model += '// tslint:disable-next-line:no-empty-interface\n';
-    } else {
-      model +=
-        '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
-    }
+    model +=
+      '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
   }
 
   if (
     scalar.type === 'object' &&
     !context?.output.override?.useTypeOverInterfaces
   ) {
-    // If `scalar.value` is 'unknown', replace it with `{}` to avoid type error
-    const blankInterfaceValue =
-      scalar.value === 'unknown' ? '{}' : scalar.value;
+    if (
+      scalar.type === 'object' &&
+      schema.properties &&
+      Object.values(schema.properties).length > 0 &&
+      Object.values(schema.properties).every((item) => 'const' in item)
+    ) {
+      const mappedScalarValue = scalar.value
+        .replaceAll(';', ',')
+        .replaceAll('?:', ':');
 
-    model += `export interface ${name} ${blankInterfaceValue}\n`;
+      model += `export const ${name}Value = ${mappedScalarValue} as const;\nexport type ${name} = typeof ${name}Value;\n`;
+    } else {
+      const blankInterfaceValue =
+        scalar.value === 'unknown' ? '{}' : scalar.value;
+
+      model += `export interface ${name} ${blankInterfaceValue}\n`;
+    }
   } else {
     model += `export type ${name} = ${scalar.value};\n`;
   }
 
   // Filter out imports that refer to the type defined in current file (OpenAPI recursive schema definitions)
-  const externalModulesImportsOnly = scalar.imports.filter(
-    (importName) => importName.name !== name,
+  const externalModulesImportsOnly = scalar.imports.filter((importName) =>
+    importName.alias ? importName.alias !== name : importName.name !== name,
   );
 
   return [

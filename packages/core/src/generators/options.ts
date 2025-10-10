@@ -1,10 +1,10 @@
 import {
-  GeneratorMutator,
-  GeneratorSchema,
-  GetterBody,
-  GetterQueryParam,
-  GetterResponse,
-  ParamsSerializerOptions,
+  type GeneratorMutator,
+  type GeneratorSchema,
+  type GetterBody,
+  type GetterQueryParam,
+  type GetterResponse,
+  type ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';
@@ -37,6 +37,7 @@ export const generateAxiosOptions = ({
   requestOptions,
   hasSignal,
   isVue,
+  isAngular,
   paramsSerializer,
   paramsSerializerOptions,
 }: {
@@ -47,18 +48,24 @@ export const generateAxiosOptions = ({
   requestOptions?: object | boolean;
   hasSignal: boolean;
   isVue: boolean;
+  isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
 }) => {
   const isRequestOptions = requestOptions !== false;
-  if (!queryParams && !headers && !response.isBlob) {
+  if (
+    !queryParams &&
+    !headers &&
+    !response.isBlob &&
+    response.definition.success !== 'string'
+  ) {
     if (isRequestOptions) {
       return 'options';
     }
     if (hasSignal) {
-      return !isExactOptionalPropertyTypes
-        ? 'signal'
-        : '...(signal ? { signal } : {})';
+      return isExactOptionalPropertyTypes
+        ? '...(signal ? { signal } : {})'
+        : 'signal';
     }
     return '';
   }
@@ -75,18 +82,21 @@ export const generateAxiosOptions = ({
     }
 
     if (hasSignal) {
-      value += !isExactOptionalPropertyTypes
-        ? '\n        signal,'
-        : '\n        ...(signal ? { signal } : {}),';
+      value += isExactOptionalPropertyTypes
+        ? '\n        ...(signal ? { signal } : {}),'
+        : '\n        signal,';
     }
   }
 
   if (
-    response.isBlob &&
-    (!isObject(requestOptions) ||
-      !requestOptions.hasOwnProperty('responseType'))
+    !isObject(requestOptions) ||
+    !requestOptions.hasOwnProperty('responseType')
   ) {
-    value += `\n        responseType: 'blob',`;
+    if (response.isBlob) {
+      value += `\n        responseType: 'blob',`;
+    } else if (response.definition.success === 'string') {
+      value += `\n        responseType: 'text',`;
+    }
   }
 
   if (isObject(requestOptions)) {
@@ -99,6 +109,8 @@ export const generateAxiosOptions = ({
     if (queryParams) {
       if (isVue) {
         value += '\n        params: {...unref(params), ...options?.params},';
+      } else if (isAngular && paramsSerializer) {
+        value += `\n        params: ${paramsSerializer.name}({...params, ...options?.params}),`;
       } else {
         value += '\n        params: {...params, ...options?.params},';
       }
@@ -109,14 +121,16 @@ export const generateAxiosOptions = ({
     }
   }
 
-  if (queryParams && (paramsSerializer || paramsSerializerOptions?.qs)) {
-    if (paramsSerializer) {
-      value += `\n        paramsSerializer: ${paramsSerializer.name},`;
-    } else {
-      value += `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-        paramsSerializerOptions!.qs,
-      )}),`;
-    }
+  if (
+    !isAngular &&
+    queryParams &&
+    (paramsSerializer || paramsSerializerOptions?.qs)
+  ) {
+    value += paramsSerializer
+      ? `\n        paramsSerializer: ${paramsSerializer.name},`
+      : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+          paramsSerializerOptions!.qs,
+        )}),`;
   }
 
   return value;
@@ -167,6 +181,7 @@ export const generateOptions = ({
     isExactOptionalPropertyTypes,
     hasSignal,
     isVue: isVue ?? false,
+    isAngular: isAngular ?? false,
     paramsSerializer,
     paramsSerializerOptions,
   });
@@ -224,11 +239,7 @@ export const generateQueryParamsAxiosConfig = (
   let value = '';
 
   if (queryParams) {
-    if (isVue) {
-      value += ',\n        params: unref(params)';
-    } else {
-      value += ',\n        params';
-    }
+    value += isVue ? ',\n        params: unref(params)' : ',\n        params';
   }
 
   if (response.isBlob) {

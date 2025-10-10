@@ -1,19 +1,19 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpecs,
+  type GeneratorImport,
   getRefInfo,
   isReference,
   isRootKey,
-  MockOptions,
+  type MockOptions,
   pascal,
 } from '@orval/core';
-import get from 'lodash.get';
-import { SchemaObject } from 'openapi3-ts/oas30';
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
-const isRegex = (key: string) => key[0] === '/' && key[key.length - 1] === '/';
+const isRegex = (key: string) => key.startsWith('/') && key.endsWith('/');
 
 export const resolveMockOverride = (
   properties: Record<string, unknown> | undefined = {},
@@ -22,7 +22,7 @@ export const resolveMockOverride = (
   const path = item.path ? item.path : `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
-      const regex = new RegExp(key.slice(1, key.length - 1));
+      const regex = new RegExp(key.slice(1, -1));
       if (regex.test(item.name) || regex.test(path)) {
         return true;
       }
@@ -85,13 +85,22 @@ export const resolveMockValue = ({
       refPaths,
     } = getRefInfo(schema.$ref, context);
 
-    const schemaRef = get(context.specs[specKey], refPaths as string[]);
+    const schemaRef = Array.isArray(refPaths)
+      ? (refPaths.reduce(
+          (obj, key) =>
+            obj && typeof obj === 'object'
+              ? (obj as Record<string, any>)[key]
+              : undefined,
+          context.specs[specKey],
+        ) as Partial<SchemaObject>)
+      : undefined;
 
     const newSchema = {
       ...schemaRef,
       name: pascal(originalName),
       path: schema.path,
       isRef: true,
+      required: [...(schemaRef?.required ?? []), ...(schema?.required ?? [])],
     };
 
     const newSeparator = newSchema.allOf
@@ -141,18 +150,13 @@ export const resolveMockValue = ({
         }
 
         const args = `${overrideVarName}: ${type} = {}`;
-        const value = newSchema.oneOf
-          ? `faker.helpers.arrayElement([${scalar.value}])`
-          : scalar.value;
-        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({...${value}, ...${overrideVarName}});`;
+        const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
         splitMockImplementations?.push(func);
       }
 
-      if (newSchema.nullable) {
-        scalar.value = `${funcName}()`;
-      } else {
-        scalar.value = `{...${funcName}()}`;
-      }
+      scalar.value = newSchema.nullable
+        ? `${funcName}()`
+        : `{...${funcName}()}`;
 
       scalar.imports.push({
         name: newSchema.name,
@@ -160,13 +164,9 @@ export const resolveMockValue = ({
       });
     }
 
-    if (scalar.value && newSchema.allOf && combine?.separator === 'anyOf') {
-      scalar.value = `{${scalar.value}}`;
-    }
-
     return {
       ...scalar,
-      type: newSchema.type,
+      type: getType(newSchema),
     };
   }
 
@@ -182,9 +182,15 @@ export const resolveMockValue = ({
     splitMockImplementations,
     allowOverride,
   });
-
   return {
     ...scalar,
-    type: schema.type,
+    type: getType(schema),
   };
+};
+
+const getType = (schema: MockSchemaObject) => {
+  return (
+    (schema.type as string | undefined) ??
+    (schema.properties ? 'object' : schema.items ? 'array' : undefined)
+  );
 };

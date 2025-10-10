@@ -1,25 +1,32 @@
 import { keyword } from 'esutils';
 import type { ValueIteratee } from 'lodash';
 import uniqBy from 'lodash.uniqby';
-
-import {
+import type {
   MediaTypeObject,
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
+
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
-import { ContextSpecs, GeneratorImport, ResReqTypesValue } from '../types';
+import {
+  type ContextSpecs,
+  FormDataArrayHandling,
+  type GeneratorImport,
+  type ResReqTypesValue,
+} from '../types';
 import { camel } from '../utils';
 import { isReference } from '../utils/assertion';
 import { pascal } from '../utils/case';
 import { getNumberWord } from '../utils/string';
 
-const formDataContentTypes = ['multipart/form-data'];
+const formDataContentTypes = new Set(['multipart/form-data']);
 
-const formUrlEncodedContentTypes = ['application/x-www-form-urlencoded'];
+const formUrlEncodedContentTypes = new Set([
+  'application/x-www-form-urlencoded',
+]);
 
 const getResReqContentTypes = ({
   mediaType,
@@ -31,7 +38,7 @@ const getResReqContentTypes = ({
   context: ContextSpecs;
 }) => {
   if (!mediaType.schema) {
-    return undefined;
+    return;
   }
 
   const resolvedObject = resolveObject({
@@ -44,9 +51,10 @@ const getResReqContentTypes = ({
 };
 
 export const getResReqTypes = (
-  responsesOrRequests: Array<
-    [string, ResponseObject | ReferenceObject | RequestBodyObject]
-  >,
+  responsesOrRequests: [
+    string,
+    ResponseObject | ReferenceObject | RequestBodyObject,
+  ][],
   name: string,
   context: ContextSpecs,
   defaultType = 'unknown',
@@ -64,9 +72,8 @@ export const getResReqTypes = (
         const [contentType, mediaType] =
           Object.entries(bodySchema.content ?? {})[0] ?? [];
 
-        const isFormData = formDataContentTypes.includes(contentType);
-        const isFormUrlEncoded =
-          formUrlEncodedContentTypes.includes(contentType);
+        const isFormData = formDataContentTypes.has(contentType);
+        const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
 
         if ((!isFormData && !isFormUrlEncoded) || !mediaType?.schema) {
           return [
@@ -164,9 +171,9 @@ export const getResReqTypes = (
               return;
             }
 
-            const isFormData = formDataContentTypes.includes(contentType);
+            const isFormData = formDataContentTypes.has(contentType);
             const isFormUrlEncoded =
-              formUrlEncodedContentTypes.includes(contentType);
+              formUrlEncodedContentTypes.has(contentType);
 
             if ((!isFormData && !isFormUrlEncoded) || !propName) {
               return {
@@ -216,7 +223,7 @@ export const getResReqTypes = (
         );
 
         return contents
-          .filter((x) => x)
+          .filter(Boolean)
           .map((x) => ({ ...x, key })) as ResReqTypesValue[];
       }
 
@@ -235,10 +242,7 @@ export const getResReqTypes = (
       ] as ResReqTypesValue[];
     });
 
-  return uniqBy(
-    typesArray.flatMap((it) => it),
-    uniqueKey,
-  );
+  return uniqBy(typesArray.flat(), uniqueKey);
 };
 
 const getFormDataAdditionalImports = ({
@@ -249,17 +253,20 @@ const getFormDataAdditionalImports = ({
   context: ContextSpecs;
 }): GeneratorImport[] => {
   const { schema } = resolveRef<SchemaObject>(schemaObject, context);
-  if (schema.type === 'object') {
-    if (schema.oneOf || schema.anyOf) {
-      const combinedSchemas = schema.oneOf || schema.anyOf;
 
-      return combinedSchemas!.map((schema) => {
-        const { imports } = resolveRef<SchemaObject>(schema, context);
-        return imports[0];
-      });
-    }
+  if (schema.type !== 'object') {
+    return [];
   }
-  return [];
+
+  const combinedSchemas = schema.oneOf || schema.anyOf;
+
+  if (!combinedSchemas) {
+    return [];
+  }
+
+  return combinedSchemas
+    .map((schema) => resolveRef<SchemaObject>(schema, context).imports[0])
+    .filter(Boolean);
 };
 
 const getSchemaFormDataAndUrlEncoded = ({
@@ -303,14 +310,17 @@ const getSchemaFormDataAndUrlEncoded = ({
             context,
           );
 
-          if (shouldCast) additionalImports.push(imports[0]);
+          let newPropName = propName;
+          let newPropDefinition = '';
 
-          const newPropName = shouldCast
-            ? `${propName}${pascal(imports[0].name)}`
-            : propName;
-          const newPropDefinition = shouldCast
-            ? `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`
-            : '';
+          // If the schema is a union type (oneOf, anyOf) and includes a reference (has imports),
+          // we need to cast the property to the specific type to avoid TypeScript errors.
+          if (shouldCast && imports[0]) {
+            additionalImports.push(imports[0]);
+            newPropName = `${propName}${pascal(imports[0].name)}`;
+            newPropDefinition = `const ${newPropName} = (${propName} as ${imports[0].name}${isRequestBodyOptional ? ' | undefined' : ''});\n`;
+          }
+
           return (
             newPropDefinition +
             resolveSchemaPropertiesToFormData({
@@ -322,7 +332,7 @@ const getSchemaFormDataAndUrlEncoded = ({
             })
           );
         })
-        .filter((x) => x)
+        .filter(Boolean)
         .join('\n');
 
       form += combinedSchemasFormData;
@@ -381,42 +391,82 @@ const resolveSchemaPropertiesToFormData = ({
   propName,
   context,
   isRequestBodyOptional,
+  keyPrefix = '',
+  depth = 0,
 }: {
   schema: SchemaObject;
   variableName: string;
   propName: string;
   context: ContextSpecs;
   isRequestBodyOptional: boolean;
+  keyPrefix?: string;
+  depth?: number;
 }) => {
   const formDataValues = Object.entries(schema.properties ?? {}).reduce(
     (acc, [key, value]) => {
       const { schema: property } = resolveRef<SchemaObject>(value, context);
 
+      // Skip readOnly properties for formData
+      if (property.readOnly) {
+        return acc;
+      }
+
       let formDataValue = '';
 
-      const formattedKeyPrefix = !isRequestBodyOptional
-        ? ''
-        : !keyword.isIdentifierNameES5(key)
-          ? '?.'
-          : '?';
-      const formattedKey = !keyword.isIdentifierNameES5(key)
-        ? `['${key}']`
-        : `.${key}`;
+      const formattedKeyPrefix = isRequestBodyOptional
+        ? keyword.isIdentifierNameES5(key)
+          ? '?'
+          : '?.'
+        : '';
+      const formattedKey = keyword.isIdentifierNameES5(key)
+        ? `.${key}`
+        : `['${key}']`;
 
       const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
       const nonOptionalValueKey = `${propName}${formattedKey}`;
 
       if (property.type === 'object') {
-        formDataValue = `${variableName}.append('${key}', JSON.stringify(${nonOptionalValueKey}));\n`;
+        formDataValue =
+          context.output.override.formData.arrayHandling ===
+          FormDataArrayHandling.EXPLODE
+            ? resolveSchemaPropertiesToFormData({
+                schema: property,
+                variableName,
+                propName: nonOptionalValueKey,
+                context,
+                isRequestBodyOptional,
+                keyPrefix: `${keyPrefix}${key}.`,
+                depth: depth + 1,
+              })
+            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       } else if (property.type === 'array') {
         let valueStr = 'value';
+        let hasNonPrimitiveChild = false;
         if (property.items) {
           const { schema: itemSchema } = resolveRef<SchemaObject>(
             property.items,
             context,
           );
           if (itemSchema.type === 'object' || itemSchema.type === 'array') {
-            valueStr = 'JSON.stringify(value)';
+            if (
+              context.output.override.formData.arrayHandling ===
+              FormDataArrayHandling.EXPLODE
+            ) {
+              hasNonPrimitiveChild = true;
+              const resolvedValue = resolveSchemaPropertiesToFormData({
+                schema: itemSchema,
+                variableName,
+                propName: 'value',
+                context,
+                isRequestBodyOptional,
+                keyPrefix: `${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}].`,
+                depth: depth + 1,
+              });
+              formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => {
+    ${resolvedValue}});\n`;
+            } else {
+              valueStr = 'JSON.stringify(value)';
+            }
           } else if (
             itemSchema.type === 'number' ||
             itemSchema.type?.includes('number') ||
@@ -428,7 +478,16 @@ const resolveSchemaPropertiesToFormData = ({
             valueStr = 'value.toString()';
           }
         }
-        formDataValue = `${valueKey}.forEach(value => ${variableName}.append('${key}', ${valueStr}));\n`;
+        if (
+          context.output.override.formData.arrayHandling ===
+          FormDataArrayHandling.EXPLODE
+        ) {
+          if (!hasNonPrimitiveChild) {
+            formDataValue = `${valueKey}.forEach((value, index${depth > 0 ? depth : ''}) => ${variableName}.append(\`${keyPrefix}${key}[\${index${depth > 0 ? depth : ''}}]\`, ${valueStr}));\n`;
+          }
+        } else {
+          formDataValue = `${valueKey}.forEach(value => ${variableName}.append(\`${keyPrefix}${key}${context.output.override.formData.arrayHandling === FormDataArrayHandling.SERIALIZE_WITH_BRACKETS ? '[]' : ''}\`, ${valueStr}));\n`;
+        }
       } else if (
         property.type === 'number' ||
         property.type?.includes('number') ||
@@ -437,9 +496,9 @@ const resolveSchemaPropertiesToFormData = ({
         property.type === 'boolean' ||
         property.type?.includes('boolean')
       ) {
-        formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
       } else {
-        formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey})\n`;
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey})\n`;
       }
 
       let existSubSchemaNullable = false;
@@ -453,7 +512,7 @@ const resolveSchemaPropertiesToFormData = ({
             return ['number', 'integer', 'boolean'].includes(subSchema.type);
           })
         ) {
-          formDataValue = `${variableName}.append('${key}', ${nonOptionalValueKey}.toString())\n`;
+          formDataValue = `${variableName}.append(\`${key}\`, ${nonOptionalValueKey}.toString())\n`;
         }
 
         if (

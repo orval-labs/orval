@@ -120,12 +120,28 @@ export default defineConfig({
               name: 'stripNill',
               path: '../mutators/zod-preprocess.ts',
             },
+            query: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+            param: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+            header: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
+            body: {
+              name: 'stripNill',
+              path: '../mutators/zod-preprocess.ts',
+            },
           },
         },
       },
     },
     input: {
-      target: '../specifications/circular.yaml',
+      target: '../specifications/petstore.yaml',
     },
   },
   additionalProperties: {
@@ -152,5 +168,47 @@ export default defineConfig({
       client: 'zod',
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
+  },
+  dateTimeOptions: {
+    output: {
+      target: '../generated/zod/date-time-options.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          dateTimeOptions: {
+            offset: true,
+            precision: 3,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/format.yaml',
+    },
+  },
+  timeOptions: {
+    output: {
+      target: '../generated/zod/time-options.ts',
+      client: 'zod',
+      override: {
+        zod: {
+          timeOptions: {
+            precision: -1,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/format.yaml',
+    },
+  },
+  enums: {
+    output: {
+      target: '../generated/zod/enums.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/enums.yaml',
+    },
   },
 });

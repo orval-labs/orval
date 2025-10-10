@@ -23,6 +23,9 @@ export default defineConfig({
           path: '../mutators/custom-fetch.ts',
           name: 'customFetch',
         },
+        fetch: {
+          forceSuccessResponse: true,
+        },
       },
     },
     input: {
@@ -196,5 +199,81 @@ export default defineConfig({
       client: 'fetch',
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
+  },
+  defaultOnlyResponse: {
+    output: {
+      target: '../generated/fetch/default-only-response/endpoints.ts',
+      client: 'fetch',
+    },
+    input: '../specifications/default-response.yaml',
+  },
+  emptyResponse: {
+    output: {
+      target: '../generated/fetch/empty-response/endpoints.ts',
+      schemas: '../generated/fetch/empty-response/model',
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/empty-response.yaml',
+    },
+  },
+  stream: {
+    output: {
+      target: '../generated/fetch/stream/endpoints.ts',
+      schemas: '../generated/fetch/stream/model',
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/stream.yaml',
+    },
+  },
+  reviver: {
+    output: {
+      target: '../generated/fetch/reviver/endpoints.ts',
+      schemas: '../generated/fetch/reviver/model',
+      client: 'fetch',
+      mode: 'tags-split',
+      override: {
+        fetch: {
+          jsonReviver: {
+            path: 'mutators/custom-reviver.ts',
+            default: true,
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  dateParams: {
+    output: {
+      target: '../generated/fetch/dateParams/endpoints.ts',
+      schemas: '../generated/fetch/dateParams/model',
+      client: 'fetch',
+      urlEncodeParameters: true,
+      mode: 'tags-split',
+      override: {
+        useDates: true,
+      },
+    },
+    input: {
+      target: '../specifications/parameters.yaml',
+    },
+  },
+  forceSuccessResponse: {
+    output: {
+      target: '../generated/fetch/force-success-response/endpoints.ts',
+      schemas: '../generated/fetch/force-success-response/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
   },
 });

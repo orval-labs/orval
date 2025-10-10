@@ -1,25 +1,22 @@
 import {
-  GeneratorOperation,
-  GeneratorTarget,
-  GeneratorTargetFull,
-  NormalizedOutputOptions,
+  type GeneratorOperation,
+  type GeneratorTarget,
+  type GeneratorTargetFull,
+  type NormalizedOutputOptions,
   OutputClient,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
 const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
   ...operation,
-  tags: operation.tags.length ? operation.tags : ['default'],
+  tags: operation.tags.length > 0 ? operation.tags : ['default'],
 });
 
 const generateTargetTags = (
-  currentAcc: { [key: string]: GeneratorTargetFull },
+  currentAcc: Record<string, GeneratorTargetFull>,
   operation: GeneratorOperation,
-  options: NormalizedOutputOptions,
-): {
-  [key: string]: GeneratorTargetFull;
-} => {
+): Record<string, GeneratorTargetFull> => {
   const tag = kebab(operation.tags[0]);
   const currentOperation = currentAcc[tag];
 
@@ -36,6 +33,7 @@ const generateTargetTags = (
       paramsSerializer: operation.paramsSerializer
         ? [operation.paramsSerializer]
         : [],
+      fetchReviver: operation.fetchReviver ? [operation.fetchReviver] : [],
       implementation: operation.implementation,
       implementationMock: {
         function: operation.implementationMock.function,
@@ -85,6 +83,9 @@ const generateTargetTags = (
           operation.paramsSerializer,
         ]
       : currentOperation.paramsSerializer,
+    fetchReviver: operation.fetchReviver
+      ? [...(currentOperation.fetchReviver ?? []), operation.fetchReviver]
+      : currentOperation.fetchReviver,
   };
   return currentAcc;
 };
@@ -97,9 +98,9 @@ export const generateTargetForTags = (
 
   const allTargetTags = Object.values(builder.operations)
     .map(addDefaultTagIfEmpty)
-    .reduce(
+    .reduce<Record<string, GeneratorTargetFull>>(
       (acc, operation, index, arr) => {
-        const targetTags = generateTargetTags(acc, operation, options);
+        const targetTags = generateTargetTags(acc, operation);
 
         if (index === arr.length - 1) {
           return Object.entries(targetTags).reduce<
@@ -109,12 +110,15 @@ export const generateTargetForTags = (
               isAngularClient ? mutator.hasThirdArg : mutator.hasSecondArg,
             );
             const operationNames = Object.values(builder.operations)
-              .filter(({ tags }) => tags.map(kebab).includes(kebab(tag)))
+              // Operations can have multiple tags, but they are grouped by the first
+              // tag, therefore we only want to handle the case where the tag
+              // is the first in the list of tags.
+              .filter(({ tags }) => tags.map(kebab).indexOf(kebab(tag)) === 0)
               .map(({ operationName }) => operationName);
 
             const typescriptVersion =
-              options.packageJson?.dependencies?.['typescript'] ??
-              options.packageJson?.devDependencies?.['typescript'] ??
+              options.packageJson?.dependencies?.typescript ??
+              options.packageJson?.devDependencies?.typescript ??
               '4.4.0';
 
             const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
@@ -170,6 +174,7 @@ export const generateTargetForTags = (
               formData: target.formData,
               formUrlEncoded: target.formUrlEncoded,
               paramsSerializer: target.paramsSerializer,
+              fetchReviver: target.fetchReviver,
             };
 
             return acc;
@@ -178,7 +183,7 @@ export const generateTargetForTags = (
 
         return targetTags;
       },
-      {} as { [key: string]: GeneratorTargetFull },
+      {},
     );
 
   return Object.entries(allTargetTags).reduce<Record<string, GeneratorTarget>>(

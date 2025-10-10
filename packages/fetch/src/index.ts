@@ -1,3 +1,4 @@
+import { ClientHeaderBuilder, pascal } from '@orval/core';
 import {
   camel,
   ClientBuilder,
@@ -18,6 +19,7 @@ import {
   ParameterObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
+import { SchemaObject } from 'openapi3-ts/oas31';
 
 export const generateRequestFunction = (
   {
@@ -29,6 +31,7 @@ export const generateRequestFunction = (
     body,
     props,
     verb,
+    fetchReviver,
     formData,
     formUrlEncoded,
     override,
@@ -36,7 +39,7 @@ export const generateRequestFunction = (
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData !== false;
+  const isFormData = override?.formData.disabled === false;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);
@@ -58,8 +61,13 @@ export const generateRequestFunction = (
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
+    const schemaObject = schema.schema as SchemaObject;
 
-    return schema.in === 'query' && schema.explode;
+    return (
+      schema.in === 'query' &&
+      schemaObject.type === 'array' &&
+      (schema.explode || override.fetch.explode)
+    );
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
@@ -67,13 +75,24 @@ export const generateRequestFunction = (
 
     return schema.name;
   });
+  const hasDateParams =
+    context.output.override.useDates &&
+    parameters.some(
+      (p) =>
+        'schema' in p &&
+        p.schema &&
+        'format' in p.schema &&
+        p.schema.format === 'date-time',
+    );
 
   const explodeArrayImplementation =
     explodeParameters.length > 0
       ? `const explodeParameters = ${JSON.stringify(explodeParametersNames)};
-      
-    if (value instanceof Array && explodeParameters.includes(key)) {
-      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+
+    if (Array.isArray(value) && explodeParameters.includes(key)) {
+      value.forEach((v) => {
+        normalizedParams.append(key, v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString());
+      });
       return;
     }
       `
@@ -83,7 +102,7 @@ export const generateRequestFunction = (
     explodeParameters.length === parameters.length;
 
   const nomalParamsImplementation = `if (value !== undefined) {
-      normalizedParams.append(key, value === null ? 'null' : value.toString())
+      normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
     }`;
 
   const getUrlFnImplementation = `export const ${getUrlFnName} = (${getUrlFnProps}) => {
@@ -98,34 +117,98 @@ ${
     : ''
 }
 
+  ${queryParams ? `const stringifiedParams = normalizedParams.toString();` : ``}
+
   ${
     queryParams
-      ? `return normalizedParams.size ? \`${route}${'?${normalizedParams.toString()}'}\` : \`${route}\``
+      ? `return stringifiedParams.length > 0 ? \`${route}${'?${stringifiedParams}'}\` : \`${route}\``
       : `return \`${route}\``
   }
 }\n`;
 
-  const isNdJson = response.contentTypes.some(
-    (c) => c === 'application/nd-json' || c === 'application/x-ndjson',
-  );
+  const isContentTypeNdJson = (contentType: string) =>
+    contentType === 'application/nd-json' ||
+    contentType === 'application/x-ndjson';
+
+  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
   const responseTypeName = fetchResponseTypeName(
-    override.fetch.includeHttpResponseReturnType,
+    override.fetch?.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
 
-  const responseDataType =
-    response.definition.success || response.definition.errors
-      ? `${response.definition.success !== 'unknown' ? response.definition.success : ''}${response.definition.success !== 'unknown' && response.definition.errors !== 'unknown' ? ' | ' : ''}${response.definition.errors !== 'unknown' ? response.definition.errors : ''}`
-      : 'unknown';
+  const allResponses = [...response.types.success, ...response.types.errors];
+  if (allResponses.length === 0) {
+    allResponses.push({
+      contentType: '',
+      hasReadonlyProps: false,
+      imports: [],
+      isEnum: false,
+      isRef: false,
+      key: 'default',
+      schemas: [],
+      type: 'unknown',
+      value: 'unknown',
+    });
+  }
+  const nonDefaultStatuses = allResponses
+    .filter((r) => r.key !== 'default')
+    .map((r) => r.key);
+  const responseDataTypes = allResponses
+    .map((r) =>
+      allResponses.filter((r2) => r2.key === r.key).length > 1
+        ? { ...r, suffix: pascal(r.contentType) }
+        : r,
+    )
+    .map((r) => {
+      const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
+      return {
+        name,
+        success: response.types.success.some((s) => s.key === r.key),
+        value: `export type ${name} = {
+  ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
+  status: ${
+    r.key === 'default'
+      ? nonDefaultStatuses.length
+        ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
+        : 'number'
+      : r.key
+  }
+}`,
+      };
+    });
+
+  const successName = `${responseTypeName}Success`;
+  const errorName = `${responseTypeName}Error`;
+  const hasSuccess = responseDataTypes.some((r) => r.success);
+  const hasError = responseDataTypes.some((r) => !r.success);
 
   const responseTypeImplementation = override.fetch
     .includeHttpResponseReturnType
-    ? `export type ${responseTypeName} = {
-  ${isNdJson ? 'stream: Response' : `data: ${responseDataType}`};
-  status: number;
+    ? `${responseDataTypes.map((r) => r.value).join('\n\n')}
+    
+${
+  hasSuccess
+    ? `export type ${successName} = (${responseDataTypes
+        .filter((r) => r.success)
+        .map((r) => r.name)
+        .join(' | ')}) & {
   headers: Headers;
-}\n\n`
+}`
+    : ''
+};
+${
+  hasError
+    ? `export type ${errorName} = (${responseDataTypes
+        .filter((r) => !r.success)
+        .map((r) => r.name)
+        .join(' | ')}) & {
+  headers: Headers;
+}`
+    : ''
+};
+
+${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${responseTypeName} = (${hasError && hasSuccess ? `${successName} | ${errorName}` : hasSuccess ? successName : errorName})\n\n`}`
     : '';
 
   const getUrlFnProperties = props
@@ -145,26 +228,43 @@ ${
     .join(',');
 
   const args = `${toObjectString(props, 'implementation')} ${isRequestOptions ? `options?: RequestInit` : ''}`;
-  const returnType = `Promise<${responseTypeName}>`;
+  const returnType =
+    override.fetch.forceSuccessResponse && hasSuccess
+      ? `Promise<${successName}>`
+      : `Promise<${responseTypeName}>`;
 
   const globalFetchOptions = isObject(override?.requestOptions)
     ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];
-  const fetchHeadersOption =
-    body.contentType && !ignoreContentTypes.includes(body.contentType)
-      ? `headers: { 'Content-Type': '${body.contentType}',${headers ? '...headers,' : ''} ...options?.headers }`
-      : headers
-        ? 'headers: {...headers, ...options?.headers}'
-        : '';
+  const headersToAdd: string[] = [
+    ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
+      ? [`'Content-Type': '${body.contentType}'`]
+      : []),
+    ...(isNdJson && response.contentTypes.length === 1
+      ? [
+          `Accept: ${
+            response.contentTypes[0] === 'application/x-ndjson'
+              ? "'application/x-ndjson'"
+              : "'application/nd-json'"
+          }`,
+        ]
+      : []),
+    ...(headers ? ['...headers'] : []),
+  ];
+  const fetchHeadersOption = headersToAdd.length
+    ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+    : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
     isFormUrlEncoded,
   );
   const fetchBodyOption = requestBodyParams
-    ? (isFormData && body.formData) || (isFormUrlEncoded && body.formUrlEncoded)
+    ? (isFormData && body.formData) ||
+      (isFormUrlEncoded && body.formUrlEncoded) ||
+      body.contentType === 'text/plain'
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
@@ -177,18 +277,28 @@ ${
     ${fetchBodyOption}
   }
 `;
+  const reviver = fetchReviver ? `, ${fetchReviver.name}` : '';
+  const throwOnErrorImplementation = `if (!${isNdJson ? 'stream' : 'res'}.ok) {
+    ${isNdJson ? 'const body = [204, 205, 304].includes(stream.status) ? null : await stream.text();' : ''}
+    const err: globalThis.Error & {info?: ${hasError ? `${errorName}${override.fetch.includeHttpResponseReturnType ? "['data']" : ''}` : 'any'}, status?: number} = new globalThis.Error();
+    const data ${hasError ? `: ${errorName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''}` : ''} = body ? JSON.parse(body${reviver}) : {}
+    err.info = data;
+    err.status = ${isNdJson ? 'stream' : 'res'}.status;
+    throw err;
+  }`;
   const fetchResponseImplementation = isNdJson
-    ? `const stream = await fetch(${fetchFnOptions})
-  
-  ${override.fetch.includeHttpResponseReturnType ? 'return { status: stream.status, stream, headers: stream.headers }' : `return stream`}
+    ? `  const stream = await fetch(${fetchFnOptions});
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  ${override.fetch.includeHttpResponseReturnType ? `return { status: stream.status, stream, headers: stream.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : `return stream`}
   `
     : `const res = await fetch(${fetchFnOptions})
 
-  const data:${response.definition.success} = ([204, 205, 304].includes(res.status) || !res.body) ? {} : await res.json()
-
-  ${override.fetch.includeHttpResponseReturnType ? 'return { status: res.status, data, headers: res.headers }' : `return data as ${responseTypeName}`}
+  const body = [204, 205, 304].includes(res.status) ? null : await res.text();
+  ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
+  const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
+  ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
-  const customFetchResponseImplementation = `return ${mutator?.name}<${responseTypeName}>(${fetchFnOptions});`;
+  const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -216,7 +326,7 @@ ${
 };
 
 export const fetchResponseTypeName = (
-  includeHttpResponseReturnType: boolean,
+  includeHttpResponseReturnType: boolean | undefined,
   definitionSuccessResponse: string,
   operationName: string,
 ) => {
@@ -235,8 +345,27 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   };
 };
 
+const getHTTPStatusCodes = () => `
+export type HTTPStatusCode1xx = 100 | 101 | 102 | 103;
+export type HTTPStatusCode2xx = 200 | 201 | 202 | 203 | 204 | 205 | 206 | 207;
+export type HTTPStatusCode3xx = 300 | 301 | 302 | 303 | 304 | 305 | 307 | 308;
+export type HTTPStatusCode4xx = 400 | 401 | 402 | 403 | 404 | 405 | 406 | 407 | 408 | 409 | 410 | 411 | 412 | 413 | 414 | 415 | 416 | 417 | 418 | 419 | 420 | 421 | 422 | 423 | 424 | 426 | 428 | 429 | 431 | 451;
+export type HTTPStatusCode5xx = 500 | 501 | 502 | 503 | 504 | 505 | 507 | 511;
+export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatusCode3xx | HTTPStatusCode4xx | HTTPStatusCode5xx;
+
+`;
+
+export const generateFetchHeader: ClientHeaderBuilder = ({
+  clientImplementation,
+}) => {
+  return clientImplementation.includes('<HTTPStatusCodes,')
+    ? getHTTPStatusCodes()
+    : '';
+};
+
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
+  header: generateFetchHeader,
   dependencies: () => [],
 };
 

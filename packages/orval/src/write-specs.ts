@@ -5,22 +5,23 @@ import {
   isRootKey,
   jsDoc,
   log,
-  NormalizedOptions,
+  type NormalizedOptions,
   OutputMode,
   upath,
   writeSchemas,
   writeSingleMode,
-  WriteSpecsBuilder,
+  type WriteSpecsBuilder,
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa from 'execa';
+import execa, { type ExecaError } from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
-import { InfoObject } from 'openapi3-ts/oas30';
-import { Application, TypeDocOptions } from 'typedoc';
+import type { InfoObject } from 'openapi3-ts/oas30';
+import type { TypeDocOptions } from 'typedoc';
+
 import { executeHook } from './utils';
 
 const getHeader = (
@@ -46,17 +47,16 @@ export const writeSpecs = async (
   const { output } = options;
   const projectTitle = projectName || info.title;
 
-  const specsName = Object.keys(schemas).reduce(
-    (acc, specKey) => {
-      const basePath = upath.getSpecName(specKey, target);
-      const name = basePath.slice(1).split('/').join('-');
+  const specsName = Object.keys(schemas).reduce<
+    Record<keyof typeof schemas, string>
+  >((acc, specKey) => {
+    const basePath = upath.getSpecName(specKey, target);
+    const name = basePath.slice(1).split('/').join('-');
 
-      acc[specKey] = name;
+    acc[specKey] = name;
 
-      return acc;
-    },
-    {} as Record<keyof typeof schemas, string>,
-  );
+    return acc;
+  }, {});
 
   const header = getHeader(output.override.header, info as InfoObject);
 
@@ -65,18 +65,19 @@ export const writeSpecs = async (
 
     const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
       ? '.ts'
-      : output.fileExtension ?? '.ts';
+      : (output.fileExtension ?? '.ts');
 
     await Promise.all(
       Object.entries(schemas).map(([specKey, schemas]) => {
-        const schemaPath = !isRootKey(specKey, target)
-          ? upath.join(rootSchemaPath, specsName[specKey])
-          : rootSchemaPath;
+        const schemaPath = isRootKey(specKey, target)
+          ? rootSchemaPath
+          : upath.join(rootSchemaPath, specsName[specKey]);
 
         return writeSchemas({
           schemaPath,
           schemas,
           target,
+          namingConvention: output.namingConvention,
           fileExtension,
           specsName,
           specKey,
@@ -132,8 +133,8 @@ export const writeSpecs = async (
         await fs.appendFile(
           indexFile,
           uniq(importsNotDeclared)
-            .map((imp) => `export * from '${imp}';`)
-            .join('\n') + '\n',
+            .map((imp) => `export * from '${imp}';\n`)
+            .join(''),
         );
       } else {
         await fs.outputFile(
@@ -148,7 +149,7 @@ export const writeSpecs = async (
     }
   }
 
-  if (builder.extraFiles.length) {
+  if (builder.extraFiles.length > 0) {
     await Promise.all(
       builder.extraFiles.map(async (file) =>
         fs.outputFile(file.path, file.content),
@@ -180,7 +181,7 @@ export const writeSpecs = async (
     } catch {
       log(
         chalk.yellow(
-          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Prettier not found`,
+          `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Globally installed prettier not found`,
         ),
       );
     }
@@ -189,10 +190,11 @@ export const writeSpecs = async (
   if (output.biome) {
     try {
       await execa('biome', ['check', '--write', ...paths]);
-    } catch (e: any) {
+    } catch (error) {
+      const errorExeca = error as ExecaError;
       const message =
-        e.exitCode === 1
-          ? e.stdout + e.stderr
+        errorExeca.exitCode === 1
+          ? errorExeca.stdout + errorExeca.stderr
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
 
       log(chalk.yellow(message));
@@ -209,11 +211,19 @@ export const writeSpecs = async (
           config.options = configPath;
         }
       }
+
+      const getTypedocApplication = async () => {
+        const { Application } = await import('typedoc');
+        return Application;
+      };
+
+      const Application = await getTypedocApplication();
       const app = await Application.bootstrapWithPlugins({
         entryPoints: paths,
+        theme: 'markdown',
         // Set the custom config location if it has been provided.
         ...config,
-        plugin: ['typedoc-plugin-markdown'],
+        plugin: ['typedoc-plugin-markdown', ...(config.plugin ?? [])],
       });
       // Set defaults if the have not been provided by the external config.
       if (!app.options.isSet('readme')) {
@@ -224,14 +234,14 @@ export const writeSpecs = async (
       }
       const project = await app.convert();
       if (project) {
-        await app.generateDocs(project, app.options.getValue('out'));
+        await app.generateDocs(project, app.options.getValue('out') as string);
       } else {
-        throw new Error('TypeDoc not initialised');
+        throw new Error('TypeDoc not initialized');
       }
-    } catch (e: any) {
+    } catch (error) {
       const message =
-        e.exitCode === 1
-          ? e.stdout + e.stderr
+        error instanceof Error
+          ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
       log(chalk.yellow(message));
@@ -243,14 +253,18 @@ export const writeSpecs = async (
 
 const getWriteMode = (mode: OutputMode) => {
   switch (mode) {
-    case OutputMode.SPLIT:
+    case OutputMode.SPLIT: {
       return writeSplitMode;
-    case OutputMode.TAGS:
+    }
+    case OutputMode.TAGS: {
       return writeTagsMode;
-    case OutputMode.TAGS_SPLIT:
+    }
+    case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
+    }
     case OutputMode.SINGLE:
-    default:
+    default: {
       return writeSingleMode;
+    }
   }
 };

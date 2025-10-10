@@ -1,14 +1,17 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { resolveExampleRefs, resolveObject, resolveValue } from '../resolvers';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
+import { resolveExampleRefs, resolveValue } from '../resolvers';
+import { resolveObject } from '../resolvers/object';
 import {
-  ContextSpecs,
+  type ContextSpecs,
   PropertySortOrder,
-  ScalarValue,
+  type ScalarValue,
   SchemaType,
-  SchemaWithConst,
+  type SchemaWithConst,
 } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
 
@@ -55,7 +58,7 @@ export const getObject = ({
     });
   }
 
-  if (item.type instanceof Array) {
+  if (Array.isArray(item.type)) {
     return combineSchemas({
       schema: {
         anyOf: item.type.map((type) => ({
@@ -120,15 +123,30 @@ export const getObject = ({
           acc.value += '{';
         }
 
-        const doc = jsDoc(schema as SchemaObject, true);
+        const doc = jsDoc(schema as SchemaObject, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
-        acc.imports.push(...resolvedValue.imports);
+
+        const aliasedImports = getAliasedImports({
+          name,
+          context,
+          resolvedValue,
+          existingImports: acc.imports,
+        });
+
+        acc.imports.push(...aliasedImports);
+
+        const propValue = getImportAliasForRefOrValue({
+          context,
+          resolvedValue,
+          imports: aliasedImports,
+        });
+
         acc.value += `\n  ${doc ? `${doc}  ` : ''}${
           isReadOnly && !context.output.override.suppressReadonlyModifier
             ? 'readonly '
             : ''
-        }${getKey(key)}${isRequired ? '' : '?'}: ${resolvedValue.value};`;
+        }${getKey(key)}${isRequired ? '' : '?'}: ${propValue};`;
         acc.schemas.push(...resolvedValue.schemas);
 
         if (arr.length - 1 === index) {

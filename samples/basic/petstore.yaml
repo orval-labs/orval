@@ -143,8 +143,8 @@ components:
         name:
           type: string
           description: 'Name of pet'
-          maxLength: 0
-          minLength: 40
+          minLength: 0
+          maxLength: 40
         age:
           type: integer
           format: int32

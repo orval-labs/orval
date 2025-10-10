@@ -3,9 +3,9 @@ id: swr
 title: SWR
 ---
 
-You should have an OpenAPI specification and an Orval config where you define the mode as swr.
+Start by providing an OpenAPI specification and an Orval config file. To use SWR, define the `client` in the Orval config to be `swr`.
 
-#### Example with SWR
+## Example with SWR
 
 ```js
 module.exports = {
@@ -24,11 +24,11 @@ module.exports = {
 };
 ```
 
-Checkout the [orval config](../reference/configuration/full-example) reference to see all available options.
+Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.
 
-The SWR model will generate an implementation file with one custom hook per path in your OpenAPI Specification.
+The SWR client will generate an implementation file with one custom hook per path in the OpenAPI Specification.
 
-Like the following example from this <a href="https://github.com/orval-labs/orval/blob/master/samples/react-app-with-swr/petstore.yaml" target="_blank">swagger</a>:
+For exmaple, <a href="https://github.com/orval-labs/orval/blob/master/samples/react-app-with-swr/petstore.yaml" target="_blank">this Swagger specification</a> will generate the following hooks:
 
 ```ts
 export const showPetById = (
@@ -71,4 +71,4 @@ export const useShowPetById = <TError = Error>(
 };
 ```
 
-Checkout <a href="https://github.com/orval-labs/orval/blob/master/samples/react-app-with-swr" target="_blank">here</a> the full example
+Go <a href="https://github.com/orval-labs/orval/blob/master/samples/react-app-with-swr" target="_blank">here</a> for a full example

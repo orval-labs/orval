@@ -5,6 +5,7 @@ import type {
   PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
+
 import {
   getBody,
   getOperationId,
@@ -22,7 +23,6 @@ import type {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
-  NormalizedOverrideOutput,
   Verbs,
 } from '../types';
 import {
@@ -52,7 +52,7 @@ const generateVerbOptions = async ({
   operation: OperationObject;
   route: string;
   pathRoute: string;
-  verbParameters?: Array<ReferenceObject | ParameterObject>;
+  verbParameters?: (ReferenceObject | ParameterObject)[];
   components?: ComponentsObject;
   context: ContextSpecs;
 }): Promise<GeneratorVerbOptions> => {
@@ -65,27 +65,26 @@ const generateVerbOptions = async ({
     description,
     summary,
   } = operation;
-
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operation.operationId!];
-  const overrideTag = Object.entries(output.override.tags).reduce(
+  const overrideTag = Object.entries(
+    output.override.tags,
+  ).reduce<NormalizedOperationOptions>(
     (acc, [tag, options]) =>
       tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as NormalizedOperationOptions,
+    {},
   );
 
-  const override: NormalizedOverrideOutput = {
-    ...output.override,
-    ...overrideTag,
-    ...overrideOperation,
-  };
+  const override = mergeDeep(
+    mergeDeep(output.override, overrideTag),
+    overrideOperation,
+  );
 
   const overrideOperationName =
     overrideOperation?.operationName || output.override?.operationName;
-  const overriddenOperationName = overrideOperationName
+  const operationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
-    : camel(operationId);
-  const operationName = sanitize(overriddenOperationName, { es5keyword: true });
+    : sanitize(camel(operationId), { es5keyword: true });
 
   const response = getResponse({
     responses,
@@ -147,12 +146,11 @@ const generateVerbOptions = async ({
   });
 
   const formData =
-    (isString(override?.formData) || isObject(override?.formData)) &&
-    body.formData
+    !override.formData.disabled && body.formData
       ? await generateMutator({
           output: output.target,
           name: operationName,
-          mutator: override.formData,
+          mutator: override.formData.mutator,
           workspace: context.workspace,
           tsconfig: context.output.tsconfig,
         })
@@ -180,6 +178,17 @@ const generateVerbOptions = async ({
         })
       : undefined;
 
+  const fetchReviver =
+    isString(override?.fetch.jsonReviver) ||
+    isObject(override?.fetch.jsonReviver)
+      ? await generateMutator({
+          output: output.target,
+          name: 'fetchReviver',
+          mutator: override.fetch.jsonReviver as NormalizedMutator,
+          workspace: context.workspace,
+          tsconfig: context.output.tsconfig,
+        })
+      : undefined;
   const doc = jsDoc({ description, deprecated, summary });
 
   const verbOption: GeneratorVerbOptions = {
@@ -200,6 +209,7 @@ const generateVerbOptions = async ({
     formData,
     formUrlEncoded,
     paramsSerializer,
+    fetchReviver,
     override,
     doc,
     deprecated,
@@ -255,7 +265,7 @@ export const _filteredVerbs = (
   verbs: PathItemObject,
   filters: NormalizedInputOptions['filters'],
 ) => {
-  if (filters === undefined || filters.tags === undefined) {
+  if (filters?.tags === undefined) {
     return Object.entries(verbs);
   }
 

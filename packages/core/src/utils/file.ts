@@ -1,33 +1,37 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 import chalk from 'chalk';
-import { build, PluginBuild } from 'esbuild';
-import fs from 'fs';
+import { build, type PluginBuild } from 'esbuild';
 import glob from 'globby';
 import mm from 'micromatch';
-import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
-import { Tsconfig } from '../types';
+
+import type { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
-import { createLogger, LogLevel } from './logger';
+import { createLogger, type LogLevel } from './logger';
 import { joinSafe, normalizeSafe } from './path';
 
 export const getFileInfo = (
-  target: string = '',
+  target = '',
   {
     backupFilename = 'filename',
     extension = '.ts',
   }: { backupFilename?: string; extension?: string } = {},
 ) => {
   const isDir = isDirectory(target);
-  const path = isDir ? join(target, backupFilename + extension) : target;
-  const pathWithoutExtension = path.replace(/\.[^/.]+$/, '');
-  const dir = dirname(path);
-  const filename = basename(
-    path,
-    extension[0] !== '.' ? `.${extension}` : extension,
+  const filePath = isDir
+    ? path.join(target, backupFilename + extension)
+    : target;
+  const pathWithoutExtension = filePath.replace(/\.[^/.]+$/, '');
+  const dir = path.dirname(filePath);
+  const filename = path.basename(
+    filePath,
+    extension.startsWith('.') ? extension : `.${extension}`,
   );
 
   return {
-    path,
+    path: filePath,
     pathWithoutExtension,
     extension,
     isDirectory: isDir,
@@ -74,18 +78,18 @@ export async function loadFile<File = any>(
 
   if (filePath) {
     // explicit path is always resolved from cwd
-    resolvedPath = resolve(filePath);
+    resolvedPath = path.resolve(filePath);
     isTS = filePath.endsWith('.ts');
   } else if (defaultFileName) {
     // implicit file loaded from inline root (if present)
     // otherwise from cwd
-    const jsFile = resolve(root, `${defaultFileName}.js`);
+    const jsFile = path.resolve(root, `${defaultFileName}.js`);
     if (fs.existsSync(jsFile)) {
       resolvedPath = jsFile;
     }
 
     if (!resolvedPath) {
-      const mjsFile = resolve(root, `${defaultFileName}.mjs`);
+      const mjsFile = path.resolve(root, `${defaultFileName}.mjs`);
       if (fs.existsSync(mjsFile)) {
         resolvedPath = mjsFile;
         isMjs = true;
@@ -93,7 +97,14 @@ export async function loadFile<File = any>(
     }
 
     if (!resolvedPath) {
-      const tsFile = resolve(root, `${defaultFileName}.ts`);
+      const cjsFile = path.resolve(root, `${defaultFileName}.cjs`);
+      if (fs.existsSync(cjsFile)) {
+        resolvedPath = cjsFile;
+      }
+    }
+
+    if (!resolvedPath) {
+      const tsFile = path.resolve(root, `${defaultFileName}.ts`);
       if (fs.existsSync(tsFile)) {
         resolvedPath = tsFile;
         isTS = true;
@@ -103,15 +114,14 @@ export async function loadFile<File = any>(
 
   if (!resolvedPath) {
     if (filePath) {
-      createLogger(logLevel).error(chalk.red(`File not found => ${filePath}`));
+      throw new Error(chalk.red(`File not found => ${filePath}`));
     } else if (defaultFileName) {
-      createLogger(logLevel).error(
-        chalk.red(`File not found => ${defaultFileName}.{js,mjs,ts}`),
+      throw new Error(
+        chalk.red(`File not found => ${defaultFileName}.{js,mjs,cjs,ts}`),
       );
     } else {
-      createLogger(logLevel).error(chalk.red(`File not found`));
+      throw new Error(chalk.red(`File not found`));
     }
-    process.exit(1);
   }
 
   const normalizeResolvedPath = normalizeSafe(resolvedPath);
@@ -137,7 +147,7 @@ export async function loadFile<File = any>(
         file = require(resolvedPath);
 
         debug(`cjs loaded in ${Date.now() - start}ms`);
-      } catch (e) {
+      } catch (error) {
         const ignored = new RegExp(
           [
             `Cannot use import statement`,
@@ -149,8 +159,8 @@ export async function loadFile<File = any>(
           ].join('|'),
         );
         //@ts-ignore
-        if (!ignored.test(e.message)) {
-          throw e;
+        if (!ignored.test(error.message)) {
+          throw error;
         }
       }
     }
@@ -163,16 +173,14 @@ export async function loadFile<File = any>(
       const { code } = await bundleFile(
         resolvedPath,
         isMjs,
-        root || dirname(normalizeResolvedPath),
+        root || path.dirname(normalizeResolvedPath),
         alias,
         tsconfig?.compilerOptions,
       );
 
-      if (load) {
-        file = await loadFromBundledFile<File>(resolvedPath, code, isDefault);
-      } else {
-        file = code as any;
-      }
+      file = load
+        ? await loadFromBundledFile<File>(resolvedPath, code, isDefault)
+        : (code as any);
 
       debug(`bundled file loaded in ${Date.now() - start}ms`);
     }
@@ -237,12 +245,12 @@ async function bundleFile(
                         const find = mm.scan(match);
                         const replacement = mm.scan(alias[match]);
 
-                        const base = resolve(workspace, replacement.base);
+                        const base = path.resolve(workspace, replacement.base);
                         const newPath = find.base
                           ? id.replace(find.base, base)
                           : joinSafe(base, id);
 
-                        const ext = extname(newPath);
+                        const ext = path.extname(newPath);
 
                         const aliased = ext ? newPath : `${newPath}.ts`;
 
@@ -269,12 +277,12 @@ async function bundleFile(
                           compilerOptions?.paths[match][0],
                         );
 
-                        const base = resolve(workspace, replacement.base);
+                        const base = path.resolve(workspace, replacement.base);
                         const newPath = find.base
                           ? id.replace(find.base, base)
                           : joinSafe(base, id);
 
-                        const ext = extname(newPath);
+                        const ext = path.extname(newPath);
 
                         const aliased = ext ? newPath : `${newPath}.ts`;
 
@@ -298,7 +306,7 @@ async function bundleFile(
         setup(build) {
           build.onResolve({ filter: /.*/ }, (args) => {
             const id = args.path;
-            if (id[0] !== '.' && !isAbsolute(id)) {
+            if (!id.startsWith('.') && !path.isAbsolute(id)) {
               return {
                 external: true,
               };
@@ -314,12 +322,15 @@ async function bundleFile(
             return {
               loader: args.path.endsWith('.ts') ? 'ts' : 'js',
               contents: contents
-                .replace(
+                .replaceAll(
                   /\bimport\.meta\.url\b/g,
                   JSON.stringify(`file://${args.path}`),
                 )
-                .replace(/\b__dirname\b/g, JSON.stringify(dirname(args.path)))
-                .replace(/\b__filename\b/g, JSON.stringify(args.path)),
+                .replaceAll(
+                  /\b__dirname\b/g,
+                  JSON.stringify(path.dirname(args.path)),
+                )
+                .replaceAll(/\b__filename\b/g, JSON.stringify(args.path)),
             };
           });
         },
@@ -342,7 +353,7 @@ async function loadFromBundledFile<File = unknown>(
   bundledCode: string,
   isDefault: boolean,
 ): Promise<File> {
-  const extension = extname(fileName);
+  const extension = path.extname(fileName);
   const defaultLoader = require.extensions[extension]!;
   require.extensions[extension] = (module: NodeModule, filename: string) => {
     if (filename === fileName) {
@@ -359,10 +370,42 @@ async function loadFromBundledFile<File = unknown>(
   return file;
 }
 
-export async function removeFiles(patterns: string[], dir: string) {
+export async function removeFilesAndEmptyFolders(
+  patterns: string[],
+  dir: string,
+) {
   const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
   });
+
+  // Remove files
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
+
+  // Find and remove empty directories
+  const directories = await glob(['**/*'], {
+    cwd: dir,
+    absolute: true,
+    onlyDirectories: true,
+  });
+
+  // Sort directories by depth (deepest first) to ensure we can remove nested empty folders
+  const sortedDirectories = directories.sort((a, b) => {
+    const depthA = a.split('/').length;
+    const depthB = b.split('/').length;
+    return depthB - depthA;
+  });
+
+  // Remove empty directories
+  for (const directory of sortedDirectories) {
+    try {
+      const contents = await fs.promises.readdir(directory);
+      if (contents.length === 0) {
+        await fs.promises.rmdir(directory);
+      }
+    } catch {
+      // Directory might have been removed already or doesn't exist
+      // Continue with next directory
+    }
+  }
 }

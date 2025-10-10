@@ -1,15 +1,16 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpecs,
+  type GeneratorImport,
   getKey,
   isBoolean,
   isReference,
-  MockOptions,
+  type MockOptions,
   pascal,
   PropertySortOrder,
 } from '@orval/core';
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { MockDefinition, MockSchemaObject } from '../../types';
+import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
 import { resolveMockValue } from '../resolvers/value';
 import { combineSchemasMock } from './combine';
@@ -115,7 +116,7 @@ export const getMockObject = ({
     const properyScalars = entries
       .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
         if (combine?.includedProperties.includes(key)) {
-          return undefined;
+          return;
         }
 
         const isRequired =
@@ -130,7 +131,7 @@ export const getMockObject = ({
             pascal(prop.$ref.split('/').pop()!),
           )
         ) {
-          return undefined;
+          return;
         }
 
         const resolvedValue = resolveMockValue({

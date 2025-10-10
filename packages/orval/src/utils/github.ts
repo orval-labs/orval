@@ -1,8 +1,10 @@
+import https from 'node:https';
+
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { upath } from '@orval/core';
 import { prompt } from 'enquirer';
 import fs from 'fs-extra';
-import https from 'https';
+
 import { request } from './request';
 
 export const getGithubSpecReq = ({
@@ -54,7 +56,7 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
   }
 
   if (await fs.pathExists(githubTokenPath)) {
-    return fs.readFile(githubTokenPath, 'utf-8');
+    return fs.readFile(githubTokenPath, 'utf8');
   } else {
     const answers = await prompt<{
       githubToken: string;
@@ -117,12 +119,12 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
     }
 
     return body.data?.repository?.object.text;
-  } catch (e: any) {
-    if (!e.body) {
-      throw `Oups... 🍻. ${e}`;
+  } catch (error: any) {
+    if (!error.body) {
+      throw new Error(`Oups... 🍻. ${error}`);
     }
 
-    if (e.body.message === 'Bad credentials') {
+    if (error.body.message === 'Bad credentials') {
       const answers = await prompt<{ removeToken: boolean }>([
         {
           type: 'confirm',
@@ -135,7 +137,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
         await fs.unlink(githubTokenPath);
       }
     }
-    throw e.body.message || `Oups... 🍻. ${e}`;
+    throw new Error(error.body.message || `Oups... 🍻. ${error}`);
   }
 };
 

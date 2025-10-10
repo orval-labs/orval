@@ -10,3 +10,6 @@ node_modules
 mockServiceWorker.js
 yarn.lock
 .svelte-kit
+
+# Angular build cache
+**/.angular/cache

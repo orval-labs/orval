@@ -1,0 +1,20 @@
+{
+  "name": "mcp-petstore",
+  "version": "7.13.2",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/server.ts",
+    "generate-api": "orval"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.18.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.14",
+    "orval": "workspace:*",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.8.3"
+  }
+}

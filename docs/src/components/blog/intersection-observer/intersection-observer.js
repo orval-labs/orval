@@ -30,6 +30,9 @@ export default class Observer extends Component {
   shouldReobserve = false;
 
   componentDidMount() {
+    // Dynamically import the polyfill (safe in Next.js 15)
+    import('intersection-observer');
+
     this.observer = getObserver(getOptions(this.props));
     this.observe();
   }

@@ -2,27 +2,28 @@ import angular from '@orval/angular';
 import axios from '@orval/axios';
 import {
   asyncReduce,
-  ClientFileBuilder,
-  ClientMockGeneratorBuilder,
-  ContextSpecs,
+  type ClientFileBuilder,
+  type ClientMockGeneratorBuilder,
+  type ContextSpecs,
   generateDependencyImports,
-  GeneratorClientFooter,
-  GeneratorClientHeader,
-  GeneratorClientImports,
-  GeneratorClients,
-  GeneratorClientTitle,
-  GeneratorOperations,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GeneratorVerbsOptions,
+  type GeneratorClientFooter,
+  type GeneratorClientHeader,
+  type GeneratorClientImports,
+  type GeneratorClients,
+  type GeneratorClientTitle,
+  type GeneratorOperations,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GeneratorVerbsOptions,
   isFunction,
-  NormalizedOutputOptions,
+  type NormalizedOutputOptions,
   OutputClient,
-  OutputClientFunc,
+  type OutputClientFunc,
   pascal,
 } from '@orval/core';
 import fetchClient from '@orval/fetch';
 import hono from '@orval/hono';
+import mcp from '@orval/mcp';
 import * as mock from '@orval/mock';
 import query from '@orval/query';
 import swr from '@orval/swr';
@@ -45,6 +46,7 @@ const getGeneratorClient = (
     zod: zod()(),
     hono: hono()(),
     fetch: fetchClient()(),
+    mcp: mcp()(),
   };
 
   const generator = isFunction(outputClient)
@@ -52,7 +54,7 @@ const getGeneratorClient = (
     : GENERATOR_CLIENT[outputClient];
 
   if (!generator) {
-    throw `Oups... 🍻. Client not found: ${outputClient}`;
+    throw new Error(`Oups... 🍻. Client not found: ${outputClient}`);
   }
 
   return generator;
@@ -82,6 +84,7 @@ export const generateClientImports: GeneratorClientImports = ({
             packageJson,
             output.httpClient,
             hasTagsMutator,
+            output.override,
           ),
           ...imports,
         ]
@@ -263,6 +266,7 @@ export const generateOperations = (
         formUrlEncoded: verbOption.formUrlEncoded,
         paramsSerializer: verbOption.paramsSerializer,
         operationName: verbOption.operationName,
+        fetchReviver: verbOption.fetchReviver,
       };
 
       return acc;

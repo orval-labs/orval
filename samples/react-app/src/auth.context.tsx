@@ -23,13 +23,14 @@ const AuthProvider = ({ children, initialState = null }: AuthProviderProps) => {
 
   useEffect(() => {
     const requestInterceptorId = AXIOS_INSTANCE.interceptors.request.use(
-      (config) => ({
-        ...config,
-        headers: {
-          ...config.headers,
-          ...getAuthHeader(token),
-        },
-      }),
+      (config) => {
+        if (config.headers) {
+          Object.entries(getAuthHeader(token)).forEach(([key, value]) => {
+            config.headers.set(key, value);
+          });
+        }
+        return config;
+      },
     );
 
     const responseInterceptorId = axios.interceptors.response.use(

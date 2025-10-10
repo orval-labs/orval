@@ -1,3 +1,18 @@
 {
-  "cSpell.words": ["listitem", "openapi", "Orval", "Petstore", "tanstack"]
+  "cSpell.words": ["listitem", "openapi", "Orval", "Petstore", "tanstack"],
+  "files.associations": {
+    "turbo.json": "jsonc"
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "debug.javascript.terminalOptions": {
+    "skipFiles": [
+      "**/node_modules/**",
+      "<node_internals>/**",
+      "**/node/corepack/**"
+    ]
+  }
 }

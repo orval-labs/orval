@@ -58,6 +58,11 @@ export default defineConfig({
       mode: 'tags-split',
       client: 'swr',
       httpClient: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -165,8 +170,9 @@ export default defineConfig({
       override: {
         swr: {
           useInfinite: true,
+          useSWRMutationForGet: true,
           swrOptions: {
-            dedupingInterval: 10000,
+            dedupingInterval: 10_000,
           },
           swrMutationOptions: {
             revalidate: true,
@@ -204,17 +210,6 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/arrays.yaml',
-    },
-  },
-  enums: {
-    output: {
-      target: '../generated/swr/enums/endpoints.ts',
-      schemas: '../generated/swr/enums/model',
-      client: 'swr',
-      mock: true,
-    },
-    input: {
-      target: '../specifications/enums.yaml',
     },
   },
   errors: {

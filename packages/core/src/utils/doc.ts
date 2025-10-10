@@ -1,24 +1,12 @@
-const search = '\\*/'; // Find '*/'
-const replacement = '*\\/'; // Replace With '*\/'
+import type { ContextSpecs } from '../types';
+
+const search = String.raw`\*/`; // Find '*/'
+const replacement = String.raw`*\/`; // Replace With '*\/'
 
 const regex = new RegExp(search, 'g');
 
 export function jsDoc(
-  {
-    description,
-    deprecated,
-    summary,
-    minLength,
-    maxLength,
-    minimum,
-    maximum,
-    exclusiveMinimum,
-    exclusiveMaximum,
-    minItems,
-    maxItems,
-    nullable,
-    pattern,
-  }: {
+  schema: {
     description?: string[] | string;
     deprecated?: boolean;
     summary?: string;
@@ -34,13 +22,35 @@ export function jsDoc(
     pattern?: string;
   },
   tryOneLine = false,
+  context?: ContextSpecs,
 ): string {
+  if (context?.output?.override?.jsDoc) {
+    const { filter } = context.output.override.jsDoc;
+    if (filter) {
+      return keyValuePairsToJsDoc(filter(schema));
+    }
+  }
+  const {
+    description,
+    deprecated,
+    summary,
+    minLength,
+    maxLength,
+    minimum,
+    maximum,
+    exclusiveMinimum,
+    exclusiveMaximum,
+    minItems,
+    maxItems,
+    nullable,
+    pattern,
+  } = schema;
   // Ensure there aren't any comment terminations in doc
   const lines = (
     Array.isArray(description)
       ? description.filter((d) => !d.includes('eslint-disable'))
       : [description || '']
-  ).map((line) => line.replace(regex, replacement));
+  ).map((line) => line.replaceAll(regex, replacement));
 
   const count = [
     description,
@@ -66,7 +76,7 @@ export function jsDoc(
   const eslintDisable = Array.isArray(description)
     ? description
         .find((d) => d.includes('eslint-disable'))
-        ?.replace(regex, replacement)
+        ?.replaceAll(regex, replacement)
     : undefined;
   let doc = `${eslintDisable ? `/* ${eslintDisable} */\n` : ''}/**`;
 
@@ -86,7 +96,7 @@ export function jsDoc(
   function tryAppendStringDocLine(key: string, value?: string) {
     if (value) {
       appendPrefix();
-      doc += ` @${key} ${value.replace(regex, replacement)}`;
+      doc += ` @${key} ${value.replaceAll(regex, replacement)}`;
     }
   }
 
@@ -105,7 +115,7 @@ export function jsDoc(
   }
 
   tryAppendBooleanDocLine('deprecated', deprecated);
-  tryAppendStringDocLine('summary', summary?.replace(regex, replacement));
+  tryAppendStringDocLine('summary', summary?.replaceAll(regex, replacement));
   tryAppendNumberDocLine('minLength', minLength);
   tryAppendNumberDocLine('maxLength', maxLength);
   tryAppendNumberDocLine('minimum', minimum);
@@ -117,9 +127,24 @@ export function jsDoc(
   tryAppendBooleanDocLine('nullable', nullable);
   tryAppendStringDocLine('pattern', pattern);
 
-  doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';
+  doc += oneLine ? ' ' : `\n ${tryOneLine ? '  ' : ''}`;
 
   doc += '*/\n';
 
+  return doc;
+}
+
+export function keyValuePairsToJsDoc(
+  keyValues: {
+    key: string;
+    value: string;
+  }[],
+) {
+  if (keyValues.length === 0) return '';
+  let doc = '/**\n';
+  for (const { key, value } of keyValues) {
+    doc += ` * @${key} ${value}\n`;
+  }
+  doc += ' */\n';
   return doc;
 }

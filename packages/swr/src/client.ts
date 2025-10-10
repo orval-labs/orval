@@ -1,4 +1,5 @@
 import {
+  ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
@@ -12,9 +13,9 @@ import {
   OutputHttpClient,
   toObjectString,
 } from '@orval/core';
-
 import {
   fetchResponseTypeName,
+  generateFetchHeader,
   generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
@@ -39,11 +40,9 @@ export const generateSwrRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
-  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
-    return generateAxiosRequestFunction(verbOptions, options);
-  } else {
-    return generateFetchRequestFunction(verbOptions, options);
-  }
+  return options.context.output.httpClient === OutputHttpClient.AXIOS
+    ? generateAxiosRequestFunction(verbOptions, options)
+    : generateFetchRequestFunction(verbOptions, options);
 };
 
 const generateAxiosRequestFunction = (
@@ -64,7 +63,7 @@ const generateAxiosRequestFunction = (
   { route, context }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData !== false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
@@ -148,7 +147,7 @@ const generateAxiosRequestFunction = (
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;
@@ -234,7 +233,7 @@ export const getSwrMutationFetcherOptionType = (
 export const getSwrMutationFetcherType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
-  includeHttpResponseReturnType: boolean,
+  includeHttpResponseReturnType: boolean | undefined,
   operationName: string,
   mutator?: GeneratorMutator,
 ) => {
@@ -251,4 +250,10 @@ export const getSwrMutationFetcherType = (
   } else {
     return `Promise<AxiosResponse<${response.definition.success || 'unknown'}>>`;
   }
+};
+
+export const getSwrHeader: ClientHeaderBuilder = (params) => {
+  return params.output.httpClient === OutputHttpClient.FETCH
+    ? generateFetchHeader(params)
+    : '';
 };

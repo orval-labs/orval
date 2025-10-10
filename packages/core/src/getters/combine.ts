@@ -1,17 +1,22 @@
-import omit from 'lodash.omit';
-import { SchemaObject } from 'openapi3-ts/oas30';
+import uniq from 'lodash.uniq';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
-  ContextSpecs,
-  GeneratorImport,
-  GeneratorSchema,
-  ScalarValue,
+  type ContextSpecs,
+  type GeneratorImport,
+  type GeneratorSchema,
+  type ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal, isSchema } from '../utils';
-import { getEnumImplementation } from './enum';
+import { getNumberWord, isSchema, pascal } from '../utils';
+import {
+  getEnumDescriptions,
+  getEnumImplementation,
+  getEnumNames,
+} from './enum';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getScalar } from './scalar';
-import uniq from 'lodash.uniq';
 
 type CombinedData = {
   imports: GeneratorImport[];
@@ -43,7 +48,7 @@ const combineValues = ({
   separator: Separator;
   context: ContextSpecs;
 }) => {
-  const isAllEnums = resolvedData.isEnum.every((v) => v);
+  const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums) {
     return `${resolvedData.values.join(` | `)}${
@@ -52,11 +57,33 @@ const combineValues = ({
   }
 
   if (separator === 'allOf') {
-    const joined = `${resolvedData.values.join(` & `)}${
+    let resolvedDataValue = resolvedData.values.join(` & `);
+    if (resolvedData.originalSchema.length > 0 && resolvedValue) {
+      const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
+        (s) =>
+          s?.discriminator &&
+          resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
+      ) as SchemaObject[];
+      if (discriminatedPropertySchemas.length > 0) {
+        resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
+      }
+    }
+    const joined = `${resolvedDataValue}${
       resolvedValue ? ` & ${resolvedValue.value}` : ''
     }`;
-    if (resolvedData.requiredProperties.length) {
-      return `${joined} & Required<Pick<${joined}, '${resolvedData.requiredProperties.join("' | '")}'>>`;
+
+    // Parent object may have set required properties that only exist in child
+    // objects. Make sure the resulting object has these properties as required,
+    // but there is no need to override properties that are already required
+    const overrideRequiredProperties = resolvedData.requiredProperties.filter(
+      (prop) =>
+        !resolvedData.originalSchema.some(
+          (schema) =>
+            schema?.properties?.[prop] && schema.required?.includes(prop),
+        ),
+    );
+    if (overrideRequiredProperties.length > 0) {
+      return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
     }
     return joined;
   }
@@ -79,7 +106,7 @@ const combineValues = ({
       );
       values.push(
         `${resolvedData.values[i]}${
-          missingProperties.length
+          missingProperties.length > 0
             ? ` & {${missingProperties.map((p) => `${p}?: never`).join('; ')}}`
             : ''
         }`,
@@ -114,7 +141,7 @@ export const combineSchemas = ({
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
       let propName = name ? name + pascal(separator) : undefined;
-      if (propName && acc.schemas.length) {
+      if (propName && acc.schemas.length > 0) {
         propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
       }
 
@@ -129,8 +156,21 @@ export const combineSchemas = ({
         context,
       });
 
-      acc.values.push(resolvedValue.value);
-      acc.imports.push(...resolvedValue.imports);
+      const aliasedImports = getAliasedImports({
+        context,
+        name,
+        resolvedValue,
+        existingImports: acc.imports,
+      });
+
+      const value = getImportAliasForRefOrValue({
+        context,
+        resolvedValue,
+        imports: aliasedImports,
+      });
+
+      acc.values.push(value);
+      acc.imports.push(...aliasedImports);
       acc.schemas.push(...resolvedValue.schemas);
       acc.isEnum.push(resolvedValue.isEnum);
       acc.types.push(resolvedValue.type);
@@ -161,11 +201,11 @@ export const combineSchemas = ({
       hasReadonlyProps: false,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
-      requiredProperties: separator === 'allOf' ? schema.required ?? [] : [],
+      requiredProperties: separator === 'allOf' ? (schema.required ?? []) : [],
     } as CombinedData,
   );
 
-  const isAllEnums = resolvedData.isEnum.every((v) => v);
+  const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums && name && items.length > 1) {
     const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
@@ -182,12 +222,10 @@ export const combineSchemas = ({
       schemas: [
         ...resolvedData.schemas,
         {
-          imports: [
-            ...resolvedData.imports.map<GeneratorImport>((toImport) => ({
-              ...toImport,
-              values: true,
-            })),
-          ],
+          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
+            ...toImport,
+            values: true,
+          })),
           model: newEnum,
           name: name,
         },
@@ -204,7 +242,13 @@ export const combineSchemas = ({
   let resolvedValue: ScalarValue | undefined;
 
   if (schema.properties) {
-    resolvedValue = getScalar({ item: omit(schema, separator), name, context });
+    resolvedValue = getScalar({
+      item: Object.fromEntries(
+        Object.entries(schema).filter(([key]) => key !== separator),
+      ),
+      name,
+      context,
+    });
   }
 
   const value = combineValues({
@@ -253,9 +297,10 @@ const getCombineEnumValue = ({
         return `...${e},`;
       }
 
-      const names = originalSchema[i]?.['x-enumNames'] as string[];
+      const names = getEnumNames(originalSchema[i]);
+      const descriptions = getEnumDescriptions(originalSchema[i]);
 
-      return getEnumImplementation(e, names);
+      return getEnumImplementation(e, names, descriptions);
     })
     .join('');
 

@@ -1,6 +1,9 @@
-### Custom client
+---
+id: custom-client
+title: Custom HTTP Client
+---
 
-You can add a mutator function to your config and setup a custom instance of your preferred HTTP client.
+To set up a custom HTTP client, add a mutator function to the configuration file, and setup a custom instance of your preferred HTTP client.
 
 ```js
 module.exports = {
@@ -24,18 +27,19 @@ module.exports = {
 
 const baseURL = '<BACKEND URL>'; // use your own URL here or environment variable
 
-export const customInstance = async <T>({
-  url,
-  method,
-  params,
-  data,
-}: {
-  url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  params?: any;
-  data?: BodyType<unknown>;
-  responseType?: string;
-}): Promise<T> => {
+export const customInstance = async <T>(
+  url: string,
+  {
+    method,
+    params,
+    body,
+  }: {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    params?: any;
+    body?: BodyType<unknown>;
+    responseType?: string;
+  },
+): Promise<T> => {
   let targetUrl = `${baseURL}${url}`;
 
   if (params) {
@@ -44,7 +48,7 @@ export const customInstance = async <T>({
 
   const response = await fetch(targetUrl, {
     method,
-    ...(data ? { body: JSON.stringify(data) } : {}),
+    body,
   });
 
   return response.json();
@@ -59,11 +63,11 @@ export type ErrorType<Error> = AxiosError<Error>;
 export type BodyType<BodyData> = CamelCase<BodyType>;
 ```
 
-Or, Please refer to the using custom fetch with Next.js sample app [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts).
+Alternatively, refer to the using custom Fetch with Next.js sample app [here](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts).
 
-#### Angular
+## Angular
 
-Even if you use the `angular` client, you can add mutator functions to your configuration to set up your preferred HTTP client.
+The Angular client allows adding mutator functions to the configuration to set up your preferred HTTP client.
 
 ```js
 module.exports = {
@@ -109,6 +113,6 @@ const responseType = <Result>(
 export default responseType;
 ```
 
-Please also refer to sample app for more details.
+Refer to Angular sample app for more details.
 
 https://github.com/orval-labs/orval/tree/master/samples/angular-app

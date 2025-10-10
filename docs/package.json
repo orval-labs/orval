@@ -18,11 +18,11 @@
     "@mdx-js/react": "^1.6.18",
     "@mdx-js/tag": "^0.20.3",
     "@monaco-editor/react": "^4.6.0",
-    "@next/mdx": "13.4.4",
+    "@next/mdx": "^15.4.4",
     "@octokit/graphql": "^5.0.4",
     "@reactions/component": "^2.0.2",
     "@tanstack/react-query": "^4.22.0",
-    "axios": "^1.7.7",
+    "axios": "^1.12.0",
     "body-scroll-lock": "^3.1.5",
     "classnames": "^2.5.1",
     "copy-to-clipboard": "^3.3.3",
@@ -32,8 +32,8 @@
     "framer-motion": "^1.11.1",
     "gray-matter": "^4.0.3",
     "intersection-observer": "^0.12.2",
-    "next": "13.4.4",
-    "orval": "^7.3.0",
+    "next": "^15.4.4",
+    "orval": "^7.9.0",
     "prettier": "^2.8.3",
     "prismjs": "^1.21.0",
     "react": "^18.3.1",
@@ -51,6 +51,7 @@
     "remark-toc": "^7.0.0",
     "remark-unwrap-images": "^2.0.0",
     "unist-util-visit": "^2.0.3",
+    "use-debounce": "^10.0.4",
     "yaml": "^2.2.1"
   },
   "devDependencies": {
@@ -69,7 +70,7 @@
     "tailwindcss": "^3.3.5"
   },
   "engines": {
-    "node": "18.x"
+    "node": "22.x"
   },
   "volta": {
     "node": "18.18.2"

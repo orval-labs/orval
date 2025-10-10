@@ -1,8 +1,9 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import type { WriteModeProps } from '../types';
 import {
-  camel,
+  conventionName,
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
@@ -10,7 +11,7 @@ import {
 } from '../utils';
 import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
-import { getOrvalGeneratedTypes } from './types';
+import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
 export const writeSingleMode = async ({
   builder,
@@ -21,7 +22,10 @@ export const writeSingleMode = async ({
 }: WriteModeProps): Promise<string[]> => {
   try {
     const { path, dirname } = getFileInfo(output.target, {
-      backupFilename: camel(builder.info.title),
+      backupFilename: conventionName(
+        builder.info.title,
+        output.namingConvention,
+      ),
       extension: output.fileExtension,
     });
 
@@ -35,6 +39,7 @@ export const writeSingleMode = async ({
       formData,
       formUrlEncoded,
       paramsSerializer,
+      fetchReviver,
     } = generateTarget(builder, output);
 
     let data = header;
@@ -87,7 +92,7 @@ export const writeSingleMode = async ({
         specsName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
-        options: !isFunction(output.mock) ? output.mock : undefined,
+        options: isFunction(output.mock) ? undefined : output.mock,
       });
     }
 
@@ -111,8 +116,17 @@ export const writeSingleMode = async ({
       data += generateMutatorImports({ mutators: paramsSerializer });
     }
 
+    if (fetchReviver) {
+      data += generateMutatorImports({ mutators: fetchReviver });
+    }
+
     if (implementation.includes('NonReadonly<')) {
       data += getOrvalGeneratedTypes();
+      data += '\n';
+    }
+
+    if (implementation.includes('TypedResponse<')) {
+      data += getTypedResponse();
       data += '\n';
     }
 
@@ -120,7 +134,7 @@ export const writeSingleMode = async ({
       data += generateModelsInline(builder.schemas);
     }
 
-    data += `\n\n${implementation}`;
+    data += `${implementation.trim()}\n`;
 
     if (output.mock) {
       data += '\n\n';
@@ -130,7 +144,9 @@ export const writeSingleMode = async ({
     await fs.outputFile(path, data);
 
     return [path];
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
+  } catch (error) {
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing file => ${error}`,
+    );
   }
 };

@@ -1,34 +1,39 @@
 {
   "name": "vue-query-basic",
-  "version": "0.0.0",
+  "version": "7.13.2",
+  "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "serve": "vite preview",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "generate-api": "orval",
     "generate-types": "vue-tsc --declaration --emitDeclarationOnly --module amd --outFile dist/index.d.ts",
     "test-types": "yarn generate-types && tsd --typings dist --files src/**/*.test-d.ts",
     "test": "vue-tsc --noEmit && vitest --run && yarn test-types"
   },
   "dependencies": {
-    "@faker-js/faker": "^8.0.2",
-    "@tanstack/vue-query": "^5.28.4",
-    "axios": "^0.26.1",
-    "vue": "^3.3.4"
+    "@faker-js/faker": "^9.9.0",
+    "@tanstack/vue-query": "^5.87.4",
+    "axios": "^1.12.2",
+    "vue": "^3.5.21"
   },
   "devDependencies": {
-    "@testing-library/vue": "^8.0.1",
-    "@vitejs/plugin-vue": "^4.5.0",
-    "@vue/compiler-sfc": "3.2.36",
-    "jsdom": "^23.0.0",
-    "msw": "^2.0.2",
-    "orval": "link:../../packages/orval/dist",
-    "prettier": "^3.0.3",
-    "tsd": "^0.29.0",
-    "typescript": "^5.3.2",
-    "vite": "^4.4.11",
-    "vitest": "^0.34.6",
-    "vue-tsc": "^1.8.18"
+    "@testing-library/vue": "^8.1.0",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vue/compiler-sfc": "^3.5.21",
+    "jsdom": "^27.0.0",
+    "msw": "^2.11.2",
+    "orval": "workspace:*",
+    "tsd": "^0.33.0",
+    "typescript": "~5.8.3",
+    "vite": "^5.4.20",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^2.2.12"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
   },
   "msw": {
     "workerDirectory": "public"

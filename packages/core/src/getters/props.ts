@@ -1,10 +1,11 @@
 import {
-  ContextSpecs,
-  GetterBody,
-  GetterParams,
-  GetterProps,
+  type ContextSpecs,
+  type GetterBody,
+  type GetterParams,
+  type GetterProps,
   GetterPropType,
-  GetterQueryParam,
+  type GetterQueryParam,
+  OutputClient,
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
@@ -34,16 +35,12 @@ export const getProps = ({
 
   const queryParamsProp = {
     name: 'params',
-    definition: `params${queryParams?.isOptional ? '?' : ''}: ${
-      queryParams?.schema.name
-    }`,
-    implementation: `params${queryParams?.isOptional ? '?' : ''}: ${
-      queryParams?.schema.name
-    }`,
+    definition: getQueryParamDefinition(queryParams, context),
+    implementation: getQueryParamDefinition(queryParams, context),
     default: false,
-    required: !isUndefined(queryParams?.isOptional)
-      ? !queryParams?.isOptional
-      : false,
+    required: isUndefined(queryParams?.isOptional)
+      ? !context.output.allParamsOptional
+      : !queryParams?.isOptional && !context.output.allParamsOptional,
     type: GetterPropType.QUERY_PARAM,
   };
 
@@ -56,7 +53,7 @@ export const getProps = ({
       headers?.schema.name
     }`,
     default: false,
-    required: !isUndefined(headers?.isOptional) ? !headers?.isOptional : false,
+    required: isUndefined(headers?.isOptional) ? false : !headers?.isOptional,
     type: GetterPropType.HEADER,
   };
 
@@ -119,3 +116,14 @@ export const getProps = ({
 
   return sortedProps;
 };
+
+function getQueryParamDefinition(
+  queryParams: GetterQueryParam | undefined,
+  context: ContextSpecs,
+): string {
+  let paramType = queryParams?.schema.name;
+  if (OutputClient.ANGULAR === context.output.client) {
+    paramType = `DeepNonNullable<${paramType}>`;
+  }
+  return `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${paramType}`;
+}
