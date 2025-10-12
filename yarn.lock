@@ -5572,8 +5572,8 @@ __metadata:
     "@orval/core": "workspace:*"
     eslint: "npm:^9.35.0"
     rimraf: "npm:^6.0.1"
-    tsdown: "npm:^0.15.2"
-    typescript: "npm:^5.9.2"
+    tsdown: "npm:^0.15.6"
+    typescript: "npm:^5.9.3"
   languageName: unknown
   linkType: soft
 
@@ -10061,10 +10061,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"birpc@npm:^2.5.0":
-  version: 2.5.0
-  resolution: "birpc@npm:2.5.0"
-  checksum: 10c0/8caed5ad86b71e0b4af6a1c5e8ed006f451d3b378ce52c2fa613fe68f15bb3df1357ad69f7fb0251e4261f39b2926995e34307ac06397f993665b16ba569dc54
+"birpc@npm:^2.6.1":
+  version: 2.6.1
+  resolution: "birpc@npm:2.6.1"
+  checksum: 10c0/eda4a9fbf95ac7ac2112d7fc10db588dc9145d9d50ad91bb714f3f36d64dd1a5c5206ac17b5bc5c0d6fbdb48c63e110946b240ad1bb51eeca37ce161efdf2d06
   languageName: node
   linkType: hard
 
@@ -21722,8 +21722,8 @@ __metadata:
     "@babel/parser": "npm:^7.28.4"
     "@babel/types": "npm:^7.28.4"
     ast-kit: "npm:^2.1.2"
-    birpc: "npm:^2.5.0"
-    debug: "npm:^4.4.1"
+    birpc: "npm:^2.6.1"
+    debug: "npm:^4.4.3"
     dts-resolver: "npm:^2.1.2"
     get-tsconfig: "npm:^4.10.1"
     magic-string: "npm:^0.30.19"
@@ -21732,7 +21732,7 @@ __metadata:
     "@typescript/native-preview": ">=7.0.0-dev.20250601.1"
     rolldown: ^1.0.0-beta.9
     typescript: ^5.0.0
-    vue-tsc: ~3.0.3
+    vue-tsc: ~3.1.0
   peerDependenciesMeta:
     "@ts-macro/tsc":
       optional: true
@@ -21742,7 +21742,7 @@ __metadata:
       optional: true
     vue-tsc:
       optional: true
-  checksum: 10c0/f15ba5ef752cb56db9289d71d62f371a06a04159d266efd7d19f7ff4a961730f4a2367f4f80d59322fbf6d2f3d5c7b36a2f3412c36e2cc49101976f5720939c8
+  checksum: 10c0/3dcb61e43f117864cf3145cec41c68c913fd16dffb93efee399a0b70c9fb0b672951b7045e6efc5905d3ba10770d1fe65dfa8c8b97677f092a2d4e0a64b43d1e
   languageName: node
   linkType: hard
 
@@ -24389,9 +24389,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsdown@npm:^0.15.2":
-  version: 0.15.2
-  resolution: "tsdown@npm:0.15.2"
+"tsdown@npm:^0.15.6":
+  version: 0.15.6
+  resolution: "tsdown@npm:0.15.6"
   dependencies:
     ansis: "npm:^4.1.0"
     cac: "npm:^6.7.14"
@@ -24401,7 +24401,7 @@ __metadata:
     empathic: "npm:^2.0.0"
     hookable: "npm:^5.5.3"
     rolldown: "npm:latest"
-    rolldown-plugin-dts: "npm:^0.16.5"
+    rolldown-plugin-dts: "npm:^0.16.8"
     semver: "npm:^7.7.2"
     tinyexec: "npm:^1.0.1"
     tinyglobby: "npm:^0.2.15"
@@ -24426,7 +24426,7 @@ __metadata:
       optional: true
   bin:
     tsdown: dist/run.mjs
-  checksum: 10c0/bce0343d24a2495003c2dc9849de95c8adbfcb6873ba9ec422bc7f408f6de7f1e6736fcca7044f41c87e588428c53d4d44ec2d7e350e85587b5786e4e1a7b0d1
+  checksum: 10c0/fb8f11a34bbce6d11b318eed6920e87f1a82bf738354a36d59de85bd9ff016f1553530e4e22927e9eca4bf1ecf0b822988d7f289b1405adc6bdd4346f550d312
   languageName: node
   linkType: hard
 
@@ -24795,7 +24795,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@npm:^5.0.3, typescript@npm:^5.9.2":
+"typescript@npm:^5.0.3":
   version: 5.9.2
   resolution: "typescript@npm:5.9.2"
   bin:
@@ -24825,7 +24825,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typescript@patch:typescript@npm%3A^5.0.3#optional!builtin<compat/typescript>, typescript@patch:typescript@npm%3A^5.9.2#optional!builtin<compat/typescript>":
+"typescript@patch:typescript@npm%3A^5.0.3#optional!builtin<compat/typescript>":
   version: 5.9.2
   resolution: "typescript@patch:typescript@npm%3A5.9.2#optional!builtin<compat/typescript>::version=5.9.2&hash=5786d5"
   bin:
