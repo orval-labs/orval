@@ -9,7 +9,6 @@ import mm from 'micromatch';
 import type { Tsconfig } from '../types';
 import { isDirectory } from './assertion';
 import { createDebugger } from './debug';
-import { createLogger, type LogLevel } from './logger';
 import { joinSafe, normalizeSafe } from './path';
 
 export const getFileInfo = (
@@ -42,44 +41,36 @@ export const getFileInfo = (
 
 const debug = createDebugger('orval:file-load');
 
-const cache = new Map<string, { file?: any; error?: any }>();
+const cache = new Map<string, { file?: string; error?: unknown }>();
 
-export async function loadFile<File = any>(
+export async function loadFile(
   filePath?: string,
   options?: {
     root?: string;
     defaultFileName?: string;
-    logLevel?: LogLevel;
-    isDefault?: boolean;
     alias?: Record<string, string>;
     tsconfig?: Tsconfig;
-    load?: boolean;
   },
 ): Promise<{
   path: string;
-  file?: File;
-  error?: any;
+  file?: string;
+  error?: unknown;
   cached?: boolean;
 }> {
   const {
     root = process.cwd(),
-    isDefault = true,
     defaultFileName,
-    logLevel,
     alias,
     tsconfig,
-    load = true,
   } = options ?? {};
   const start = Date.now();
 
   let resolvedPath: string | undefined;
-  let isTS = false;
   let isMjs = false;
 
   if (filePath) {
     // explicit path is always resolved from cwd
     resolvedPath = path.resolve(filePath);
-    isTS = filePath.endsWith('.ts');
   } else if (defaultFileName) {
     // implicit file loaded from inline root (if present)
     // otherwise from cwd
@@ -107,7 +98,6 @@ export async function loadFile<File = any>(
       const tsFile = path.resolve(root, `${defaultFileName}.ts`);
       if (fs.existsSync(tsFile)) {
         resolvedPath = tsFile;
-        isTS = true;
       }
     }
   }
@@ -136,54 +126,15 @@ export async function loadFile<File = any>(
   }
 
   try {
-    let file: File | undefined;
+    const { code: file } = await bundleFile(
+      resolvedPath,
+      isMjs,
+      root || path.dirname(normalizeResolvedPath),
+      alias,
+      tsconfig?.compilerOptions,
+    );
 
-    if (!file && !isTS && !isMjs) {
-      // 1. try to directly require the module (assuming commonjs)
-      try {
-        // clear cache in case of server restart
-        delete require.cache[require.resolve(resolvedPath)];
-
-        file = require(resolvedPath);
-
-        debug(`cjs loaded in ${Date.now() - start}ms`);
-      } catch (error) {
-        const ignored = new RegExp(
-          [
-            `Cannot use import statement`,
-            `Must use import to load ES Module`,
-            // #1635, #2050 some Node 12.x versions don't have esm detection
-            // so it throws normal syntax errors when encountering esm syntax
-            `Unexpected token`,
-            `Unexpected identifier`,
-          ].join('|'),
-        );
-        //@ts-ignore
-        if (!ignored.test(error.message)) {
-          throw error;
-        }
-      }
-    }
-
-    if (!file) {
-      // 2. if we reach here, the file is ts or using es import syntax, or
-      // the user has type: "module" in their package.json (#917)
-      // transpile es import syntax to require syntax using rollup.
-      // lazy require rollup (it's actually in dependencies)
-      const { code } = await bundleFile(
-        resolvedPath,
-        isMjs,
-        root || path.dirname(normalizeResolvedPath),
-        alias,
-        tsconfig?.compilerOptions,
-      );
-
-      file = load
-        ? await loadFromBundledFile<File>(resolvedPath, code, isDefault)
-        : (code as any);
-
-      debug(`bundled file loaded in ${Date.now() - start}ms`);
-    }
+    debug(`bundled file loaded in ${Date.now() - start}ms`);
 
     cache.set(resolvedPath, { file });
 
@@ -191,7 +142,7 @@ export async function loadFile<File = any>(
       path: normalizeResolvedPath,
       file,
     };
-  } catch (error: any) {
+  } catch (error) {
     cache.set(resolvedPath, { error });
 
     return {
@@ -342,32 +293,6 @@ async function bundleFile(
     code: text,
     dependencies: result.metafile ? Object.keys(result.metafile.inputs) : [],
   };
-}
-
-interface NodeModuleWithCompile extends NodeModule {
-  _compile(code: string, filename: string): any;
-}
-
-async function loadFromBundledFile<File = unknown>(
-  fileName: string,
-  bundledCode: string,
-  isDefault: boolean,
-): Promise<File> {
-  const extension = path.extname(fileName);
-  const defaultLoader = require.extensions[extension]!;
-  require.extensions[extension] = (module: NodeModule, filename: string) => {
-    if (filename === fileName) {
-      (module as NodeModuleWithCompile)._compile(bundledCode, filename);
-    } else {
-      defaultLoader(module, filename);
-    }
-  };
-  // clear cache in case of server restart
-  delete require.cache[require.resolve(fileName)];
-  const raw = require(fileName);
-  const file = isDefault && raw.__esModule ? raw.default : raw;
-  require.extensions[extension] = defaultLoader;
-  return file;
 }
 
 export async function removeFilesAndEmptyFolders(

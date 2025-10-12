@@ -45,7 +45,7 @@ export const getShowPetByIdResponseMock = () =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), void 0]),
+    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
   }))();
 
 export const getListPetsMockHandler = (

@@ -7510,12 +7510,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^20.19.14":
-  version: 20.19.14
-  resolution: "@types/node@npm:20.19.14"
+"@types/node@npm:^22.18.10":
+  version: 22.18.10
+  resolution: "@types/node@npm:22.18.10"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/cb6a1e3eda43056bf3135d46affbbe5883600adc1928f99247dd9b1a5254823174a91e2d7c6734c2c247a4eb889cb81b0113306e61bf8f4a709b55e86a325f79
+  checksum: 10c0/37b34553f1953ab8fc25b7467d44701446400f62547adb62c842cebac091350985470aeed87acd60f5295778c370d9721d477310e643677a7eab03a8dc6ed74f
   languageName: node
   linkType: hard
 
@@ -17065,7 +17065,7 @@ __metadata:
   resolution: "mcp-petstore@workspace:samples/mcp/petstore"
   dependencies:
     "@modelcontextprotocol/sdk": "npm:1.18.0"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     orval: "workspace:*"
     ts-node: "npm:^10.9.2"
     typescript: "npm:~5.8.3"
@@ -17754,7 +17754,7 @@ __metadata:
   resolution: "next-app-with-fetch@workspace:samples/next-app-with-fetch"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     eslint: "npm:^9.35.0"
@@ -17778,7 +17778,7 @@ __metadata:
   resolution: "next-app@workspace:samples/hono/hono-with-fetch-client/next-app"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     next: "npm:^15.5.3"
@@ -18625,7 +18625,7 @@ __metadata:
     "@commitlint/cli": "npm:^19.8.1"
     "@commitlint/config-conventional": "npm:^19.8.1"
     "@eslint/js": "npm:^9.35.0"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     esbuild-plugin-alias: "npm:^0.2.1"
     eslint: "npm:^9.35.0"
     eslint-config-prettier: "npm:^10.1.8"
@@ -20389,7 +20389,7 @@ __metadata:
   resolution: "react-app@workspace:samples/react-app"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     axios: "npm:^1.12.2"
@@ -20484,7 +20484,7 @@ __metadata:
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
     "@tanstack/react-query": "npm:~5.62.16"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     ajv: "npm:^8.17.1"
@@ -20507,7 +20507,7 @@ __metadata:
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
     "@types/faker": "npm:^5.5.9"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     axios: "npm:^1.12.2"
@@ -23245,7 +23245,7 @@ __metadata:
   resolution: "swr-basic@workspace:samples/react-app-with-swr/basic"
   dependencies:
     "@faker-js/faker": "npm:^9.9.0"
-    "@types/node": "npm:^20.19.14"
+    "@types/node": "npm:^22.18.10"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     axios: "npm:^1.12.2"
