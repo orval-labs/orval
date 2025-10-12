@@ -1,6 +1,7 @@
 {
   "name": "angular-app",
   "version": "7.15.0",
+  "type": "module",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -27,8 +28,8 @@
     "@angular/build": "^20.3.1",
     "@angular/cli": "^20.3.1",
     "@angular/compiler-cli": "^20.3.2",
-    "@faker-js/faker": "^9.9.0",
-    "msw": "^2.11.2",
+    "@faker-js/faker": "^10.1.0",
+    "msw": "^2.11.6",
     "orval": "workspace:*",
     "rimraf": "^6.0.1",
     "typescript": "~5.8.3",

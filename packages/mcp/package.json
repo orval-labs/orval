@@ -2,10 +2,11 @@
   "name": "@orval/mcp",
   "version": "7.15.0",
   "license": "MIT",
+  "type": "module",
   "exports": {
-    ".": {
+    "import": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -28,7 +29,7 @@
   "devDependencies": {
     "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.8",
+    "tsdown": "^0.15.9",
     "typescript": "^5.9.3"
   }
 }

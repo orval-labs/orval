@@ -16,7 +16,7 @@ import {
   writeTagsMode,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa, { type ExecaError } from 'execa';
+import { execa, type ExecaError } from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import type { InfoObject } from 'openapi3-ts/oas30';
@@ -45,7 +45,7 @@ export const writeSpecs = async (
 ) => {
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
-  const projectTitle = projectName || info.title;
+  const projectTitle = projectName ?? info.title;
 
   const specsName = Object.keys(schemas).reduce<
     Record<keyof typeof schemas, string>

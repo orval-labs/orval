@@ -12,9 +12,7 @@ export default defineConfig({
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
-        paramsSerializer: {
-          path: 'src/orval/mutator/custom-params-serializer.ts',
-        },
+        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
             mutator: 'src/orval/mutator/response-type.ts',
@@ -49,7 +47,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/orval/transformer/add-version.js',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },

@@ -1,16 +1,16 @@
 import {
-  ContextSpecs,
+  type ContextSpecs,
   generalJSTypesWithArray,
-  GeneratorImport,
-  GlobalMockOptions,
+  type GeneratorImport,
+  type GlobalMockOptions,
   isFunction,
-  MockOptions,
-  NormalizedOverrideOutput,
+  type MockOptions,
+  type NormalizedOverrideOutput,
   resolveRef,
-  ResReqTypesValue,
+  type ResReqTypesValue,
   stringify,
 } from '@orval/core';
-import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import { getMockScalar } from '../faker/getters';
 

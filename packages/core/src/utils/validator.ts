@@ -1,6 +1,6 @@
 // @ts-expect-error no types exists for this package :(
 import ibmOpenapiRuleset from '@ibm-cloud/openapi-ruleset';
-import { Spectral } from '@stoplight/spectral-core';
+import stoplight from '@stoplight/spectral-core';
 import type { OpenAPIObject } from 'openapi3-ts/oas30';
 
 import {
@@ -19,7 +19,7 @@ export const ibmOpenapiValidator = async (
 ) => {
   const ruleset =
     typeof validation === 'boolean' ? ibmOpenapiRuleset : validation;
-  const spectral = new Spectral();
+  const spectral = new stoplight.Spectral();
   spectral.setRuleset(ruleset);
   const results = await spectral.run(
     specs as unknown as Record<string, unknown>,
