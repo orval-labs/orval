@@ -1,5 +1,4 @@
 import {
-  createLogger,
   getIsBodyVerb,
   GetterProps,
   GetterPropType,
@@ -61,6 +60,9 @@ export const normalizeQueryOptions = (
       ? { shouldExportHttpClient: true }
       : {}),
     ...(queryOptions.shouldSplitQueryKey ? { shouldSplitQueryKey: true } : {}),
+    ...(queryOptions.useOperationIdAsQueryKey
+      ? { useOperationIdAsQueryKey: true }
+      : {}),
   };
 };
 
@@ -71,8 +73,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {

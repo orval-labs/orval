@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "0.0.0",
+  "version": "7.13.2",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -21,14 +21,19 @@
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/compiler-sfc": "^3.5.21",
-    "jsdom": "^23.2.0",
+    "jsdom": "^27.0.0",
     "msw": "^2.11.2",
     "orval": "workspace:*",
-    "tsd": "^0.29.0",
+    "tsd": "^0.33.0",
     "typescript": "~5.8.3",
     "vite": "^5.4.20",
     "vitest": "^3.2.4",
     "vue-tsc": "^2.2.12"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
   },
   "msw": {
     "workerDirectory": "public"

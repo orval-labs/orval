@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "1.0.0",
+  "version": "7.13.2",
   "private": true,
   "scripts": {
     "build": "tsc",
@@ -12,7 +12,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
-    "@types/node": "^20.19.14",
+    "@types/node": "^22.18.10",
     "orval": "workspace:*",
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3"

@@ -63,12 +63,10 @@ export const generateMutator = async ({
     ? `${pascal(name)}${BODY_TYPE_NAME}`
     : BODY_TYPE_NAME;
 
-  const { file, cached } = await loadFile<string>(importPath, {
-    isDefault: false,
+  const { file, cached } = await loadFile(importPath, {
     root: workspace,
     alias: mutator.alias,
     tsconfig,
-    load: false,
   });
 
   if (file) {
@@ -81,12 +79,11 @@ export const generateMutator = async ({
     );
 
     if (!mutatorInfo) {
-      createLogger().error(
+      throw new Error(
         chalk.red(
           `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
         ),
       );
-      process.exit(1);
     }
 
     const path = getImport(output, mutator);

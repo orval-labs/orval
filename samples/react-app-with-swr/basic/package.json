@@ -1,10 +1,10 @@
 {
   "name": "swr-basic",
-  "version": "0.1.0",
+  "version": "7.13.2",
   "private": true,
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
-    "@types/node": "^20.19.14",
+    "@types/node": "^22.18.10",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "axios": "^1.12.2",
@@ -17,6 +17,11 @@
   },
   "devDependencies": {
     "orval": "workspace:*"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
   },
   "scripts": {
     "start": "react-scripts start",

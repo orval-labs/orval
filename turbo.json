@@ -1,6 +1,8 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "globalEnv": ["ORVAL_DEBUG_FILTER", "CI", "DEBUG"],
+  // disable background process as it is causing issues with file locks in the node_modules folder
+  "daemon": false,
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
@@ -20,10 +22,6 @@
     "test": {
       "outputs": []
     },
-    "clean": { "cache": false },
-    "//#clean": { "cache": false },
-    "nuke": { "cache": false },
-    "//#nuke": { "cache": false },
     "generate-api": {
       "dependsOn": ["orval#build"]
     }

@@ -85,7 +85,9 @@ export const writeSchema = async ({
       }),
     );
   } catch (error) {
-    throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`;
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
+    );
   }
 };
 
@@ -191,7 +193,9 @@ export const writeSchemas = async ({
 
       await fs.writeFile(schemaFilePath, fileContent);
     } catch (error) {
-      throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`;
+      throw new Error(
+        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,
+      );
     }
   }
 };

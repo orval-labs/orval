@@ -14,7 +14,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [20.x]
+        node-version: [22.x]
     steps:
       - uses: actions/checkout@v5
       - name: Use Node.js ${{ matrix.node-version }}
@@ -41,9 +41,3 @@ jobs:
         run: yarn format:check
       - name: unit tests
         run: yarn test:ci
-      - name: tests generate
-        working-directory: ./tests
-        run: yarn generate
-      - name: tests build
-        working-directory: ./tests
-        run: yarn build

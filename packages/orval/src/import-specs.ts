@@ -24,8 +24,8 @@ const resolveSpecs = async (
     if (validate) {
       try {
         await SwaggerParser.validate(path, options);
-      } catch (error: any) {
-        if (error?.name === 'ParserError') {
+      } catch (error) {
+        if (error instanceof Error && error.name === 'ParserError') {
           throw error;
         }
 

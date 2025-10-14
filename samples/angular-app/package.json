@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "0.0.0",
+  "version": "7.13.2",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -26,13 +26,18 @@
   "devDependencies": {
     "@angular/build": "^20.3.1",
     "@angular/cli": "^20.3.1",
-    "@angular/compiler-cli": "^20.3.0",
+    "@angular/compiler-cli": "^20.3.2",
     "@faker-js/faker": "^9.9.0",
     "msw": "^2.11.2",
     "orval": "workspace:*",
     "rimraf": "^6.0.1",
     "typescript": "~5.8.3",
     "vitest": "^3.2.4"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
   },
   "msw": {
     "workerDirectory": [

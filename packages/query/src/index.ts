@@ -138,6 +138,10 @@ const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
   return !!hasSvelteQuery && !hasSvelteQueryV4;
 };
 
+const isSvelteQueryV6 = (packageJson: PackageJson | undefined) => {
+  return isQueryV6(packageJson, 'svelte-query');
+};
+
 export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions,
@@ -354,6 +358,21 @@ const isQueryV5 = (
   const withoutRc = version.split('-')[0];
 
   return compareVersions(withoutRc, '5.0.0');
+};
+
+const isQueryV6 = (
+  packageJson: PackageJson | undefined,
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '6.0.0');
 };
 
 const isQueryV5WithDataTagError = (
@@ -726,9 +745,8 @@ const getQueryFnArguments = ({
 };
 
 const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type },
+  queryOption: { name, queryParam, options, type, queryKeyFnName },
   operationName,
-  queryKeyFnName,
   queryProperties,
   queryKeyProperties,
   queryParams,
@@ -746,6 +764,7 @@ const generateQueryImplementation = ({
   route,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  hasSvelteQueryV6,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
@@ -759,10 +778,10 @@ const generateQueryImplementation = ({
     options?: object | boolean;
     type: QueryType;
     queryParam?: string;
+    queryKeyFnName: string;
   };
   isRequestOptions: boolean;
   operationName: string;
-  queryKeyFnName: string;
   queryProperties: string;
   queryKeyProperties: string;
   params: GetterParams;
@@ -779,6 +798,7 @@ const generateQueryImplementation = ({
   route: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  hasSvelteQueryV6: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
@@ -1082,9 +1102,11 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  const ${queryResultVarName} = ${camel(
-    `${operationPrefix}-${type}`,
-  )}(${queryOptionsVarName} ${optionalQueryClientArgument ? ', queryClient' : ''}) as ${returnType};
+  const ${queryResultVarName} = ${camel(`${operationPrefix}-${type}`)}(${
+    hasSvelteQueryV6
+      ? `() => ({ ...${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+      : `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`
+  }) as ${returnType};
 
   ${queryResultVarName}.queryKey = ${
     isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName
@@ -1100,7 +1122,11 @@ ${
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  await queryClient.${prefetchFnName}(${queryOptionsVarName});
+  await queryClient.${prefetchFnName}(${
+    hasSvelteQueryV6
+      ? `() => ({ ...${queryOptionsVarName} })`
+      : queryOptionsVarName
+  });
 
   return queryClient;
 }\n`
@@ -1144,6 +1170,9 @@ const generateQueryHook = async (
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
     (!isSvelteQueryV3(context.output.packageJson) || queryVersion === 4);
+  const hasSvelteQueryV6 =
+    OutputClient.SVELTE_QUERY === outputClient &&
+    isSvelteQueryV6(context.output.packageJson);
 
   const hasQueryV5 =
     queryVersion === 5 ||
@@ -1262,6 +1291,7 @@ const generateQueryHook = async (
               options: query?.options,
               type: QueryType.INFINITE,
               queryParam: query?.useInfiniteQueryParam,
+              queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
@@ -1271,6 +1301,7 @@ const generateQueryHook = async (
               name: operationName,
               options: query?.options,
               type: QueryType.QUERY,
+              queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
@@ -1280,6 +1311,7 @@ const generateQueryHook = async (
               name: camel(`${operationName}-suspense`),
               options: query?.options,
               type: QueryType.SUSPENSE_QUERY,
+              queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
@@ -1291,12 +1323,12 @@ const generateQueryHook = async (
               options: query?.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: query?.useInfiniteQueryParam,
+              queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
     ];
 
-    const queryKeyFnName = camel(`get-${operationName}-queryKey`);
     // Convert "param: Type" to "param?: Type" for queryKey functions
     // to enable cache invalidation without type assertion
     const makeParamsOptional = (params: string) => {
@@ -1316,36 +1348,63 @@ const generateQueryHook = async (
       );
     };
 
-    const queryKeyProps = makeParamsOptional(
-      toObjectString(
-        props.filter((prop) => prop.type !== GetterPropType.HEADER),
-        'implementation',
-      ),
+    const uniqueQueryOptionsByKeys = queries.filter(
+      (obj, index, self) =>
+        index ===
+        self.findIndex((t) => t.queryKeyFnName === obj.queryKeyFnName),
     );
 
-    const routeString =
-      isVue(outputClient) || override.query.shouldSplitQueryKey
-        ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
-        : `\`${route}\``;
+    implementation += `
+${
+  !queryKeyMutator
+    ? uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
+        const queryKeyProps = makeParamsOptional(
+          toObjectString(
+            props.filter((prop) => prop.type !== GetterPropType.HEADER),
+            'implementation',
+          ),
+        );
 
-    // Note: do not unref() params in Vue - this will make key lose reactivity
-    const queryKeyFn = `${
-      override.query.shouldExportQueryKey ? 'export ' : ''
-    }const ${queryKeyFnName} = (${queryKeyProps}) => {
-    return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
-      body.implementation ? `, ${body.implementation}` : ''
-    }] as const;
-    }`;
+        const routeString =
+          isVue(outputClient) || override.query.shouldSplitQueryKey
+            ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
+            : `\`${route}\``;
 
-    implementation += `${queryKeyMutator ? '' : queryKeyFn}
+        // Use operation ID as query key if enabled, otherwise use route string
+        const queryKeyIdentifier = override.query.useOperationIdAsQueryKey
+          ? operationName
+          : routeString;
 
-    ${queries.reduce(
-      (acc, queryOption) =>
+        // Note: do not unref() params in Vue - this will make key lose reactivity
+        const queryKeyFn = `
+${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
+    return [
+    ${[
+      queryOption.type === QueryType.INFINITE ||
+      queryOption.type === QueryType.SUSPENSE_INFINITE
+        ? `'infinite'`
+        : '',
+      queryKeyIdentifier,
+      queryParams ? '...(params ? [params]: [])' : '',
+      body.implementation,
+    ]
+      .filter((x) => !!x)
+      .join(', ')}
+    ] as const;
+    }
+`;
+        return acc + queryKeyFn;
+      }, '')
+    : ''
+}`;
+
+    implementation += `
+    ${queries.reduce((acc, queryOption) => {
+      return (
         acc +
         generateQueryImplementation({
           queryOption,
           operationName,
-          queryKeyFnName,
           queryProperties,
           queryKeyProperties,
           params,
@@ -1366,6 +1425,7 @@ const generateQueryHook = async (
           route,
           hasVueQueryV4,
           hasSvelteQueryV4,
+          hasSvelteQueryV6,
           hasQueryV5,
           hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError,
@@ -1373,9 +1433,9 @@ const generateQueryHook = async (
           usePrefetch: query.usePrefetch,
           useQuery: query.useQuery,
           useInfinite: query.useInfinite,
-        }),
-      '',
-    )}
+        })
+      );
+    }, '')}
 `;
 
     mutators =
@@ -1543,8 +1603,10 @@ ${mutationOptionsFn}
         isRequestOptions ? 'options' : 'mutationOptions'
       });
 
-      return ${operationPrefix}Mutation(${mutationOptionsVarName} ${
-        optionalQueryClientArgument ? ', queryClient' : ''
+      return ${operationPrefix}Mutation(${
+        hasSvelteQueryV6
+          ? `() => ({ ...${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+          : `${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`
       });
     }
     `;

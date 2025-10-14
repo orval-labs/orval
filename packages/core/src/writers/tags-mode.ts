@@ -163,7 +163,9 @@ export const writeTagsMode = async ({
 
         return [implementationPath, ...(schemasPath ? [schemasPath] : [])];
       } catch (error) {
-        throw `Oups... 🍻. An Error occurred while writing tag ${tag} => ${error}`;
+        throw new Error(
+          `Oups... 🍻. An Error occurred while writing tag ${tag} => ${error}`,
+        );
       }
     }),
   );

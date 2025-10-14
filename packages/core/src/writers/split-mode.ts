@@ -187,6 +187,8 @@ export const writeSplitMode = async ({
       ...(mockPath ? [mockPath] : []),
     ];
   } catch (error) {
-    throw `Oups... 🍻. An Error occurred while splitting => ${error}`;
+    throw new Error(
+      `Oups... 🍻. An Error occurred while splitting => ${error}`,
+    );
   }
 };

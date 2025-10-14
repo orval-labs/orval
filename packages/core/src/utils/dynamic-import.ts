@@ -31,6 +31,6 @@ export const dynamicImport = async <T>(
 
     return toImport;
   } catch (error) {
-    throw `Oups... 🍻. Path: ${toImport} => ${error}`;
+    throw new Error(`Oups... 🍻. Path: ${toImport} => ${error}`);
   }
 };

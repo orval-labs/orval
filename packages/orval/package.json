@@ -1,18 +1,22 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "7.11.2",
+  "version": "7.13.2",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.d.ts.map"
   ],
   "bin": "./dist/bin/orval.js",
   "type": "commonjs",
   "exports": {
     ".": {
-      "types": "./dist/src/index.d.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "engines": {
+    "node": ">=22.18.0"
   },
   "keywords": [
     "rest",
@@ -69,6 +73,7 @@
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.0.0",
+    "@commander-js/extra-typings": "^14.0.0",
     "@orval/angular": "workspace:*",
     "@orval/axios": "workspace:*",
     "@orval/core": "workspace:*",
@@ -79,9 +84,9 @@
     "@orval/query": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "cac": "^6.7.14",
     "chalk": "^4.1.2",
     "chokidar": "^4.0.3",
+    "commander": "^14.0.1",
     "enquirer": "^2.4.1",
     "execa": "^5.1.1",
     "find-up": "5.0.0",

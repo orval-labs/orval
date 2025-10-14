@@ -145,6 +145,8 @@ export const writeSingleMode = async ({
 
     return [path];
   } catch (error) {
-    throw `Oups... 🍻. An Error occurred while writing file => ${error}`;
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing file => ${error}`,
+    );
   }
 };

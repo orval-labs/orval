@@ -14,25 +14,24 @@ import {
   GetterProps,
   GetterPropType,
   GetterResponse,
-  jsDoc,
-  OutputHttpClient,
   pascal,
   stringify,
-  SwrOptions,
   toObjectString,
   Verbs,
+  jsDoc,
+  SwrOptions,
+  OutputHttpClient,
 } from '@orval/core';
-
 import {
   AXIOS_DEPENDENCIES,
   generateSwrRequestFunction,
-  getHttpRequestSecondArg,
-  getSwrErrorType,
-  getSwrHeader,
-  getSwrMutationFetcherOptionType,
-  getSwrMutationFetcherType,
   getSwrRequestOptions,
+  getSwrErrorType,
   getSwrRequestSecondArg,
+  getHttpRequestSecondArg,
+  getSwrMutationFetcherOptionType,
+  getSwrHeader,
+  getSwrMutationFetcherType,
 } from './client';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
@@ -187,7 +186,7 @@ const generateSwrImplementation = ({
   const httpFunctionProps = swrProperties;
 
   const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
-    params.length > 0
+    params.length
       ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
       : ''
   }`;
@@ -419,9 +418,11 @@ const generateSwrHook = (
         prop.type === GetterPropType.NAMED_PATH_PARAMS,
     )
     .map((param) => {
-      return param.type === GetterPropType.NAMED_PATH_PARAMS
-        ? param.destructured
-        : param.name;
+      if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
+        return param.destructured;
+      } else {
+        return param.name;
+      }
     })
     .join(',');
 
@@ -433,9 +434,11 @@ const generateSwrHook = (
         prop.type === GetterPropType.QUERY_PARAM,
     )
     .map((prop) => {
-      return prop.type === GetterPropType.NAMED_PATH_PARAMS
-        ? prop.destructured
-        : prop.name;
+      if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+        return prop.destructured;
+      } else {
+        return prop.name;
+      }
     })
     .join(',');
 
@@ -514,9 +517,11 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const httpFnPropertiesForGet = props
       .filter((prop) => prop.type !== GetterPropType.HEADER)
       .map((prop) => {
-        return prop.type === GetterPropType.NAMED_PATH_PARAMS
-          ? prop.destructured
-          : prop.name;
+        if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
+          return prop.destructured;
+        } else {
+          return prop.name;
+        }
       })
       .join(', ');
 
@@ -541,8 +546,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
 export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherOptions}) => {
   return (_: Key, __: { arg?: never }): ${swrMutationFetcherType} => {
     return ${operationName}(${httpFnPropertiesForGet}${
-      swrMutationFetcherOptions.length > 0
-        ? (httpFnPropertiesForGet.length > 0 ? ', ' : '') + 'options'
+      swrMutationFetcherOptions.length
+        ? (httpFnPropertiesForGet.length ? ', ' : '') + 'options'
         : ''
     });
   }
@@ -624,10 +629,10 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
 
     const swrMutationFetcherFn = `
 export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOptions}) => {
-  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }): ${swrMutationFetcherType} => {
+  return (_: Key, ${swrMutationFetcherArg}: { arg: ${swrBodyType} }) => {
     return ${operationName}(${httpFnProperties}${
-      swrMutationFetcherOptions.length > 0
-        ? (httpFnProperties.length > 0 ? ', ' : '') + 'options'
+      swrMutationFetcherOptions.length
+        ? (httpFnProperties.length ? ', ' : '') + 'options'
         : ''
     });
   }
@@ -657,10 +662,10 @@ export const ${swrMutationFetcherName} = (${swrProps} ${swrMutationFetcherOption
 export const generateSwrHeader: ClientHeaderBuilder = (params) =>
   `
   ${
-    params.hasAwaitedType
-      ? ''
-      : `type AwaitedInput<T> = PromiseLike<T> | T;\n
+    !params.hasAwaitedType
+      ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
+      : ''
   }
   ${
     params.isRequestOptions && params.isMutator

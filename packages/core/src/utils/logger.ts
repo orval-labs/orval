@@ -1,6 +1,7 @@
 import readline from 'node:readline';
 
 import chalk from 'chalk';
+
 export const log = console.log;
 
 export const startMessage = ({
@@ -11,13 +12,10 @@ export const startMessage = ({
   name: string;
   version: string;
   description: string;
-}) => {
-  log(
-    `🍻 Start ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
-      description ? ` - ${description}` : ''
-    }`,
-  );
-};
+}) =>
+  `🍻 ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
+    description ? ` - ${description}` : ''
+  }`;
 
 export const logError = (err: unknown, tag?: string) => {
   log(

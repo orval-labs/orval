@@ -28,7 +28,7 @@ export type ConfigFn = () => Config | Promise<Config>;
 
 export type ConfigExternal = Config | Promise<Config> | ConfigFn;
 
-export type NormalizedConfig = Record<string, NormalizedOptions>;
+export type NormalizedConfig = Record<string, NormalizedOptions | undefined>;
 
 export interface NormalizedOptions {
   output: NormalizedOutputOptions;
@@ -103,7 +103,7 @@ export type NormalizedOverrideOutput = {
   angular: Required<AngularOptions>;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
-  fetch: FetchOptions;
+  fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OperationObject,
     route: string,
@@ -597,6 +597,7 @@ export type NormalizedQueryOptions = {
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
   shouldSplitQueryKey?: boolean;
+  useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -617,6 +618,7 @@ export type QueryOptions = {
   shouldExportHttpClient?: boolean;
   shouldExportQueryKey?: boolean;
   shouldSplitQueryKey?: boolean;
+  useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
 };
@@ -633,8 +635,16 @@ export type SwrOptions = {
   swrInfiniteOptions?: any;
 };
 
+export type NormalizedFetchOptions = {
+  includeHttpResponseReturnType: boolean;
+  forceSuccessResponse: boolean;
+  explode: boolean;
+  jsonReviver?: Mutator;
+};
+
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
+  forceSuccessResponse?: boolean;
   explode?: boolean;
   jsonReviver?: Mutator;
 };
@@ -1220,4 +1230,12 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
 
 export interface SchemaWithConst extends SchemaObject {
   const: string;
+}
+
+export class ErrorWithTag extends Error {
+  tag: string;
+  constructor(message: string, tag: string, options?: ErrorOptions) {
+    super(message, options);
+    this.tag = tag;
+  }
 }

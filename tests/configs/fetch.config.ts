@@ -23,6 +23,9 @@ export default defineConfig({
           path: '../mutators/custom-fetch.ts',
           name: 'customFetch',
         },
+        fetch: {
+          forceSuccessResponse: true,
+        },
       },
     },
     input: {
@@ -256,6 +259,21 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/parameters.yaml',
+    },
+  },
+  forceSuccessResponse: {
+    output: {
+      target: '../generated/fetch/force-success-response/endpoints.ts',
+      schemas: '../generated/fetch/force-success-response/model',
+      client: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
 });

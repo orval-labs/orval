@@ -47,6 +47,7 @@ import pkg from '../../package.json';
 import { githubResolver } from './github';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
+import { httpResolver } from './http-resolver';
 
 /**
  * Type helper to make it easier to use orval.config.ts
@@ -94,13 +95,11 @@ export const normalizeOptions = async (
     : optionsExport);
 
   if (!options.input) {
-    createLogger().error(chalk.red(`Config require an input`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an input`));
   }
 
   if (!options.output) {
-    createLogger().error(chalk.red(`Config require an output`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an output`));
   }
 
   const inputOptions = isString(options.input)
@@ -353,6 +352,8 @@ export const normalizeOptions = async (
           includeHttpResponseReturnType:
             outputOptions.override?.fetch?.includeHttpResponseReturnType ??
             true,
+          forceSuccessResponse:
+            outputOptions.override?.fetch?.forceSuccessResponse ?? false,
           explode: outputOptions.override?.fetch?.explode ?? true,
           ...outputOptions.override?.fetch,
         },
@@ -376,15 +377,11 @@ export const normalizeOptions = async (
   };
 
   if (!normalizedOptions.input.target) {
-    createLogger().error(chalk.red(`Config require an input target`));
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an input target`));
   }
 
   if (!normalizedOptions.output.target && !normalizedOptions.output.schemas) {
-    createLogger().error(
-      chalk.red(`Config require an output target or schemas`),
-    );
-    process.exit(1);
+    throw new Error(chalk.red(`Config require an output target or schemas`));
   }
 
   return normalizedOptions;
@@ -392,7 +389,7 @@ export const normalizeOptions = async (
 
 const parserDefaultOptions = {
   validate: true,
-  resolve: { github: githubResolver },
+  resolve: { github: githubResolver, http: httpResolver },
 } as SwaggerParserOptions;
 
 const normalizeMutator = (
@@ -401,8 +398,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {
@@ -739,6 +735,19 @@ const normalizeQueryOptions = (
     ...(isUndefined(queryOptions.shouldSplitQueryKey)
       ? {}
       : { shouldSplitQueryKey: queryOptions.shouldSplitQueryKey }),
+    ...(isUndefined(globalOptions.signal)
+      ? {}
+      : {
+          signal: globalOptions.signal,
+        }),
+    ...(isUndefined(globalOptions.useOperationIdAsQueryKey)
+      ? {}
+      : {
+          useOperationIdAsQueryKey: globalOptions.useOperationIdAsQueryKey,
+        }),
+    ...(isUndefined(queryOptions.useOperationIdAsQueryKey)
+      ? {}
+      : { useOperationIdAsQueryKey: queryOptions.useOperationIdAsQueryKey }),
     ...(isUndefined(globalOptions.signal)
       ? {}
       : {

@@ -1,6 +1,6 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "0.1.0",
+  "version": "7.13.2",
   "private": true,
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
@@ -8,7 +8,7 @@
     "generate-api": "orval"
   },
   "dependencies": {
-    "@hono/zod-validator": "^0.7.2",
+    "@hono/zod-validator": "^0.7.3",
     "hono": "^4.9.7"
   },
   "devDependencies": {

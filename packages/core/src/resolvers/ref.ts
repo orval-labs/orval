@@ -63,7 +63,7 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
   } = getSchema(schema, context);
 
   if (!currentSchema) {
-    throw `Oops... 🍻. Ref not found: ${schema.$ref}`;
+    throw new Error(`Oops... 🍻. Ref not found: ${schema.$ref}`);
   }
 
   return resolveRef<Schema>(

@@ -869,6 +869,197 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
   });
+  describe('number handling', () => {
+    const context: ContextSpecs = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    it('generates an number', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumber',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.number().optional()');
+    });
+    it('generates an number with min', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        minimum: 10,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMin',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['min', 'testNumberMinMin'],
+          ['optional', undefined],
+        ],
+        consts: ['export const testNumberMinMin = 10;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.number().min(testNumberMinMin).optional()');
+    });
+    it('generates an number with max', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        maximum: 99,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMax',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['max', 'testNumberMaxMax'],
+          ['optional', undefined],
+        ],
+        consts: ['export const testNumberMaxMax = 99;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.number().max(testNumberMaxMax).optional()');
+    });
+
+    it('generates an number with max and max', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        minimum: 10,
+        maximum: 99,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMinMax',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['min', 'testNumberMinMaxMin'],
+          ['max', 'testNumberMinMaxMax'],
+          ['optional', undefined],
+        ],
+        consts: [
+          'export const testNumberMinMaxMin = 10;',
+          'export const testNumberMinMaxMax = 99;',
+        ],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.number().min(testNumberMinMaxMin).max(testNumberMinMaxMax).optional()',
+      );
+    });
+    it('generates an number with max, max and multipleOf', () => {
+      const schema: SchemaObject = {
+        type: 'number',
+        minimum: 10,
+        maximum: 99,
+        multipleOf: 2,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMinMaxMultiple',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['min', 'testNumberMinMaxMultipleMin'],
+          ['max', 'testNumberMinMaxMultipleMax'],
+          ['multipleOf', 'testNumberMinMaxMultipleMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [
+          'export const testNumberMinMaxMultipleMin = 10;',
+          'export const testNumberMinMaxMultipleMax = 99;',
+          'export const testNumberMinMaxMultipleMultipleOf = 2;',
+        ],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.number().min(testNumberMinMaxMultipleMin).max(testNumberMinMaxMultipleMax).multipleOf(testNumberMinMaxMultipleMultipleOf).optional()',
+      );
+    });
+  });
 });
 
 const basicApiSchema = {
