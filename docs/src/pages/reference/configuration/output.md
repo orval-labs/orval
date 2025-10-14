@@ -119,7 +119,7 @@ Default Value: `camelCase`.
 
 Specify the naming convention for the generated **files**.
 
-If you're looking for **property keys** naming convention, see [namingConvention](#namingconvention-for-property-keys).
+If you're looking for **property keys** naming convention, see [namingConvention](#namingconvention-property-keys).
 
 ```js
 module.exports = {
