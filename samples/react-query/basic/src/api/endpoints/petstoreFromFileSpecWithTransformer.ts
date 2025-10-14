@@ -68,7 +68,7 @@ export const getListPetsInfiniteQueryKey = (
   version: number = 1,
 ) => {
   return [
-    'infinate',
+    'infinite',
     `/v${version}/pets`,
     ...(params ? [params] : []),
   ] as const;
