@@ -1382,7 +1382,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     ${[
       queryOption.type === QueryType.INFINITE ||
       queryOption.type === QueryType.SUSPENSE_INFINITE
-        ? `'infinate'`
+        ? `'infinite'`
         : '',
       queryKeyIdentifier,
       queryParams ? '...(params ? [params]: [])' : '',

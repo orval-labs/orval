@@ -57,7 +57,7 @@ export const getListPetsInfiniteQueryKey = (
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
   return [
-    'infinate',
+    'infinite',
     'v',
     version,
     'pets',
@@ -354,7 +354,7 @@ export const getShowPetByIdInfiniteQueryKey = (
   petId?: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
-  return ['infinate', 'v', version, 'pets', petId] as const;
+  return ['infinite', 'v', version, 'pets', petId] as const;
 };
 
 export const getShowPetByIdQueryKey = (
