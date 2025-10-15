@@ -458,4 +458,16 @@ export default defineConfig({
     },
     input: '../specifications/multi-files-with-same-import-names/api.yaml',
   },
+  'external-ref': {
+    input: {
+      target: '../specifications/external-ref.yaml',
+      parserOptions: {
+        resolve: {
+          external: true,
+          http: {},
+        },
+      },
+    },
+    output: '../generated/default/external-ref/endpoints.ts',
+  },
 });
