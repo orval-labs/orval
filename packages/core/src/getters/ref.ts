@@ -87,9 +87,15 @@ export const getRefInfo = (
     };
   }
 
-  const path = isUrl(context.specKey)
-    ? resolveUrl(context.specKey, pathname)
-    : upath.resolve(getFileInfo(context.specKey).dirname, pathname);
+  let path: string;
+
+  if (isUrl($ref)) {
+    path = $ref;
+  } else if (isUrl(context.specKey)) {
+    path = resolveUrl(context.specKey, pathname);
+  } else {
+    path = upath.resolve(getFileInfo(context.specKey).dirname, pathname);
+  }
 
   return {
     name: sanitize(pascal(originalName) + suffix, {
