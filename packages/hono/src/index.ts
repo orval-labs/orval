@@ -131,47 +131,64 @@ export const generateHono: ClientBuilder = async (verbOptions, options) => {
   };
 };
 
-const getHonoHandlers = ({
-  handlerName,
-  contextTypeName,
-  verbOption,
-  validator,
-}: {
-  handlerName: string;
-  contextTypeName: string;
-  verbOption: GeneratorVerbOptions;
-  validator: boolean | 'hono' | NormalizedMutator;
-}) => {
-  let currentValidator = '';
+/**
+ * getHonoHandlers generates TypeScript code for the given verbs and reports
+ * whether the code requires zValidator.
+ */
+const getHonoHandlers = (
+  ...opts: Array<{
+    handlerName: string;
+    contextTypeName: string;
+    verbOption: GeneratorVerbOptions;
+    validator: boolean | 'hono' | NormalizedMutator;
+  }>
+): [
+  /** The combined TypeScript handler code snippets. */
+  handlerCode: string,
+  /** Whether any of the handler code snippets requires importing zValidator. */
+  hasZValidator: boolean,
+] =>
+  opts.reduce(
+    ([code, hasZValidator], opts) => {
+      const { handlerName, contextTypeName, verbOption, validator } = opts;
 
-  if (validator) {
-    if (verbOption.headers) {
-      currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
-    }
-    if (verbOption.params.length > 0) {
-      currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
-    }
-    if (verbOption.queryParams) {
-      currentValidator += `zValidator('query', ${verbOption.operationName}QueryParams),\n`;
-    }
-    if (verbOption.body.definition) {
-      currentValidator += `zValidator('json', ${verbOption.operationName}Body),\n`;
-    }
-    if (
-      validator !== 'hono' &&
-      verbOption.response.originalSchema?.['200']?.content?.['application/json']
-    ) {
-      currentValidator += `zValidator('response', ${verbOption.operationName}Response),\n`;
-    }
-  }
+      let currentValidator = '';
 
-  return `
+      if (validator) {
+        if (verbOption.headers) {
+          currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
+        }
+        if (verbOption.params.length > 0) {
+          currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
+        }
+        if (verbOption.queryParams) {
+          currentValidator += `zValidator('query', ${verbOption.operationName}QueryParams),\n`;
+        }
+        if (verbOption.body.definition) {
+          currentValidator += `zValidator('json', ${verbOption.operationName}Body),\n`;
+        }
+        if (
+          validator !== 'hono' &&
+          verbOption.response.originalSchema?.['200']?.content?.[
+            'application/json'
+          ]
+        ) {
+          currentValidator += `zValidator('response', ${verbOption.operationName}Response),\n`;
+        }
+      }
+
+      code += `
 export const ${handlerName} = factory.createHandlers(
 ${currentValidator}async (c: ${contextTypeName}) => {
 
   },
 );`;
-};
+      hasZValidator ||= currentValidator !== '';
+
+      return [code, hasZValidator];
+    },
+    ['', false] as [string, boolean],
+  );
 
 const getValidatorOutputRelativePath = (
   validatorOutputPath: string,
@@ -264,28 +281,22 @@ const generateHandlers = async (
           `./${verbOption.operationName}` + extension,
         );
 
-        const hasZValidator =
-          !!verbOption.headers ||
-          verbOption.params.length > 0 ||
-          !!verbOption.queryParams ||
-          !!verbOption.body.definition;
-
-        const isExist = fs.existsSync(handlerPath);
-
         const handlerName = `${verbOption.operationName}Handlers`;
         const contextTypeName = `${pascal(verbOption.operationName)}Context`;
 
-        if (isExist) {
+        const [handlerCode, hasZValidator] = getHonoHandlers({
+          handlerName,
+          contextTypeName,
+          verbOption,
+          validator: output.override.hono.validator,
+        });
+
+        if (fs.existsSync(handlerPath)) {
           const rawFile = await fs.readFile(handlerPath, 'utf8');
           let content = rawFile;
 
           if (!rawFile.includes(handlerName)) {
-            content += getHonoHandlers({
-              handlerName,
-              contextTypeName,
-              verbOption,
-              validator: output.override.hono.validator,
-            });
+            content += handlerCode;
           }
 
           return {
@@ -323,14 +334,7 @@ const generateHandlers = async (
 import { ${contextTypeName} } from '${outputPath}.context';
 ${zodImports}
 
-const factory = createFactory();
-
-${getHonoHandlers({
-  handlerName,
-  contextTypeName,
-  verbOption,
-  validator: output.override.hono.validator,
-})}
+const factory = createFactory();${handlerCode}
 `;
 
         return {
@@ -351,14 +355,6 @@ ${getHonoHandlers({
             ? upath.join(dirname, `${kebab(tag)}.handlers${extension}`)
             : upath.join(dirname, tag, tag + '.handlers' + extension);
 
-        const hasZValidator = verbs.some(
-          (verb) =>
-            !!verb.headers ||
-            verb.params.length > 0 ||
-            !!verb.queryParams ||
-            !!verb.body.definition,
-        );
-
         const isExist = fs.existsSync(handlerPath);
 
         if (isExist) {
@@ -367,9 +363,7 @@ ${getHonoHandlers({
 
           content += Object.values(verbs).reduce((acc, verbOption) => {
             const handlerName = `${verbOption.operationName}Handlers`;
-            const contextTypeName = `${pascal(
-              verbOption.operationName,
-            )}Context`;
+            const contextTypeName = `${pascal(verbOption.operationName)}Context`;
 
             if (!rawFile.includes(handlerName)) {
               acc += getHonoHandlers({
@@ -377,7 +371,7 @@ ${getHonoHandlers({
                 contextTypeName,
                 verbOption,
                 validator: output.override.hono.validator,
-              });
+              })[0];
             }
 
             return acc;
@@ -388,6 +382,15 @@ ${getHonoHandlers({
             path: handlerPath,
           };
         }
+
+        const [handlerCode, hasZValidator] = getHonoHandlers(
+          ...Object.values(verbs).map((verbOption) => ({
+            handlerName: `${verbOption.operationName}Handlers`,
+            contextTypeName: `${pascal(verbOption.operationName)}Context`,
+            verbOption,
+            validator: output.override.hono.validator,
+          })),
+        );
 
         let validatorImport = '';
         if (hasZValidator) {
@@ -422,21 +425,7 @@ import { ${Object.values(verbs)
           .join(',\n')} } from '${outputRelativePath}.context';
 ${zodImports}
 
-const factory = createFactory();`;
-
-        content += Object.values(verbs).reduce((acc, verbOption) => {
-          const handlerName = `${verbOption.operationName}Handlers`;
-          const contextTypeName = `${pascal(verbOption.operationName)}Context`;
-
-          acc += getHonoHandlers({
-            handlerName,
-            contextTypeName,
-            verbOption,
-            validator: output.override.hono.validator,
-          });
-
-          return acc;
-        }, '');
+const factory = createFactory();${handlerCode}`;
 
         return {
           content,
@@ -445,16 +434,6 @@ const factory = createFactory();`;
       }),
     );
   }
-
-  const hasZValidator = Object.values(verbOptions).some(
-    (verb) =>
-      !!verb.headers ||
-      verb.params.length > 0 ||
-      !!verb.queryParams ||
-      !!verb.body.definition ||
-      (verb.response.contentTypes.length === 1 &&
-        verb.response.contentTypes[0] === 'application/json'),
-  );
 
   const handlerPath = upath.join(dirname, `${filename}.handlers${extension}`);
 
@@ -474,7 +453,7 @@ const factory = createFactory();`;
           contextTypeName,
           verbOption,
           validator: output.override.hono.validator,
-        });
+        })[0];
       }
 
       return acc;
@@ -489,6 +468,15 @@ const factory = createFactory();`;
   }
 
   const outputRelativePath = `./${filename}`;
+
+  const [handlerCode, hasZValidator] = getHonoHandlers(
+    ...Object.values(verbOptions).map((verbOption) => ({
+      handlerName: `${verbOption.operationName}Handlers`,
+      contextTypeName: `${pascal(verbOption.operationName)}Context`,
+      verbOption,
+      validator: output.override.hono.validator,
+    })),
+  );
 
   let validatorImport = '';
 
@@ -521,21 +509,7 @@ import { ${Object.values(verbOptions)
     .join(',\n')} } from '${outputRelativePath}.context';
 ${zodImports}
 
-const factory = createFactory();`;
-
-  content += Object.values(verbOptions).reduce((acc, verbOption) => {
-    const handlerName = `${verbOption.operationName}Handlers`;
-    const contextTypeName = `${pascal(verbOption.operationName)}Context`;
-
-    acc += getHonoHandlers({
-      handlerName,
-      contextTypeName,
-      verbOption,
-      validator: output.override.hono.validator,
-    });
-
-    return acc;
-  }, '');
+const factory = createFactory();${handlerCode}`;
 
   return [
     {

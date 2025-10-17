@@ -61,11 +61,7 @@ export const relativeSafe = (from: string, to: string) => {
 
 export const getSpecName = (specKey: string, target: string) => {
   if (isUrl(specKey)) {
-    const url = new URL(target);
-    return specKey
-      .replace(url.origin, '')
-      .replace(getFileInfo(url.pathname).dirname, '')
-      .replace(`.${getExtension(specKey)}`, '');
+    return specKey;
   }
 
   return (

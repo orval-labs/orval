@@ -17,7 +17,7 @@ import { importOpenApi } from './import-open-api';
 const resolveSpecs = async (
   path: string,
   { validate, ...options }: SwaggerParserOptions,
-  isUrl: boolean,
+  _isUrl: boolean,
   isOnlySchema: boolean,
 ) => {
   try {
@@ -37,7 +37,7 @@ const resolveSpecs = async (
 
     const data = (await SwaggerParser.resolve(path, options)).values();
 
-    if (isUrl) {
+    if (_isUrl) {
       return data;
     }
 
@@ -45,7 +45,7 @@ const resolveSpecs = async (
     return Object.fromEntries(
       Object.entries(data)
         .sort()
-        .map(([key, value]) => [upath.resolve(key), value]),
+        .map(([key, value]) => [isUrl(key) ? key : upath.resolve(key), value]),
     );
   } catch {
     const file = await fs.readFile(path, 'utf8');

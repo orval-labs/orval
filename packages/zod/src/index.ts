@@ -1035,7 +1035,15 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters!;
+  if (spec == null) {
+    throw new Error(`No such path ${pathRoute} in ${context.specKey}`);
+  }
+
+  const parameters = [
+    ...(spec.parameters ?? []),
+    ...(spec[verb]?.parameters ?? []),
+  ];
+
   const parsedParameters = parseParameters({
     data: parameters,
     context,
@@ -1045,7 +1053,7 @@ const generateZodRoute = async (
     generate: override.zod.generate,
   });
 
-  const requestBody = spec?.[verb]?.requestBody;
+  const requestBody = spec[verb]?.requestBody;
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
@@ -1058,8 +1066,8 @@ const generateZodRoute = async (
 
   const responses = (
     context.output.override.zod.generateEachHttpStatus
-      ? Object.entries(spec?.[verb]?.responses ?? {})
-      : [['', spec?.[verb]?.responses[200]]]
+      ? Object.entries(spec[verb]?.responses ?? {})
+      : [['', spec[verb]?.responses[200]]]
   ) as [string, ResponseObject | ReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({

@@ -1372,7 +1372,7 @@ ${
 
         // Use operation ID as query key if enabled, otherwise use route string
         const queryKeyIdentifier = override.query.useOperationIdAsQueryKey
-          ? operationName
+          ? `"${operationName}"`
           : routeString;
 
         // Note: do not unref() params in Vue - this will make key lose reactivity
