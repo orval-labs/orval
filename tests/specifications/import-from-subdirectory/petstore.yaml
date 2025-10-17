@@ -1,0 +1,26 @@
+openapi: 3.0.2
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  /pets:
+    post:
+      responses:
+        '200':
+          description: Created Pet
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: './subdirectory/petstore.yaml#/components/schemas/Pet'
+    get:
+      responses:
+        '200':
+          description: All pets
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: './subdirectory/another-file.yaml#/components/schemas/AnotherSchema'

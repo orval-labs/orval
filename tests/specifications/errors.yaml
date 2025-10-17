@@ -1,0 +1,37 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Swagger Errors
+  license:
+    name: MIT
+paths:
+  /error:
+    get:
+      summary: Get an Error Item
+      operationId: createItems
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Item'
+components:
+  schemas:
+    Item:
+      type: object
+      properties:
+        prop:
+          type: string

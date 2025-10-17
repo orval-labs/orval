@@ -1,0 +1,29 @@
+openapi: 3.0.3
+info:
+  title: Typeless enums
+  version: 1.0.0
+paths:
+  /api/colors:
+    get:
+      summary: sample colors
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ColorObject'
+components:
+  schemas:
+    Colors1:
+      type: string
+      enum: [red, blue, yellow]
+    Colors2:
+      enum: [green, purple, orange]
+    ColorObject:
+      type: object
+      properties:
+        color:
+          oneOf:
+            - $ref: '#/components/schemas/Colors1'
+            - $ref: '#/components/schemas/Colors2'

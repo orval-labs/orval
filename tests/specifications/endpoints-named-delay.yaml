@@ -1,0 +1,26 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Swagger Delay in name
+  license:
+    name: MIT
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  /delay-in-name:
+    get:
+      summary: Delay in name
+      description: If delay in orval config is set to false, do not import delay from msw
+      operationId: delayInName
+      tags:
+        - test
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Ok

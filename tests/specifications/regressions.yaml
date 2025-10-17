@@ -1,0 +1,57 @@
+openapi: '3.0.0'
+info:
+  title: Orval Regression Tests
+  version: 0.0.0
+components:
+  schemas:
+    ArrayTest:
+      type: object
+      properties:
+        nullable_items:
+          type: array
+          items:
+            type: string
+            nullable: true
+        nested_nullable_items:
+          type: array
+          items:
+            type: array
+            items:
+              type: string
+              nullable: true
+    BlankSchema: {}
+    NotDifinedType:
+      properties:
+        id:
+          description: not defined type schema
+paths:
+  /endpointA:
+    get:
+      tags: ['dup-tag']
+      responses:
+        200:
+          description: ''
+  /endpointB:
+    get:
+      tags: ['dup_tag']
+      responses:
+        200:
+          description: ''
+  /endpointC:
+    get:
+      tags: ['dup___tag']
+      responses:
+        200:
+          description: ''
+  /endpointD:
+    get:
+      tags: ['Dup Tag']
+      responses:
+        200:
+          description: ''
+  /endpointE:
+    get:
+      tags: ['dup tag']
+      responses:
+        200:
+          description: ''

@@ -1,0 +1,37 @@
+openapi: 3.0.1
+info:
+  title: One Of Required Example
+  version: v1.0
+paths:
+  /users:
+    post:
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestUser'
+      responses:
+        '201':
+          description: User created successfully
+
+components:
+  schemas:
+    RequestUser:
+      type: object
+      required:
+        - name
+        - password
+      properties:
+        name:
+          type: string
+        password:
+          type: string
+        cpf:
+          type: string
+        cnpj:
+          type: string
+      oneOf:
+        - required: [cpf, name]
+        - required: [cnpj, password]

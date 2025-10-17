@@ -1,0 +1,29 @@
+{
+  "name": "basic",
+  "version": "7.13.2",
+  "description": "",
+  "private": true,
+  "main": "index.html",
+  "scripts": {
+    "generate-api": "orval",
+    "example": "run-p 'example:*'",
+    "example:basic": "orval --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
+    "example:config": "orval"
+  },
+  "author": "Victor Bury",
+  "license": "ISC",
+  "devDependencies": {
+    "npm-run-all": "^4.1.5",
+    "orval": "workspace:*"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "axios": "^1.12.2",
+    "msw": "^2.11.2"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  }
+}

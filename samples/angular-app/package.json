@@ -1,0 +1,47 @@
+{
+  "name": "angular-app",
+  "version": "7.13.2",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "CI=true ng test --no-watch",
+    "lint": "ng lint",
+    "generate-api": "orval",
+    "clean": "rimraf .turbo dist .angular src/api",
+    "nuke": "rimraf .turbo dist .angular src/api node_modules"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/common": "^20.3.0",
+    "@angular/compiler": "^20.3.0",
+    "@angular/core": "^20.3.0",
+    "@angular/forms": "^20.3.0",
+    "@angular/platform-browser": "^20.3.0",
+    "@angular/router": "^20.3.0",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.3.1",
+    "@angular/cli": "^20.3.1",
+    "@angular/compiler-cli": "^20.3.2",
+    "@faker-js/faker": "^9.9.0",
+    "msw": "^2.11.2",
+    "orval": "workspace:*",
+    "rimraf": "^6.0.1",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  }
+}

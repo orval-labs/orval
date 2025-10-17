@@ -1,0 +1,60 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+paths:
+  /pets:
+    post:
+      operationId: createPets
+      requestBody:
+        $ref: '#/components/requestBodies/RequiredPetBody'
+      responses:
+        '204':
+          description: Ok
+    put:
+      operationId: updatePets
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalPetBody'
+      responses:
+        '204':
+          description: Ok
+  /cookies:
+    post:
+      operationId: createCookies
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cookie'
+      responses:
+        '204':
+          description: Ok
+    put:
+      operationId: updateCookies
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Cookie'
+      responses:
+        '204':
+          description: Ok
+components:
+  requestBodies:
+    OptionalPetBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Pet'
+    RequiredPetBody:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Pet'
+  schemas:
+    Pet:
+      type: object
+    Cookie:
+      type: object

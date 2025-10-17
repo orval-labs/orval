@@ -1,0 +1,51 @@
+openapi: '3.0.0'
+info:
+  title: Orval Regression Tests
+  version: 0.0.0
+paths:
+  /test:
+    get:
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/resp'
+components:
+  schemas:
+    resp:
+      oneOf:
+        - $ref: '#/components/schemas/typeObj1'
+        - $ref: '#/components/schemas/typeObj2'
+      discriminator:
+        propertyName: type
+        mapping:
+          Type1: '#/components/schemas/typeObj1'
+          Type2: '#/components/schemas/typeObj2'
+
+    Type:
+      type: string
+      enum: [Type1, Type2]
+
+    Base:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          $ref: '#/components/schemas/Type'
+
+    typeObj1:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+      properties:
+        moreProp:
+          type: string
+
+    typeObj2:
+      allOf:
+        - $ref: '#/components/schemas/Base'
+      properties:
+        prop:
+          type: string

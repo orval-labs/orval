@@ -1,0 +1,50 @@
+{
+  "name": "react-query-custom-client",
+  "version": "7.13.2",
+  "private": true,
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "@types/faker": "^5.5.9",
+    "@types/node": "^22.18.10",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "axios": "^1.12.2",
+    "faker": "^5.5.3",
+    "msw": "^2.11.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-query": "^3.39.3",
+    "react-scripts": "^5.0.1",
+    "typescript": "~5.8.3"
+  },
+  "devDependencies": {
+    "orval": "workspace:*"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "eject": "react-scripts eject",
+    "generate-api": "orval",
+    "test": "tsc --noEmit"
+  },
+  "eslintConfig": {
+    "extends": "react-app"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

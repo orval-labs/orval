@@ -1,0 +1,63 @@
+{
+  "name": "orval-workspaces",
+  "namespace": "@orval",
+  "version": "7.13.2",
+  "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "samples/**",
+    "tests"
+  ],
+  "private": true,
+  "packageManager": "yarn@4.9.3",
+  "devEngines": {
+    "runtime": {
+      "name": "node",
+      "version": ">=24",
+      "onFail": "error"
+    }
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "format:staged": "lint-staged",
+    "format:samples": "prettier --write samples",
+    "prepare": "husky",
+    "commitlint": "commitlint",
+    "update-samples": "turbo run generate-api && yarn format:samples",
+    "build": "turbo build --filter='./packages/*'",
+    "test": "turbo test --filter='./packages/*'",
+    "test:cli": "yarn workspace orval-tests clean && yarn workspace orval-tests generate && yarn workspace orval-tests build",
+    "test:samples": "turbo test --filter='./samples/**' --filter=!react-query-form-data --filter=!react-query-form-url-encoded --filter=!react-query-form-url-encoded-mutator --filter=!react-query-form-data-mutator --filter=!react-query-hook-mutator",
+    "test:ci": "CI=true yarn test && yarn test:cli && yarn test:samples",
+    "lint": "turbo run lint --filter='./packages/*'",
+    "lint:samples": "turbo run lint --filter='./samples/**'",
+    "dev": "turbo run dev --filter='./packages/*'",
+    "clean": "rimraf .turbo",
+    "clean:all": "yarn workspaces foreach -A run clean",
+    "nuke:all": "yarn workspaces foreach -A run nuke && rimraf .turbo .yarn node_modules"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@eslint/js": "^9.35.0",
+    "@types/node": "^22.18.10",
+    "esbuild-plugin-alias": "^0.2.1",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-config-turbo": "^2.5.6",
+    "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-simple-import-sort": "^12.1.1",
+    "eslint-plugin-unicorn": "^61.0.2",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.5.2",
+    "npm-run-all": "^4.1.5",
+    "prettier": "3.6.2",
+    "rimraf": "^6.0.1",
+    "turbo": "^2.5.6",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.43.0",
+    "vitest": "^3.2.4"
+  }
+}

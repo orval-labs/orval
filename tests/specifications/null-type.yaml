@@ -1,0 +1,93 @@
+openapi: 3.1.0
+info:
+  title: Nullables
+  description: 'Nullable types'
+  version: 1.0.0
+tags:
+  - name: nullables
+    description: Nullable types
+servers:
+  - url: http://localhost
+paths:
+  /nullable:
+    get:
+      tags:
+        - nullables
+      summary: Nullable response
+      operationId: fetchNullable
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                type:
+                  - 'string'
+                  - 'null'
+  /nullable-object:
+    get:
+      tags:
+        - nullables
+      summary: Nullable object response
+      operationId: fetchNullableObject
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableObject'
+  /nullable-with-multipart-form-data:
+    post:
+      tags:
+        - nullables
+      summary: Nullable with multipart/form-data request
+      operationId: NullableWithMultipartFormRequest
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/NullableObject'
+      responses:
+        200:
+          description: Successful Operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NullableObject'
+components:
+  schemas:
+    NullableObject:
+      type: object
+      properties:
+        name:
+          type:
+            - 'string'
+            - 'null'
+        age:
+          anyOf:
+            - type: 'integer'
+            - type: 'null'
+        address:
+          oneOf:
+            - type: 'string'
+            - type: 'null'
+        is_active:
+          type:
+            - 'boolean'
+            - 'null'
+    NullStringEnum:
+      type:
+        - string
+        - 'null'
+      enum:
+        - foo
+        - bar
+    NullEnum:
+      nullable: true
+      enum:
+        - foo
+        - null
+    BlankEnum:
+      enum:
+        - ''

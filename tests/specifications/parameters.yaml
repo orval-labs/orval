@@ -1,0 +1,193 @@
+openapi: '3.0.3'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+  license:
+    name: MIT
+servers:
+  - url: http://petstore.swagger.io/v1
+paths:
+  '/pets-by-country/{country}':
+    parameters:
+      - name: country # Test that default values are displayed correctly
+        in: path
+        description: Filter by country
+        required: true
+        schema:
+          $ref: '#/components/schemas/CountryCode'
+    get:
+      summary: List all pets by country
+      operationId: listPetsByCountry
+      tags:
+        - pets
+      parameters:
+        - name: q
+          in: query
+          description: Filter pets by substring
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: offset
+          in: query
+          description: How many items to skip
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: order
+          in: query
+          description: How to order the items
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: sort
+          in: query
+          description: |
+            Which property to sort by?
+            Example: name sorts ASC while -name sorts DESC.
+          required: false
+          schema:
+            type: string
+            enum:
+              - name
+              - -name
+              - age
+              - -age
+        - name: cnonly
+          in: query
+          description: |
+            Only return pets from China?
+            Example: true
+          required: false
+          schema:
+            type: boolean
+        - name: tag
+          in: query
+          description: include pets tag
+          required: false
+          explode: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: A paged array of pets
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/pets-by-age/{age}':
+    parameters:
+      - name: age # Test that default values are displayed correctly
+        description: Filter by age
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
+          default: 5
+    get:
+      summary: List all pets by age
+      operationId: listPetsByAge
+      tags:
+        - pets
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time (max 100)
+          required: false
+          schema:
+            type: string
+        - name: latestBirthdate
+          in: query
+          description: |
+            Filter by latest birthdate.
+            Example: 2020-01-01T00:00:00Z
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: A paged array of pets
+          headers:
+            x-next:
+              description: A link to the next page of responses
+              schema:
+                type: string
+          content:
+            application/hal+json:
+              schema:
+                $ref: '#/components/schemas/Pets'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        '@id':
+          type: string
+          format: iri-reference
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+        age:
+          type: integer
+          format: int32
+        countryCode:
+          $ref: '#/components/schemas/CountryCode'
+    Pets:
+      type: array
+      items:
+        $ref: '#/components/schemas/Pet'
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
+    CountryCode:
+      type: string
+      enum:
+        - CN
+        - UY
+      default: UY

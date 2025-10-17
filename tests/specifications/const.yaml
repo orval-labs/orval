@@ -1,0 +1,71 @@
+openapi: 3.1.0
+info:
+  title: Const
+  version: 1.0.0
+paths: {}
+components:
+  schemas:
+    StringConst:
+      type: object
+      required:
+        - value
+        - valueWithoutType
+        - valueNullable
+      properties:
+        value:
+          type: string
+          const: string
+        valueWithoutType:
+          const: string
+        valueNullable:
+          type:
+            - string
+            - 'null'
+          const: string
+    BooleanConst:
+      type: object
+      required:
+        - value
+        - valueFalse
+        - valueNullable
+      properties:
+        value:
+          type: boolean
+          const: true
+        valueFalse:
+          type: boolean
+          const: false
+        valueNullable:
+          type:
+            - boolean
+            - 'null'
+          const: true
+    IntegerConst:
+      type: object
+      required:
+        - value
+        - valueZero
+        - valueNullable
+      properties:
+        value:
+          type: number
+          const: 1
+        valueZero:
+          type: number
+          const: 0
+        valueNullable:
+          type:
+            - number
+            - 'null'
+          const: 1
+    BubbleGumIdNotFoundException:
+      type: object
+      properties:
+        message:
+          type: string
+          const: 'Bubble gum not found'
+        code:
+          type: integer
+          const: 1
+          description: 'Unique exception code'
+      required: ['message', 'code']

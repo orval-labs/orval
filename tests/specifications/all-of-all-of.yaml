@@ -1,0 +1,69 @@
+openapi: 3.0.1
+info:
+  title: OpenAPI definition
+  version: v0
+paths:
+  /shared-notes:
+    post:
+      operationId: createSharedNote
+      responses:
+        '201':
+          description: The new note has been recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SharedNote'
+
+  /private-notes:
+    post:
+      operationId: createPrivateNote
+      summary: Create a private note for the beneficiary.
+      responses:
+        '201':
+          description: The new note has been recorded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrivateNote'
+components:
+  schemas:
+    Note:
+      allOf:
+        - type: object
+          required:
+            - href
+            - noteType
+          properties:
+            href:
+              type: string
+            noteType:
+              $ref: '#/components/schemas/NoteType'
+          discriminator:
+            propertyName: noteType
+            mapping:
+              SharedNote: '#/components/schemas/SharedNote'
+              PrivateNote: '#/components/schemas/PrivateNote'
+    NoteType:
+      type: string
+      enum:
+        - SharedNote
+        - PrivateNote
+    SharedNote:
+      allOf:
+        - $ref: '#/components/schemas/Note'
+        - type: object
+          properties:
+            professions:
+              type: array
+              items:
+                type: object
+                required:
+                  - name
+                properties:
+                  name:
+                    type: string
+            visibleForBeneficiary:
+              type: boolean
+    PrivateNote:
+      allOf:
+        - $ref: '#/components/schemas/Note'

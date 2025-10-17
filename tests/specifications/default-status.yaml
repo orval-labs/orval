@@ -1,0 +1,73 @@
+openapi: 3.1.0
+info:
+  title: Orval Default Status Test
+  version: 0.0.0
+paths:
+  /default-only:
+    get:
+      operationId: defaultOnly
+      responses:
+        default:
+          description: Default response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+  /w-200:
+    get:
+      operationId: with200
+      responses:
+        200:
+          description: 200 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+        default:
+          description: Default response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+  /w-400:
+    get:
+      operationId: with400
+      responses:
+        400:
+          description: 400 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+        default:
+          description: Default response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+  /w-200-400:
+    get:
+      operationId: with200and400
+      responses:
+        200:
+          description: 200 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+        400:
+          description: 400 response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+        default:
+          description: Default response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sample'
+components:
+  schemas:
+    Sample:
+      type: object

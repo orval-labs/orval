@@ -1,0 +1,18 @@
+{
+  "name": "react-query-form-url-encoded",
+  "version": "7.13.2",
+  "private": true,
+  "scripts": {
+    "generate-api": "orval",
+    "test": "tsc --noEmit endpoints.ts"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^9.9.0",
+    "axios": "^1.12.2",
+    "react": "^18.3.1",
+    "react-query": "^3.39.3"
+  },
+  "devDependencies": {
+    "orval": "workspace:*"
+  }
+}

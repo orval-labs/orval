@@ -1,0 +1,31 @@
+openapi: 3.0.0
+info:
+  title: AllOf without type
+  version: '1.0'
+paths:
+  '/':
+    get:
+      responses:
+        '200':
+          description: ExampleResponse
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Foo'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Bar'
+                    required:
+                      - data
+components:
+  schemas:
+    Bar:
+      type: string
+    Foo:
+      type: object
+      properties:
+        baz:
+          type: number
