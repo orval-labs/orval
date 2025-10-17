@@ -10,4 +10,12 @@ export default defineConfig({
       client: 'hono',
     },
   },
+  examples: {
+    input: '../specifications/examples.yaml',
+    output: {
+      target: '../generated/hono/examples/endpoints.ts',
+      mode: 'tags-split',
+      client: 'hono',
+    },
+  },
 });
