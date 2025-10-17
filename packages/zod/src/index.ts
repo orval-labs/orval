@@ -86,7 +86,7 @@ const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
       return 'number';
     }
     default: {
-      return type ?? 'any';
+      return type ?? 'unknown';
     }
   }
 };
