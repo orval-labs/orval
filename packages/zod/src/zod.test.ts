@@ -55,7 +55,7 @@ const record: ZodValidationSchemaDefinition = {
             [
               'additionalProperties',
               {
-                functions: [['any', undefined]],
+                functions: [['unknown', undefined]],
                 consts: [],
               },
             ],
@@ -129,7 +129,7 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
 
     expect(parseResult.zod).toBe(
-      'zod.object({\n  "queryParams": zod.record(zod.string(), zod.any())\n})',
+      'zod.object({\n  "queryParams": zod.record(zod.string(), zod.unknown())\n})',
     );
   });
 });
@@ -323,7 +323,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
                 [
                   'additionalProperties',
                   {
-                    functions: [['any', undefined]],
+                    functions: [['unknown', undefined]],
                     consts: [],
                   },
                 ],
@@ -336,7 +336,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
                 [
                   'additionalProperties',
                   {
-                    functions: [['any', undefined]],
+                    functions: [['unknown', undefined]],
                     consts: [],
                   },
                 ],
@@ -1422,7 +1422,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             },
             {
               consts: [],
-              functions: [['any', undefined]],
+              functions: [['unknown', undefined]],
             },
           ],
         ],
@@ -1475,7 +1475,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             },
             {
               consts: [],
-              functions: [['any', undefined]],
+              functions: [['unknown', undefined]],
             },
           ],
         ],
