@@ -34,7 +34,11 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>]
     }
   : DistributeReadOnlyOverUnions<T>;
 
-import { ListPetsParams, CreatePetsBodyItem, Pet } from './petstore.schemas';
+import type {
+  CreatePetsBodyItem,
+  ListPetsParams,
+  Pet,
+} from './petstore.schemas';
 
 export type ListPetsContext<E extends Env = any> = Context<
   E,

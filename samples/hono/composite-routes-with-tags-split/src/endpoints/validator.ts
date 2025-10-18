@@ -4,10 +4,9 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-
 // based on https://github.com/honojs/middleware/blob/main/packages/zod-validator/src/index.ts
 import type { z, ZodSchema, ZodError } from 'zod';
-import {
+import type {
   Context,
   Env,
   Input,
