@@ -6,7 +6,11 @@
  */
 import type { Context, Env } from 'hono';
 
-import { ListPetsParams, CreatePetsBodyItem, Pet } from './petstore.schemas';
+import type {
+  CreatePetsBodyItem,
+  ListPetsParams,
+  Pet,
+} from './petstore.schemas';
 
 export type ListPetsContext<E extends Env = any> = Context<
   E,
