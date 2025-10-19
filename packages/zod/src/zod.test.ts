@@ -1873,6 +1873,8 @@ describe('generateZodWithMultiTypeArray', () => {
       false,
     );
 
-    expect(parsed.zod).toBe('zod.union([zod.string(),zod.number()]).optional()');
+    expect(parsed.zod).toBe(
+      'zod.union([zod.string(),zod.number()]).optional()',
+    );
   });
 });
