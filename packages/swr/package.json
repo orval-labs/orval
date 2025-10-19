@@ -24,8 +24,8 @@
     "@orval/fetch": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "^9.35.0",
+    "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.2"
+    "tsdown": "^0.15.8"
   }
 }

@@ -24,9 +24,9 @@
     "openapi3-ts": "4.5.0"
   },
   "devDependencies": {
-    "eslint": "^9.35.0",
+    "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.2",
-    "typescript": "^5.9.2"
+    "tsdown": "^0.15.8",
+    "typescript": "^5.9.3"
   }
 }
