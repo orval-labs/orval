@@ -72,9 +72,32 @@ const possibleSchemaTypes = new Set([
 
 const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
   const schemaTypeValue = schema.type;
-  const type = Array.isArray(schemaTypeValue)
-    ? schemaTypeValue.find((t) => possibleSchemaTypes.has(t))
-    : schemaTypeValue;
+
+  // Handle array of types (OpenAPI 3.1+)
+  if (Array.isArray(schemaTypeValue)) {
+    // Filter out 'null' type as it's handled separately via nullable
+    const nonNullTypes = schemaTypeValue
+      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t))
+      .map((t) => (t === 'integer' ? 'number' : t));
+
+    // If multiple types, return a special marker for union handling
+    if (nonNullTypes.length > 1) {
+      return { multiType: nonNullTypes };
+    }
+
+    // Single type
+    const type = nonNullTypes[0];
+
+    // Handle prefixItems for tuples
+    if (type === 'array' && 'prefixItems' in schema) {
+      return 'tuple';
+    }
+
+    return type;
+  }
+
+  // Handle single type value
+  const type = schemaTypeValue;
 
   // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
   if (schema.type === 'array' && 'prefixItems' in schema) {
@@ -216,6 +239,34 @@ export const generateZodValidationSchemaDefinition = (
           : rawStringified.replaceAll("'", '"');
     }
     consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+  }
+
+  // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
+  if (typeof type === 'object' && 'multiType' in type) {
+    const types = (type as { multiType: string[] }).multiType;
+    functions.push([
+      'oneOf',
+      types.map((t) =>
+        generateZodValidationSchemaDefinition(
+          { ...schema, type: t as any },
+          context,
+          name,
+          strict,
+          isZodV4,
+          { required: true },
+        ),
+      ),
+    ]);
+
+    if (!required && nullable) {
+      functions.push(['nullish', undefined]);
+    } else if (nullable) {
+      functions.push(['nullable', undefined]);
+    } else if (!required) {
+      functions.push(['optional', undefined]);
+    }
+
+    return { functions, consts };
   }
 
   switch (type) {

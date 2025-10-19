@@ -1771,3 +1771,110 @@ describe('generateZodWithLiteralProperty', () => {
     );
   });
 });
+
+describe('generateZodWithMultiTypeArray', () => {
+  it('correctly handles OpenAPI 3.1 type arrays with multiple types', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case from the issue: type: ["string", "number", "boolean", "null"]
+    const schemaWithMultiType: SchemaObject31 = {
+      type: ['string', 'number', 'boolean', 'null'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiType,
+      context,
+      'testMultiType',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Should create a union of string, number, and boolean, with nullable
+    expect(parsed.zod).toBe(
+      'zod.union([zod.string(),zod.number(),zod.boolean()]).nullable()',
+    );
+  });
+
+  it('handles multi-type arrays without null', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithMultiType: SchemaObject31 = {
+      type: ['string', 'number'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiType,
+      context,
+      'testMultiType',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('handles multi-type arrays with optional', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithMultiType: SchemaObject31 = {
+      type: ['string', 'number'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiType,
+      context,
+      'testMultiType',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.union([zod.string(),zod.number()]).optional()',
+    );
+  });
+});
