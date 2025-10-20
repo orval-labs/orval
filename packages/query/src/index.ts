@@ -96,6 +96,7 @@ const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryStoreResult' },
       { name: 'QueryKey' },
       { name: 'CreateMutationResult' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -120,6 +121,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'CreateMutationResult' },
       { name: 'DataTag' },
       { name: 'QueryClient' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -178,6 +180,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'QueryKey' },
       { name: 'QueryClient' },
       { name: 'UseMutationResult' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: 'react-query',
   },
@@ -211,6 +214,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'InfiniteData' },
       { name: 'UseMutationResult' },
       { name: 'DataTag' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@tanstack/react-query',
   },
@@ -270,6 +274,7 @@ const VUE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'UseMutationReturnType' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: 'vue-query/types',
   },
@@ -304,6 +309,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationReturnType' },
       { name: 'DataTag' },
       { name: 'QueryClient' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -859,6 +865,7 @@ const generateQueryImplementation = ({
   usePrefetch,
   useQuery,
   useInfinite,
+  useInvalidate,
 }: {
   queryOption: {
     name: string;
@@ -893,6 +900,7 @@ const generateQueryImplementation = ({
   usePrefetch?: boolean;
   useQuery?: boolean;
   useInfinite?: boolean;
+  useInvalidate?: boolean;
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
@@ -1179,6 +1187,14 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     doc,
   });
 
+  const shouldGenerateInvalidate =
+    useInvalidate &&
+    (type === QueryType.QUERY ||
+      type === QueryType.INFINITE ||
+      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+  const invalidateFnName = camel(`invalidate-${operationName}`);
+
   return `
 ${queryOptionsFn}
 
@@ -1208,6 +1224,16 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
   return ${queryResultVarName};
 }\n
 ${prefetch}
+${
+  shouldGenerateInvalidate
+    ? `${doc}export const ${invalidateFnName} = async (\n queryClient: QueryClient, ${queryProps} options?: InvalidateOptions\n  ): Promise<QueryClient> => {
+
+  await queryClient.invalidateQueries({ queryKey: ${queryKeyFnName}(${queryKeyProperties}) }, options);
+
+  return queryClient;
+}\n`
+    : ''
+}
 `;
 };
 
@@ -1509,6 +1535,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
           usePrefetch: query.usePrefetch,
           useQuery: query.useQuery,
           useInfinite: query.useInfinite,
+          useInvalidate: query.useInvalidate,
         })
       );
     }, '')}

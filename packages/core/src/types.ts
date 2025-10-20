@@ -578,6 +578,7 @@ export type NormalizedQueryOptions = {
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
+  useInvalidate?: boolean;
   options?: any;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
@@ -599,6 +600,7 @@ export type QueryOptions = {
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
+  useInvalidate?: boolean;
   options?: any;
   queryKey?: Mutator;
   queryOptions?: Mutator;
