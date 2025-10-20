@@ -549,4 +549,19 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  useInvalidate: {
+    output: {
+      target: '../generated/react-query/use-invalidate/endpoints.ts',
+      schemas: '../generated/react-query/use-invalidate/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

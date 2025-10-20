@@ -1209,6 +1209,25 @@ export const prefetchGetCategories = async <
 };
 ```
 
+#### useInvalidate
+
+Type: `Boolean`.
+
+Use to generate <a href="https://tanstack.com/query/latest/docs/framework/react/guides/query-invalidation" target="_blank">invalidation</a> functions.
+
+Example generated function:
+
+```js
+export const invalidateShowPetById = async (
+ queryClient: QueryClient, petId: string, options?: InvalidateOptions
+  ): Promise<QueryClient> => {
+
+  await queryClient.invalidateQueries({ queryKey: getShowPetByIdQueryKey(petId) }, options);
+
+  return queryClient;
+}
+```
+
 #### useInfiniteQueryParam
 
 Type: `String`.

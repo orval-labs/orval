@@ -22,6 +22,7 @@ export const normalizeQueryOptions = (
 ): NormalizedQueryOptions => {
   return {
     ...(queryOptions.usePrefetch ? { usePrefetch: true } : {}),
+    ...(queryOptions.useInvalidate ? { useInvalidate: true } : {}),
     ...(queryOptions.useQuery ? { useQuery: true } : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam

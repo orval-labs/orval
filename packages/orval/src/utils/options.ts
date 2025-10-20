@@ -648,6 +648,9 @@ const normalizeQueryOptions = (
     ...(isUndefined(queryOptions.usePrefetch)
       ? {}
       : { usePrefetch: queryOptions.usePrefetch }),
+    ...(isUndefined(queryOptions.useInvalidate)
+      ? {}
+      : { useInvalidate: queryOptions.useInvalidate }),
     ...(isUndefined(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),
