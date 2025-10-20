@@ -167,6 +167,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'useQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
@@ -189,6 +190,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useInfiniteQuery', values: true },
       { name: 'useSuspenseInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
       { name: 'DefinedInitialDataOptions' },
       { name: 'UndefinedInitialDataOptions' },
@@ -744,6 +746,91 @@ const getQueryFnArguments = ({
   return '{ signal }';
 };
 
+const generatePrefetch = ({
+  usePrefetch,
+  type,
+  useQuery,
+  useInfinite,
+  operationName,
+  mutator,
+  doc,
+  queryProps,
+  dataType,
+  errorType,
+  queryArguments,
+  queryOptionsVarName,
+  queryOptionsFnName,
+  queryProperties,
+  isRequestOptions,
+  hasSvelteQueryV6,
+}: {
+  operationName: string;
+  mutator?: GeneratorMutator;
+  type: QueryType;
+  usePrefetch?: boolean;
+  useQuery?: boolean;
+  useInfinite?: boolean;
+  doc?: string;
+  queryProps: string;
+  dataType: string;
+  errorType: string;
+  queryArguments: string;
+  queryOptionsVarName: string;
+  queryOptionsFnName: string;
+  queryProperties: string;
+  isRequestOptions: boolean;
+  hasSvelteQueryV6: boolean;
+}) => {
+  const shouldGeneratePrefetch =
+    usePrefetch &&
+    (type === QueryType.QUERY ||
+      type === QueryType.INFINITE ||
+      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+
+  if (!shouldGeneratePrefetch) {
+    return '';
+  }
+
+  const prefetchType =
+    type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
+      ? 'query'
+      : 'infinite-query';
+  const prefetchFnName = camel(`prefetch-${prefetchType}`);
+
+  if (mutator?.isHook) {
+    const prefetchVarName = camel(
+      `use-prefetch-${operationName}-${prefetchType}`,
+    );
+    return `${doc}export const ${prefetchVarName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
+  const queryClient = useQueryClient();
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+    queryProperties ? ',' : ''
+  }${isRequestOptions ? 'options' : 'queryOptions'})
+  return useCallback(async (): Promise<QueryClient> => {
+    await queryClient.${prefetchFnName}(${queryOptionsVarName})
+    return queryClient;
+  },[queryClient, ${queryOptionsVarName}]);
+};\n`;
+  } else {
+    const prefetchVarName = camel(`prefetch-${operationName}-${prefetchType}`);
+    return `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+    queryProperties ? ',' : ''
+  }${isRequestOptions ? 'options' : 'queryOptions'})
+
+  await queryClient.${prefetchFnName}(${
+    hasSvelteQueryV6
+      ? `() => ({ ...${queryOptionsVarName} })`
+      : queryOptionsVarName
+  });
+
+  return queryClient;
+}\n`;
+  }
+};
+
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type, queryKeyFnName },
   operationName,
@@ -1073,18 +1160,24 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${d
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
 
-  const shouldGeneratePrefetch =
-    usePrefetch &&
-    (type === QueryType.QUERY ||
-      type === QueryType.INFINITE ||
-      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
-      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
-  const prefetchType =
-    type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
-      ? 'query'
-      : 'infinite-query';
-  const prefetchVarName = camel(`prefetch-${operationName}-${prefetchType}`);
-  const prefetchFnName = camel(`prefetch-${prefetchType}`);
+  const prefetch = generatePrefetch({
+    usePrefetch,
+    type,
+    useQuery,
+    useInfinite,
+    operationName,
+    mutator,
+    queryProps,
+    dataType,
+    errorType,
+    hasSvelteQueryV6,
+    queryArguments,
+    queryOptionsVarName,
+    queryOptionsFnName,
+    queryProperties,
+    isRequestOptions,
+    doc,
+  });
 
   return `
 ${queryOptionsFn}
@@ -1114,24 +1207,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   return ${queryResultVarName};
 }\n
-${
-  shouldGeneratePrefetch
-    ? `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
-
-  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-    queryProperties ? ',' : ''
-  }${isRequestOptions ? 'options' : 'queryOptions'})
-
-  await queryClient.${prefetchFnName}(${
-    hasSvelteQueryV6
-      ? `() => ({ ...${queryOptionsVarName} })`
-      : queryOptionsVarName
-  });
-
-  return queryClient;
-}\n`
-    : ''
-}
+${prefetch}
 `;
 };
 
