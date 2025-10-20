@@ -513,4 +513,40 @@ export default defineConfig({
       target: '../specifications/models-with-special-char.yaml',
     },
   },
+  usePrefetchWithFunctionMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-prefetch-with-function/endpoints.ts',
+      schemas: '../generated/react-query/use-prefetch-with-function/model',
+      client: 'react-query',
+      override: {
+        query: {
+          usePrefetch: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  usePrefetchWithHookMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-prefetch-with-hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/use-prefetch-with-hook-mutator/model',
+      client: 'react-query',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance.ts',
+          name: 'useCustomInstance',
+        },
+        query: {
+          usePrefetch: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
