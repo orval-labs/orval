@@ -52,9 +52,7 @@ const withMdx = createMDX({
     ],
     recmaPlugins: [recmaNextjsStaticProps],
     remarkPlugins: [
-      // remark-emoji@5.0.1 package throws 'ERR_PACKAGE_PATH_NOT_EXPORTED'
-      // https://github.com/rhysd/remark-emoji/issues/40
-      // remarkEmoji,
+      remarkEmoji,
       remarkGfm,
       remarkImages,
       remarkFrontmatter,
