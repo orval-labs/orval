@@ -246,8 +246,6 @@ async function bundleFile(
                         };
                       }
                     }
-
-                    return;
                   },
                 );
               },
@@ -264,8 +262,6 @@ async function bundleFile(
                 external: true,
               };
             }
-
-            return;
           });
         },
       },
@@ -303,7 +299,7 @@ export async function removeFilesAndEmptyFolders(
   patterns: string[],
   dir: string,
 ) {
-  const files = await globby(patterns, {
+  const files = await glob(patterns, {
     cwd: dir,
     absolute: true,
   });
@@ -312,7 +308,7 @@ export async function removeFilesAndEmptyFolders(
   await Promise.all(files.map((file) => fs.promises.unlink(file)));
 
   // Find and remove empty directories
-  const directories = await globby(['**/*'], {
+  const directories = await glob(['**/*'], {
     cwd: dir,
     absolute: true,
     onlyDirectories: true,

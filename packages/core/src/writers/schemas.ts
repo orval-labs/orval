@@ -39,6 +39,9 @@ const getSchema = ({
   return file;
 };
 
+const getPath = (path: string, name: string, fileExtension: string): string =>
+  upath.join(path, `/${name}${fileExtension}`);
+
 export const writeModelInline = (acc: string, model: string): string =>
   acc + `${model}\n`;
 
@@ -46,7 +49,7 @@ export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, { model }) => writeModelInline(acc, model), '');
 
 export const writeSchema = async ({
-  schemaPath,
+  path,
   schema,
   target,
   namingConvention,
@@ -56,7 +59,7 @@ export const writeSchema = async ({
   specsName,
   header,
 }: {
-  schemaPath: string;
+  path: string;
   schema: GeneratorSchema;
   target: string;
   namingConvention: NamingConvention;
@@ -67,20 +70,10 @@ export const writeSchema = async ({
   header: string;
 }) => {
   const name = conventionName(schema.name, namingConvention);
-  const schemaFilePath = join(schemaPath, `${name}${fileExtension}`);
-  const schemaOutput = getSchema({
-    schema,
-    target,
-    isRootKey,
-    specsName,
-    header,
-    specKey,
-    namingConvention,
-  });
 
   try {
     await fs.outputFile(
-      join(schemaPath, `${name}${fileExtension}`),
+      getPath(path, name, fileExtension),
       getSchema({
         schema,
         target,
@@ -124,7 +117,7 @@ export const writeSchemas = async ({
   await Promise.all(
     schemas.map((schema) =>
       writeSchema({
-        schemaPath,
+        path: schemaPath,
         schema,
         target,
         namingConvention,
@@ -138,8 +131,8 @@ export const writeSchemas = async ({
   );
 
   if (indexFiles) {
-    const indexFilePath = join(schemaPath, `/index${fileExtension}`);
-    await fs.ensureFile(indexFilePath);
+    const schemaFilePath = upath.join(schemaPath, `/index${fileExtension}`);
+    await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
     // Throw an exception, which list all duplicates, before attempting
@@ -166,33 +159,27 @@ export const writeSchemas = async ({
     }
 
     try {
-      const data = await fs.readFile(indexFilePath);
+      const data = await fs.readFile(schemaFilePath);
 
       const stringData = data.toString();
 
-      const isExtensionTS = fileExtension.endsWith('.ts');
+      const ext = fileExtension.endsWith('.ts')
+        ? fileExtension.slice(0, -3)
+        : fileExtension;
 
       const importStatements = schemas
-        .map((schema) => {
-          const schemaFilePath = join(
-            schemaPath,
-            conventionName(schema.name, namingConvention) + fileExtension,
-          );
-          const relativePath = getRelativeImportPath(
-            indexFilePath,
-            schemaFilePath,
-            !isExtensionTS,
-          );
+        .filter((schema) => {
+          const name = conventionName(schema.name, namingConvention);
 
-          return relativePath;
-        })
-        .filter((relativePath) => {
           return (
-            !stringData.includes(`export * from '${relativePath}'`) &&
-            !stringData.includes(`export * from "${relativePath}"`)
+            !stringData.includes(`export * from './${name}${ext}'`) &&
+            !stringData.includes(`export * from "./${name}${ext}"`)
           );
         })
-        .map((relativePath) => `export * from '${relativePath}';`);
+        .map(
+          (schema) =>
+            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
+        );
 
       const currentFileExports = (stringData
         .match(/export \* from(.*)('|")/g)

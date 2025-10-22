@@ -78,13 +78,13 @@ const generateInputSpecs = async ({
         specKey,
       );
 
-      const transformedSchema = transformerFn ? transformerFn(schema) : schema;
+      const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
 
       if (input.validation) {
-        await ibmOpenapiValidator(transformedSchema, input.validation);
+        await ibmOpenapiValidator(transfomedSchema, input.validation);
       }
 
-      acc[specKey] = transformedSchema;
+      acc[specKey] = transfomedSchema;
 
       return acc;
     },
