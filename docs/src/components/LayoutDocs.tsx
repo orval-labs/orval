@@ -89,10 +89,8 @@ export default function LayoutDocs({ meta, children }: Props) {
                   id="main-landmark"
                   className={s['markdown'] + ' w-full docs scroll-mt-24'}
                 >
-                  <h1 id="_top">{props.meta.title}</h1>
-                  <MDXProvider components={MDXComponents}>
-                    {props.children}
-                  </MDXProvider>
+                  <h1 id="_top">{meta.title}</h1>
+                  {children}
                   <DocsPageFooter
                     href={route?.path || ''}
                     route={route}
@@ -100,7 +98,7 @@ export default function LayoutDocs({ meta, children }: Props) {
                     nextRoute={nextRoute}
                   />
                 </main>
-                {props.meta.toc === false ? null : (
+                {meta.toc === false ? null : (
                   <div
                     className="hidden xl:block ml-10 shrink-0"
                     style={{
