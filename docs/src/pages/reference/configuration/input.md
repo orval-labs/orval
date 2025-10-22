@@ -19,6 +19,27 @@ module.exports = {
 };
 ```
 
+Using a secure URL target with authentication:
+
+```js
+module.exports = {
+    petstore: {
+        input: {
+            target: 'https://example.com/api-docs/v2/swagger.yaml',
+            parserOptions: {
+                resolve: {
+                    http: {
+                        headers: {
+                            Authorization: 'Basic ' + Buffer.from('username:password').toString('base64'),
+                        },
+                    },
+                },
+            },
+        },
+    },
+};
+```
+
 ## validation
 
 Type: `Boolean | Object`
