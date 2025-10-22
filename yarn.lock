@@ -18624,7 +18624,7 @@ __metadata:
     "@types/react": "npm:18.3.24"
     axios: "npm:^1.12.2"
     hono: "npm:^4.10.2"
-    msw: "npm:^2.11.2"
+    msw: "npm:^2.11.6"
     npm-run-all: "npm:^4.1.5"
     openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
