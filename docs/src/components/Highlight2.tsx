@@ -12,17 +12,10 @@ const theme = Object.assign({}, themes.nightOwl, {
   },
 });
 
-const Code = ({
-  children,
-  className = 'language-js',
-}) => {
+const Code = ({ children, className = 'language-js' }) => {
   const language = className.replace(/language-/, '');
   return (
-    <Highlight
-      code={children.trim()}
-      language={language}
-      theme={theme}
-    >
+    <Highlight code={children.trim()} language={language} theme={theme}>
       {({ className, style, tokens, getLineProps, getTokenProps }) => (
         <pre
           className={className + ' bg-gray-50 pb-4 pt-4 pr-4 overflow-scroll'}

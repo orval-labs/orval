@@ -19,4 +19,4 @@ export default ({ children, ...props }) => (
 ` + content;
 
   return callback(null, code);
-};
+}

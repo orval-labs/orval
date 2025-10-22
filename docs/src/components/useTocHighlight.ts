@@ -20,7 +20,9 @@ export function useTocHighlight(
   const [lastActiveLink, setLastActiveLink] = useState<Element | undefined>(
     undefined,
   );
-  const [headings, setHeadings] = useState<Array<HeaderData & { parent?: HeaderData | null }>>([]);
+  const [headings, setHeadings] = useState<
+    Array<HeaderData & { parent?: HeaderData | null }>
+  >([]);
 
   useEffect(() => {
     const { anchors } = getHeaderAnchors().reduce<{

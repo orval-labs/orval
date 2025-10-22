@@ -15,11 +15,7 @@ const theme = Object.assign({}, themes.nightOwl, {
   },
 });
 
-const Code = ({
-  children,
-  className = 'language-js',
-  ...props
-}) => {
+const Code = ({ children, className = 'language-js', ...props }) => {
   const language = className.replace(/language-/, '');
   const [key, setKey] = useState(`${Math.random() * 7}`);
 
