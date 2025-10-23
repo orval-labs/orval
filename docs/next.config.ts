@@ -16,12 +16,6 @@ import createMDX from '@next/mdx';
 import recmaNextjsStaticProps from 'recma-nextjs-static-props';
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['orval'],
-  experimental: {
-    // fixes:
-    // Module not found: ESM packages (chalk) need to be imported. Use 'import' to reference the package instead. https://nextjs.org/docs/messages/import-esm-externals
-    esmExternals: 'loose',
-  },
   // Support MDX files as pages:
   pageExtensions: ['md', 'mdx', 'tsx', 'ts', 'jsx', 'js'],
   rewrites: async () => [
