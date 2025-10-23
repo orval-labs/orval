@@ -238,7 +238,7 @@ export const generateZodValidationSchemaDefinition = (
           ? 'null'
           : rawStringified.replaceAll("'", '"');
     }
-    consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+    consts.push(`export const ${defaultVarName} = ${defaultValue};\n`);
   }
 
   // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
@@ -531,17 +531,17 @@ export const generateZodValidationSchemaDefinition = (
       if (min === 1) {
         functions.push(['min', `${min}`]);
       } else {
-        consts.push(`export const ${name}Min${constsCounterValue} = ${min};`);
+        consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
     if (max !== undefined) {
-      consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
+      consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
       functions.push(['max', `${name}Max${constsCounterValue}`]);
     }
     if (multipleOf !== undefined) {
       consts.push(
-        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
+        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};\n`,
       );
       functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
