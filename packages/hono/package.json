@@ -15,7 +15,7 @@
   "scripts": {
     "build": "tsdown --config-loader unconfig",
     "dev": "tsdown --config-loader unconfig --watch src",
-    "lint": "eslint .",
+    "lint": "tsc --noEmit src/zValidator.ts && eslint .",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -27,6 +27,7 @@
     "openapi3-ts": "4.5.0"
   },
   "devDependencies": {
+    "@hono/zod-validator": "^0.7.4",
     "@types/fs-extra": "^11.0.4",
     "@types/lodash.uniq": "^4.5.9",
     "eslint": "^9.38.0",

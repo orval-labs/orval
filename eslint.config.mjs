@@ -14,6 +14,7 @@ export default defineConfig(
     'tests/generated',
     'samples',
     '.husky',
+    'packages/hono/src/zValidator.ts',
     '**/.yarn',
     '**/.turbo',
     '**/dist',
