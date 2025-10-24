@@ -136,34 +136,46 @@ const generateDependency = ({
   isAllowSyntheticDefaultImports: boolean;
   onlyTypes: boolean;
 }) => {
+  // find default import if dependency either is not a synthetic import or synthetic imports are allowed
   const defaultDep = deps.find(
     (e) =>
       e.default &&
       (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
   );
-  const syntheticDefaultImportDep = isAllowSyntheticDefaultImports
-    ? undefined
-    : deps.find((e) => e.syntheticDefaultImport);
 
+  // if default dependency could not be created, check for namespace import or a synthetic import that is not allowed
+  const namespaceImportDep = defaultDep
+    ? undefined
+    : deps.find(
+        (e) =>
+          !!e.namespaceImport ||
+          (!isAllowSyntheticDefaultImports && e.syntheticDefaultImport),
+      );
+
+  // find all named imports
   const depsString = uniq(
     deps
-      .filter((e) => !e.default && !e.syntheticDefaultImport)
+      .filter(
+        (e) => !e.default && !e.syntheticDefaultImport && !e.namespaceImport,
+      )
       .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
   )
-    .sort()
+    .toSorted()
     .join(',\n  ');
 
   let importString = '';
 
-  const syntheticDefaultImport = syntheticDefaultImportDep
-    ? `import * as ${syntheticDefaultImportDep.name} from '${dependency}';`
+  // generate namespace import string
+  const namespaceImportString = namespaceImportDep
+    ? `import * as ${namespaceImportDep.name} from '${dependency}';`
     : '';
 
-  if (syntheticDefaultImport) {
+  if (namespaceImportString) {
     if (deps.length === 1) {
-      return syntheticDefaultImport;
+      // only namespace import, return it directly
+      return namespaceImportString;
     }
-    importString += `${syntheticDefaultImport}\n`;
+    importString += `${namespaceImportString}\n`;
   }
 
   importString += `import ${onlyTypes ? 'type ' : ''}${
