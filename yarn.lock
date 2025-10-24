@@ -3749,6 +3749,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@hono/zod-validator@npm:^0.7.4":
+  version: 0.7.4
+  resolution: "@hono/zod-validator@npm:0.7.4"
+  peerDependencies:
+    hono: ">=3.9.0"
+    zod: ^3.25.0 || ^4.0.0
+  checksum: 10c0/c5b24eaee784f75cb85342e9c927d6ea961d0a2161ecda75942de8a7094b9133d8142a8f5fcd511bf9be56d336e953dc6e968b1e7706ccf0af00399a4a41c7cd
+  languageName: node
+  linkType: hard
+
 "@humanfs/core@npm:^0.19.1":
   version: 0.19.1
   resolution: "@humanfs/core@npm:0.19.1"
@@ -5638,6 +5648,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orval/hono@workspace:packages/hono"
   dependencies:
+    "@hono/zod-validator": "npm:^0.7.4"
     "@orval/core": "workspace:*"
     "@orval/zod": "workspace:*"
     "@types/fs-extra": "npm:^11.0.4"
@@ -19102,7 +19113,7 @@ __metadata:
     "@angular/common": "npm:^20.3.0"
     "@angular/core": "npm:^20.3.0"
     "@faker-js/faker": "npm:^9.9.0"
-    "@hono/zod-validator": "npm:^0.7.3"
+    "@hono/zod-validator": "npm:^0.7.4"
     "@modelcontextprotocol/sdk": "npm:1.18.0"
     "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
