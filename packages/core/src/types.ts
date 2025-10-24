@@ -784,6 +784,7 @@ export type GeneratorImport = {
   default?: boolean;
   values?: boolean;
   syntheticDefaultImport?: boolean;
+  namespaceImport?: boolean;
 };
 
 export type GeneratorDependency = {
