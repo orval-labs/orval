@@ -44,9 +44,10 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       {
-        default: true,
+        default: false,
         name: 'zod',
-        syntheticDefaultImport: true,
+        syntheticDefaultImport: false,
+        namespaceImport: true,
         values: true,
       },
     ],
