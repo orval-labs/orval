@@ -930,7 +930,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['min', 'testNumberMinMin'],
           ['optional', undefined],
         ],
-        consts: ['export const testNumberMinMin = 10;'],
+        consts: ['export const testNumberMinMin = 10;', '\n'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -963,7 +963,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['max', 'testNumberMaxMax'],
           ['optional', undefined],
         ],
-        consts: ['export const testNumberMaxMax = 99;'],
+        consts: ['export const testNumberMaxMax = 99;', '\n'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1002,6 +1002,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         consts: [
           'export const testNumberMinMaxMin = 10;',
           'export const testNumberMinMaxMax = 99;',
+          '\n',
         ],
       });
 
@@ -1045,6 +1046,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           'export const testNumberMinMaxMultipleMin = 10;',
           'export const testNumberMinMaxMultipleMax = 99;',
           'export const testNumberMinMaxMultipleMultipleOf = 2;',
+          '\n',
         ],
       });
 

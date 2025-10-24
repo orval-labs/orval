@@ -545,6 +545,9 @@ export const generateZodValidationSchemaDefinition = (
       );
       functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
+    if (min !== undefined || multipleOf !== undefined || max !== undefined) {
+      consts.push(`\n`);
+    }
   }
 
   if (matches) {
@@ -1086,7 +1089,7 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
-  if (spec == null) {
+  if (spec == undefined) {
     throw new Error(`No such path ${pathRoute} in ${context.specKey}`);
   }
 
