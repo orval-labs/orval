@@ -30,7 +30,7 @@
     "dedent": "^1.6.0",
     "docsearch.js": "^2.6.3",
     "next": "16.0.0",
-    "orval": "*",
+    "orval": "^7.15.0",
     "prettier": "3.6.2",
     "prism-react-renderer": "^2.4.1",
     "prismjs": "^1.30.0",
