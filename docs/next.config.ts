@@ -24,6 +24,20 @@ const nextConfig: NextConfig = {
       destination: '/docs/overview',
     },
   ],
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && isServer) {
+      // we're in build mode so enable shared caching for the GitHub API
+      process.env.USE_CACHE = 'true';
+      const originalEntry = config.entry;
+
+      config.entry = async () => {
+        const entries = { ...(await originalEntry()) };
+        return entries;
+      };
+    }
+
+    return config;
+  },
 };
 
 const withMdx = createMDX({
