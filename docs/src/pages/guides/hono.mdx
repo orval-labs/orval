@@ -8,7 +8,9 @@ To generate a Hono template, define the `client` property to be `hono` and a tem
 ## Example of orval.config.js
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       target: './petstore.yaml',
@@ -24,7 +26,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ## Generating the Template
@@ -114,7 +116,9 @@ See the full example <a href="https://github.com/orval-labs/orval/tree/master/sa
 If you want to use `tags` or `tags-split` mode, which splits handlers by tags defined in OpenAPI, but want to generate a composite single Hono route file, define a file path such as `src/routes.ts` to the `override.hono.compositeRoute` property and the Hono template generates a composite root file in the target file and directory.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       target: './petstore.yaml',
@@ -131,7 +135,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 The files will be generated as below:
@@ -152,7 +156,7 @@ src/
 
 `routes.ts` composes all routes as shown below:
 
-```ts:routes.ts
+```ts
 import { Hono } from 'hono';
 import {
   listPetsHandlers,
@@ -173,7 +177,7 @@ export default app;
 
 Prepare a Hono server like `app.ts` and embed it:
 
-```ts:app.ts
+```ts
 import { Hono } from 'hono';
 import routes from './routes';
 

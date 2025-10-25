@@ -6,7 +6,9 @@ title: Custom HTTP Client
 To set up a custom HTTP client, add a mutator function to the configuration file, and setup a custom instance of your preferred HTTP client.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -19,7 +21,7 @@ module.exports = {
     }
     ...
   },
-};
+});
 ```
 
 ```ts
@@ -70,7 +72,9 @@ Alternatively, refer to the using custom Fetch with Next.js sample app [here](ht
 The Angular client allows adding mutator functions to the configuration to set up your preferred HTTP client.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -80,7 +84,7 @@ module.exports = {
     }
     ...
   },
-};
+});
 ```
 
 ```ts
