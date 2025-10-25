@@ -133,7 +133,16 @@ function getCategoryPath(routes) {
   return route && removeFromLast(route.path, '/');
 }
 
-function SidebarRoutes({ isMobile, routes: currentRoutes, level = 1 }) {
+type SidebarRoutesProps = {
+  isMobile?: boolean;
+  routes: any[];
+  level?: number;
+};
+function SidebarRoutes({
+  isMobile,
+  routes: currentRoutes,
+  level = 1,
+}: SidebarRoutesProps) {
   const { asPath } = useRouter();
   let { slug, tag } = getSlugAndTag(asPath);
   return currentRoutes.map(({ path, href, title, routes, heading, open }) => {

@@ -270,7 +270,6 @@ my-app
                   key={sponsor.login}
                   target="_blank"
                   href={`https://github.com/${sponsor.login}`}
-                  alt={sponsor.login}
                 >
                   <img
                     className="w-10 h-10 m-1 rounded-full"
