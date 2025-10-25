@@ -1,6 +1,12 @@
 import * as React from 'react';
 import cn from 'classnames';
-export const Sticky = ({ offset, children, shadow }) => {
+
+type StickyProps = {
+  offset?: number;
+  shadow?: boolean;
+  children: React.ReactNode;
+};
+export const Sticky = ({ offset, children, shadow }: StickyProps) => {
   return (
     <div
       style={{

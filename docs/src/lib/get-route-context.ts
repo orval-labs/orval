@@ -1,7 +1,7 @@
 /**
  * Returns the siblings of a specific route (that is the previous and next routes).
  */
-export function getRouteContext(_route, routes, ctx = {}) {
+export function getRouteContext(_route, routes, ctx = {} as any) {
   if (!_route) {
     return ctx;
   }

@@ -1,6 +1,7 @@
 import cn from 'classnames';
 import { useEffect, useRef, useState } from 'react';
 import { FiChevronDown } from 'react-icons/fi';
+
 export function SidebarCategory({
   isMobile,
   level = 1,
@@ -9,9 +10,10 @@ export function SidebarCategory({
   opened,
   children,
 }) {
-  const ref = useRef(null);
-  const [{ toggle, shouldScroll = false }, setToggle] = useState({
+  const ref = useRef<HTMLDivElement>(null);
+  const [{ toggle, shouldScroll }, setToggle] = useState({
     toggle: selected || opened,
+    shouldScroll: false,
   });
 
   const toggleCategory = () => {
@@ -27,13 +29,14 @@ export function SidebarCategory({
     if (selected) {
       setToggle({
         toggle: true,
+        shouldScroll: false,
       });
     }
   }, [selected]); // Navigate to the start of the category when manually opened
 
   useEffect(() => {
     if (toggle && shouldScroll && ref.current != null) {
-      const content = document.querySelector(
+      const content = document.querySelector<HTMLElement>(
         isMobile ? '.docs-dropdown' : '.sidebar-content',
       );
 
@@ -44,6 +47,7 @@ export function SidebarCategory({
         content.scrollTop = height;
         setToggle({
           toggle,
+          shouldScroll: false,
         });
       }
     }

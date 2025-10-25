@@ -2,10 +2,18 @@ import cn from 'classnames';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import * as React from 'react';
+
+type SidebarNavLinkProps = {
+  route: {
+    href: string;
+    pathname: string;
+    title: string;
+    selected?: boolean;
+  };
+};
 export function SidebarNavLink({
-  route: { href, target, pathname, title, selected },
-  onClick,
-}) {
+  route: { href, pathname, title, selected },
+}: SidebarNavLinkProps) {
   const router = useRouter();
   const onlyHashChange = pathname === router.pathname;
 
