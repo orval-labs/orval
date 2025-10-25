@@ -1,7 +1,7 @@
 {
   "name": "svelte-query-custom-fetch",
   "private": true,
-  "version": "7.14.0",
+  "version": "7.15.0",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",

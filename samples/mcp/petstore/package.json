@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "7.14.0",
+  "version": "7.15.0",
   "private": true,
   "scripts": {
     "build": "tsc",
