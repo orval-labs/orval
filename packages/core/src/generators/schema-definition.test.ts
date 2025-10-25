@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest';
-import type { ContextSpecs, InputFiltersOption } from '../types';
 import type { SchemasObject } from 'openapi3-ts/oas30';
+import { describe, expect, it } from 'vitest';
+
+import type { ContextSpecs, InputFiltersOption } from '../types';
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {

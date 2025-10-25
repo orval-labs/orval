@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { generateAxiosOptions } from './options';
 
 describe('generateAxiosOptions', () => {

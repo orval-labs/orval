@@ -1,8 +1,9 @@
+import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
+
 import type { ContextSpecs, GeneratorSchema } from '../types';
 import { generateInterface } from './interface';
-import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
 
 describe('generateInterface', () => {
   const context: ContextSpecs = {
