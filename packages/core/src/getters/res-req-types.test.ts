@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { RequestBodyObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { RequestBodyObject, SchemaObject } from 'openapi3-ts/oas30';
+import { describe, expect, it } from 'vitest';
+
 import { getResReqTypes } from './res-req-types';
 
 // Simulates an OpenAPI schema with a readOnly property
@@ -49,7 +50,7 @@ describe('getResReqTypes (formData, readOnly property)', () => {
     // Get the generated code for formData
     expect(types[0]).toBeDefined();
     expect(typeof types[0].formData).toBe('string');
-    const formDataCode = types[0].formData as string;
+    const formDataCode = types[0].formData!;
     // Verify that the readOnly property "id" is NOT present in the generated code
     expect(formDataCode).not.toContain('id');
     // Verify that the non-readOnly fields are present

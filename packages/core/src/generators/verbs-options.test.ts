@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import type { NormalizedInputOptions } from '../types';
 import { _filteredVerbs } from './verbs-options';
 

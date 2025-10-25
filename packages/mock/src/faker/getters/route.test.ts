@@ -1,8 +1,9 @@
+import { describe, expect, it } from 'vitest';
+
 import { getRouteMSW } from './route';
-import { describe, it, expect } from 'vitest';
 
 describe('getRoute getter', () => {
-  [
+  for (const [input, expected] of [
     ['/', '*/'],
     ['/api/test/{id}', '*/api/test/:id'],
     ['/api/test/{path*}', '*/api/test/:path'],
@@ -14,9 +15,9 @@ describe('getRoute getter', () => {
       '/api/test/user{param1}-{param2}.html',
       '*/api/test/user:param1-:param2.html',
     ],
-  ].forEach(([input, expected]) => {
+  ]) {
     it(`should process ${input} to ${expected}`, () => {
       expect(getRouteMSW(input)).toBe(expected);
     });
-  });
+  }
 });

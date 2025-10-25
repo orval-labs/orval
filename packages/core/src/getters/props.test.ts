@@ -1,7 +1,8 @@
+import type { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
+
+import type { ContextSpecs, GetterQueryParam } from '../types';
 import { getProps } from './props';
-import { ContextSpecs, GetterQueryParam } from '../types';
-import { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 
 describe('getProps', () => {
   it('should generate DeepNonNullable props for query params type definition when client is angular', () => {
