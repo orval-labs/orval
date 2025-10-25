@@ -149,4 +149,63 @@ describe('generateAxiosOptions', () => {
     });
     expect(result).toBe('options');
   });
+
+  it(`should return "responseType: 'text', ...options"`, () => {
+    const result = generateAxiosOptions({
+      response: {
+        imports: [],
+        definition: {
+          success: 'string',
+          errors: 'unknown',
+        },
+        isBlob: false,
+        types: {
+          success: [
+            {
+              value: 'string',
+              isEnum: false,
+              type: 'string',
+              imports: [],
+              schemas: [],
+              isRef: false,
+              hasReadonlyProps: false,
+              example: undefined,
+              examples: undefined,
+              originalSchema: {
+                type: 'string',
+                format: 'uuid',
+              },
+              contentType: 'text/plain',
+              key: '200',
+            },
+          ],
+          errors: [],
+        },
+        contentTypes: ['text/plain'],
+        schemas: [],
+        originalSchema: {
+          '200': {
+            content: {
+              'text/plain': {
+                schema: {
+                  type: 'string',
+                  format: 'uuid',
+                },
+              },
+            },
+          },
+        },
+      },
+      isExactOptionalPropertyTypes: false,
+      queryParams: undefined,
+      headers: undefined,
+      requestOptions: true,
+      hasSignal: true,
+      isVue: true,
+      isAngular: false,
+      paramsSerializer: undefined,
+      paramsSerializerOptions: undefined,
+    });
+    expect(result).toBe("\n        responseType: 'text',\n    ...options,");
+  });
 });
