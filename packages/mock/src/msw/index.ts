@@ -1,16 +1,16 @@
 import {
-  ClientMockGeneratorBuilder,
+  type ClientMockGeneratorBuilder,
   generateDependencyImports,
-  GenerateMockImports,
-  GeneratorDependency,
-  GeneratorImport,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GlobalMockOptions,
+  type GenerateMockImports,
+  type GeneratorDependency,
+  type GeneratorImport,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GlobalMockOptions,
   isFunction,
   isObject,
   pascal,
-  ResReqTypesValue,
+  type ResReqTypesValue,
 } from '@orval/core';
 
 import { getDelay } from '../delay';

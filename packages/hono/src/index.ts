@@ -29,7 +29,7 @@ import { type InfoObject } from 'openapi3-ts/oas30';
 import { getRoute } from './route';
 
 const ZVALIDATOR_SOURCE = fs
-  .readFileSync(upath.join(__dirname, 'zValidator.ts'))
+  .readFileSync(upath.join(import.meta.dirname, 'zValidator.ts'))
   .toString('utf8');
 
 const HONO_DEPENDENCIES: GeneratorDependency[] = [
@@ -165,12 +165,12 @@ export const generateHono: ClientBuilder = (verbOptions, options) => {
  * whether the code requires zValidator.
  */
 const getHonoHandlers = (
-  ...opts: Array<{
+  ...opts: {
     handlerName: string;
     contextTypeName: string;
     verbOption: GeneratorVerbOptions;
     validator: boolean | 'hono' | NormalizedMutator;
-  }>
+  }[]
 ): [
   /** The combined TypeScript handler code snippets. */
   handlerCode: string,
@@ -252,7 +252,8 @@ const getZvalidatorImports = (
 
     if (
       !isHonoValidator &&
-      response.originalSchema?.['200']?.content?.['application/json'] != null
+      response.originalSchema?.['200']?.content?.['application/json'] !=
+        undefined
     ) {
       specifiers.push(`${operationName}Response`);
     }
@@ -294,7 +295,7 @@ const generateHandlerFile = async ({
   const validator =
     validatorModule === '@hono/zod-validator'
       ? ('hono' as const)
-      : validatorModule != null;
+      : validatorModule != undefined;
 
   const isExist = fs.existsSync(path);
 
@@ -332,7 +333,7 @@ const generateHandlerFile = async ({
 
   const imports = ["import { createFactory } from 'hono/factory';"];
 
-  if (hasZValidator && validatorModule != null) {
+  if (hasZValidator && validatorModule != undefined) {
     imports.push(
       `import { zValidator } from '${generateModuleSpecifier(path, validatorModule)}';`,
     );
@@ -639,14 +640,14 @@ const generateZodFiles = async (
           };
         }
 
-        const allMutators = zods.reduce(
+        const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
           (acc, z) => {
             for (const mutator of z.mutators ?? []) {
               acc[mutator.name] = mutator;
             }
             return acc;
           },
-          {} as Record<string, GeneratorMutator>,
+          {},
         );
 
         const mutatorsImports = generateMutatorImports({
@@ -691,14 +692,14 @@ const generateZodFiles = async (
     ),
   );
 
-  const allMutators = zods.reduce(
+  const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
     (acc, z) => {
       for (const mutator of z.mutators ?? []) {
         acc[mutator.name] = mutator;
       }
       return acc;
     },
-    {} as Record<string, GeneratorMutator>,
+    {},
   );
 
   const mutatorsImports = generateMutatorImports({
@@ -832,7 +833,7 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   const validator = generateZvalidator(output, context);
   let schemaModule: string;
 
-  if (output.schemas != null) {
+  if (output.schemas != undefined) {
     schemaModule = getFileInfo(output.schemas).dirname;
   } else if (output.mode === 'single') {
     schemaModule = path;

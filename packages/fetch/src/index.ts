@@ -1,25 +1,26 @@
-import { ClientHeaderBuilder, pascal } from '@orval/core';
 import {
   camel,
-  ClientBuilder,
-  ClientGeneratorsBuilder,
+  type ClientBuilder,
+  type ClientGeneratorsBuilder,
+  type ClientHeaderBuilder,
+  generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   GetterPropType,
+  isObject,
+  pascal,
+  resolveRef,
   stringify,
   toObjectString,
-  generateBodyOptions,
-  isObject,
-  resolveRef,
 } from '@orval/core';
-import {
-  PathItemObject,
+import type {
   ParameterObject,
+  PathItemObject,
   ReferenceObject,
 } from 'openapi3-ts/oas30';
-import { SchemaObject } from 'openapi3-ts/oas31';
+import type { SchemaObject } from 'openapi3-ts/oas31';
 
 export const generateRequestFunction = (
   {
@@ -39,7 +40,7 @@ export const generateRequestFunction = (
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
   const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
+  const isFormData = !override?.formData.disabled;
   const isFormUrlEncoded = override?.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);
@@ -112,7 +113,7 @@ ${
 
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
-    ${!isExplodeParametersOnly ? nomalParamsImplementation : ''}
+    ${isExplodeParametersOnly ? '' : nomalParamsImplementation}
   });`
     : ''
 }
@@ -121,7 +122,7 @@ ${
 
   ${
     queryParams
-      ? `return stringifiedParams.length > 0 ? \`${route}${'?${stringifiedParams}'}\` : \`${route}\``
+      ? `return stringifiedParams.length > 0 ? \`${route}?\${stringifiedParams}\` : \`${route}\``
       : `return \`${route}\``
   }
 }\n`;
@@ -169,7 +170,7 @@ ${
   ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
   status: ${
     r.key === 'default'
-      ? nonDefaultStatuses.length
+      ? nonDefaultStatuses.length > 0
         ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
         : 'number'
       : r.key
@@ -219,11 +220,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
         prop.type === GetterPropType.NAMED_PATH_PARAMS,
     )
     .map((param) => {
-      if (param.type === GetterPropType.NAMED_PATH_PARAMS) {
-        return param.destructured;
-      } else {
-        return param.name;
-      }
+      return param.type === GetterPropType.NAMED_PATH_PARAMS
+        ? param.destructured
+        : param.name;
     })
     .join(',');
 
@@ -253,9 +252,10 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : []),
     ...(headers ? ['...headers'] : []),
   ];
-  const fetchHeadersOption = headersToAdd.length
-    ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
-    : '';
+  const fetchHeadersOption =
+    headersToAdd.length > 0
+      ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
+      : '';
   const requestBodyParams = generateBodyOptions(
     body,
     isFormData,
@@ -318,7 +318,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 `;
 
   const implementation =
-    `${responseTypeImplementation}` +
+    responseTypeImplementation +
     `${getUrlFnImplementation}\n` +
     `${fetchImplementation}\n`;
 

@@ -3,12 +3,12 @@
   "description": "A swagger client generator for typescript",
   "version": "7.15.0",
   "license": "MIT",
+  "type": "module",
   "files": [
     "dist",
     "!dist/**/*.d.ts.map"
   ],
   "bin": "./dist/bin/orval.js",
-  "type": "commonjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -66,7 +66,7 @@
     "eslint": "^9.38.0",
     "openapi-types": "^12.1.3",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.8",
+    "tsdown": "^0.15.9",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
@@ -83,18 +83,18 @@
     "@orval/query": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
-    "chalk": "^4.1.2",
+    "chalk": "^5.6.2",
     "chokidar": "^4.0.3",
     "commander": "^14.0.1",
     "enquirer": "^2.4.1",
-    "execa": "^5.1.1",
-    "find-up": "5.0.0",
+    "execa": "^9.6.0",
+    "find-up": "8.0.0",
     "fs-extra": "^11.3.2",
     "js-yaml": "4.1.0",
     "lodash.uniq": "^4.5.0",
     "openapi3-ts": "4.5.0",
     "string-argv": "^0.3.2",
-    "tsconfck": "^2.1.2",
+    "tsconfck": "^3.1.6",
     "typedoc": "^0.28.14",
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"

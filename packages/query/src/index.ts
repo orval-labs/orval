@@ -1,32 +1,32 @@
 import {
   camel,
-  ClientBuilder,
-  ClientDependenciesBuilder,
-  ClientHeaderBuilder,
+  type ClientBuilder,
+  type ClientDependenciesBuilder,
+  type ClientHeaderBuilder,
   compareVersions,
   generateMutator,
   generateVerbImports,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   getRouteAsArray,
-  GetterParams,
-  GetterProp,
-  GetterProps,
+  type GetterParams,
+  type GetterProp,
+  type GetterProps,
   GetterPropType,
-  GetterQueryParam,
-  GetterResponse,
+  type GetterQueryParam,
+  type GetterResponse,
   isObject,
   jsDoc,
   mergeDeep,
-  NormalizedOutputOptions,
+  type NormalizedOutputOptions,
   OutputClient,
-  OutputClientFunc,
+  type OutputClientFunc,
   OutputHttpClient,
-  PackageJson,
+  type PackageJson,
   pascal,
-  QueryOptions,
+  type QueryOptions,
   stringify,
   toObjectString,
   Verbs,
@@ -1458,8 +1458,9 @@ const generateQueryHook = async (
 
     implementation += `
 ${
-  !queryKeyMutator
-    ? uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
+  queryKeyMutator
+    ? ''
+    : uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
         const queryKeyProps = makeParamsOptional(
           toObjectString(
             props.filter((prop) => prop.type !== GetterPropType.HEADER),
@@ -1497,7 +1498,6 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
 `;
         return acc + queryKeyFn;
       }, '')
-    : ''
 }`;
 
     implementation += `

@@ -1,6 +1,6 @@
 import { dynamicImport, isString, log, type PackageJson } from '@orval/core';
 import chalk from 'chalk';
-import findUp from 'find-up';
+import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 

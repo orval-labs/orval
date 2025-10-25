@@ -2,10 +2,11 @@
   "name": "@orval/zod",
   "version": "7.15.0",
   "license": "MIT",
+  "type": "module",
   "exports": {
-    ".": {
+    "import": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -29,7 +30,7 @@
     "@types/lodash.uniq": "^4.5.9",
     "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.8",
+    "tsdown": "^0.15.9",
     "vitest": "^3.2.4"
   }
 }

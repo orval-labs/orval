@@ -1,10 +1,6 @@
-/**
- * Transformer function for orval.
- *
- * @param {OpenAPIObject} schema
- * @return {OpenAPIObject}
- */
-module.exports = (inputSchema) => ({
+import type { InputTransformerFn } from 'orval';
+
+const transformer: InputTransformerFn = (inputSchema) => ({
   ...inputSchema,
   paths: Object.entries(inputSchema.paths).reduce(
     (acc, [path, pathItem]) => ({
@@ -34,3 +30,5 @@ module.exports = (inputSchema) => ({
     {},
   ),
 });
+
+export default transformer;

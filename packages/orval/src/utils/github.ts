@@ -2,7 +2,7 @@ import https from 'node:https';
 
 import SwaggerParser from '@apidevtools/swagger-parser';
 import { upath } from '@orval/core';
-import { prompt } from 'enquirer';
+import enquirer from 'enquirer';
 import fs from 'fs-extra';
 
 import { request } from './request';
@@ -58,7 +58,7 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
   if (await fs.pathExists(githubTokenPath)) {
     return fs.readFile(githubTokenPath, 'utf8');
   } else {
-    const answers = await prompt<{
+    const answers = await enquirer.prompt<{
       githubToken: string;
       saveToken: boolean;
     }>([
@@ -86,7 +86,7 @@ export const getGithubAcessToken = async (githubTokenPath: string) => {
 };
 
 export const getGithubOpenApi = async (url: string): Promise<string> => {
-  const githubTokenPath = upath.join(__dirname, '.githubToken');
+  const githubTokenPath = upath.join(import.meta.dirname, '.githubToken');
   const accessToken = await getGithubAcessToken(githubTokenPath);
   const [info] = url.split('github.com/').slice(-1);
 
@@ -104,7 +104,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
       );
 
       if (isErrorRemoveLink) {
-        const answers = await prompt<{ removeToken: boolean }>([
+        const answers = await enquirer.prompt<{ removeToken: boolean }>([
           {
             type: 'confirm',
             name: 'removeToken',
@@ -125,7 +125,7 @@ export const getGithubOpenApi = async (url: string): Promise<string> => {
     }
 
     if (error.body.message === 'Bad credentials') {
-      const answers = await prompt<{ removeToken: boolean }>([
+      const answers = await enquirer.prompt<{ removeToken: boolean }>([
         {
           type: 'confirm',
           name: 'removeToken',

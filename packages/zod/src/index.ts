@@ -1,14 +1,14 @@
 import {
   camel,
-  ClientBuilder,
-  ClientGeneratorsBuilder,
-  ContextSpecs,
+  type ClientBuilder,
+  type ClientGeneratorsBuilder,
+  type ContextSpecs,
   escape,
   generateMutator,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   getNumberWord,
   getRefInfo,
   isBoolean,
@@ -18,10 +18,10 @@ import {
   pascal,
   resolveRef,
   stringify,
-  ZodCoerceType,
+  type ZodCoerceType,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
-import {
+import type {
   ParameterObject,
   PathItemObject,
   ReferenceObject,
@@ -29,7 +29,7 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import {
   getObjectFunctionName,
