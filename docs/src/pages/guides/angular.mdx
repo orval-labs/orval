@@ -8,7 +8,9 @@ Start by providing an OpenAPI specification and an Orval config file. To use Ang
 ## Example with angular
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mode: 'tags-split',
@@ -21,7 +23,7 @@ module.exports = {
       target: './petstore.yaml',
     },
   },
-};
+});
 ```
 
 Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.

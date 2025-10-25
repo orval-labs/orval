@@ -10,19 +10,23 @@ Type: `String`.
 Valid values: path or link to the specification.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       target: './petstore.yaml',
     },
   },
-};
+});
 ```
 
 Using a secure URL target with authentication:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       target: 'https://example.com/api-docs/v2/swagger.yaml',
@@ -38,7 +42,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ## validation
@@ -53,13 +57,15 @@ Specifying `true` will by default use the <a href="https://github.com/IBM/openap
 Specifying an `Object` will use the provided ruleset instead. Learn more about creating rulesets <a href="https://docs.stoplight.io/docs/spectral/aa15cdee143a1-java-script-ruleset-format">here</a>.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       validation: true,
     },
   },
-};
+});
 ```
 
 ## override
@@ -77,13 +83,15 @@ Valid values: path or implementation of a transformer function.
 This function is executed when Orval generates clients. The function should accept an argument of the type <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12" target="_blank">OpenAPIObject</a>, and should return a transformed <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12" target="_blank">OpenAPIObject</a>.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   input: {
     override: {
       transformer: 'src/api/transformer/add-version.js',
     },
   },
-};
+});
 ```
 
 An example of a transformer function can be found <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
@@ -108,7 +116,9 @@ This settings determines whether the provided `tags` or `schemas` are excluded o
 For instance, the example below generates endpoints that do not contain the tag `pets`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       filters: {
@@ -117,7 +127,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### tags
@@ -129,7 +139,9 @@ Default Value: `[]`.
 This option allows filtering on `tags`. For instance ,the example below only generates the endpoints that contain the tag `pets` or matches the regular expression `/health/`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       filters: {
@@ -137,7 +149,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### schemas
@@ -148,7 +160,9 @@ Only schema names that match the specified `String` or `RegExp` will be automati
 For instance, the example below only generates the schema object that matches string `Error` or regular expression `/Cat/`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       filters: {
@@ -156,7 +170,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ## converterOptions
@@ -170,7 +184,9 @@ Orval converts Swagger 2.0 definitions into OpenAPI 3.0.x using [swagger2openapi
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       converterOptions: {
@@ -179,7 +195,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ## parserOptions
@@ -194,7 +210,9 @@ By default, Orval includes a GitHub parser, but you can add your own for private
 The specification is automatically validated by default.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       parserOptions: {
@@ -202,5 +220,5 @@ module.exports = {
       },
     },
   },
-};
+});
 ```

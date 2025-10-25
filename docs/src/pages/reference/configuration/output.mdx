@@ -10,13 +10,15 @@ Type: `String`.
 Valid values: path to the file containing the generated code.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       target: 'src/petstore.ts',
     },
   },
-};
+});
 ```
 
 ## client
@@ -28,13 +30,15 @@ Valid values: `angular`, `axios`, `axios-functions`, `react-query`, `svelte-quer
 Default Value: `axios-functions`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       client: 'react-query',
     },
   },
-};
+});
 ```
 
 The valid values specify the default client generators provided by Orval. It is possible to provide a function to extend or create a custom client generator. The function should accept a [GeneratorClients](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L156) argument, and should return a [ClientGeneratorsBuilder](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L652).
@@ -48,14 +52,16 @@ Valid values: `fetch`, `axios`.
 Default Value: `axios`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       client: 'swr',
       httpClient: 'fetch',
     },
   },
-};
+});
 ```
 
 Specifying `fetch` as the `httpClient` option will use the Fetch API as the HTTP client instead of Axios.
@@ -70,13 +76,15 @@ Valid values: path to the folder where the generated models are written.
 Default Value: same as the `target`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       schemas: './api/model',
     },
   },
-};
+});
 ```
 
 ## fileExtension
@@ -88,7 +96,9 @@ Default Value: `.ts`.
 Specify the file extension for files generated automatically. Modes such as `tags`, `tags-split`, and `split` do not alter `schema` files; they only pertain to `client` files.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mode: 'split',
@@ -97,7 +107,7 @@ module.exports = {
       fileExtension: '.gen.ts',
     },
   },
-};
+});
 ```
 
 ```
@@ -122,7 +132,9 @@ Specify the naming convention for the generated **files**.
 If you're looking for **property keys** naming convention, see [namingConvention](#namingconvention-property-keys).
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       namingConvention: 'PascalCase',
@@ -132,7 +144,7 @@ module.exports = {
       fileExtension: '.gen.ts',
     },
   },
-};
+});
 ```
 
 ```
@@ -153,14 +165,16 @@ Valid values: path to the folder which will contains all the generated files. Th
 If this option is provided, an `index.ts` file will also be created with all the available exports
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       workspace: 'src/'
       target: './petstore.ts',
     },
   },
-};
+});
 ```
 
 ## mode
@@ -172,13 +186,15 @@ Valid values: `single`, `split`, `tags`, `tags-split`.
 Default Value: `single`.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mode: 'tags-split',
     },
   },
-};
+});
 ```
 
 ### Value: single
@@ -188,14 +204,16 @@ Generates everything into a single file.
 For example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       target: 'src/petstore.ts',
       mock: true,
     },
   },
-};
+});
 ```
 
 ```
@@ -211,7 +229,9 @@ Here a single file petstore will be created in the src-folder with the specifica
 Splits implementation, schemas and mocks into different files
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       target: 'src/petstore.ts',
@@ -219,7 +239,7 @@ module.exports = {
       mode: 'split',
     },
   },
-};
+});
 ```
 
 ```
@@ -245,7 +265,9 @@ For Angular:
 Use this mode to generate one file per tag. A tag is equivalent to an OpenAPI specification tag. Given a `pets` tag for all pet calls, Orval will generate a file named pets.ts in the target folder
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       target: 'src/petstore.ts',
@@ -253,7 +275,7 @@ module.exports = {
       mode: 'tags',
     },
   },
-};
+});
 ```
 
 ```
@@ -274,7 +296,9 @@ If the `schemas` property is not set, only one file per tag will be created, con
 A combination of the tags and split mode. Orval will generate a folder for every tag in the target folder, and split the files into multiple files in those folders.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       target: 'src/petstore.ts',
@@ -282,7 +306,7 @@ module.exports = {
       mode: 'tags-split',
     },
   },
-};
+});
 ```
 
 ```
@@ -309,14 +333,16 @@ Specifies whether an `index.ts` file is generated during `schemas` generation.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       schemas: 'src/gen/model',
       indexFiles: false,
     },
   },
-};
+});
 ```
 
 ## title
@@ -326,13 +352,15 @@ Type: `String | Function`.
 Valid values: path or implementation of the function. Only valid for `axios` and `angular` implementations.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   output: {
     override: {
       title: (title) => `${title}Api`,
     },
   },
-};
+});
 ```
 
 ## baseUrl
@@ -347,13 +375,15 @@ in the specification.
 Example using constant:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       baseUrl: 'https://api.example.com', // prepend https://api.example.com to all api calls
     },
   },
-};
+});
 ```
 
 ### getBaseUrlFromSpecification
@@ -380,7 +410,9 @@ paths:
 ```
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       baseUrl: {
@@ -390,7 +422,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### variables
@@ -418,7 +450,9 @@ servers:
 ```
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       baseUrl: {
@@ -429,7 +463,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### index
@@ -450,7 +484,9 @@ servers:
 ```
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       baseUrl: {
@@ -459,7 +495,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### baseUrl
@@ -472,7 +508,9 @@ Behaves the same way as setting the baseUrl as a string directly.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       baseUrl: {
@@ -481,19 +519,21 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 Gives the same result as:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       baseUrl: 'https://api.example.com',
     },
   },
-};
+});
 ```
 
 ## mock
@@ -505,19 +545,23 @@ Default Value: `false`.
 If the value is set to `true`, Orval will generate mocks using <a href="https://github.com/faker-js/faker" target="_blank">Faker</a> and <a href="https://mswjs.io/" target="_blank">MSW</a> by default.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mock: true,
     },
   },
-};
+});
 ```
 
 The mock options also accepts a configuration object customizing the generation. If the property is set to `true`, the default options will be used. The default options are:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mock: {
@@ -527,7 +571,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 By providing a function, it is possible to extend or create a custom mock generator. See the expected type [here](https://github.com/orval-labs/orval/blob/307fd610a2a8b139268bed5a10d035988b91060a/packages/core/src/types.ts#L972).
@@ -596,7 +640,9 @@ This is only valid when `mode` is `tags-split`.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mode: 'tags-split',
@@ -605,7 +651,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -702,7 +748,9 @@ Valid values: path or implementation of the transformer function.
 This function is executed for each call when you generate and take in argument a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L823" target="_blank">GeneratorVerbOptions</a> and should return a <a href="https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L823" target="_blank">GeneratorVerbOptions</a>
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -710,7 +758,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### mutator
@@ -743,7 +791,9 @@ interface RequestConfig {
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -755,7 +805,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -813,7 +863,9 @@ export type ErrorType<Error> = AxiosError<Error>;
 ```
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -827,7 +879,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 - When using the `react-query`, `vue-query` or `svelte-query` client, it is possible to provide a hook.
@@ -835,7 +887,9 @@ module.exports = {
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -847,7 +901,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -892,7 +946,9 @@ export type ErrorType<Error> = AxiosError<Error>;
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -904,7 +960,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 The generated file will import the mutator with a `.js` extension.
@@ -920,7 +976,9 @@ Use this property to disable the automatic generation of the file header.
 You can provide a function to customize the file header is generated. The function should take an argument of type `InfoObject`, and should return a `string[]`.
 
 ```ts
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -934,7 +992,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### namingConvention (property keys)
@@ -948,8 +1006,9 @@ Change output naming convention generated **for property keys**.
 If you're looking **for file** naming convention, see [namingConvention](#namingconvention).
 
 ```ts
+import { defineConfig } from 'orval';
 
-module.exports = {
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -961,7 +1020,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### enum
@@ -980,7 +1039,9 @@ Type: `Object`.
 Options related to the generated Fetch client.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -992,7 +1053,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### includeHttpResponseReturnType
@@ -1025,7 +1086,9 @@ By setting this setting to `true`, Orval will generate code that is typed to alw
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1035,7 +1098,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -1097,7 +1160,9 @@ Allows you to provide a <a href="https://developer.mozilla.org/en-US/docs/Web/Ja
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1111,7 +1176,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -1134,7 +1199,9 @@ Type: `Object`.
 Overrides the generated <a href="https://react-query.tanstack.com/" target="_blank">query</a>
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1152,7 +1219,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### useQuery
@@ -1251,7 +1318,9 @@ If an object is provided, it is also possible to add a `default` property to use
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1265,7 +1334,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### queryOptions
@@ -1279,7 +1348,9 @@ If an object is provided, it is also possible to add a `default` property to use
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1293,7 +1364,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### mutationOptions
@@ -1307,7 +1378,9 @@ If an object is provided, it is also possible to add a `default` property to use
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1321,12 +1394,10 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
-// custom-mutator-options.ts
-
 // custom-mutator-options.ts
 type OptionsWithMutationFn<
   TData = unknown,
@@ -1402,7 +1473,9 @@ Use to generate query keys using the OpenAPI operation ID instead of the route p
 **Example:**
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1412,14 +1485,14 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 **Generated code comparison:**
 
 Default behavior (`useOperationIdAsQueryKey: false`):
 
-```typescript
+```ts
 const getPetByIdQueryKey = (petId: string) => {
   return [`/pets/${petId}`] as const;
 };
@@ -1427,7 +1500,7 @@ const getPetByIdQueryKey = (petId: string) => {
 
 With `useOperationIdAsQueryKey: true`:
 
-```typescript
+```ts
 const getPetByIdQueryKey = (petId: string) => {
   return ['getPetById', petId] as const;
 };
@@ -1448,7 +1521,9 @@ Type: `Object`.
 Allows specifying options for the Angular client
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1460,7 +1535,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### provideIn
@@ -1480,7 +1555,9 @@ Type: `Object`.
 Options for generating the `swr` client. It is also possible to extend the generated functions.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1492,7 +1569,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### useInfinite
@@ -1510,7 +1587,9 @@ Use to generate a <a href="https://swr.vercel.app/docs/mutation#useswrmutation" 
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1522,7 +1601,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### swrOptions
@@ -1534,7 +1613,9 @@ Use to override the `useSwr` options. See available options [here](https://swr.v
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1546,7 +1627,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### swrMutationOptions
@@ -1558,7 +1639,9 @@ Use to override the `useSWRMutation` options. See available options [here](https
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1570,7 +1653,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### swrInfiniteOptions
@@ -1582,7 +1665,9 @@ Use to override the `useSWRInfinite` options. See available options [here](https
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1594,7 +1679,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### zod
@@ -1604,7 +1689,9 @@ Type: `Object`.
 Options for generating the Zod client
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1629,7 +1716,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### strict
@@ -1649,7 +1736,9 @@ Use to define the Zod schemas to be generated.
 example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1667,7 +1756,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 In the above example, response body validations are not generated
@@ -1683,7 +1772,9 @@ If an array of coerce types are provided, coercion is only generated for the spe
 example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1698,7 +1789,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### preprocess
@@ -1710,7 +1801,9 @@ Use to add a preprocess function to a Zod schema. Provide a custom mutator to pr
 example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1727,7 +1820,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### generateEachHttpStatus
@@ -1737,7 +1830,9 @@ Type: `Boolean`.
 Allows generating mocks for all the HTTP statuses in the `responses` fields of the provided OpenAPI specification. By default only the 200 OK response is generated.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -1749,7 +1844,7 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 #### dateTimeOptions
@@ -1763,7 +1858,9 @@ Use to set options for Zod `datetime` fields. These options are passed directly 
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1777,7 +1874,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 Read more about datetimes in the [Zod documentation](https://zod.dev/?id=datetimes).
@@ -1793,7 +1890,9 @@ Use to set options for Zod `time` fields. These options are passed directly to Z
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1805,7 +1904,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 Read more about times in the [Zod documentation](https://zod.dev/?id=times).
@@ -1825,7 +1924,9 @@ Use this to override the generated mock per property. Properties can either be a
 Each key of this object can be a regex or the path of the property to override. The value can either be a function returning a value, or a static value. If a function is provided, it will be executed at runtime.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1840,7 +1941,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### format
@@ -1851,7 +1952,9 @@ Allows providing values for `format` in the OpenAPI specification.
 For example, if `format: email` is on a property in the OpenAPI specification, Orval will automatically generate a random email. See the default available format <a href="https://github.com/orval-labs/orval/blob/master/packages/mock/src/faker/constants.ts" target="_blank">here</a>.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1864,7 +1967,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### required
@@ -1874,7 +1977,9 @@ Type: `Boolean`.
 Sets every property to be required.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1884,7 +1989,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### delay
@@ -1897,7 +2002,9 @@ Setting delay to false removes the delay call completely.
 Default Value: `1000`
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1907,7 +2014,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### delayFunctionLazyExecute
@@ -1929,7 +2036,9 @@ Type: `Number`.
 Sets the default minimum length of generated arrays for properties that specify multiple items. Used if `minItems` is not defined for the property. (Default is `1`)
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1939,7 +2048,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### arrayMax
@@ -1949,7 +2058,9 @@ Type: `Number`.
 Sets the default maximum length of generated arrays for properties that specify multiple items. Used if `maxItems` is not defined for the property. (Default is `10`)
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1959,7 +2070,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### stringMin
@@ -1969,7 +2080,9 @@ Type: `Number`.
 Sets the default minimum length of generated strings. Used if `minLength` is not defined for the property. (Default is `10`)
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1979,7 +2092,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### stringMax
@@ -1989,7 +2102,9 @@ Type: `Number`.
 Sets the default maximum length of generated strings. Used if `maxLength` is not defined for the property. (Default is `20`)
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -1999,7 +2114,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### numberMin
@@ -2009,7 +2124,9 @@ Type: `Number`.
 Sets the default minimum value of generated numbers. Used if `minimum` is not defined for the property.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2019,7 +2136,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### numberMax
@@ -2029,7 +2146,9 @@ Type: `Number`.
 Sets the default maximum value of generated numbers. Used if `maximum` is not defined for the property.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2039,7 +2158,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### fractionDigits
@@ -2049,7 +2168,9 @@ Type: `Number`.
 Sets number of decimals displayed in floating-point numbers. (Default is `2`)
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2059,7 +2180,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### useExamples
@@ -2067,7 +2188,9 @@ module.exports = {
 An extension of the global mock option. If set to `true`, the mock generator will use the `example` property of the specification to generate the mock. If the `example` property is not set, the mock generator will fall back to the default behavior. Will override the global option.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2077,7 +2200,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### baseUrl
@@ -2093,7 +2216,9 @@ Type: `Object`
 Overrides the generated `hono` files
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2105,7 +2230,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### handlers
@@ -2117,7 +2242,9 @@ Changes the output path for the `hono` handlers.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2127,7 +2254,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 The files will be generated as below:
@@ -2163,7 +2290,9 @@ When a string is provided, Orval will generate a single composite route file, co
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2173,7 +2302,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 The files will be generated as below:
@@ -2199,7 +2328,9 @@ Type: `Object`.
 Allows overriding the generated model names by adding a suffix to each name.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2220,7 +2351,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### operations
@@ -2236,7 +2367,10 @@ The value object can take the same properties as the `override` property (`mutat
 The `mock` object allows an additional property; the `data` property. This property can take a function or the value directly. The function will be executed at runtime.
 
 ```js
-module.exports = {
+import { faker } from '@faker-js/faker';
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2268,7 +2402,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### tags
@@ -2310,7 +2444,9 @@ If an object is provided, it is also possible to add a `default` property to use
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2322,7 +2458,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -2341,7 +2477,9 @@ Type: `String` | `Object`
 Equivalent to providing the mutator directly to the `formData` property, while also allowing the use of the `arrayHandling` property.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2354,7 +2492,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### arrayHandling
@@ -2366,7 +2504,9 @@ Default Value: `serialize`
 Specifies how FormData generation handles arrays.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2380,7 +2520,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 For all of the following examples, this specification is used:
@@ -2483,7 +2623,9 @@ If an object is provided, it is also possible to add a `default` property to use
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2495,7 +2637,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -2524,7 +2666,9 @@ If this is not specified, params are serialized as per Axios default.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2536,7 +2680,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ```ts
@@ -2564,7 +2708,9 @@ If this is not specified, parameters are serialized as per Axios default.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2576,7 +2722,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### useDates
@@ -2590,7 +2736,9 @@ Use this property to convert OpenAPI `date` or `datetime` to JavaScript `Date` o
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2598,7 +2746,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 **Note:** You must provide an Axios converter to convert the serialised date strings to `Date` objects. This option only affects the TypeScript definition. If using `fetch` as your client, you can provide a `jsonReviver` override function.
@@ -2656,7 +2804,9 @@ Use this property to convert OpenAPI `int64` and `uint64` format to JavaScript `
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2664,7 +2814,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### coerceTypes
@@ -2682,7 +2832,9 @@ This is helpful if you want to use the zod schema to coerce (likely string-seria
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2690,7 +2842,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### useNamedParameters
@@ -2704,7 +2856,9 @@ Generates the operation interfaces with named path parameters instead of individ
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2712,7 +2866,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### useTypeOverInterfaces
@@ -2726,7 +2880,9 @@ Use this property to use TypeScript `type` instead of `interface`.
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2734,7 +2890,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### useDeprecatedOperations
@@ -2748,7 +2904,9 @@ Use this property to include/exclude generating any operation marked `"deprecate
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2756,7 +2914,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### contentType
@@ -2768,7 +2926,9 @@ Use this property to include or exclude content types
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2779,7 +2939,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### useNativeEnums (deprecated, use 'enumGenerationType="enum"' instead)
@@ -2793,7 +2953,9 @@ Use this property to generate native Typescript `enum` instead of a combined `ty
 Example:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2801,7 +2963,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 ### enumGenerationType
@@ -2814,7 +2976,9 @@ This is used to specify how enums are generated. `const` generates a const objec
 To change the name of the generated enum keys, you can extend your OpenAPI schema with x-enumNames. Read more [here](../../guides/enums).
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2822,7 +2986,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 Result when `enumGenerationType` is `const`:
@@ -2865,7 +3029,9 @@ Default Value: `false`.
 When the `readonly` field is specified in `OpenAPI`, specify `readonly` in the `type` and `interface` fields output from the schema.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2873,7 +3039,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 #### jsDoc
@@ -2887,7 +3053,9 @@ A configuration object that allows you to customize `JSDoc` generation by option
 Example:
 
 ```ts
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       override: {
@@ -2923,7 +3091,7 @@ module.exports = {
       },
     },
   },
-};
+});
 ```
 
 Input:
@@ -3022,13 +3190,15 @@ Applies to all clients, but is usually just relevant for `Tanstack Query`.
 Use this property to make all parameters optional except the path parameter. This is useful to take advantage of Orval's auto-enable feature for `Tanstack Query`, see https://github.com/orval-labs/orval/pull/894
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       allParamsOptional: true,
     },
   },
-};
+});
 ```
 
 ## urlEncodeParameters
@@ -3040,13 +3210,15 @@ Valid values: `true` or `false`. Defaults to `false`. **Note:** this only works 
 Use this property to enable URL encoding of path/query parameters. This is highly recommended, and will probably become the default behaviour in the future, see https://github.com/orval-labs/orval/pull/895
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       urlEncodeParameters: true,
     },
   },
-};
+});
 ```
 
 ## optionsParamRequired
@@ -3059,13 +3231,15 @@ Default Value: `false`.
 Use this property to make the second `options` parameter required (such as when using a custom Axios instance)
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       optionsParamRequired: true,
     },
   },
-};
+});
 ```
 
 ## propertySortOrder
@@ -3077,11 +3251,13 @@ Default Value: `Specification`
 Specifies how properties in the models are sorted, either alphabetically or in the order they appear in the specification.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       propertySortOrder: 'Alphabetical',
     },
   },
-};
+});
 ```

@@ -4,9 +4,10 @@ title: Full Example
 ---
 
 ```js
-const { faker } = require('@faker-js/faker');
+import { faker } from '@faker-js/faker';
+import { defineConfig } from 'orval';
 
-module.exports = {
+export default defineConfig({
   petstore: {
     output: {
       mode: 'split',
@@ -59,5 +60,5 @@ module.exports = {
       afterAllFilesWrite: 'prettier --write',
     },
   },
-};
+});
 ```
