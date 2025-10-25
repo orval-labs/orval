@@ -11,7 +11,7 @@ To generate mocks, define the `mock` property to `true` and a mock of `MSW` will
 import { defineConfig } from 'orval';
 
 export default defineConfig({
-  'petstore-file-transfomer': {
+  'petstore-file-transformer': {
     output: {
       mode: 'single',
       target: './src/petstore.ts',
@@ -151,7 +151,7 @@ export const getPetsMock = () => [
 
 Run the MSW server using this function.
 
-```typescript
+```ts
 import { getPetsMock } from 'petstore.msw';
 import { setupServer } from 'msw/node';
 
