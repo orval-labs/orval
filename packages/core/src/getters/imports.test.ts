@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
+
+import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
 import {
   getAliasedImports,
   getImportAliasForRefOrValue,
   needCreateImportAlias,
 } from './imports';
-import { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
 
 const baseContext: Omit<ContextSpecs, 'output'> = {
   specKey: 'spec',
@@ -72,12 +73,10 @@ describe('getAliasedImports getter', () => {
   });
 
   describe('with non empty context.output.schemas field and truthy resolvedValue.isRef field', () => {
-    const testCases: Array<
-      [
-        Omit<Parameters<typeof getAliasedImports>[0], 'context'>,
-        Array<string | undefined>,
-      ]
-    > = [
+    const testCases: [
+      Omit<Parameters<typeof getAliasedImports>[0], 'context'>,
+      (string | undefined)[],
+    ][] = [
       [
         {
           existingImports: [],
@@ -304,12 +303,10 @@ describe('getImportAliasForRefOrValue getter', () => {
   });
 
   describe('with non empty context.output.schemas field and truthy resolvedValue.isRef field', () => {
-    const testCases: Array<
-      [
-        Omit<Parameters<typeof getImportAliasForRefOrValue>[0], 'context'>,
-        string,
-      ]
-    > = [
+    const testCases: [
+      Omit<Parameters<typeof getImportAliasForRefOrValue>[0], 'context'>,
+      string,
+    ][] = [
       [
         {
           resolvedValue: {

@@ -83,7 +83,9 @@ Checkout <a href="https://github.com/orval-labs/orval/blob/master/samples/next-a
 It is possible to add a custom `fetch` function to the Orval config.
 
 ```ts
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -96,7 +98,7 @@ module.exports = {
     }
     ...
   },
-};
+});
 ```
 
 Copy the <a href="https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts" target="_blank">sample implementation</a> from GitHub and modify the function as needed. The generated functions will now call the `customFetch` function:

@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+
 import { isFakerVersionV9 } from './compatibleV9';
 
 describe('isFakerVersionV9', () => {

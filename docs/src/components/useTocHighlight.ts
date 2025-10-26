@@ -52,7 +52,7 @@ export function useTocHighlight(
     function setActiveLink() {
       function getActiveHeaderAnchor() {
         let index = 0;
-        let activeHeaderAnchor = null;
+        let activeHeaderAnchor: Element | null = null;
         const headersAnchors = getHeaderAnchors();
 
         while (index < headersAnchors.length && !activeHeaderAnchor) {

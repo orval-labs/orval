@@ -1,8 +1,7 @@
-import * as React from 'react';
 import cx from 'classnames';
 import { useTocHighlight } from './useTocHighlight';
 import styles from './Toc.module.css';
-import { NOTION_ANCHOR_CLASSNAME } from './blog/Heading';
+
 const TOP_OFFSET = 100;
 
 const getHeadingDataFromAnchor = (el) => {
@@ -20,7 +19,7 @@ export function getHeaderNotionAnchors() {
    *  so we use this as a workaround.
    */
   return Array.prototype.filter.call(
-    document.getElementsByClassName(NOTION_ANCHOR_CLASSNAME),
+    document.getElementsByClassName(''),
     function (testElement) {
       return (
         testElement.firstElementChild?.nodeName === 'H2' ||
@@ -29,8 +28,9 @@ export function getHeaderNotionAnchors() {
     },
   );
 }
+
 export const TocNotion = () => {
-  const headings = useTocHighlight(
+  const { headings } = useTocHighlight(
     styles.contents__link,
     styles['contents__link--active'],
     TOP_OFFSET,

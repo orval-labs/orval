@@ -17,7 +17,7 @@ const theme = Object.assign({}, themes.nightOwl, {
 
 const Code = ({ children, className = 'language-js', ...props }) => {
   const language = className.replace(/language-/, '');
-  const [key, setKey] = useState(`${Math.random() * 7}`);
+  const [key, setKey] = useState(Math.random() * 7);
 
   if (props['live']) {
     return (
@@ -26,7 +26,7 @@ const Code = ({ children, className = 'language-js', ...props }) => {
           <div className="flex items-center justify-between">
             <div>Live JSX Editor</div>
             <div>
-              <button onClick={() => setKey((k) => `${k * Math.random()}`)}>
+              <button onClick={() => setKey((k) => k * Math.random())}>
                 Reset
               </button>
             </div>
@@ -79,7 +79,7 @@ const Code = ({ children, className = 'language-js', ...props }) => {
               });
 
               return (
-                <div key={lineKey} {...lineRestProps}>
+                <div key={lineKey as string} {...lineRestProps}>
                   {tokens.length > 1 ? (
                     <span
                       aria-hidden="true"
@@ -96,7 +96,9 @@ const Code = ({ children, className = 'language-js', ...props }) => {
                       key,
                     });
 
-                    return <span key={tokenKey} {...tokenRestProps} />;
+                    return (
+                      <span key={tokenKey as string} {...tokenRestProps} />
+                    );
                   })}
                 </div>
               );

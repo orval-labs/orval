@@ -1,18 +1,25 @@
 import cn from 'classnames';
 import * as React from 'react';
 import { SidebarNavLink } from './SidebarNavLink';
+
+type SidebarPostProps = {
+  isMobile?: boolean;
+  route: any;
+  level?: number;
+  onClick?: any;
+};
 export const SidebarPost = ({
   isMobile,
   route,
   level = 1,
   onClick,
   ...props
-}) => {
-  const selectedRef = React.useRef(null);
+}: SidebarPostProps) => {
+  const selectedRef = React.useRef<HTMLDivElement>(null);
   const ref = route.selected ? selectedRef : null;
   React.useEffect(() => {
     if (ref && ref.current && !isMobile) {
-      const content = document.querySelector('.sidebar-content'); // 32 is the top and bottom margin for `.link`
+      const content = document.querySelector<HTMLElement>('.sidebar-content'); // 32 is the top and bottom margin for `.link`
 
       const height = ref.current.offsetTop - 32;
 
@@ -23,13 +30,7 @@ export const SidebarPost = ({
   }, [ref, isMobile]);
   return (
     <div ref={ref} className={cn('link', `level-${level}`)}>
-      <SidebarNavLink
-        route={route}
-        scrollSelectedIntoView={props.scrollSelectedIntoView}
-        categorySelected={props.categorySelected}
-        level={level}
-        onClick={onClick}
-      />
+      <SidebarNavLink route={route} />
       <style jsx>{`
         .link {
           margin: 12px 0;

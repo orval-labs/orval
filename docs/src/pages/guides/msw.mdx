@@ -8,8 +8,10 @@ To generate mocks, define the `mock` property to `true` and a mock of `MSW` will
 ## Example of orval.config.js
 
 ```js
-module.exports = {
-  'petstore-file-transfomer': {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  'petstore-file-transformer': {
     output: {
       mode: 'single',
       target: './src/petstore.ts',
@@ -20,7 +22,7 @@ module.exports = {
       target: './petstore.yaml',
     },
   },
-};
+});
 ```
 
 The mock definition consists of the following three functions.
@@ -33,7 +35,7 @@ The mock definition consists of the following three functions.
 
 A function that returns a mock object will be generated as shown below:
 
-```typescript
+```ts
 import { faker } from '@faker-js/faker';
 
 export const getShowPetByIdResponseMock = (
@@ -49,7 +51,7 @@ export const getShowPetByIdResponseMock = (
 The value is implemented in `faker.js`.
 To overwrite part of the object, modify the mock property by specifying it as a function argument.
 
-```typescript
+```ts
 import { getShowPetByIdMock } from 'pets.msw';
 
 const pet = getShowPetByIdResponseMock({ name: 'override' });
@@ -61,7 +63,7 @@ console.log(pet);
 
 A function is generated that returns the value of the mock object bound to the MSW HTTP request handler as shown below:
 
-```typescript
+```ts
 import { HttpResponse, delay, http } from 'msw';
 
 export const getShowPetByIdMockHandler = (
@@ -94,7 +96,7 @@ export const getShowPetByIdMockHandler = (
 
 To overwrite the mocked HTTP response object, provide the object by specifying it as a function argument.
 
-```typescript
+```ts
 import { Pet } from './gen/model/pet';
 import { getShowPetByIdMockHandler } from 'petstore.msw';
 
@@ -139,7 +141,7 @@ expect(mockFn).toHaveBeenCalledTimes(1);
 
 Aggregate all functions that return handlers and generate a function that returns as an array as below:
 
-```typescript
+```ts
 export const getPetsMock = () => [
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
@@ -149,7 +151,7 @@ export const getPetsMock = () => [
 
 Run the MSW server using this function.
 
-```typescript
+```ts
 import { getPetsMock } from 'petstore.msw';
 import { setupServer } from 'msw/node';
 
