@@ -57,7 +57,7 @@ export default defineConfig({
       schemas: '../generated/swr/http-client-fetch/model',
       mode: 'tags-split',
       client: 'swr',
-      httpClient: 'fetch',
+
       override: {
         fetch: {
           forceSuccessResponse: true,
@@ -76,7 +76,7 @@ export default defineConfig({
         '../generated/swr/http-client-fetch-with-include-http_status_return-type/model',
       mode: 'tags-split',
       client: 'swr',
-      httpClient: 'fetch',
+
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -135,7 +135,7 @@ export default defineConfig({
         '../generated/swr/http-client-fetch-with-custom-fetch/endpoints.ts',
       schemas: '../generated/swr/http-client-fetch-with-custom-fetch/model',
       client: 'swr',
-      httpClient: 'fetch',
+
       mock: true,
       override: {
         mutator: {

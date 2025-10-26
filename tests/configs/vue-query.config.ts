@@ -68,7 +68,6 @@ export default defineConfig({
       schemas: '../generated/vue-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'vue-query',
-      httpClient: 'fetch',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -82,7 +81,7 @@ export default defineConfig({
         '../generated/vue-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'vue-query',
-      httpClient: 'fetch',
+
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -126,7 +125,7 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-custom-fetch/model',
       client: 'vue-query',
-      httpClient: 'fetch',
+
       mock: true,
       override: {
         mutator: {
@@ -184,7 +183,6 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
       client: 'vue-query',
-      httpClient: 'fetch',
     },
     input: {
       target: '../specifications/multi-query-params.yaml',

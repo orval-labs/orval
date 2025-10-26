@@ -105,7 +105,7 @@ export default defineConfig({
       schemas: '../generated/react-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'react-query',
-      httpClient: 'fetch',
+
       override: {
         fetch: {
           forceSuccessResponse: true,
@@ -124,7 +124,7 @@ export default defineConfig({
         '../generated/react-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'react-query',
-      httpClient: 'fetch',
+
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -196,7 +196,7 @@ export default defineConfig({
       schemas:
         '../generated/react-query/http-client-fetch-with-custom-fetch/model',
       client: 'react-query',
-      httpClient: 'fetch',
+
       mock: true,
       override: {
         mutator: {

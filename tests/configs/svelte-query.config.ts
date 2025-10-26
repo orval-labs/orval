@@ -64,7 +64,6 @@ export default defineConfig({
       schemas: '../generated/svelte-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'svelte-query',
-      httpClient: 'fetch',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -78,7 +77,7 @@ export default defineConfig({
         '../generated/svelte-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'svelte-query',
-      httpClient: 'fetch',
+
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -122,7 +121,7 @@ export default defineConfig({
       schemas:
         '../generated/svelte-query/http-client-fetch-with-custom-fetch/model',
       client: 'svelte-query',
-      httpClient: 'fetch',
+
       mock: true,
       override: {
         mutator: {
