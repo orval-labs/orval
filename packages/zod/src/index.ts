@@ -1155,12 +1155,6 @@ const generateZodRoute = async (
     preprocessParams,
   );
 
-  if (override.coerceTypes) {
-    console.warn(
-      'override.coerceTypes is deprecated, please use override.zod.coerce instead.',
-    );
-  }
-
   const preprocessQueryParams = override.zod.preprocess?.query
     ? await generateMutator({
         output,
@@ -1174,7 +1168,7 @@ const generateZodRoute = async (
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
-    override.zod.coerce.query ?? override.coerceTypes,
+    override.zod.coerce.query,
     override.zod.strict.query,
     isZodV4,
     preprocessQueryParams,

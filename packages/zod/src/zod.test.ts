@@ -69,50 +69,6 @@ const record: ZodValidationSchemaDefinition = {
 };
 
 describe('parseZodValidationSchemaDefinition', () => {
-  describe('with `override.coerceTypes = false` (default)', () => {
-    it('does not emit coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(
-        queryParams,
-        {
-          output: {
-            override: {
-              useDates: false,
-            },
-          },
-        } as ContextSpecs,
-        false,
-        false,
-        false,
-      );
-
-      expect(parseResult.zod).toBe(
-        'zod.object({\n  "limit": zod.number().optional().null(),\n  "q": zod.array(zod.string()).optional()\n})',
-      );
-    });
-  });
-
-  describe('with `override.coerceTypes = true`', () => {
-    it('emits coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(
-        queryParams,
-        {
-          output: {
-            override: {
-              useDates: false,
-            },
-          },
-        } as ContextSpecs,
-        true,
-        false,
-        false,
-      );
-
-      expect(parseResult.zod).toBe(
-        'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
-      );
-    });
-  });
-
   it('treats additionalProperties properly', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       record,
