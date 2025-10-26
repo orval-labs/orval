@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { LiveProvider, LiveEditor, LiveError, LivePreview } from 'react-live';
-import { mdx } from '@mdx-js/react';
+import { MDXProvider } from '@mdx-js/react';
 import { TWButton } from './TWButton';
 import { useClipboard } from './useClipboard';
+// @ts-ignore no types for this package
 import Component from '@reactions/component';
+
 export const liveEditorStyle = {
   fontSize: 14,
-  overflowX: 'auto',
+  // overflowX: 'auto',
   color: '#f8f8f2',
   fontFamily: 'SFMono-Regular,Consolas,Liberation Mono,Menlo,monospace',
   height: '100%',
@@ -59,7 +61,7 @@ const CodeBlock = ({
     code: editorCode,
     transformCode: (code) => `<>${code}</>`,
     scope: {
-      mdx,
+      MDXProvider,
       Component,
     },
     noInline,

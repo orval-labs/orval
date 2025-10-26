@@ -1,14 +1,14 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { ContextSpecs } from '@orval/core';
+import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
+
 import {
   generateZod,
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
 } from '.';
-
-import { ContextSpecs } from '@orval/core';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [
@@ -134,7 +134,7 @@ describe('parseZodValidationSchemaDefinition', () => {
   });
 });
 
-const objectIntoObjectSchema: SchemaObject = {
+const objectIntoObjectSchema: SchemaObject30 = {
   type: 'object',
   properties: {
     pet: {
@@ -151,7 +151,7 @@ const objectIntoObjectSchema: SchemaObject = {
   },
 };
 
-const deepRequiredSchema: SchemaObject = {
+const deepRequiredSchema: SchemaObject30 = {
   type: 'object',
   properties: {
     pet: {
@@ -169,7 +169,7 @@ const deepRequiredSchema: SchemaObject = {
   },
 };
 
-const additionalPropertiesSchema: SchemaObject = {
+const additionalPropertiesSchema: SchemaObject30 = {
   type: 'object',
   properties: {
     any: {
@@ -362,7 +362,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates a description for a parameter', () => {
-      const schemaWithDefault: SchemaObject = {
+      const schemaWithDefault: SchemaObject30 = {
         type: 'string',
         description: 'This is a test description',
         default: 'hello',
@@ -409,7 +409,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates a default value for a non-required string schema', () => {
-      const schemaWithDefault: SchemaObject = {
+      const schemaWithDefault: SchemaObject30 = {
         type: 'string',
         default: 'hello',
       };
@@ -445,7 +445,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for a number schema', () => {
-      const schemaWithNumberDefault: SchemaObject = {
+      const schemaWithNumberDefault: SchemaObject30 = {
         type: 'number',
         default: 42,
       };
@@ -479,7 +479,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for a boolean schema', () => {
-      const schemaWithBooleanDefault: SchemaObject = {
+      const schemaWithBooleanDefault: SchemaObject30 = {
         type: 'boolean',
         default: true,
       };
@@ -517,7 +517,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for an array schema', () => {
-      const schemaWithArrayDefault: SchemaObject = {
+      const schemaWithArrayDefault: SchemaObject30 = {
         type: 'array',
         items: { type: 'string' },
         default: ['a', 'b'],
@@ -556,7 +556,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for an object schema', () => {
-      const schemaWithObjectDefault: SchemaObject = {
+      const schemaWithObjectDefault: SchemaObject30 = {
         type: 'object',
         properties: {
           name: { type: 'string' },
@@ -624,7 +624,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for a date schema with useDates enabled', () => {
-      const schemaWithDateDefault: SchemaObject = {
+      const schemaWithDateDefault: SchemaObject30 = {
         type: 'string',
         format: 'date',
         default: '2025-01-01',
@@ -681,7 +681,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates an enum for a string', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'string',
         enum: ['cat', 'dog'],
       };
@@ -714,7 +714,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an enum for a number', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         enum: [1, 2],
       };
@@ -755,7 +755,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an enum for a boolean', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'boolean',
         enum: [true, false],
       };
@@ -796,7 +796,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('does not use union for single item enum', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         enum: [1],
       };
@@ -829,7 +829,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an enum for any', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         enum: ['cat', 1, true],
       };
 
@@ -879,7 +879,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates an number', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
       };
 
@@ -910,7 +910,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.zod).toBe('zod.number().optional()');
     });
     it('generates an number with min', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         minimum: 10,
       };
@@ -943,7 +943,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.zod).toBe('zod.number().min(testNumberMinMin).optional()');
     });
     it('generates an number with max', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         maximum: 99,
       };
@@ -977,7 +977,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an number with max and max', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         minimum: 10,
         maximum: 99,
@@ -1018,7 +1018,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
     });
     it('generates an number with max, max and multipleOf', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         minimum: 10,
         maximum: 99,
@@ -1396,7 +1396,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       items: { type: 'string' },
     };
     const result = generateZodValidationSchemaDefinition(
-      arrayWithPrefixItemsSchema as SchemaObject,
+      arrayWithPrefixItemsSchema as SchemaObject30,
       {
         output: {
           override: {
@@ -1449,7 +1449,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       maxItems: 2,
     };
     const result = generateZodValidationSchemaDefinition(
-      arrayWithPrefixItemsSchema as SchemaObject,
+      arrayWithPrefixItemsSchema as SchemaObject30,
       {
         output: {
           override: {

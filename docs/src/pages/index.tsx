@@ -139,7 +139,7 @@ const Home = (props) => {
           <div className="container max-w-7xl px-4  mx-auto -mt-72 relative">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-x-hidden">
               <Highlight>
-                {`module.exports = {
+                {`export default {
   petstore: {
     output: {
       mode: 'split',
@@ -270,7 +270,6 @@ my-app
                   key={sponsor.login}
                   target="_blank"
                   href={`https://github.com/${sponsor.login}`}
-                  alt={sponsor.login}
                 >
                   <img
                     className="w-10 h-10 m-1 rounded-full"

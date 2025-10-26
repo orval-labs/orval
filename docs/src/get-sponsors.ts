@@ -7,10 +7,10 @@ const graphqlWithAuth = graphql.defaults({
 });
 
 export const getSponsors = async () => {
-  let sponsors = [];
+  let sponsors: any[] = [];
 
   const fetchPage = async (cursor = '') => {
-    const res = await graphqlWithAuth(
+    const res: any = await graphqlWithAuth(
       `
       query ($cursor: String) {
         viewer {

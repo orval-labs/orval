@@ -1,6 +1,7 @@
-import { ParameterObject } from 'openapi3-ts/oas30';
+import type { ParameterObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
-import { ContextSpecs } from '../types';
+
+import type { ContextSpecs } from '../types';
 import { getQueryParams } from './query-params';
 
 // Mock context for getQueryParams
@@ -100,10 +101,8 @@ const queryParams: {
 ];
 
 describe('getQueryParams getter', () => {
-  queryParams.forEach(({ parameter, optional }) => {
-    it(`${parameter.name} should${
-      !optional ? ' NOT ' : ' '
-    }be optional`, () => {
+  for (const { parameter, optional } of queryParams) {
+    it(`${parameter.name} should${optional ? ' ' : ' NOT '}be optional`, () => {
       const result = getQueryParams({
         queryParams: [
           {
@@ -121,7 +120,7 @@ describe('getQueryParams getter', () => {
         }: string;\n};`,
       );
     });
-  });
+  }
 
   it('queryParamWithDescription should be documented', () => {
     const result = getQueryParams({

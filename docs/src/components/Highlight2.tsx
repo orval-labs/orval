@@ -33,7 +33,7 @@ const Code = ({ children, className = 'language-js' }) => {
             });
 
             return (
-              <div key={lineKey} {...lineProps}>
+              <div key={lineKey as string} {...lineProps}>
                 {tokens.length > 1 ? (
                   <span
                     aria-hidden="true"
@@ -49,7 +49,7 @@ const Code = ({ children, className = 'language-js' }) => {
                     token,
                     key: j,
                   });
-                  return <span key={tokenKey} {...tokenProps} />;
+                  return <span key={tokenKey as string} {...tokenProps} />;
                 })}
               </div>
             );

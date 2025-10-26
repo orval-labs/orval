@@ -6,7 +6,9 @@ title: Custom Axios Instance
 To set up a custom instance of Axios, add a mutator function to the configuration file.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -19,7 +21,7 @@ module.exports = {
     }
     ...
   },
-};
+});
 ```
 
 ```ts

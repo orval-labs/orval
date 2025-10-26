@@ -1,7 +1,13 @@
 import cn from 'classnames';
 import { useState } from 'react';
 import { Search } from './Search';
-export const Sidebar = ({ active, children, fixed }) => {
+
+type SidebarProps = {
+  active?: boolean;
+  fixed?: boolean;
+  children: React.ReactNode;
+};
+export const Sidebar = ({ active, children, fixed }: SidebarProps) => {
   const [searching, setSearching] = useState(false);
   return (
     <aside

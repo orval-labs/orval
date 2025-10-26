@@ -8,7 +8,9 @@ To create a Zod schema, specify the `client` property as `zod`, and it will auto
 ## Example of orval.config.js
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       client: 'zod',
@@ -19,7 +21,7 @@ module.exports = {
       target: './petstore.yaml',
     },
   },
-};
+});
 ```
 
 An implementation file will be created, containing a Zod object for each schema in your OpenAPI Specification, as illustrated below:

@@ -8,7 +8,9 @@ To use Zod with your SWR or TanStack Query client, do so by configuring it as fo
 ## Example of orval.config.js
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     input: {
       target: './petstore.yaml',
@@ -32,7 +34,7 @@ module.exports = {
       fileExtension: '.zod.ts',
     },
   },
-};
+});
 ```
 
 Here we describe the configurations for generating Zod and the definition of SWR. `petstoreZod` avoids conflicts in the generated file names by specifying `.zod.ts` for `output.fileExtension` and not defining `schemas`. `mock` only needs to be generated once, so it is defined only in `petstore`.
