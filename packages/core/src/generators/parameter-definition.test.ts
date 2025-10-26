@@ -8,7 +8,6 @@ describe('generateParameterDefinition', () => {
     specKey: 'testSpec',
     output: {
       override: {
-        useNativeEnums: false,
         components: {
           schemas: { itemSuffix: 'Parameter' },
         },

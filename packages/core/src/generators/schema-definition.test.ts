@@ -6,11 +6,6 @@ import { generateSchemasDefinition } from './schema-definition';
 describe('generateSchemasDefinition', () => {
   const context: ContextSpecs = {
     specKey: 'testSpec',
-    output: {
-      override: {
-        useNativeEnums: false,
-      },
-    },
     target: 'typescript',
     specs: {},
   };
