@@ -45,20 +45,19 @@ Type: `String`.
 
 Valid values: `fetch`, `axios`.
 
-Default Value: `axios`.
+Default Value: `fetch`.
 
 ```js
 module.exports = {
   petstore: {
     output: {
       client: 'swr',
-      httpClient: 'fetch',
     },
   },
 };
 ```
 
-Specifying `fetch` as the `httpClient` option will use the Fetch API as the HTTP client instead of Axios.
+The Fetch API is used as the default HTTP client. Specify `axios` if you want to use Axios instead.
 This property is only valid when `swr`, `react-query`, `vue-query`, and `svelte-query` are specified as the `client` option.
 
 ## schemas
