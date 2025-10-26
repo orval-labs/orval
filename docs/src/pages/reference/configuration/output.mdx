@@ -2667,32 +2667,6 @@ module.exports = {
 };
 ```
 
-### coerceTypes
-
-Type: `Boolean`
-
-Deprecated: Use `zod.coerce` instead.
-
-Valid values: `true` or `false`. Defaults to `false`.
-
-Use this property to enable [type coercion](https://zod.dev/?id=coercion-for-primitives) for [Zod](https://zod.dev/) schemas (only applies to query parameters schemas).
-
-This is helpful if you want to use the zod schema to coerce (likely string-serialized) query parameters into the correct type before validation.
-
-Example:
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      override: {
-        coerceTypes: true,
-      },
-    },
-  },
-};
-```
-
 ### useNamedParameters
 
 Type: `Boolean`.
