@@ -67,6 +67,10 @@ export type NormalizedParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+export type NormalizedAxiosOptions = {
+  paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+};
+
 export type NormalizedOverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
@@ -79,7 +83,7 @@ export type NormalizedOverrideOutput = {
   formData: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
-  paramsSerializerOptions?: NormalizedParamsSerializerOptions;
+  axios: NormalizedAxiosOptions;
   namingConvention: {
     enum?: NamingConvention;
   };
@@ -376,6 +380,10 @@ export type ParamsSerializerOptions = {
   qs?: Record<string, any>;
 };
 
+export type AxiosOptions = {
+  paramsSerializerOptions?: ParamsSerializerOptions;
+};
+
 export const FormDataArrayHandling = {
   SERIALIZE: 'serialize',
   EXPLODE: 'explode',
@@ -418,7 +426,7 @@ export type OverrideOutput = {
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
-  paramsSerializerOptions?: ParamsSerializerOptions;
+  axios?: AxiosOptions;
   namingConvention?: {
     enum?: NamingConvention;
   };

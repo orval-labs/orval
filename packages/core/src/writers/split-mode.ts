@@ -75,7 +75,8 @@ export const writeSplitMode = async ({
       hasTagsMutator: Object.values(output.override.tags).some(
         (tag) => !!tag.mutator,
       ),
-      hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
+      hasParamsSerializerOptions:
+        !!output.override.axios.paramsSerializerOptions,
       packageJson: output.packageJson,
       output,
     });

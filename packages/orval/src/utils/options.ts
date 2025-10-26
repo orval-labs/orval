@@ -242,6 +242,10 @@ export const normalizeOptions = async (
           outputWorkspace,
           outputOptions.override?.paramsSerializer,
         ),
+        axios: {
+          paramsSerializerOptions:
+            outputOptions.override?.axios?.paramsSerializerOptions,
+        },
         header:
           outputOptions.override?.header === false
             ? false
