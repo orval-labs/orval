@@ -354,7 +354,6 @@ export const normalizeOptions = async (
             true,
           forceSuccessResponse:
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
-          explode: outputOptions.override?.fetch?.explode ?? true,
           ...outputOptions.override?.fetch,
         },
         useDates: outputOptions.override?.useDates || false,

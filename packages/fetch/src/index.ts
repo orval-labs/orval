@@ -65,9 +65,7 @@ export const generateRequestFunction = (
     const schemaObject = schema.schema as SchemaObject;
 
     return (
-      schema.in === 'query' &&
-      schemaObject.type === 'array' &&
-      (schema.explode || override.fetch.explode)
+      schema.in === 'query' && schemaObject.type === 'array' && schema.explode
     );
   });
 
