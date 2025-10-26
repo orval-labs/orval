@@ -6,13 +6,22 @@ import React, { ComponentPropsWithoutRef } from 'react';
 import { createPortal } from 'react-dom';
 import { siteConfig } from '@/siteConfig';
 
-const SearchContext = React.createContext(undefined);
-let DocSearchModal = null;
+const SearchContext = React.createContext<
+  | {
+      DocSearchModal: any;
+      onOpen: () => void;
+    }
+  | undefined
+>(undefined);
+let DocSearchModal: any = null;
 
-export const useSearch = () => React.useContext(SearchContext);
+export const useSearch = () =>
+  React.useContext(SearchContext) as unknown as {
+    onOpen: () => void;
+  };
 
 interface Props extends ComponentPropsWithoutRef<'div'> {
-  searchParameters: { hitsPerPage: number };
+  searchParameters?: { hitsPerPage: number };
 }
 
 export function SearchProvider({
@@ -21,6 +30,7 @@ export function SearchProvider({
     hitsPerPage: 5,
   },
 }: Props) {
+  const searchRef = React.useRef(null);
   const [isShowing, setIsShowing] = React.useState(false);
 
   const onOpen = React.useCallback(function onOpen() {
@@ -45,6 +55,9 @@ export function SearchProvider({
     isOpen: isShowing,
     onOpen,
     onClose,
+    // searchButtonRef is required but this was done to satisfy the type,
+    // it doesn't appear to do anything
+    searchButtonRef: searchRef,
   });
 
   const options = {
@@ -61,7 +74,7 @@ export function SearchProvider({
           key="algolia"
           rel="preconnect"
           href={`https://${options.appId}-dsn.algolia.net`}
-          crossOrigin="true"
+          crossOrigin="anonymous"
         />
       </Head>
       <SearchContext.Provider value={{ DocSearchModal, onOpen }}>
@@ -100,7 +113,7 @@ export function SearchProvider({
 }
 
 interface HitProps {
-  hit: unknown;
+  hit: any;
   children: React.ReactElement;
 }
 

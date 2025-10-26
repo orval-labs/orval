@@ -10,8 +10,10 @@ Then create a file `orval.config.js` at the root of your project:
 ## Example of orval.config.js
 
 ```js
-module.exports = {
-  'petstore-file-transfomer': {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  'petstore-file-transformer': {
     output: {
       mode: 'single',
       target: './src/petstore.ts',
@@ -22,7 +24,7 @@ module.exports = {
       target: './petstore.yaml',
     },
   },
-};
+});
 ```
 
 The output options configure how and where you want to write the generated code.

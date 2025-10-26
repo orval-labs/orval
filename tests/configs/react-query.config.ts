@@ -105,7 +105,6 @@ export default defineConfig({
       schemas: '../generated/react-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'react-query',
-      httpClient: 'fetch',
       override: {
         fetch: {
           forceSuccessResponse: true,
@@ -124,7 +123,6 @@ export default defineConfig({
         '../generated/react-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'react-query',
-      httpClient: 'fetch',
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -140,6 +138,7 @@ export default defineConfig({
       target: '../generated/react-query/mutator/endpoints.ts',
       schemas: '../generated/react-query/mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -166,6 +165,7 @@ export default defineConfig({
       target: '../generated/react-query/mutator-client/endpoints.ts',
       schemas: '../generated/react-query/mutator-client/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       headers: true,
       override: {
@@ -194,7 +194,6 @@ export default defineConfig({
       schemas:
         '../generated/react-query/http-client-fetch-with-custom-fetch/model',
       client: 'react-query',
-      httpClient: 'fetch',
       mock: true,
       override: {
         mutator: {
@@ -212,6 +211,7 @@ export default defineConfig({
       target: '../generated/react-query/mutator-multi-arguments/endpoints.ts',
       schemas: '../generated/react-query/mutator-multi-arguments/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -237,6 +237,7 @@ export default defineConfig({
       target: '../generated/react-query/error-type/endpoints.ts',
       schemas: '../generated/react-query/error-type/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -262,6 +263,7 @@ export default defineConfig({
       target: '../generated/react-query/hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance.ts',
@@ -278,6 +280,7 @@ export default defineConfig({
       target: '../generated/react-query/hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance.ts',
@@ -297,6 +300,7 @@ export default defineConfig({
       schemas:
         '../generated/react-query/hook-mutator-with-second-parameter/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance-with-second-parameter.ts',
@@ -313,6 +317,7 @@ export default defineConfig({
       target: '../generated/react-query/tag-hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/tag-hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         tags: {
           pets: {
@@ -333,6 +338,7 @@ export default defineConfig({
       target: '../generated/react-query/form-data/endpoints.ts',
       schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -350,6 +356,7 @@ export default defineConfig({
       target: '../generated/react-query/form-data-with-hook/endpoints.ts',
       schemas: '../generated/react-query/form-data-with-hook/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -367,6 +374,7 @@ export default defineConfig({
       target: '../generated/react-query/form-data-with-mutator/endpoints.ts',
       schemas: '../generated/react-query/form-data-with-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -388,6 +396,7 @@ export default defineConfig({
       target: '../generated/react-query/form-url-encoded/endpoints.ts',
       schemas: '../generated/react-query/form-url-encoded/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -405,6 +414,7 @@ export default defineConfig({
       target: '../generated/react-query/formUrlEncoded/endpoints.ts',
       schemas: '../generated/react-query/formUrlEncoded/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -535,6 +545,7 @@ export default defineConfig({
         '../generated/react-query/use-prefetch-with-hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/use-prefetch-with-hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance.ts',

@@ -8,7 +8,9 @@ Start by providing an OpenAPI specification and an Orval config file. To use Rea
 ## Example with React Query
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       mode: 'tags-split',
@@ -21,7 +23,7 @@ module.exports = {
       target: './petstore.yaml',
     },
   },
-};
+});
 ```
 
 Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.
@@ -73,7 +75,9 @@ export const useShowPetById = <
 Given the following configuration, Orval will generate useQuery and useInfiniteQuery hooks with a `nextId` query parameter. It is also possible to override the config for every hook with the `options` field.
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -90,13 +94,15 @@ module.exports = {
     },
     ...
   },
-};
+});
 ```
 
 If needed, it is also possible to override the `query` options for a single operation or tag:
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   petstore: {
     output: {
       ...
@@ -112,7 +118,7 @@ module.exports = {
     }
     ...
   },
-};
+});
 ```
 
 Go <a href="https://github.com/orval-labs/orval/blob/master/samples/react-query/basic" target="_blank">here</a> for a full example

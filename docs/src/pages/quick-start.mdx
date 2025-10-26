@@ -26,10 +26,12 @@ $ orval
 **File orval.config.js**
 
 ```js
-module.exports = {
+import { defineConfig } from 'orval';
+
+export default defineConfig({
   'petstore-file': {
     input: './petstore.yaml',
     output: './src/petstore.ts',
   },
-};
+});
 ```

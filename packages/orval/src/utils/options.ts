@@ -185,7 +185,7 @@ export const normalizeOptions = async (
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
-        outputOptions.httpClient ?? httpClient ?? OutputHttpClient.AXIOS,
+        outputOptions.httpClient ?? httpClient ?? OutputHttpClient.FETCH,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,

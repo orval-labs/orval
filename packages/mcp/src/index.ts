@@ -15,11 +15,7 @@ import {
   pascal,
   upath,
 } from '@orval/core';
-import {
-  generateClient,
-  generateFetchHeader,
-  generateRequestFunction as generateFetchRequestFunction,
-} from '@orval/fetch';
+import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod } from '@orval/zod';
 import type { InfoObject } from 'openapi3-ts/oas30';
 

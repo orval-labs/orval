@@ -36,7 +36,7 @@
     "rimraf": "^6.0.1",
     "tsdown": "^0.15.9",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.3"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",

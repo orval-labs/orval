@@ -85,9 +85,9 @@ export function Playground({ height }: Props) {
           }}
           isMulti={false}
           isClearable={false}
-          onChange={(e) => changeTemplate(e.selectId)}
-          getOptionValue={(o) => o.selectId}
-          getOptionLabel={(o) => (
+          onChange={(e: any) => changeTemplate(e.selectId)}
+          getOptionValue={(o: any) => o.selectId}
+          getOptionLabel={(o: any): any => (
             <div className="flex items-center justify-end gap-1.5">
               <span className="mr-auto">{o.name}</span>
               {o.tags?.map((t) => {
@@ -112,7 +112,7 @@ export function Playground({ height }: Props) {
           schema={schema}
           setConfig={setConfig}
           config={config}
-          error={generateApiQuery.error?.response?.data?.error}
+          error={(generateApiQuery.error as any)?.response?.data?.error}
           output={generateApiQuery.data}
           height={height}
         />

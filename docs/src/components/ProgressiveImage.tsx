@@ -1,5 +1,8 @@
 import * as React from 'react';
-export class ProgressiveImage extends React.Component {
+
+export class ProgressiveImage extends React.Component<any> {
+  image: any;
+
   constructor(props) {
     super(props);
     this.state = {

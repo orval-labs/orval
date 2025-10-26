@@ -3,7 +3,6 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
-  isReference,
   isRootKey,
   mergeDeep,
   type MockOptions,
