@@ -1,0 +1,146 @@
+---
+id: migration-v8
+title: Migration Guide to v8
+---
+
+This guide explains the changes required to migrate from Orval v7 to v8.
+
+## 1. Changed default value of httpClient from `axios` to `fetch`
+
+We changed the default httpClient from `axios` to `fetch` to reduce bundle size and eliminate the need for additional dependencies.
+
+### How to maintain compatibility
+
+If you want to keep using axios, configure it as follows:
+
+```diff:orval.config.ts
+export default {
+  petstore: {
+    output: {
++     httpClient: 'axios', // Explicitly specify
+      target: './src/api',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+};
+```
+
+## 2. Removed `override.fetch.explode` option
+
+This parameter was kept only for compatibility. Since compatibility maintenance is no longer needed in major versions, it has been removed.
+
+### How to maintain compatibility
+
+Specify `explode` directly in the OpenAPI specification file.
+
+```diff:petstore.yaml
+paths:
+  /pets:
+    get:
+      parameters:
+        - name: tags
+          in: query
++         explode: true
+          schema:
+            type: array
+```
+
+## 3. Changed default value of `override.mock.delay` from `1000` to `false`
+
+We disabled the default delay as it creates noise.
+
+### How to maintain compatibility
+
+If you want to explicitly set a delay, specify it in milliseconds.
+
+```diff:orval.config.ts
+export default {
+  petstore: {
+    output: {
+      mock: {
++       delay: 1000, // In milliseconds
+      },
+    },
+  },
+};
+```
+
+## 4. Moved `paramsSerializerOptions` under `override.axios`
+
+Since this is an axios-specific feature, we consolidated axios-related settings under `override.axios`.
+
+### How to maintain compatibility
+
+Move the setting under `override.axios`.
+
+```diff:orval.config.ts
+export default {
+  petstore: {
+    output: {
+      httpClient: 'axios',
+      override: {
+-       paramsSerializerOptions: {
+-         qs: { arrayFormat: 'repeat' }
+-       }
++       axios: {
++         paramsSerializerOptions: {
++           qs: { arrayFormat: 'repeat' }
++         }
++       }
+      },
+    },
+  },
+};
+```
+
+## 5. Removed `override.coerceTypes`
+
+This was removed as it has been replaced by the more flexible and explicit `override.zod.coerce`.
+
+### How to maintain compatibility
+
+Use `override.zod.coerce`.
+
+```diff:orval.config.ts
+export default {
+  petstore: {
+    output: {
+      override: {
+-       coerceTypes: true
++       zod: {
++         coerce: {
++           param: true,
++           query: true,
++           header: true,
++           body: true,
++           response: true
++         }
++       }
+      },
+    },
+  },
+};
+```
+
+## 6. Removed `override.useNativeEnums`
+
+This was removed as it has been integrated into `enumGenerationType`.
+
+### How to maintain compatibility
+
+Use `enumGenerationType`.
+
+```diff:orval.config.ts
+export default {
+  petstore: {
+    output: {
+      override: {
+-       useNativeEnums: true
++       enumGenerationType: 'enum'
+      },
+    },
+  },
+};
+```
