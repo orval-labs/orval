@@ -629,14 +629,12 @@ export type SwrOptions = {
 export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
-  explode: boolean;
   jsonReviver?: Mutator;
 };
 
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
-  explode?: boolean;
   jsonReviver?: Mutator;
 };
 
