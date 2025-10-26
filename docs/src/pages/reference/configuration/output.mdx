@@ -2782,28 +2782,6 @@ module.exports = {
 };
 ```
 
-### useNativeEnums (deprecated, use 'enumGenerationType="enum"' instead)
-
-Type: `Boolean`
-
-Valid values: `true` or `false`. Defaults to `false`.
-
-Use this property to generate native Typescript `enum` instead of a combined `type` and `const`.
-
-Example:
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      override: {
-        useNativeEnums: true,
-      },
-    },
-  },
-};
-```
-
 ### enumGenerationType
 
 Type: `const | enum | union`
