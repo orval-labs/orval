@@ -6,9 +6,12 @@ import { generateSchemasDefinition } from './schema-definition';
 describe('generateSchemasDefinition', () => {
   const context: ContextSpecs = {
     specKey: 'testSpec',
+    output: {
+      override: {},
+    } as any,
     target: 'typescript',
     specs: {},
-  };
+  } as any;
 
   it('should return an empty array if schemas are empty', () => {
     const result = generateSchemasDefinition({}, context, 'Suffix');
