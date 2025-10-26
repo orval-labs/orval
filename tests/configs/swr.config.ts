@@ -92,6 +92,7 @@ export default defineConfig({
       target: '../generated/swr/mutator/endpoints.ts',
       schemas: '../generated/swr/mutator/model',
       client: 'swr',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -112,6 +113,7 @@ export default defineConfig({
       target: '../generated/swr/custom-client/endpoints.ts',
       schemas: '../generated/swr/custom-client/model',
       client: 'swr',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {

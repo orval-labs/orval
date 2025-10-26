@@ -94,6 +94,7 @@ export default defineConfig({
       target: '../generated/svelte-query/mutator/endpoints.ts',
       schemas: '../generated/svelte-query/mutator/model',
       client: 'svelte-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {

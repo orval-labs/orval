@@ -6,6 +6,7 @@ export default defineConfig({
       target: '../generated/vue-query/petstore/endpoints.ts',
       schemas: '../generated/vue-query/petstore/model',
       client: 'vue-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         query: {
@@ -26,6 +27,7 @@ export default defineConfig({
     output: {
       target: '../generated/vue-query/petstore-tags-split/endpoints.ts',
       schemas: '../generated/vue-query/petstore-tags-split/model',
+      httpClient: 'axios',
       mock: true,
       mode: 'tags-split',
       client: 'vue-query',
@@ -38,6 +40,7 @@ export default defineConfig({
     output: {
       target: '../generated/vue-query/split/endpoints.ts',
       schemas: '../generated/vue-query/split/model',
+      httpClient: 'axios',
       mock: true,
       mode: 'split',
       client: 'vue-query',
@@ -50,6 +53,7 @@ export default defineConfig({
     output: {
       target: '../generated/vue-query/tags/endpoints.ts',
       schemas: '../generated/vue-query/tags/model',
+      httpClient: 'axios',
       mock: true,
       mode: 'tags',
       client: 'vue-query',
@@ -94,6 +98,7 @@ export default defineConfig({
       target: '../generated/vue-query/mutator/endpoints.ts',
       schemas: '../generated/vue-query/mutator/model',
       client: 'vue-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
