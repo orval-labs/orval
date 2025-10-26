@@ -2,6 +2,7 @@
   "name": "hono-with-fetch-client",
   "version": "8.0.0-rc.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "generate-api": "orval"
   },
