@@ -57,7 +57,6 @@ export default defineConfig({
       schemas: '../generated/swr/http-client-fetch/model',
       mode: 'tags-split',
       client: 'swr',
-      httpClient: 'fetch',
       override: {
         fetch: {
           forceSuccessResponse: true,
@@ -76,7 +75,6 @@ export default defineConfig({
         '../generated/swr/http-client-fetch-with-include-http_status_return-type/model',
       mode: 'tags-split',
       client: 'swr',
-      httpClient: 'fetch',
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -92,6 +90,7 @@ export default defineConfig({
       target: '../generated/swr/mutator/endpoints.ts',
       schemas: '../generated/swr/mutator/model',
       client: 'swr',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -112,6 +111,7 @@ export default defineConfig({
       target: '../generated/swr/custom-client/endpoints.ts',
       schemas: '../generated/swr/custom-client/model',
       client: 'swr',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -133,7 +133,6 @@ export default defineConfig({
         '../generated/swr/http-client-fetch-with-custom-fetch/endpoints.ts',
       schemas: '../generated/swr/http-client-fetch-with-custom-fetch/model',
       client: 'swr',
-      httpClient: 'fetch',
       mock: true,
       override: {
         mutator: {

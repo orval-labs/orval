@@ -3,7 +3,7 @@ id: fetch-client
 title: Fetch Client
 ---
 
-To use the Fetch API as an HTTP client with swr or TanStack Query clients, change the `httpClient` option from `axios` to `fetch`.
+The `Fetch API` is the default HTTP client for `swr` and `TanStack Query` clients.
 
 ```js
 import { defineConfig } from 'orval';
@@ -13,7 +13,6 @@ export default defineConfig({
     output: {
       ...
       client: 'swr',
-      httpClient: 'fetch'
       ...
     },
   },
@@ -161,7 +160,6 @@ export default defineConfig({
     output: {
       ...
       client: 'swr',
-      httpClient: 'fetch',
       override: {
         mutator: {
           path: './src/mutator.ts',
