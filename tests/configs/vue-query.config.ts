@@ -81,7 +81,6 @@ export default defineConfig({
         '../generated/vue-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'vue-query',
-
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -125,7 +124,6 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-custom-fetch/model',
       client: 'vue-query',
-
       mock: true,
       override: {
         mutator: {

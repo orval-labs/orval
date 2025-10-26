@@ -77,7 +77,6 @@ export default defineConfig({
         '../generated/svelte-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'svelte-query',
-
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -121,7 +120,6 @@ export default defineConfig({
       schemas:
         '../generated/svelte-query/http-client-fetch-with-custom-fetch/model',
       client: 'svelte-query',
-
       mock: true,
       override: {
         mutator: {
