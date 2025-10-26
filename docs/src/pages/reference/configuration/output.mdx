@@ -973,6 +973,57 @@ Changes naming convention for **enum** keys. All generated [enum types](#enumgen
 Valid values: : `camelCase`, `PascalCase`, `snake_case`, `kebab-case`.
 _same as for file_ [namingConvention](#namingconvention).
 
+### axios
+
+Type: `Object`
+
+Options related to the generated Axios client.
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      ...
+      override: {
+        axios: {
+          paramsSerializerOptions: {},
+        },
+      },
+    },
+    ...
+  },
+};
+```
+
+#### paramsSerializerOptions
+
+Type: `Object`
+
+Use this property to specify how parameters are serialized. This is only taken into account when `paramsSerializer` is not defined.
+Currently, `qs` is the only available option. Read more about `qs` and its settings [here](https://www.npmjs.com/package/qs).
+
+If this is not specified, parameters are serialized as per Axios default.
+
+Example:
+
+```js
+module.exports = {
+  petstore: {
+    output: {
+      override: {
+        axios: {
+          paramsSerializerOptions: {
+            qs: {
+              arrayFormat: 'repeat',
+            },
+          },
+        },
+      },
+    },
+  },
+};
+```
+
 ### fetch
 
 Type: `Object`.
@@ -2547,35 +2598,6 @@ export const customParamsSerializerFn = (
   // do your implementation to transform the params
 
   return params;
-};
-```
-
-### paramsSerializerOptions
-
-Type: `Object`
-
-IMPORTANT: This is only valid when using Axios.
-
-Use this property to specify how parameters are serialized. This is only taken into account when `paramsSerializer` is not defined.
-Currently, `qs` is the only available option. Read more about `qs` and its settings [here](https://www.npmjs.com/package/qs).
-
-If this is not specified, parameters are serialized as per Axios default.
-
-Example:
-
-```js
-module.exports = {
-  petstore: {
-    output: {
-      override: {
-        paramsSerializerOptions: {
-          qs: {
-            arrayFormat: 'repeat',
-          },
-        },
-      },
-    },
-  },
 };
 ```
 
