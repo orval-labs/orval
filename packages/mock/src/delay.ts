@@ -20,7 +20,7 @@ export const getDelay = (
       return overrideDelay;
     }
     default: {
-      return 1000;
+      return false;
     }
   }
 };
