@@ -1,6 +1,6 @@
 {
   "name": "@orval/mcp",
-  "version": "7.15.0",
+  "version": "8.0.0-rc.0",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -31,5 +31,6 @@
     "rimraf": "^6.0.1",
     "tsdown": "^0.15.9",
     "typescript": "^5.9.3"
-  }
+  },
+  "stableVersion": "7.15.0"
 }

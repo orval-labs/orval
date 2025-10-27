@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "7.15.0",
+  "version": "8.0.0-rc.0",
   "license": "MIT",
   "workspaces": [
     "packages/*",
@@ -58,5 +58,6 @@
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
     "vitest": "^4.0.3"
-  }
+  },
+  "stableVersion": "7.15.0"
 }
