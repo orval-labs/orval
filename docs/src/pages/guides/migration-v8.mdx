@@ -183,3 +183,41 @@ export default {
   },
 };
 ```
+
+## 7. Removed TanStack Query v3 support
+
+Support for TanStack Query v3 (react-query, vue-query, svelte-query) has been removed. TanStack Query v3 is no longer maintained, and v4/v5 provide significant API improvements.
+
+### How to migrate
+
+#### React Query
+
+Upgrade from `react-query` to `@tanstack/react-query`:
+
+```bash
+npm uninstall react-query
+npm install @tanstack/react-query@latest
+```
+
+#### Vue Query
+
+Upgrade from `vue-query` to `@tanstack/vue-query`:
+
+```bash
+npm uninstall vue-query
+npm install @tanstack/vue-query@latest
+```
+
+#### Svelte Query
+
+Upgrade from `@sveltestack/svelte-query` to `@tanstack/svelte-query`:
+
+```bash
+npm uninstall @sveltestack/svelte-query
+npm install @tanstack/svelte-query@latest
+```
+
+### Official migration guides
+
+- [TanStack Query v4 Migration Guide](https://tanstack.com/query/v4/docs/react/guides/migrating-to-react-query-4)
+- [TanStack Query v5 Migration Guide](https://tanstack.com/query/latest/docs/react/guides/migrating-to-v5)
