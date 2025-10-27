@@ -67,35 +67,7 @@ export default {
 };
 ```
 
-## 4. Moved `paramsSerializerOptions` under `override.axios`
-
-Since this is an axios-specific feature, we consolidated axios-related settings under `override.axios`.
-
-### How to maintain compatibility
-
-Move the setting under `override.axios`.
-
-```diff:orval.config.ts
-export default {
-  petstore: {
-    output: {
-      httpClient: 'axios',
-      override: {
--       paramsSerializerOptions: {
--         qs: { arrayFormat: 'repeat' }
--       }
-+       axios: {
-+         paramsSerializerOptions: {
-+           qs: { arrayFormat: 'repeat' }
-+         }
-+       }
-      },
-    },
-  },
-};
-```
-
-## 5. Removed `override.coerceTypes`
+## 4. Removed `override.coerceTypes`
 
 This was removed as it has been replaced by the more flexible and explicit `override.zod.coerce`.
 
@@ -124,7 +96,7 @@ export default {
 };
 ```
 
-## 6. Removed `override.useNativeEnums`
+## 5. Removed `override.useNativeEnums`
 
 This was removed as it has been integrated into `enumGenerationType`.
 
