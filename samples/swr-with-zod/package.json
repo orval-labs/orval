@@ -1,7 +1,7 @@
 {
   "name": "swr-with-zod",
   "private": true,
-  "version": "7.15.0",
+  "version": "8.0.0-rc.0",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",
@@ -29,5 +29,6 @@
     "orval": "workspace:*",
     "typescript": "~5.8.3",
     "vite": "^7.1.12"
-  }
+  },
+  "stableVersion": "7.15.0"
 }

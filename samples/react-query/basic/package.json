@@ -1,6 +1,6 @@
 {
   "name": "react-query-basic",
-  "version": "7.15.0",
+  "version": "8.0.0-rc.0",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -49,5 +49,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "stableVersion": "7.15.0"
 }
