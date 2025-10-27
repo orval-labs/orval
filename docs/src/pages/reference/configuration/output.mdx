@@ -2904,30 +2904,6 @@ export default defineConfig({
 });
 ```
 
-### useNativeEnums (deprecated, use 'enumGenerationType="enum"' instead)
-
-Type: `Boolean`
-
-Valid values: `true` or `false`. Defaults to `false`.
-
-Use this property to generate native Typescript `enum` instead of a combined `type` and `const`.
-
-Example:
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    output: {
-      override: {
-        useNativeEnums: true,
-      },
-    },
-  },
-});
-```
-
 ### enumGenerationType
 
 Type: `const | enum | union`

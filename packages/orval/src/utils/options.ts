@@ -360,9 +360,7 @@ export const normalizeOptions = async (
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
-          (outputOptions.override?.useNativeEnums ?? false)
-            ? 'enum'
-            : (outputOptions.override?.enumGenerationType ?? 'const'),
+          outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
       },
