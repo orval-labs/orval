@@ -5,7 +5,74 @@ title: Migration Guide to v8
 
 This guide explains the changes required to migrate from Orval v7 to v8.
 
-## 1. Changed default value of httpClient from `axios` to `fetch`
+## 1. Converted to ESM (ECMAScript Modules)
+
+The project has been fully converted from CommonJS to ESM. This modernizes the codebase and aligns with the JavaScript ecosystem's direction.
+
+### Key Changes
+
+- All packages now use `"type": "module"` in package.json
+- Import/export syntax instead of require()
+- Node.js 22.18 or higher is required
+- Configuration files should use `.mjs` extension or set `"type": "module"`
+
+### How to migrate
+
+#### Update Node.js version
+
+Ensure you're using Node.js 22.18 or higher:
+
+```bash
+node --version  # Should be >= 22.18.0
+```
+
+#### Update configuration files
+
+If you're using a JavaScript configuration file, either:
+
+1. Rename it to use `.mjs` extension:
+
+```bash
+mv orval.config.js orval.config.mjs
+```
+
+2. Or add `"type": "module"` to your package.json:
+
+```diff:package.json
+{
+  "name": "your-project",
++ "type": "module",
+  ...
+}
+```
+
+#### Update imports in your code
+
+If you were importing Orval programmatically:
+
+```diff:your-script.js
+- const { generate } = require('orval');
++ import { generate } from 'orval';
+```
+
+#### Update dynamic imports
+
+If you were using dynamic imports:
+
+```diff:your-script.js
+- const config = require('./orval.config.js');
++ const config = await import('./orval.config.js');
+```
+
+### Benefits of ESM
+
+- **Better tree-shaking**: Unused code is more easily eliminated
+- **Native browser support**: ESM works directly in modern browsers
+- **Async module loading**: Improved performance with lazy loading
+- **Future-proof**: Aligns with JavaScript ecosystem standards
+- **Stricter module boundaries**: Better encapsulation and type safety
+
+## 2. Changed default value of httpClient from `axios` to `fetch`
 
 We changed the default httpClient from `axios` to `fetch` to reduce bundle size and eliminate the need for additional dependencies.
 
@@ -27,7 +94,7 @@ export default {
 };
 ```
 
-## 2. Removed `override.fetch.explode` option
+## 3. Removed `override.fetch.explode` option
 
 This parameter was kept only for compatibility. Since compatibility maintenance is no longer needed in major versions, it has been removed.
 
@@ -47,7 +114,7 @@ paths:
             type: array
 ```
 
-## 3. Changed default value of `override.mock.delay` from `1000` to `false`
+## 4. Changed default value of `override.mock.delay` from `1000` to `false`
 
 We disabled the default delay as it creates noise.
 
@@ -67,7 +134,7 @@ export default {
 };
 ```
 
-## 4. Removed `override.coerceTypes`
+## 5. Removed `override.coerceTypes`
 
 This was removed as it has been replaced by the more flexible and explicit `override.zod.coerce`.
 
@@ -96,7 +163,7 @@ export default {
 };
 ```
 
-## 5. Removed `override.useNativeEnums`
+## 6. Removed `override.useNativeEnums`
 
 This was removed as it has been integrated into `enumGenerationType`.
 
