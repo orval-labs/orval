@@ -584,7 +584,7 @@ export type NormalizedQueryOptions = {
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
-  version?: 3 | 4 | 5;
+  version?: 4 | 5;
 };
 
 export type QueryOptions = {
@@ -606,7 +606,7 @@ export type QueryOptions = {
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
-  version?: 3 | 4 | 5;
+  version?: 4 | 5;
 };
 
 export type AngularOptions = {
