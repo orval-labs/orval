@@ -176,6 +176,58 @@ export const generateZodValidationSchemaDefinition = (
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
   const matches = schema.pattern ?? undefined;
 
+  // Check for allOf/oneOf/anyOf BEFORE processing by type
+  // This ensures these constraints work with any base type (string, number, object, etc.)
+  let skipSwitchStatement = false;
+  if (schema.allOf || schema.oneOf || schema.anyOf) {
+    const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
+
+    const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
+      | SchemaObject
+      | ReferenceObject
+    )[];
+
+    const baseSchemas = schemas.map((schema) =>
+      generateZodValidationSchemaDefinition(
+        schema as SchemaObject,
+        context,
+        camel(name),
+        strict,
+        isZodV4,
+        {
+          required: true,
+        },
+      ),
+    );
+
+    // Handle allOf with additional properties - merge additional properties into the last schema
+    if (schema.allOf && schema.properties) {
+      const additionalPropertiesSchema = {
+        properties: schema.properties,
+        required: schema.required,
+        additionalProperties: schema.additionalProperties,
+        type: schema.type,
+      } as SchemaObject;
+
+      const additionalPropertiesDefinition =
+        generateZodValidationSchemaDefinition(
+          additionalPropertiesSchema,
+          context,
+          camel(name),
+          strict,
+          isZodV4,
+          {
+            required: true,
+          },
+        );
+
+      baseSchemas.push(additionalPropertiesDefinition);
+    }
+
+    functions.push([separator, baseSchemas]);
+    skipSwitchStatement = true;
+  }
+
   let defaultVarName: string | undefined;
   if (schema.default !== undefined) {
     defaultVarName = `${name}Default${constsCounterValue}`;
@@ -216,281 +268,232 @@ export const generateZodValidationSchemaDefinition = (
     consts.push(`export const ${defaultVarName} = ${defaultValue};`);
   }
 
-  switch (type) {
-    case 'tuple': {
-      /**
-       *
-       * > 10.3.1.1. prefixItems
-       * > The value of "prefixItems" MUST be a non-empty array of valid JSON Schemas.
-       * >
-       * > Validation succeeds if each element of the instance validates against the schema at the same position, if any.
-       * > This keyword does not constrain the length of the array. If the array is longer than this keyword's value,
-       * > this keyword validates only the prefix of matching length.
-       * >
-       * > This keyword produces an annotation value which is the largest index to which this keyword applied a subschema.
-       * > The value MAY be a boolean true if a subschema was applied to every index of the instance, such as is produced by the "items" keyword.
-       * > This annotation affects the behavior of "items" and "unevaluatedItems".
-       * >
-       * > Omitting this keyword has the same assertion behavior as an empty array.
-       */
-      if ('prefixItems' in schema) {
-        const schema31 = schema as SchemaObject31;
+  if (!skipSwitchStatement) {
+    switch (type) {
+      case 'tuple': {
+        /**
+         *
+         * > 10.3.1.1. prefixItems
+         * > The value of "prefixItems" MUST be a non-empty array of valid JSON Schemas.
+         * >
+         * > Validation succeeds if each element of the instance validates against the schema at the same position, if any.
+         * > This keyword does not constrain the length of the array. If the array is longer than this keyword's value,
+         * > this keyword validates only the prefix of matching length.
+         * >
+         * > This keyword produces an annotation value which is the largest index to which this keyword applied a subschema.
+         * > The value MAY be a boolean true if a subschema was applied to every index of the instance, such as is produced by the "items" keyword.
+         * > This annotation affects the behavior of "items" and "unevaluatedItems".
+         * >
+         * > Omitting this keyword has the same assertion behavior as an empty array.
+         */
+        if ('prefixItems' in schema) {
+          const schema31 = schema as SchemaObject31;
 
-        if (schema31.prefixItems && schema31.prefixItems.length > 0) {
-          functions.push([
-            'tuple',
-            schema31.prefixItems.map((item, idx) =>
-              generateZodValidationSchemaDefinition(
-                deference(item as SchemaObject | ReferenceObject, context),
-                context,
-                camel(`${name}-${idx}-item`),
-                isZodV4,
-                strict,
-                {
-                  required: true,
-                },
-              ),
-            ),
-          ]);
-
-          if (
-            schema.items &&
-            (max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length
-          ) {
-            // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
+          if (schema31.prefixItems && schema31.prefixItems.length > 0) {
             functions.push([
-              'rest',
-              generateZodValidationSchemaDefinition(
-                schema.items as SchemaObject | undefined,
-                context,
-                camel(`${name}-item`),
-                strict,
-                isZodV4,
-                {
-                  required: true,
-                },
+              'tuple',
+              schema31.prefixItems.map((item, idx) =>
+                generateZodValidationSchemaDefinition(
+                  deference(item as SchemaObject | ReferenceObject, context),
+                  context,
+                  camel(`${name}-${idx}-item`),
+                  isZodV4,
+                  strict,
+                  {
+                    required: true,
+                  },
+                ),
               ),
             ]);
+
+            if (
+              schema.items &&
+              (max || Number.POSITIVE_INFINITY) > schema31.prefixItems.length
+            ) {
+              // only add zod.rest() if number of tuple elements can exceed provided prefixItems:
+              functions.push([
+                'rest',
+                generateZodValidationSchemaDefinition(
+                  schema.items as SchemaObject | undefined,
+                  context,
+                  camel(`${name}-item`),
+                  strict,
+                  isZodV4,
+                  {
+                    required: true,
+                  },
+                ),
+              ]);
+            }
           }
         }
-      }
-      break;
-    }
-    case 'array': {
-      functions.push([
-        'array',
-        generateZodValidationSchemaDefinition(
-          schema.items as SchemaObject | undefined,
-          context,
-          camel(`${name}-item`),
-          strict,
-          isZodV4,
-          {
-            required: true,
-          },
-        ),
-      ]);
-      break;
-    }
-    case 'string': {
-      if (schema.enum && type === 'string') {
         break;
       }
-
-      if (
-        context.output.override.useDates &&
-        (schema.format === 'date' || schema.format === 'date-time')
-      ) {
-        functions.push(['date', undefined]);
+      case 'array': {
+        functions.push([
+          'array',
+          generateZodValidationSchemaDefinition(
+            schema.items as SchemaObject | undefined,
+            context,
+            camel(`${name}-item`),
+            strict,
+            isZodV4,
+            {
+              required: true,
+            },
+          ),
+        ]);
         break;
       }
+      case 'string': {
+        if (schema.enum && type === 'string') {
+          break;
+        }
 
-      if (schema.format === 'binary') {
-        functions.push(['instanceof', 'File']);
-        break;
-      }
-
-      if (isZodV4) {
         if (
-          ![
-            'date',
-            'time',
-            'date-time',
-            'email',
-            'uri',
-            'hostname',
-            'uuid',
-          ].includes(schema.format || '')
+          context.output.override.useDates &&
+          (schema.format === 'date' || schema.format === 'date-time')
         ) {
+          functions.push(['date', undefined]);
+          break;
+        }
+
+        if (schema.format === 'binary') {
+          functions.push(['instanceof', 'File']);
+          break;
+        }
+
+        if (isZodV4) {
+          if (
+            ![
+              'date',
+              'time',
+              'date-time',
+              'email',
+              'uri',
+              'hostname',
+              'uuid',
+            ].includes(schema.format || '')
+          ) {
+            if ('const' in schema) {
+              functions.push(['literal', `"${schema.const}"`]);
+            } else {
+              functions.push([type as string, undefined]);
+            }
+            break;
+          }
+        } else {
           if ('const' in schema) {
             functions.push(['literal', `"${schema.const}"`]);
           } else {
             functions.push([type as string, undefined]);
           }
+        }
+
+        if (schema.format === 'date') {
+          const formatAPI = getZodDateFormat(isZodV4);
+
+          functions.push([formatAPI, undefined]);
           break;
         }
-      } else {
-        if ('const' in schema) {
-          functions.push(['literal', `"${schema.const}"`]);
-        } else {
-          functions.push([type as string, undefined]);
-        }
-      }
 
-      if (schema.format === 'date') {
-        const formatAPI = getZodDateFormat(isZodV4);
+        if (schema.format === 'time') {
+          const options = context.output.override.zod?.timeOptions;
+          const formatAPI = getZodTimeFormat(isZodV4);
 
-        functions.push([formatAPI, undefined]);
-        break;
-      }
-
-      if (schema.format === 'time') {
-        const options = context.output.override.zod?.timeOptions;
-        const formatAPI = getZodTimeFormat(isZodV4);
-
-        functions.push([
-          formatAPI,
-          options ? JSON.stringify(options) : undefined,
-        ]);
-        break;
-      }
-
-      if (schema.format === 'date-time') {
-        const options = context.output.override.zod?.dateTimeOptions;
-        const formatAPI = getZodDateTimeFormat(isZodV4);
-
-        functions.push([
-          formatAPI,
-          options ? JSON.stringify(options) : undefined,
-        ]);
-        break;
-      }
-
-      if (schema.format === 'email') {
-        functions.push(['email', undefined]);
-        break;
-      }
-
-      if (schema.format === 'uri' || schema.format === 'hostname') {
-        functions.push(['url', undefined]);
-        break;
-      }
-
-      if (schema.format === 'uuid') {
-        functions.push(['uuid', undefined]);
-        break;
-      }
-
-      break;
-    }
-    case 'object':
-    default: {
-      if (schema.allOf || schema.oneOf || schema.anyOf) {
-        const separator = schema.allOf
-          ? 'allOf'
-          : schema.oneOf
-            ? 'oneOf'
-            : 'anyOf';
-
-        const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
-          | SchemaObject
-          | ReferenceObject
-        )[];
-
-        const baseSchemas = schemas.map((schema) =>
-          generateZodValidationSchemaDefinition(
-            schema as SchemaObject,
-            context,
-            camel(name),
-            strict,
-            isZodV4,
-            {
-              required: true,
-            },
-          ),
-        );
-
-        // Handle allOf with additional properties - merge additional properties into the last schema
-        if (schema.allOf && schema.properties) {
-          const additionalPropertiesSchema = {
-            properties: schema.properties,
-            required: schema.required,
-            additionalProperties: schema.additionalProperties,
-          } as SchemaObject;
-          
-          const additionalPropertiesDefinition = generateZodValidationSchemaDefinition(
-            additionalPropertiesSchema,
-            context,
-            camel(name),
-            strict,
-            isZodV4,
-            {
-              required: true,
-            },
-          );
-          
-          baseSchemas.push(additionalPropertiesDefinition);
+          functions.push([
+            formatAPI,
+            options ? JSON.stringify(options) : undefined,
+          ]);
+          break;
         }
 
-        functions.push([separator, baseSchemas]);
-        break;
-      }
+        if (schema.format === 'date-time') {
+          const options = context.output.override.zod?.dateTimeOptions;
+          const formatAPI = getZodDateTimeFormat(isZodV4);
 
-      if (schema.properties) {
-        const objectType = getObjectFunctionName(isZodV4, strict);
+          functions.push([
+            formatAPI,
+            options ? JSON.stringify(options) : undefined,
+          ]);
+          break;
+        }
 
-        functions.push([
-          objectType,
-          Object.keys(schema.properties)
-            .map((key) => ({
-              [key]: generateZodValidationSchemaDefinition(
-                schema.properties?.[key] as any,
-                context,
-                camel(`${name}-${key}`),
-                strict,
-                isZodV4,
-                {
-                  required: schema.required?.includes(key),
-                },
-              ),
-            }))
-            .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
-        ]);
+        if (schema.format === 'email') {
+          functions.push(['email', undefined]);
+          break;
+        }
 
-        if (strict && !isZodV4) {
-          functions.push(['strict', undefined]);
+        if (schema.format === 'uri' || schema.format === 'hostname') {
+          functions.push(['url', undefined]);
+          break;
+        }
+
+        if (schema.format === 'uuid') {
+          functions.push(['uuid', undefined]);
+          break;
         }
 
         break;
       }
+      case 'object':
+      default: {
+        if (schema.properties) {
+          const objectType = getObjectFunctionName(isZodV4, strict);
 
-      if (schema.additionalProperties) {
-        functions.push([
-          'additionalProperties',
-          generateZodValidationSchemaDefinition(
-            isBoolean(schema.additionalProperties)
-              ? {}
-              : (schema.additionalProperties as SchemaObject),
-            context,
-            name,
-            strict,
-            isZodV4,
-            {
-              required: true,
-            },
-          ),
-        ]);
+          functions.push([
+            objectType,
+            Object.keys(schema.properties)
+              .map((key) => ({
+                [key]: generateZodValidationSchemaDefinition(
+                  schema.properties?.[key] as any,
+                  context,
+                  camel(`${name}-${key}`),
+                  strict,
+                  isZodV4,
+                  {
+                    required: schema.required?.includes(key),
+                  },
+                ),
+              }))
+              .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
+          ]);
+
+          if (strict && !isZodV4) {
+            functions.push(['strict', undefined]);
+          }
+
+          break;
+        }
+
+        if (schema.additionalProperties) {
+          functions.push([
+            'additionalProperties',
+            generateZodValidationSchemaDefinition(
+              isBoolean(schema.additionalProperties)
+                ? {}
+                : (schema.additionalProperties as SchemaObject),
+              context,
+              name,
+              strict,
+              isZodV4,
+              {
+                required: true,
+              },
+            ),
+          ]);
+
+          break;
+        }
+
+        if (schema.enum) {
+          break;
+        }
+
+        functions.push([type as string, undefined]);
 
         break;
       }
-
-      if (schema.enum) {
-        break;
-      }
-
-      functions.push([type as string, undefined]);
-
-      break;
     }
   }
 

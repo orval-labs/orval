@@ -352,6 +352,64 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
+  it('handles allOf with base type string', () => {
+    const stringWithConstraints: SchemaObject = {
+      type: 'string',
+      minLength: 1,
+      maxLength: 100,
+      description: 'Foo',
+    };
+
+    const schemaWithStringAllOf: SchemaObject = {
+      type: 'string',
+      allOf: [stringWithConstraints],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithStringAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse and verify the result
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    // The result should contain constraints from allOf
+    expect(parsed.zod).toContain('min');
+    expect(parsed.zod).toContain('max');
+    expect(parsed.zod).toContain('describe');
+    expect(parsed.zod).toContain('Foo');
+
+    // For type: string with allOf, the constraints are merged directly
+    expect(parsed.zod).toContain('zod.string()');
+  });
+
   it('handles allOf with additional properties', () => {
     const pagingResultSchema: SchemaObject = {
       type: 'object',
@@ -407,15 +465,15 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
     // Check that allOf was used
     expect(result.functions[0][0]).toBe('allOf');
-    
+
     // Check that there are two schemas in allOf: the base schema and the additional properties
     expect(result.functions[0][1]).toHaveLength(2);
-    
+
     // The first schema should be from allOf (with meta property)
     const firstSchema = result.functions[0][1][0];
     expect(firstSchema.functions[0][0]).toBe('object');
     expect(firstSchema.functions[0][1]).toHaveProperty('meta');
-    
+
     // The second schema should contain the additional properties (items)
     const secondSchema = result.functions[0][1][1];
     expect(secondSchema.functions[0][0]).toBe('object');
