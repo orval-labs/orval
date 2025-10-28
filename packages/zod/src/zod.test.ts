@@ -896,6 +896,92 @@ describe('generateZodValidationSchemaDefinition`', () => {
         "zod.union([zod.literal('cat'),zod.literal(1),zod.literal(true)]).optional()",
       );
     });
+
+    it('generates a default value for an array with enum items using "as const"', () => {
+      const schemaWithEnumArrayDefault: SchemaObject30 = {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['A', 'B', 'C'],
+        },
+        default: ['A'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithEnumArrayDefault,
+        context,
+        'testEnumArrayDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          [
+            'array',
+            {
+              functions: [['enum', "['A', 'B', 'C']"]],
+              consts: [],
+            },
+          ],
+          ['default', 'testEnumArrayDefaultDefault'],
+        ],
+        consts: ['export const testEnumArrayDefaultDefault = ["A"] as const;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        "zod.array(zod.enum(['A', 'B', 'C'])).default(testEnumArrayDefaultDefault)",
+      );
+      expect(parsed.consts).toBe(
+        'export const testEnumArrayDefaultDefault = ["A"] as const;',
+      );
+    });
+
+    it('generates a default value for nested enum arrays in objects', () => {
+      const schemaWithNestedEnumArray: SchemaObject30 = {
+        type: 'object',
+        properties: {
+          some_enum: {
+            type: 'array',
+            items: {
+              type: 'string',
+              enum: ['A', 'B', 'C'],
+            },
+            default: ['A'],
+          },
+        },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNestedEnumArray,
+        context,
+        'postEnumBody',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.functions[0][0]).toBe('object');
+
+      // Check that the nested array default has 'as const'
+      const objectProperties = result.functions[0][1] as Record<
+        string,
+        ZodValidationSchemaDefinition
+      >;
+      const someEnumProperty = objectProperties['some_enum'];
+
+      expect(someEnumProperty.consts).toEqual(
+        expect.arrayContaining([expect.stringContaining('as const')]),
+      );
+    });
   });
   describe('number handling', () => {
     const context: ContextSpecs = {
