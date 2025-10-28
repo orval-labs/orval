@@ -500,6 +500,223 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('meta');
   });
 
+  it('handles allOf with required fields from additional object (issue #2306)', () => {
+    // Base schema without required fields
+    const userSchema: SchemaObject = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        name: { type: 'string' },
+      },
+    };
+
+    // Extended schema with required fields in allOf
+    const userCreateSchema: SchemaObject = {
+      type: 'object',
+      allOf: [
+        userSchema,
+        {
+          type: 'object',
+          required: ['email', 'name'],
+        },
+      ],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      userCreateSchema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse and verify the result
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    // The result should use .and() to combine schemas
+    expect(parsed.zod).toContain('.and(');
+    expect(parsed.zod).toContain('email');
+    expect(parsed.zod).toContain('name');
+  });
+
+  it('handles allOf with number type', () => {
+    const numberWithConstraints: SchemaObject = {
+      type: 'number',
+      minimum: 0,
+      maximum: 100,
+      description: 'Test number',
+    };
+
+    const schemaWithAllOf: SchemaObject = {
+      type: 'number',
+      allOf: [numberWithConstraints],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('allOf');
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('min');
+    expect(parsed.zod).toContain('max');
+    expect(parsed.zod).toContain('describe');
+  });
+
+  it('handles allOf with boolean type', () => {
+    const booleanWithDescription: SchemaObject = {
+      type: 'boolean',
+      description: 'Test boolean',
+    };
+
+    const schemaWithAllOf: SchemaObject = {
+      type: 'boolean',
+      allOf: [booleanWithDescription],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('allOf');
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('boolean');
+    expect(parsed.zod).toContain('describe');
+  });
+
+  it('handles allOf with array type', () => {
+    const arrayWithItems: SchemaObject = {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      minItems: 1,
+      maxItems: 10,
+      description: 'Test array',
+    };
+
+    const schemaWithAllOf: SchemaObject = {
+      type: 'array',
+      allOf: [arrayWithItems],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('allOf');
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('array');
+    expect(parsed.zod).toContain('min');
+    expect(parsed.zod).toContain('max');
+    expect(parsed.zod).toContain('describe');
+  });
+
   describe('description handling', () => {
     const context: ContextSpecs = {
       output: {
