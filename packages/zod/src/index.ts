@@ -199,6 +199,17 @@ export const generateZodValidationSchemaDefinition = (
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
+  
+  // Handle exclusiveMinimum and exclusiveMaximum (OpenAPI 3.0 vs 3.1 compatibility)
+  // OpenAPI 3.0: exclusiveMinimum/exclusiveMaximum are booleans indicating if minimum/maximum is exclusive
+  // OpenAPI 3.1: exclusiveMinimum/exclusiveMaximum are numbers (the value itself)
+  const exclusiveMinRaw = 'exclusiveMinimum' in schema ? schema.exclusiveMinimum : undefined;
+  const exclusiveMaxRaw = 'exclusiveMaximum' in schema ? schema.exclusiveMaximum : undefined;
+  
+  // Convert boolean to number if using OpenAPI 3.0 format
+  const exclusiveMin = typeof exclusiveMinRaw === 'boolean' && exclusiveMinRaw ? min : exclusiveMinRaw;
+  const exclusiveMax = typeof exclusiveMaxRaw === 'boolean' && exclusiveMaxRaw ? max : exclusiveMaxRaw;
+  
   const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
 
@@ -528,7 +539,18 @@ export const generateZodValidationSchemaDefinition = (
   }
 
   if (minAndMaxTypes.has(type)) {
-    if (min !== undefined) {
+    // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
+    // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
+    const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
+    const shouldUseExclusiveMax = exclusiveMaxRaw !== undefined;
+    
+    if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
+      consts.push(
+        `export const ${name}ExclusiveMin${constsCounterValue} = ${exclusiveMin};`,
+      );
+      // Generate .gt() for exclusive minimum (> instead of >=)
+      functions.push(['gt', `${name}ExclusiveMin${constsCounterValue}`]);
+    } else if (min !== undefined) {
       if (min === 1) {
         functions.push(['min', `${min}`]);
       } else {
@@ -536,17 +558,32 @@ export const generateZodValidationSchemaDefinition = (
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
-    if (max !== undefined) {
+    
+    // Handle maximum constraints: exclusiveMaximum (<.lt()) takes priority over maximum (.max())
+    if (shouldUseExclusiveMax && exclusiveMax !== undefined) {
+      consts.push(
+        `export const ${name}ExclusiveMax${constsCounterValue} = ${exclusiveMax};`,
+      );
+      // Generate .lt() for exclusive maximum (< instead of <=)
+      functions.push(['lt', `${name}ExclusiveMax${constsCounterValue}`]);
+    } else if (max !== undefined) {
       consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
       functions.push(['max', `${name}Max${constsCounterValue}`]);
     }
+    
     if (multipleOf !== undefined) {
       consts.push(
         `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
       );
       functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
-    if (min !== undefined || multipleOf !== undefined || max !== undefined) {
+    if (
+      exclusiveMin !== undefined ||
+      min !== undefined ||
+      exclusiveMax !== undefined ||
+      multipleOf !== undefined ||
+      max !== undefined
+    ) {
       consts.push(`\n`);
     }
   }
