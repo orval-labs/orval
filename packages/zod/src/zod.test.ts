@@ -954,7 +954,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['gt', 'testNumberExclusiveMinExclusiveMin'],
             ['optional', undefined],
           ],
-          consts: ['export const testNumberExclusiveMinExclusiveMin = 5;', '\n'],
+          consts: [
+            'export const testNumberExclusiveMinExclusiveMin = 5;',
+            '\n',
+          ],
         });
 
         const parsed = parseZodValidationSchemaDefinition(
@@ -990,7 +993,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['lt', 'testNumberExclusiveMaxExclusiveMax'],
             ['optional', undefined],
           ],
-          consts: ['export const testNumberExclusiveMaxExclusiveMax = 100;', '\n'],
+          consts: [
+            'export const testNumberExclusiveMaxExclusiveMax = 100;',
+            '\n',
+          ],
         });
 
         const parsed = parseZodValidationSchemaDefinition(
@@ -1074,7 +1080,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['gt', 'testNumberExclusiveMinOAS30ExclusiveMin'],
             ['optional', undefined],
           ],
-          consts: ['export const testNumberExclusiveMinOAS30ExclusiveMin = 10;', '\n'],
+          consts: [
+            'export const testNumberExclusiveMinOAS30ExclusiveMin = 10;',
+            '\n',
+          ],
         });
 
         const parsed = parseZodValidationSchemaDefinition(
@@ -1111,7 +1120,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['lt', 'testNumberExclusiveMaxOAS30ExclusiveMax'],
             ['optional', undefined],
           ],
-          consts: ['export const testNumberExclusiveMaxOAS30ExclusiveMax = 100;', '\n'],
+          consts: [
+            'export const testNumberExclusiveMaxOAS30ExclusiveMax = 100;',
+            '\n',
+          ],
         });
 
         const parsed = parseZodValidationSchemaDefinition(
