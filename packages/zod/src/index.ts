@@ -238,6 +238,17 @@ export const generateZodValidationSchemaDefinition = (
         rawStringified === undefined
           ? 'null'
           : rawStringified.replaceAll("'", '"');
+
+      // If the schema is an array with enum items, add 'as const' for proper TypeScript typing
+      const isArrayWithEnumItems =
+        Array.isArray(schema.default) &&
+        type === 'array' &&
+        schema.items &&
+        'enum' in schema.items;
+
+      if (isArrayWithEnumItems) {
+        defaultValue = `${defaultValue} as const`;
+      }
     }
     consts.push(`export const ${defaultVarName} = ${defaultValue};`);
   }
