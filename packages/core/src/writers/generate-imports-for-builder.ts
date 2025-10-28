@@ -1,4 +1,4 @@
-import uniqBy from 'lodash.uniqby';
+import { uniqueBy } from 'remeda';
 
 import type { GeneratorImport, NormalizedOutputOptions } from '../types';
 import { conventionName, upath } from '../utils';
@@ -9,7 +9,7 @@ export const generateImportsForBuilder = (
   relativeSchemasPath: string,
 ) => {
   return output.schemas && !output.indexFiles
-    ? uniqBy(imports, 'name').map((i) => {
+    ? uniqueBy(imports, (x) => x.name).map((i) => {
         const name = conventionName(i.name, output.namingConvention);
         return {
           exports: [i],

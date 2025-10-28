@@ -1,6 +1,4 @@
 import { keyword } from 'esutils';
-import type { ValueIteratee } from 'lodash';
-import uniqBy from 'lodash.uniqby';
 import type {
   MediaTypeObject,
   ReferenceObject,
@@ -8,6 +6,7 @@ import type {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
+import { uniqueBy } from 'remeda';
 
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
@@ -58,7 +57,11 @@ export const getResReqTypes = (
   name: string,
   context: ContextSpecs,
   defaultType = 'unknown',
-  uniqueKey: ValueIteratee<ResReqTypesValue> = 'value',
+  uniqueKey: (
+    item: ResReqTypesValue,
+    index: number,
+    data: ResReqTypesValue[],
+  ) => unknown = (item) => item.value,
 ): ResReqTypesValue[] => {
   const typesArray = responsesOrRequests
     .filter(([_, res]) => Boolean(res))
@@ -242,7 +245,7 @@ export const getResReqTypes = (
       ] as ResReqTypesValue[];
     });
 
-  return uniqBy(typesArray.flat(), uniqueKey);
+  return uniqueBy(typesArray.flat(), uniqueKey);
 };
 
 const getFormDataAdditionalImports = ({
