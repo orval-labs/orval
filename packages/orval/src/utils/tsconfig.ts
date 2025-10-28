@@ -1,5 +1,5 @@
 import { isObject, isString, isUndefined, type Tsconfig } from '@orval/core';
-import findUp from 'find-up';
+import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import { parse } from 'tsconfck';
 

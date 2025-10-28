@@ -45,9 +45,9 @@ import chalk from 'chalk';
 
 import pkg from '../../package.json';
 import { githubResolver } from './github';
+import { httpResolver } from './http-resolver';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
-import { httpResolver } from './http-resolver';
 
 /**
  * Type helper to make it easier to use orval.config.ts
@@ -185,7 +185,7 @@ export const normalizeOptions = async (
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
-        outputOptions.httpClient ?? httpClient ?? OutputHttpClient.AXIOS,
+        outputOptions.httpClient ?? httpClient ?? OutputHttpClient.FETCH,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,
@@ -354,16 +354,13 @@ export const normalizeOptions = async (
             true,
           forceSuccessResponse:
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
-          explode: outputOptions.override?.fetch?.explode ?? true,
           ...outputOptions.override?.fetch,
         },
         useDates: outputOptions.override?.useDates || false,
         useDeprecatedOperations:
           outputOptions.override?.useDeprecatedOperations ?? true,
         enumGenerationType:
-          (outputOptions.override?.useNativeEnums ?? false)
-            ? 'enum'
-            : (outputOptions.override?.enumGenerationType ?? 'const'),
+          outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
       },
@@ -648,6 +645,9 @@ const normalizeQueryOptions = (
     ...(isUndefined(queryOptions.usePrefetch)
       ? {}
       : { usePrefetch: queryOptions.usePrefetch }),
+    ...(isUndefined(queryOptions.useInvalidate)
+      ? {}
+      : { useInvalidate: queryOptions.useInvalidate }),
     ...(isUndefined(queryOptions.useQuery)
       ? {}
       : { useQuery: queryOptions.useQuery }),

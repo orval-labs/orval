@@ -1,6 +1,7 @@
-import { ComponentsObject } from 'openapi3-ts/oas30';
+import type { ComponentsObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
-import { ContextSpecs } from '../types';
+
+import type { ContextSpecs } from '../types';
 import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {
@@ -8,7 +9,6 @@ describe('generateParameterDefinition', () => {
     specKey: 'testSpec',
     output: {
       override: {
-        useNativeEnums: false,
         components: {
           schemas: { itemSuffix: 'Parameter' },
         },

@@ -1,15 +1,15 @@
 import {
   getIsBodyVerb,
-  GetterProps,
+  type GetterProps,
   GetterPropType,
   isObject,
   isString,
-  Mutator,
-  NormalizedMutator,
-  NormalizedQueryOptions,
+  type Mutator,
+  type NormalizedMutator,
+  type NormalizedQueryOptions,
   OutputClient,
-  OutputClientFunc,
-  QueryOptions,
+  type OutputClientFunc,
+  type QueryOptions,
   TEMPLATE_TAG_REGEX,
   upath,
   Verbs,
@@ -22,6 +22,7 @@ export const normalizeQueryOptions = (
 ): NormalizedQueryOptions => {
   return {
     ...(queryOptions.usePrefetch ? { usePrefetch: true } : {}),
+    ...(queryOptions.useInvalidate ? { useInvalidate: true } : {}),
     ...(queryOptions.useQuery ? { useQuery: true } : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam

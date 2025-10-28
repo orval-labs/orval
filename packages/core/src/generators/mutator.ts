@@ -1,15 +1,11 @@
-import { type ecmaVersion, Parser } from 'acorn';
+import path from 'node:path';
+
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import type {
-  GeneratorMutator,
-  GeneratorMutatorParsingInfo,
-  NormalizedMutator,
-  Tsconfig,
-  TsConfigTarget,
-} from '../types';
-import { createLogger, getFileInfo, loadFile, pascal, upath } from '../utils';
+import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
+import { getFileInfo, pascal, upath } from '../utils';
+import { getMutatorInfo } from './mutator-info';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
@@ -20,10 +16,10 @@ const getImport = (output: string, mutator: NormalizedMutator) => {
     upath.relativeSafe(outputFileInfo.dirname, mutatorFileInfo.path),
   );
 
-  return `${pathWithoutExtension}${mutator.extension || ''}`;
+  return `${pathWithoutExtension}${mutator.extension ?? ''}`;
 };
 
-export const generateMutator = async ({
+export async function generateMutator({
   output,
   mutator,
   name,
@@ -35,16 +31,22 @@ export const generateMutator = async ({
   name: string;
   workspace: string;
   tsconfig?: Tsconfig;
-}): Promise<GeneratorMutator | undefined> => {
+}): Promise<GeneratorMutator | undefined> {
   if (!mutator || !output) {
     return;
   }
   const isDefault = mutator.default;
-  const importName = mutator.name ? mutator.name : `${name}Mutator`;
+  const importName = mutator.name ?? `${name}Mutator`;
   const importPath = mutator.path;
+  const mutatorInfoName = isDefault ? 'default' : mutator.name;
+
+  if (mutatorInfoName === undefined) {
+    throw new Error(
+      chalk.red(`Mutator ${importPath} must have a named or default export.`),
+    );
+  }
 
   let rawFile = await fs.readFile(importPath, 'utf8');
-
   rawFile = removeComments(rawFile);
 
   const hasErrorType =
@@ -63,90 +65,43 @@ export const generateMutator = async ({
     ? `${pascal(name)}${BODY_TYPE_NAME}`
     : BODY_TYPE_NAME;
 
-  const { file, cached } = await loadFile<string>(importPath, {
-    isDefault: false,
-    root: workspace,
+  const mutatorInfo = await getMutatorInfo(importPath, {
+    root: path.resolve(workspace),
+    namedExport: mutatorInfoName,
     alias: mutator.alias,
     tsconfig,
-    load: false,
   });
 
-  if (file) {
-    const mutatorInfoName = isDefault ? 'default' : mutator.name!;
-
-    const mutatorInfo = parseFile(
-      file,
-      mutatorInfoName,
-      getEcmaVersion(tsconfig?.compilerOptions?.target),
+  if (!mutatorInfo) {
+    throw new Error(
+      chalk.red(
+        `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
+      ),
     );
-
-    if (!mutatorInfo) {
-      throw new Error(
-        chalk.red(
-          `Your mutator file doesn't have the ${mutatorInfoName} exported function`,
-        ),
-      );
-    }
-
-    const path = getImport(output, mutator);
-
-    const isHook = mutator.name
-      ? !!mutator.name.startsWith('use') && !mutatorInfo.numberOfParams
-      : !mutatorInfo.numberOfParams;
-
-    return {
-      name: mutator.name || !isHook ? importName : `use${pascal(importName)}`,
-      path,
-      default: isDefault,
-      hasErrorType,
-      errorTypeName,
-      hasSecondArg: isHook
-        ? mutatorInfo.returnNumberOfParams! > 1
-        : mutatorInfo.numberOfParams > 1,
-      hasThirdArg: mutatorInfo.numberOfParams > 2,
-      isHook,
-      ...(hasBodyType ? { bodyTypeName } : {}),
-    };
-  } else {
-    const path = getImport(output, mutator);
-
-    if (!cached) {
-      createLogger().warn(
-        chalk.yellow(`Failed to parse provided mutator function`),
-      );
-    }
-
-    return {
-      name: importName,
-      path,
-      default: isDefault,
-      hasSecondArg: false,
-      hasThirdArg: false,
-      isHook: false,
-      hasErrorType,
-      errorTypeName,
-      ...(hasBodyType ? { bodyTypeName } : {}),
-    };
-  }
-};
-
-const getEcmaVersion = (target?: TsConfigTarget): ecmaVersion | undefined => {
-  if (!target) {
-    return;
   }
 
-  if (target.toLowerCase() === 'esnext') {
-    return 'latest';
-  }
+  const importStatementPath = getImport(output, mutator);
 
-  try {
-    return Number(target.toLowerCase().replace('es', '')) as ecmaVersion;
-  } catch {
-    return;
-  }
-};
+  const isHook = mutator.name
+    ? mutator.name.startsWith('use') && !mutatorInfo.numberOfParams
+    : !mutatorInfo.numberOfParams;
 
-const removeComments = (file: string) => {
+  return {
+    name: mutator.name || !isHook ? importName : `use${pascal(importName)}`,
+    path: importStatementPath,
+    default: isDefault,
+    hasErrorType,
+    errorTypeName,
+    hasSecondArg: isHook
+      ? (mutatorInfo.returnNumberOfParams ?? 0) > 1
+      : mutatorInfo.numberOfParams > 1,
+    hasThirdArg: mutatorInfo.numberOfParams > 2,
+    isHook,
+    ...(hasBodyType ? { bodyTypeName } : {}),
+  };
+}
+
+function removeComments(file: string) {
   // Regular expression to match single-line and multi-line comments
   const commentRegex = /\/\/.*|\/\*[\s\S]*?\*\//g;
 
@@ -154,166 +109,4 @@ const removeComments = (file: string) => {
   const cleanedFile = file.replaceAll(commentRegex, '');
 
   return cleanedFile;
-};
-
-const parseFile = (
-  file: string,
-  name: string,
-  ecmaVersion: ecmaVersion = 6,
-): GeneratorMutatorParsingInfo | undefined => {
-  try {
-    const ast = Parser.parse(file, { ecmaVersion }) as any;
-
-    const node = ast?.body?.find((childNode: any) => {
-      if (childNode.type === 'ExpressionStatement') {
-        if (
-          childNode.expression.arguments?.[1]?.properties?.some(
-            (p: any) => p.key?.name === name,
-          )
-        ) {
-          return true;
-        }
-
-        if (childNode.expression.left?.property?.name === name) {
-          return true;
-        }
-
-        return childNode.expression.right?.properties?.some(
-          (p: any) => p.key.name === name,
-        );
-      }
-    });
-
-    if (!node) {
-      return;
-    }
-
-    if (node.expression.type === 'AssignmentExpression') {
-      if (
-        node.expression.right.type === 'FunctionExpression' ||
-        node.expression.right.type === 'ArrowFunctionExpression'
-      ) {
-        return {
-          numberOfParams: node.expression.right.params.length,
-        };
-      }
-
-      if (node.expression.right.name) {
-        return parseFunction(ast, node.expression.right.name);
-      }
-
-      const property = node.expression.right?.properties.find(
-        (p: any) => p.key.name === name,
-      );
-
-      if (property.value.name) {
-        return parseFunction(ast, property.value.name);
-      }
-
-      if (
-        property.value.type === 'FunctionExpression' ||
-        property.value.type === 'ArrowFunctionExpression'
-      ) {
-        return {
-          numberOfParams: property.value.params.length,
-        };
-      }
-
-      return;
-    }
-
-    const property = node.expression.arguments[1].properties.find(
-      (p: any) => p.key?.name === name,
-    );
-
-    return parseFunction(ast, property.value.body.name);
-  } catch {
-    return;
-  }
-};
-
-const parseFunction = (
-  ast: any,
-  name: string,
-): GeneratorMutatorParsingInfo | undefined => {
-  const node = ast?.body?.find((childNode: any) => {
-    if (childNode.type === 'VariableDeclaration') {
-      return childNode.declarations.find((d: any) => d.id.name === name);
-    }
-    if (
-      childNode.type === 'FunctionDeclaration' &&
-      childNode.id.name === name
-    ) {
-      return childNode;
-    }
-  });
-
-  if (!node) {
-    return;
-  }
-
-  if (node.type === 'FunctionDeclaration') {
-    const returnStatement = node.body?.body?.find(
-      (b: any) => b.type === 'ReturnStatement',
-    );
-
-    // If the function directly returns an arrow function
-    if (returnStatement?.argument?.params) {
-      return {
-        numberOfParams: node.params.length,
-        returnNumberOfParams: returnStatement.argument.params.length,
-      };
-      // If the function returns a CallExpression (e.g., return useCallback(...))
-    } else if (
-      returnStatement?.argument?.type === 'CallExpression' &&
-      returnStatement.argument.arguments?.[0]?.type ===
-        'ArrowFunctionExpression'
-    ) {
-      const arrowFn = returnStatement.argument.arguments[0];
-      return {
-        numberOfParams: node.params.length,
-        returnNumberOfParams: arrowFn.params.length,
-      };
-    }
-    return {
-      numberOfParams: node.params.length,
-    };
-  }
-
-  const declaration = node.declarations.find((d: any) => d.id.name === name);
-
-  if (declaration.init.name) {
-    return parseFunction(ast, declaration.init.name);
-  }
-
-  if (declaration.init.body.type === 'ArrowFunctionExpression') {
-    return {
-      numberOfParams: declaration.init.params.length,
-      returnNumberOfParams: declaration.init.body.params.length,
-    };
-  }
-
-  const returnStatement = declaration.init.body?.body?.find(
-    (b: any) => b.type === 'ReturnStatement',
-  );
-
-  if (returnStatement?.argument?.params) {
-    return {
-      numberOfParams: declaration.init.params.length,
-      returnNumberOfParams: returnStatement.argument.params.length,
-    };
-  } else if (
-    returnStatement?.argument?.type === 'CallExpression' &&
-    returnStatement.argument.arguments?.[0]?.type === 'ArrowFunctionExpression'
-  ) {
-    const arrowFn = returnStatement.argument.arguments[0];
-    return {
-      numberOfParams: declaration.init.params.length,
-      returnNumberOfParams: arrowFn.params.length,
-    };
-  }
-
-  return {
-    numberOfParams: declaration.init.params.length,
-  };
-};
+}

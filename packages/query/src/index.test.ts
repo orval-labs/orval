@@ -1,10 +1,11 @@
-import { it, expect, describe } from 'vitest';
-import { builder } from './index';
-import {
+import type {
   GeneratorOptions,
   GeneratorVerbOptions,
   NormalizedOverrideOutput,
 } from '@orval/core';
+import { describe, expect, it } from 'vitest';
+
+import { builder } from './index';
 
 describe('throws when trying to use named parameters with vue-query client', () => {
   it('vue-query builder type', () => {

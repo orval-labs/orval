@@ -111,7 +111,6 @@ export type NormalizedOverrideOutput = {
   ) => string;
   requestOptions: Record<string, any> | boolean;
   useDates?: boolean;
-  coerceTypes?: boolean; // deprecated
   useTypeOverInterfaces?: boolean;
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
@@ -454,10 +453,6 @@ export type OverrideOutput = {
   useDeprecatedOperations?: boolean;
   useBigInt?: boolean;
   useNamedParameters?: boolean;
-  /**
-   * @deprecated use 'enumGenerationType="enum"' instead
-   */
-  useNativeEnums?: boolean;
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   jsDoc?: JsDocOptions;
@@ -578,6 +573,7 @@ export type NormalizedQueryOptions = {
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
+  useInvalidate?: boolean;
   options?: any;
   queryKey?: NormalizedMutator;
   queryOptions?: NormalizedMutator;
@@ -588,7 +584,7 @@ export type NormalizedQueryOptions = {
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
-  version?: 3 | 4 | 5;
+  version?: 4 | 5;
 };
 
 export type QueryOptions = {
@@ -599,6 +595,7 @@ export type QueryOptions = {
   useSuspenseInfiniteQuery?: boolean;
   useInfiniteQueryParam?: string;
   usePrefetch?: boolean;
+  useInvalidate?: boolean;
   options?: any;
   queryKey?: Mutator;
   queryOptions?: Mutator;
@@ -609,7 +606,7 @@ export type QueryOptions = {
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
-  version?: 3 | 4 | 5;
+  version?: 4 | 5;
 };
 
 export type AngularOptions = {
@@ -627,14 +624,12 @@ export type SwrOptions = {
 export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
-  explode: boolean;
   jsonReviver?: Mutator;
 };
 
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
-  explode?: boolean;
   jsonReviver?: Mutator;
 };
 
@@ -782,6 +777,7 @@ export type GeneratorImport = {
   default?: boolean;
   values?: boolean;
   syntheticDefaultImport?: boolean;
+  namespaceImport?: boolean;
 };
 
 export type GeneratorDependency = {

@@ -1,11 +1,12 @@
 {
   "name": "@orval/angular",
-  "version": "7.13.0",
+  "version": "8.0.0-rc.0",
   "license": "MIT",
+  "type": "module",
   "exports": {
-    ".": {
+    "import": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -23,9 +24,10 @@
     "@orval/core": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "^9.35.0",
+    "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.2",
-    "typescript": "^5.9.2"
-  }
+    "tsdown": "^0.15.9",
+    "typescript": "^5.9.3"
+  },
+  "stableVersion": "7.15.0"
 }

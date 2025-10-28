@@ -16,7 +16,7 @@ import {
   writeTagsMode,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa, { type ExecaError } from 'execa';
+import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
 import uniq from 'lodash.uniq';
 import type { InfoObject } from 'openapi3-ts/oas30';
@@ -45,7 +45,7 @@ export const writeSpecs = async (
 ) => {
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
-  const projectTitle = projectName || info.title;
+  const projectTitle = projectName ?? info.title;
 
   const specsName = Object.keys(schemas).reduce<
     Record<keyof typeof schemas, string>
@@ -191,11 +191,9 @@ export const writeSpecs = async (
     try {
       await execa('biome', ['check', '--write', ...paths]);
     } catch (error) {
-      const errorExeca = error as ExecaError;
-      const message =
-        errorExeca.exitCode === 1
-          ? errorExeca.stdout + errorExeca.stderr
-          : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
+      let message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
+      if (error instanceof ExecaError && error.exitCode === 1)
+        message = error.message;
 
       log(chalk.yellow(message));
     }

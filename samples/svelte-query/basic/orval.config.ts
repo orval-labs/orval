@@ -48,7 +48,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.cjs',
+        transformer: 'src/api/transformer/add-version.mjs',
       },
     },
   },

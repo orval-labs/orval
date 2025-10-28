@@ -1,14 +1,14 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { ContextSpecs } from '@orval/core';
+import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
+
 import {
   generateZod,
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
 } from '.';
-
-import { ContextSpecs } from '@orval/core';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [
@@ -55,7 +55,7 @@ const record: ZodValidationSchemaDefinition = {
             [
               'additionalProperties',
               {
-                functions: [['any', undefined]],
+                functions: [['unknown', undefined]],
                 consts: [],
               },
             ],
@@ -69,50 +69,6 @@ const record: ZodValidationSchemaDefinition = {
 };
 
 describe('parseZodValidationSchemaDefinition', () => {
-  describe('with `override.coerceTypes = false` (default)', () => {
-    it('does not emit coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(
-        queryParams,
-        {
-          output: {
-            override: {
-              useDates: false,
-            },
-          },
-        } as ContextSpecs,
-        false,
-        false,
-        false,
-      );
-
-      expect(parseResult.zod).toBe(
-        'zod.object({\n  "limit": zod.number().optional().null(),\n  "q": zod.array(zod.string()).optional()\n})',
-      );
-    });
-  });
-
-  describe('with `override.coerceTypes = true`', () => {
-    it('emits coerced zod property schemas', () => {
-      const parseResult = parseZodValidationSchemaDefinition(
-        queryParams,
-        {
-          output: {
-            override: {
-              useDates: false,
-            },
-          },
-        } as ContextSpecs,
-        true,
-        false,
-        false,
-      );
-
-      expect(parseResult.zod).toBe(
-        'zod.object({\n  "limit": zod.coerce.number().optional().null(),\n  "q": zod.array(zod.coerce.string()).optional()\n})',
-      );
-    });
-  });
-
   it('treats additionalProperties properly', () => {
     const parseResult = parseZodValidationSchemaDefinition(
       record,
@@ -129,12 +85,12 @@ describe('parseZodValidationSchemaDefinition', () => {
     );
 
     expect(parseResult.zod).toBe(
-      'zod.object({\n  "queryParams": zod.record(zod.string(), zod.any())\n})',
+      'zod.object({\n  "queryParams": zod.record(zod.string(), zod.unknown())\n})',
     );
   });
 });
 
-const objectIntoObjectSchema: SchemaObject = {
+const objectIntoObjectSchema: SchemaObject30 = {
   type: 'object',
   properties: {
     pet: {
@@ -151,7 +107,7 @@ const objectIntoObjectSchema: SchemaObject = {
   },
 };
 
-const deepRequiredSchema: SchemaObject = {
+const deepRequiredSchema: SchemaObject30 = {
   type: 'object',
   properties: {
     pet: {
@@ -169,7 +125,7 @@ const deepRequiredSchema: SchemaObject = {
   },
 };
 
-const additionalPropertiesSchema: SchemaObject = {
+const additionalPropertiesSchema: SchemaObject30 = {
   type: 'object',
   properties: {
     any: {
@@ -323,7 +279,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
                 [
                   'additionalProperties',
                   {
-                    functions: [['any', undefined]],
+                    functions: [['unknown', undefined]],
                     consts: [],
                   },
                 ],
@@ -336,7 +292,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
                 [
                   'additionalProperties',
                   {
-                    functions: [['any', undefined]],
+                    functions: [['unknown', undefined]],
                     consts: [],
                   },
                 ],
@@ -727,7 +683,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates a description for a parameter', () => {
-      const schemaWithDefault: SchemaObject = {
+      const schemaWithDefault: SchemaObject30 = {
         type: 'string',
         description: 'This is a test description',
         default: 'hello',
@@ -774,7 +730,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates a default value for a non-required string schema', () => {
-      const schemaWithDefault: SchemaObject = {
+      const schemaWithDefault: SchemaObject30 = {
         type: 'string',
         default: 'hello',
       };
@@ -810,7 +766,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for a number schema', () => {
-      const schemaWithNumberDefault: SchemaObject = {
+      const schemaWithNumberDefault: SchemaObject30 = {
         type: 'number',
         default: 42,
       };
@@ -844,7 +800,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for a boolean schema', () => {
-      const schemaWithBooleanDefault: SchemaObject = {
+      const schemaWithBooleanDefault: SchemaObject30 = {
         type: 'boolean',
         default: true,
       };
@@ -882,7 +838,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for an array schema', () => {
-      const schemaWithArrayDefault: SchemaObject = {
+      const schemaWithArrayDefault: SchemaObject30 = {
         type: 'array',
         items: { type: 'string' },
         default: ['a', 'b'],
@@ -921,7 +877,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for an object schema', () => {
-      const schemaWithObjectDefault: SchemaObject = {
+      const schemaWithObjectDefault: SchemaObject30 = {
         type: 'object',
         properties: {
           name: { type: 'string' },
@@ -989,7 +945,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates a default value for a date schema with useDates enabled', () => {
-      const schemaWithDateDefault: SchemaObject = {
+      const schemaWithDateDefault: SchemaObject30 = {
         type: 'string',
         format: 'date',
         default: '2025-01-01',
@@ -1046,7 +1002,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     } as ContextSpecs;
 
     it('generates an enum for a string', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'string',
         enum: ['cat', 'dog'],
       };
@@ -1079,7 +1035,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an enum for a number', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         enum: [1, 2],
       };
@@ -1120,7 +1076,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an enum for a boolean', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'boolean',
         enum: [true, false],
       };
@@ -1161,7 +1117,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('does not use union for single item enum', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         type: 'number',
         enum: [1],
       };
@@ -1194,7 +1150,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
 
     it('generates an enum for any', () => {
-      const schema: SchemaObject = {
+      const schema: SchemaObject30 = {
         enum: ['cat', 1, true],
       };
 
@@ -1231,6 +1187,199 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(parsed.zod).toBe(
         "zod.union([zod.literal('cat'),zod.literal(1),zod.literal(true)]).optional()",
+      );
+    });
+  });
+  describe('number handling', () => {
+    const context: ContextSpecs = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    it('generates an number', () => {
+      const schema: SchemaObject30 = {
+        type: 'number',
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumber',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.number().optional()');
+    });
+    it('generates an number with min', () => {
+      const schema: SchemaObject30 = {
+        type: 'number',
+        minimum: 10,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMin',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['min', 'testNumberMinMin'],
+          ['optional', undefined],
+        ],
+        consts: ['export const testNumberMinMin = 10;', '\n'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.number().min(testNumberMinMin).optional()');
+    });
+    it('generates an number with max', () => {
+      const schema: SchemaObject30 = {
+        type: 'number',
+        maximum: 99,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMax',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['max', 'testNumberMaxMax'],
+          ['optional', undefined],
+        ],
+        consts: ['export const testNumberMaxMax = 99;', '\n'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.number().max(testNumberMaxMax).optional()');
+    });
+
+    it('generates an number with max and max', () => {
+      const schema: SchemaObject30 = {
+        type: 'number',
+        minimum: 10,
+        maximum: 99,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMinMax',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['min', 'testNumberMinMaxMin'],
+          ['max', 'testNumberMinMaxMax'],
+          ['optional', undefined],
+        ],
+        consts: [
+          'export const testNumberMinMaxMin = 10;',
+          'export const testNumberMinMaxMax = 99;',
+          '\n',
+        ],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.number().min(testNumberMinMaxMin).max(testNumberMinMaxMax).optional()',
+      );
+    });
+    it('generates an number with max, max and multipleOf', () => {
+      const schema: SchemaObject30 = {
+        type: 'number',
+        minimum: 10,
+        maximum: 99,
+        multipleOf: 2,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schema,
+        context,
+        'testNumberMinMaxMultiple',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['number', undefined],
+          ['min', 'testNumberMinMaxMultipleMin'],
+          ['max', 'testNumberMinMaxMultipleMax'],
+          ['multipleOf', 'testNumberMinMaxMultipleMultipleOf'],
+          ['optional', undefined],
+        ],
+        consts: [
+          'export const testNumberMinMaxMultipleMin = 10;',
+          'export const testNumberMinMaxMultipleMax = 99;',
+          'export const testNumberMinMaxMultipleMultipleOf = 2;',
+          '\n',
+        ],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.number().min(testNumberMinMaxMultipleMin).max(testNumberMinMaxMultipleMax).multipleOf(testNumberMinMaxMultipleMultipleOf).optional()',
       );
     });
   });
@@ -1568,7 +1717,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       items: { type: 'string' },
     };
     const result = generateZodValidationSchemaDefinition(
-      arrayWithPrefixItemsSchema as SchemaObject,
+      arrayWithPrefixItemsSchema as SchemaObject30,
       {
         output: {
           override: {
@@ -1596,7 +1745,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             },
             {
               consts: [],
-              functions: [['any', undefined]],
+              functions: [['unknown', undefined]],
             },
           ],
         ],
@@ -1621,7 +1770,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
       maxItems: 2,
     };
     const result = generateZodValidationSchemaDefinition(
-      arrayWithPrefixItemsSchema as SchemaObject,
+      arrayWithPrefixItemsSchema as SchemaObject30,
       {
         output: {
           override: {
@@ -1649,7 +1798,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             },
             {
               consts: [],
-              functions: [['any', undefined]],
+              functions: [['unknown', undefined]],
             },
           ],
         ],
@@ -1942,6 +2091,113 @@ describe('generateZodWithLiteralProperty', () => {
 
     expect(result.implementation).toBe(
       'export const testBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
+    );
+  });
+});
+
+describe('generateZodWithMultiTypeArray', () => {
+  it('correctly handles OpenAPI 3.1 type arrays with multiple types', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case from the issue: type: ["string", "number", "boolean", "null"]
+    const schemaWithMultiType: SchemaObject31 = {
+      type: ['string', 'number', 'boolean', 'null'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiType,
+      context,
+      'testMultiType',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Should create a union of string, number, and boolean, with nullable
+    expect(parsed.zod).toBe(
+      'zod.union([zod.string(),zod.number(),zod.boolean()]).nullable()',
+    );
+  });
+
+  it('handles multi-type arrays without null', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithMultiType: SchemaObject31 = {
+      type: ['string', 'number'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiType,
+      context,
+      'testMultiType',
+      false,
+      false,
+      { required: true },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe('zod.union([zod.string(),zod.number()])');
+  });
+
+  it('handles multi-type arrays with optional', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithMultiType: SchemaObject31 = {
+      type: ['string', 'number'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultiType,
+      context,
+      'testMultiType',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.union([zod.string(),zod.number()]).optional()',
     );
   });
 });

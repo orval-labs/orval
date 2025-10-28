@@ -1,3 +1,8 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import process from 'node:process';
+import url from 'node:url';
+
 import {
   asyncReduce,
   type ConfigExternal,
@@ -6,13 +11,11 @@ import {
   type GlobalOptions,
   isFunction,
   isString,
-  loadFile,
   log,
   logError,
   type NormalizedConfig,
   type NormalizedOptions,
   removeFilesAndEmptyFolders,
-  upath,
 } from '@orval/core';
 
 import { importSpecs } from './import-specs';
@@ -90,23 +93,47 @@ export const generateSpecs = async (
     throw new Error('One or more project failed, see above for details');
 };
 
+function findConfigFile(configFilePath?: string) {
+  if (configFilePath) {
+    if (!fs.existsSync(configFilePath))
+      throw new Error(`Config file ${configFilePath} does not exist`);
+
+    return configFilePath;
+  }
+
+  const root = process.cwd();
+  const exts = ['.ts', '.js', '.mjs'];
+  for (const ext of exts) {
+    const fullPath = path.resolve(root, `orval.config${ext}`);
+    if (fs.existsSync(fullPath)) {
+      return fullPath;
+    }
+  }
+
+  throw new Error(`No config file found in ${root}`);
+}
+
 export const generateConfig = async (
   configFile?: string,
   options?: GlobalOptions,
 ) => {
-  const {
-    path,
-    file: configExternal,
-    error,
-  } = await loadFile<ConfigExternal>(configFile, {
-    defaultFileName: 'orval.config',
-  });
-
-  if (!configExternal) {
-    throw new Error(`failed to load from ${path} => ${error}`);
+  const configFilePath = findConfigFile(configFile);
+  let configExternal: ConfigExternal;
+  try {
+    const importPath = url.pathToFileURL(configFilePath).href;
+    const importedModule = (await import(importPath)) as {
+      default?: ConfigExternal;
+    };
+    if (importedModule.default === undefined) {
+      throw new Error(`${configFilePath} doesn't have a default export`);
+    }
+    configExternal = importedModule.default;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'unknown error';
+    throw new Error(`failed to load from ${configFilePath} => ${errorMsg}`);
   }
 
-  const workspace = upath.dirname(path);
+  const workspace = path.dirname(configFilePath);
 
   const config = await (isFunction(configExternal)
     ? configExternal()

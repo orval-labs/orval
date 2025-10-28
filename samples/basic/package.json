@@ -1,8 +1,9 @@
 {
   "name": "basic",
-  "version": "1.0.0",
+  "version": "8.0.0-rc.0",
   "description": "",
   "private": true,
+  "type": "module",
   "main": "index.html",
   "scripts": {
     "generate-api": "orval",
@@ -17,13 +18,14 @@
     "orval": "workspace:*"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.9.0",
+    "@faker-js/faker": "^10.1.0",
     "axios": "^1.12.2",
-    "msw": "^2.11.2"
+    "msw": "^2.11.6"
   },
   "dependenciesMeta": {
     "msw": {
       "built": true
     }
-  }
+  },
+  "stableVersion": "7.15.0"
 }

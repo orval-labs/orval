@@ -1,14 +1,14 @@
 import {
   camel,
-  ClientBuilder,
-  ClientGeneratorsBuilder,
-  ContextSpecs,
+  type ClientBuilder,
+  type ClientGeneratorsBuilder,
+  type ContextSpecs,
   escape,
   generateMutator,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   getNumberWord,
   getRefInfo,
   isBoolean,
@@ -18,10 +18,10 @@ import {
   pascal,
   resolveRef,
   stringify,
-  ZodCoerceType,
+  type ZodCoerceType,
 } from '@orval/core';
 import uniq from 'lodash.uniq';
-import {
+import type {
   ParameterObject,
   PathItemObject,
   ReferenceObject,
@@ -29,7 +29,7 @@ import {
   ResponseObject,
   SchemaObject,
 } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import {
   getObjectFunctionName,
@@ -44,8 +44,10 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
       {
-        name: 'z',
-        alias: 'zod',
+        default: false,
+        name: 'zod',
+        syntheticDefaultImport: false,
+        namespaceImport: true,
         values: true,
       },
     ],
@@ -71,9 +73,32 @@ const possibleSchemaTypes = new Set([
 
 const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
   const schemaTypeValue = schema.type;
-  const type = Array.isArray(schemaTypeValue)
-    ? schemaTypeValue.find((t) => possibleSchemaTypes.has(t))
-    : schemaTypeValue;
+
+  // Handle array of types (OpenAPI 3.1+)
+  if (Array.isArray(schemaTypeValue)) {
+    // Filter out 'null' type as it's handled separately via nullable
+    const nonNullTypes = schemaTypeValue
+      .filter((t) => t !== 'null' && possibleSchemaTypes.has(t))
+      .map((t) => (t === 'integer' ? 'number' : t));
+
+    // If multiple types, return a special marker for union handling
+    if (nonNullTypes.length > 1) {
+      return { multiType: nonNullTypes };
+    }
+
+    // Single type
+    const type = nonNullTypes[0];
+
+    // Handle prefixItems for tuples
+    if (type === 'array' && 'prefixItems' in schema) {
+      return 'tuple';
+    }
+
+    return type;
+  }
+
+  // Handle single type value
+  const type = schemaTypeValue;
 
   // TODO: if "prefixItems" exists and type is "array", then generate a "tuple"
   if (schema.type === 'array' && 'prefixItems' in schema) {
@@ -85,7 +110,7 @@ const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
       return 'number';
     }
     default: {
-      return type ?? 'any';
+      return type ?? 'unknown';
     }
   }
 };
@@ -174,6 +199,7 @@ export const generateZodValidationSchemaDefinition = (
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
+  const multipleOf = schema.multipleOf;
   const matches = schema.pattern ?? undefined;
 
   // Check for allOf/oneOf/anyOf BEFORE processing by type
@@ -266,6 +292,34 @@ export const generateZodValidationSchemaDefinition = (
           : rawStringified.replaceAll("'", '"');
     }
     consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+  }
+
+  // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
+  if (typeof type === 'object' && 'multiType' in type) {
+    const types = (type as { multiType: string[] }).multiType;
+    functions.push([
+      'oneOf',
+      types.map((t) =>
+        generateZodValidationSchemaDefinition(
+          { ...schema, type: t as any },
+          context,
+          name,
+          strict,
+          isZodV4,
+          { required: true },
+        ),
+      ),
+    ]);
+
+    if (!required && nullable) {
+      functions.push(['nullish', undefined]);
+    } else if (nullable) {
+      functions.push(['nullable', undefined]);
+    } else if (!required) {
+      functions.push(['optional', undefined]);
+    }
+
+    return { functions, consts };
   }
 
   if (!skipSwitchStatement) {
@@ -502,13 +556,22 @@ export const generateZodValidationSchemaDefinition = (
       if (min === 1) {
         functions.push(['min', `${min}`]);
       } else {
-        consts.push(`export const ${name}Min${constsCounterValue} = ${min};\n`);
+        consts.push(`export const ${name}Min${constsCounterValue} = ${min};`);
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
     if (max !== undefined) {
-      consts.push(`export const ${name}Max${constsCounterValue} = ${max};\n`);
+      consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
       functions.push(['max', `${name}Max${constsCounterValue}`]);
+    }
+    if (multipleOf !== undefined) {
+      consts.push(
+        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
+      );
+      functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
+    }
+    if (min !== undefined || multipleOf !== undefined || max !== undefined) {
+      consts.push(`\n`);
     }
   }
 
@@ -1051,7 +1114,15 @@ const generateZodRoute = async (
     | PathItemObject
     | undefined;
 
-  const parameters = spec?.[verb]?.parameters!;
+  if (spec == undefined) {
+    throw new Error(`No such path ${pathRoute} in ${context.specKey}`);
+  }
+
+  const parameters = [
+    ...(spec.parameters ?? []),
+    ...(spec[verb]?.parameters ?? []),
+  ];
+
   const parsedParameters = parseParameters({
     data: parameters,
     context,
@@ -1061,7 +1132,7 @@ const generateZodRoute = async (
     generate: override.zod.generate,
   });
 
-  const requestBody = spec?.[verb]?.requestBody;
+  const requestBody = spec[verb]?.requestBody;
   const parsedBody = parseBodyAndResponse({
     data: requestBody,
     context,
@@ -1074,8 +1145,8 @@ const generateZodRoute = async (
 
   const responses = (
     context.output.override.zod.generateEachHttpStatus
-      ? Object.entries(spec?.[verb]?.responses ?? {})
-      : [['', spec?.[verb]?.responses[200]]]
+      ? Object.entries(spec[verb]?.responses ?? {})
+      : [['', spec[verb]?.responses[200]]]
   ) as [string, ResponseObject | ReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({
@@ -1108,12 +1179,6 @@ const generateZodRoute = async (
     preprocessParams,
   );
 
-  if (override.coerceTypes) {
-    console.warn(
-      'override.coerceTypes is deprecated, please use override.zod.coerce instead.',
-    );
-  }
-
   const preprocessQueryParams = override.zod.preprocess?.query
     ? await generateMutator({
         output,
@@ -1127,7 +1192,7 @@ const generateZodRoute = async (
   const inputQueryParams = parseZodValidationSchemaDefinition(
     parsedParameters.queryParams,
     context,
-    override.zod.coerce.query ?? override.coerceTypes,
+    override.zod.coerce.query,
     override.zod.strict.query,
     isZodV4,
     preprocessQueryParams,

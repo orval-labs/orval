@@ -1,6 +1,6 @@
 import { dynamicImport, isString, log, type PackageJson } from '@orval/core';
 import chalk from 'chalk';
-import findUp from 'find-up';
+import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
@@ -13,20 +13,32 @@ export const loadPackageJson = async (
   if (!packageJson) {
     const pkgPath = await findUp(['package.json'], { cwd: workspace });
     if (pkgPath) {
-      const pkg = await dynamicImport<any>(pkgPath, workspace);
-      return await maybeReplaceCatalog(pkg, workspace);
+      const pkg = await dynamicImport<unknown>(pkgPath, workspace);
+
+      if (isPackageJson(pkg)) {
+        return await maybeReplaceCatalog(pkg, workspace);
+      } else {
+        throw new Error('Invalid package.json file');
+      }
     }
     return;
   }
 
   const normalizedPath = normalizePath(packageJson, workspace);
   if (fs.existsSync(normalizedPath)) {
-    const pkg = await import(normalizedPath);
+    const pkg = await dynamicImport<unknown>(normalizedPath);
 
-    return await maybeReplaceCatalog(pkg, workspace);
+    if (isPackageJson(pkg)) {
+      return await maybeReplaceCatalog(pkg, workspace);
+    } else {
+      throw new Error(`Invalid package.json file: ${normalizedPath}`);
+    }
   }
   return;
 };
+
+const isPackageJson = (obj: any): obj is PackageJson =>
+  typeof obj === 'object' && obj !== null;
 
 const maybeReplaceCatalog = async (
   pkg: PackageJson,

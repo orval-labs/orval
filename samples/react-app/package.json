@@ -1,6 +1,6 @@
 {
   "name": "react-app",
-  "version": "0.1.0",
+  "version": "8.0.0-rc.0",
   "private": true,
   "scripts": {
     "start": "react-scripts start",
@@ -24,8 +24,8 @@
     ]
   },
   "dependencies": {
-    "@faker-js/faker": "^9.9.0",
-    "@types/node": "^20.19.14",
+    "@faker-js/faker": "^10.1.0",
+    "@types/node": "^22.18.12",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
     "axios": "^1.12.2",
@@ -36,7 +36,7 @@
     "typescript": "~5.8.3"
   },
   "devDependencies": {
-    "msw": "^2.11.2",
+    "msw": "^2.11.6",
     "orval": "workspace:*"
   },
   "dependenciesMeta": {
@@ -46,5 +46,6 @@
   },
   "msw": {
     "workerDirectory": "public"
-  }
+  },
+  "stableVersion": "7.15.0"
 }

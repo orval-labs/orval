@@ -1,4 +1,4 @@
-import { GlobalMockOptions, NormalizedOverrideOutput } from '@orval/core';
+import type { GlobalMockOptions, NormalizedOverrideOutput } from '@orval/core';
 
 export const getDelay = (
   override?: NormalizedOverrideOutput,
@@ -20,7 +20,7 @@ export const getDelay = (
       return overrideDelay;
     }
     default: {
-      return 1000;
+      return false;
     }
   }
 };

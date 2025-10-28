@@ -1,19 +1,18 @@
-import { describe, expect, it } from 'vitest';
-import type { ContextSpecs, InputFiltersOption } from '../types';
 import type { SchemasObject } from 'openapi3-ts/oas30';
+import { describe, expect, it } from 'vitest';
+
+import type { ContextSpecs, InputFiltersOption } from '../types';
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {
   const context: ContextSpecs = {
     specKey: 'testSpec',
     output: {
-      override: {
-        useNativeEnums: false,
-      },
-    },
+      override: {},
+    } as any,
     target: 'typescript',
     specs: {},
-  };
+  } as any;
 
   it('should return an empty array if schemas are empty', () => {
     const result = generateSchemasDefinition({}, context, 'Suffix');

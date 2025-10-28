@@ -94,7 +94,7 @@ export const generateAxiosOptions = ({
   ) {
     if (response.isBlob) {
       value += `\n        responseType: 'blob',`;
-    } else if (response.definition.success === 'string') {
+    } else if (response.contentTypes.at(0) === 'text/plain') {
       value += `\n        responseType: 'text',`;
     }
   }

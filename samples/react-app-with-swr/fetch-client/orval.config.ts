@@ -1,4 +1,3 @@
-import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
 
 export default defineConfig({
@@ -9,7 +8,6 @@ export default defineConfig({
       target: 'src/api/endpoints',
       schemas: 'src/api/models',
       client: 'swr',
-      httpClient: 'fetch',
       mock: true,
       override: {
         fetch: {

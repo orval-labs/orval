@@ -4,7 +4,7 @@
  * @param {OpenAPIObject} schema
  * @return {OpenAPIObject}
  */
-module.exports = (inputSchema) => {
+export default (inputSchema) => {
   const transformedPaths = {};
 
   Object.entries(inputSchema.paths).forEach(([path, pathItem]) => {

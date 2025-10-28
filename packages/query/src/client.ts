@@ -1,14 +1,14 @@
 import {
-  ClientHeaderBuilder,
+  type ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GetterResponse,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GetterResponse,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
   pascal,
@@ -341,22 +341,37 @@ export const getHookOptions = ({
   return value;
 };
 
+// Helper to deduplicate union type string: "A | B | B" -> "A | B"
+const dedupeUnionTypes = (types: string): string => {
+  if (!types) return types;
+  // Split by '|', trim spaces, filter out empty, and dedupe using a Set
+  const unique = [
+    ...new Set(
+      types
+        .split('|')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return unique.join(' | ');
+};
+
 export const getQueryErrorType = (
   operationName: string,
   response: GetterResponse,
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
+  const errorsType = dedupeUnionTypes(response.definition.errors || 'unknown');
+
   if (mutator) {
     return mutator.hasErrorType
-      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
-          response.definition.errors || 'unknown'
-        }>`
-      : response.definition.errors || 'unknown';
+      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${errorsType}>`
+      : errorsType;
   } else {
     return httpClient === OutputHttpClient.AXIOS
-      ? `AxiosError<${response.definition.errors || 'unknown'}>`
-      : response.definition.errors || 'unknown';
+      ? `AxiosError<${errorsType}>`
+      : errorsType;
   }
 };
 

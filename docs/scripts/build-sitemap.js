@@ -1,4 +1,5 @@
-const sitemap = require('nextjs-sitemap-generator');
+import sitemap from 'nextjs-sitemap-generator';
+import process from 'node:process';
 
 sitemap({
   baseUrl: 'https://orval.dev',
