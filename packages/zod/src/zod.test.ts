@@ -352,6 +352,96 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
+  it('handles allOf with additional properties', () => {
+    const pagingResultSchema: SchemaObject = {
+      type: 'object',
+      properties: {
+        meta: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            take: { type: 'number' },
+            offset: { type: 'number' },
+          },
+          required: ['total', 'take', 'offset'],
+        },
+      },
+      required: ['meta'],
+    };
+
+    const schemaWithAllOfAndProperties: SchemaObject = {
+      type: 'object',
+      allOf: [pagingResultSchema],
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              name: { type: 'string' },
+            },
+            required: ['id', 'name'],
+          },
+        },
+      },
+      required: ['items'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOfAndProperties,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+    
+    // Check that there are two schemas in allOf: the base schema and the additional properties
+    expect(result.functions[0][1]).toHaveLength(2);
+    
+    // The first schema should be from allOf (with meta property)
+    const firstSchema = result.functions[0][1][0];
+    expect(firstSchema.functions[0][0]).toBe('object');
+    expect(firstSchema.functions[0][1]).toHaveProperty('meta');
+    
+    // The second schema should contain the additional properties (items)
+    const secondSchema = result.functions[0][1][1];
+    expect(secondSchema.functions[0][0]).toBe('object');
+    expect(secondSchema.functions[0][1]).toHaveProperty('items');
+
+    // Parse and verify the result
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    // The result should use .and() to combine schemas
+    expect(parsed.zod).toContain('.and(');
+    expect(parsed.zod).toContain('items');
+    expect(parsed.zod).toContain('meta');
+  });
+
   describe('description handling', () => {
     const context: ContextSpecs = {
       output: {

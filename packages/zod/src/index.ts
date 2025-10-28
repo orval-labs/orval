@@ -397,21 +397,42 @@ export const generateZodValidationSchemaDefinition = (
           | ReferenceObject
         )[];
 
-        functions.push([
-          separator,
-          schemas.map((schema) =>
-            generateZodValidationSchemaDefinition(
-              schema as SchemaObject,
-              context,
-              camel(name),
-              strict,
-              isZodV4,
-              {
-                required: true,
-              },
-            ),
+        const baseSchemas = schemas.map((schema) =>
+          generateZodValidationSchemaDefinition(
+            schema as SchemaObject,
+            context,
+            camel(name),
+            strict,
+            isZodV4,
+            {
+              required: true,
+            },
           ),
-        ]);
+        );
+
+        // Handle allOf with additional properties - merge additional properties into the last schema
+        if (schema.allOf && schema.properties) {
+          const additionalPropertiesSchema = {
+            properties: schema.properties,
+            required: schema.required,
+            additionalProperties: schema.additionalProperties,
+          } as SchemaObject;
+          
+          const additionalPropertiesDefinition = generateZodValidationSchemaDefinition(
+            additionalPropertiesSchema,
+            context,
+            camel(name),
+            strict,
+            isZodV4,
+            {
+              required: true,
+            },
+          );
+          
+          baseSchemas.push(additionalPropertiesDefinition);
+        }
+
+        functions.push([separator, baseSchemas]);
         break;
       }
 
