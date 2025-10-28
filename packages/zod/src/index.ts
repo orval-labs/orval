@@ -20,7 +20,6 @@ import {
   stringify,
   type ZodCoerceType,
 } from '@orval/core';
-import uniq from 'lodash.uniq';
 import type {
   ParameterObject,
   PathItemObject,
@@ -30,6 +29,7 @@ import type {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+import { unique } from 'remeda';
 
 import {
   getObjectFunctionName,
@@ -598,7 +598,7 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['describe', `'${jsStringEscape(schema.description)}'`]);
   }
 
-  return { functions, consts: uniq(consts) };
+  return { functions, consts: unique(consts) };
 };
 
 export const parseZodValidationSchemaDefinition = (

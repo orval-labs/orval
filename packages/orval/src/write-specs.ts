@@ -18,8 +18,8 @@ import {
 import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import uniq from 'lodash.uniq';
 import type { InfoObject } from 'openapi3-ts/oas30';
+import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { executeHook } from './utils';
@@ -132,14 +132,14 @@ export const writeSpecs = async (
         const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
         await fs.appendFile(
           indexFile,
-          uniq(importsNotDeclared)
+          unique(importsNotDeclared)
             .map((imp) => `export * from '${imp}';\n`)
             .join(''),
         );
       } else {
         await fs.outputFile(
           indexFile,
-          uniq(imports)
+          unique(imports)
             .map((imp) => `export * from '${imp}';`)
             .join('\n') + '\n',
         );

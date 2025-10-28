@@ -1,5 +1,12 @@
 {
-  "cSpell.words": ["listitem", "openapi", "Orval", "Petstore", "tanstack"],
+  "cSpell.words": [
+    "Emptyish",
+    "listitem",
+    "openapi",
+    "Orval",
+    "Petstore",
+    "tanstack"
+  ],
   "files.associations": {
     "turbo.json": "jsonc"
   },

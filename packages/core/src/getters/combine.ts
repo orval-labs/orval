@@ -1,5 +1,5 @@
-import uniq from 'lodash.uniq';
 import type { SchemaObject } from 'openapi3-ts/oas30';
+import { unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
@@ -99,7 +99,7 @@ const combineValues = ({
         continue;
       }
 
-      const missingProperties = uniq(
+      const missingProperties = unique(
         resolvedData.allProperties.filter(
           (p) => !Object.keys(subSchema.properties!).includes(p),
         ),
