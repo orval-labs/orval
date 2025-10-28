@@ -434,7 +434,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.consts).toBe('export const testNumberDefaultDefault = 42;');
     });
 
-    it('generates a default value for a boolean schema', () => {
+    it('generates a default value for a boolean schema with default: true', () => {
       const schemaWithBooleanDefault: SchemaObject30 = {
         type: 'boolean',
         default: true,
@@ -443,7 +443,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const result = generateZodValidationSchemaDefinition(
         schemaWithBooleanDefault,
         context,
-        'testBooleanDefault',
+        'testBooleanDefaultTrue',
         false,
         false,
         { required: false },
@@ -452,9 +452,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           ['boolean', undefined],
-          ['default', 'testBooleanDefaultDefault'],
+          ['default', 'testBooleanDefaultTrueDefault'],
         ],
-        consts: ['export const testBooleanDefaultDefault = true;'],
+        consts: ['export const testBooleanDefaultTrueDefault = true;'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -465,11 +465,83 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        'zod.boolean().default(testBooleanDefaultDefault)',
+        'zod.boolean().default(testBooleanDefaultTrueDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testBooleanDefaultDefault = true;',
+        'export const testBooleanDefaultTrueDefault = true;',
       );
+    });
+
+    it('generates a default value for a boolean schema with default: false', () => {
+      const schemaWithBooleanDefault: SchemaObject30 = {
+        type: 'boolean',
+        default: false,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithBooleanDefault,
+        context,
+        'testBooleanDefaultFalse',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['boolean', undefined],
+          ['default', 'testBooleanDefaultFalseDefault'],
+        ],
+        consts: ['export const testBooleanDefaultFalseDefault = false;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.boolean().default(testBooleanDefaultFalseDefault)',
+      );
+      expect(parsed.consts).toBe(
+        'export const testBooleanDefaultFalseDefault = false;',
+      );
+    });
+
+    it('generates a boolean schema without default (undefined)', () => {
+      const schemaWithoutDefault: SchemaObject30 = {
+        type: 'boolean',
+        // default property is undefined (not set)
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithoutDefault,
+        context,
+        'testBooleanNoDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['boolean', undefined],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.boolean().optional()');
+      expect(parsed.consts).toBe('');
     });
 
     it('generates a default value for an array schema', () => {
