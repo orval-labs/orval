@@ -1,11 +1,14 @@
 {
   "cSpell.words": [
+    "axios",
     "Emptyish",
+    "hono",
     "listitem",
     "openapi",
     "Orval",
     "Petstore",
-    "tanstack"
+    "tanstack",
+    "zods"
   ],
   "files.associations": {
     "turbo.json": "jsonc"

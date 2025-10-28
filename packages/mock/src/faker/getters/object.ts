@@ -99,9 +99,7 @@ export const getMockObject = ({
 
   if (item.properties) {
     let value =
-      !combine ||
-      combine?.separator === 'oneOf' ||
-      combine?.separator === 'anyOf'
+      !combine || combine.separator === 'oneOf' || combine.separator === 'anyOf'
         ? '{'
         : '';
     const imports: GeneratorImport[] = [];
@@ -120,7 +118,7 @@ export const getMockObject = ({
         }
 
         const isRequired =
-          mockOptions?.required ||
+          mockOptions?.required ??
           (Array.isArray(item.required) ? item.required : []).includes(key);
 
         // Check to see if the property is a reference to an existing property
@@ -128,7 +126,7 @@ export const getMockObject = ({
         if (
           '$ref' in prop &&
           existingReferencedProperties.includes(
-            pascal(prop.$ref.split('/').pop()!),
+            pascal(prop.$ref.split('/').pop() ?? ''),
           )
         ) {
           return;
@@ -167,9 +165,7 @@ export const getMockObject = ({
 
     value += properyScalars.join(', ');
     value +=
-      !combine ||
-      combine?.separator === 'oneOf' ||
-      combine?.separator === 'anyOf'
+      !combine || combine.separator === 'oneOf' || combine.separator === 'anyOf'
         ? '}'
         : '';
 
@@ -188,7 +184,7 @@ export const getMockObject = ({
     if (
       isReference(item.additionalProperties) &&
       existingReferencedProperties.includes(
-        item.additionalProperties.$ref.split('/').pop()!,
+        item.additionalProperties.$ref.split('/').pop() ?? '',
       )
     ) {
       return { value: `{}`, imports: [], name: item.name };

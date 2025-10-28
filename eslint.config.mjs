@@ -37,9 +37,28 @@ export default defineConfig(
       'no-case-declarations': 'warn',
       'no-prototype-builtins': 'warn',
       'unicorn/prevent-abbreviations': 'off',
+      'unicorn/consistent-function-scoping': [
+        'error',
+        { checkArrowFunctions: false },
+      ],
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        // default (not strict) settings
+        // consider tightening these in the future
+        {
+          allow: [{ name: ['Error', 'URL', 'URLSearchParams'], from: 'lib' }],
+          allowAny: true,
+          allowBoolean: true,
+          allowNullish: true,
+          allowNumber: true,
+          allowRegExp: true,
+        },
+      ],
 
       // enable these in the future
+      'unicorn/no-null': 'warn',
       'unicorn/prefer-at': 'off',
+      'unicorn/no-array-reduce': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
       '@typescript-eslint/ban-ts-comment': 'warn',
       '@typescript-eslint/no-explicit-any': 'warn',

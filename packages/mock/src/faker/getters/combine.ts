@@ -73,7 +73,7 @@ export const combineSchemasMock = ({
       if (
         '$ref' in val &&
         existingReferencedProperties.includes(
-          pascal(val.$ref.split('/').pop()!),
+          pascal(val.$ref.split('/').pop() ?? ''),
         )
       ) {
         if (arr.length === 1) {
@@ -96,7 +96,7 @@ export const combineSchemasMock = ({
         schema: {
           ...val,
           name: item.name,
-          path: item.path ? item.path : '#',
+          path: item.path ?? '#',
         },
         combine: {
           separator,
@@ -139,7 +139,7 @@ export const combineSchemasMock = ({
   let finalValue =
     value === 'undefined'
       ? value
-      : `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
+      : `${value}${separator === 'allOf' ? '' : '])'}`;
   if (itemResolvedValue) {
     finalValue = finalValue.startsWith('...')
       ? `...{${finalValue}, ${itemResolvedValue.value}}`

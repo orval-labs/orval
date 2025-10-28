@@ -1,6 +1,7 @@
 import {
   type ContextSpecs,
   type GeneratorImport,
+  getPropertySafe,
   getRefInfo,
   isReference,
   isRootKey,
@@ -8,6 +9,7 @@ import {
   pascal,
 } from '@orval/core';
 import type { SchemaObject } from 'openapi3-ts/oas30';
+import { prop } from 'remeda';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
@@ -19,7 +21,7 @@ export const resolveMockOverride = (
   properties: Record<string, unknown> | undefined = {},
   item: SchemaObject & { name: string; path?: string },
 ) => {
-  const path = item.path ? item.path : `#.${item.name}`;
+  const path = item.path ?? `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
       const regex = new RegExp(key.slice(1, -1));
@@ -86,12 +88,10 @@ export const resolveMockValue = ({
     } = getRefInfo(schema.$ref, context);
 
     const schemaRef = Array.isArray(refPaths)
-      ? (refPaths.reduce(
-          (obj, key) =>
-            obj && typeof obj === 'object'
-              ? (obj as Record<string, any>)[key]
-              : undefined,
+      ? (prop(
           context.specs[specKey],
+          // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+          ...refPaths,
         ) as Partial<SchemaObject>)
       : undefined;
 
@@ -100,7 +100,7 @@ export const resolveMockValue = ({
       name: pascal(originalName),
       path: schema.path,
       isRef: true,
-      required: [...(schemaRef?.required ?? []), ...(schema?.required ?? [])],
+      required: [...(schemaRef?.required ?? []), ...(schema.required ?? [])],
     };
 
     const newSeparator = newSchema.allOf
@@ -138,7 +138,7 @@ export const resolveMockValue = ({
     ) {
       const funcName = `get${pascal(operationId)}Response${pascal(newSchema.name)}Mock`;
       if (
-        !splitMockImplementations?.some((f) =>
+        !splitMockImplementations.some((f) =>
           f.includes(`export const ${funcName}`),
         )
       ) {
@@ -151,7 +151,7 @@ export const resolveMockValue = ({
 
         const args = `${overrideVarName}: ${type} = {}`;
         const func = `export const ${funcName} = (${args}): ${newSchema.name} => ({${scalar.value.startsWith('...') ? '' : '...'}${scalar.value}, ...${overrideVarName}});`;
-        splitMockImplementations?.push(func);
+        splitMockImplementations.push(func);
       }
 
       scalar.value = newSchema.nullable

@@ -11,7 +11,7 @@ import {
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
-import { isFakerVersionV9 } from '../compatibleV9';
+import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
@@ -65,7 +65,7 @@ export const getMockScalar = ({
   }
 
   const overrideTag = Object.entries(mockOptions?.tags ?? {})
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       return a[0].localeCompare(b[0]);
     })
     .reduce(
@@ -74,7 +74,7 @@ export const getMockScalar = ({
       {} as { properties: Record<string, unknown> },
     );
 
-  const tagProperty = resolveMockOverride(overrideTag?.properties, item);
+  const tagProperty = resolveMockOverride(overrideTag.properties, item);
 
   if (tagProperty) {
     return tagProperty;
@@ -87,7 +87,7 @@ export const getMockScalar = ({
   }
 
   if (
-    (context.output.override?.mock?.useExamples || mockOptions?.useExamples) &&
+    (context.output.override.mock?.useExamples || mockOptions?.useExamples) &&
     item.example !== undefined
   ) {
     return {
@@ -152,8 +152,8 @@ export const getMockScalar = ({
           existingReferencedProperties,
           'number',
         );
-      } else if ('const' in item) {
-        value = '' + (item as SchemaObject31).const;
+      } else if ('const' in item && typeof item.const === 'string') {
+        value = item.const;
       }
 
       return {
@@ -166,8 +166,8 @@ export const getMockScalar = ({
 
     case 'boolean': {
       let value = 'faker.datatype.boolean()';
-      if ('const' in item) {
-        value = '' + (item as SchemaObject31).const;
+      if ('const' in item && typeof item.const === 'string') {
+        value = item.const;
       }
       return {
         value,
@@ -184,7 +184,7 @@ export const getMockScalar = ({
       if (
         '$ref' in item.items &&
         existingReferencedProperties.includes(
-          pascal(item.items.$ref.split('/').pop()!),
+          pascal(item.items.$ref.split('/').pop() ?? ''),
         )
       ) {
         return { value: '[]', imports: [], name: item.name };
@@ -334,8 +334,7 @@ const getEnum = (
   type?: 'string' | 'number',
 ) => {
   if (!item.enum) return '';
-  const joindEnumValues = item.enum
-    .filter((e) => e !== null)
+  const joinedEnumValues = item.enum
     .map((e) =>
       type === 'string' || (type === undefined && typeof e === 'string')
         ? `'${escape(e)}'`
@@ -343,7 +342,7 @@ const getEnum = (
     )
     .join(',');
 
-  let enumValue = `[${joindEnumValues}]`;
+  let enumValue = `[${joinedEnumValues}]`;
   if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
     if (item.isRef || existingReferencedProperties.length === 0) {
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;

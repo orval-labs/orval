@@ -119,7 +119,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: { output: {} } as ContextSpecs,
+    context: { output: { override: {} } } as ContextSpecs, // TODO this should be: satisfies ContextSpecs
   };
 
   it('should return the example value when it is a false value', () => {

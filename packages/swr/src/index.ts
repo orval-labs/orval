@@ -387,7 +387,7 @@ const generateSwrHook = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
+  const isRequestOptions = override.requestOptions !== false;
   const httpClient = context.output.httpClient;
   const doc = jsDoc({ summary, deprecated });
 
@@ -523,7 +523,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrMutationFetcherType = getSwrMutationFetcherType(
       response,
       httpClient,
-      override.fetch?.includeHttpResponseReturnType,
+      override.fetch.includeHttpResponseReturnType,
       operationName,
       mutator,
     );
@@ -594,13 +594,6 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
     }] as const;
 `;
 
-    const swrMutationFetcherType = getSwrMutationFetcherType(
-      response,
-      httpClient,
-      override.fetch?.includeHttpResponseReturnType,
-      operationName,
-      mutator,
-    );
     const swrMutationFetcherOptionType = getSwrMutationFetcherOptionType(
       httpClient,
       mutator,

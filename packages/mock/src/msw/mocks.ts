@@ -22,7 +22,7 @@ const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
       ? `(${value})()`
       : stringify(value as string)!;
 
-    acc[key] = implementation?.replaceAll(
+    acc[key] = implementation.replaceAll(
       /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
       'faker',
     );
@@ -59,7 +59,7 @@ const getMockWithoutFunc = (
         operations: Object.entries(override.operations).reduce<
           Exclude<MockOptions['operations'], undefined>
         >((acc, [key, value]) => {
-          if (value.mock?.properties) {
+          if (value?.mock?.properties) {
             acc[key] = {
               properties: getMockPropertiesWithoutFunc(
                 value.mock.properties,
@@ -77,7 +77,7 @@ const getMockWithoutFunc = (
         tags: Object.entries(override.tags).reduce<
           Exclude<MockOptions['tags'], undefined>
         >((acc, [key, value]) => {
-          if (value.mock?.properties) {
+          if (value?.mock?.properties) {
             acc[key] = {
               properties: getMockPropertiesWithoutFunc(
                 value.mock.properties,
@@ -151,13 +151,13 @@ export const getResponsesMockDefinition = ({
       { value: definition, originalSchema, example, examples, imports, isRef },
     ) => {
       if (
-        context.output.override?.mock?.useExamples ||
+        context.output.override.mock?.useExamples ||
         mockOptions?.useExamples
       ) {
         let exampleValue =
-          example ||
-          originalSchema?.example ||
-          Object.values(examples || {})[0] ||
+          example ??
+          originalSchema?.example ??
+          Object.values(examples ?? {})[0] ??
           originalSchema?.examples?.[0];
         exampleValue = exampleValue?.value ?? exampleValue;
         if (exampleValue) {
@@ -207,9 +207,7 @@ export const getResponsesMockDefinition = ({
 
       acc.imports.push(...scalar.imports);
       acc.definitions.push(
-        transformer
-          ? transformer(scalar.value, returnType)
-          : scalar.value.toString(),
+        transformer ? transformer(scalar.value, returnType) : scalar.value,
       );
 
       return acc;
@@ -275,9 +273,9 @@ export const getMockOptionsDataOverride = (
   override: NormalizedOverrideOutput,
 ) => {
   const responseOverride =
-    override?.operations?.[operationId]?.mock?.data ||
+    override.operations[operationId]?.mock?.data ??
     operationTags
-      .map((operationTag) => override?.tags?.[operationTag]?.mock?.data)
+      .map((operationTag) => override.tags[operationTag]?.mock?.data)
       .find((e) => e !== undefined);
   const implementation = isFunction(responseOverride)
     ? `(${responseOverride})()`
