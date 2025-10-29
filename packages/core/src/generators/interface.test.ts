@@ -6,18 +6,19 @@ import type { ContextSpecs, GeneratorSchema } from '../types';
 import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
-  const context = {
+  const context: ContextSpecs = {
     specKey: 'testSpec',
     output: {
-      mode: 'tags' as const,
+      mode: 'tags',
+      // @ts-expect-error
       override: {
         useTypeOverInterfaces: false,
       },
     },
-    target: 'typescript' as const,
+    target: 'typescript',
     specs: {},
     workspace: './test',
-  } as ContextSpecs;
+  };
 
   it('should return const object with typeof', () => {
     const schema: SchemaObject31 = {
