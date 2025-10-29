@@ -15989,6 +15989,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"jiti@npm:^2.6.1":
+  version: 2.6.1
+  resolution: "jiti@npm:2.6.1"
+  bin:
+    jiti: lib/jiti-cli.mjs
+  checksum: 10c0/79b2e96a8e623f66c1b703b98ec1b8be4500e1d217e09b09e343471bbb9c105381b83edbb979d01cef18318cc45ce6e153571b6c83122170eefa531c64b6789b
+  languageName: node
+  linkType: hard
+
 "js-beautify@npm:^1.14.9":
   version: 1.15.4
   resolution: "js-beautify@npm:1.15.4"
@@ -18551,6 +18560,7 @@ __metadata:
     execa: "npm:^9.6.0"
     find-up: "npm:8.0.0"
     fs-extra: "npm:^11.3.2"
+    jiti: "npm:^2.6.1"
     js-yaml: "npm:4.1.0"
     openapi-types: "npm:^12.1.3"
     openapi3-ts: "npm:4.5.0"
