@@ -1,4 +1,5 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
+import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
@@ -14,6 +15,37 @@ import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
+
+/**
+ * Extract enum values from propertyNames schema (OpenAPI 3.1)
+ * Returns undefined if propertyNames doesn't have an enum
+ */
+const getPropertyNamesEnum = (item: SchemaObject): string[] | undefined => {
+  const schema31 = item as SchemaObject31;
+  if (
+    'propertyNames' in schema31 &&
+    schema31.propertyNames &&
+    'enum' in schema31.propertyNames &&
+    Array.isArray(schema31.propertyNames.enum)
+  ) {
+    return schema31.propertyNames.enum.filter(
+      (val): val is string => typeof val === 'string',
+    );
+  }
+  return undefined;
+};
+
+/**
+ * Generate index signature key type based on propertyNames enum
+ * Returns union type string like "'foo' | 'bar'" or 'string' if no enum
+ */
+const getIndexSignatureKey = (item: SchemaObject): string => {
+  const enumValues = getPropertyNamesEnum(item);
+  if (enumValues && enumValues.length > 0) {
+    return enumValues.map((val) => `'${val}'`).join(' | ');
+  }
+  return 'string';
+};
 
 /**
  * Return the output type from an object
@@ -151,15 +183,16 @@ export const getObject = ({
 
         if (arr.length - 1 === index) {
           if (item.additionalProperties) {
+            const keyType = getIndexSignatureKey(item);
             if (isBoolean(item.additionalProperties)) {
-              acc.value += `\n  [key: string]: unknown;\n }`;
+              acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
             } else {
               const resolvedValue = resolveValue({
                 schema: item.additionalProperties,
                 name,
                 context,
               });
-              acc.value += `\n  [key: string]: ${resolvedValue.value};\n}`;
+              acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
             }
           } else {
             acc.value += '\n}';
@@ -186,9 +219,10 @@ export const getObject = ({
   }
 
   if (item.additionalProperties) {
+    const keyType = getIndexSignatureKey(item);
     if (isBoolean(item.additionalProperties)) {
       return {
-        value: `{ [key: string]: unknown }` + nullable,
+        value: `{ [key: ${keyType}]: unknown }` + nullable,
         imports: [],
         schemas: [],
         isEnum: false,
@@ -203,7 +237,7 @@ export const getObject = ({
       context,
     });
     return {
-      value: `{[key: string]: ${resolvedValue.value}}` + nullable,
+      value: `{[key: ${keyType}]: ${resolvedValue.value}}` + nullable,
       imports: resolvedValue.imports ?? [],
       schemas: resolvedValue.schemas ?? [],
       isEnum: false,
@@ -226,9 +260,11 @@ export const getObject = ({
     };
   }
 
+  const keyType =
+    item.type === 'object' ? getIndexSignatureKey(item) : 'string';
   return {
     value:
-      (item.type === 'object' ? '{ [key: string]: unknown }' : 'unknown') +
+      (item.type === 'object' ? `{ [key: ${keyType}]: unknown }` : 'unknown') +
       nullable,
     imports: [],
     schemas: [],

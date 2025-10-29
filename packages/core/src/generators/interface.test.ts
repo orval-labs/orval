@@ -6,14 +6,18 @@ import type { ContextSpecs, GeneratorSchema } from '../types';
 import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
-  const context: ContextSpecs = {
+  const context = {
     specKey: 'testSpec',
     output: {
-      override: {},
+      mode: 'tags' as const,
+      override: {
+        useTypeOverInterfaces: false,
+      },
     },
-    target: 'typescript',
+    target: 'typescript' as const,
     specs: {},
-  };
+    workspace: './test',
+  } as ContextSpecs;
 
   it('should return const object with typeof', () => {
     const schema: SchemaObject31 = {
@@ -78,5 +82,146 @@ export type TestSchema = typeof TestSchemaValue;
       },
     ];
     expect(got).toEqual(want);
+  });
+
+  it('should generate index signature with propertyNames enum (OpenAPI 3.1)', () => {
+    const schema: SchemaObject31 = {
+      type: 'object',
+      propertyNames: {
+        type: 'string',
+        enum: ['foo', 'bar'],
+      },
+      additionalProperties: {
+        type: 'string',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as SchemaObject30,
+      suffix: '',
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export interface MyObject {[key: 'foo' | 'bar']: string}\n`,
+        imports: [],
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should handle propertyNames enum with additional properties as boolean', () => {
+    const schema: SchemaObject31 = {
+      type: 'object',
+      propertyNames: {
+        type: 'string',
+        enum: ['key1', 'key2', 'key3'],
+      },
+      additionalProperties: true,
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as SchemaObject30,
+      suffix: '',
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export interface MyObject { [key: 'key1' | 'key2' | 'key3']: unknown }\n`,
+        imports: [],
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should handle propertyNames enum with specific type in additionalProperties', () => {
+    const schema: SchemaObject31 = {
+      type: 'object',
+      propertyNames: {
+        type: 'string',
+        enum: ['id', 'name'],
+      },
+      additionalProperties: {
+        type: 'integer',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as SchemaObject30,
+      suffix: '',
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export interface MyObject {[key: 'id' | 'name']: number}\n`,
+        imports: [],
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should use string when propertyNames has no enum', () => {
+    const schema: SchemaObject31 = {
+      type: 'object',
+      propertyNames: {
+        type: 'string',
+        pattern: '^[a-z]+$',
+      },
+      additionalProperties: {
+        type: 'string',
+      },
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as SchemaObject30,
+      suffix: '',
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'MyObject',
+        model: `export interface MyObject {[key: string]: string}\n`,
+        imports: [],
+      },
+    ];
+    expect(got).toEqual(want);
+  });
+
+  it('should handle propertyNames enum with properties already defined', () => {
+    const schema: SchemaObject31 = {
+      type: 'object',
+      properties: {
+        existingProp: {
+          type: 'string',
+        },
+      },
+      propertyNames: {
+        type: 'string',
+        enum: ['allowed', 'values'],
+      },
+      additionalProperties: {
+        type: 'number',
+      },
+      required: ['existingProp'],
+    };
+
+    const got = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as SchemaObject30,
+      suffix: '',
+    });
+
+    expect(got).toHaveLength(1);
+    expect(got[0].name).toBe('MyObject');
+    expect(got[0].model).toContain('existingProp: string');
+    expect(got[0].model).toContain("[key: 'allowed' | 'values']: number");
   });
 });
