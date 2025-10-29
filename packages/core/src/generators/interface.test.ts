@@ -9,15 +9,10 @@ describe('generateInterface', () => {
   const context: ContextSpecs = {
     specKey: 'testSpec',
     output: {
-      mode: 'tags',
-      // @ts-expect-error
-      override: {
-        useTypeOverInterfaces: false,
-      },
+      override: {},
     },
     target: 'typescript',
     specs: {},
-    workspace: './test',
   };
 
   it('should return const object with typeof', () => {
