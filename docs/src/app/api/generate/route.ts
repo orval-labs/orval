@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import { NextRequest, NextResponse } from 'next/server';
 import fs from 'node:fs/promises';
 import { generate } from 'orval';
 import prettier from 'prettier';
@@ -9,13 +9,11 @@ export interface GenerateOutput {
   filename: string;
 }
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse<GenerateOutput[] | { error: string }>,
-) {
-  const { schema, config } = req.body;
-
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+    const { schema, config } = body;
+
     const parsedConfig = JSON.parse(config);
     const parsedYaml = yaml.parse(schema);
 
@@ -35,7 +33,7 @@ export default async function handler(
 
     const file = await fs.readFile(`/tmp/endpoints.ts`, 'utf8');
 
-    res.status(200).json([
+    return NextResponse.json([
       {
         content: await prettier.format(file, {
           parser: 'typescript',
@@ -53,6 +51,6 @@ export default async function handler(
         errorMessage = err;
       }
     }
-    res.status(400).json({ error: errorMessage });
+    return NextResponse.json({ error: errorMessage }, { status: 400 });
   }
 }
