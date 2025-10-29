@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'node:fs/promises';
 import { generate } from 'orval';
 import prettier from 'prettier';
@@ -9,11 +9,19 @@ export interface GenerateOutput {
   filename: string;
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { schema, config } = body;
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<GenerateOutput[] | { error: string }>,
+) {
+  // Only allow POST requests
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', ['POST']);
+    return res.status(405).json({ error: `Method ${req.method} Not Allowed` });
+  }
 
+  const { schema, config } = req.body;
+
+  try {
     const parsedConfig = JSON.parse(config);
     const parsedYaml = yaml.parse(schema);
 
@@ -33,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     const file = await fs.readFile(`/tmp/endpoints.ts`, 'utf8');
 
-    return NextResponse.json([
+    res.status(200).json([
       {
         content: await prettier.format(file, {
           parser: 'typescript',
@@ -51,6 +59,6 @@ export async function POST(request: NextRequest) {
         errorMessage = err;
       }
     }
-    return NextResponse.json({ error: errorMessage }, { status: 400 });
+    res.status(400).json({ error: errorMessage });
   }
 }
