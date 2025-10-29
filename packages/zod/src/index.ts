@@ -179,6 +179,22 @@ export const generateZodValidationSchemaDefinition = (
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
 
+  // Check for circular reference marker
+  // Check if schema is an object with __circular__ marker
+  if (
+    typeof schema === 'object' &&
+    schema !== null &&
+    '__circular__' in schema &&
+    (schema as any).__circular__
+  ) {
+    const refName = (schema as any).__refName__;
+    // Return a lazy reference that will be resolved during parsing
+    return {
+      functions: [['circularRef', refName]],
+      consts: [],
+    };
+  }
+
   const consts: string[] = [];
   const constsCounter =
     typeof constsUniqueCounter[name] === 'number'
@@ -475,18 +491,43 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([
           objectType,
           Object.keys(schema.properties)
-            .map((key) => ({
-              [key]: generateZodValidationSchemaDefinition(
-                schema.properties?.[key] as any,
-                context,
-                camel(`${name}-${key}`),
-                strict,
-                isZodV4,
-                {
-                  required: schema.required?.includes(key),
-                },
-              ),
-            }))
+            .map((key) => {
+              const propValue = schema.properties?.[key] as any;
+              // Check if this property has a circular reference marker
+              if (
+                typeof propValue === 'object' &&
+                propValue !== null &&
+                '__circular__' in propValue &&
+                propValue.__circular__
+              ) {
+                // Return a lazy reference marker for this property
+                const isRequired = schema.required?.includes(key);
+                const propertyFunctions: [string, any][] = [
+                  ['circularRef', propValue.__refName__],
+                ];
+                if (!isRequired) {
+                  propertyFunctions.push(['optional', undefined]);
+                }
+                return {
+                  [key]: {
+                    functions: propertyFunctions,
+                    consts: [],
+                  },
+                };
+              }
+              return {
+                [key]: generateZodValidationSchemaDefinition(
+                  propValue,
+                  context,
+                  camel(`${name}-${key}`),
+                  strict,
+                  isZodV4,
+                  {
+                    required: schema.required?.includes(key),
+                  },
+                ),
+              };
+            })
             .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
         ]);
 
@@ -684,22 +725,65 @@ export const parseZodValidationSchemaDefinition = (
       return `zod.${objectType}({
 ${Object.entries(args)
   .map(([key, schema]) => {
-    const value = (schema as ZodValidationSchemaDefinition).functions
-      .map(parseProperty)
-      .join('');
-    consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
-    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+    const schemaDef = schema as ZodValidationSchemaDefinition;
+
+    // Check if this property has a circular reference
+    const hasCircularRef = schemaDef.functions.some(
+      ([fnName]) => fnName === 'circularRef',
+    );
+
+    consts += schemaDef.consts.join('\n');
+
+    if (hasCircularRef) {
+      // Split functions: everything before circularRef, circularRef itself, and everything after
+      const circularRefIndex = schemaDef.functions.findIndex(
+        ([fn]) => fn === 'circularRef',
+      );
+      const afterRef = schemaDef.functions
+        .slice(circularRefIndex + 1)
+        .map(parseProperty)
+        .join('');
+      const refValue = parseProperty(schemaDef.functions[circularRefIndex]);
+
+      // Wrap in lazy and apply modifiers after
+      return `  "${key}": zod.lazy(() => ${refValue})${afterRef}`;
+    }
+
+    // Normal processing
+    const value = schemaDef.functions.map(parseProperty).join('');
+    const valueWithZod = value.startsWith('.') ? `zod${value}` : value;
+    return `  "${key}": ${valueWithZod}`;
   })
   .join(',\n')}
 })`;
     }
     if (fn === 'array') {
       const value = args.functions.map(parseProperty).join('');
+
+      // Check if the array items contain a circular reference
+      const hasCircularRef = args.functions.some(
+        ([fnName]) => fnName === 'circularRef',
+      );
+
       if (typeof args.consts === 'string') {
         consts += args.consts;
       } else if (Array.isArray(args.consts)) {
         consts += args.consts.join('\n');
       }
+
+      // If circular reference, wrap in lazy
+      if (hasCircularRef) {
+        const circularRefIndex = args.functions.findIndex(
+          ([fn]) => fn === 'circularRef',
+        );
+        const afterRef = args.functions
+          .slice(circularRefIndex + 1)
+          .map(parseProperty)
+          .join('');
+        const refValue = parseProperty(args.functions[circularRefIndex]);
+        return `.array(zod.lazy(() => ${refValue})${afterRef})`;
+      }
+
       return `.array(${value.startsWith('.') ? 'zod' : ''}${value})`;
     }
 
@@ -718,6 +802,14 @@ ${Object.entries(args)
     if (fn === 'rest') {
       return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map(parseProperty)})`;
     }
+
+    if (fn === 'circularRef') {
+      // Extract the schema name from the reference (e.g., "#/components/schemas/Node" -> "Node")
+      const refName = args as string;
+      const schemaName = refName.split('/').pop() || '';
+      return schemaName;
+    }
+
     const shouldCoerceType =
       coerceTypes &&
       (Array.isArray(coerceTypes)
@@ -764,10 +856,20 @@ const deferenceScalar = (value: any, context: ContextSpecs): unknown => {
 const deference = (
   schema: SchemaObject | ReferenceObject,
   context: ContextSpecs,
-): SchemaObject => {
+  currentSchemaName?: string,
+): SchemaObject | { __circular__: true; __refName__: string } => {
   const refName = '$ref' in schema ? schema.$ref : undefined;
-  if (refName && context.parents?.includes(refName)) {
-    return {};
+
+  // Check for circular reference - either in parents or same schema reference
+  const isCircular =
+    refName &&
+    (context.parents?.includes(refName) ||
+      (currentSchemaName &&
+        refName === `#/components/schemas/${currentSchemaName}`));
+
+  if (isCircular) {
+    // Return a marker schema to indicate circular reference
+    return { __circular__: true, __refName__: refName } as any;
   }
 
   const childContext: ContextSpecs = {
@@ -793,16 +895,22 @@ const deference = (
 
   return Object.entries(resolvedSchema).reduce<any>((acc, [key, value]) => {
     if (key === 'properties' && isObject(value)) {
-      acc[key] = Object.entries(value).reduce<Record<string, SchemaObject>>(
-        (props, [propKey, propSchema]) => {
-          props[propKey] = deference(
-            propSchema as SchemaObject | ReferenceObject,
-            resolvedContext,
-          );
-          return props;
-        },
-        {},
-      );
+      acc[key] = Object.entries(value as Record<string, any>).reduce<
+        Record<
+          string,
+          SchemaObject | { __circular__: true; __refName__: string }
+        >
+      >((props, [propKey, propSchema]) => {
+        const result = deference(
+          propSchema as SchemaObject | ReferenceObject,
+          resolvedContext,
+          context.parents?.[context.parents.length - 1]
+            ?.replace('#/components/schemas/', '')
+            .replace(/.*\//, ''),
+        ) as any;
+        props[propKey] = result;
+        return props;
+      }, {});
     } else if (key === 'default' || key === 'example' || key === 'examples') {
       acc[key] = value;
     } else {
@@ -862,22 +970,43 @@ const parseBodyAndResponse = ({
 
   const resolvedJsonSchema = deference(schema, context);
 
+  // Check for circular reference marker
+  if (
+    '__circular__' in resolvedJsonSchema &&
+    (resolvedJsonSchema as any).__circular__
+  ) {
+    // This is a circular reference, return it for processing
+    return {
+      input: generateZodValidationSchemaDefinition(
+        resolvedJsonSchema as any,
+        context,
+        name,
+        strict,
+        isZodV4,
+        { required: true },
+      ),
+      isArray: false,
+    };
+  }
+
   // keep the same behaviour for array
-  if (resolvedJsonSchema.items) {
+  if ((resolvedJsonSchema as SchemaObject).items) {
     const min =
-      resolvedJsonSchema.minimum ??
-      resolvedJsonSchema.minLength ??
-      resolvedJsonSchema.minItems;
+      (resolvedJsonSchema as SchemaObject).minimum ??
+      (resolvedJsonSchema as SchemaObject).minLength ??
+      (resolvedJsonSchema as SchemaObject).minItems;
     const max =
-      resolvedJsonSchema.maximum ??
-      resolvedJsonSchema.maxLength ??
-      resolvedJsonSchema.maxItems;
+      (resolvedJsonSchema as SchemaObject).maximum ??
+      (resolvedJsonSchema as SchemaObject).maxLength ??
+      (resolvedJsonSchema as SchemaObject).maxItems;
 
     return {
       input: generateZodValidationSchemaDefinition(
         parseType === 'body'
-          ? removeReadOnlyProperties(resolvedJsonSchema.items as SchemaObject)
-          : (resolvedJsonSchema.items as SchemaObject),
+          ? removeReadOnlyProperties(
+              (resolvedJsonSchema as SchemaObject).items as SchemaObject,
+            )
+          : ((resolvedJsonSchema as SchemaObject).items as SchemaObject),
         context,
         name,
         strict,
@@ -897,8 +1026,8 @@ const parseBodyAndResponse = ({
   return {
     input: generateZodValidationSchemaDefinition(
       parseType === 'body'
-        ? removeReadOnlyProperties(resolvedJsonSchema)
-        : resolvedJsonSchema,
+        ? removeReadOnlyProperties(resolvedJsonSchema as SchemaObject)
+        : (resolvedJsonSchema as SchemaObject),
       context,
       name,
       strict,
@@ -973,7 +1102,10 @@ const parseParameters = ({
       }
 
       const schema = deference(parameter.schema, context);
-      schema.description = parameter.description;
+      // Check for circular reference marker before accessing properties
+      if (!('__circular__' in schema && (schema as any).__circular__)) {
+        (schema as SchemaObject).description = parameter.description;
+      }
 
       const mapStrict = {
         path: strict.param,
@@ -1233,12 +1365,75 @@ const generateZodRoute = async (
     ),
   );
 
+  // Collect all circular references used in the generated code
+  const allInputs = [
+    inputParams,
+    inputQueryParams,
+    inputHeaders,
+    inputBody,
+    ...inputResponses,
+  ];
+  const allCircularRefs = new Set<string>();
+  allInputs.forEach((input) => {
+    if (input?.zod && typeof input.zod === 'string') {
+      const regex = /zod\.lazy\(\(\) => (\w+)\)/g;
+      let match;
+      while ((match = regex.exec(input.zod)) !== null) {
+        allCircularRefs.add(match[1]);
+      }
+    }
+  });
+
+  // Generate schema definitions for circular references
+  const circularSchemaDefs: string[] = [];
+  allCircularRefs.forEach((schemaName) => {
+    const schemaNamePascal = pascal(schemaName);
+    // Find the schema in the openapi spec
+    const schema =
+      context.specs[context.specKey].components?.schemas?.[schemaNamePascal];
+    if (schema && typeof schema === 'object' && 'properties' in schema) {
+      // First, dereference the schema to get markers for circular refs
+      const refFullPath = `#/components/schemas/${schemaNamePascal}`;
+      const schemaContext = { ...context, parents: [refFullPath] };
+
+      // Deference the schema to get markers for circular references
+      const deferenceSchema = deference(
+        schema as SchemaObject,
+        schemaContext,
+        schemaNamePascal,
+      );
+
+      // Generate Zod schema from the deference'd schema
+      const zodSchema = generateZodValidationSchemaDefinition(
+        deferenceSchema as SchemaObject,
+        schemaContext,
+        schemaNamePascal,
+        false,
+        isZodV4,
+        { required: true },
+      );
+      const parsed = parseZodValidationSchemaDefinition(
+        zodSchema,
+        schemaContext,
+        false,
+        false,
+        isZodV4,
+      );
+      if (parsed.zod) {
+        circularSchemaDefs.push(
+          `export const ${schemaNamePascal} = ${parsed.zod};`,
+        );
+      }
+    }
+  });
+
   if (
     !inputParams.zod &&
     !inputQueryParams.zod &&
     !inputHeaders.zod &&
     !inputBody.zod &&
-    !inputResponses.some((inputResponse) => inputResponse.zod)
+    !inputResponses.some((inputResponse) => inputResponse.zod) &&
+    circularSchemaDefs.length === 0
   ) {
     return {
       implemtation: '',
@@ -1299,6 +1494,7 @@ export const ${operationResponse} = zod.array(${operationResponse}Item)${
             : []),
         ];
       }),
+      ...circularSchemaDefs,
     ].join('\n\n'),
     mutators: preprocessResponse ? [preprocessResponse] : [],
   };

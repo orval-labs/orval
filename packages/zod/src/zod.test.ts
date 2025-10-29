@@ -1908,3 +1908,452 @@ describe('generateZodWithMultiTypeArray', () => {
     );
   });
 });
+
+describe('circular references', () => {
+  const context: ContextSpecs = {
+    output: {
+      override: {
+        useDates: false,
+      },
+    },
+  } as ContextSpecs;
+
+  it('handles circular references with lazy schema in properties', () => {
+    // Create a test schema with a circular reference marker
+    const schemaWithCircularRef = {
+      __circular__: true,
+      __refName__: '#/components/schemas/Node',
+    } as any;
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithCircularRef,
+      context,
+      'testNode',
+      false,
+      false,
+      { required: true },
+    );
+
+    expect(result).toEqual({
+      functions: [['circularRef', '#/components/schemas/Node']],
+      consts: [],
+    });
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Should extract Node from the reference
+    expect(parsed.zod).toBe('Node');
+  });
+
+  it('wraps circular references in object properties with lazy', () => {
+    const schemaWithCircularRefProperty = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            child: {
+              functions: [['circularRef', '#/components/schemas/Node']],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefProperty,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "child": zod.lazy(() => Node)\n})',
+    );
+  });
+
+  it('handles circular references in arrays', () => {
+    const schemaWithCircularRefArray = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            children: {
+              functions: [['circularRef', '#/components/schemas/Node']],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefArray,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "children": zod.lazy(() => Node)\n})',
+    );
+  });
+
+  it('handles circular references in arrays with optional', () => {
+    const schemaWithCircularRefArray = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            tags: {
+              functions: [
+                ['circularRef', '#/components/schemas/Tag'],
+                ['optional', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefArray,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "tags": zod.lazy(() => Tag).optional()\n})',
+    );
+  });
+
+  it('handles multiple circular references in one object', () => {
+    const schemaWithMultipleCircularRefs = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            parent: {
+              functions: [['circularRef', '#/components/schemas/Node']],
+              consts: [],
+            },
+            sibling: {
+              functions: [['circularRef', '#/components/schemas/Node']],
+              consts: [],
+            },
+            child: {
+              functions: [['circularRef', '#/components/schemas/Node']],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithMultipleCircularRefs,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "parent": zod.lazy(() => Node),\n  "sibling": zod.lazy(() => Node),\n  "child": zod.lazy(() => Node)\n})',
+    );
+  });
+
+  it('handles circular references with nullable', () => {
+    const schemaWithCircularRefNullable = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            next: {
+              functions: [
+                ['circularRef', '#/components/schemas/Node'],
+                ['nullable', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefNullable,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "next": zod.lazy(() => Node).nullable()\n})',
+    );
+  });
+
+  it('handles circular references with both optional and nullable', () => {
+    const schemaWithCircularRefOptionalNullable = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            next: {
+              functions: [
+                ['circularRef', '#/components/schemas/Node'],
+                ['optional', undefined],
+                ['nullable', undefined],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefOptionalNullable,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "next": zod.lazy(() => Node).optional().nullable()\n})',
+    );
+  });
+
+  it('handles deeply nested circular references', () => {
+    const schemaWithNestedCircularRef = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            data: {
+              functions: [
+                [
+                  'object',
+                  {
+                    name: {
+                      functions: [['string', undefined]],
+                      consts: [],
+                    },
+                    parent: {
+                      functions: [['circularRef', '#/components/schemas/Node']],
+                      consts: [],
+                    },
+                  },
+                ],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithNestedCircularRef,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "data": zod.object({\n  "name": zod.string(),\n  "parent": zod.lazy(() => Node)\n})\n})',
+    );
+  });
+
+  it('handles circular references in allOf combinations', () => {
+    const schemaWithCircularRefAllOf = {
+      functions: [
+        [
+          'allOf',
+          [
+            {
+              functions: [
+                [
+                  'object',
+                  {
+                    id: {
+                      functions: [['number', undefined]],
+                      consts: [],
+                    },
+                  },
+                ],
+              ],
+              consts: [],
+            },
+            {
+              functions: [
+                [
+                  'object',
+                  {
+                    child: {
+                      functions: [['circularRef', '#/components/schemas/Node']],
+                      consts: [],
+                    },
+                  },
+                ],
+              ],
+              consts: [],
+            },
+          ],
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefAllOf,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('zod.lazy(() => Node)');
+  });
+
+  it('handles circular references with description', () => {
+    const schemaWithCircularRefAndDescription = {
+      functions: [
+        [
+          'object',
+          {
+            id: {
+              functions: [['number', undefined]],
+              consts: [],
+            },
+            child: {
+              functions: [
+                ['circularRef', '#/components/schemas/Node'],
+                ['describe', "'The child node'"],
+              ],
+              consts: [],
+            },
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithCircularRefAndDescription,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.object({\n  "id": zod.number(),\n  "child": zod.lazy(() => Node).describe(\'The child node\')\n})',
+    );
+  });
+
+  it('handles circular references in arrays correctly', () => {
+    const schemaWithArrayCircularRef = {
+      functions: [
+        [
+          'array',
+          {
+            functions: [['circularRef', '#/components/schemas/Node']],
+            consts: [],
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithArrayCircularRef,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe('zod.array(zod.lazy(() => Node))');
+  });
+
+  it('handles circular references in arrays with modifiers', () => {
+    const schemaWithArrayCircularRefModifiers = {
+      functions: [
+        [
+          'array',
+          {
+            functions: [
+              ['circularRef', '#/components/schemas/Node'],
+              ['optional', undefined],
+              ['nullable', undefined],
+            ],
+            consts: [],
+          },
+        ],
+      ],
+      consts: [],
+    };
+
+    const parsed = parseZodValidationSchemaDefinition(
+      schemaWithArrayCircularRefModifiers,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toBe(
+      'zod.array(zod.lazy(() => Node).optional().nullable())',
+    );
+  });
+});
