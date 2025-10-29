@@ -1,7 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import url from 'node:url';
 
 import {
   asyncReduce,
@@ -17,6 +16,7 @@ import {
   type NormalizedOptions,
   removeFilesAndEmptyFolders,
 } from '@orval/core';
+import { createJiti } from 'jiti';
 
 import { importSpecs } from './import-specs';
 import { normalizeOptions } from './utils/options';
@@ -95,10 +95,14 @@ export const generateSpecs = async (
 
 function findConfigFile(configFilePath?: string) {
   if (configFilePath) {
-    if (!fs.existsSync(configFilePath))
+    const absolutePath = path.isAbsolute(configFilePath)
+      ? configFilePath
+      : path.resolve(process.cwd(), configFilePath);
+
+    if (!fs.existsSync(absolutePath))
       throw new Error(`Config file ${configFilePath} does not exist`);
 
-    return configFilePath;
+    return absolutePath;
   }
 
   const root = process.cwd();
@@ -113,6 +117,20 @@ function findConfigFile(configFilePath?: string) {
   throw new Error(`No config file found in ${root}`);
 }
 
+async function loadConfigFile(configFilePath: string): Promise<ConfigExternal> {
+  const jiti = createJiti(import.meta.url, {
+    interopDefault: true,
+  });
+
+  const module = await jiti.import(configFilePath, { default: true });
+
+  if (module === undefined) {
+    throw new Error(`${configFilePath} doesn't have a default export`);
+  }
+
+  return await Promise.resolve(module as ConfigExternal);
+}
+
 export const generateConfig = async (
   configFile?: string,
   options?: GlobalOptions,
@@ -120,14 +138,7 @@ export const generateConfig = async (
   const configFilePath = findConfigFile(configFile);
   let configExternal: ConfigExternal;
   try {
-    const importPath = url.pathToFileURL(configFilePath).href;
-    const importedModule = (await import(importPath)) as {
-      default?: ConfigExternal;
-    };
-    if (importedModule.default === undefined) {
-      throw new Error(`${configFilePath} doesn't have a default export`);
-    }
-    configExternal = importedModule.default;
+    configExternal = await loadConfigFile(configFilePath);
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'unknown error';
     throw new Error(`failed to load from ${configFilePath} => ${errorMsg}`);

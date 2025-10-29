@@ -90,6 +90,7 @@
     "execa": "^5.1.1",
     "find-up": "5.0.0",
     "fs-extra": "^11.3.2",
+    "jiti": "^2.6.1",
     "js-yaml": "4.1.0",
     "lodash.uniq": "^4.5.0",
     "openapi3-ts": "4.5.0",
