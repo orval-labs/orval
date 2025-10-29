@@ -1,5 +1,4 @@
-import uniq from 'lodash.uniq';
-import uniqWith from 'lodash.uniqwith';
+import { unique, uniqueWith } from 'remeda';
 
 import {
   type GeneratorImport,
@@ -29,7 +28,7 @@ export const generateImports = ({
     return '';
   }
 
-  return uniqWith(
+  return uniqueWith(
     imports,
     (a, b) =>
       a.name === b.name && a.default === b.default && a.specKey === b.specKey,
@@ -70,7 +69,7 @@ export const generateMutatorImports = ({
   implementation?: string;
   oneMore?: boolean;
 }) => {
-  const imports = uniqWith(
+  const imports = uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   ).reduce((acc, mutator) => {
@@ -153,7 +152,7 @@ const generateDependency = ({
       );
 
   // find all named imports
-  const depsString = uniq(
+  const depsString = unique(
     deps
       .filter(
         (e) => !e.default && !e.syntheticDefaultImport && !e.namespaceImport,

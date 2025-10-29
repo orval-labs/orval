@@ -62,7 +62,6 @@
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
-    "@types/lodash.uniq": "^4.5.9",
     "eslint": "^9.38.0",
     "openapi-types": "^12.1.3",
     "rimraf": "^6.0.1",
@@ -91,8 +90,8 @@
     "find-up": "8.0.0",
     "fs-extra": "^11.3.2",
     "js-yaml": "4.1.0",
-    "lodash.uniq": "^4.5.0",
     "openapi3-ts": "4.5.0",
+    "remeda": "^2.32.0",
     "string-argv": "^0.3.2",
     "tsconfck": "^3.1.6",
     "typedoc": "^0.28.14",

@@ -1,10 +1,10 @@
-import isEmpty from 'lodash.isempty';
 import type {
   ComponentsObject,
   ReferenceObject,
   RequestBodyObject,
   ResponseObject,
 } from 'openapi3-ts/oas30';
+import { isEmptyish } from 'remeda';
 
 import { getResReqTypes } from '../getters';
 import type { ContextSpecs, GeneratorSchema } from '../types';
@@ -17,7 +17,7 @@ export const generateComponentDefinition = (
   context: ContextSpecs,
   suffix: string,
 ): GeneratorSchema[] => {
-  if (isEmpty(responses)) {
+  if (isEmptyish(responses)) {
     return [];
   }
 

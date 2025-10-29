@@ -308,6 +308,371 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
 
+  it('handles allOf with base type string', () => {
+    const stringWithConstraints: SchemaObject = {
+      type: 'string',
+      minLength: 1,
+      maxLength: 100,
+      description: 'Foo',
+    };
+
+    const schemaWithStringAllOf: SchemaObject = {
+      type: 'string',
+      allOf: [stringWithConstraints],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithStringAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse and verify the result
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    // The result should contain constraints from allOf
+    expect(parsed.zod).toContain('min');
+    expect(parsed.zod).toContain('max');
+    expect(parsed.zod).toContain('describe');
+    expect(parsed.zod).toContain('Foo');
+
+    // For type: string with allOf, the constraints are merged directly
+    expect(parsed.zod).toContain('zod.string()');
+  });
+
+  it('handles allOf with additional properties', () => {
+    const pagingResultSchema: SchemaObject = {
+      type: 'object',
+      properties: {
+        meta: {
+          type: 'object',
+          properties: {
+            total: { type: 'number' },
+            take: { type: 'number' },
+            offset: { type: 'number' },
+          },
+          required: ['total', 'take', 'offset'],
+        },
+      },
+      required: ['meta'],
+    };
+
+    const schemaWithAllOfAndProperties: SchemaObject = {
+      type: 'object',
+      allOf: [pagingResultSchema],
+      properties: {
+        items: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'number' },
+              name: { type: 'string' },
+            },
+            required: ['id', 'name'],
+          },
+        },
+      },
+      required: ['items'],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOfAndProperties,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Check that there are two schemas in allOf: the base schema and the additional properties
+    expect(result.functions[0][1]).toHaveLength(2);
+
+    // The first schema should be from allOf (with meta property)
+    const firstSchema = result.functions[0][1][0];
+    expect(firstSchema.functions[0][0]).toBe('object');
+    expect(firstSchema.functions[0][1]).toHaveProperty('meta');
+
+    // The second schema should contain the additional properties (items)
+    const secondSchema = result.functions[0][1][1];
+    expect(secondSchema.functions[0][0]).toBe('object');
+    expect(secondSchema.functions[0][1]).toHaveProperty('items');
+
+    // Parse and verify the result
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    // The result should use .and() to combine schemas
+    expect(parsed.zod).toContain('.and(');
+    expect(parsed.zod).toContain('items');
+    expect(parsed.zod).toContain('meta');
+  });
+
+  it('handles allOf with required fields from additional object (issue #2306)', () => {
+    // Base schema without required fields
+    const userSchema: SchemaObject = {
+      type: 'object',
+      properties: {
+        email: { type: 'string', format: 'email' },
+        name: { type: 'string' },
+      },
+    };
+
+    // Extended schema with required fields in allOf
+    const userCreateSchema: SchemaObject = {
+      type: 'object',
+      allOf: [
+        userSchema,
+        {
+          type: 'object',
+          required: ['email', 'name'],
+        },
+      ],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      userCreateSchema,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse and verify the result
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    // The result should use .and() to combine schemas
+    expect(parsed.zod).toContain('.and(');
+    expect(parsed.zod).toContain('email');
+    expect(parsed.zod).toContain('name');
+  });
+
+  it('handles allOf with number type', () => {
+    const numberWithConstraints: SchemaObject = {
+      type: 'number',
+      minimum: 0,
+      maximum: 100,
+      description: 'Test number',
+    };
+
+    const schemaWithAllOf: SchemaObject = {
+      type: 'number',
+      allOf: [numberWithConstraints],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('allOf');
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('min');
+    expect(parsed.zod).toContain('max');
+    expect(parsed.zod).toContain('describe');
+  });
+
+  it('handles allOf with boolean type', () => {
+    const booleanWithDescription: SchemaObject = {
+      type: 'boolean',
+      description: 'Test boolean',
+    };
+
+    const schemaWithAllOf: SchemaObject = {
+      type: 'boolean',
+      allOf: [booleanWithDescription],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('allOf');
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('boolean');
+    expect(parsed.zod).toContain('describe');
+  });
+
+  it('handles allOf with array type', () => {
+    const arrayWithItems: SchemaObject = {
+      type: 'array',
+      items: {
+        type: 'string',
+      },
+      minItems: 1,
+      maxItems: 10,
+      description: 'Test array',
+    };
+
+    const schemaWithAllOf: SchemaObject = {
+      type: 'array',
+      allOf: [arrayWithItems],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      false,
+      false,
+      {
+        required: true,
+      },
+    );
+
+    expect(result.functions[0][0]).toBe('allOf');
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      false,
+      false,
+    );
+
+    expect(parsed.zod).toContain('array');
+    expect(parsed.zod).toContain('min');
+    expect(parsed.zod).toContain('max');
+    expect(parsed.zod).toContain('describe');
+  });
+
   describe('description handling', () => {
     const context: ContextSpecs = {
       output: {
@@ -434,7 +799,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(parsed.consts).toBe('export const testNumberDefaultDefault = 42;');
     });
 
-    it('generates a default value for a boolean schema', () => {
+    it('generates a default value for a boolean schema with default: true', () => {
       const schemaWithBooleanDefault: SchemaObject30 = {
         type: 'boolean',
         default: true,
@@ -443,7 +808,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       const result = generateZodValidationSchemaDefinition(
         schemaWithBooleanDefault,
         context,
-        'testBooleanDefault',
+        'testBooleanDefaultTrue',
         false,
         false,
         { required: false },
@@ -452,9 +817,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
       expect(result).toEqual({
         functions: [
           ['boolean', undefined],
-          ['default', 'testBooleanDefaultDefault'],
+          ['default', 'testBooleanDefaultTrueDefault'],
         ],
-        consts: ['export const testBooleanDefaultDefault = true;'],
+        consts: ['export const testBooleanDefaultTrueDefault = true;'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -465,11 +830,83 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        'zod.boolean().default(testBooleanDefaultDefault)',
+        'zod.boolean().default(testBooleanDefaultTrueDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testBooleanDefaultDefault = true;',
+        'export const testBooleanDefaultTrueDefault = true;',
       );
+    });
+
+    it('generates a default value for a boolean schema with default: false', () => {
+      const schemaWithBooleanDefault: SchemaObject30 = {
+        type: 'boolean',
+        default: false,
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithBooleanDefault,
+        context,
+        'testBooleanDefaultFalse',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['boolean', undefined],
+          ['default', 'testBooleanDefaultFalseDefault'],
+        ],
+        consts: ['export const testBooleanDefaultFalseDefault = false;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        'zod.boolean().default(testBooleanDefaultFalseDefault)',
+      );
+      expect(parsed.consts).toBe(
+        'export const testBooleanDefaultFalseDefault = false;',
+      );
+    });
+
+    it('generates a boolean schema without default (undefined)', () => {
+      const schemaWithoutDefault: SchemaObject30 = {
+        type: 'boolean',
+        // default property is undefined (not set)
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithoutDefault,
+        context,
+        'testBooleanNoDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          ['boolean', undefined],
+          ['optional', undefined],
+        ],
+        consts: [],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe('zod.boolean().optional()');
+      expect(parsed.consts).toBe('');
     });
 
     it('generates a default value for an array schema', () => {
@@ -824,6 +1261,92 @@ describe('generateZodValidationSchemaDefinition`', () => {
         "zod.union([zod.literal('cat'),zod.literal(1),zod.literal(true)]).optional()",
       );
     });
+
+    it('generates a default value for an array with enum items using "as const"', () => {
+      const schemaWithEnumArrayDefault: SchemaObject30 = {
+        type: 'array',
+        items: {
+          type: 'string',
+          enum: ['A', 'B', 'C'],
+        },
+        default: ['A'],
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithEnumArrayDefault,
+        context,
+        'testEnumArrayDefault',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result).toEqual({
+        functions: [
+          [
+            'array',
+            {
+              functions: [['enum', "['A', 'B', 'C']"]],
+              consts: [],
+            },
+          ],
+          ['default', 'testEnumArrayDefaultDefault'],
+        ],
+        consts: ['export const testEnumArrayDefaultDefault = ["A"] as const;'],
+      });
+
+      const parsed = parseZodValidationSchemaDefinition(
+        result,
+        context,
+        false,
+        false,
+        false,
+      );
+      expect(parsed.zod).toBe(
+        "zod.array(zod.enum(['A', 'B', 'C'])).default(testEnumArrayDefaultDefault)",
+      );
+      expect(parsed.consts).toBe(
+        'export const testEnumArrayDefaultDefault = ["A"] as const;',
+      );
+    });
+
+    it('generates a default value for nested enum arrays in objects', () => {
+      const schemaWithNestedEnumArray: SchemaObject30 = {
+        type: 'object',
+        properties: {
+          some_enum: {
+            type: 'array',
+            items: {
+              type: 'string',
+              enum: ['A', 'B', 'C'],
+            },
+            default: ['A'],
+          },
+        },
+      };
+
+      const result = generateZodValidationSchemaDefinition(
+        schemaWithNestedEnumArray,
+        context,
+        'postEnumBody',
+        false,
+        false,
+        { required: false },
+      );
+
+      expect(result.functions[0][0]).toBe('object');
+
+      // Check that the nested array default has 'as const'
+      const objectProperties = result.functions[0][1] as Record<
+        string,
+        ZodValidationSchemaDefinition
+      >;
+      const someEnumProperty = objectProperties['some_enum'];
+
+      expect(someEnumProperty.consts).toEqual(
+        expect.arrayContaining([expect.stringContaining('as const')]),
+      );
+    });
   });
   describe('number handling', () => {
     const context: ContextSpecs = {
@@ -930,6 +1453,257 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe('zod.number().max(testNumberMaxMax).optional()');
+    });
+
+    describe('OpenAPI 3.1 (exclusiveMinimum/exclusiveMaximum as numbers)', () => {
+      it('generates .gt() for numeric exclusiveMinimum', () => {
+        const schema: SchemaObject30 & { exclusiveMinimum?: number } = {
+          type: 'number',
+          exclusiveMinimum: 5,
+        };
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMin',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['gt', 'testNumberExclusiveMinExclusiveMin'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMinExclusiveMin = 5;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().gt(testNumberExclusiveMinExclusiveMin).optional()',
+        );
+      });
+
+      it('generates .lt() for numeric exclusiveMaximum', () => {
+        const schema: SchemaObject30 & { exclusiveMaximum?: number } = {
+          type: 'number',
+          exclusiveMaximum: 100,
+        };
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMax',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['lt', 'testNumberExclusiveMaxExclusiveMax'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMaxExclusiveMax = 100;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().lt(testNumberExclusiveMaxExclusiveMax).optional()',
+        );
+      });
+
+      it('generates .gt() and .lt() for both exclusiveMinimum and exclusiveMaximum', () => {
+        const schema: SchemaObject30 & {
+          exclusiveMinimum?: number;
+          exclusiveMaximum?: number;
+        } = {
+          type: 'number',
+          exclusiveMinimum: 5,
+          exclusiveMaximum: 100,
+        };
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMinMax',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['gt', 'testNumberExclusiveMinMaxExclusiveMin'],
+            ['lt', 'testNumberExclusiveMinMaxExclusiveMax'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMinMaxExclusiveMin = 5;',
+            'export const testNumberExclusiveMinMaxExclusiveMax = 100;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().gt(testNumberExclusiveMinMaxExclusiveMin).lt(testNumberExclusiveMinMaxExclusiveMax).optional()',
+        );
+      });
+    });
+
+    describe('OpenAPI 3.0 (exclusiveMinimum/exclusiveMaximum as booleans)', () => {
+      it('generates .gt() when exclusiveMinimum=true with minimum value', () => {
+        const schema: SchemaObject30 = {
+          type: 'number',
+          minimum: 10,
+          exclusiveMinimum: true,
+        };
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMinOAS30',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['gt', 'testNumberExclusiveMinOAS30ExclusiveMin'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMinOAS30ExclusiveMin = 10;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().gt(testNumberExclusiveMinOAS30ExclusiveMin).optional()',
+        );
+      });
+
+      it('generates .lt() when exclusiveMaximum=true with maximum value', () => {
+        const schema: SchemaObject30 = {
+          type: 'number',
+          maximum: 100,
+          exclusiveMaximum: true,
+        };
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveMaxOAS30',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['lt', 'testNumberExclusiveMaxOAS30ExclusiveMax'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveMaxOAS30ExclusiveMax = 100;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().lt(testNumberExclusiveMaxOAS30ExclusiveMax).optional()',
+        );
+      });
+
+      it('generates .gt() and .lt() when both exclusiveMinimum and exclusiveMaximum are true', () => {
+        const schema: SchemaObject30 = {
+          type: 'number',
+          minimum: 5,
+          maximum: 100,
+          exclusiveMinimum: true,
+          exclusiveMaximum: true,
+        };
+
+        const result = generateZodValidationSchemaDefinition(
+          schema,
+          context,
+          'testNumberExclusiveBothOAS30',
+          false,
+          false,
+          { required: false },
+        );
+
+        expect(result).toEqual({
+          functions: [
+            ['number', undefined],
+            ['gt', 'testNumberExclusiveBothOAS30ExclusiveMin'],
+            ['lt', 'testNumberExclusiveBothOAS30ExclusiveMax'],
+            ['optional', undefined],
+          ],
+          consts: [
+            'export const testNumberExclusiveBothOAS30ExclusiveMin = 5;',
+            'export const testNumberExclusiveBothOAS30ExclusiveMax = 100;',
+            '\n',
+          ],
+        });
+
+        const parsed = parseZodValidationSchemaDefinition(
+          result,
+          context,
+          false,
+          false,
+          false,
+        );
+        expect(parsed.zod).toBe(
+          'zod.number().gt(testNumberExclusiveBothOAS30ExclusiveMin).lt(testNumberExclusiveBothOAS30ExclusiveMax).optional()',
+        );
+      });
     });
 
     it('generates an number with max and max', () => {
