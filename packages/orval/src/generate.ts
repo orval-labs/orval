@@ -102,7 +102,7 @@ function findConfigFile(configFilePath?: string) {
   }
 
   const root = process.cwd();
-  const exts = ['.ts', '.js', '.mjs'];
+  const exts = ['.ts', '.js', '.mjs', '.mts'];
   for (const ext of exts) {
     const fullPath = path.resolve(root, `orval.config${ext}`);
     if (fs.existsSync(fullPath)) {
