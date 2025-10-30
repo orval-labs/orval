@@ -584,7 +584,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (!required && schema.default) {
+  if (!required && schema.default !== undefined) {
     functions.push(['default', defaultVarName]);
   } else if (!required && nullable) {
     functions.push(['nullish', undefined]);
