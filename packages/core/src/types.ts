@@ -546,7 +546,7 @@ export type NormalizedZodOptions = {
     body: boolean | ZodCoerceType[];
     response: boolean | ZodCoerceType[];
   };
-  preprocess: {
+  preprocess?: {
     param?: NormalizedMutator;
     query?: NormalizedMutator;
     header?: NormalizedMutator;

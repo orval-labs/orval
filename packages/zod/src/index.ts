@@ -200,7 +200,9 @@ export const generateZodValidationSchemaDefinition = (
   const type = resolveZodType(schema);
   const required = rules?.required ?? false;
   const nullable =
-    ('nullable' in schema && schema.nullable) ??
+    // changing to ?? here changes behavior - so don't
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    ('nullable' in schema && schema.nullable) ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
   const max = schema.maximum ?? schema.maxLength ?? schema.maxItems;
@@ -536,29 +538,18 @@ export const generateZodValidationSchemaDefinition = (
           functions.push([
             objectType,
             Object.keys(schema.properties)
-              .map((key) => {
-                const schemaOrRef = schema.properties?.[key];
-                let schemaObj: SchemaObject | SchemaObject31 | undefined;
-                if (
-                  schemaOrRef &&
-                  (isSchemaObject(schemaOrRef) || isSchemaObject31(schemaOrRef))
-                ) {
-                  schemaObj = schemaOrRef;
-                }
-
-                return {
-                  [key]: generateZodValidationSchemaDefinition(
-                    schemaObj,
-                    context,
-                    camel(`${name}-${key}`),
-                    strict,
-                    isZodV4,
-                    {
-                      required: schema.required?.includes(key),
-                    },
-                  ),
-                };
-              })
+              .map((key) => ({
+                [key]: generateZodValidationSchemaDefinition(
+                  schema.properties?.[key] as any,
+                  context,
+                  camel(`${name}-${key}`),
+                  strict,
+                  isZodV4,
+                  {
+                    required: schema.required?.includes(key),
+                  },
+                ),
+              }))
               .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
           ]);
 
@@ -748,7 +739,7 @@ export const parseZodValidationSchemaDefinition = (
     if (fn === 'oneOf' || fn === 'anyOf') {
       // Can't use zod.union() with a single item
       if (args.length === 1) {
-        return args[0].functions.map((x) => parseProperty(x)).join('');
+        return args[0].functions.map((prop) => parseProperty(prop)).join('');
       }
 
       const union = args.map(
@@ -784,7 +775,7 @@ export const parseZodValidationSchemaDefinition = (
 ${Object.entries(args)
   .map(([key, schema]) => {
     const value = (schema as ZodValidationSchemaDefinition).functions
-      .map((x) => parseProperty(x))
+      .map((prop) => parseProperty(prop))
       .join('');
     consts += (schema as ZodValidationSchemaDefinition).consts.join('\n');
     return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
@@ -809,13 +800,13 @@ ${Object.entries(args)
     if (fn === 'tuple') {
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
         .map((x) => {
-          const value = x.functions.map((x) => parseProperty(x)).join('');
+          const value = x.functions.map((prop) => parseProperty(prop)).join('');
           return `${value.startsWith('.') ? 'zod' : ''}${value}`;
         })
         .join(',\n')}])`;
     }
     if (fn === 'rest') {
-      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map((x) => parseProperty(x))})`;
+      return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map((prop) => parseProperty(prop))})`;
     }
     const shouldCoerceType =
       coerceTypes &&
@@ -835,7 +826,7 @@ ${Object.entries(args)
 
   consts += input.consts.join('\n');
 
-  const schema = input.functions.map((x) => parseProperty(x)).join('');
+  const schema = input.functions.map((prop) => parseProperty(prop)).join('');
   const value = preprocess
     ? `.preprocess(${preprocess.name}, ${
         schema.startsWith('.') ? 'zod' : ''
@@ -1235,7 +1226,7 @@ const generateZodRoute = async (
     }),
   );
 
-  const preprocessParams = override.zod.preprocess.param
+  const preprocessParams = override.zod.preprocess?.param
     ? await generateMutator({
         output,
         mutator: override.zod.preprocess.response,
@@ -1254,7 +1245,7 @@ const generateZodRoute = async (
     preprocessParams,
   );
 
-  const preprocessQueryParams = override.zod.preprocess.query
+  const preprocessQueryParams = override.zod.preprocess?.query
     ? await generateMutator({
         output,
         mutator: override.zod.preprocess.response,
@@ -1273,7 +1264,7 @@ const generateZodRoute = async (
     preprocessQueryParams,
   );
 
-  const preprocessHeader = override.zod.preprocess.header
+  const preprocessHeader = override.zod.preprocess?.header
     ? await generateMutator({
         output,
         mutator: override.zod.preprocess.response,
@@ -1292,7 +1283,7 @@ const generateZodRoute = async (
     preprocessHeader,
   );
 
-  const preprocessBody = override.zod.preprocess.body
+  const preprocessBody = override.zod.preprocess?.body
     ? await generateMutator({
         output,
         mutator: override.zod.preprocess.response,
@@ -1311,7 +1302,7 @@ const generateZodRoute = async (
     preprocessBody,
   );
 
-  const preprocessResponse = override.zod.preprocess.response
+  const preprocessResponse = override.zod.preprocess?.response
     ? await generateMutator({
         output,
         mutator: override.zod.preprocess.response,
