@@ -33,6 +33,15 @@ jobs:
         run: yarn
       - name: build
         run: yarn build
+      - name: lint
+        # not all packages pass linting yet - on going work
+        run: |
+          yarn workspace @orval/angular lint
+          yarn workspace @orval/axios lint
+          yarn workspace @orval/fetch lint
+          yarn workspace @orval/hono lint
+          yarn workspace @orval/mcp lint
+          yarn workspace @orval/swr lint
       - name: samples up to date
         uses: nickcharlton/diff-check@v1.0.0
         with:
