@@ -1,6 +1,6 @@
 {
   "name": "react-query-form-data-mutator",
-  "version": "8.0.0-rc.0",
+  "version": "7.15.1-0",
   "private": true,
   "scripts": {
     "generate-api": "orval",
