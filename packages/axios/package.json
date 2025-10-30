@@ -1,6 +1,6 @@
 {
   "name": "@orval/axios",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -29,5 +29,5 @@
     "tsdown": "^0.15.9",
     "typescript": "^5.9.3"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }
