@@ -1,6 +1,6 @@
 {
   "name": "@orval/swr",
-  "version": "8.0.0-rc.0",
+  "version": "7.15.1-0",
   "license": "MIT",
   "type": "module",
   "exports": {
