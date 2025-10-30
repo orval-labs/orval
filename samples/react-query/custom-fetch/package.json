@@ -1,7 +1,7 @@
 {
   "name": "react-query-custom-fetch",
   "private": true,
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -30,5 +30,5 @@
     "typescript": "~5.8.3",
     "vite": "^7.1.12"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

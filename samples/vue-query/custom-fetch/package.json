@@ -1,7 +1,7 @@
 {
   "name": "vue-query-custom-fetch",
   "private": true,
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -22,5 +22,5 @@
     "vite": "^7.1.12",
     "vue-tsc": "^3.1.1"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }
