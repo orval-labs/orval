@@ -1,7 +1,6 @@
 import {
   type ContextSpecs,
   type GeneratorImport,
-  getPropertySafe,
   getRefInfo,
   isReference,
   isRootKey,

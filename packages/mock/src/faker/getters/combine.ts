@@ -139,7 +139,9 @@ export const combineSchemasMock = ({
   let finalValue =
     value === 'undefined'
       ? value
-      : `${value}${separator === 'allOf' ? '' : '])'}`;
+      : // containsOnlyPrimitiveValues isn't just true, it's being set to false inside the above reduce and the type system doesn't detect it
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
     finalValue = finalValue.startsWith('...')
       ? `...{${finalValue}, ${itemResolvedValue.value}}`
