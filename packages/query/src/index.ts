@@ -79,6 +79,28 @@ const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+      { name: 'UseQueryOptions' },
+      {
+        name: 'UseInfiniteQueryOptions',
+      },
+      { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'UseQueryStoreResult' },
+      { name: 'UseInfiniteQueryStoreResult' },
+      { name: 'QueryKey' },
+      { name: 'CreateMutationResult' },
+      { name: 'InvalidateOptions' },
+    ],
+    dependency: '@sveltestack/svelte-query',
+  },
+];
 const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -105,6 +127,19 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
+  const hasSvelteQuery =
+    packageJson?.dependencies?.['@sveltestack/svelte-query'] ??
+    packageJson?.devDependencies?.['@sveltestack/svelte-query'] ??
+    packageJson?.peerDependencies?.['@sveltestack/svelte-query'];
+  const hasSvelteQueryV4 =
+    packageJson?.dependencies?.['@tanstack/svelte-query'] ??
+    packageJson?.devDependencies?.['@tanstack/svelte-query'] ??
+    packageJson?.peerDependencies?.['@tanstack/svelte-query'];
+
+  return !!hasSvelteQuery && !hasSvelteQueryV4;
+};
+
 const isSvelteQueryV6 = (packageJson: PackageJson | undefined) => {
   return isQueryV6(packageJson, 'svelte-query');
 };
@@ -115,15 +150,41 @@ export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
   packageJson,
   httpClient?: OutputHttpClient,
 ) => {
+  const hasSvelteQueryV3 = isSvelteQueryV3(packageJson);
+
   return [
     ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
       ? AXIOS_DEPENDENCIES
       : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...SVELTE_QUERY_DEPENDENCIES,
+    ...(hasSvelteQueryV3
+      ? SVELTE_QUERY_DEPENDENCIES_V3
+      : SVELTE_QUERY_DEPENDENCIES),
   ];
 };
 
+const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
+      { name: 'UseQueryOptions' },
+      { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
+      { name: 'QueryClient' },
+      { name: 'UseMutationResult' },
+      { name: 'InvalidateOptions' },
+    ],
+    dependency: 'react-query',
+  },
+];
 const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -165,16 +226,70 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
   packageJson,
   httpClient,
   hasTagsMutator,
+  override,
 ) => {
+  const hasReactQuery =
+    packageJson?.dependencies?.['react-query'] ??
+    packageJson?.devDependencies?.['react-query'] ??
+    packageJson?.peerDependencies?.['react-query'];
+  const hasReactQueryV4 =
+    packageJson?.dependencies?.['@tanstack/react-query'] ??
+    packageJson?.devDependencies?.['@tanstack/react-query'] ??
+    packageJson?.peerDependencies?.['@tanstack/react-query'];
+
+  const useReactQueryV3 =
+    override?.query.version === undefined
+      ? hasReactQuery && !hasReactQueryV4
+      : override?.query.version <= 3;
+
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
     ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
       ? AXIOS_DEPENDENCIES
       : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...REACT_QUERY_DEPENDENCIES,
+    ...(useReactQueryV3
+      ? REACT_QUERY_DEPENDENCIES_V3
+      : REACT_QUERY_DEPENDENCIES),
   ];
 };
+
+const VUE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'useQuery', values: true },
+      { name: 'useInfiniteQuery', values: true },
+      { name: 'useMutation', values: true },
+    ],
+    dependency: 'vue-query',
+  },
+  {
+    exports: [
+      { name: 'UseQueryOptions' },
+      { name: 'UseInfiniteQueryOptions' },
+      { name: 'UseMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'UseQueryResult' },
+      { name: 'UseInfiniteQueryResult' },
+      { name: 'QueryKey' },
+      { name: 'UseMutationReturnType' },
+      { name: 'InvalidateOptions' },
+    ],
+    dependency: 'vue-query/types',
+  },
+  {
+    exports: [
+      { name: 'unref', values: true },
+      { name: 'computed', values: true },
+    ],
+    dependency: 'vue',
+  },
+  {
+    exports: [{ name: 'UseQueryReturnType' }],
+    dependency: 'vue-query/lib/vue/useBaseQuery',
+  },
+];
 
 const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -208,18 +323,33 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
+  const hasVueQuery =
+    packageJson?.dependencies?.['vue-query'] ??
+    packageJson?.devDependencies?.['vue-query'] ??
+    packageJson?.peerDependencies?.['vue-query'];
+  const hasVueQueryV4 =
+    packageJson?.dependencies?.['@tanstack/vue-query'] ??
+    packageJson?.devDependencies?.['@tanstack/vue-query'] ??
+    packageJson?.peerDependencies?.['@tanstack/vue-query'];
+
+  return !!hasVueQuery && !hasVueQueryV4;
+};
+
 export const getVueQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
   packageJson,
   httpClient?: OutputHttpClient,
 ) => {
+  const hasVueQueryV3 = isVueQueryV3(packageJson);
+
   return [
     ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
       ? AXIOS_DEPENDENCIES
       : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
-    ...VUE_QUERY_DEPENDENCIES,
+    ...(hasVueQueryV3 ? VUE_QUERY_DEPENDENCIES_V3 : VUE_QUERY_DEPENDENCIES),
   ];
 };
 
@@ -1136,8 +1266,12 @@ const generateQueryHook = async (
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const queryVersion = override.query.version ?? query?.version;
 
-  const hasVueQueryV4 = OutputClient.VUE_QUERY === outputClient;
-  const hasSvelteQueryV4 = OutputClient.SVELTE_QUERY === outputClient;
+  const hasVueQueryV4 =
+    OutputClient.VUE_QUERY === outputClient &&
+    (!isVueQueryV3(context.output.packageJson) || queryVersion === 4);
+  const hasSvelteQueryV4 =
+    OutputClient.SVELTE_QUERY === outputClient &&
+    (!isSvelteQueryV3(context.output.packageJson) || queryVersion === 4);
   const hasSvelteQueryV6 =
     OutputClient.SVELTE_QUERY === outputClient &&
     isSvelteQueryV6(context.output.packageJson);
