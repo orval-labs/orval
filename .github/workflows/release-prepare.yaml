@@ -42,9 +42,8 @@ jobs:
 
       - name: Update versions and samples
         run: |
-          VERSION=${{ github.event.inputs.version }}
-          echo "Updating all workspace versions to $VERSION"
-          yarn workspaces foreach -Av version $VERSION
+          echo "Updating all workspace versions to ${{ github.event.inputs.version }}"
+          yarn workspaces foreach -Av version "${{ github.event.inputs.version }}"
           yarn update-samples
 
       - name: Create Pull Request
