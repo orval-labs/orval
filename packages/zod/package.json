@@ -23,11 +23,10 @@
   },
   "dependencies": {
     "@orval/core": "workspace:*",
-    "lodash.uniq": "^4.5.0",
-    "openapi3-ts": "4.5.0"
+    "openapi3-ts": "4.5.0",
+    "remeda": "^2.32.0"
   },
   "devDependencies": {
-    "@types/lodash.uniq": "^4.5.9",
     "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
     "tsdown": "^0.15.9",

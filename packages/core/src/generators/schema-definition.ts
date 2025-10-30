@@ -1,5 +1,5 @@
-import isEmpty from 'lodash.isempty';
 import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
+import { isEmptyish } from 'remeda';
 
 import {
   getEnum,
@@ -34,7 +34,7 @@ export const generateSchemasDefinition = (
   suffix: string,
   filters?: InputFiltersOption,
 ): GeneratorSchema[] => {
-  if (isEmpty(schemas)) {
+  if (isEmptyish(schemas)) {
     return [];
   }
 

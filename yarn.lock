@@ -5246,10 +5246,6 @@ __metadata:
     "@types/debug": "npm:^4.1.12"
     "@types/esutils": "npm:^2.0.2"
     "@types/fs-extra": "npm:^11.0.4"
-    "@types/lodash.isempty": "npm:^4.4.9"
-    "@types/lodash.uniq": "npm:^4.5.9"
-    "@types/lodash.uniqby": "npm:^4.7.9"
-    "@types/lodash.uniqwith": "npm:^4.5.9"
     "@types/swagger2openapi": "npm:^7.0.4"
     acorn: "npm:^8.15.0"
     chalk: "npm:^5.6.2"
@@ -5260,12 +5256,9 @@ __metadata:
     esutils: "npm:2.0.3"
     fs-extra: "npm:^11.3.2"
     globby: "npm:15.0.0"
-    lodash.isempty: "npm:^4.4.0"
-    lodash.uniq: "npm:^4.5.0"
-    lodash.uniqby: "npm:^4.7.0"
-    lodash.uniqwith: "npm:^4.5.0"
     openapi-types: "npm:^12.1.3"
     openapi3-ts: "npm:4.5.0"
+    remeda: "npm:^2.32.0"
     rimraf: "npm:^6.0.1"
     swagger2openapi: "npm:^7.0.8"
     tsdown: "npm:^0.15.9"
@@ -5296,11 +5289,10 @@ __metadata:
     "@orval/core": "workspace:*"
     "@orval/zod": "workspace:*"
     "@types/fs-extra": "npm:^11.0.4"
-    "@types/lodash.uniq": "npm:^4.5.9"
     eslint: "npm:^9.38.0"
     fs-extra: "npm:^11.3.2"
-    lodash.uniq: "npm:^4.5.0"
     openapi3-ts: "npm:4.5.0"
+    remeda: "npm:^2.32.0"
     rimraf: "npm:^6.0.1"
     tsdown: "npm:^0.15.9"
     typescript: "npm:^5.9.3"
@@ -5342,10 +5334,9 @@ __metadata:
   dependencies:
     "@orval/core": "workspace:*"
     "@orval/fetch": "workspace:*"
-    "@types/lodash.omitby": "npm:^4.6.9"
     chalk: "npm:^5.6.2"
     eslint: "npm:^9.38.0"
-    lodash.omitby: "npm:^4.6.0"
+    remeda: "npm:^2.32.0"
     rimraf: "npm:^6.0.1"
     tsdown: "npm:^0.15.9"
     vitest: "npm:^4.0.3"
@@ -5369,10 +5360,9 @@ __metadata:
   resolution: "@orval/zod@workspace:packages/zod"
   dependencies:
     "@orval/core": "workspace:*"
-    "@types/lodash.uniq": "npm:^4.5.9"
     eslint: "npm:^9.38.0"
-    lodash.uniq: "npm:^4.5.0"
     openapi3-ts: "npm:4.5.0"
+    remeda: "npm:^2.32.0"
     rimraf: "npm:^6.0.1"
     tsdown: "npm:^0.15.9"
     vitest: "npm:^4.0.3"
@@ -7286,58 +7276,6 @@ __metadata:
   dependencies:
     "@types/node": "npm:*"
   checksum: 10c0/b12d068b021e4078f6ac4441353965769be87acf15326173e2aea9f3bf8ead41bd0ad29421df5bbeb0123ec3fc02eb0a734481d52903704a1454a1845896b9eb
-  languageName: node
-  linkType: hard
-
-"@types/lodash.isempty@npm:^4.4.9":
-  version: 4.4.9
-  resolution: "@types/lodash.isempty@npm:4.4.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/581b3b1e896524b00cb32dc08f1aea328cec0ab95720f24e0f6d9e8a2c9be5b65e4ad030ec45f58f656ab8dcf555f039863862e04c91051a24ee27cac8a994ab
-  languageName: node
-  linkType: hard
-
-"@types/lodash.omitby@npm:^4.6.9":
-  version: 4.6.9
-  resolution: "@types/lodash.omitby@npm:4.6.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/e8850219326634c5b531e3398d24701000328e4366504d9315c1660c2fe2a0d4fc9aa2983b8c652ee7239921cd16103b37b1e44efdf25658de2a36f64b76888a
-  languageName: node
-  linkType: hard
-
-"@types/lodash.uniq@npm:^4.5.9":
-  version: 4.5.9
-  resolution: "@types/lodash.uniq@npm:4.5.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/feb01dfd7b6e3d2b4d29bdb0d00cce8ffa685f1c219b34ae531f098811faab11696b7bdfc3654edcf65f6180ad0cda6471cec7da8a9e7688f294b5c8177cfea7
-  languageName: node
-  linkType: hard
-
-"@types/lodash.uniqby@npm:^4.7.9":
-  version: 4.7.9
-  resolution: "@types/lodash.uniqby@npm:4.7.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/b508927c8bd9a840c629169f8573d0f33a12c7232b4315785537f25914dec441323c54ba609f75fdefaa53f7ecd56f29bd6f598c3920ade45532b8eab76bf044
-  languageName: node
-  linkType: hard
-
-"@types/lodash.uniqwith@npm:^4.5.9":
-  version: 4.5.9
-  resolution: "@types/lodash.uniqwith@npm:4.5.9"
-  dependencies:
-    "@types/lodash": "npm:*"
-  checksum: 10c0/0e6e917d02458c487ad28b3e6c6c358d3b091086c29bbee4d7f0318702727ba9691bf745e2bfa3847c99d4e1f4e74a850de081b4c68e593cca79e10eb3c68dfe
-  languageName: node
-  linkType: hard
-
-"@types/lodash@npm:*":
-  version: 4.17.20
-  resolution: "@types/lodash@npm:4.17.20"
-  checksum: 10c0/98cdd0faae22cbb8079a01a3bb65aa8f8c41143367486c1cbf5adc83f16c9272a2a5d2c1f541f61d0d73da543c16ee1d21cf2ef86cb93cd0cc0ac3bced6dd88f
   languageName: node
   linkType: hard
 
@@ -16678,13 +16616,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.isempty@npm:^4.4.0":
-  version: 4.4.0
-  resolution: "lodash.isempty@npm:4.4.0"
-  checksum: 10c0/6c7eaa0802398736809b9e8aed8b8ac1abca9be71788fd719ba9d7f5b4c23e8dc63b7f049df4131713dda30a2fdedc2f655268e9deb8cd5a985dfc934afca194
-  languageName: node
-  linkType: hard
-
 "lodash.isplainobject@npm:^4.0.6":
   version: 4.0.6
   resolution: "lodash.isplainobject@npm:4.0.6"
@@ -16720,13 +16651,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.omitby@npm:^4.6.0":
-  version: 4.6.0
-  resolution: "lodash.omitby@npm:4.6.0"
-  checksum: 10c0/4608b1d8c4063b63349a3462852465fbe74781d737fbb26a0a7f00b0e65f6ccbc13fa490a38f9380103d93fc398e3873983038efadfafc67ccafbb25d9bc7bf4
-  languageName: node
-  linkType: hard
-
 "lodash.snakecase@npm:^4.1.1":
   version: 4.1.1
   resolution: "lodash.snakecase@npm:4.1.1"
@@ -16759,20 +16683,6 @@ __metadata:
   version: 4.5.0
   resolution: "lodash.uniq@npm:4.5.0"
   checksum: 10c0/262d400bb0952f112162a320cc4a75dea4f66078b9e7e3075ffbc9c6aa30b3e9df3cf20e7da7d566105e1ccf7804e4fbd7d804eee0b53de05d83f16ffbf41c5e
-  languageName: node
-  linkType: hard
-
-"lodash.uniqby@npm:^4.7.0":
-  version: 4.7.0
-  resolution: "lodash.uniqby@npm:4.7.0"
-  checksum: 10c0/c505c0de20ca759599a2ba38710e8fb95ff2d2028e24d86c901ef2c74be8056518571b9b754bfb75053b2818d30dd02243e4a4621a6940c206bbb3f7626db656
-  languageName: node
-  linkType: hard
-
-"lodash.uniqwith@npm:^4.5.0":
-  version: 4.5.0
-  resolution: "lodash.uniqwith@npm:4.5.0"
-  checksum: 10c0/3db1748302f5903cd2e4c361eb084bcfc48fe4062e37be4860363a0be643bf6617c1f115d61189b69623056a55acbcd451a52b3042b4864d5acc86a3b0ac83df
   languageName: node
   linkType: hard
 
@@ -18633,7 +18543,6 @@ __metadata:
     "@orval/zod": "workspace:*"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/js-yaml": "npm:^4.0.9"
-    "@types/lodash.uniq": "npm:^4.5.9"
     chalk: "npm:^5.6.2"
     chokidar: "npm:^4.0.3"
     commander: "npm:^14.0.1"
@@ -18643,9 +18552,9 @@ __metadata:
     find-up: "npm:8.0.0"
     fs-extra: "npm:^11.3.2"
     js-yaml: "npm:4.1.0"
-    lodash.uniq: "npm:^4.5.0"
     openapi-types: "npm:^12.1.3"
     openapi3-ts: "npm:4.5.0"
+    remeda: "npm:^2.32.0"
     rimraf: "npm:^6.0.1"
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^3.1.6"
@@ -20890,6 +20799,15 @@ __metadata:
   version: 0.2.7
   resolution: "relateurl@npm:0.2.7"
   checksum: 10c0/c248b4e3b32474f116a804b537fa6343d731b80056fb506dffd91e737eef4cac6be47a65aae39b522b0db9d0b1011d1a12e288d82a109ecd94a5299d82f6573a
+  languageName: node
+  linkType: hard
+
+"remeda@npm:^2.32.0":
+  version: 2.32.0
+  resolution: "remeda@npm:2.32.0"
+  dependencies:
+    type-fest: "npm:^4.41.0"
+  checksum: 10c0/890ce245dac492eacffc657d6976680a6de8c9f96a5a1e86c37d91795e5209a62e6912dceeda20685f03d26bb5d54805c8c7a9ad0e91b16f1fcfacd70452ab00
   languageName: node
   linkType: hard
 
@@ -23989,7 +23907,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"type-fest@npm:^4.26.1":
+"type-fest@npm:^4.26.1, type-fest@npm:^4.41.0":
   version: 4.41.0
   resolution: "type-fest@npm:4.41.0"
   checksum: 10c0/f5ca697797ed5e88d33ac8f1fec21921839871f808dc59345c9cf67345bfb958ce41bd821165dbf3ae591cedec2bf6fe8882098dfdd8dc54320b859711a2c1e4

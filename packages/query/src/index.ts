@@ -31,7 +31,7 @@ import {
   toObjectString,
   Verbs,
 } from '@orval/core';
-import omitBy from 'lodash.omitby';
+import { omitBy } from 'remeda';
 
 import {
   AXIOS_DEPENDENCIES,
