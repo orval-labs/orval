@@ -34,7 +34,7 @@ jobs:
       - name: build
         run: yarn build
       - name: lint
-        # not all packages pass linting yet - on going work
+        # not all packages pass linting yet - ongoing work
         run: |
           yarn workspace @orval/angular lint
           yarn workspace @orval/axios lint
