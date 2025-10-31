@@ -23,7 +23,7 @@ const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
       : stringify(value as string)!;
 
     acc[key] = implementation?.replaceAll(
-      /import_faker.defaults|import_faker.faker/g,
+      /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
       'faker',
     );
     return acc;
@@ -284,7 +284,7 @@ export const getMockOptionsDataOverride = (
     : stringify(responseOverride);
 
   return implementation?.replaceAll(
-    /import_faker.defaults|import_faker.faker/g,
+    /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
     'faker',
   );
 };
