@@ -65,7 +65,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore(release): bump version to v${{ github.event.inputs.version }}'
           branch: release/v${{ github.event.inputs.version }}
-          base: master
+          base: v7
           title: 'Release v${{ github.event.inputs.version }}'
           body: |
             This PR prepares the release of version v${{ github.event.inputs.version }}.
