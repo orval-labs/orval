@@ -2,6 +2,7 @@
   "name": "next-app-with-fetch",
   "version": "8.0.0-rc.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

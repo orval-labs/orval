@@ -39,9 +39,9 @@ export const generateRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context, pathRoute }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = !override?.formData.disabled;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
 
   const getUrlFnName = camel(`get-${operationName}-url`);
   const getUrlFnProps = toObjectString(
@@ -58,7 +58,7 @@ export const generateRequestFunction = (
     | PathItemObject
     | undefined;
   const parameters =
-    spec?.[verb]?.parameters || ([] as (ParameterObject | ReferenceObject)[]);
+    spec?.[verb]?.parameters ?? ([] as (ParameterObject | ReferenceObject)[]);
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<ParameterObject>(parameter, context);
@@ -129,9 +129,11 @@ ${
     contentType === 'application/nd-json' ||
     contentType === 'application/x-ndjson';
 
-  const isNdJson = response.contentTypes.some(isContentTypeNdJson);
+  const isNdJson = response.contentTypes.some((contentType) =>
+    isContentTypeNdJson(contentType),
+  );
   const responseTypeName = fetchResponseTypeName(
-    override.fetch?.includeHttpResponseReturnType,
+    override.fetch.includeHttpResponseReturnType,
     isNdJson ? 'Response' : response.definition.success,
     operationName,
   );
@@ -230,8 +232,8 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `Promise<${successName}>`
       : `Promise<${responseTypeName}>`;
 
-  const globalFetchOptions = isObject(override?.requestOptions)
-    ? `${stringify(override?.requestOptions)?.slice(1, -1)?.trim()}`
+  const globalFetchOptions = isObject(override.requestOptions)
+    ? stringify(override.requestOptions)?.slice(1, -1).trim()
     : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];

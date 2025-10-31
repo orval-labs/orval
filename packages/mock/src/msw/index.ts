@@ -134,9 +134,7 @@ const generateDefinition = (
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
-    delay === false
-      ? ''
-      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
+    typeof delay === 'number' ? `await delay(${delay});` : ''
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
@@ -188,7 +186,7 @@ export const generateMSW = (
 
   const route = getRouteMSW(
     pathRoute,
-    override?.mock?.baseUrl ?? (isFunction(mock) ? undefined : mock?.baseUrl),
+    override.mock?.baseUrl ?? (isFunction(mock) ? undefined : mock?.baseUrl),
   );
 
   const handlerName = `get${pascal(operationId)}MockHandler`;

@@ -6,7 +6,6 @@ import {
   type ClientHeaderBuilder,
   type ContextSpecs,
   generateMutatorImports,
-  type GeneratorMutator,
   type GeneratorVerbOptions,
   getFileInfo,
   getFullRoute,
@@ -32,11 +31,7 @@ const getHeader = (
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
 
-export const getMcpHeader: ClientHeaderBuilder = ({
-  verbOptions,
-  output,
-  clientImplementation,
-}) => {
+export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
   const schemaInfo = getFileInfo(output.schemas);
 
@@ -44,8 +39,8 @@ export const getMcpHeader: ClientHeaderBuilder = ({
     ? upath.relativeSafe(targetInfo.dirname, schemaInfo.dirname)
     : './' + targetInfo.filename + '.schemas';
 
-  const importSchemaNames = Object.values(verbOptions)
-    .flatMap((verbOption) => {
+  const importSchemaNames = new Set(
+    Object.values(verbOptions).flatMap((verbOption) => {
       const imports = [];
       const pascalOperationName = pascal(verbOption.operationName);
 
@@ -58,13 +53,10 @@ export const getMcpHeader: ClientHeaderBuilder = ({
       }
 
       return imports;
-    })
-    .reduce<string[]>((acc, name) => {
-      if (!acc.find((i) => i === name)) {
-        acc.push(name);
-      }
-      return acc;
-    }, []);
+    }),
+  )
+    .values()
+    .toArray();
 
   const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
     ',\n  ',
@@ -72,15 +64,13 @@ export const getMcpHeader: ClientHeaderBuilder = ({
 `;
 
   const relativeFetchClientPath = './http-client';
-  const importFetchClientNames = Object.values(verbOptions)
-    .flatMap((verbOption) => verbOption.operationName)
-    .reduce<string[]>((acc, name) => {
-      if (!acc.find((i) => i === name)) {
-        acc.push(name);
-      }
-
-      return acc;
-    }, []);
+  const importFetchClientNames = new Set(
+    Object.values(verbOptions).flatMap(
+      (verbOption) => verbOption.operationName,
+    ),
+  )
+    .values()
+    .toArray();
 
   const importFetchClientImplementation = `import {\n  ${importFetchClientNames.join(
     ',\n  ',
@@ -95,7 +85,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({
   return content + '\n';
 };
 
-export const generateMcp: ClientBuilder = async (verbOptions, options) => {
+export const generateMcp: ClientBuilder = (verbOptions) => {
   const handlerArgsTypes = [];
   const pathParamsType = verbOptions.params
     .map((param) => {
@@ -167,7 +157,7 @@ export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${ha
   };
 };
 
-export const generateServer = async (
+export const generateServer = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
   context: ContextSpecs,
@@ -179,29 +169,29 @@ export const generateServer = async (
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
-      const imputSchemaTypes = [];
+      const inputSchemaTypes = [];
       if (verbOption.params.length > 0)
-        imputSchemaTypes.push(
+        inputSchemaTypes.push(
           `  pathParams: ${verbOption.operationName}Params`,
         );
       if (verbOption.queryParams)
-        imputSchemaTypes.push(
+        inputSchemaTypes.push(
           `  queryParams: ${verbOption.operationName}QueryParams`,
         );
       if (verbOption.body.definition)
-        imputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
+        inputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
 
-      const imputSchemaImplementation =
-        imputSchemaTypes.length > 0
+      const inputSchemaImplementation =
+        inputSchemaTypes.length > 0
           ? `  {
-  ${imputSchemaTypes.join(',\n  ')}
+  ${inputSchemaTypes.join(',\n  ')}
   },`
           : '';
 
       const toolImplementation = `
 server.tool(
   '${verbOption.operationName}',
-  '${verbOption.summary}',${imputSchemaImplementation ? `\n${imputSchemaImplementation}` : ''}
+  '${verbOption.summary}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
   ${verbOption.operationName}Handler
 );`;
 
@@ -280,7 +270,7 @@ const generateZodFiles = async (
   output: NormalizedOutputOptions,
   context: ContextSpecs,
 ) => {
-  const { extension, dirname, filename } = getFileInfo(output.target);
+  const { extension, dirname } = getFileInfo(output.target);
 
   const header = getHeader(
     output.override.header,
@@ -288,7 +278,7 @@ const generateZodFiles = async (
   );
 
   const zods = await Promise.all(
-    Object.values(verbOptions).map((verbOption) =>
+    Object.values(verbOptions).map(async (verbOption) =>
       generateZod(
         verbOption,
         {
@@ -297,25 +287,21 @@ const generateZodFiles = async (
           override: output.override,
           context,
           mock: output.mock,
-          output: output.target!,
+          output: output.target,
         },
         output.client,
       ),
     ),
   );
 
-  const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
-    (acc, z) => {
-      for (const mutator of z.mutators ?? []) {
-        acc[mutator.name] = mutator;
-      }
-      return acc;
-    },
-    {},
-  );
+  const allMutators = new Map(
+    zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
+  )
+    .values()
+    .toArray();
 
   const mutatorsImports = generateMutatorImports({
-    mutators: Object.values(allMutators),
+    mutators: allMutators,
   });
 
   let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
@@ -332,7 +318,7 @@ const generateZodFiles = async (
   ];
 };
 
-const generateHttpClinetFiles = async (
+const generateHttpClientFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
   context: ContextSpecs,
@@ -345,7 +331,7 @@ const generateHttpClinetFiles = async (
   );
 
   const clients = await Promise.all(
-    Object.values(verbOptions).map((verbOption) => {
+    Object.values(verbOptions).map(async (verbOption) => {
       const fullRoute = getFullRoute(
         verbOption.route,
         context.specs[context.specKey].servers,
@@ -358,7 +344,7 @@ const generateHttpClinetFiles = async (
         override: output.override,
         context,
         mock: output.mock,
-        output: output.target!,
+        output: output.target,
       };
 
       return generateClient(verbOption, options, output.client, output);
@@ -372,16 +358,13 @@ const generateHttpClinetFiles = async (
   const relativeSchemasPath = output.schemas
     ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
     : './' + filename + '.schemas';
+
   const importNames = clients
     .flatMap((client) => client.imports)
-    .reduce<string[]>((acc, imp) => {
-      if (!acc.find((i) => i === imp.name)) {
-        acc.push(imp.name);
-      }
+    .map((imp) => imp.name);
+  const uniqueImportNames = new Set(importNames).values().toArray();
 
-      return acc;
-    }, []);
-  const importImplementation = `import { ${importNames.join(
+  const importImplementation = `import { ${uniqueImportNames.join(
     ',\n',
   )} } from '${relativeSchemasPath}';`;
 
@@ -419,10 +402,10 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   output,
   context,
 ) => {
-  const [server, zods, httpClients] = await Promise.all([
-    generateServer(verbOptions, output, context),
+  const server = generateServer(verbOptions, output, context);
+  const [zods, httpClients] = await Promise.all([
     generateZodFiles(verbOptions, output, context),
-    generateHttpClinetFiles(verbOptions, output, context),
+    generateHttpClientFiles(verbOptions, output, context),
   ]);
 
   return [...server, ...zods, ...httpClients];

@@ -15,21 +15,18 @@ const getRoutePath = (path: string): string => {
   });
   const next = hasParam(matches[3]) ? getRoutePath(matches[3]) : matches[3];
 
-  return hasParam(path) ? `${prev}\:${param}${next}` : `${prev}${param}${next}`;
+  return hasParam(path) ? `${prev}:${param}${next}` : `${prev}${param}${next}`;
 };
 
 export const getRoute = (route: string) => {
   const splittedRoute = route.split('/');
 
-  return splittedRoute.reduce((acc, path, i) => {
-    if (!path && !i) {
-      return acc;
-    }
+  let acc = '';
+  for (const [i, path] of splittedRoute.entries()) {
+    if (!path && i === 0) continue;
 
-    if (!path.includes('{')) {
-      return `${acc}/${path}`;
-    }
+    acc += path.includes('{') ? `/${getRoutePath(path)}` : `/${path}`;
+  }
 
-    return `${acc}/${getRoutePath(path)}`;
-  }, '');
+  return acc;
 };

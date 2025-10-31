@@ -9,7 +9,6 @@ import {
   generateMutatorImports,
   type GeneratorDependency,
   type GeneratorImport,
-  type GeneratorMutator,
   type GeneratorVerbOptions,
   getFileInfo,
   getOrvalGeneratedTypes,
@@ -176,48 +175,49 @@ const getHonoHandlers = (
   handlerCode: string,
   /** Whether any of the handler code snippets requires importing zValidator. */
   hasZValidator: boolean,
-] =>
-  opts.reduce<[string, boolean]>(
-    ([code, hasZValidator], opts) => {
-      const { handlerName, contextTypeName, verbOption, validator } = opts;
+] => {
+  let code = '';
+  let hasZValidator = false;
 
-      let currentValidator = '';
+  for (const { handlerName, contextTypeName, verbOption, validator } of opts) {
+    let currentValidator = '';
 
-      if (validator) {
-        if (verbOption.headers) {
-          currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
-        }
-        if (verbOption.params.length > 0) {
-          currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
-        }
-        if (verbOption.queryParams) {
-          currentValidator += `zValidator('query', ${verbOption.operationName}QueryParams),\n`;
-        }
-        if (verbOption.body.definition) {
-          currentValidator += `zValidator('json', ${verbOption.operationName}Body),\n`;
-        }
-        if (
-          validator !== 'hono' &&
-          verbOption.response.originalSchema?.['200']?.content?.[
-            'application/json'
-          ]
-        ) {
-          currentValidator += `zValidator('response', ${verbOption.operationName}Response),\n`;
-        }
+    if (validator) {
+      if (verbOption.headers) {
+        currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
       }
+      if (verbOption.params.length > 0) {
+        currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
+      }
+      if (verbOption.queryParams) {
+        currentValidator += `zValidator('query', ${verbOption.operationName}QueryParams),\n`;
+      }
+      if (verbOption.body.definition) {
+        currentValidator += `zValidator('json', ${verbOption.operationName}Body),\n`;
+      }
+      if (
+        validator !== 'hono' &&
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        verbOption.response.originalSchema?.['200']?.content?.[
+          'application/json'
+        ]
+      ) {
+        currentValidator += `zValidator('response', ${verbOption.operationName}Response),\n`;
+      }
+    }
 
-      code += `
+    code += `
 export const ${handlerName} = factory.createHandlers(
 ${currentValidator}async (c: ${contextTypeName}) => {
 
   },
 );`;
-      hasZValidator ||= currentValidator !== '';
 
-      return [code, hasZValidator];
-    },
-    ['', false],
-  );
+    hasZValidator ||= currentValidator !== '';
+  }
+
+  return [code, hasZValidator];
+};
 
 const getZvalidatorImports = (
   verbOptions: GeneratorVerbOptions[],
@@ -252,6 +252,7 @@ const getZvalidatorImports = (
 
     if (
       !isHonoValidator &&
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       response.originalSchema?.['200']?.content?.['application/json'] !=
         undefined
     ) {
@@ -267,16 +268,20 @@ const getZvalidatorImports = (
 const getVerbOptionGroupByTag = (
   verbOptions: Record<string, GeneratorVerbOptions>,
 ) => {
-  return Object.values(verbOptions).reduce<
-    Record<string, GeneratorVerbOptions[]>
-  >((acc, value) => {
+  const grouped: Record<string, GeneratorVerbOptions[]> = {};
+
+  for (const value of Object.values(verbOptions)) {
     const tag = value.tags[0];
-    if (!acc[tag]) {
-      acc[tag] = [];
+    // this is not always false
+    // TODO look into types
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    if (!grouped[tag]) {
+      grouped[tag] = [];
     }
-    acc[tag].push(value);
-    return acc;
-  }, {});
+    grouped[tag].push(value);
+  }
+
+  return grouped;
 };
 
 const generateHandlerFile = async ({
@@ -303,21 +308,19 @@ const generateHandlerFile = async ({
     const rawFile = await fs.readFile(path, 'utf8');
     let content = rawFile;
 
-    content += Object.values(verbs).reduce((acc, verbOption) => {
+    for (const verbOption of Object.values(verbs)) {
       const handlerName = `${verbOption.operationName}Handlers`;
       const contextTypeName = `${pascal(verbOption.operationName)}Context`;
 
       if (!rawFile.includes(handlerName)) {
-        acc += getHonoHandlers({
+        content += getHonoHandlers({
           handlerName,
           contextTypeName,
           verbOption,
           validator,
         })[0];
       }
-
-      return acc;
-    }, '');
+    }
 
     return content;
   }
@@ -469,7 +472,7 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
   }
 
   const queryType = verbOption.queryParams
-    ? `query: ${verbOption.queryParams?.schema.name},`
+    ? `query: ${verbOption.queryParams.schema.name},`
     : '';
   const bodyType = verbOption.body.definition
     ? `json: ${verbOption.body.definition},`
@@ -617,7 +620,7 @@ const generateZodFiles = async (
     const builderContexts = await Promise.all(
       Object.entries(groupByTags).map(async ([tag, verbs]) => {
         const zods = await Promise.all(
-          verbs.map((verbOption) =>
+          verbs.map(async (verbOption) =>
             generateZod(
               verbOption,
               {
@@ -626,7 +629,7 @@ const generateZodFiles = async (
                 override: output.override,
                 context,
                 mock: output.mock,
-                output: output.target!,
+                output: output.target,
               },
               output.client,
             ),
@@ -640,18 +643,14 @@ const generateZodFiles = async (
           };
         }
 
-        const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
-          (acc, z) => {
-            for (const mutator of z.mutators ?? []) {
-              acc[mutator.name] = mutator;
-            }
-            return acc;
-          },
-          {},
-        );
+        const allMutators = new Map(
+          zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
+        )
+          .values()
+          .toArray();
 
         const mutatorsImports = generateMutatorImports({
-          mutators: Object.values(allMutators),
+          mutators: allMutators,
         });
 
         let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
@@ -670,13 +669,11 @@ const generateZodFiles = async (
       }),
     );
 
-    return Promise.all(
-      builderContexts.filter((context) => context.content !== ''),
-    );
+    return builderContexts.filter((context) => context.content !== '');
   }
 
   const zods = await Promise.all(
-    Object.values(verbOptions).map((verbOption) =>
+    Object.values(verbOptions).map(async (verbOption) =>
       generateZod(
         verbOption,
         {
@@ -685,25 +682,21 @@ const generateZodFiles = async (
           override: output.override,
           context,
           mock: output.mock,
-          output: output.target!,
+          output: output.target,
         },
         output.client,
       ),
     ),
   );
 
-  const allMutators = zods.reduce<Record<string, GeneratorMutator>>(
-    (acc, z) => {
-      for (const mutator of z.mutators ?? []) {
-        acc[mutator.name] = mutator;
-      }
-      return acc;
-    },
-    {},
-  );
+  const allMutators = new Map(
+    zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
+  )
+    .values()
+    .toArray();
 
   const mutatorsImports = generateMutatorImports({
-    mutators: Object.values(allMutators),
+    mutators: allMutators,
   });
 
   let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
@@ -742,7 +735,7 @@ const generateZvalidator = (
   };
 };
 
-const generateCompositeRoutes = async (
+const generateCompositeRoutes = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
   context: ContextSpecs,
@@ -776,7 +769,7 @@ const generateCompositeRoutes = async (
 
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          upath.join(handlerFileInfo.dirname ?? '', `./${operationName}`),
+          upath.join(handlerFileInfo.dirname, `./${operationName}`),
         );
 
         return `import { ${importHandlerName} } from '${handlersPath}';`;
@@ -797,7 +790,7 @@ const generateCompositeRoutes = async (
 
         const handlersPath = generateModuleSpecifier(
           compositeRouteInfo.path,
-          upath.join(targetInfo.dirname ?? '', tag),
+          upath.join(targetInfo.dirname, tag),
         );
 
         return `import {\n${importHandlerNames}\n} from '${handlersPath}/${tag}.handlers';`;
@@ -841,13 +834,18 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
     schemaModule = `${pathWithoutExtension}.schemas`;
   }
 
-  const [handlers, contexts, zods, compositeRoutes] = await Promise.all([
+  const contexts = generateContextFiles(
+    verbOptions,
+    output,
+    context,
+    schemaModule,
+  );
+  const compositeRoutes = output.override.hono.compositeRoute
+    ? generateCompositeRoutes(verbOptions, output, context)
+    : [];
+  const [handlers, zods] = await Promise.all([
     generateHandlerFiles(verbOptions, output, validator.path),
-    generateContextFiles(verbOptions, output, context, schemaModule),
     generateZodFiles(verbOptions, output, context),
-    output.override.hono.compositeRoute
-      ? generateCompositeRoutes(verbOptions, output, context)
-      : [],
   ]);
 
   return [

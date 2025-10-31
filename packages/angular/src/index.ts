@@ -118,6 +118,9 @@ export const generateAngularFooter: ClientFooterBuilder = ({
 
   for (const operationName of operationNames) {
     if (returnTypesToWrite.has(operationName)) {
+      // Map.has ensures Map.get will not return undefined, but TS still complains
+      // bug https://github.com/microsoft/TypeScript/issues/13086
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       footer += returnTypesToWrite.get(operationName) + '\n';
     }
   }
@@ -142,9 +145,9 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = !override?.formData.disabled;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -180,7 +183,7 @@ const generateImplementation = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasThirdArg,
         )
       : '';
@@ -213,11 +216,11 @@ const generateImplementation = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,
