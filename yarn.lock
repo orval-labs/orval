@@ -7390,12 +7390,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:^18.3.7":
-  version: 18.3.7
-  resolution: "@types/react-dom@npm:18.3.7"
+"@types/react-dom@npm:^19.2.2":
+  version: 19.2.2
+  resolution: "@types/react-dom@npm:19.2.2"
   peerDependencies:
-    "@types/react": ^18.0.0
-  checksum: 10c0/8bd309e2c3d1604a28a736a24f96cbadf6c05d5288cfef8883b74f4054c961b6b3a5e997fd5686e492be903c8f3380dba5ec017eff3906b1256529cd2d39603e
+    "@types/react": ^19.2.0
+  checksum: 10c0/6154dfb8e7a638313d7fa15b2b16494f2235afda4c43be37d10f34e5c7a730f6b95117facb5e6eebc73b15cceea7f6da23be46cda5d2262fd00fd7e6069547e3
   languageName: node
   linkType: hard
 
@@ -17660,7 +17660,7 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     eslint: "npm:^9.38.0"
     eslint-config-next: "npm:14.2.32"
     msw: "npm:^2.11.6"
@@ -17668,7 +17668,7 @@ __metadata:
     orval: "workspace:*"
     postcss: "npm:8.5.6"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     tailwindcss: "npm:^3.4.17"
     typescript: "npm:~5.8.3"
   dependenciesMeta:
@@ -17684,11 +17684,11 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     next: "npm:^15.5.3"
     postcss: "npm:8.5.6"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     tailwindcss: "npm:^3.4.17"
     typescript: "npm:~5.8.3"
   languageName: unknown
@@ -20293,12 +20293,12 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     react-query: "npm:^3.39.3"
     react-scripts: "npm:^5.0.1"
     typescript: "npm:~5.8.3"
@@ -20340,15 +20340,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-dom@npm:^18.3.1":
-  version: 18.3.1
-  resolution: "react-dom@npm:18.3.1"
+"react-dom@npm:^19.2.0":
+  version: 19.2.0
+  resolution: "react-dom@npm:19.2.0"
   dependencies:
-    loose-envify: "npm:^1.1.0"
-    scheduler: "npm:^0.23.2"
+    scheduler: "npm:^0.27.0"
   peerDependencies:
-    react: ^18.3.1
-  checksum: 10c0/a752496c1941f958f2e8ac56239172296fcddce1365ce45222d04a1947e0cc5547df3e8447f855a81d6d39f008d7c32eab43db3712077f09e3f67c4874973e85
+    react: ^19.2.0
+  checksum: 10c0/fa2cae05248d01288e91523b590ce4e7635b1e13f1344e225f850d722a8da037bf0782f63b1c1d46353334e0c696909b82e582f8cad607948fde6f7646cc18d9
   languageName: node
   linkType: hard
 
@@ -20388,13 +20387,13 @@ __metadata:
     "@tanstack/react-query": "npm:~5.62.16"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     ajv: "npm:^8.17.1"
     axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     react-scripts: "npm:^5.0.1"
     typescript: "npm:~5.8.3"
   dependenciesMeta:
@@ -20410,7 +20409,7 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@tanstack/react-query": "npm:~5.62.16"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     "@typescript-eslint/eslint-plugin": "npm:^8.46.2"
     "@typescript-eslint/parser": "npm:^8.46.2"
     "@vitejs/plugin-react": "npm:^5.0.4"
@@ -20419,7 +20418,7 @@ __metadata:
     eslint-plugin-react-refresh: "npm:^0.4.20"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     typescript: "npm:~5.8.3"
     vite: "npm:^7.1.12"
   languageName: unknown
@@ -21525,12 +21524,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"scheduler@npm:^0.23.2":
-  version: 0.23.2
-  resolution: "scheduler@npm:0.23.2"
-  dependencies:
-    loose-envify: "npm:^1.1.0"
-  checksum: 10c0/26383305e249651d4c58e6705d5f8425f153211aef95f15161c151f7b8de885f24751b377e4a0b3dd42cce09aad3f87a61dab7636859c0d89b7daf1a1e2a5c78
+"scheduler@npm:^0.27.0":
+  version: 0.27.0
+  resolution: "scheduler@npm:0.27.0"
+  checksum: 10c0/4f03048cb05a3c8fddc45813052251eca00688f413a3cee236d984a161da28db28ba71bd11e7a3dd02f7af84ab28d39fb311431d3b3772fed557945beb00c452
   languageName: node
   linkType: hard
 
@@ -23129,12 +23126,12 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     react-scripts: "npm:^5.0.1"
     swr: "npm:^2.3.6"
     typescript: "npm:~5.8.3"
@@ -23150,7 +23147,7 @@ __metadata:
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     "@typescript-eslint/eslint-plugin": "npm:^8.46.2"
     "@typescript-eslint/parser": "npm:^8.46.2"
     "@vitejs/plugin-react": "npm:^5.0.4"
@@ -23159,7 +23156,7 @@ __metadata:
     eslint-plugin-react-refresh: "npm:^0.4.20"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     swr: "npm:^2.3.6"
     typescript: "npm:~5.8.3"
     vite: "npm:^7.1.12"
@@ -23172,7 +23169,7 @@ __metadata:
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
     "@types/react": "npm:^18.3.24"
-    "@types/react-dom": "npm:^18.3.7"
+    "@types/react-dom": "npm:^19.2.2"
     "@typescript-eslint/eslint-plugin": "npm:^8.46.2"
     "@typescript-eslint/parser": "npm:^8.46.2"
     "@vitejs/plugin-react": "npm:^5.0.4"
@@ -23181,7 +23178,7 @@ __metadata:
     eslint-plugin-react-refresh: "npm:^0.4.20"
     orval: "workspace:*"
     react: "npm:^18.3.1"
-    react-dom: "npm:^18.3.1"
+    react-dom: "npm:^19.2.0"
     swr: "npm:^2.3.6"
     typescript: "npm:~5.8.3"
     vite: "npm:^7.1.12"

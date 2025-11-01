@@ -14,12 +14,12 @@
   "dependencies": {
     "@tanstack/react-query": "~5.62.16",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",
     "@types/react": "^18.3.24",
-    "@types/react-dom": "^18.3.7",
+    "@types/react-dom": "^19.2.2",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
     "@vitejs/plugin-react": "^5.0.4",
