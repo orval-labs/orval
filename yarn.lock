@@ -9324,14 +9324,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.12.2":
-  version: 1.12.2
-  resolution: "axios@npm:1.12.2"
+"axios@npm:^1.13.1":
+  version: 1.13.1
+  resolution: "axios@npm:1.13.1"
   dependencies:
     follow-redirects: "npm:^1.15.6"
     form-data: "npm:^4.0.4"
     proxy-from-env: "npm:^1.1.0"
-  checksum: 10c0/80b063e318cf05cd33a4d991cea0162f3573481946f9129efb7766f38fde4c061c34f41a93a9f9521f02b7c9565ccbc197c099b0186543ac84a24580017adfed
+  checksum: 10c0/de9c3c6de43d3ee1146d3afe78645f19450cac6a5d7235bef8b8e8eeb705c2e47e2d231dea99cecaec4dae1897c521118ca9413b9d474063c719c4d94c5b9adc
   languageName: node
   linkType: hard
 
@@ -9546,7 +9546,7 @@ __metadata:
   resolution: "basic@workspace:samples/basic"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     npm-run-all: "npm:^4.1.5"
     orval: "workspace:*"
@@ -18497,7 +18497,7 @@ __metadata:
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tanstack/vue-query": "npm:^5.90.5"
     "@types/react": "npm:18.3.24"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     hono: "npm:^4.10.2"
     msw: "npm:^2.11.6"
     npm-run-all: "npm:^4.1.5"
@@ -20294,7 +20294,7 @@ __metadata:
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20390,7 +20390,7 @@ __metadata:
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     ajv: "npm:^8.17.1"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20430,7 +20430,7 @@ __metadata:
   resolution: "react-query-form-data-mutator@workspace:samples/react-query/form-data-mutator"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
@@ -20442,7 +20442,7 @@ __metadata:
   resolution: "react-query-form-data@workspace:samples/react-query/form-data"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
@@ -20454,7 +20454,7 @@ __metadata:
   resolution: "react-query-form-url-encoded-mutator@workspace:samples/react-query/form-url-encoded-mutator"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
@@ -20466,7 +20466,7 @@ __metadata:
   resolution: "react-query-form-url-encoded@workspace:samples/react-query/form-url-encoded"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
@@ -20478,7 +20478,7 @@ __metadata:
   resolution: "react-query-hook-mutator@workspace:samples/react-query/hook-mutator"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-query: "npm:^3.39.3"
@@ -22996,7 +22996,7 @@ __metadata:
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@typescript-eslint/eslint-plugin": "npm:^8.46.2"
     "@typescript-eslint/parser": "npm:^8.46.2"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     eslint: "npm:^9.38.0"
     eslint-plugin-svelte3: "npm:^4.0.0"
     msw: "npm:^2.11.6"
@@ -23130,7 +23130,7 @@ __metadata:
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -24756,7 +24756,7 @@ __metadata:
     "@testing-library/vue": "npm:^8.1.0"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     "@vue/compiler-sfc": "npm:^3.5.22"
-    axios: "npm:^1.12.2"
+    axios: "npm:^1.13.1"
     jsdom: "npm:^27.1.0"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
