@@ -427,17 +427,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/router@npm:^20.3.0":
-  version: 20.3.0
-  resolution: "@angular/router@npm:20.3.0"
+"@angular/router@npm:^20.3.9":
+  version: 20.3.9
+  resolution: "@angular/router@npm:20.3.9"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
-    "@angular/common": 20.3.0
-    "@angular/core": 20.3.0
-    "@angular/platform-browser": 20.3.0
+    "@angular/common": 20.3.9
+    "@angular/core": 20.3.9
+    "@angular/platform-browser": 20.3.9
     rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/d08c951b7a872c45401dc7713b1af6a755979e110030cd8d118ed1783f29900236fade27acb12a95c5e8db51b0a8ed8b812babcec028c485cf66c99ad102c456
+  checksum: 10c0/36f3e01b52528cd1b80e5ca74b9c5fd3ec2b83b488872da7b891c711bcd27ff34eb9d12e835e61396d62a55159c1dda724d3220f21f03aa9399d1fb6beea02ec
   languageName: node
   linkType: hard
 
@@ -8888,7 +8888,7 @@ __metadata:
     "@angular/core": "npm:^20.3.0"
     "@angular/forms": "npm:^20.3.0"
     "@angular/platform-browser": "npm:^20.3.0"
-    "@angular/router": "npm:^20.3.0"
+    "@angular/router": "npm:^20.3.9"
     "@faker-js/faker": "npm:^10.1.0"
     msw: "npm:^2.11.6"
     orval: "workspace:*"
