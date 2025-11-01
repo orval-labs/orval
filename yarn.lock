@@ -4605,9 +4605,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.20.1":
-  version: 1.20.1
-  resolution: "@modelcontextprotocol/sdk@npm:1.20.1"
+"@modelcontextprotocol/sdk@npm:1.20.2":
+  version: 1.20.2
+  resolution: "@modelcontextprotocol/sdk@npm:1.20.2"
   dependencies:
     ajv: "npm:^6.12.6"
     content-type: "npm:^1.0.5"
@@ -4621,7 +4621,7 @@ __metadata:
     raw-body: "npm:^3.0.0"
     zod: "npm:^3.23.8"
     zod-to-json-schema: "npm:^3.24.1"
-  checksum: 10c0/23e1ec9bc0f34dabb172d16175b4083d9890ed573252b9072c8bd5d22a8620afb3b4535e73f1c8ba84e3de15942b8aeecdfac76443256cf7a9aee3b51d2b6a66
+  checksum: 10c0/5e195f207fbf6bc5765df2a2a3b20711ab9dac4ccddb5dbe7e0d6e98bcd9f5b32fa441589e41da78373d3713ada213442dc1983df2dc5946a1ebc91eaf9533f7
   languageName: node
   linkType: hard
 
@@ -16962,7 +16962,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mcp-petstore@workspace:samples/mcp/petstore"
   dependencies:
-    "@modelcontextprotocol/sdk": "npm:1.20.1"
+    "@modelcontextprotocol/sdk": "npm:1.20.2"
     "@types/node": "npm:^22.18.12"
     orval: "workspace:*"
     ts-node: "npm:^10.9.2"
@@ -18485,7 +18485,7 @@ __metadata:
     "@angular/core": "npm:^20.3.0"
     "@faker-js/faker": "npm:^10.1.0"
     "@hono/zod-validator": "npm:^0.7.4"
-    "@modelcontextprotocol/sdk": "npm:1.20.1"
+    "@modelcontextprotocol/sdk": "npm:1.20.2"
     "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tanstack/vue-query": "npm:^5.90.5"
