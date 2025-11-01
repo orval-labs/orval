@@ -411,19 +411,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/platform-browser@npm:^20.3.0":
-  version: 20.3.0
-  resolution: "@angular/platform-browser@npm:20.3.0"
+"@angular/platform-browser@npm:^20.3.9":
+  version: 20.3.9
+  resolution: "@angular/platform-browser@npm:20.3.9"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
-    "@angular/animations": 20.3.0
-    "@angular/common": 20.3.0
-    "@angular/core": 20.3.0
+    "@angular/animations": 20.3.9
+    "@angular/common": 20.3.9
+    "@angular/core": 20.3.9
   peerDependenciesMeta:
     "@angular/animations":
       optional: true
-  checksum: 10c0/f8e38c5e527b3695316fae998c323bd6501b4cd678891a14a743a36a21cf62e8987dce5ffa1b3b1c0a26c6aa466859f036e388f5ea3c6027f0631cd59e7ff83f
+  checksum: 10c0/5484b8bd4da7641ebe5db7d81f512ff39a8b010147c2a4f76843aed7ed2d1d2e25ab70a2026680d59820d3e61c7abd410f90a4809091517d65930046824fa874
   languageName: node
   linkType: hard
 
@@ -8887,7 +8887,7 @@ __metadata:
     "@angular/compiler-cli": "npm:^20.3.2"
     "@angular/core": "npm:^20.3.0"
     "@angular/forms": "npm:^20.3.0"
-    "@angular/platform-browser": "npm:^20.3.0"
+    "@angular/platform-browser": "npm:^20.3.9"
     "@angular/router": "npm:^20.3.9"
     "@faker-js/faker": "npm:^10.1.0"
     msw: "npm:^2.11.6"
