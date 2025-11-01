@@ -30,7 +30,7 @@
     "rimraf": "^6.0.1",
     "tsdown": "^0.15.9",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.3"
+    "vitest": "^4.0.6"
   },
   "stableVersion": "8.0.0-rc.0"
 }
