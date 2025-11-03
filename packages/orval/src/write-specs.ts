@@ -60,7 +60,8 @@ export const writeSpecs = async (
 
   const header = getHeader(output.override.header, info as InfoObject);
 
-  if (output.schemas) {
+  // Don't generate TypeScript schemas for react-query-zod as we use zod types instead
+  if (output.schemas && output.client !== 'react-query-zod') {
     const rootSchemaPath = output.schemas;
 
     const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)

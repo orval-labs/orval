@@ -5,7 +5,7 @@ import type {
 } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { builder } from './index';
+import { builder, builderReactQueryZod } from './index';
 
 describe('throws when trying to use named parameters with vue-query client', () => {
   it('vue-query builder type', () => {
@@ -32,6 +32,50 @@ describe('throws when trying to use named parameters with vue-query client', () 
       ),
     ).toThrowErrorMatchingInlineSnapshot(
       '[Error: vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686]',
+    );
+  });
+});
+
+describe('react-query-zod builder', () => {
+  it('should have extraFiles function', () => {
+    const generator = builderReactQueryZod()();
+    expect(generator.extraFiles).toBeDefined();
+    expect(typeof generator.extraFiles).toBe('function');
+  });
+
+  it('should have dependencies function', () => {
+    const generator = builderReactQueryZod()();
+    expect(generator.dependencies).toBeDefined();
+    expect(typeof generator.dependencies).toBe('function');
+  });
+
+  it('should include zod dependencies', () => {
+    const generator = builderReactQueryZod()();
+    const deps = generator.dependencies!(
+      false,
+      false,
+      undefined,
+      'axios',
+      false,
+      undefined,
+    );
+    const zodDep = deps.find((dep) => dep.dependency === 'zod');
+    expect(zodDep).toBeDefined();
+    expect(zodDep?.exports).toBeDefined();
+    expect(zodDep?.exports?.some((exp) => exp.name === 'zod')).toBe(true);
+  });
+
+  it('throws when trying to use named parameters with vue-query', async () => {
+    await expect(
+      builderReactQueryZod({ type: 'vue-query' })().client(
+        {} as GeneratorVerbOptions,
+        {
+          override: { useNamedParameters: true } as NormalizedOverrideOutput,
+        } as GeneratorOptions,
+        'vue-query',
+      ),
+    ).rejects.toThrowErrorMatchingInlineSnapshot(
+      `[Error: vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686]`,
     );
   });
 });
