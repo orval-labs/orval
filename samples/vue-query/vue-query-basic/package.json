@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,21 +12,21 @@
   },
   "dependencies": {
     "@faker-js/faker": "^10.1.0",
-    "@tanstack/vue-query": "^5.90.5",
-    "axios": "^1.12.2",
+    "@tanstack/vue-query": "^5.90.6",
+    "axios": "^1.13.1",
     "vue": "^3.5.22"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/compiler-sfc": "^3.5.22",
-    "jsdom": "^27.0.1",
+    "jsdom": "^27.1.0",
     "msw": "^2.11.6",
     "orval": "workspace:*",
     "tsd": "^0.33.0",
     "typescript": "~5.9.3",
     "vite": "^7.1.12",
-    "vitest": "^4.0.3",
+    "vitest": "^4.0.6",
     "vue-tsc": "^3.1.1"
   },
   "dependenciesMeta": {
@@ -37,5 +37,5 @@
   "msw": {
     "workerDirectory": "public"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

@@ -62,9 +62,9 @@ const generateAxiosRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = !override?.formData.disabled;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
@@ -94,7 +94,7 @@ const generateAxiosRequestFunction = (
     });
 
     const propsImplementation =
-      mutator?.bodyTypeName && body.definition
+      mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(`(\\w*):\\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
@@ -103,7 +103,7 @@ const generateAxiosRequestFunction = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasSecondArg,
         )
       : '';
@@ -129,11 +129,11 @@ const generateAxiosRequestFunction = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });
@@ -161,7 +161,7 @@ export const getSwrRequestOptions = (
     return httpClient === OutputHttpClient.AXIOS
       ? 'axios?: AxiosRequestConfig'
       : 'fetch?: RequestInit';
-  } else if (mutator?.hasSecondArg) {
+  } else if (mutator.hasSecondArg) {
     return `request?: SecondParameter<typeof ${mutator.name}>`;
   } else {
     return '';
@@ -193,7 +193,7 @@ export const getSwrRequestSecondArg = (
     return httpClient === OutputHttpClient.AXIOS
       ? 'axios: axiosOptions'
       : 'fetch: fetchOptions';
-  } else if (mutator?.hasSecondArg) {
+  } else if (mutator.hasSecondArg) {
     return 'request: requestOptions';
   } else {
     return '';
@@ -208,7 +208,7 @@ export const getHttpRequestSecondArg = (
     return httpClient === OutputHttpClient.AXIOS
       ? `axiosOptions`
       : `fetchOptions`;
-  } else if (mutator?.hasSecondArg) {
+  } else if (mutator.hasSecondArg) {
     return 'requestOptions';
   } else {
     return '';

@@ -73,7 +73,7 @@ export const combineSchemasMock = ({
       if (
         '$ref' in val &&
         existingReferencedProperties.includes(
-          pascal(val.$ref.split('/').pop()!),
+          pascal(val.$ref.split('/').pop() ?? ''),
         )
       ) {
         if (arr.length === 1) {
@@ -96,7 +96,7 @@ export const combineSchemasMock = ({
         schema: {
           ...val,
           name: item.name,
-          path: item.path ? item.path : '#',
+          path: item.path ?? '#',
         },
         combine: {
           separator,
@@ -139,7 +139,9 @@ export const combineSchemasMock = ({
   let finalValue =
     value === 'undefined'
       ? value
-      : `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
+      : // containsOnlyPrimitiveValues isn't just true, it's being set to false inside the above reduce and the type system doesn't detect it
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
     finalValue = finalValue.startsWith('...')
       ? `...{${finalValue}, ${itemResolvedValue.value}}`

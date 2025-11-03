@@ -8,6 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'vue-query',
+      httpClient: 'axios',
       mock: true,
       prettier: true,
       override: {

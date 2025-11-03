@@ -10,8 +10,9 @@ export interface MockDefinition {
   includedProperties?: string[];
 }
 
-export type MockSchemaObject = SchemaObject & {
+export type MockSchemaObject = Omit<SchemaObject, 'enum'> & {
   name: string;
   path?: string;
   isRef?: boolean;
+  enum?: string[];
 };

@@ -40,11 +40,23 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      # 🔧 New step to remove stableVersion recursively
+      - name: Remove all stableVersion fields
+        run: |
+          echo "Removing all stableVersion fields from package.json files..."
+          find . -type f -name package.json -print0 | while IFS= read -r -d '' file; do
+            if jq 'has("stableVersion")' "$file" | grep -q true; then
+              echo "Cleaning $file"
+              tmpfile=$(mktemp)
+              jq 'del(.stableVersion)' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
+            fi
+          done
+          echo "All stableVersion fields removed."
+
       - name: Update versions and samples
         run: |
-          VERSION=${{ github.event.inputs.version }}
-          echo "Updating all workspace versions to $VERSION"
-          yarn workspaces foreach -Av version $VERSION
+          echo "Updating all workspace versions to ${{ github.event.inputs.version }}"
+          yarn workspaces foreach -Av version "${{ github.event.inputs.version }}"
           yarn update-samples
 
       - name: Create Pull Request

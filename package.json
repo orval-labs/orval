@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "license": "MIT",
   "workspaces": [
     "packages/*",
@@ -51,13 +51,13 @@
     "eslint-plugin-unicorn": "^61.0.2",
     "globals": "^16.4.0",
     "husky": "^9.1.7",
-    "lint-staged": "^16.2.5",
+    "lint-staged": "^16.2.6",
     "prettier": "3.6.2",
     "rimraf": "^6.0.1",
-    "turbo": "^2.5.8",
+    "turbo": "^2.6.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.46.2",
-    "vitest": "^4.0.3"
+    "vitest": "^4.0.6"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

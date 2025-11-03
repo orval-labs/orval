@@ -19,7 +19,7 @@ const getRoutePath = (path: string): string => {
 };
 
 export const getRouteMSW = (route: string, baseUrl = '*') => {
-  route = route.replaceAll(':', '\\\:');
+  route = route.replaceAll(':', String.raw`\:`);
   const splittedRoute = route.split('/');
 
   return splittedRoute.reduce((acc, path, i) => {

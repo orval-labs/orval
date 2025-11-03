@@ -38,7 +38,7 @@ export interface NormalizedOptions {
 
 export type NormalizedOutputOptions = {
   workspace?: string;
-  target?: string;
+  target: string;
   schemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
@@ -71,8 +71,8 @@ export type NormalizedOverrideOutput = {
   title?: (title: string) => string;
   transformer?: OutputTransformer;
   mutator?: NormalizedMutator;
-  operations: Record<string, NormalizedOperationOptions>;
-  tags: Record<string, NormalizedOperationOptions>;
+  operations: Record<string, NormalizedOperationOptions | undefined>;
+  tags: Record<string, NormalizedOperationOptions | undefined>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
   header: false | ((info: InfoObject) => string[] | string);
@@ -208,7 +208,7 @@ export type EnumGeneration =
 
 export type OutputOptions = {
   workspace?: string;
-  target?: string;
+  target: string;
   schemas?: string;
   namingConvention?: NamingConvention;
   fileExtension?: string;
@@ -546,7 +546,7 @@ export type NormalizedZodOptions = {
     body: boolean | ZodCoerceType[];
     response: boolean | ZodCoerceType[];
   };
-  preprocess: {
+  preprocess?: {
     param?: NormalizedMutator;
     query?: NormalizedMutator;
     header?: NormalizedMutator;
@@ -584,7 +584,7 @@ export type NormalizedQueryOptions = {
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
-  version?: 4 | 5;
+  version?: 3 | 4 | 5;
 };
 
 export type QueryOptions = {
@@ -606,7 +606,7 @@ export type QueryOptions = {
   shouldSplitQueryKey?: boolean;
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
-  version?: 4 | 5;
+  version?: 3 | 4 | 5;
 };
 
 export type AngularOptions = {
@@ -616,9 +616,9 @@ export type AngularOptions = {
 export type SwrOptions = {
   useInfinite?: boolean;
   useSWRMutationForGet?: boolean;
-  swrOptions?: any;
-  swrMutationOptions?: any;
-  swrInfiniteOptions?: any;
+  swrOptions?: unknown;
+  swrMutationOptions?: unknown;
+  swrInfiniteOptions?: unknown;
 };
 
 export type NormalizedFetchOptions = {

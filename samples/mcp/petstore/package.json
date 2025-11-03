@@ -1,14 +1,15 @@
 {
   "name": "mcp-petstore",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "tsc",
     "dev": "ts-node src/server.ts",
     "generate-api": "orval"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.20.1",
+    "@modelcontextprotocol/sdk": "1.20.2",
     "zod": "^3.25.76"
   },
   "devDependencies": {
@@ -17,5 +18,5 @@
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

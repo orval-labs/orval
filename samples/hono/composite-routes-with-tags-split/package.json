@@ -1,7 +1,8 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts",
@@ -16,5 +17,5 @@
     "orval": "workspace:*",
     "wrangler": "^3.114.14"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

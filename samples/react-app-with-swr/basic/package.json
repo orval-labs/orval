@@ -1,13 +1,14 @@
 {
   "name": "swr-basic",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@faker-js/faker": "^10.1.0",
     "@types/node": "^22.18.12",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "axios": "^1.12.2",
+    "axios": "^1.13.1",
     "msw": "^2.11.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -47,5 +48,5 @@
       "last 1 safari version"
     ]
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

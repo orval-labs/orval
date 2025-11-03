@@ -2119,7 +2119,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
 });
 
 describe('parsePrefixItemsArrayAsTupleZod', () => {
-  it('generates correctly', async () => {
+  it('generates correctly', () => {
     const arrayWithPrefixItemsSchema: SchemaObject31 = {
       type: 'array',
       prefixItems: [{ type: 'string' }, {}],
@@ -2171,7 +2171,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
 });
 
 describe('parsePrefixItemsArrayAsTupleZod', () => {
-  it('correctly omits rest', async () => {
+  it('correctly omits rest', () => {
     const arrayWithPrefixItemsSchema: SchemaObject31 = {
       type: 'array',
       prefixItems: [{ type: 'string' }, {}],

@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -32,7 +32,7 @@
     "rimraf": "^6.0.1",
     "tsdown": "^0.15.9",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.3"
+    "vitest": "^4.0.6"
   },
   "dependencies": {
     "@apidevtools/swagger-parser": "^12.1.0",
@@ -51,5 +51,5 @@
     "swagger2openapi": "^7.0.8",
     "typedoc": "^0.28.14"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

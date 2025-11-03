@@ -1,7 +1,7 @@
 {
   "name": "swr-with-zod",
   "private": true,
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",
@@ -22,7 +22,7 @@
     "@types/react-dom": "^18.3.7",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.46.2",
-    "@vitejs/plugin-react": "^5.0.4",
+    "@vitejs/plugin-react": "^5.1.0",
     "eslint": "^9.38.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.20",
@@ -30,5 +30,5 @@
     "typescript": "~5.8.3",
     "vite": "^7.1.12"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }

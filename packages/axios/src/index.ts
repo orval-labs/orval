@@ -76,9 +76,9 @@ const generateAxiosImplementation = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = !override?.formData.disabled;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
@@ -110,7 +110,7 @@ const generateAxiosImplementation = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasSecondArg,
         )
       : '';
@@ -154,11 +154,11 @@ const generateAxiosImplementation = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });
@@ -222,6 +222,9 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
 
   for (const operationName of operationNames) {
     if (returnTypesToWrite.has(operationName)) {
+      // Map.has ensures Map.get will not return undefined, but TS still complains
+      // bug https://github.com/microsoft/TypeScript/issues/13086
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const func = returnTypesToWrite.get(operationName)!;
       footer += func(noFunction ? undefined : title) + '\n';
     }
@@ -240,10 +243,7 @@ export const generateAxios = (
   return { implementation, imports };
 };
 
-export const generateAxiosFunctions: ClientBuilder = async (
-  verbOptions,
-  options,
-) => {
+export const generateAxiosFunctions: ClientBuilder = (verbOptions, options) => {
   const { implementation, imports } = generateAxios(verbOptions, options);
 
   return {

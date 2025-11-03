@@ -1,19 +1,20 @@
 {
   "name": "react-query-form-data",
-  "version": "8.0.0-rc.0",
+  "version": "8.0.0-rc.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "generate-api": "orval",
     "test": "tsc --noEmit endpoints.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^10.1.0",
-    "axios": "^1.12.2",
+    "axios": "^1.13.1",
     "react": "^18.3.1",
     "react-query": "^3.39.3"
   },
   "devDependencies": {
     "orval": "workspace:*"
   },
-  "stableVersion": "7.15.0"
+  "stableVersion": "8.0.0-rc.0"
 }
