@@ -211,4 +211,3 @@ components:
             - $ref: '#/components/schemas/BooleanEnumNullable'
             - type: boolean
               enum: [true]
-
