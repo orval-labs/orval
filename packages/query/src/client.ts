@@ -15,6 +15,7 @@ import {
   type GetterResponse,
   isSyntheticDefaultImportsAllow,
   kebab,
+  ModelStyle,
   type NormalizedOutputOptions,
   OutputClient,
   OutputHttpClient,
@@ -86,7 +87,7 @@ export const generateAxiosRequestFunction = (
   outputClient?: OutputClient | OutputClientFunc,
 ) => {
   // Check if we need zod validation - define early to avoid initialization errors
-  const isReactQueryZod = outputClient === OutputClient.REACT_QUERY_ZOD;
+  const isZodModelStyle = context.output.modelStyle === ModelStyle.ZOD;
 
   const {
     headers,
@@ -246,23 +247,22 @@ export const generateAxiosRequestFunction = (
     hasSignal,
   });
 
-  // Get zod schema import path and schema names if needed
+  // For zod model style, prepare validation code and update imports
   let zodPreValidationCode = '';
   let zodPostValidationCode = '';
-  let zodSchemaPath = '';
-  let zodSchemaNames: string[] = [];
 
-  if (isReactQueryZod) {
+  if (isZodModelStyle) {
     const { extension, dirname, filename } = getFileInfo(context.output.target);
 
+    // Calculate zod file path based on mode
+    let zodImportPath = '';
     if (context.output.mode === 'single') {
-      zodSchemaPath = generateModuleSpecifier(
+      zodImportPath = generateModuleSpecifier(
         context.output.target,
         upath.join(dirname, `${filename}.zod${extension}`),
       );
     } else if (context.output.mode === 'split') {
-      // In split mode, zod files are generated in the same directory as endpoints.ts
-      zodSchemaPath = generateModuleSpecifier(
+      zodImportPath = generateModuleSpecifier(
         context.output.target,
         upath.join(dirname, `${operationName}.zod${extension}`),
       );
@@ -272,7 +272,7 @@ export const generateAxiosRequestFunction = (
     ) {
       const tag = verbOptions.tags?.[0] || '';
       const tagName = kebab(tag);
-      zodSchemaPath =
+      zodImportPath =
         context.output.mode === 'tags'
           ? generateModuleSpecifier(
               context.output.target,
@@ -284,63 +284,116 @@ export const generateAxiosRequestFunction = (
             );
     }
 
-    // Build zod schema names - note: response schema name depends on status code
-    // When generateEachHttpStatus is false (default), responses array has [['', response200]]
-    // So the response name is: camel(`${operationName}--response`) = `${operationName}Response`
-    // When generateEachHttpStatus is true, response name is: camel(`${operationName}-200-response`) = `${operationName}200Response`
-    // For default case, code is empty string '', so we use: `${operationName}Response`
-    const responseCode = context.output.override.zod.generateEachHttpStatus
-      ? '200'
-      : '';
-    const responseSchemaName = camel(
-      `${operationName}-${responseCode}-response`,
-    );
-    const schemaNames = {
-      params: params.length > 0 ? `${operationName}Params` : null,
-      queryParams: queryParams ? `${operationName}QueryParams` : null,
-      body: body.definition ? `${operationName}Body` : null,
-      response: responseSchemaName,
-    };
-    
-    // Store schemaNames for later use (even if zod validation is not used)
-    (verbOptions as any).__zodSchemaNamesMap = schemaNames;
+    // Remove .ts extension for import path
+    zodImportPath = zodImportPath.replace(/\.ts$/, '');
 
-    // Build imports
-    const zodSchemaImports: string[] = [];
-    if (schemaNames.params) zodSchemaImports.push(schemaNames.params);
-    if (schemaNames.queryParams) zodSchemaImports.push(schemaNames.queryParams);
-    if (schemaNames.body) zodSchemaImports.push(schemaNames.body);
-    if (schemaNames.response) zodSchemaImports.push(schemaNames.response);
+    if (zodImportPath) {
+      // Build zod schema names for validation
+      const responseCode = context.output.override.zod.generateEachHttpStatus
+        ? '200'
+        : '';
+      const responseSchemaName = camel(
+        `${operationName}-${responseCode}-response`,
+      );
+      const zodSchemaNames = {
+        params: params.length > 0 ? `${operationName}Params` : null,
+        queryParams: queryParams ? `${operationName}QueryParams` : null,
+        body: body.definition ? `${operationName}Body` : null,
+        response: responseSchemaName,
+      };
 
-    if (zodSchemaImports.length > 0 && zodSchemaPath) {
-      zodSchemaNames = zodSchemaImports;
+      // Update imports to point to zod files and add schema imports for validation
+      // Response imports
+      verbOptions.response.imports.forEach((imp) => {
+        imp.specKey = zodImportPath;
+      });
+      if (zodSchemaNames.response) {
+        verbOptions.response.imports.push({
+          name: zodSchemaNames.response,
+          values: true,
+          specKey: zodImportPath,
+        });
+      }
 
-      // Build pre-validation code (before HTTP request)
+      // Body imports
+      verbOptions.body.imports.forEach((imp) => {
+        imp.specKey = zodImportPath;
+      });
+      if (zodSchemaNames.body) {
+        verbOptions.body.imports.push({
+          name: zodSchemaNames.body,
+          values: true,
+          specKey: zodImportPath,
+        });
+      }
+
+      // QueryParams imports
+      if (queryParams) {
+        const queryParamsTypeName = queryParams.schema.name.replace(/Params$/, 'QueryParams');
+        verbOptions.queryParams.schema.imports.forEach((imp) => {
+          if (imp.name === queryParams.schema.name) {
+            imp.name = queryParamsTypeName;
+          }
+          imp.specKey = zodImportPath;
+        });
+        // Ensure QueryParams type is imported
+        if (!verbOptions.queryParams.schema.imports.some((imp) => imp.name === queryParamsTypeName)) {
+          verbOptions.queryParams.schema.imports.push({
+            name: queryParamsTypeName,
+            specKey: zodImportPath,
+          });
+        }
+        // Add schema import for validation
+        if (zodSchemaNames.queryParams) {
+          verbOptions.queryParams.schema.imports.push({
+            name: zodSchemaNames.queryParams,
+            values: true,
+            specKey: zodImportPath,
+          });
+        }
+      }
+
+      // Params (path parameters) imports
+      if (params.length > 0) {
+        params.forEach((param) => {
+          param.imports.forEach((imp) => {
+            imp.specKey = zodImportPath;
+          });
+          // Add schema import for validation if params schema exists
+          if (zodSchemaNames.params) {
+            param.imports.push({
+              name: zodSchemaNames.params,
+              values: true,
+              specKey: zodImportPath,
+            });
+          }
+        });
+      }
+
+      // Build validation code
       const validations: string[] = [];
 
       // Validate params (path parameters)
-      if (schemaNames.params && params.length > 0) {
+      if (zodSchemaNames.params && params.length > 0) {
         const paramNames = params
           .map((p: { name: string }) => p.name)
           .join(', ');
-        validations.push(`${schemaNames.params}.parse({ ${paramNames} });`);
+        validations.push(`${zodSchemaNames.params}.parse({ ${paramNames} });`);
       }
 
       // Validate query params
-      if (schemaNames.queryParams && queryParams) {
-        // Parse validates and returns the validated value, but we keep using original params
-        // as parse() ensures they are valid. If invalid, parse() will throw.
-        validations.push(`${schemaNames.queryParams}.parse(params);`);
+      if (zodSchemaNames.queryParams && queryParams) {
+        validations.push(`${zodSchemaNames.queryParams}.parse(params);`);
       }
 
       // Validate body
-      if (schemaNames.body && body.definition) {
+      if (zodSchemaNames.body && body.definition) {
         const bodyProp = props.find(
           (p: { type: string }) => p.type === GetterPropType.BODY,
         );
         if (bodyProp) {
           validations.push(
-            `${bodyProp.name} = ${schemaNames.body}.parse(${bodyProp.name});`,
+            `${bodyProp.name} = ${zodSchemaNames.body}.parse(${bodyProp.name});`,
           );
         }
       }
@@ -350,48 +403,20 @@ export const generateAxiosRequestFunction = (
       }
 
       // Post-validation code (after HTTP request)
-      zodPostValidationCode = `\n    const validatedResponse = ${schemaNames.response}.parse(response.data);\n    return { ...response, data: validatedResponse };`;
+      if (zodSchemaNames.response) {
+        zodPostValidationCode = `\n    const validatedResponse = ${zodSchemaNames.response}.parse(response.data);\n    return { ...response, data: validatedResponse };`;
+      }
     }
   }
 
   const hasZodValidation = !!zodPostValidationCode;
 
-  // For react-query-zod, use exported types from zod files instead of z.infer
-  // Store original type names for zod exports
-  // schemaNames might not be defined if zod validation is not used, so we get it from verbOptions
-  const zodSchemaNamesMap = (verbOptions as any).__zodSchemaNamesMap as
-    | { params: string | null; queryParams: string | null; body: string | null; response: string | null }
-    | undefined;
-  
-  // Get type names from schema objects (used in endpoints.ts) instead of schema names (used in zod files)
-  // For params, the type name is formed from operationName + "Params" (PascalCase)
-  // This matches the type name used in endpoints.ts
-  const paramsTypeName = params.length > 0 
-    ? pascal(operationName) + 'Params'
-    : null;
-  
-  // For queryParams, use schema.name which is the type name used in endpoints.ts
-  const queryParamsTypeName = queryParams?.schema.name || null;
-  
-  const originalTypeNames = {
-    body: body.definition || null,
-    response: response.definition.success || null,
-    params: paramsTypeName,
-    queryParams: queryParamsTypeName,
-  };
-  (verbOptions as any).__zodOriginalTypeNames = originalTypeNames;
-
-  // For react-query-zod, replace queryParams type in props with the type from zod file
+  // For zod model style, use QueryParams type from zod file
   // The zod file exports QueryParams type (e.g., LookupDealUrgencyListQueryParams)
-  // which should be used instead of the Params type (e.g., LookupDealUrgencyListParams)
-  if (isReactQueryZod && queryParams && originalTypeNames.queryParams) {
-    // Find the queryParams prop and replace its type
+  if (isZodModelStyle && queryParams) {
+    const queryParamsTypeName = queryParams.schema.name.replace(/Params$/, 'QueryParams');
     props = props.map((prop: GetterProp) => {
       if (prop.type === GetterPropType.QUERY_PARAM) {
-        // Use QueryParams type from zod file (replace "Params" with "QueryParams")
-        // originalTypeNames.queryParams contains "LookupDealUrgencyListParams"
-        // We need "LookupDealUrgencyListQueryParams" from zod file
-        const queryParamsTypeName = originalTypeNames.queryParams.replace(/Params$/, 'QueryParams');
         const optionalMarker = prop.definition.includes('?') ? '?' : '';
         return {
           ...prop,
@@ -405,10 +430,8 @@ export const generateAxiosRequestFunction = (
 
   const queryProps = toObjectString(props, 'implementation');
 
-  // Use original type names directly from zod exports (not z.infer)
-  const responseType = isReactQueryZod && originalTypeNames.response
-    ? originalTypeNames.response
-    : response.definition.success || 'unknown';
+  // Use type names from response - they will be imported from zod files for zod model style
+  const responseType = response.definition.success || 'unknown';
 
   const httpRequestFunctionImplementation = `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = ${hasZodValidation ? 'async ' : ''}(\n    ${queryProps} ${optionsArgs} ): Promise<AxiosResponse<${responseType}>> => {
     ${isVue ? vueUnRefParams(props) : ''}${zodPreValidationCode}${hasZodValidation ? '' : bodyForm}
@@ -423,12 +446,6 @@ export const generateAxiosRequestFunction = (
     }
   }
 `;
-
-  // Store zod schema info for adding imports later
-  // Also store type names to export from zod files
-  (verbOptions as any).__zodSchemaPath = zodSchemaPath;
-  (verbOptions as any).__zodSchemaNames = zodSchemaNames;
-  (verbOptions as any).__zodTypeNames = originalTypeNames;
 
   return httpRequestFunctionImplementation;
 };

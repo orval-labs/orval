@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import type { WriteModeProps } from '../types';
+import { ModelStyle, type WriteModeProps } from '../types';
 import {
   camel,
   getFileInfo,
@@ -103,7 +103,8 @@ export const writeTagsMode = async ({
           ? undefined
           : upath.join(dirname, filename + '.schemas' + extension);
 
-        if (schemasPath && needSchema) {
+        // Don't generate TypeScript schemas for zod model style as we use zod types instead
+        if (schemasPath && needSchema && output.modelStyle !== ModelStyle.ZOD) {
           const schemasData = header + generateModelsInline(builder.schemas);
 
           await fs.outputFile(schemasPath, schemasData);

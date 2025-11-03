@@ -3,7 +3,7 @@ import {
   type GeneratorTarget,
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
-  OutputClient,
+  ModelStyle,
   type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
@@ -153,28 +153,9 @@ export const generateTargetForTags = (
               clientImplementation: target.implementation,
             });
 
-            // Collect unique zod import statements from all operations in this tag
-            const zodImportStatements = new Set<string>();
-            Object.values(builder.operations).forEach((op: any) => {
-              // Operations are grouped by first tag using kebab case
-              const opFirstTag =
-                op.tags && op.tags.length > 0 ? kebab(op.tags[0]) : '';
-              if (opFirstTag === kebab(tag) && op.__zodImportStatement) {
-                zodImportStatements.add(op.__zodImportStatement);
-              }
-            });
-            const zodImports = Array.from(zodImportStatements).join('');
-            
-            // Add import for 'z' from 'zod' if using zod types
-            const zodImportPrefix = options.client === OutputClient.REACT_QUERY_ZOD && zodImportStatements.size > 0
-              ? `import { z } from 'zod';\n`
-              : '';
-
             acc[tag] = {
               implementation:
                 header.implementation +
-                zodImportPrefix +
-                zodImports +
                 target.implementation +
                 footer.implementation,
               implementationMock: {

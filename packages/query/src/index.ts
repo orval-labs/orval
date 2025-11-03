@@ -26,6 +26,7 @@ import {
   jsDoc,
   kebab,
   mergeDeep,
+  ModelStyle,
   type NormalizedOutputOptions,
   OutputClient,
   type OutputClientFunc,
@@ -54,6 +55,7 @@ import {
   getQueryHeader,
   getQueryOptions,
 } from './client';
+import { getZodDependencies } from '@orval/zod';
 import {
   getHasSignal,
   isVue,
@@ -876,6 +878,7 @@ const generateQueryImplementation = ({
   useQuery,
   useInfinite,
   useInvalidate,
+  output,
 }: {
   queryOption: {
     name: string;
@@ -912,6 +915,7 @@ const generateQueryImplementation = ({
   useQuery?: boolean;
   useInfinite?: boolean;
   useInvalidate?: boolean;
+  output: NormalizedOutputOptions;
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
@@ -991,17 +995,14 @@ const generateQueryImplementation = ({
     mutator,
   );
 
-  // For react-query-zod, use zod types instead of ReturnType
-  const isReactQueryZod = outputClient === OutputClient.REACT_QUERY_ZOD;
+  // For zod model style, use zod types instead of ReturnType
+  const isZodModelStyle = output.modelStyle === ModelStyle.ZOD;
 
-  // If react-query-zod and we have original type names, use exported types from zod files
+  // For zod model style, use type names from response definition directly
   // Otherwise, use ReturnType as before
-  const originalTypeNames = (verbOptions as any).__zodOriginalTypeNames as
-    | { body: string | null; response: string | null }
-    | undefined;
   const dataType =
-    isReactQueryZod && originalTypeNames?.response
-      ? originalTypeNames.response
+    isZodModelStyle && response.definition.success
+      ? response.definition.success
       : mutator?.isHook
         ? `ReturnType<typeof use${pascal(operationName)}Hook>`
         : `Awaited<ReturnType<typeof ${operationName}>>`;
@@ -1105,10 +1106,10 @@ const generateQueryImplementation = ({
     queryParams && queryParam
       ? `, ${queryParams?.schema.name}['${queryParam}']`
       : '';
-  // For react-query-zod, TData is already the zod type (not wrapped in ReturnType)
+  // For zod model style, TData is already the zod type (not wrapped in ReturnType)
   // For others, wrap in Awaited<ReturnType<>>
   const TData =
-    isReactQueryZod && originalTypeNames?.response
+    isZodModelStyle && response.definition.success
       ? hasQueryV5 &&
           (type === QueryType.INFINITE || type === QueryType.SUSPENSE_INFINITE)
         ? `InfiniteData<${dataType}${infiniteParam}>`
@@ -1141,7 +1142,7 @@ ${hookOptions}
   }
 
     const queryFn: QueryFunction<${
-      isReactQueryZod && originalTypeNames?.response
+      isZodModelStyle && response.definition.success
         ? dataType
         : `Awaited<ReturnType<${
             mutator?.isHook
@@ -1234,7 +1235,7 @@ ${queryOptionsFn}
 export type ${pascal(
     name,
   )}QueryResult = NonNullable<${
-    isReactQueryZod && originalTypeNames?.response ? dataType : `Awaited<ReturnType<${dataType}>>`
+    isZodModelStyle && response.definition.success ? dataType : `Awaited<ReturnType<${dataType}>>`
   }>
 export type ${pascal(name)}QueryError = ${errorType}
 
@@ -1296,28 +1297,22 @@ const generateQueryHook = async (
     props = vueWrapTypeWithMaybeRef(_props);
   }
   
-  // For react-query-zod, replace queryParams type in props with QueryParams type from zod file
+  // For zod model style, replace queryParams type in props with QueryParams type from zod file
   // This ensures we use LookupDealUrgencyListQueryParams instead of LookupDealUrgencyListParams
-  if (outputClient === OutputClient.REACT_QUERY_ZOD && queryParams) {
-    const originalTypeNames = (verbOptions as any).__zodOriginalTypeNames as
-      | { body: string | null; response: string | null; params: string | null; queryParams: string | null }
-      | undefined;
-    
-    if (originalTypeNames?.queryParams) {
-      // Replace Params with QueryParams (e.g., "LookupDealUrgencyListParams" -> "LookupDealUrgencyListQueryParams")
-      const queryParamsTypeName = originalTypeNames.queryParams.replace(/Params$/, 'QueryParams');
-      props = props.map((prop: GetterProp) => {
-        if (prop.type === GetterPropType.QUERY_PARAM) {
-          const optionalMarker = prop.definition.includes('?') ? '?' : '';
-          return {
-            ...prop,
-            definition: `params${optionalMarker}: ${queryParamsTypeName}`,
-            implementation: `params${optionalMarker}: ${queryParamsTypeName}`,
-          };
-        }
-        return prop;
-      });
-    }
+  if (context.output.modelStyle === ModelStyle.ZOD && queryParams) {
+    // Replace Params with QueryParams (e.g., "LookupDealUrgencyListParams" -> "LookupDealUrgencyListQueryParams")
+    const queryParamsTypeName = queryParams.schema.name.replace(/Params$/, 'QueryParams');
+    props = props.map((prop: GetterProp) => {
+      if (prop.type === GetterPropType.QUERY_PARAM) {
+        const optionalMarker = prop.definition.includes('?') ? '?' : '';
+        return {
+          ...prop,
+          definition: `params${optionalMarker}: ${queryParamsTypeName}`,
+          implementation: `params${optionalMarker}: ${queryParamsTypeName}`,
+        };
+      }
+      return prop;
+    });
   }
   
   const query = override?.query;
@@ -1598,6 +1593,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
           useQuery: query.useQuery,
           useInfinite: query.useInfinite,
           useInvalidate: query.useInvalidate,
+          output,
         })
       );
     }, '')}
@@ -1644,13 +1640,10 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       mutator,
     );
 
-    // For react-query-zod, use zod types instead of ReturnType
-    const originalTypeNames = (verbOptions as any).__zodOriginalTypeNames as
-      | { body: string | null; response: string | null }
-      | undefined;
+    // For zod model style, use zod types instead of ReturnType
     const dataType =
-      outputClient === OutputClient.REACT_QUERY_ZOD && originalTypeNames?.response
-        ? originalTypeNames.response
+      output.modelStyle === ModelStyle.ZOD && response.definition.success
+        ? response.definition.success
         : mutator?.isHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
           : `Awaited<ReturnType<typeof ${operationName}>>`;
@@ -1706,7 +1699,7 @@ ${hooksOptionImplementation}
 
 
       const mutationFn: MutationFunction<${
-        outputClient === OutputClient.REACT_QUERY_ZOD && originalTypeNames?.response
+        output.modelStyle === ModelStyle.ZOD && response.definition.success
           ? dataType
           : `Awaited<ReturnType<${dataType}>>`
       }, ${
@@ -1753,16 +1746,16 @@ ${mutationOptionsFn}
     export type ${pascal(
       operationName,
     )}MutationResult = NonNullable<${
-      outputClient === OutputClient.REACT_QUERY_ZOD && originalTypeNames?.response
-        ? originalTypeNames.response
+      output.modelStyle === ModelStyle.ZOD && response.definition.success
+        ? response.definition.success
         : `Awaited<ReturnType<${dataType}>>`
     }>
     ${
       body.definition
         ? `export type ${pascal(operationName)}MutationBody = ${
             mutator?.bodyTypeName
-              ? `${mutator.bodyTypeName}<${originalTypeNames?.body || body.definition}>`
-              : originalTypeNames?.body || body.definition
+              ? `${mutator.bodyTypeName}<${body.definition}>`
+              : body.definition
           }`
         : ''
     }
@@ -1823,63 +1816,18 @@ export const generateQuery: ClientBuilder = async (
   options,
   outputClient,
 ) => {
-  const imports = generateVerbImports(verbOptions);
+  // Generate function implementation first to update verbOptions with zod imports
+  // This mutates verbOptions by setting specKey for zod imports
   const functionImplementation = generateQueryRequestFunction(
     verbOptions,
     options,
     isVue(outputClient),
     outputClient,
   );
+  // Now collect imports after verbOptions has been updated with zod imports
+  const imports = generateVerbImports(verbOptions);
   const { implementation: hookImplementation, mutators } =
     await generateQueryHook(verbOptions, options, outputClient);
-
-  // Add zod schema imports if react-query-zod is used
-  // Store import statement on verbOptions so it can be added to the generated file
-  const zodSchemaPath = (verbOptions as any).__zodSchemaPath;
-  const zodSchemaNames = (verbOptions as any).__zodSchemaNames;
-  const zodTypeNames = (verbOptions as any).__zodTypeNames as
-    | { body: string | null; response: string | null; params: string | null; queryParams: string | null }
-    | undefined;
-
-  if (
-    outputClient === OutputClient.REACT_QUERY_ZOD &&
-    zodSchemaPath &&
-    zodSchemaNames?.length > 0
-  ) {
-    // zodSchemaPath is already a relative path (e.g., './endpoints.zod')
-    // Just use it directly for the import statement
-    const importPath = zodSchemaPath.replace(/\.ts$/, ''); // Remove .ts extension if present
-
-    // Import both schemas and types
-    const zodImports: string[] = [];
-    zodImports.push(...zodSchemaNames);
-    
-    // Add type imports if they exist - these are the exported types from zod files
-    // For react-query-zod, we need to import the types, not just schemas
-    if (zodTypeNames?.response) {
-      zodImports.push(zodTypeNames.response);
-    }
-    if (zodTypeNames?.body) {
-      zodImports.push(zodTypeNames.body);
-    }
-    // Import params and queryParams types (these are the PascalCase type names used in endpoints)
-    // Note: queryParams are exported with both QueryParams and Params names in zod files
-    // For react-query-zod, we use QueryParams type (e.g., LookupDealUrgencyListQueryParams)
-    // from zod file instead of Params alias, as QueryParams is the main exported type
-    if (zodTypeNames?.params) {
-      zodImports.push(zodTypeNames.params);
-    }
-    if (zodTypeNames?.queryParams) {
-      // Import QueryParams type (replace "Params" with "QueryParams")
-      // e.g., "LookupDealUrgencyListParams" -> "LookupDealUrgencyListQueryParams"
-      const queryParamsTypeName = zodTypeNames.queryParams.replace(/Params$/, 'QueryParams');
-      zodImports.push(queryParamsTypeName);
-    }
-
-    // Store the import statement to be added before implementation
-    (verbOptions as any).__zodImportStatement =
-      `import { ${zodImports.join(', ')} } from '${importPath}';\n`;
-  }
 
   return {
     implementation: `${functionImplementation}\n\n${hookImplementation}`,
@@ -1935,10 +1883,38 @@ export const builder =
       return generateQuery(verbOptions, options, outputClient, output);
     };
 
+    // Wrap dependencies builder to add zod dependencies when modelStyle is ZOD
+    const baseDependencies = dependenciesBuilder[type];
+    const wrappedDependencies: ClientDependenciesBuilder = (
+      hasGlobalMutator,
+      hasParamsSerializerOptions,
+      packageJson,
+      httpClient,
+      hasTagsMutator,
+      override,
+    ) => {
+      const deps = baseDependencies(
+        hasGlobalMutator,
+        hasParamsSerializerOptions,
+        packageJson,
+        httpClient,
+        hasTagsMutator,
+        override,
+      );
+      // Add zod dependencies if modelStyle is ZOD
+      if (output?.modelStyle === ModelStyle.ZOD) {
+        return [...deps, ...getZodDependencies()];
+      }
+      return deps;
+    };
+
     return {
       client: client,
       header: generateQueryHeader,
-      dependencies: dependenciesBuilder[type],
+      dependencies: wrappedDependencies,
+      ...(output?.modelStyle === ModelStyle.ZOD && {
+        extraFiles: generateZodFiles,
+      }),
     };
   };
 
@@ -1978,7 +1954,7 @@ const getVerbOptionGroupByTag = (
   return grouped;
 };
 
-// Function to generate zod files for react-query-zod
+// Function to generate zod files for zod model style
 const generateZodFiles: ClientExtraFilesBuilder = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
@@ -2047,25 +2023,22 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
         // Create a map of schema names to original type names from all operations in this tag
         const schemaToTypeMap = new Map<string, string>();
         verbs.forEach((verbOption) => {
-          const originalTypeNames = (verbOption as any).__zodOriginalTypeNames as
-            | { body: string | null; response: string | null }
-            | undefined;
-          
-          if (originalTypeNames?.response) {
+          // Use type names directly from verbOption definitions
+          if (verbOption.response.definition.success) {
             const responseSchemaMatch = zodContent.match(
               new RegExp(`export const (${verbOption.operationName}\\w*Response)\\s*=\\s*zod\\.`),
             );
             if (responseSchemaMatch) {
-              schemaToTypeMap.set(responseSchemaMatch[1], originalTypeNames.response);
+              schemaToTypeMap.set(responseSchemaMatch[1], verbOption.response.definition.success);
             }
           }
           
-          if (originalTypeNames?.body) {
+          if (verbOption.body.definition) {
             const bodySchemaMatch = zodContent.match(
               new RegExp(`export const (${verbOption.operationName}\\w*Body)\\s*=\\s*zod\\.`),
             );
             if (bodySchemaMatch) {
-              schemaToTypeMap.set(bodySchemaMatch[1], originalTypeNames.body);
+              schemaToTypeMap.set(bodySchemaMatch[1], verbOption.body.definition);
             }
           }
         });
@@ -2135,33 +2108,52 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
 
       // Add type exports using original OpenAPI schema type names
       const zodExports: string[] = [];
-      const originalTypeNames = (verbOption as any).__zodOriginalTypeNames as
-        | { body: string | null; response: string | null; params: string | null; queryParams: string | null }
-        | undefined;
-
-      // Map schema names to original type names
+      
+      // Map schema names to original type names - use type names directly from verbOption
       const zodRegex = /export const (\w+)\s*=\s*zod\./g;
       let match;
       const schemaToTypeMap = new Map<string, string>();
       const exportedTypeNames = new Set<string>();
       
       // Match response schemas (e.g., addLeadPurposeResponse -> AddLeadPurposeCommandResponse)
-      if (originalTypeNames?.response) {
+      if (verbOption.response.definition.success) {
         const responseSchemaMatch = zod.implementation.match(
           new RegExp(`export const (${verbOption.operationName}\\w*Response)\\s*=\\s*zod\\.`),
         );
         if (responseSchemaMatch) {
-          schemaToTypeMap.set(responseSchemaMatch[1], originalTypeNames.response);
+          schemaToTypeMap.set(responseSchemaMatch[1], verbOption.response.definition.success);
         }
       }
 
       // Match body schemas (e.g., addLeadPurposeBody -> AddLeadPurposeForm)
-      if (originalTypeNames?.body) {
+      if (verbOption.body.definition) {
         const bodySchemaMatch = zod.implementation.match(
           new RegExp(`export const (${verbOption.operationName}\\w*Body)\\s*=\\s*zod\\.`),
         );
         if (bodySchemaMatch) {
-          schemaToTypeMap.set(bodySchemaMatch[1], originalTypeNames.body);
+          schemaToTypeMap.set(bodySchemaMatch[1], verbOption.body.definition);
+        }
+      }
+
+      // Match params schemas (path parameters)
+      if (verbOption.params.length > 0) {
+        const paramsTypeName = pascal(verbOption.operationName) + 'Params';
+        const paramsSchemaMatch = zod.implementation.match(
+          new RegExp(`export const (${verbOption.operationName}Params)\\s*=\\s*zod\\.`),
+        );
+        if (paramsSchemaMatch) {
+          schemaToTypeMap.set(paramsSchemaMatch[1], paramsTypeName);
+        }
+      }
+
+      // Match queryParams schemas
+      if (verbOption.queryParams) {
+        const queryParamsTypeName = verbOption.queryParams.schema.name;
+        const queryParamsSchemaMatch = zod.implementation.match(
+          new RegExp(`export const (${verbOption.operationName}QueryParams)\\s*=\\s*zod\\.`),
+        );
+        if (queryParamsSchemaMatch) {
+          schemaToTypeMap.set(queryParamsSchemaMatch[1], queryParamsTypeName);
         }
       }
 
@@ -2197,9 +2189,8 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
             }
             
             // Also export Params type (alias) for compatibility with endpoints.ts
-            // originalTypeNames.queryParams contains the type name used in endpoints.ts (e.g., "SearchDealUrgenciesListParams")
-            // If originalTypeNames.queryParams is not set, generate the Params alias name from schemaName
-            const paramsTypeName = originalTypeNames?.queryParams || 
+            // Use queryParams.schema.name and replace "QueryParams" with "Params"
+            const paramsTypeName = verbOption.queryParams?.schema.name?.replace(/QueryParams$/, 'Params') || 
               typeName.replace('QueryParams', 'Params');
             
             if (paramsTypeName && !exportedTypeNames.has(paramsTypeName)) {
@@ -2208,13 +2199,15 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
               );
               exportedTypeNames.add(paramsTypeName);
             }
-          } else if (isParamsSchema && originalTypeNames?.params) {
-            // Export Params type
-            const paramsTypeName = originalTypeNames.params;
-            zodExports.push(
-              `export type ${paramsTypeName} = zod.infer<typeof ${schemaName}>;`,
-            );
-            exportedTypeNames.add(paramsTypeName);
+          } else if (isParamsSchema && verbOption.params.length > 0) {
+            // Export Params type (path parameters)
+            const paramsTypeName = pascal(verbOption.operationName) + 'Params';
+            if (!exportedTypeNames.has(paramsTypeName)) {
+              zodExports.push(
+                `export type ${paramsTypeName} = zod.infer<typeof ${schemaName}>;`,
+              );
+              exportedTypeNames.add(paramsTypeName);
+            }
           } else {
             // Regular export (response, body, etc.)
             if (!exportedTypeNames.has(typeName)) {
@@ -2290,47 +2283,46 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
   const schemaToTypeMap = new Map<string, string>();
   const exportedTypeNames = new Set<string>();
   (Object.values(verbOptions) as GeneratorVerbOptions[]).forEach((verbOption) => {
-    const originalTypeNames = (verbOption as any).__zodOriginalTypeNames as
-      | { body: string | null; response: string | null; params: string | null; queryParams: string | null }
-      | undefined;
-    
-    if (originalTypeNames?.response) {
+    // Use type names directly from verbOption definitions
+    if (verbOption.response.definition.success) {
       // Find matching response schema in zodContent
       const responseSchemaMatch = zodContent.match(
         new RegExp(`export const (${verbOption.operationName}\\w*Response)\\s*=\\s*zod\\.`),
       );
       if (responseSchemaMatch) {
-        schemaToTypeMap.set(responseSchemaMatch[1], originalTypeNames.response);
+        schemaToTypeMap.set(responseSchemaMatch[1], verbOption.response.definition.success);
       }
     }
     
-    if (originalTypeNames?.body) {
+    if (verbOption.body.definition) {
       // Find matching body schema in zodContent
       const bodySchemaMatch = zodContent.match(
         new RegExp(`export const (${verbOption.operationName}\\w*Body)\\s*=\\s*zod\\.`),
       );
       if (bodySchemaMatch) {
-        schemaToTypeMap.set(bodySchemaMatch[1], originalTypeNames.body);
+        schemaToTypeMap.set(bodySchemaMatch[1], verbOption.body.definition);
       }
     }
     
-    if (originalTypeNames?.params) {
+    if (verbOption.params.length > 0) {
       // Find matching params schema in zodContent
+      const paramsTypeName = pascal(verbOption.operationName) + 'Params';
       const paramsSchemaMatch = zodContent.match(
         new RegExp(`export const (${verbOption.operationName}Params)\\s*=\\s*zod\\.`),
       );
       if (paramsSchemaMatch) {
-        schemaToTypeMap.set(paramsSchemaMatch[1], originalTypeNames.params);
+        schemaToTypeMap.set(paramsSchemaMatch[1], paramsTypeName);
       }
     }
     
-    if (originalTypeNames?.queryParams) {
+    if (verbOption.queryParams) {
       // Find matching queryParams schema in zodContent
+      const queryParamsTypeName = verbOption.queryParams.schema.name;
       const queryParamsSchemaMatch = zodContent.match(
         new RegExp(`export const (${verbOption.operationName}QueryParams)\\s*=\\s*zod\\.`),
       );
       if (queryParamsSchemaMatch) {
-        schemaToTypeMap.set(queryParamsSchemaMatch[1], originalTypeNames.queryParams);
+        schemaToTypeMap.set(queryParamsSchemaMatch[1], queryParamsTypeName);
       }
     }
   });
@@ -2355,14 +2347,12 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
       // Find the original type name for this schema
       let originalTypeName: string | null = null;
       (Object.values(verbOptions) as GeneratorVerbOptions[]).forEach((verbOption) => {
-        const originalTypeNames = (verbOption as any).__zodOriginalTypeNames as
-          | { body: string | null; response: string | null; params: string | null; queryParams: string | null }
-          | undefined;
-        
-        if (isQueryParamsSchema && schemaName.includes(verbOption.operationName) && originalTypeNames?.queryParams) {
-          originalTypeName = originalTypeNames.queryParams;
-        } else if (isParamsSchema && schemaName.includes(verbOption.operationName) && originalTypeNames?.params) {
-          originalTypeName = originalTypeNames.params;
+        if (isQueryParamsSchema && schemaName.includes(verbOption.operationName) && verbOption.queryParams) {
+          // Use queryParams.schema.name and replace "QueryParams" with "Params" for alias
+          originalTypeName = verbOption.queryParams.schema.name.replace(/QueryParams$/, 'Params');
+        } else if (isParamsSchema && schemaName.includes(verbOption.operationName) && verbOption.params.length > 0) {
+          // Use pascal case operationName + "Params" for path parameters
+          originalTypeName = pascal(verbOption.operationName) + 'Params';
         }
       });
       
@@ -2396,89 +2386,5 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
   ];
 };
 
-// React Query Zod Dependencies Builder
-export const getReactQueryZodDependencies: ClientDependenciesBuilder = (
-  hasGlobalMutator: boolean,
-  hasParamsSerializerOptions: boolean,
-  packageJson?: PackageJson,
-  httpClient?: OutputHttpClient,
-  hasTagsMutator?: boolean,
-  override?,
-) => {
-  const reactQueryDeps = getReactQueryDependencies(
-    hasGlobalMutator,
-    hasParamsSerializerOptions,
-    packageJson,
-    httpClient,
-    hasTagsMutator,
-    override,
-  );
-
-  const zodDeps: GeneratorDependency[] = [
-    {
-      exports: [
-        {
-          default: false,
-          name: 'zod',
-          syntheticDefaultImport: false,
-          namespaceImport: false,
-          values: true,
-        },
-      ],
-      dependency: 'zod',
-    },
-  ];
-
-  return [...reactQueryDeps, ...zodDeps];
-};
 
 // React Query Zod Client Builder
-export const builderReactQueryZod =
-  ({
-    type = 'react-query',
-    options: queryOptions,
-    output,
-  }: {
-    type?: 'react-query' | 'vue-query' | 'svelte-query';
-    options?: QueryOptions;
-    output?: NormalizedOutputOptions;
-  } = {}) =>
-  () => {
-    const client: ClientBuilder = async (
-      verbOptions: GeneratorVerbOptions,
-      options: GeneratorOptions,
-      outputClient: OutputClient | OutputClientFunc,
-    ) => {
-      if (
-        options.override.useNamedParameters &&
-        (type === 'vue-query' || outputClient === 'vue-query')
-      ) {
-        throw new Error(
-          `vue-query client does not support named parameters, and had broken reactivity previously, please set useNamedParameters to false; See for context: https://github.com/orval-labs/orval/pull/931#issuecomment-1752355686`,
-        );
-      }
-
-      if (queryOptions) {
-        const normalizedQueryOptions = normalizeQueryOptions(
-          queryOptions,
-          options.context.workspace,
-        );
-        verbOptions.override.query = mergeDeep(
-          normalizedQueryOptions,
-          verbOptions.override.query,
-        );
-        options.override.query = mergeDeep(
-          normalizedQueryOptions,
-          verbOptions.override.query,
-        );
-      }
-      return generateQuery(verbOptions, options, outputClient, output);
-    };
-
-    return {
-      client: client,
-      header: generateQueryHeader,
-      dependencies: getReactQueryZodDependencies,
-      extraFiles: generateZodFiles,
-    };
-  };

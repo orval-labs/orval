@@ -60,8 +60,8 @@ export const writeSpecs = async (
 
   const header = getHeader(output.override.header, info as InfoObject);
 
-  // Don't generate TypeScript schemas for react-query-zod as we use zod types instead
-  if (output.schemas && output.client !== 'react-query-zod') {
+  // Don't generate TypeScript schemas for zod model style as we use zod types instead
+  if (output.schemas && output.modelStyle !== 'zod') {
     const rootSchemaPath = output.schemas;
 
     const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
@@ -100,7 +100,7 @@ export const writeSpecs = async (
       output,
       specsName,
       header,
-      needSchema: !output.schemas && output.client !== 'zod',
+      needSchema: !output.schemas && output.client !== 'zod' && output.modelStyle !== 'zod',
     });
   }
 

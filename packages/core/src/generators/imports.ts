@@ -165,8 +165,13 @@ const generateDependency = ({
   let importString = '';
 
   // generate namespace import string
+  // For zod imports (relative paths), use the dependency path directly
+  const isZodImportForNamespace = dependency.startsWith('./') || dependency.startsWith('../');
+  const namespaceImportPath = isZodImportForNamespace && dependency === key
+    ? dependency // Use the relative path directly for Zod files
+    : dependency;
   const namespaceImportString = namespaceImportDep
-    ? `import * as ${namespaceImportDep.name} from '${dependency}';`
+    ? `import * as ${namespaceImportDep.name} from '${namespaceImportPath}';`
     : '';
 
   if (namespaceImportString) {
@@ -177,11 +182,16 @@ const generateDependency = ({
     importString += `${namespaceImportString}\n`;
   }
 
+  // Check if dependency is a relative path (starts with './' or '../') - this indicates a Zod file import
+  // In this case, use the dependency directly as the import path (dependency should equal key for zod imports)
+  const isZodImport = dependency.startsWith('./') || dependency.startsWith('../');
+  const importPath = isZodImport && dependency === key
+    ? dependency // Use the relative path directly for Zod files
+    : `${dependency}${key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''}`;
+
   importString += `import ${onlyTypes ? 'type ' : ''}${
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
-  }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
-    key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
-  }';`;
+  }${depsString ? `{\n  ${depsString}\n}` : ''} from '${importPath}';`;
 
   return importString;
 };
@@ -201,12 +211,18 @@ export const addDependency = ({
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
 }) => {
-  const toAdds = exports.filter((e) => {
-    const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
-    const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
+  // For Zod imports (relative paths), always include all exports
+  // since they are needed for types and schemas even if not explicitly used in runtime code
+  const isZodImport = dependency.startsWith('./') || dependency.startsWith('../');
+  
+  const toAdds = isZodImport
+    ? exports // Include all exports for Zod imports
+    : exports.filter((e) => {
+        const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
+        const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
 
-    return implementation.match(pattern);
-  });
+        return implementation.match(pattern);
+      });
 
   if (toAdds.length === 0) {
     return;
@@ -215,7 +231,11 @@ export const addDependency = ({
   const groupedBySpecKey = toAdds.reduce<
     Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
   >((acc, dep) => {
-    const key = hasSchemaDir && dep.specKey ? dep.specKey : 'default';
+    // If specKey is a relative path (starts with './' or '../'), use it directly
+    // Otherwise, use the standard logic with hasSchemaDir
+    const key = (dep.specKey && (dep.specKey.startsWith('./') || dep.specKey.startsWith('../')))
+      ? dep.specKey
+      : (hasSchemaDir && dep.specKey ? dep.specKey : 'default');
 
     if (
       dep.values &&
@@ -336,7 +356,13 @@ export const generateVerbImports = ({
       ? [{ name: prop.schema.name }]
       : [],
   ),
-  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
-  ...(headers ? [{ name: headers.schema.name }] : []),
+  // Use queryParams.schema.imports if available (for zod model style), otherwise use schema.name
+  ...(queryParams ? (queryParams.schema.imports && queryParams.schema.imports.length > 0
+    ? queryParams.schema.imports
+    : [{ name: queryParams.schema.name }]) : []),
+  // Use headers.schema.imports if available, otherwise use schema.name
+  ...(headers ? (headers.schema.imports && headers.schema.imports.length > 0
+    ? headers.schema.imports
+    : [{ name: headers.schema.name }]) : []),
   ...params.flatMap<GeneratorImport>(({ imports }) => imports),
 ];

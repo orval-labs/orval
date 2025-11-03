@@ -61,6 +61,7 @@ export type NormalizedOutputOptions = {
   unionAddMissingProperties: boolean;
   optionsParamRequired: boolean;
   propertySortOrder: PropertySortOrder;
+  modelStyle: ModelStyle;
 };
 
 export type NormalizedParamsSerializerOptions = {
@@ -206,6 +207,13 @@ export const EnumGeneration = {
 export type EnumGeneration =
   (typeof EnumGeneration)[keyof typeof EnumGeneration];
 
+export const ModelStyle = {
+  TYPESCRIPT: 'typescript',
+  ZOD: 'zod',
+} as const;
+
+export type ModelStyle = (typeof ModelStyle)[keyof typeof ModelStyle];
+
 export type OutputOptions = {
   workspace?: string;
   target: string;
@@ -232,6 +240,7 @@ export type OutputOptions = {
   unionAddMissingProperties?: boolean;
   optionsParamRequired?: boolean;
   propertySortOrder?: PropertySortOrder;
+  modelStyle?: ModelStyle;
 };
 
 export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
@@ -258,7 +267,6 @@ export const OutputClient = {
   AXIOS: 'axios',
   AXIOS_FUNCTIONS: 'axios-functions',
   REACT_QUERY: 'react-query',
-  REACT_QUERY_ZOD: 'react-query-zod',
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
   SWR: 'swr',

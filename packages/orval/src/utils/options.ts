@@ -30,6 +30,7 @@ import {
   type NormalizedQueryOptions,
   type OperationOptions,
   type OptionsExport,
+  ModelStyle,
   OutputClient,
   OutputHttpClient,
   OutputMode,
@@ -369,6 +370,7 @@ export const normalizeOptions = async (
       optionsParamRequired: outputOptions.optionsParamRequired ?? false,
       propertySortOrder:
         outputOptions.propertySortOrder ?? PropertySortOrder.SPECIFICATION,
+      modelStyle: outputOptions.modelStyle ?? ModelStyle.TYPESCRIPT,
     },
     hooks: options.hooks ? normalizeHooks(options.hooks) : {},
   };
