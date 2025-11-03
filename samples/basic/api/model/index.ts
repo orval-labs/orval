@@ -12,6 +12,5 @@ export * from './listPetsParams';
 export * from './pet';
 export * from './petCallingCode';
 export * from './petCountry';
-export * from './pets';
 export * from './petsArray';
 export * from './petsNestedArray';
