@@ -203,6 +203,26 @@ export default defineConfig({
       mock: true,
     },
   },
+  'all-of-strict': {
+    input: '../specifications/all-of-strict.yaml',
+    output: {
+      schemas: '../generated/default/all-of-strict/model',
+      target: '../generated/default/all-of-strict/endpoints.ts',
+      mock: true,
+      client: 'zod',
+      override: {
+        zod: {
+          strict: {
+            body: true,
+            param: false,
+            query: false,
+            header: false,
+            response: false,
+          },
+        },
+      },
+    },
+  },
   'deeply-nested-refs': {
     input: '../specifications/deeply-nested-refs.yaml',
     output: {
