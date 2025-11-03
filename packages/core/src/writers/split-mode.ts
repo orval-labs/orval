@@ -73,7 +73,7 @@ export const writeSplitMode = async ({
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
       hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag.mutator,
+        (tag) => !!tag?.mutator,
       ),
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
@@ -99,7 +99,8 @@ export const writeSplitMode = async ({
       ? undefined
       : upath.join(dirname, filename + '.schemas' + extension);
 
-    if (schemasPath && needSchema) {
+    // Don't generate TypeScript schemas for react-query-zod as we use zod types instead
+    if (schemasPath && needSchema && output.client !== OutputClient.REACT_QUERY_ZOD) {
       const schemasData = header + generateModelsInline(builder.schemas);
 
       await fs.outputFile(
@@ -151,6 +152,21 @@ export const writeSplitMode = async ({
     if (implementation.includes('TypedResponse<')) {
       implementationData += getTypedResponse();
       implementationData += '\n';
+    }
+
+    // Add zod imports if needed (for react-query-zod client)
+    // Collect unique zod import statements from all operations
+    const zodImportStatements = new Set<string>();
+    Object.values(builder.operations).forEach((op: any) => {
+      if (op.__zodImportStatement) {
+        zodImportStatements.add(op.__zodImportStatement);
+      }
+    });
+    
+    // For react-query-zod, we use exported types from zod files, not z.infer
+    // So we don't need to import 'z' from 'zod'
+    if (zodImportStatements.size > 0) {
+      implementationData += Array.from(zodImportStatements).join('');
     }
 
     implementationData += `\n${implementation}`;

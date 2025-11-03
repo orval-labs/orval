@@ -258,6 +258,7 @@ export const OutputClient = {
   AXIOS: 'axios',
   AXIOS_FUNCTIONS: 'axios-functions',
   REACT_QUERY: 'react-query',
+  REACT_QUERY_ZOD: 'react-query-zod',
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
   SWR: 'swr',

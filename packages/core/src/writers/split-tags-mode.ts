@@ -7,6 +7,7 @@ import {
   getFileInfo,
   isFunction,
   isSyntheticDefaultImportsAllow,
+  kebab,
   pascal,
   upath,
 } from '../utils';
@@ -169,6 +170,9 @@ export const writeSplitTagsMode = async ({
           implementationData += getTypedResponse();
           implementationData += '\n';
         }
+
+        // Note: zod imports are already added in generateTargetForTags,
+        // so we don't need to add them here again
 
         implementationData += `\n${implementation}`;
         mockData += `\n${implementationMock}`;

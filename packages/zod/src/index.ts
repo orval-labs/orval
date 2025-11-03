@@ -14,6 +14,7 @@ import {
   getRefInfo,
   isBoolean,
   isObject,
+  isReference,
   isString,
   jsStringEscape,
   pascal,
@@ -182,7 +183,20 @@ export const generateZodValidationSchemaDefinition = (
     timeOptions?: TimeOptions;
   },
 ): ZodValidationSchemaDefinition => {
-  if (!schema) return { functions: [], consts: [] };
+  if (!schema) {
+    debugLog(
+      `generateZodValidationSchemaDefinition(${name}): schema is undefined`,
+    );
+    return { functions: [], consts: [] };
+  }
+  debugLog(`generateZodValidationSchemaDefinition(${name}): starting`, {
+    type: schema.type,
+    hasProperties: !!schema.properties,
+    hasOneOf: !!schema.oneOf,
+    hasAllOf: !!schema.allOf,
+    hasAnyOf: !!schema.anyOf,
+    keys: Object.keys(schema).slice(0, 10),
+  });
 
   const consts: string[] = [];
   const constsCounter =
@@ -239,9 +253,15 @@ export const generateZodValidationSchemaDefinition = (
       | ReferenceObject
     )[];
 
-    const baseSchemas = schemas.map((schema) =>
-      generateZodValidationSchemaDefinition(
-        schema as SchemaObject,
+    // Resolve references in oneOf/anyOf/allOf before generating schemas
+    const baseSchemas = schemas.map((schemaItem) => {
+      // If schema is a reference, resolve it first, then deference to get full schema
+      const resolvedSchema = isReference(schemaItem)
+        ? deference(schemaItem as ReferenceObject, context)
+        : (schemaItem as SchemaObject);
+
+      return generateZodValidationSchemaDefinition(
+        resolvedSchema,
         context,
         camel(name),
         strict,
@@ -249,8 +269,8 @@ export const generateZodValidationSchemaDefinition = (
         {
           required: true,
         },
-      ),
-    );
+      );
+    });
 
     // Handle allOf with additional properties - merge additional properties into the last schema
     if (schema.allOf && schema.properties) {
@@ -276,8 +296,31 @@ export const generateZodValidationSchemaDefinition = (
       baseSchemas.push(additionalPropertiesDefinition);
     }
 
-    functions.push([separator, baseSchemas]);
-    skipSwitchStatement = true;
+    // Only add oneOf/allOf/anyOf if baseSchemas have content
+    const hasValidSchemas = baseSchemas.some(
+      (schema) => schema.functions.length > 0 || schema.consts.length > 0,
+    );
+
+    if (hasValidSchemas) {
+      functions.push([separator, baseSchemas]);
+      skipSwitchStatement = true;
+    } else {
+      // If oneOf/allOf/anyOf schemas are empty, log warning and continue with type processing
+      if (name.includes('listPets') || name.includes('Item')) {
+        debugLog(
+          `generateZodValidationSchemaDefinition(${name}): WARNING - empty baseSchemas for ${separator}`,
+          {
+            baseSchemasCount: baseSchemas.length,
+            baseSchemasDetails: baseSchemas.map((s, i) => ({
+              index: i,
+              functionsCount: s.functions.length,
+              constsCount: s.consts.length,
+            })),
+          },
+        );
+      }
+      // Continue processing as normal type, don't skip switch statement
+    }
   }
 
   let defaultVarName: string | undefined;
@@ -688,7 +731,20 @@ export const generateZodValidationSchemaDefinition = (
     functions.push(['describe', `'${jsStringEscape(schema.description)}'`]);
   }
 
-  return { functions, consts: unique(consts) };
+  const result = { functions, consts: unique(consts) };
+  if (
+    name.includes('listPetsResponse') ||
+    name.includes('listPets-response') ||
+    name.includes('Item')
+  ) {
+    debugLog(`generateZodValidationSchemaDefinition(${name}): FINAL RESULT`, {
+      functionsCount: functions.length,
+      constsCount: unique(consts).length,
+      firstFunction: functions[0]?.[0],
+      allFunctions: functions.map((f) => f[0]),
+    });
+  }
+  return result;
 };
 
 export const parseZodValidationSchemaDefinition = (
@@ -700,6 +756,9 @@ export const parseZodValidationSchemaDefinition = (
   preprocess?: GeneratorMutator,
 ): { zod: string; consts: string } => {
   if (input.functions.length === 0) {
+    debugLog(
+      `parseZodValidationSchemaDefinition: Empty input (functions.length === 0)`,
+    );
     return { zod: '', consts: '' };
   }
 
@@ -893,6 +952,21 @@ const deference = (
         },
         {},
       );
+    } else if (key === 'items' && (isReference(value) || isObject(value))) {
+      // Handle array items - resolve references and deference nested structures
+      acc[key] = deference(
+        value as SchemaObject | ReferenceObject,
+        resolvedContext,
+      );
+    } else if (key === 'oneOf' || key === 'anyOf' || key === 'allOf') {
+      // Handle oneOf/anyOf/allOf - deference each schema in the array
+      if (Array.isArray(value)) {
+        acc[key] = value.map((item: SchemaObject | ReferenceObject) =>
+          deference(item, resolvedContext),
+        );
+      } else {
+        acc[key] = value;
+      }
     } else if (key === 'default' || key === 'example' || key === 'examples') {
       acc[key] = value;
     } else {
@@ -901,6 +975,32 @@ const deference = (
 
     return acc;
   }, {});
+};
+
+// Debug logging helper
+const debugLog = (message: string, data?: any) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    // Use absolute path to ensure we can write
+    const logFile = path.resolve(process.cwd(), 'tests', 'orval-debug.log');
+    const logLine = `[${new Date().toISOString()}] ${message}${data ? ' ' + JSON.stringify(data, null, 2) : ''}\n`;
+    fs.appendFileSync(logFile, logLine, 'utf8');
+    // Also output to console for immediate feedback
+    if (
+      message.includes('WARNING') ||
+      message.includes('listPets') ||
+      message.includes('Item') ||
+      message.includes('FINAL')
+    ) {
+      console.error(logLine.trim());
+    }
+  } catch (e) {
+    // Ignore errors in debug logging - output to console as fallback
+    console.error(
+      `[DEBUG] ${message}${data ? ' ' + JSON.stringify(data) : ''}`,
+    );
+  }
 };
 
 const parseBodyAndResponse = ({
@@ -939,21 +1039,152 @@ const parseBodyAndResponse = ({
     context,
   ).schema;
 
-  const schema =
-    resolvedRef.content?.['application/json']?.schema ??
-    resolvedRef.content?.['multipart/form-data']?.schema;
+  debugLog(`parseBodyAndResponse(${name}, ${parseType}): resolvedRef`, {
+    hasContent: 'content' in resolvedRef,
+    contentKeys:
+      'content' in resolvedRef
+        ? Object.keys((resolvedRef as any).content || {})
+        : [],
+  });
 
-  if (!schema) {
+  // Try to find schema in common content types, or fallback to first available content type with schema
+  // ResponseObject and RequestBodyObject have a 'content' property that maps content types to MediaTypeObject
+  const content =
+    'content' in resolvedRef
+      ? (resolvedRef as ResponseObject | RequestBodyObject).content
+      : undefined;
+
+  if (!content || typeof content !== 'object') {
+    debugLog(`parseBodyAndResponse(${name}): No content found`);
     return {
       input: { functions: [], consts: [] },
       isArray: false,
     };
   }
 
+  const contentEntries = Object.entries(content);
+  debugLog(
+    `parseBodyAndResponse(${name}): Available content types`,
+    Object.keys(content),
+  );
+
+  // Try common content types first, then find first available content type with schema
+  let schema =
+    content['application/json']?.schema ??
+    content['multipart/form-data']?.schema;
+
+  // If not found in common types, find first content type with schema
+  if (!schema) {
+    for (const [contentType, mediaType] of contentEntries) {
+      if (mediaType?.schema) {
+        debugLog(
+          `parseBodyAndResponse(${name}): Found schema in content type: ${contentType}`,
+        );
+        schema = mediaType.schema;
+        break;
+      }
+    }
+  } else {
+    debugLog(
+      `parseBodyAndResponse(${name}): Found schema in common content type`,
+    );
+  }
+
+  if (!schema) {
+    debugLog(`parseBodyAndResponse(${name}): No schema found in content`);
+    return {
+      input: { functions: [], consts: [] },
+      isArray: false,
+    };
+  }
+
+  debugLog(
+    `parseBodyAndResponse(${name}): Schema found, isReference`,
+    isReference(schema),
+  );
+
+  // First check if the original schema is a reference to an array type
+  // Before deference, check if schema is a ref to array or if it's already an array
+  const originalSchemaResolved = isReference(schema)
+    ? resolveRef<SchemaObject>(schema, context).schema
+    : (schema as SchemaObject);
+
+  debugLog(`parseBodyAndResponse(${name}): originalSchemaResolved`, {
+    type: originalSchemaResolved.type,
+    hasItems: !!originalSchemaResolved.items,
+    itemsIsRef: originalSchemaResolved.items
+      ? isReference(originalSchemaResolved.items)
+      : false,
+  });
+
   const resolvedJsonSchema = deference(schema, context);
 
+  debugLog(`parseBodyAndResponse(${name}): resolvedJsonSchema`, {
+    type: resolvedJsonSchema.type,
+    hasItems: !!resolvedJsonSchema.items,
+    itemsIsRef: resolvedJsonSchema.items
+      ? isReference(resolvedJsonSchema.items)
+      : false,
+  });
+
   // keep the same behaviour for array
-  if (resolvedJsonSchema.items) {
+  // Check both items and type: 'array' to handle array schemas
+  // Check both the original resolved schema and the fully deferenced schema
+  const isArray =
+    resolvedJsonSchema.type === 'array' ||
+    resolvedJsonSchema.items !== undefined ||
+    originalSchemaResolved.type === 'array' ||
+    originalSchemaResolved.items !== undefined;
+
+  debugLog(`parseBodyAndResponse(${name}): isArray`, isArray);
+
+  if (isArray) {
+    // Use items from resolved schema if available, otherwise from original
+    let itemsSchema = resolvedJsonSchema.items ?? originalSchemaResolved.items;
+
+    debugLog(`parseBodyAndResponse(${name}): itemsSchema found`, {
+      found: !!itemsSchema,
+      isRef: itemsSchema ? isReference(itemsSchema) : false,
+    });
+
+    if (!itemsSchema) {
+      debugLog(
+        `parseBodyAndResponse(${name}): No itemsSchema, using resolvedJsonSchema as-is`,
+      );
+      // Fallback: if schema itself is array type but items not resolved, use the schema as-is
+      return {
+        input: generateZodValidationSchemaDefinition(
+          parseType === 'body'
+            ? removeReadOnlyProperties(resolvedJsonSchema as SchemaObject)
+            : (resolvedJsonSchema as SchemaObject),
+          context,
+          name,
+          strict,
+          isZodV4,
+          {
+            required: true,
+          },
+        ),
+        isArray: true,
+        rules: {},
+      };
+    }
+
+    // If items is a reference, deference it to get the full schema
+    // deference handles both references and already-resolved schemas
+    debugLog(`parseBodyAndResponse(${name}): Deferencing itemsSchema...`);
+    const resolvedItemsSchema = deference(
+      itemsSchema as SchemaObject | ReferenceObject,
+      context,
+    );
+
+    debugLog(`parseBodyAndResponse(${name}): resolvedItemsSchema`, {
+      type: resolvedItemsSchema.type,
+      hasProperties: !!resolvedItemsSchema.properties,
+      hasOneOf: !!resolvedItemsSchema.oneOf,
+      keys: Object.keys(resolvedItemsSchema),
+    });
+
     const min =
       resolvedJsonSchema.minimum ??
       resolvedJsonSchema.minLength ??
@@ -963,19 +1194,27 @@ const parseBodyAndResponse = ({
       resolvedJsonSchema.maxLength ??
       resolvedJsonSchema.maxItems;
 
+    const input = generateZodValidationSchemaDefinition(
+      parseType === 'body'
+        ? removeReadOnlyProperties(resolvedItemsSchema as SchemaObject)
+        : (resolvedItemsSchema as SchemaObject),
+      context,
+      name,
+      strict,
+      isZodV4,
+      {
+        required: true,
+      },
+    );
+
+    debugLog(`parseBodyAndResponse(${name}): Generated input for array items`, {
+      functionsCount: input.functions.length,
+      constsCount: input.consts.length,
+      firstFunction: input.functions[0]?.[0],
+    });
+
     return {
-      input: generateZodValidationSchemaDefinition(
-        parseType === 'body'
-          ? removeReadOnlyProperties(resolvedJsonSchema.items as SchemaObject)
-          : (resolvedJsonSchema.items as SchemaObject),
-        context,
-        name,
-        strict,
-        isZodV4,
-        {
-          required: true,
-        },
-      ),
+      input,
       isArray: true,
       rules: {
         ...(min === undefined ? {} : { min }),
@@ -984,19 +1223,27 @@ const parseBodyAndResponse = ({
     };
   }
 
+  const input = generateZodValidationSchemaDefinition(
+    parseType === 'body'
+      ? removeReadOnlyProperties(resolvedJsonSchema)
+      : resolvedJsonSchema,
+    context,
+    name,
+    strict,
+    isZodV4,
+    {
+      required: true,
+    },
+  );
+
+  debugLog(`parseBodyAndResponse(${name}): Generated input for non-array`, {
+    functionsCount: input.functions.length,
+    constsCount: input.consts.length,
+    firstFunction: input.functions[0]?.[0],
+  });
+
   return {
-    input: generateZodValidationSchemaDefinition(
-      parseType === 'body'
-        ? removeReadOnlyProperties(resolvedJsonSchema)
-        : resolvedJsonSchema,
-      context,
-      name,
-      strict,
-      isZodV4,
-      {
-        required: true,
-      },
-    ),
+    input,
     isArray: false,
   };
 };
@@ -1209,22 +1456,46 @@ const generateZodRoute = async (
     parseType: 'body',
   });
 
-  const responses = (
-    context.output.override.zod.generateEachHttpStatus
-      ? Object.entries(spec[verb]?.responses ?? {})
-      : [['', spec[verb]?.responses[200]]]
-  ) as [string, ResponseObject | ReferenceObject][];
-  const parsedResponses = responses.map(([code, response]) =>
-    parseBodyAndResponse({
+  // Get responses - when generateEachHttpStatus is false, find first 200 response or first available response
+  const responsesEntries = Object.entries(spec[verb]?.responses ?? {});
+  const responses = context.output.override.zod.generateEachHttpStatus
+    ? responsesEntries
+    : (() => {
+        // Try to find 200 response first
+        const response200 =
+          responsesEntries.find(
+            ([code]) => code === '200' || code === 200,
+          )?.[1] ??
+          // Fallback to first response if 200 not found
+          responsesEntries[0]?.[1];
+        return response200 ? [['', response200]] : [];
+      })();
+
+  debugLog(
+    `${operationName}: Found ${responses.length} response(s) to process`,
+  );
+
+  const parsedResponses = responses.map(([code, response]) => {
+    const responseName = camel(`${operationName}-${code || ''}-response`);
+    debugLog(`${operationName}: Parsing response ${responseName}`);
+    const parsed = parseBodyAndResponse({
       data: response,
       context,
-      name: camel(`${operationName}-${code}-response`),
+      name: responseName,
       strict: override.zod.strict.response,
       generate: override.zod.generate.response,
       isZodV4,
       parseType: 'response',
-    }),
-  );
+    });
+    debugLog(`${operationName}: Parsed response ${responseName}`, {
+      hasInput:
+        parsed.input.functions.length > 0 || parsed.input.consts.length > 0,
+      isArray: parsed.isArray,
+      functionsCount: parsed.input.functions.length,
+      constsCount: parsed.input.consts.length,
+    });
+    return parsed;
+  });
 
   const preprocessParams = override.zod.preprocess?.param
     ? await generateMutator({
@@ -1312,16 +1583,27 @@ const generateZodRoute = async (
       })
     : undefined;
 
-  const inputResponses = parsedResponses.map((parsedResponse) =>
-    parseZodValidationSchemaDefinition(
+  const inputResponses = parsedResponses.map((parsedResponse, idx) => {
+    debugLog(`${operationName}: Parsing inputResponse[${idx}]`, {
+      functionsCount: parsedResponse.input.functions.length,
+      constsCount: parsedResponse.input.consts.length,
+      isArray: parsedResponse.isArray,
+    });
+    const inputResponse = parseZodValidationSchemaDefinition(
       parsedResponse.input,
       context,
       override.zod.coerce.response,
       override.zod.strict.response,
       isZodV4,
       preprocessResponse,
-    ),
-  );
+    );
+    debugLog(`${operationName}: Generated inputResponse[${idx}]`, {
+      hasZod: !!inputResponse.zod,
+      zodLength: inputResponse.zod?.length || 0,
+      hasConsts: !!inputResponse.consts,
+    });
+    return inputResponse;
+  });
 
   if (
     !inputParams.zod &&
@@ -1367,7 +1649,27 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)${
         const operationResponse = camel(
           `${operationName}-${responses[index][0]}-response`,
         );
-        return [
+
+        // Debug: log if response schema is empty for listPets
+        if (
+          !inputResponse.zod &&
+          (operationName === 'listPets' ||
+            operationResponse.includes('listPets'))
+        ) {
+          debugLog(
+            `generateZodRoute(${operationName}): WARNING - Empty zod for ${operationResponse}`,
+            {
+              hasConsts: !!inputResponse.consts,
+              parsedInput: {
+                functionsCount: parsedResponses[index].input.functions.length,
+                constsCount: parsedResponses[index].input.consts.length,
+                isArray: parsedResponses[index].isArray,
+              },
+            },
+          );
+        }
+
+        const result = [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
           ...(inputResponse.zod
             ? [
@@ -1388,6 +1690,19 @@ export const ${operationResponse} = zod.array(${operationResponse}Item)${
               ]
             : []),
         ];
+        if (
+          operationName === 'listPets' ||
+          operationResponse.includes('listPets')
+        ) {
+          debugLog(
+            `${operationName}: Generated ${result.length} lines for ${operationResponse}`,
+            {
+              hasZod: !!inputResponse.zod,
+              resultLength: result.length,
+            },
+          );
+        }
+        return result;
       }),
     ].join('\n\n'),
     mutators: preprocessResponse ? [preprocessResponse] : [],

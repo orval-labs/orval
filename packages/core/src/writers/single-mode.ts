@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
 
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import type { WriteModeProps } from '../types';
+import { OutputClient, type WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -75,7 +75,7 @@ export const writeSingleMode = async ({
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
       hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag.mutator,
+        (tag) => !!tag?.mutator,
       ),
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
@@ -130,8 +130,24 @@ export const writeSingleMode = async ({
       data += '\n';
     }
 
-    if (!output.schemas && needSchema) {
+    // Don't generate TypeScript schemas for react-query-zod as we use zod types instead
+    if (!output.schemas && needSchema && output.client !== OutputClient.REACT_QUERY_ZOD) {
       data += generateModelsInline(builder.schemas);
+    }
+
+    // Add zod imports if needed (for react-query-zod client)
+    // Collect unique zod import statements from all operations
+    const zodImportStatements = new Set<string>();
+    Object.values(builder.operations).forEach((op: any) => {
+      if (op.__zodImportStatement) {
+        zodImportStatements.add(op.__zodImportStatement);
+      }
+    });
+    
+    // For react-query-zod, we use exported types from zod files, not z.infer
+    // So we don't need to import 'z' from 'zod'
+    if (zodImportStatements.size > 0) {
+      data += Array.from(zodImportStatements).join('');
     }
 
     data += `${implementation.trim()}\n`;

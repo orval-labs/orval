@@ -25,7 +25,7 @@ import fetchClient from '@orval/fetch';
 import hono from '@orval/hono';
 import mcp from '@orval/mcp';
 import * as mock from '@orval/mock';
-import query from '@orval/query';
+import query, { builderReactQueryZod } from '@orval/query';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
 
@@ -40,6 +40,7 @@ const getGeneratorClient = (
     'axios-functions': axios({ type: 'axios-functions' })(),
     angular: angular()(),
     'react-query': query({ output, type: 'react-query' })(),
+    'react-query-zod': builderReactQueryZod({ output, type: 'react-query' })(),
     'svelte-query': query({ output, type: 'svelte-query' })(),
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),
@@ -267,7 +268,14 @@ export const generateOperations = (
         paramsSerializer: verbOption.paramsSerializer,
         operationName: verbOption.operationName,
         fetchReviver: verbOption.fetchReviver,
-      };
+      } as any;
+
+      // Store zod import statement separately
+      if ((verbOption as any).__zodImportStatement) {
+        (acc[verbOption.operationId] as any).__zodImportStatement = (
+          verbOption as any
+        ).__zodImportStatement;
+      }
 
       return acc;
     },

@@ -147,6 +147,9 @@ export const writeTagsMode = async ({
           data += '\n';
         }
 
+        // Note: zod imports are already added in generateTargetForTags,
+        // so we don't need to add them here again
+
         data += implementation;
 
         if (output.mock) {
