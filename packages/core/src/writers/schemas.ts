@@ -135,63 +135,45 @@ export const writeSchemas = async ({
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
-    // Throw an exception, which list all duplicates, before attempting
-    // multiple writes on the same file.
-    const schemaNamesSet = new Set<string>();
+    // Throw an exception if duplicates are detected (using convention names)
+    const ext = fileExtension.endsWith('.ts')
+      ? fileExtension.slice(0, -3)
+      : fileExtension;
+    const conventionNamesSet = new Set<string>();
     const duplicateNamesMap = new Map<string, number>();
     for (const schema of schemas) {
-      if (schemaNamesSet.has(schema.name)) {
+      const conventionNameValue = conventionName(schema.name, namingConvention);
+      if (conventionNamesSet.has(conventionNameValue)) {
         duplicateNamesMap.set(
-          schema.name,
-          (duplicateNamesMap.get(schema.name) || 1) + 1,
+          conventionNameValue,
+          (duplicateNamesMap.get(conventionNameValue) ?? 0) + 1,
         );
       } else {
-        schemaNamesSet.add(schema.name);
+        conventionNamesSet.add(conventionNameValue);
       }
     }
     if (duplicateNamesMap.size > 0) {
       throw new Error(
-        'Duplicate schema names detected:\n' +
+        'Duplicate schema names detected (after naming convention):\n' +
           [...duplicateNamesMap]
-            .map((duplicate) => `  ${duplicate[1]}x ${duplicate[0]}`)
+            .map((duplicate) => `  ${duplicate[1] + 1}x ${duplicate[0]}`)
             .join('\n'),
       );
     }
 
     try {
-      const data = await fs.readFile(schemaFilePath);
+      // Create unique export statements from schemas (deduplicate by schema name)
+      const uniqueSchemaNames = [...conventionNamesSet];
 
-      const stringData = data.toString();
-
-      const ext = fileExtension.endsWith('.ts')
-        ? fileExtension.slice(0, -3)
-        : fileExtension;
-
-      const importStatements = schemas
-        .filter((schema) => {
-          const name = conventionName(schema.name, namingConvention);
-
-          return (
-            !stringData.includes(`export * from './${name}${ext}'`) &&
-            !stringData.includes(`export * from "./${name}${ext}"`)
-          );
-        })
-        .map(
-          (schema) =>
-            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
-        );
-
-      const currentFileExports = (stringData
-        .match(/export \* from(.*)('|")/g)
-        ?.map((s) => s + ';') ?? []) as string[];
-
-      const exports = [...currentFileExports, ...importStatements]
-        .sort()
+      // Create export statements
+      const exports = uniqueSchemaNames
+        .map((schemaName) => `export * from './${schemaName}${ext}';`)
+        .toSorted((a, b) => a.localeCompare(b))
         .join('\n');
 
       const fileContent = `${header}\n${exports}`;
 
-      await fs.writeFile(schemaFilePath, fileContent);
+      await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
     } catch (error) {
       throw new Error(
         `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,

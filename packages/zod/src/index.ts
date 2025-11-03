@@ -239,11 +239,13 @@ export const generateZodValidationSchemaDefinition = (
       | ReferenceObject
     )[];
 
-    const baseSchemas = schemas.map((schema) =>
+    // Use index-based naming to ensure uniqueness when processing multiple schemas
+    // This prevents duplicate schema names when nullable refs are used
+    const baseSchemas = schemas.map((schema, index) =>
       generateZodValidationSchemaDefinition(
         schema as SchemaObject,
         context,
-        camel(name),
+        `${camel(name)}${pascal(getNumberWord(index + 1))}`,
         strict,
         isZodV4,
         {
@@ -261,11 +263,13 @@ export const generateZodValidationSchemaDefinition = (
         type: schema.type,
       } as SchemaObject;
 
+      // Use index-based naming to ensure uniqueness
+      const additionalIndex = baseSchemas.length + 1;
       const additionalPropertiesDefinition =
         generateZodValidationSchemaDefinition(
           additionalPropertiesSchema,
           context,
-          camel(name),
+          `${camel(name)}${pascal(getNumberWord(additionalIndex))}`,
           strict,
           isZodV4,
           {

@@ -14,6 +14,7 @@ import type {
   InputFiltersOption,
 } from '../types';
 import {
+  conventionName,
   isReference,
   isString,
   jsDoc,
@@ -146,7 +147,22 @@ export const generateSchemasDefinition = (
     [],
   );
 
-  return models;
+  // Deduplicate schemas by normalized name to prevent duplicate exports
+  // This handles cases where different source schemas produce the same normalized name
+  const seenNames = new Set<string>();
+  const deduplicatedModels: GeneratorSchema[] = [];
+  for (const schema of models) {
+    const normalizedName = conventionName(
+      schema.name,
+      context.output.namingConvention,
+    );
+    if (!seenNames.has(normalizedName)) {
+      seenNames.add(normalizedName);
+      deduplicatedModels.push(schema);
+    }
+  }
+
+  return deduplicatedModels;
 };
 
 function shouldCreateInterface(schema: SchemaObject) {
