@@ -999,13 +999,13 @@ const generateQueryImplementation = ({
   const isZodModelStyle = output.modelStyle === ModelStyle.ZOD;
 
   // For zod model style, use type names from response definition directly
-  // Otherwise, use ReturnType as before
+  // Otherwise, use typeof for the function (we'll wrap it in Awaited<ReturnType<>> later)
   const dataType =
     isZodModelStyle && response.definition.success
       ? response.definition.success
       : mutator?.isHook
         ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-        : `Awaited<ReturnType<typeof ${operationName}>>`;
+        : `typeof ${operationName}`;
 
   const definedInitialDataQueryArguments = generateQueryArguments({
     operationName,
@@ -1641,12 +1641,13 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     );
 
     // For zod model style, use zod types instead of ReturnType
+    // For others, use typeof for the function (we'll wrap it in Awaited<ReturnType<>> later)
     const dataType =
       output.modelStyle === ModelStyle.ZOD && response.definition.success
         ? response.definition.success
         : mutator?.isHook
           ? `ReturnType<typeof use${pascal(operationName)}Hook>`
-          : `Awaited<ReturnType<typeof ${operationName}>>`;
+          : `typeof ${operationName}`;
 
     const mutationOptionFnReturnType = getQueryOptionsDefinition({
       operationName,
@@ -1954,6 +1955,100 @@ const getVerbOptionGroupByTag = (
   return grouped;
 };
 
+/**
+ * Transform zod schema exports to support TypeScript 5.5 Isolated Declarations
+ * Converts:
+ *   export const schemaName = zod.object({...})
+ * To:
+ *   const schemaNameInternal = zod.object({...})
+ *   export type TypeName = zod.infer<typeof schemaNameInternal>;
+ *   export const schemaName: z.ZodType<TypeName> = schemaNameInternal;
+ */
+const transformZodForIsolatedDeclarations = (
+  zodContent: string,
+  schemaToTypeMap: Map<string, string>,
+): { transformedContent: string; typeExports: string[] } => {
+  const typeExports: string[] = [];
+  const exportedTypeNames = new Set<string>();
+  
+  // Regex to match export const statements for schemas
+  const schemaNameRegex = /export const (\w+)\s*=\s*zod\./g;
+  
+  // Find all schema names first (skip constants)
+  const schemaNames = new Map<string, string>(); // schemaName -> internalName
+  let match;
+  while ((match = schemaNameRegex.exec(zodContent)) !== null) {
+    const schemaName = match[1];
+    if (
+      !schemaName.includes('RegExp') &&
+      !schemaName.includes('Min') &&
+      !schemaName.includes('Max') &&
+      !schemaName.includes('MultipleOf') &&
+      !schemaName.includes('Exclusive') &&
+      !schemaName.includes('Default')
+    ) {
+      const internalName = `${schemaName}Internal`;
+      schemaNames.set(schemaName, internalName);
+    }
+  }
+  
+  let transformedContent = zodContent;
+  
+  // Transform each schema export - process Item schemas first (they are referenced by array schemas)
+  const itemSchemas: string[] = [];
+  const regularSchemas: string[] = [];
+  
+  schemaNames.forEach((internalName, schemaName) => {
+    if (schemaName.includes('Item')) {
+      itemSchemas.push(schemaName);
+    } else {
+      regularSchemas.push(schemaName);
+    }
+  });
+  
+  // Process Item schemas first, then regular schemas
+  const allSchemas = [...itemSchemas, ...regularSchemas];
+  
+  allSchemas.forEach((schemaName) => {
+    const internalName = schemaNames.get(schemaName)!;
+    const typeName = schemaToTypeMap.get(schemaName) || pascal(schemaName);
+    
+    // Replace export const with const for internal
+    // Use word boundary to avoid partial matches
+    const exportPattern = new RegExp(`export const ${schemaName}\\s*=\\s*`, 'g');
+    transformedContent = transformedContent.replace(
+      exportPattern,
+      `const ${internalName} = `,
+    );
+    
+    // Also replace references to schemaName in other schemas (e.g., in arrays)
+    // Only replace when schemaName appears as a variable reference after zod.array( or similar contexts
+    // Use a more specific pattern that matches schemaName in zod function calls
+    // Pattern: schemaName that appears after zod.array(, zod.union(, etc., or as a standalone variable
+    // But not in export/const declarations (already handled above)
+    const referencePattern = new RegExp(`(zod\\.(array|union|intersection|tuple)\\s*\\(\\s*)${schemaName}\\b`, 'g');
+    transformedContent = transformedContent.replace(
+      referencePattern,
+      `$1${internalName}`,
+    );
+    
+    // Export type and schema
+    if (!exportedTypeNames.has(typeName)) {
+      typeExports.push(
+        `export type ${typeName} = zod.infer<typeof ${internalName}>;`,
+      );
+      exportedTypeNames.add(typeName);
+    }
+    
+    // Export the schema with type annotation
+    typeExports.push(
+      `export const ${schemaName}: z.ZodType<${typeName}> = ${internalName};`,
+    );
+  });
+  
+  return { transformedContent, typeExports };
+};
+
 // Function to generate zod files for zod model style
 const generateZodFiles: ClientExtraFilesBuilder = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
@@ -2006,26 +2101,25 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
           mutators: allMutators,
         });
 
-        let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n\n`;
+        let content = `${header}import { z, z as zod } from 'zod';\n${mutatorsImports}\n\n`;
 
         const zodPath =
           output.mode === 'tags'
             ? upath.join(dirname, `${kebab(tag)}.zod${extension}`)
             : upath.join(dirname, tag, tag + '.zod' + extension);
 
-        const zodContent = zods.map((zod) => zod.implementation).join('\n\n');
-
-        // Add type exports using original OpenAPI schema type names
-        const zodExports: string[] = [];
+        const zodContentRaw = zods.map((zod) => zod.implementation).join('\n\n');
+        
+        // Create a map of schema names to original type names from all operations in this tag
+        // Must be created BEFORE transformZodForIsolatedDeclarations
+        const schemaToTypeMap = new Map<string, string>();
         const zodRegex = /export const (\w+)\s*=\s*zod\./g;
         let match;
         
-        // Create a map of schema names to original type names from all operations in this tag
-        const schemaToTypeMap = new Map<string, string>();
         verbs.forEach((verbOption) => {
           // Use type names directly from verbOption definitions
           if (verbOption.response.definition.success) {
-            const responseSchemaMatch = zodContent.match(
+            const responseSchemaMatch = zodContentRaw.match(
               new RegExp(`export const (${verbOption.operationName}\\w*Response)\\s*=\\s*zod\\.`),
             );
             if (responseSchemaMatch) {
@@ -2034,7 +2128,7 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
           }
           
           if (verbOption.body.definition) {
-            const bodySchemaMatch = zodContent.match(
+            const bodySchemaMatch = zodContentRaw.match(
               new RegExp(`export const (${verbOption.operationName}\\w*Body)\\s*=\\s*zod\\.`),
             );
             if (bodySchemaMatch) {
@@ -2042,8 +2136,16 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
             }
           }
         });
+        
+        // Transform zod content for Isolated Declarations support
+        const { transformedContent: zodContent, typeExports: isolatedTypeExports } = transformZodForIsolatedDeclarations(
+          zodContentRaw,
+          schemaToTypeMap,
+        );
 
-        while ((match = zodRegex.exec(zodContent)) !== null) {
+        // Add type exports using original OpenAPI schema type names
+        const zodExports: string[] = [];
+        while ((match = zodRegex.exec(zodContentRaw)) !== null) {
           const schemaName = match[1];
           if (
             !schemaName.includes('Item') &&
@@ -2053,17 +2155,17 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
             !schemaName.includes('MultipleOf') &&
             !schemaName.includes('Exclusive')
           ) {
-            // Use original type name if mapped, otherwise use pascal case
-            const typeName = schemaToTypeMap.get(schemaName) || pascal(schemaName);
-            zodExports.push(
-              `export type ${typeName} = zod.infer<typeof ${schemaName}>;`,
-            );
+            // Note: Main type exports are already handled by transformZodForIsolatedDeclarations
+            // Here we don't need to add anything as isolatedTypeExports already contains the exports
           }
         }
 
         content += zodContent;
-        if (zodExports.length > 0) {
-          content += '\n\n' + zodExports.join('\n');
+        
+        // Combine isolated declarations exports with additional exports (aliases)
+        const allExports = [...isolatedTypeExports, ...zodExports];
+        if (allExports.length > 0) {
+          content += '\n\n' + allExports.join('\n');
         }
 
         return {
@@ -2103,17 +2205,13 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
         mutators: zod.mutators ?? [],
       });
 
-      let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n\n`;
-      content += zod.implementation;
-
-      // Add type exports using original OpenAPI schema type names
-      const zodExports: string[] = [];
+      let content = `${header}import { z, z as zod } from 'zod';\n${mutatorsImports}\n\n`;
       
       // Map schema names to original type names - use type names directly from verbOption
+      // Must be created BEFORE transformZodForIsolatedDeclarations
+      const schemaToTypeMap = new Map<string, string>();
       const zodRegex = /export const (\w+)\s*=\s*zod\./g;
       let match;
-      const schemaToTypeMap = new Map<string, string>();
-      const exportedTypeNames = new Set<string>();
       
       // Match response schemas (e.g., addLeadPurposeResponse -> AddLeadPurposeCommandResponse)
       if (verbOption.response.definition.success) {
@@ -2148,7 +2246,14 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
 
       // Match queryParams schemas
       if (verbOption.queryParams) {
-        const queryParamsTypeName = verbOption.queryParams.schema.name;
+        // Ensure queryParams type name ends with QueryParams (not just Params)
+        // verbOption.queryParams.schema.name might be "SearchPaymentMethodsListParams"
+        // but we need "SearchPaymentMethodsListQueryParams"
+        let queryParamsTypeName = verbOption.queryParams.schema.name;
+        // If it ends with Params but not QueryParams, replace it
+        if (queryParamsTypeName.endsWith('Params') && !queryParamsTypeName.endsWith('QueryParams')) {
+          queryParamsTypeName = queryParamsTypeName.replace(/Params$/, 'QueryParams');
+        }
         const queryParamsSchemaMatch = zod.implementation.match(
           new RegExp(`export const (${verbOption.operationName}QueryParams)\\s*=\\s*zod\\.`),
         );
@@ -2156,9 +2261,22 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
           schemaToTypeMap.set(queryParamsSchemaMatch[1], queryParamsTypeName);
         }
       }
+      
+      // Transform zod implementation for Isolated Declarations support
+      const { transformedContent, typeExports: isolatedTypeExports } = transformZodForIsolatedDeclarations(
+        zod.implementation,
+        schemaToTypeMap,
+      );
+      content += transformedContent;
 
+      // Add type exports using original OpenAPI schema type names
+      const zodExports: string[] = [];
+      const exportedTypeNames = new Set<string>();
+      
       // Match params schemas (e.g., updateLeadPurposeParams -> UpdateLeadPurposeParams)
       // Also match queryParams schemas (e.g., searchDealUrgenciesListQueryParams)
+      // Note: After transformation, schemas become internal, but we still need to find them
+      // We use zod.implementation (original) to match schemas, not transformedContent
       while ((match = zodRegex.exec(zod.implementation)) !== null) {
         const schemaName = match[1];
         if (
@@ -2179,15 +2297,9 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
           const isQueryParamsSchema = schemaName.includes('QueryParams');
           const isParamsSchema = schemaName.includes('Params') && !schemaName.includes('Query');
           
+          // Note: Main type exports are already handled by transformZodForIsolatedDeclarations
+          // Here we only add aliases and additional exports
           if (isQueryParamsSchema) {
-            // Export QueryParams type (PascalCase from schema)
-            if (!exportedTypeNames.has(typeName)) {
-              zodExports.push(
-                `export type ${typeName} = zod.infer<typeof ${schemaName}>;`,
-              );
-              exportedTypeNames.add(typeName);
-            }
-            
             // Also export Params type (alias) for compatibility with endpoints.ts
             // Use queryParams.schema.name and replace "QueryParams" with "Params"
             const paramsTypeName = verbOption.queryParams?.schema.name?.replace(/QueryParams$/, 'Params') || 
@@ -2199,29 +2311,15 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
               );
               exportedTypeNames.add(paramsTypeName);
             }
-          } else if (isParamsSchema && verbOption.params.length > 0) {
-            // Export Params type (path parameters)
-            const paramsTypeName = pascal(verbOption.operationName) + 'Params';
-            if (!exportedTypeNames.has(paramsTypeName)) {
-              zodExports.push(
-                `export type ${paramsTypeName} = zod.infer<typeof ${schemaName}>;`,
-              );
-              exportedTypeNames.add(paramsTypeName);
-            }
-          } else {
-            // Regular export (response, body, etc.)
-            if (!exportedTypeNames.has(typeName)) {
-              zodExports.push(
-                `export type ${typeName} = zod.infer<typeof ${schemaName}>;`,
-              );
-              exportedTypeNames.add(typeName);
-            }
           }
+          // Note: Other types (response, body, params) are already exported by transformZodForIsolatedDeclarations
         }
       }
 
-      if (zodExports.length > 0) {
-        content += '\n\n' + zodExports.join('\n');
+      // Combine isolated declarations exports with additional exports (aliases)
+      const allExports = [...isolatedTypeExports, ...zodExports];
+      if (allExports.length > 0) {
+        content += '\n\n' + allExports.join('\n');
       }
 
       const zodPath = upath.join(
@@ -2267,26 +2365,22 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
     mutators: allMutators,
   });
 
-  let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n\n`;
+  let content = `${header}import { z, z as zod } from 'zod';\n${mutatorsImports}\n\n`;
 
   const zodPath = upath.join(dirname, `${filename}.zod${extension}`);
 
-  const zodContent = zods.map((zod) => zod.implementation).join('\n\n');
-
-  // Add type exports using original OpenAPI schema type names
-  // For single mode, we need to collect all zod schemas and match them with original type names
-  const zodExports: string[] = [];
-  const zodRegex = /export const (\w+)\s*=\s*zod\./g;
-  let match;
+  const zodContentRaw = zods.map((zod) => zod.implementation).join('\n\n');
   
   // Create a map of schema names to original type names from all operations
+  // Must be created BEFORE transformZodForIsolatedDeclarations
   const schemaToTypeMap = new Map<string, string>();
-  const exportedTypeNames = new Set<string>();
+  const zodRegex = /export const (\w+)\s*=\s*zod\./g;
+  let match;
   (Object.values(verbOptions) as GeneratorVerbOptions[]).forEach((verbOption) => {
     // Use type names directly from verbOption definitions
     if (verbOption.response.definition.success) {
-      // Find matching response schema in zodContent
-      const responseSchemaMatch = zodContent.match(
+      // Find matching response schema in zodContentRaw (before transformation)
+      const responseSchemaMatch = zodContentRaw.match(
         new RegExp(`export const (${verbOption.operationName}\\w*Response)\\s*=\\s*zod\\.`),
       );
       if (responseSchemaMatch) {
@@ -2295,8 +2389,8 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
     }
     
     if (verbOption.body.definition) {
-      // Find matching body schema in zodContent
-      const bodySchemaMatch = zodContent.match(
+      // Find matching body schema in zodContentRaw (before transformation)
+      const bodySchemaMatch = zodContentRaw.match(
         new RegExp(`export const (${verbOption.operationName}\\w*Body)\\s*=\\s*zod\\.`),
       );
       if (bodySchemaMatch) {
@@ -2305,9 +2399,9 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
     }
     
     if (verbOption.params.length > 0) {
-      // Find matching params schema in zodContent
+      // Find matching params schema in zodContentRaw (before transformation)
       const paramsTypeName = pascal(verbOption.operationName) + 'Params';
-      const paramsSchemaMatch = zodContent.match(
+      const paramsSchemaMatch = zodContentRaw.match(
         new RegExp(`export const (${verbOption.operationName}Params)\\s*=\\s*zod\\.`),
       );
       if (paramsSchemaMatch) {
@@ -2316,9 +2410,14 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
     }
     
     if (verbOption.queryParams) {
-      // Find matching queryParams schema in zodContent
-      const queryParamsTypeName = verbOption.queryParams.schema.name;
-      const queryParamsSchemaMatch = zodContent.match(
+      // Find matching queryParams schema in zodContentRaw (before transformation)
+      // Ensure queryParams type name ends with QueryParams (not just Params)
+      let queryParamsTypeName = verbOption.queryParams.schema.name;
+      // If it ends with Params but not QueryParams, replace it
+      if (queryParamsTypeName.endsWith('Params') && !queryParamsTypeName.endsWith('QueryParams')) {
+        queryParamsTypeName = queryParamsTypeName.replace(/Params$/, 'QueryParams');
+      }
+      const queryParamsSchemaMatch = zodContentRaw.match(
         new RegExp(`export const (${verbOption.operationName}QueryParams)\\s*=\\s*zod\\.`),
       );
       if (queryParamsSchemaMatch) {
@@ -2326,8 +2425,19 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
       }
     }
   });
+  
+  // Transform zod content for Isolated Declarations support
+  const { transformedContent: zodContent, typeExports: isolatedTypeExports } = transformZodForIsolatedDeclarations(
+    zodContentRaw,
+    schemaToTypeMap,
+  );
 
-  while ((match = zodRegex.exec(zodContent)) !== null) {
+  // Add type exports using original OpenAPI schema type names
+  // For single mode, we need to collect all zod schemas and match them with original type names
+  const zodExports: string[] = [];
+  const exportedTypeNames = new Set<string>();
+
+  while ((match = zodRegex.exec(zodContentRaw)) !== null) {
     const schemaName = match[1];
     if (
       !schemaName.includes('Item') &&
@@ -2356,14 +2466,8 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
         }
       });
       
-      if (!exportedTypeNames.has(typeName)) {
-        zodExports.push(
-          `export type ${typeName} = zod.infer<typeof ${schemaName}>;`,
-        );
-        exportedTypeNames.add(typeName);
-      }
-      
-      // For queryParams, also export Params alias for compatibility with endpoints.ts
+      // Note: Main type exports are already handled by transformZodForIsolatedDeclarations
+      // Here we only add aliases
       if (isQueryParamsSchema && originalTypeName && !exportedTypeNames.has(originalTypeName)) {
         zodExports.push(
           `export type ${originalTypeName} = ${typeName};`,
@@ -2374,8 +2478,11 @@ const generateZodFiles: ClientExtraFilesBuilder = async (
   }
 
   content += zodContent;
-  if (zodExports.length > 0) {
-    content += '\n\n' + zodExports.join('\n');
+  
+  // Combine isolated declarations exports with additional exports (aliases)
+  const allExports = [...isolatedTypeExports, ...zodExports];
+  if (allExports.length > 0) {
+    content += '\n\n' + allExports.join('\n');
   }
 
   return [
