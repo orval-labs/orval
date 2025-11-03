@@ -709,32 +709,95 @@ export const parseZodValidationSchemaDefinition = (
     const [fn, args = ''] = property;
 
     if (fn === 'allOf') {
-      return args.reduce(
-        (
-          acc: string,
-          {
-            functions,
-            consts: argConsts,
-          }: { functions: [string, any][]; consts: string[] },
-        ) => {
-          const value = functions.map((prop) => parseProperty(prop)).join('');
-          const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+      const allOfArgs = args as ZodValidationSchemaDefinition[];
+      // Check if all parts are objects and we need to merge them for strict mode
+      const allAreObjects =
+        strict &&
+        allOfArgs.length > 0 &&
+        allOfArgs.every((partSchema) => {
+          if (partSchema.functions.length === 0) return false;
+          const firstFn = partSchema.functions[0][0];
+          // Check if first function is object or strictObject
+          // For Zod v3 with strict, it will be object followed by strict
+          return firstFn === 'object' || firstFn === 'strictObject';
+        });
 
-          if (argConsts.length > 0) {
-            consts += argConsts.join('\n');
+      if (allAreObjects) {
+        // Merge all object properties into a single object
+        const mergedProperties: Record<string, ZodValidationSchemaDefinition> =
+          {};
+        let allConsts = '';
+
+        for (const partSchema of allOfArgs) {
+          if (partSchema.consts.length > 0) {
+            allConsts += partSchema.consts.join('\n');
           }
 
-          if (!acc) {
-            acc += valueWithZod;
-            return acc;
-          }
+          // Find the object function (might be first or second after strict)
+          const objectFunctionIndex = partSchema.functions.findIndex(
+            ([fnName]) => fnName === 'object' || fnName === 'strictObject',
+          );
 
+          if (objectFunctionIndex !== -1) {
+            const objectArgs = partSchema.functions[objectFunctionIndex][1];
+            if (
+              objectArgs &&
+              typeof objectArgs === 'object' &&
+              !Array.isArray(objectArgs)
+            ) {
+              // Merge properties (later schemas override earlier ones)
+              Object.assign(
+                mergedProperties,
+                objectArgs as Record<string, ZodValidationSchemaDefinition>,
+              );
+            }
+          }
+        }
+
+        if (allConsts.length > 0) {
+          consts += allConsts;
+        }
+
+        // Generate merged object
+        const objectType = getObjectFunctionName(isZodV4, strict);
+        const mergedObjectString = `zod.${objectType}({
+${Object.entries(mergedProperties)
+  .map(([key, schema]) => {
+    const value = schema.functions.map((prop) => parseProperty(prop)).join('');
+    consts += schema.consts.join('\n');
+    return `  "${key}": ${value.startsWith('.') ? 'zod' : ''}${value}`;
+  })
+  .join(',\n')}
+})`;
+
+        // Apply strict only once for Zod v3 (v4 uses strictObject)
+        if (strict && !isZodV4) {
+          return `${mergedObjectString}.strict()`;
+        }
+
+        return mergedObjectString;
+      }
+
+      // Fallback to original .and() approach for non-object or non-strict cases
+      let acc = '';
+      for (const partSchema of allOfArgs) {
+        const value = partSchema.functions
+          .map((prop) => parseProperty(prop))
+          .join('');
+        const valueWithZod = `${value.startsWith('.') ? 'zod' : ''}${value}`;
+
+        if (partSchema.consts.length > 0) {
+          consts += partSchema.consts.join('\n');
+        }
+
+        if (acc.length === 0) {
+          acc = valueWithZod;
+        } else {
           acc += `.and(${valueWithZod})`;
+        }
+      }
 
-          return acc;
-        },
-        '',
-      );
+      return acc;
     }
     if (fn === 'oneOf' || fn === 'anyOf') {
       // Can't use zod.union() with a single item

@@ -618,6 +618,150 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('describe');
   });
 
+  it('handles allOf with strict mode for objects (issue #2520)', () => {
+    // Schema with allOf containing two objects
+    const schemaWithAllOf: SchemaObject30 = {
+      type: 'object',
+      allOf: [
+        {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+            },
+          },
+        },
+        {
+          type: 'object',
+          required: ['swimming'],
+          properties: {
+            swimming: {
+              type: 'boolean',
+            },
+          },
+        },
+      ],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      true, // strict mode enabled
+      false, // Zod v3
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse with strict mode
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      true, // strict mode
+      false, // Zod v3
+    );
+
+    // The result should be a single merged object with strict(), not .and()
+    expect(parsed.zod).not.toContain('.and(');
+    expect(parsed.zod).toContain('name');
+    expect(parsed.zod).toContain('swimming');
+    expect(parsed.zod).toContain('.strict()');
+    // Should be a single object, not multiple objects
+    expect(parsed.zod).toMatch(
+      /zod\.object\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)\.strict\(\)/,
+    );
+  });
+
+  it('handles allOf with strict mode for objects in Zod v4', () => {
+    // Schema with allOf containing two objects
+    const schemaWithAllOf: SchemaObject30 = {
+      type: 'object',
+      allOf: [
+        {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+            },
+          },
+        },
+        {
+          type: 'object',
+          required: ['swimming'],
+          properties: {
+            swimming: {
+              type: 'boolean',
+            },
+          },
+        },
+      ],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      true, // strict mode enabled
+      true, // Zod v4
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse with strict mode
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      true, // strict mode
+      true, // Zod v4
+    );
+
+    // The result should be a single merged strictObject, not .and()
+    expect(parsed.zod).not.toContain('.and(');
+    expect(parsed.zod).toContain('name');
+    expect(parsed.zod).toContain('swimming');
+    expect(parsed.zod).toContain('strictObject');
+    // Should be a single object, not multiple objects
+    expect(parsed.zod).toMatch(
+      /zod\.strictObject\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)/,
+    );
+  });
+
   it('handles allOf with array type', () => {
     const arrayWithItems: SchemaObject = {
       type: 'array',
@@ -1341,7 +1485,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         string,
         ZodValidationSchemaDefinition
       >;
-      const someEnumProperty = objectProperties['some_enum'];
+      const someEnumProperty = objectProperties.some_enum;
 
       expect(someEnumProperty.consts).toEqual(
         expect.arrayContaining([expect.stringContaining('as const')]),
