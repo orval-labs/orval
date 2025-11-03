@@ -470,4 +470,24 @@ export default defineConfig({
     },
     output: '../generated/default/external-ref/endpoints.ts',
   },
+  'nullable-any-of-refs': {
+    input: {
+      target: '../specifications/nullable-any-of-refs.yaml',
+    },
+    output: {
+      target: '../generated/default/nullable-any-of-refs/endpoints.ts',
+      schemas: '../generated/default/nullable-any-of-refs/model',
+      mock: true,
+    },
+  },
+  'nullable-oneof-enums': {
+    input: {
+      target: '../specifications/nullable-oneof-enums.yaml',
+    },
+    output: {
+      target: '../generated/default/nullable-oneof-enums/endpoints.ts',
+      schemas: '../generated/default/nullable-oneof-enums/model',
+      mock: true,
+    },
+  },
 });
