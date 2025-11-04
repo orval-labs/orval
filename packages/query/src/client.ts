@@ -329,7 +329,10 @@ export const generateAxiosRequestFunction = (
 
       // QueryParams imports
       if (queryParams) {
-        const queryParamsTypeName = queryParams.schema.name.replace(/Params$/, 'QueryParams');
+        const queryParamsTypeName = queryParams.schema.name.replace(
+          /Params$/,
+          'QueryParams',
+        );
         verbOptions.queryParams.schema.imports.forEach((imp) => {
           if (imp.name === queryParams.schema.name) {
             imp.name = queryParamsTypeName;
@@ -337,7 +340,11 @@ export const generateAxiosRequestFunction = (
           imp.specKey = zodImportPath;
         });
         // Ensure QueryParams type is imported
-        if (!verbOptions.queryParams.schema.imports.some((imp) => imp.name === queryParamsTypeName)) {
+        if (
+          !verbOptions.queryParams.schema.imports.some(
+            (imp) => imp.name === queryParamsTypeName,
+          )
+        ) {
           verbOptions.queryParams.schema.imports.push({
             name: queryParamsTypeName,
             specKey: zodImportPath,
@@ -414,7 +421,10 @@ export const generateAxiosRequestFunction = (
   // For zod model style, use QueryParams type from zod file
   // The zod file exports QueryParams type (e.g., LookupDealUrgencyListQueryParams)
   if (isZodModelStyle && queryParams) {
-    const queryParamsTypeName = queryParams.schema.name.replace(/Params$/, 'QueryParams');
+    const queryParamsTypeName = queryParams.schema.name.replace(
+      /Params$/,
+      'QueryParams',
+    );
     props = props.map((prop: GetterProp) => {
       if (prop.type === GetterPropType.QUERY_PARAM) {
         const optionalMarker = prop.definition.includes('?') ? '?' : '';

@@ -2,8 +2,9 @@ import {
   type GeneratorOperation,
   type GeneratorTarget,
   type GeneratorTargetFull,
-  type NormalizedOutputOptions,
   ModelStyle,
+  type NormalizedOutputOptions,
+  OutputClient,
   type WriteSpecsBuilder,
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';

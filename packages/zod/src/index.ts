@@ -960,13 +960,11 @@ const deference = (
       );
     } else if (key === 'oneOf' || key === 'anyOf' || key === 'allOf') {
       // Handle oneOf/anyOf/allOf - deference each schema in the array
-      if (Array.isArray(value)) {
-        acc[key] = value.map((item: SchemaObject | ReferenceObject) =>
-          deference(item, resolvedContext),
-        );
-      } else {
-        acc[key] = value;
-      }
+      acc[key] = Array.isArray(value)
+        ? value.map((item: SchemaObject | ReferenceObject) =>
+            deference(item, resolvedContext),
+          )
+        : value;
     } else if (key === 'default' || key === 'example' || key === 'examples') {
       acc[key] = value;
     } else {
@@ -980,8 +978,8 @@ const deference = (
 // Debug logging helper
 const debugLog = (message: string, data?: any) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
+    const fs = require('node:fs');
+    const path = require('node:path');
     // Use absolute path to ensure we can write
     const logFile = path.resolve(process.cwd(), 'tests', 'orval-debug.log');
     const logLine = `[${new Date().toISOString()}] ${message}${data ? ' ' + JSON.stringify(data, null, 2) : ''}\n`;
@@ -995,7 +993,7 @@ const debugLog = (message: string, data?: any) => {
     ) {
       console.error(logLine.trim());
     }
-  } catch (e) {
+  } catch {
     // Ignore errors in debug logging - output to console as fallback
     console.error(
       `[DEBUG] ${message}${data ? ' ' + JSON.stringify(data) : ''}`,
@@ -1074,7 +1072,11 @@ const parseBodyAndResponse = ({
     content['multipart/form-data']?.schema;
 
   // If not found in common types, find first content type with schema
-  if (!schema) {
+  if (schema) {
+    debugLog(
+      `parseBodyAndResponse(${name}): Found schema in common content type`,
+    );
+  } else {
     for (const [contentType, mediaType] of contentEntries) {
       if (mediaType?.schema) {
         debugLog(
@@ -1084,10 +1086,6 @@ const parseBodyAndResponse = ({
         break;
       }
     }
-  } else {
-    debugLog(
-      `parseBodyAndResponse(${name}): Found schema in common content type`,
-    );
   }
 
   if (!schema) {
@@ -1140,7 +1138,8 @@ const parseBodyAndResponse = ({
 
   if (isArray) {
     // Use items from resolved schema if available, otherwise from original
-    let itemsSchema = resolvedJsonSchema.items ?? originalSchemaResolved.items;
+    const itemsSchema =
+      resolvedJsonSchema.items ?? originalSchemaResolved.items;
 
     debugLog(`parseBodyAndResponse(${name}): itemsSchema found`, {
       found: !!itemsSchema,
@@ -1613,98 +1612,160 @@ const generateZodRoute = async (
     !inputResponses.some((inputResponse) => inputResponse.zod)
   ) {
     return {
-      implemtation: '',
+      implementation: '',
       mutators: [],
     };
   }
 
-  return {
-    implementation: [
-      ...(inputParams.consts ? [inputParams.consts] : []),
-      ...(inputParams.zod
-        ? [`export const ${operationName}Params = ${inputParams.zod}`]
-        : []),
-      ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
-      ...(inputQueryParams.zod
-        ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
-        : []),
-      ...(inputHeaders.consts ? [inputHeaders.consts] : []),
-      ...(inputHeaders.zod
-        ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
-        : []),
-      ...(inputBody.consts ? [inputBody.consts] : []),
-      ...(inputBody.zod
-        ? [
-            parsedBody.isArray
-              ? `export const ${operationName}BodyItem = ${inputBody.zod}
-export const ${operationName}Body = zod.array(${operationName}BodyItem)${
-                  parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
-                }${
-                  parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
-                }`
-              : `export const ${operationName}Body = ${inputBody.zod}`,
-          ]
-        : []),
-      ...inputResponses.flatMap((inputResponse, index) => {
-        const operationResponse = camel(
-          `${operationName}-${responses[index][0]}-response`,
+  // Map to track schema references for Isolated Declarations
+  // Schema name -> internal name mapping
+  const schemaReferences = new Map<string, string>();
+
+  /**
+   * Generates a schema in Isolated Declarations format for TypeScript 5.5.
+   * Always generates:
+   * - `const SchemaNameInternal = zod.object(...)`
+   * - `export type TypeName = zod.infer<typeof SchemaNameInternal>`
+   * - `export const SchemaName: z.ZodType<TypeName> = SchemaNameInternal`
+   *
+   * @param schemaName - The name of the schema (e.g., "operationNameParams")
+   * @param zodExpression - The zod expression (e.g., "zod.object({...})")
+   * @param typeName - The TypeScript type name (e.g., "OperationNameParams")
+   * @returns Schema code with internal constant, type export, and schema export
+   */
+  const generateSchemaCode = (
+    schemaName: string,
+    zodExpression: string,
+    typeName?: string,
+  ): string => {
+    const internalName = `${schemaName}Internal`;
+    schemaReferences.set(schemaName, internalName);
+
+    // Replace references to other schemas in zodExpression (e.g., in arrays)
+    // Use internal names that were already registered
+    let processedExpression = zodExpression;
+    for (const [refSchemaName, refInternalName] of schemaReferences.entries()) {
+      if (refSchemaName !== schemaName) {
+        // Replace schemaName references in zod.array(, zod.union(, etc.
+        const referencePattern = new RegExp(
+          `(zod\\.(array|union|intersection|tuple)\\s*\\(\\s*)${refSchemaName}\\b`,
+          'g',
         );
+        processedExpression = processedExpression.replace(
+          referencePattern,
+          `$1${refInternalName}`,
+        );
+      }
+    }
 
-        // Debug: log if response schema is empty for listPets
-        if (
-          !inputResponse.zod &&
-          (operationName === 'listPets' ||
-            operationResponse.includes('listPets'))
-        ) {
-          debugLog(
-            `generateZodRoute(${operationName}): WARNING - Empty zod for ${operationResponse}`,
-            {
-              hasConsts: !!inputResponse.consts,
-              parsedInput: {
-                functionsCount: parsedResponses[index].input.functions.length,
-                constsCount: parsedResponses[index].input.consts.length,
-                isArray: parsedResponses[index].isArray,
-              },
-            },
-          );
-        }
+    const schemaCode = `const ${internalName} = ${processedExpression}`;
+    const finalTypeName = typeName ?? pascal(schemaName);
+    const typeExport = `export type ${finalTypeName} = zod.infer<typeof ${internalName}>;\nexport const ${schemaName}: z.ZodType<${finalTypeName}> = ${internalName};`;
 
-        const result = [
-          ...(inputResponse.consts ? [inputResponse.consts] : []),
-          ...(inputResponse.zod
-            ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${
-                      inputResponse.zod
-                    }
-export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                      parsedResponses[index].rules?.min
-                        ? `.min(${parsedResponses[index].rules.min})`
-                        : ''
-                    }${
-                      parsedResponses[index].rules?.max
-                        ? `.max(${parsedResponses[index].rules.max})`
-                        : ''
-                    }`
-                  : `export const ${operationResponse} = ${inputResponse.zod}`,
-              ]
-            : []),
-        ];
-        if (
-          operationName === 'listPets' ||
-          operationResponse.includes('listPets')
-        ) {
-          debugLog(
-            `${operationName}: Generated ${result.length} lines for ${operationResponse}`,
-            {
-              hasZod: !!inputResponse.zod,
-              resultLength: result.length,
-            },
-          );
-        }
-        return result;
-      }),
-    ].join('\n\n'),
+    return `${schemaCode}\n${typeExport}`;
+  };
+
+  // Build implementation array
+  const implementationParts: string[] = [];
+
+  // Params schemas
+  if (inputParams.consts) {
+    implementationParts.push(inputParams.consts);
+  }
+  if (inputParams.zod) {
+    implementationParts.push(
+      generateSchemaCode(`${operationName}Params`, inputParams.zod),
+    );
+  }
+
+  // QueryParams schemas
+  if (inputQueryParams.consts) {
+    implementationParts.push(inputQueryParams.consts);
+  }
+  if (inputQueryParams.zod) {
+    implementationParts.push(
+      generateSchemaCode(`${operationName}QueryParams`, inputQueryParams.zod),
+    );
+  }
+
+  // Headers schemas
+  if (inputHeaders.consts) {
+    implementationParts.push(inputHeaders.consts);
+  }
+  if (inputHeaders.zod) {
+    implementationParts.push(
+      generateSchemaCode(`${operationName}Header`, inputHeaders.zod),
+    );
+  }
+
+  // Body schemas
+  if (inputBody.consts) {
+    implementationParts.push(inputBody.consts);
+  }
+  if (inputBody.zod) {
+    if (parsedBody.isArray) {
+      // Generate Item schema first (for Isolated Declarations compatibility)
+      const bodyItemSchema = generateSchemaCode(
+        `${operationName}BodyItem`,
+        inputBody.zod,
+      );
+      implementationParts.push(bodyItemSchema);
+
+      // Generate array schema - use internal name for Item schema
+      const itemInternalName = `${operationName}BodyItemInternal`;
+      const arrayExpression = `zod.array(${itemInternalName})${
+        parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
+      }${parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''}`;
+      implementationParts.push(
+        generateSchemaCode(`${operationName}Body`, arrayExpression),
+      );
+    } else {
+      implementationParts.push(
+        generateSchemaCode(`${operationName}Body`, inputBody.zod),
+      );
+    }
+  }
+
+  // Response schemas
+  const responseParts = inputResponses.flatMap((inputResponse, index) => {
+    const operationResponse = camel(
+      `${operationName}-${responses[index][0]}-response`,
+    );
+
+    const result: string[] = [];
+
+    if (inputResponse.consts) {
+      result.push(inputResponse.consts);
+    }
+
+    if (inputResponse.zod) {
+      if (parsedResponses[index].isArray) {
+        // Generate Item schema first (for Isolated Declarations compatibility)
+        const itemSchema = generateSchemaCode(
+          `${operationResponse}Item`,
+          inputResponse.zod,
+        );
+        result.push(itemSchema);
+
+        // Generate array schema - use internal name for Item schema
+        const itemInternalName = `${operationResponse}ItemInternal`;
+        const responseRules = parsedResponses[index].rules;
+        const arrayExpression = `zod.array(${itemInternalName})${
+          responseRules?.min ? `.min(${responseRules.min})` : ''
+        }${responseRules?.max ? `.max(${responseRules.max})` : ''}`;
+        result.push(generateSchemaCode(operationResponse, arrayExpression));
+      } else {
+        result.push(generateSchemaCode(operationResponse, inputResponse.zod));
+      }
+    }
+
+    return result;
+  });
+
+  implementationParts.push(...responseParts);
+
+  return {
+    implementation: implementationParts.join('\n\n'),
     mutators: preprocessResponse ? [preprocessResponse] : [],
   };
 };

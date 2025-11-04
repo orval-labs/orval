@@ -166,10 +166,12 @@ const generateDependency = ({
 
   // generate namespace import string
   // For zod imports (relative paths), use the dependency path directly
-  const isZodImportForNamespace = dependency.startsWith('./') || dependency.startsWith('../');
-  const namespaceImportPath = isZodImportForNamespace && dependency === key
-    ? dependency // Use the relative path directly for Zod files
-    : dependency;
+  const isZodImportForNamespace =
+    dependency.startsWith('./') || dependency.startsWith('../');
+  const namespaceImportPath =
+    isZodImportForNamespace && dependency === key
+      ? dependency // Use the relative path directly for Zod files
+      : dependency;
   const namespaceImportString = namespaceImportDep
     ? `import * as ${namespaceImportDep.name} from '${namespaceImportPath}';`
     : '';
@@ -184,10 +186,12 @@ const generateDependency = ({
 
   // Check if dependency is a relative path (starts with './' or '../') - this indicates a Zod file import
   // In this case, use the dependency directly as the import path (dependency should equal key for zod imports)
-  const isZodImport = dependency.startsWith('./') || dependency.startsWith('../');
-  const importPath = isZodImport && dependency === key
-    ? dependency // Use the relative path directly for Zod files
-    : `${dependency}${key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''}`;
+  const isZodImport =
+    dependency.startsWith('./') || dependency.startsWith('../');
+  const importPath =
+    isZodImport && dependency === key
+      ? dependency // Use the relative path directly for Zod files
+      : `${dependency}${key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''}`;
 
   importString += `import ${onlyTypes ? 'type ' : ''}${
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
@@ -213,12 +217,15 @@ export const addDependency = ({
 }) => {
   // For Zod imports (relative paths), always include all exports
   // since they are needed for types and schemas even if not explicitly used in runtime code
-  const isZodImport = dependency.startsWith('./') || dependency.startsWith('../');
-  
+  const isZodImport =
+    dependency.startsWith('./') || dependency.startsWith('../');
+
   const toAdds = isZodImport
     ? exports // Include all exports for Zod imports
     : exports.filter((e) => {
-        const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
+        const searchWords = [e.alias, e.name]
+          .filter((p) => p?.length)
+          .join('|');
         const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
 
         return implementation.match(pattern);
@@ -233,9 +240,13 @@ export const addDependency = ({
   >((acc, dep) => {
     // If specKey is a relative path (starts with './' or '../'), use it directly
     // Otherwise, use the standard logic with hasSchemaDir
-    const key = (dep.specKey && (dep.specKey.startsWith('./') || dep.specKey.startsWith('../')))
-      ? dep.specKey
-      : (hasSchemaDir && dep.specKey ? dep.specKey : 'default');
+    const key =
+      dep.specKey &&
+      (dep.specKey.startsWith('./') || dep.specKey.startsWith('../'))
+        ? dep.specKey
+        : hasSchemaDir && dep.specKey
+          ? dep.specKey
+          : 'default';
 
     if (
       dep.values &&
@@ -357,12 +368,16 @@ export const generateVerbImports = ({
       : [],
   ),
   // Use queryParams.schema.imports if available (for zod model style), otherwise use schema.name
-  ...(queryParams ? (queryParams.schema.imports && queryParams.schema.imports.length > 0
-    ? queryParams.schema.imports
-    : [{ name: queryParams.schema.name }]) : []),
+  ...(queryParams
+    ? queryParams.schema.imports && queryParams.schema.imports.length > 0
+      ? queryParams.schema.imports
+      : [{ name: queryParams.schema.name }]
+    : []),
   // Use headers.schema.imports if available, otherwise use schema.name
-  ...(headers ? (headers.schema.imports && headers.schema.imports.length > 0
-    ? headers.schema.imports
-    : [{ name: headers.schema.name }]) : []),
+  ...(headers
+    ? headers.schema.imports && headers.schema.imports.length > 0
+      ? headers.schema.imports
+      : [{ name: headers.schema.name }]
+    : []),
   ...params.flatMap<GeneratorImport>(({ imports }) => imports),
 ];

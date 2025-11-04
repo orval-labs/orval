@@ -269,7 +269,6 @@ export const generateOperations = (
         fetchReviver: verbOption.fetchReviver,
       } as any;
 
-
       return acc;
     },
     {} as GeneratorOperations,

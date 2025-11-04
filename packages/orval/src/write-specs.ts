@@ -100,7 +100,10 @@ export const writeSpecs = async (
       output,
       specsName,
       header,
-      needSchema: !output.schemas && output.client !== 'zod' && output.modelStyle !== 'zod',
+      needSchema:
+        !output.schemas &&
+        output.client !== 'zod' &&
+        output.modelStyle !== 'zod',
     });
   }
 
