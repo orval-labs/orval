@@ -47,7 +47,7 @@ const findPetsByStatusResponseItemInternal: zod.ZodSchema = zod.object({
     )
     .optional(),
   status: zod
-    .enum(['available', 'pending', 'sold'])
+    .enum(['available', 'pending', 'sold'] as const satisfies readonly string[])
     .optional()
     .describe('pet status in the store'),
 });
@@ -100,7 +100,7 @@ const findPetsByTagsResponseItemInternal: zod.ZodSchema = zod.object({
     )
     .optional(),
   status: zod
-    .enum(['available', 'pending', 'sold'])
+    .enum(['available', 'pending', 'sold'] as const satisfies readonly string[])
     .optional()
     .describe('pet status in the store'),
 });
@@ -151,7 +151,7 @@ const getPetByIdResponseInternal: zod.ZodSchema = zod.object({
     )
     .optional(),
   status: zod
-    .enum(['available', 'pending', 'sold'])
+    .enum(['available', 'pending', 'sold'] as const satisfies readonly string[])
     .optional()
     .describe('pet status in the store'),
 });
@@ -209,7 +209,7 @@ const updatePetWithFormResponseInternal: zod.ZodSchema = zod.object({
     )
     .optional(),
   status: zod
-    .enum(['available', 'pending', 'sold'])
+    .enum(['available', 'pending', 'sold'] as const satisfies readonly string[])
     .optional()
     .describe('pet status in the store'),
 });
@@ -266,7 +266,11 @@ const getOrderByIdResponseInternal: zod.ZodSchema = zod.object({
   quantity: zod.number().optional(),
   shipDate: zod.string().datetime({}).optional(),
   status: zod
-    .enum(['placed', 'approved', 'delivered'])
+    .enum([
+      'placed',
+      'approved',
+      'delivered',
+    ] as const satisfies readonly string[])
     .optional()
     .describe('Order Status'),
   complete: zod.boolean().optional(),

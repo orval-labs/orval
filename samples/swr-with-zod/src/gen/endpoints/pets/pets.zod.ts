@@ -25,16 +25,16 @@ const listPetsResponseItemInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
+      breed: zod.enum(['Labradoodle'] as const satisfies readonly string[]),
     }),
     zod.object({
       length: zod.number(),
-      breed: zod.enum(['Dachshund']),
+      breed: zod.enum(['Dachshund'] as const satisfies readonly string[]),
     }),
   ]),
   zod.object({
     petsRequested: zod.number().optional(),
-    type: zod.enum(['cat']),
+    type: zod.enum(['cat'] as const satisfies readonly string[]),
   }),
 ]);
 
@@ -80,16 +80,16 @@ const createPetsResponseInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
+      breed: zod.enum(['Labradoodle'] as const satisfies readonly string[]),
     }),
     zod.object({
       length: zod.number(),
-      breed: zod.enum(['Dachshund']),
+      breed: zod.enum(['Dachshund'] as const satisfies readonly string[]),
     }),
   ]),
   zod.object({
     petsRequested: zod.number().optional(),
-    type: zod.enum(['cat']),
+    type: zod.enum(['cat'] as const satisfies readonly string[]),
   }),
 ]);
 
@@ -105,16 +105,16 @@ const updatePetsBodyInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
+      breed: zod.enum(['Labradoodle'] as const satisfies readonly string[]),
     }),
     zod.object({
       length: zod.number(),
-      breed: zod.enum(['Dachshund']),
+      breed: zod.enum(['Dachshund'] as const satisfies readonly string[]),
     }),
   ]),
   zod.object({
     petsRequested: zod.number().optional(),
-    type: zod.enum(['cat']),
+    type: zod.enum(['cat'] as const satisfies readonly string[]),
   }),
 ]);
 
@@ -127,16 +127,16 @@ const updatePetsResponseInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
+      breed: zod.enum(['Labradoodle'] as const satisfies readonly string[]),
     }),
     zod.object({
       length: zod.number(),
-      breed: zod.enum(['Dachshund']),
+      breed: zod.enum(['Dachshund'] as const satisfies readonly string[]),
     }),
   ]),
   zod.object({
     petsRequested: zod.number().optional(),
-    type: zod.enum(['cat']),
+    type: zod.enum(['cat'] as const satisfies readonly string[]),
   }),
 ]);
 
@@ -162,16 +162,16 @@ const showPetByIdResponseInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
+      breed: zod.enum(['Labradoodle'] as const satisfies readonly string[]),
     }),
     zod.object({
       length: zod.number(),
-      breed: zod.enum(['Dachshund']),
+      breed: zod.enum(['Dachshund'] as const satisfies readonly string[]),
     }),
   ]),
   zod.object({
     petsRequested: zod.number().optional(),
-    type: zod.enum(['cat']),
+    type: zod.enum(['cat'] as const satisfies readonly string[]),
   }),
 ]);
 
