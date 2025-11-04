@@ -60,7 +60,7 @@ const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-export const getZodDependencies = () => ZOD_DEPENDENCIES;
+export const getZodDependencies = (): GeneratorDependency[] => ZOD_DEPENDENCIES;
 
 /**
  * values that may appear in "type". Equals SchemaObjectType
@@ -288,6 +288,7 @@ export const generateZodValidationSchemaDefinition = (
   if (schema.default !== undefined) {
     defaultVarName = `${name}Default${constsCounterValue}`;
     let defaultValue: string;
+    let defaultType = 'unknown';
 
     const isDateType =
       schema.type === 'string' &&
@@ -298,6 +299,7 @@ export const generateZodValidationSchemaDefinition = (
       // openapi3-ts's SchemaObject defines default as 'any'
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       defaultValue = `new Date("${escape(schema.default)}")`;
+      defaultType = 'Date';
     } else if (isObject(schema.default)) {
       const entries = Object.entries(schema.default)
         .map(([key, value]) => {
@@ -322,6 +324,7 @@ export const generateZodValidationSchemaDefinition = (
         })
         .join(', ');
       defaultValue = `{ ${entries} }`;
+      defaultType = 'Record<string, unknown>';
     } else {
       // openapi3-ts's SchemaObject defines default as 'any'
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -330,6 +333,19 @@ export const generateZodValidationSchemaDefinition = (
         rawStringified === undefined
           ? 'null'
           : rawStringified.replaceAll("'", '"');
+
+      // Determine type based on schema.type or defaultValue
+      if (rawStringified === 'null') {
+        defaultType = 'null';
+      } else if (Array.isArray(schema.default)) {
+        defaultType = 'unknown[]';
+      } else if (typeof schema.default === 'string') {
+        defaultType = 'string';
+      } else if (typeof schema.default === 'number') {
+        defaultType = 'number';
+      } else if (typeof schema.default === 'boolean') {
+        defaultType = 'boolean';
+      }
 
       // If the schema is an array with enum items, add 'as const' for proper TypeScript typing
       const isArrayWithEnumItems =
@@ -340,9 +356,12 @@ export const generateZodValidationSchemaDefinition = (
 
       if (isArrayWithEnumItems) {
         defaultValue = `${defaultValue} as const`;
+        defaultType = 'readonly unknown[]';
       }
     }
-    consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+    consts.push(
+      `export const ${defaultVarName}: ${defaultType} = ${defaultValue};`,
+    );
   }
 
   // Handle multi-type schemas (OpenAPI 3.1+ type arrays)
@@ -603,7 +622,7 @@ export const generateZodValidationSchemaDefinition = (
 
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
       consts.push(
-        `export const ${name}ExclusiveMin${constsCounterValue} = ${exclusiveMin};`,
+        `export const ${name}ExclusiveMin${constsCounterValue}: number = ${exclusiveMin};`,
       );
       // Generate .gt() for exclusive minimum (> instead of >=)
       functions.push(['gt', `${name}ExclusiveMin${constsCounterValue}`]);
@@ -611,7 +630,9 @@ export const generateZodValidationSchemaDefinition = (
       if (min === 1) {
         functions.push(['min', `${min}`]);
       } else {
-        consts.push(`export const ${name}Min${constsCounterValue} = ${min};`);
+        consts.push(
+          `export const ${name}Min${constsCounterValue}: number = ${min};`,
+        );
         functions.push(['min', `${name}Min${constsCounterValue}`]);
       }
     }
@@ -619,18 +640,20 @@ export const generateZodValidationSchemaDefinition = (
     // Handle maximum constraints: exclusiveMaximum (<.lt()) takes priority over maximum (.max())
     if (shouldUseExclusiveMax && exclusiveMax !== undefined) {
       consts.push(
-        `export const ${name}ExclusiveMax${constsCounterValue} = ${exclusiveMax};`,
+        `export const ${name}ExclusiveMax${constsCounterValue}: number = ${exclusiveMax};`,
       );
       // Generate .lt() for exclusive maximum (< instead of <=)
       functions.push(['lt', `${name}ExclusiveMax${constsCounterValue}`]);
     } else if (max !== undefined) {
-      consts.push(`export const ${name}Max${constsCounterValue} = ${max};`);
+      consts.push(
+        `export const ${name}Max${constsCounterValue}: number = ${max};`,
+      );
       functions.push(['max', `${name}Max${constsCounterValue}`]);
     }
 
     if (multipleOf !== undefined) {
       consts.push(
-        `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
+        `export const ${name}MultipleOf${constsCounterValue}: number = ${multipleOf.toString()};`,
       );
       functions.push(['multipleOf', `${name}MultipleOf${constsCounterValue}`]);
     }
@@ -654,7 +677,7 @@ export const generateZodValidationSchemaDefinition = (
     )}')`;
 
     consts.push(
-      `export const ${name}RegExp${constsCounterValue} = ${regexp};\n`,
+      `export const ${name}RegExp${constsCounterValue}: RegExp = ${regexp};\n`,
     );
     functions.push(['regex', `${name}RegExp${constsCounterValue}`]);
   }
@@ -698,6 +721,7 @@ export const generateZodValidationSchemaDefinition = (
 /**
  * Generates an isolated declaration-compatible export for a zod schema.
  * Creates an internal schema, exports the inferred type, and exports the schema with explicit type.
+ * This pattern is required for TypeScript isolatedDeclarations support.
  *
  * @param schemaName - The name of the schema to export
  * @param zodSchemaExpression - The zod schema expression (e.g., "zod.object({...})")
@@ -710,7 +734,7 @@ const generateIsolatedDeclarationExport = (
   const internalName = `${schemaName}Internal`;
   const typeName = pascal(schemaName);
   return [
-    `const ${internalName} = ${zodSchemaExpression}`,
+    `const ${internalName}: zod.ZodSchema = ${zodSchemaExpression};`,
     `export type ${typeName} = zod.infer<typeof ${internalName}>;`,
     `export const ${schemaName}: zod.ZodType<${typeName}> = ${internalName};`,
   ];
@@ -1451,8 +1475,9 @@ const generateZodRoute = async (
     const arrayConstraints = constraints.join('');
     const arrayInternalName = `${arraySchemaName}Internal`;
     const arrayTypeName = pascal(arraySchemaName);
+    const itemInternalName = `${itemSchemaName}Internal`;
     const arrayExports = [
-      `const ${arrayInternalName} = zod.array(${itemSchemaName})${arrayConstraints}`,
+      `const ${arrayInternalName}: zod.ZodSchema = zod.array(${itemInternalName})${arrayConstraints};`,
       `export type ${arrayTypeName} = zod.infer<typeof ${arrayInternalName}>;`,
       `export const ${arraySchemaName}: zod.ZodType<${arrayTypeName}> = ${arrayInternalName};`,
     ];
@@ -1530,6 +1555,7 @@ const zodClientBuilder: ClientGeneratorsBuilder = {
   dependencies: getZodDependencies,
 };
 
-export const builder = () => () => zodClientBuilder;
+export const builder = (): (() => ClientGeneratorsBuilder) => () =>
+  zodClientBuilder;
 
 export default builder;

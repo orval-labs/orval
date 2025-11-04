@@ -848,7 +848,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testStringDescriptionDefault'],
           ['describe', "'This is a test description'"],
         ],
-        consts: ['export const testStringDescriptionDefault = "hello";'],
+        consts: [
+          'export const testStringDescriptionDefault: string = "hello";',
+        ],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -893,7 +895,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['string', undefined],
           ['default', 'testStringDefaultDefault'],
         ],
-        consts: [`export const testStringDefaultDefault = "hello";`],
+        consts: [`export const testStringDefaultDefault: string = "hello";`],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -905,7 +907,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(parsed.zod).toBe('zod.string().default(testStringDefaultDefault)');
       expect(parsed.consts).toBe(
-        'export const testStringDefaultDefault = "hello";',
+        'export const testStringDefaultDefault: string = "hello";',
       );
     });
 
@@ -929,7 +931,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['number', undefined],
           ['default', 'testNumberDefaultDefault'],
         ],
-        consts: ['export const testNumberDefaultDefault = 42;'],
+        consts: ['export const testNumberDefaultDefault: number = 42;'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -940,7 +942,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe('zod.number().default(testNumberDefaultDefault)');
-      expect(parsed.consts).toBe('export const testNumberDefaultDefault = 42;');
+      expect(parsed.consts).toBe(
+        'export const testNumberDefaultDefault: number = 42;',
+      );
     });
 
     it('generates a default value for a boolean schema with default: true', () => {
@@ -963,7 +967,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['boolean', undefined],
           ['default', 'testBooleanDefaultTrueDefault'],
         ],
-        consts: ['export const testBooleanDefaultTrueDefault = true;'],
+        consts: ['export const testBooleanDefaultTrueDefault: boolean = true;'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -977,7 +981,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.boolean().default(testBooleanDefaultTrueDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testBooleanDefaultTrueDefault = true;',
+        'export const testBooleanDefaultTrueDefault: boolean = true;',
       );
     });
 
@@ -1001,7 +1005,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['boolean', undefined],
           ['default', 'testBooleanDefaultFalseDefault'],
         ],
-        consts: ['export const testBooleanDefaultFalseDefault = false;'],
+        consts: [
+          'export const testBooleanDefaultFalseDefault: boolean = false;',
+        ],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1015,7 +1021,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.boolean().default(testBooleanDefaultFalseDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testBooleanDefaultFalseDefault = false;',
+        'export const testBooleanDefaultFalseDefault: boolean = false;',
       );
     });
 
@@ -1074,7 +1080,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['array', { functions: [['string', undefined]], consts: [] }],
           ['default', 'testArrayDefaultDefault'],
         ],
-        consts: ['export const testArrayDefaultDefault = ["a", "b"];'],
+        consts: [
+          'export const testArrayDefaultDefault: unknown[] = ["a", "b"];',
+        ],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1088,7 +1096,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.array(zod.string()).default(testArrayDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testArrayDefaultDefault = ["a", "b"];',
+        'export const testArrayDefaultDefault: unknown[] = ["a", "b"];',
       );
     });
 
@@ -1141,7 +1149,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 };',
+          'export const testObjectDefaultDefault: Record<string, unknown> = { name: "Fluffy", age: 3 };',
         ],
       });
 
@@ -1156,7 +1164,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault = { name: "Fluffy", age: 3 };',
+        'export const testObjectDefaultDefault: Record<string, unknown> = { name: "Fluffy", age: 3 };',
       );
     });
 
@@ -1190,7 +1198,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testDateDefaultDefault'],
         ],
         consts: [
-          'export const testDateDefaultDefault = new Date("2025-01-01");',
+          'export const testDateDefaultDefault: Date = new Date("2025-01-01");',
         ],
       });
 
@@ -1203,7 +1211,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(parsed.zod).toBe('zod.date().default(testDateDefaultDefault)');
       expect(parsed.consts).toBe(
-        'export const testDateDefaultDefault = new Date("2025-01-01");',
+        'export const testDateDefaultDefault: Date = new Date("2025-01-01");',
       );
     });
   });
@@ -1436,7 +1444,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ],
           ['default', 'testEnumArrayDefaultDefault'],
         ],
-        consts: ['export const testEnumArrayDefaultDefault = ["A"] as const;'],
+        consts: [
+          'export const testEnumArrayDefaultDefault: readonly unknown[] = ["A"] as const;',
+        ],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1450,7 +1460,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         "zod.array(zod.enum(['A', 'B', 'C'])).default(testEnumArrayDefaultDefault)",
       );
       expect(parsed.consts).toBe(
-        'export const testEnumArrayDefaultDefault = ["A"] as const;',
+        'export const testEnumArrayDefaultDefault: readonly unknown[] = ["A"] as const;',
       );
     });
 
@@ -1553,7 +1563,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['min', 'testNumberMinMin'],
           ['optional', undefined],
         ],
-        consts: ['export const testNumberMinMin = 10;', '\n'],
+        consts: ['export const testNumberMinMin: number = 10;', '\n'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1586,7 +1596,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['max', 'testNumberMaxMax'],
           ['optional', undefined],
         ],
-        consts: ['export const testNumberMaxMax = 99;', '\n'],
+        consts: ['export const testNumberMaxMax: number = 99;', '\n'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1622,7 +1632,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['optional', undefined],
           ],
           consts: [
-            'export const testNumberExclusiveMinExclusiveMin = 5;',
+            'export const testNumberExclusiveMinExclusiveMin: number = 5;',
             '\n',
           ],
         });
@@ -1661,7 +1671,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['optional', undefined],
           ],
           consts: [
-            'export const testNumberExclusiveMaxExclusiveMax = 100;',
+            'export const testNumberExclusiveMaxExclusiveMax: number = 100;',
             '\n',
           ],
         });
@@ -1705,8 +1715,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['optional', undefined],
           ],
           consts: [
-            'export const testNumberExclusiveMinMaxExclusiveMin = 5;',
-            'export const testNumberExclusiveMinMaxExclusiveMax = 100;',
+            'export const testNumberExclusiveMinMaxExclusiveMin: number = 5;',
+            'export const testNumberExclusiveMinMaxExclusiveMax: number = 100;',
             '\n',
           ],
         });
@@ -1748,7 +1758,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['optional', undefined],
           ],
           consts: [
-            'export const testNumberExclusiveMinOAS30ExclusiveMin = 10;',
+            'export const testNumberExclusiveMinOAS30ExclusiveMin: number = 10;',
             '\n',
           ],
         });
@@ -1788,7 +1798,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['optional', undefined],
           ],
           consts: [
-            'export const testNumberExclusiveMaxOAS30ExclusiveMax = 100;',
+            'export const testNumberExclusiveMaxOAS30ExclusiveMax: number = 100;',
             '\n',
           ],
         });
@@ -1831,8 +1841,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
             ['optional', undefined],
           ],
           consts: [
-            'export const testNumberExclusiveBothOAS30ExclusiveMin = 5;',
-            'export const testNumberExclusiveBothOAS30ExclusiveMax = 100;',
+            'export const testNumberExclusiveBothOAS30ExclusiveMin: number = 5;',
+            'export const testNumberExclusiveBothOAS30ExclusiveMax: number = 100;',
             '\n',
           ],
         });
@@ -1874,8 +1884,8 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['optional', undefined],
         ],
         consts: [
-          'export const testNumberMinMaxMin = 10;',
-          'export const testNumberMinMaxMax = 99;',
+          'export const testNumberMinMaxMin: number = 10;',
+          'export const testNumberMinMaxMax: number = 99;',
           '\n',
         ],
       });
@@ -1917,9 +1927,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['optional', undefined],
         ],
         consts: [
-          'export const testNumberMinMaxMultipleMin = 10;',
-          'export const testNumberMinMaxMultipleMax = 99;',
-          'export const testNumberMinMaxMultipleMultipleOf = 2;',
+          'export const testNumberMinMaxMultipleMin: number = 10;',
+          'export const testNumberMinMaxMultipleMax: number = 99;',
+          'export const testNumberMinMaxMultipleMultipleOf: number = 2;',
           '\n',
         ],
       });
@@ -2057,7 +2067,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
 
     expect(result.implementation).toBe(
-      'const testParamsInternal = zod.object({\n  "id": zod.string()\n})\n\nexport type TestParams = zod.infer<typeof testParamsInternal>;\n\nexport const testParams: zod.ZodType<TestParams> = testParamsInternal;\n\nconst testQueryParamsInternal = zod.object({\n  "page": zod.number().optional()\n})\n\nexport type TestQueryParams = zod.infer<typeof testQueryParamsInternal>;\n\nexport const testQueryParams: zod.ZodType<TestQueryParams> = testQueryParamsInternal;\n\nconst testHeaderInternal = zod.object({\n  "x-header": zod.string()\n})\n\nexport type TestHeader = zod.infer<typeof testHeaderInternal>;\n\nexport const testHeader: zod.ZodType<TestHeader> = testHeaderInternal;\n\nconst testBodyInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\nconst testResponseInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestResponse = zod.infer<typeof testResponseInternal>;\n\nexport const testResponse: zod.ZodType<TestResponse> = testResponseInternal;\n\n',
+      'const testParamsInternal: zod.ZodSchema = zod.object({\n  "id": zod.string()\n});\n\nexport type TestParams = zod.infer<typeof testParamsInternal>;\n\nexport const testParams: zod.ZodType<TestParams> = testParamsInternal;\n\nconst testQueryParamsInternal: zod.ZodSchema = zod.object({\n  "page": zod.number().optional()\n});\n\nexport type TestQueryParams = zod.infer<typeof testQueryParamsInternal>;\n\nexport const testQueryParams: zod.ZodType<TestQueryParams> = testQueryParamsInternal;\n\nconst testHeaderInternal: zod.ZodSchema = zod.object({\n  "x-header": zod.string()\n});\n\nexport type TestHeader = zod.infer<typeof testHeaderInternal>;\n\nexport const testHeader: zod.ZodType<TestHeader> = testHeaderInternal;\n\nconst testBodyInternal: zod.ZodSchema = zod.object({\n  "name": zod.string().optional()\n});\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\nconst testResponseInternal: zod.ZodSchema = zod.object({\n  "name": zod.string().optional()\n});\n\nexport type TestResponse = zod.infer<typeof testResponseInternal>;\n\nexport const testResponse: zod.ZodType<TestResponse> = testResponseInternal;\n\n',
     );
   });
 
@@ -2097,7 +2107,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'const testResponseInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestResponse = zod.infer<typeof testResponseInternal>;\n\nexport const testResponse: zod.ZodType<TestResponse> = testResponseInternal;\n\n',
+      'const testResponseInternal: zod.ZodSchema = zod.object({\n  "name": zod.string().optional()\n});\n\nexport type TestResponse = zod.infer<typeof testResponseInternal>;\n\nexport const testResponse: zod.ZodType<TestResponse> = testResponseInternal;\n\n',
     );
   });
 
@@ -2137,7 +2147,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'const testBodyInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
+      'const testBodyInternal: zod.ZodSchema = zod.object({\n  "name": zod.string().optional()\n});\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 
@@ -2177,7 +2187,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'const testQueryParamsInternal = zod.object({\n  "page": zod.number().optional()\n})\n\nexport type TestQueryParams = zod.infer<typeof testQueryParamsInternal>;\n\nexport const testQueryParams: zod.ZodType<TestQueryParams> = testQueryParamsInternal;\n\n',
+      'const testQueryParamsInternal: zod.ZodSchema = zod.object({\n  "page": zod.number().optional()\n});\n\nexport type TestQueryParams = zod.infer<typeof testQueryParamsInternal>;\n\nexport const testQueryParams: zod.ZodType<TestQueryParams> = testQueryParamsInternal;\n\n',
     );
   });
 
@@ -2217,7 +2227,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'const testParamsInternal = zod.object({\n  "id": zod.string()\n})\n\nexport type TestParams = zod.infer<typeof testParamsInternal>;\n\nexport const testParams: zod.ZodType<TestParams> = testParamsInternal;\n\n',
+      'const testParamsInternal: zod.ZodSchema = zod.object({\n  "id": zod.string()\n});\n\nexport type TestParams = zod.infer<typeof testParamsInternal>;\n\nexport const testParams: zod.ZodType<TestParams> = testParamsInternal;\n\n',
     );
   });
 
@@ -2257,7 +2267,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'const testHeaderInternal = zod.object({\n  "x-header": zod.string()\n})\n\nexport type TestHeader = zod.infer<typeof testHeaderInternal>;\n\nexport const testHeader: zod.ZodType<TestHeader> = testHeaderInternal;\n\n',
+      'const testHeaderInternal: zod.ZodSchema = zod.object({\n  "x-header": zod.string()\n});\n\nexport type TestHeader = zod.infer<typeof testHeaderInternal>;\n\nexport const testHeader: zod.ZodType<TestHeader> = testHeaderInternal;\n\n',
     );
   });
 });
@@ -2457,7 +2467,7 @@ describe('generateFormData', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'const testBodyInternal = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
+      'const testBodyInternal: zod.ZodSchema = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n});\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 });
@@ -2551,7 +2561,7 @@ describe('generateZodWithEdgeCases', () => {
     );
 
     expect(result.implementation).toBe(
-      'const testBodyInternal = zod.object({\n  "$ref": zod.string().optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
+      'const testBodyInternal: zod.ZodSchema = zod.object({\n  "$ref": zod.string().optional()\n});\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 });
@@ -2643,7 +2653,7 @@ describe('generateZodWithLiteralProperty', () => {
     );
 
     expect(result.implementation).toBe(
-      'const testBodyInternal = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
+      'const testBodyInternal: zod.ZodSchema = zod.object({\n  "type": zod.literal("WILD").optional()\n});\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 });

@@ -5,6 +5,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/circular.yaml',
@@ -16,6 +17,7 @@ export default defineConfig({
       schemas: '../generated/zod/petstore/model',
       client: 'zod',
       mock: true,
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -31,6 +33,7 @@ export default defineConfig({
       mock: true,
       mode: 'tags-split',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -43,6 +46,7 @@ export default defineConfig({
       mock: true,
       mode: 'split',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -55,6 +59,7 @@ export default defineConfig({
       mock: true,
       mode: 'tags',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -64,6 +69,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/arrays.yaml',
@@ -73,6 +79,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/strict-mode.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
       override: {
         zod: {
           strict: {
@@ -93,6 +100,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/coerce.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
       override: {
         zod: {
           coerce: {
@@ -113,6 +121,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/preprocess.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
       override: {
         zod: {
           preprocess: {
@@ -148,6 +157,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/translation.yaml',
@@ -157,6 +167,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/typed-arrays-tuples-v3-1.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/typed-arrays-tuples-v3-1.yaml',
@@ -166,6 +177,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/import-from-subdirectory.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: '../specifications/import-from-subdirectory/petstore.yaml',
   },
@@ -173,6 +185,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/date-time-options.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
       override: {
         zod: {
           dateTimeOptions: {
@@ -190,6 +203,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/time-options.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
       override: {
         zod: {
           timeOptions: {
@@ -206,6 +220,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/enums.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/enums.yaml',
@@ -215,6 +230,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/nullable-any-of-refs.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/nullable-any-of-refs.yaml',
@@ -224,6 +240,7 @@ export default defineConfig({
     output: {
       target: '../generated/zod/nullable-oneof-enums.ts',
       client: 'zod',
+      tsconfig: '../tsconfig.json',
     },
     input: {
       target: '../specifications/nullable-oneof-enums.yaml',

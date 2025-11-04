@@ -1,4 +1,4 @@
-export const stripNill = (object: unknown) =>
+export const stripNill = (object: unknown): unknown =>
   !!object && typeof object === 'object' && !Array.isArray(object)
     ? Object.fromEntries(
         Object.entries(object).filter(
