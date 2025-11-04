@@ -14,14 +14,21 @@ Some useful links:
  */
 import { z as zod } from 'zod';
 
-export const findPetsByStatusQueryParams = zod.object({
+const findPetsByStatusQueryParamsInternal: zod.ZodSchema = zod.object({
   status: zod
     .string()
     .optional()
     .describe('Status values that need to be considered for filter'),
 });
 
-export const findPetsByStatusResponseItem = zod.object({
+export type FindPetsByStatusQueryParams = zod.infer<
+  typeof findPetsByStatusQueryParamsInternal
+>;
+
+export const findPetsByStatusQueryParams: zod.ZodType<FindPetsByStatusQueryParams> =
+  findPetsByStatusQueryParamsInternal;
+
+const findPetsByStatusResponseItemInternal: zod.ZodSchema = zod.object({
   id: zod.number().optional(),
   name: zod.string(),
   category: zod
@@ -44,13 +51,37 @@ export const findPetsByStatusResponseItem = zod.object({
     .optional()
     .describe('pet status in the store'),
 });
-export const findPetsByStatusResponse = zod.array(findPetsByStatusResponseItem);
 
-export const findPetsByTagsQueryParams = zod.object({
+export type FindPetsByStatusResponseItem = zod.infer<
+  typeof findPetsByStatusResponseItemInternal
+>;
+
+export const findPetsByStatusResponseItem: zod.ZodType<FindPetsByStatusResponseItem> =
+  findPetsByStatusResponseItemInternal;
+
+const findPetsByStatusResponseInternal: zod.ZodSchema = zod.array(
+  findPetsByStatusResponseItemInternal,
+);
+
+export type FindPetsByStatusResponse = zod.infer<
+  typeof findPetsByStatusResponseInternal
+>;
+
+export const findPetsByStatusResponse: zod.ZodType<FindPetsByStatusResponse> =
+  findPetsByStatusResponseInternal;
+
+const findPetsByTagsQueryParamsInternal: zod.ZodSchema = zod.object({
   tags: zod.array(zod.string()).optional().describe('Tags to filter by'),
 });
 
-export const findPetsByTagsResponseItem = zod.object({
+export type FindPetsByTagsQueryParams = zod.infer<
+  typeof findPetsByTagsQueryParamsInternal
+>;
+
+export const findPetsByTagsQueryParams: zod.ZodType<FindPetsByTagsQueryParams> =
+  findPetsByTagsQueryParamsInternal;
+
+const findPetsByTagsResponseItemInternal: zod.ZodSchema = zod.object({
   id: zod.number().optional(),
   name: zod.string(),
   category: zod
@@ -73,13 +104,35 @@ export const findPetsByTagsResponseItem = zod.object({
     .optional()
     .describe('pet status in the store'),
 });
-export const findPetsByTagsResponse = zod.array(findPetsByTagsResponseItem);
 
-export const getPetByIdParams = zod.object({
+export type FindPetsByTagsResponseItem = zod.infer<
+  typeof findPetsByTagsResponseItemInternal
+>;
+
+export const findPetsByTagsResponseItem: zod.ZodType<FindPetsByTagsResponseItem> =
+  findPetsByTagsResponseItemInternal;
+
+const findPetsByTagsResponseInternal: zod.ZodSchema = zod.array(
+  findPetsByTagsResponseItemInternal,
+);
+
+export type FindPetsByTagsResponse = zod.infer<
+  typeof findPetsByTagsResponseInternal
+>;
+
+export const findPetsByTagsResponse: zod.ZodType<FindPetsByTagsResponse> =
+  findPetsByTagsResponseInternal;
+
+const getPetByIdParamsInternal: zod.ZodSchema = zod.object({
   petId: zod.number().describe('ID of pet to return'),
 });
 
-export const getPetByIdResponse = zod.object({
+export type GetPetByIdParams = zod.infer<typeof getPetByIdParamsInternal>;
+
+export const getPetByIdParams: zod.ZodType<GetPetByIdParams> =
+  getPetByIdParamsInternal;
+
+const getPetByIdResponseInternal: zod.ZodSchema = zod.object({
   id: zod.number().optional(),
   name: zod.string(),
   category: zod
@@ -103,11 +156,23 @@ export const getPetByIdResponse = zod.object({
     .describe('pet status in the store'),
 });
 
-export const updatePetWithFormParams = zod.object({
+export type GetPetByIdResponse = zod.infer<typeof getPetByIdResponseInternal>;
+
+export const getPetByIdResponse: zod.ZodType<GetPetByIdResponse> =
+  getPetByIdResponseInternal;
+
+const updatePetWithFormParamsInternal: zod.ZodSchema = zod.object({
   petId: zod.number().describe('ID of pet that needs to be updated'),
 });
 
-export const updatePetWithFormQueryParams = zod.object({
+export type UpdatePetWithFormParams = zod.infer<
+  typeof updatePetWithFormParamsInternal
+>;
+
+export const updatePetWithFormParams: zod.ZodType<UpdatePetWithFormParams> =
+  updatePetWithFormParamsInternal;
+
+const updatePetWithFormQueryParamsInternal: zod.ZodSchema = zod.object({
   name: zod
     .string()
     .optional()
@@ -118,7 +183,14 @@ export const updatePetWithFormQueryParams = zod.object({
     .describe('Status of pet that needs to be updated'),
 });
 
-export const updatePetWithFormResponse = zod.object({
+export type UpdatePetWithFormQueryParams = zod.infer<
+  typeof updatePetWithFormQueryParamsInternal
+>;
+
+export const updatePetWithFormQueryParams: zod.ZodType<UpdatePetWithFormQueryParams> =
+  updatePetWithFormQueryParamsInternal;
+
+const updatePetWithFormResponseInternal: zod.ZodSchema = zod.object({
   id: zod.number().optional(),
   name: zod.string(),
   category: zod
@@ -142,21 +214,53 @@ export const updatePetWithFormResponse = zod.object({
     .describe('pet status in the store'),
 });
 
-export const deletePetParams = zod.object({
+export type UpdatePetWithFormResponse = zod.infer<
+  typeof updatePetWithFormResponseInternal
+>;
+
+export const updatePetWithFormResponse: zod.ZodType<UpdatePetWithFormResponse> =
+  updatePetWithFormResponseInternal;
+
+const deletePetParamsInternal: zod.ZodSchema = zod.object({
   petId: zod.number().describe('Pet id to delete'),
 });
 
-export const deletePetHeader = zod.object({
+export type DeletePetParams = zod.infer<typeof deletePetParamsInternal>;
+
+export const deletePetParams: zod.ZodType<DeletePetParams> =
+  deletePetParamsInternal;
+
+const deletePetHeaderInternal: zod.ZodSchema = zod.object({
   api_key: zod.string().optional(),
 });
 
-export const getInventoryResponse = zod.record(zod.string(), zod.number());
+export type DeletePetHeader = zod.infer<typeof deletePetHeaderInternal>;
 
-export const getOrderByIdParams = zod.object({
+export const deletePetHeader: zod.ZodType<DeletePetHeader> =
+  deletePetHeaderInternal;
+
+const getInventoryResponseInternal: zod.ZodSchema = zod.record(
+  zod.string(),
+  zod.number(),
+);
+
+export type GetInventoryResponse = zod.infer<
+  typeof getInventoryResponseInternal
+>;
+
+export const getInventoryResponse: zod.ZodType<GetInventoryResponse> =
+  getInventoryResponseInternal;
+
+const getOrderByIdParamsInternal: zod.ZodSchema = zod.object({
   orderId: zod.number().describe('ID of order that needs to be fetched'),
 });
 
-export const getOrderByIdResponse = zod.object({
+export type GetOrderByIdParams = zod.infer<typeof getOrderByIdParamsInternal>;
+
+export const getOrderByIdParams: zod.ZodType<GetOrderByIdParams> =
+  getOrderByIdParamsInternal;
+
+const getOrderByIdResponseInternal: zod.ZodSchema = zod.object({
   id: zod.number().optional(),
   petId: zod.number().optional(),
   quantity: zod.number().optional(),
@@ -168,11 +272,23 @@ export const getOrderByIdResponse = zod.object({
   complete: zod.boolean().optional(),
 });
 
-export const deleteOrderParams = zod.object({
+export type GetOrderByIdResponse = zod.infer<
+  typeof getOrderByIdResponseInternal
+>;
+
+export const getOrderByIdResponse: zod.ZodType<GetOrderByIdResponse> =
+  getOrderByIdResponseInternal;
+
+const deleteOrderParamsInternal: zod.ZodSchema = zod.object({
   orderId: zod.number().describe('ID of the order that needs to be deleted'),
 });
 
-export const loginUserQueryParams = zod.object({
+export type DeleteOrderParams = zod.infer<typeof deleteOrderParamsInternal>;
+
+export const deleteOrderParams: zod.ZodType<DeleteOrderParams> =
+  deleteOrderParamsInternal;
+
+const loginUserQueryParamsInternal: zod.ZodSchema = zod.object({
   username: zod.string().optional().describe('The user name for login'),
   password: zod
     .string()
@@ -180,15 +296,32 @@ export const loginUserQueryParams = zod.object({
     .describe('The password for login in clear text'),
 });
 
-export const loginUserResponse = zod.string();
+export type LoginUserQueryParams = zod.infer<
+  typeof loginUserQueryParamsInternal
+>;
 
-export const getUserByNameParams = zod.object({
+export const loginUserQueryParams: zod.ZodType<LoginUserQueryParams> =
+  loginUserQueryParamsInternal;
+
+const loginUserResponseInternal: zod.ZodSchema = zod.string();
+
+export type LoginUserResponse = zod.infer<typeof loginUserResponseInternal>;
+
+export const loginUserResponse: zod.ZodType<LoginUserResponse> =
+  loginUserResponseInternal;
+
+const getUserByNameParamsInternal: zod.ZodSchema = zod.object({
   username: zod
     .string()
     .describe('The name that needs to be fetched. Use user1 for testing'),
 });
 
-export const getUserByNameResponse = zod.object({
+export type GetUserByNameParams = zod.infer<typeof getUserByNameParamsInternal>;
+
+export const getUserByNameParams: zod.ZodType<GetUserByNameParams> =
+  getUserByNameParamsInternal;
+
+const getUserByNameResponseInternal: zod.ZodSchema = zod.object({
   id: zod.number().optional(),
   username: zod.string().optional(),
   firstName: zod.string().optional(),
@@ -199,6 +332,18 @@ export const getUserByNameResponse = zod.object({
   userStatus: zod.number().optional().describe('User Status'),
 });
 
-export const deleteUserParams = zod.object({
+export type GetUserByNameResponse = zod.infer<
+  typeof getUserByNameResponseInternal
+>;
+
+export const getUserByNameResponse: zod.ZodType<GetUserByNameResponse> =
+  getUserByNameResponseInternal;
+
+const deleteUserParamsInternal: zod.ZodSchema = zod.object({
   username: zod.string().describe('The name that needs to be deleted'),
 });
+
+export type DeleteUserParams = zod.infer<typeof deleteUserParamsInternal>;
+
+export const deleteUserParams: zod.ZodType<DeleteUserParams> =
+  deleteUserParamsInternal;

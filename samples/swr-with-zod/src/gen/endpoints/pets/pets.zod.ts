@@ -9,14 +9,19 @@ import * as zod from 'zod';
 /**
  * @summary List all pets
  */
-export const listPetsQueryParams = zod.object({
+const listPetsQueryParamsInternal: zod.ZodSchema = zod.object({
   limit: zod
     .string()
     .optional()
     .describe('How many items to return at one time (max 100)'),
 });
 
-export const listPetsResponseItem = zod.union([
+export type ListPetsQueryParams = zod.infer<typeof listPetsQueryParamsInternal>;
+
+export const listPetsQueryParams: zod.ZodType<ListPetsQueryParams> =
+  listPetsQueryParamsInternal;
+
+const listPetsResponseItemInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -32,18 +37,46 @@ export const listPetsResponseItem = zod.union([
     type: zod.enum(['cat']),
   }),
 ]);
-export const listPetsResponse = zod.array(listPetsResponseItem);
+
+export type ListPetsResponseItem = zod.infer<
+  typeof listPetsResponseItemInternal
+>;
+
+export const listPetsResponseItem: zod.ZodType<ListPetsResponseItem> =
+  listPetsResponseItemInternal;
+
+const listPetsResponseInternal: zod.ZodSchema = zod.array(
+  listPetsResponseItemInternal,
+);
+
+export type ListPetsResponse = zod.infer<typeof listPetsResponseInternal>;
+
+export const listPetsResponse: zod.ZodType<ListPetsResponse> =
+  listPetsResponseInternal;
 
 /**
  * @summary Create a pet
  */
-export const createPetsBodyItem = zod.object({
+const createPetsBodyItemInternal: zod.ZodSchema = zod.object({
   name: zod.string(),
   tag: zod.string(),
 });
-export const createPetsBody = zod.array(createPetsBodyItem);
 
-export const createPetsResponse = zod.union([
+export type CreatePetsBodyItem = zod.infer<typeof createPetsBodyItemInternal>;
+
+export const createPetsBodyItem: zod.ZodType<CreatePetsBodyItem> =
+  createPetsBodyItemInternal;
+
+const createPetsBodyInternal: zod.ZodSchema = zod.array(
+  createPetsBodyItemInternal,
+);
+
+export type CreatePetsBody = zod.infer<typeof createPetsBodyInternal>;
+
+export const createPetsBody: zod.ZodType<CreatePetsBody> =
+  createPetsBodyInternal;
+
+const createPetsResponseInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -59,11 +92,16 @@ export const createPetsResponse = zod.union([
     type: zod.enum(['cat']),
   }),
 ]);
+
+export type CreatePetsResponse = zod.infer<typeof createPetsResponseInternal>;
+
+export const createPetsResponse: zod.ZodType<CreatePetsResponse> =
+  createPetsResponseInternal;
 
 /**
  * @summary Update a pet
  */
-export const updatePetsBody = zod.union([
+const updatePetsBodyInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -80,7 +118,12 @@ export const updatePetsBody = zod.union([
   }),
 ]);
 
-export const updatePetsResponse = zod.union([
+export type UpdatePetsBody = zod.infer<typeof updatePetsBodyInternal>;
+
+export const updatePetsBody: zod.ZodType<UpdatePetsBody> =
+  updatePetsBodyInternal;
+
+const updatePetsResponseInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -96,16 +139,26 @@ export const updatePetsResponse = zod.union([
     type: zod.enum(['cat']),
   }),
 ]);
+
+export type UpdatePetsResponse = zod.infer<typeof updatePetsResponseInternal>;
+
+export const updatePetsResponse: zod.ZodType<UpdatePetsResponse> =
+  updatePetsResponseInternal;
 
 /**
  * @summary Info for a specific pet
  */
-export const showPetByIdParams = zod.object({
+const showPetByIdParamsInternal: zod.ZodSchema = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
   testId: zod.string().describe('The id of the pet to retrieve'),
 });
 
-export const showPetByIdResponse = zod.union([
+export type ShowPetByIdParams = zod.infer<typeof showPetByIdParamsInternal>;
+
+export const showPetByIdParams: zod.ZodType<ShowPetByIdParams> =
+  showPetByIdParamsInternal;
+
+const showPetByIdResponseInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -121,3 +174,8 @@ export const showPetByIdResponse = zod.union([
     type: zod.enum(['cat']),
   }),
 ]);
+
+export type ShowPetByIdResponse = zod.infer<typeof showPetByIdResponseInternal>;
+
+export const showPetByIdResponse: zod.ZodType<ShowPetByIdResponse> =
+  showPetByIdResponseInternal;

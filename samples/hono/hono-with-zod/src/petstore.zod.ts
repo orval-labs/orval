@@ -7,14 +7,19 @@
 import { z as zod } from 'zod';
 import { stripNill } from './mutators';
 
-export const listPetsQueryParams = zod.object({
+const listPetsQueryParamsInternal: zod.ZodSchema = zod.object({
   limit: zod
     .string()
     .optional()
     .describe('How many items to return at one time (max 100)'),
 });
 
-export const listPetsResponseItem = zod.preprocess(
+export type ListPetsQueryParams = zod.infer<typeof listPetsQueryParamsInternal>;
+
+export const listPetsQueryParams: zod.ZodType<ListPetsQueryParams> =
+  listPetsQueryParamsInternal;
+
+const listPetsResponseItemInternal: zod.ZodSchema = zod.preprocess(
   stripNill,
   zod.union([
     zod.union([
@@ -39,15 +44,43 @@ export const listPetsResponseItem = zod.preprocess(
       .strict(),
   ]),
 );
-export const listPetsResponse = zod.array(listPetsResponseItem);
 
-export const createPetsBodyItem = zod.object({
+export type ListPetsResponseItem = zod.infer<
+  typeof listPetsResponseItemInternal
+>;
+
+export const listPetsResponseItem: zod.ZodType<ListPetsResponseItem> =
+  listPetsResponseItemInternal;
+
+const listPetsResponseInternal: zod.ZodSchema = zod.array(
+  listPetsResponseItemInternal,
+);
+
+export type ListPetsResponse = zod.infer<typeof listPetsResponseInternal>;
+
+export const listPetsResponse: zod.ZodType<ListPetsResponse> =
+  listPetsResponseInternal;
+
+const createPetsBodyItemInternal: zod.ZodSchema = zod.object({
   name: zod.string(),
   tag: zod.string(),
 });
-export const createPetsBody = zod.array(createPetsBodyItem);
 
-export const createPetsResponse = zod.preprocess(
+export type CreatePetsBodyItem = zod.infer<typeof createPetsBodyItemInternal>;
+
+export const createPetsBodyItem: zod.ZodType<CreatePetsBodyItem> =
+  createPetsBodyItemInternal;
+
+const createPetsBodyInternal: zod.ZodSchema = zod.array(
+  createPetsBodyItemInternal,
+);
+
+export type CreatePetsBody = zod.infer<typeof createPetsBodyInternal>;
+
+export const createPetsBody: zod.ZodType<CreatePetsBody> =
+  createPetsBodyInternal;
+
+const createPetsResponseInternal: zod.ZodSchema = zod.preprocess(
   stripNill,
   zod.union([
     zod.union([
@@ -73,7 +106,12 @@ export const createPetsResponse = zod.preprocess(
   ]),
 );
 
-export const updatePetsBody = zod.union([
+export type CreatePetsResponse = zod.infer<typeof createPetsResponseInternal>;
+
+export const createPetsResponse: zod.ZodType<CreatePetsResponse> =
+  createPetsResponseInternal;
+
+const updatePetsBodyInternal: zod.ZodSchema = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -90,7 +128,12 @@ export const updatePetsBody = zod.union([
   }),
 ]);
 
-export const updatePetsResponse = zod.preprocess(
+export type UpdatePetsBody = zod.infer<typeof updatePetsBodyInternal>;
+
+export const updatePetsBody: zod.ZodType<UpdatePetsBody> =
+  updatePetsBodyInternal;
+
+const updatePetsResponseInternal: zod.ZodSchema = zod.preprocess(
   stripNill,
   zod.union([
     zod.union([
@@ -116,12 +159,22 @@ export const updatePetsResponse = zod.preprocess(
   ]),
 );
 
-export const showPetByIdParams = zod.object({
+export type UpdatePetsResponse = zod.infer<typeof updatePetsResponseInternal>;
+
+export const updatePetsResponse: zod.ZodType<UpdatePetsResponse> =
+  updatePetsResponseInternal;
+
+const showPetByIdParamsInternal: zod.ZodSchema = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
   testId: zod.string().describe('The id of the pet to retrieve'),
 });
 
-export const showPetByIdResponse = zod.preprocess(
+export type ShowPetByIdParams = zod.infer<typeof showPetByIdParamsInternal>;
+
+export const showPetByIdParams: zod.ZodType<ShowPetByIdParams> =
+  showPetByIdParamsInternal;
+
+const showPetByIdResponseInternal: zod.ZodSchema = zod.preprocess(
   stripNill,
   zod.union([
     zod.union([
@@ -146,3 +199,8 @@ export const showPetByIdResponse = zod.preprocess(
       .strict(),
   ]),
 );
+
+export type ShowPetByIdResponse = zod.infer<typeof showPetByIdResponseInternal>;
+
+export const showPetByIdResponse: zod.ZodType<ShowPetByIdResponse> =
+  showPetByIdResponseInternal;
