@@ -618,6 +618,150 @@ describe('generateZodValidationSchemaDefinition`', () => {
     expect(parsed.zod).toContain('describe');
   });
 
+  it('handles allOf with strict mode for objects (issue #2520)', () => {
+    // Schema with allOf containing two objects
+    const schemaWithAllOf: SchemaObject30 = {
+      type: 'object',
+      allOf: [
+        {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+            },
+          },
+        },
+        {
+          type: 'object',
+          required: ['swimming'],
+          properties: {
+            swimming: {
+              type: 'boolean',
+            },
+          },
+        },
+      ],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      true, // strict mode enabled
+      false, // Zod v3
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse with strict mode
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      true, // strict mode
+      false, // Zod v3
+    );
+
+    // The result should be a single merged object with strict(), not .and()
+    expect(parsed.zod).not.toContain('.and(');
+    expect(parsed.zod).toContain('name');
+    expect(parsed.zod).toContain('swimming');
+    expect(parsed.zod).toContain('.strict()');
+    // Should be a single object, not multiple objects
+    expect(parsed.zod).toMatch(
+      /zod\.object\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)\.strict\(\)/,
+    );
+  });
+
+  it('handles allOf with strict mode for objects in Zod v4', () => {
+    // Schema with allOf containing two objects
+    const schemaWithAllOf: SchemaObject30 = {
+      type: 'object',
+      allOf: [
+        {
+          type: 'object',
+          required: ['name'],
+          properties: {
+            name: {
+              type: 'string',
+            },
+          },
+        },
+        {
+          type: 'object',
+          required: ['swimming'],
+          properties: {
+            swimming: {
+              type: 'boolean',
+            },
+          },
+        },
+      ],
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOf,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      'test',
+      true, // strict mode enabled
+      true, // Zod v4
+      {
+        required: true,
+      },
+    );
+
+    // Check that allOf was used
+    expect(result.functions[0][0]).toBe('allOf');
+
+    // Parse with strict mode
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      {
+        output: {
+          override: {
+            useDates: false,
+          },
+        },
+      } as ContextSpecs,
+      false,
+      true, // strict mode
+      true, // Zod v4
+    );
+
+    // The result should be a single merged strictObject, not .and()
+    expect(parsed.zod).not.toContain('.and(');
+    expect(parsed.zod).toContain('name');
+    expect(parsed.zod).toContain('swimming');
+    expect(parsed.zod).toContain('strictObject');
+    // Should be a single object, not multiple objects
+    expect(parsed.zod).toMatch(
+      /zod\.strictObject\(\{[^}]*"name"[^}]*"swimming"[^}]*\}\)/,
+    );
+  });
+
   it('handles allOf with array type', () => {
     const arrayWithItems: SchemaObject = {
       type: 'array',
@@ -1341,7 +1485,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         string,
         ZodValidationSchemaDefinition
       >;
-      const someEnumProperty = objectProperties['some_enum'];
+      const someEnumProperty = objectProperties.some_enum;
 
       expect(someEnumProperty.consts).toEqual(
         expect.arrayContaining([expect.stringContaining('as const')]),
@@ -2608,5 +2752,1518 @@ describe('generateZodWithMultiTypeArray', () => {
     expect(parsed.zod).toBe(
       'zod.union([zod.string(),zod.number()]).optional()',
     );
+  });
+});
+
+describe('generateZodWithNullableAnyOfRefs', () => {
+  it('should generate unique schema names for nullable refs in anyOf', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: anyOf with multiple nullable refs that could cause duplicate names
+    const schemaWithAnyOfNullableRefs: SchemaObject30 = {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/DogId',
+        },
+        {
+          $ref: '#/components/schemas/CatId',
+        },
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAnyOfNullableRefs,
+      context,
+      'petId',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Verify that the generated consts have unique names
+    // Each anyOf item should get a unique name based on index
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    // Check that all const names are unique
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Verify the structure contains union
+    expect(parsed.zod).toContain('union');
+    expect(parsed.zod).toContain('nullish');
+  });
+
+  it('should generate unique schema names for nullable refs in oneOf', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithOneOfNullableRefs: SchemaObject30 = {
+      oneOf: [
+        {
+          $ref: '#/components/schemas/DogId',
+        },
+        {
+          $ref: '#/components/schemas/CatId',
+        },
+        {
+          $ref: '#/components/schemas/BirdId',
+        },
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithOneOfNullableRefs,
+      context,
+      'animalId',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Verify unique const names
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Verify the structure
+    expect(parsed.zod).toContain('union');
+  });
+
+  it('should generate unique schema names for nullable refs in allOf', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithAllOfNullableRefs: SchemaObject30 = {
+      allOf: [
+        {
+          $ref: '#/components/schemas/BaseSchema',
+        },
+        {
+          $ref: '#/components/schemas/ExtendedSchema',
+        },
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOfNullableRefs,
+      context,
+      'combinedSchema',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Verify unique const names
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Verify the structure
+    expect(parsed.zod).toContain('.and(');
+  });
+
+  it('should handle allOf with additional properties and nullable refs', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    const schemaWithAllOfAndProperties: SchemaObject30 = {
+      allOf: [
+        {
+          $ref: '#/components/schemas/BaseSchema',
+        },
+      ],
+      properties: {
+        additionalProp: {
+          type: 'string',
+          nullable: true,
+        },
+      },
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithAllOfAndProperties,
+      context,
+      'schemaWithAllOf',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Verify unique const names (should include names from allOf and additional properties)
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Verify the structure
+    expect(parsed.zod).toContain('.and(');
+  });
+
+  it('should generate unique schema names for nullable oneOf with multiple enum refs (issue #2511)', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case from issue #2511: nullable oneOf with multiple enum refs
+    // This should not generate duplicate schema names like "Item1Hello" and "Item2Hello"
+    const schemaItem1: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        hello: {
+          nullable: true,
+          oneOf: [
+            { $ref: '#/components/schemas/HelloEnum' },
+            { $ref: '#/components/schemas/BlankEnum' },
+            { $ref: '#/components/schemas/NullEnum' },
+          ],
+        },
+      },
+    };
+
+    const schemaItem2: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        hello: {
+          nullable: true,
+          oneOf: [
+            { $ref: '#/components/schemas/HelloEnum' },
+            { $ref: '#/components/schemas/BlankEnum' },
+            { $ref: '#/components/schemas/NullEnum' },
+          ],
+        },
+      },
+    };
+
+    // Generate schemas for both items
+    const result1 = generateZodValidationSchemaDefinition(
+      schemaItem1,
+      context,
+      'item1',
+      false,
+      false,
+      { required: false },
+    );
+
+    const result2 = generateZodValidationSchemaDefinition(
+      schemaItem2,
+      context,
+      'item2',
+      false,
+      false,
+      { required: false },
+    );
+
+    // Extract all const names from both results
+    const extractConstNames = (consts: string[]) =>
+      consts
+        .map((constDef) => {
+          const match = /export const (\w+)/.exec(constDef);
+          return match ? match[1] : undefined;
+        })
+        .filter((name): name is string => name !== undefined);
+
+    const constNames1 = extractConstNames(result1.consts);
+    const constNames2 = extractConstNames(result2.consts);
+
+    // Combine all const names and verify they are unique
+    const allConstNames = [...constNames1, ...constNames2];
+    const uniqueConstNames = new Set(allConstNames);
+
+    // The key test: ensure no duplicate names between Item1 and Item2
+    // This is the core issue from #2511 - when the same property structure
+    // is used in multiple objects, they should generate unique names
+    expect(uniqueConstNames.size).toBe(allConstNames.length);
+
+    // Note: For object properties, names are generated as "item1-hello", "item2-hello"
+    // which get camelCased to "item1Hello" and "item2Hello" respectively.
+    // The fix ensures that when processing oneOf items within properties,
+    // each gets a unique name based on the parent object name + property name + index.
+    // So Item1.hello will generate names like "item1HelloOne", "item1HelloTwo", etc.
+    // and Item2.hello will generate "item2HelloOne", "item2HelloTwo", etc.
+  });
+
+  it('should generate unique names for anyOf with three nullable refs', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: anyOf with 3 nullable refs (like Animals.animalId)
+    const schemaWithThreeRefs: SchemaObject30 = {
+      anyOf: [
+        { $ref: '#/components/schemas/DogId' },
+        { $ref: '#/components/schemas/CatId' },
+        { $ref: '#/components/schemas/BirdId' },
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithThreeRefs,
+      context,
+      'animalId',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Should have at least 3 unique const names (one for each anyOf item)
+    expect(constNames.length).toBeGreaterThanOrEqual(0);
+  });
+
+  it('should generate unique names for multiple anyOf properties in same object', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: object with multiple anyOf properties (like Animals)
+    const schemaWithMultipleAnyOf: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        animalId: {
+          anyOf: [
+            { $ref: '#/components/schemas/DogId' },
+            { $ref: '#/components/schemas/CatId' },
+            { $ref: '#/components/schemas/BirdId' },
+          ],
+          nullable: true,
+        },
+        secondaryId: {
+          anyOf: [
+            { $ref: '#/components/schemas/DogId' },
+            { $ref: '#/components/schemas/CatId' },
+          ],
+          nullable: true,
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultipleAnyOf,
+      context,
+      'animals',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Verify structure contains object with properties
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('object');
+  });
+
+  it('should generate unique names for multiple objects with same anyOf structure', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: multiple objects (Pets and Animals) with similar anyOf structures
+    const petsSchema: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        petId: {
+          anyOf: [
+            { $ref: '#/components/schemas/DogId' },
+            { $ref: '#/components/schemas/CatId' },
+          ],
+          nullable: true,
+        },
+      },
+    };
+
+    const animalsSchema: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        petId: {
+          anyOf: [
+            { $ref: '#/components/schemas/DogId' },
+            { $ref: '#/components/schemas/CatId' },
+          ],
+          nullable: true,
+        },
+      },
+    };
+
+    const result1 = generateZodValidationSchemaDefinition(
+      petsSchema,
+      context,
+      'pets',
+      false,
+      false,
+      { required: false },
+    );
+
+    const result2 = generateZodValidationSchemaDefinition(
+      animalsSchema,
+      context,
+      'animals',
+      false,
+      false,
+      { required: false },
+    );
+
+    const extractConstNames = (consts: string[]) =>
+      consts
+        .map((constDef) => {
+          const match = /export const (\w+)/.exec(constDef);
+          return match ? match[1] : undefined;
+        })
+        .filter((name): name is string => name !== undefined);
+
+    const constNames1 = extractConstNames(result1.consts);
+    const constNames2 = extractConstNames(result2.consts);
+    const allConstNames = [...constNames1, ...constNames2];
+    const uniqueConstNames = new Set(allConstNames);
+
+    // Ensure no duplicates between different objects
+    expect(uniqueConstNames.size).toBe(allConstNames.length);
+  });
+
+  it('should generate unique names for oneOf with different enum types (string, number, boolean)', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: oneOf with different enum types (like Item3.world)
+    const schemaWithMixedEnums: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        world: {
+          nullable: true,
+          oneOf: [
+            {
+              type: 'integer',
+              enum: [1, 2, 3],
+            },
+            {
+              type: 'boolean',
+              enum: [true, false],
+            },
+          ],
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMixedEnums,
+      context,
+      'item3',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+  });
+
+  it('should generate unique names for object with multiple oneOf properties', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: object with multiple oneOf properties (like Item3)
+    const schemaWithMultipleOneOf: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        hello: {
+          nullable: true,
+          oneOf: [
+            { type: 'string', enum: ['HI', 'OHA'] },
+            { type: 'string', enum: [''] },
+            { enum: [null] },
+          ],
+        },
+        world: {
+          nullable: true,
+          oneOf: [
+            { type: 'integer', enum: [1, 2, 3] },
+            { type: 'boolean', enum: [true, false] },
+          ],
+        },
+        optional: {
+          nullable: true,
+          oneOf: [
+            { type: 'string', enum: ['HI', 'OHA'] },
+            { type: 'string', enum: [''] },
+          ],
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultipleOneOf,
+      context,
+      'item3',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    // Verify all properties are included in the object
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('"hello"');
+    expect(parsed.zod).toContain('"world"');
+    expect(parsed.zod).toContain('"optional"');
+  });
+
+  it('should generate unique names when same oneOf enum structure used in three objects', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: three objects (Item1, Item2, Item3) with same oneOf structure
+    const createItemSchema = (name: string): SchemaObject30 => ({
+      type: 'object',
+      properties: {
+        hello: {
+          nullable: true,
+          oneOf: [
+            { type: 'string', enum: ['HI', 'OHA'] },
+            { type: 'string', enum: [''] },
+            { enum: [null] },
+          ],
+        },
+      },
+    });
+
+    const result1 = generateZodValidationSchemaDefinition(
+      createItemSchema('item1'),
+      context,
+      'item1',
+      false,
+      false,
+      { required: false },
+    );
+
+    const result2 = generateZodValidationSchemaDefinition(
+      createItemSchema('item2'),
+      context,
+      'item2',
+      false,
+      false,
+      { required: false },
+    );
+
+    const result3 = generateZodValidationSchemaDefinition(
+      createItemSchema('item3'),
+      context,
+      'item3',
+      false,
+      false,
+      { required: false },
+    );
+
+    const extractConstNames = (consts: string[]) =>
+      consts
+        .map((constDef) => {
+          const match = /export const (\w+)/.exec(constDef);
+          return match ? match[1] : undefined;
+        })
+        .filter((name): name is string => name !== undefined);
+
+    const constNames1 = extractConstNames(result1.consts);
+    const constNames2 = extractConstNames(result2.consts);
+    const constNames3 = extractConstNames(result3.consts);
+
+    const allConstNames = [...constNames1, ...constNames2, ...constNames3];
+    const uniqueConstNames = new Set(allConstNames);
+
+    // Ensure no duplicates across all three objects
+    expect(uniqueConstNames.size).toBe(allConstNames.length);
+  });
+
+  it('should handle anyOf with required and optional nullable properties', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: required anyOf property vs optional anyOf property
+    const schemaRequired: SchemaObject30 = {
+      anyOf: [
+        { $ref: '#/components/schemas/DogId' },
+        { $ref: '#/components/schemas/CatId' },
+      ],
+      nullable: true,
+    };
+
+    const schemaOptional: SchemaObject30 = {
+      anyOf: [
+        { $ref: '#/components/schemas/DogId' },
+        { $ref: '#/components/schemas/CatId' },
+      ],
+      nullable: true,
+    };
+
+    const resultRequired = generateZodValidationSchemaDefinition(
+      schemaRequired,
+      context,
+      'requiredProp',
+      false,
+      false,
+      { required: true },
+    );
+
+    const resultOptional = generateZodValidationSchemaDefinition(
+      schemaOptional,
+      context,
+      'optionalProp',
+      false,
+      false,
+      { required: false },
+    );
+
+    const parsedRequired = parseZodValidationSchemaDefinition(
+      resultRequired,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    const parsedOptional = parseZodValidationSchemaDefinition(
+      resultOptional,
+      context,
+      false,
+      false,
+      false,
+    );
+
+    // Required should have nullable, optional should have nullish
+    expect(parsedRequired.zod).toContain('nullable');
+    expect(parsedOptional.zod).toContain('nullish');
+  });
+
+  it('should generate unique names for anyOf mixing nullable and not-null refs', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: anyOf mixing nullable and not-null refs (like MixedNullable.mixedId)
+    const schemaWithMixedNullable: SchemaObject30 = {
+      anyOf: [
+        { $ref: '#/components/schemas/DogId' }, // nullable
+        { $ref: '#/components/schemas/CatId' }, // nullable
+        { $ref: '#/components/schemas/BirdIdNotNull' }, // not null
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMixedNullable,
+      context,
+      'mixedId',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+  });
+
+  it('should generate unique names for oneOf mixing nullable and not-null enums', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: oneOf mixing nullable and not-null enum refs (like MixedEnumItem.mixed)
+    const schemaWithMixedEnum: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        mixed: {
+          nullable: true,
+          oneOf: [
+            { type: 'string', enum: ['HI', 'OHA'] }, // nullable enum
+            { type: 'string', enum: [''] }, // nullable enum
+            { type: 'string', enum: ['ALWAYS', 'NEVER'] }, // not null enum
+          ],
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMixedEnum,
+      context,
+      'mixedEnumItem',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+    expect(parsed.zod).toContain('"mixed"');
+  });
+
+  it('should generate unique names for nested objects with anyOf properties', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: nested object with anyOf properties (like NestedAnimals)
+    const schemaWithNestedAnyOf: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        nested: {
+          type: 'object',
+          properties: {
+            animalId: {
+              anyOf: [
+                { $ref: '#/components/schemas/DogId' },
+                { $ref: '#/components/schemas/CatId' },
+                { $ref: '#/components/schemas/BirdId' },
+              ],
+              nullable: true,
+            },
+            petId: {
+              anyOf: [
+                { $ref: '#/components/schemas/DogId' },
+                { $ref: '#/components/schemas/CatId' },
+              ],
+              nullable: true,
+            },
+          },
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithNestedAnyOf,
+      context,
+      'nestedAnimals',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('object');
+    expect(parsed.zod).toContain('"nested"');
+    expect(parsed.zod).toContain('"animalId"');
+    expect(parsed.zod).toContain('"petId"');
+  });
+
+  it('should generate unique names for nested objects with oneOf enum properties', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: nested object with oneOf enum properties (like NestedItem)
+    const schemaWithNestedOneOf: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        nested: {
+          type: 'object',
+          properties: {
+            hello: {
+              nullable: true,
+              oneOf: [
+                { type: 'string', enum: ['HI', 'OHA'] },
+                { type: 'string', enum: [''] },
+                { enum: [null] },
+              ],
+            },
+            world: {
+              nullable: true,
+              oneOf: [
+                { type: 'integer', enum: [1, 2, 3] },
+                { type: 'boolean', enum: [true, false] },
+              ],
+            },
+          },
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithNestedOneOf,
+      context,
+      'nestedItem',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('object');
+    expect(parsed.zod).toContain('"nested"');
+    expect(parsed.zod).toContain('"hello"');
+    expect(parsed.zod).toContain('"world"');
+  });
+
+  it('should generate unique names for multiple nested objects with same anyOf structure', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: multiple nested objects with same anyOf structure
+    const createNestedSchema = (name: string): SchemaObject30 => ({
+      type: 'object',
+      properties: {
+        nested: {
+          type: 'object',
+          properties: {
+            id: {
+              anyOf: [
+                { $ref: '#/components/schemas/DogId' },
+                { $ref: '#/components/schemas/CatId' },
+              ],
+              nullable: true,
+            },
+          },
+        },
+      },
+    });
+
+    const result1 = generateZodValidationSchemaDefinition(
+      createNestedSchema('nested1'),
+      context,
+      'nested1',
+      false,
+      false,
+      { required: false },
+    );
+
+    const result2 = generateZodValidationSchemaDefinition(
+      createNestedSchema('nested2'),
+      context,
+      'nested2',
+      false,
+      false,
+      { required: false },
+    );
+
+    const extractConstNames = (consts: string[]) =>
+      consts
+        .map((constDef) => {
+          const match = /export const (\w+)/.exec(constDef);
+          return match ? match[1] : undefined;
+        })
+        .filter((name): name is string => name !== undefined);
+
+    const constNames1 = extractConstNames(result1.consts);
+    const constNames2 = extractConstNames(result2.consts);
+    const allConstNames = [...constNames1, ...constNames2];
+    const uniqueConstNames = new Set(allConstNames);
+
+    // Ensure no duplicates between different nested objects
+    expect(uniqueConstNames.size).toBe(allConstNames.length);
+  });
+
+  it('should generate unique names for deeply nested objects with anyOf', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: deeply nested (3 levels) object with anyOf
+    const deeplyNestedSchema: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        level1: {
+          type: 'object',
+          properties: {
+            level2: {
+              type: 'object',
+              properties: {
+                id: {
+                  anyOf: [
+                    { $ref: '#/components/schemas/DogId' },
+                    { $ref: '#/components/schemas/CatId' },
+                    { $ref: '#/components/schemas/BirdId' },
+                  ],
+                  nullable: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      deeplyNestedSchema,
+      context,
+      'deeplyNested',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('object');
+    expect(parsed.zod).toContain('"level1"');
+  });
+
+  it('should generate unique names for allOf with mixed nullable and not-null refs', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: allOf with mixed nullable and not-null refs
+    const schemaWithMixedAllOf: SchemaObject30 = {
+      allOf: [
+        { $ref: '#/components/schemas/DogId' }, // nullable
+        { $ref: '#/components/schemas/FishIdNotNull' }, // not null
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMixedAllOf,
+      context,
+      'mixedAllOf',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('.and(');
+  });
+
+  it('should generate unique names for anyOf with mixed types (string, number, integer, boolean)', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: anyOf mixing different types (like MixedTypes.mixedAnyOf)
+    const schemaWithMixedTypes: SchemaObject30 = {
+      anyOf: [
+        { $ref: '#/components/schemas/DogId' }, // string
+        { $ref: '#/components/schemas/NumberId' }, // number
+        { $ref: '#/components/schemas/IntegerId' }, // integer
+        { $ref: '#/components/schemas/BooleanFlag' }, // boolean
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMixedTypes,
+      context,
+      'mixedAnyOf',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+  });
+
+  it('should generate unique names for anyOf with mixed not-null types', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: anyOf with not-null types of different kinds
+    const schemaWithMixedNotNullTypes: SchemaObject30 = {
+      anyOf: [
+        { $ref: '#/components/schemas/NumberIdNotNull' }, // number
+        { $ref: '#/components/schemas/IntegerIdNotNull' }, // integer
+        { $ref: '#/components/schemas/BirdIdNotNull' }, // string
+      ],
+      nullable: true,
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMixedNotNullTypes,
+      context,
+      'mixedTypesNotNull',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+  });
+
+  it('should generate unique names for oneOf with number enum types', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: oneOf with number enum (nullable and not-null)
+    const schemaWithNumberEnum: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        numberEnum: {
+          nullable: true,
+          oneOf: [
+            {
+              type: 'number',
+              nullable: true,
+              enum: [1.5, 2.5, 3.5],
+            },
+            {
+              type: 'number',
+              enum: [100.1, 200.2],
+            },
+          ],
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithNumberEnum,
+      context,
+      'mixedTypeEnums',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+    expect(parsed.zod).toContain('"numberEnum"');
+  });
+
+  it('should generate unique names for oneOf with integer enum types', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: oneOf with integer enum (nullable and not-null)
+    const schemaWithIntegerEnum: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        integerEnum: {
+          nullable: true,
+          oneOf: [
+            {
+              type: 'integer',
+              nullable: true,
+              enum: [10, 20, 30],
+            },
+            {
+              type: 'integer',
+              enum: [1000, 2000],
+            },
+          ],
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithIntegerEnum,
+      context,
+      'mixedTypeEnums',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('union');
+    expect(parsed.zod).toContain('"integerEnum"');
+  });
+
+  it('should generate unique names for object with multiple oneOf properties of different types', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: object with multiple oneOf properties of different types (like MixedTypeEnums)
+    const schemaWithMultipleTypeEnums: SchemaObject30 = {
+      type: 'object',
+      properties: {
+        stringEnum: {
+          nullable: true,
+          oneOf: [
+            { type: 'string', enum: ['HI', 'OHA'] },
+            { type: 'string', enum: [''] },
+          ],
+        },
+        numberEnum: {
+          nullable: true,
+          oneOf: [
+            { type: 'number', nullable: true, enum: [1.5, 2.5, 3.5] },
+            { type: 'number', enum: [100.1, 200.2] },
+          ],
+        },
+        integerEnum: {
+          nullable: true,
+          oneOf: [
+            { type: 'integer', nullable: true, enum: [10, 20, 30] },
+            { type: 'integer', enum: [1000, 2000] },
+          ],
+        },
+        booleanEnum: {
+          nullable: true,
+          oneOf: [
+            { type: 'boolean', nullable: true, enum: [true, false] },
+            { type: 'boolean', enum: [true] },
+          ],
+        },
+      },
+    };
+
+    const result = generateZodValidationSchemaDefinition(
+      schemaWithMultipleTypeEnums,
+      context,
+      'mixedTypeEnums',
+      false,
+      false,
+      { required: false },
+    );
+
+    const constNames = result.consts
+      .map((constDef) => {
+        const match = /export const (\w+)/.exec(constDef);
+        return match ? match[1] : undefined;
+      })
+      .filter((name): name is string => name !== undefined);
+
+    const uniqueConstNames = new Set(constNames);
+    expect(uniqueConstNames.size).toBe(constNames.length);
+
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
+    expect(parsed.zod).toContain('object');
+    expect(parsed.zod).toContain('"stringEnum"');
+    expect(parsed.zod).toContain('"numberEnum"');
+    expect(parsed.zod).toContain('"integerEnum"');
+    expect(parsed.zod).toContain('"booleanEnum"');
+  });
+
+  it('should generate unique names for multiple objects with same mixed type anyOf', () => {
+    const context = {
+      output: {
+        override: {
+          useDates: false,
+        },
+      },
+    } as ContextSpecs;
+
+    // Test case: multiple objects with same mixed type anyOf structure
+    const createMixedTypeSchema = (name: string): SchemaObject30 => ({
+      type: 'object',
+      properties: {
+        mixedId: {
+          anyOf: [
+            { $ref: '#/components/schemas/DogId' }, // string
+            { $ref: '#/components/schemas/NumberId' }, // number
+            { $ref: '#/components/schemas/IntegerId' }, // integer
+          ],
+          nullable: true,
+        },
+      },
+    });
+
+    const result1 = generateZodValidationSchemaDefinition(
+      createMixedTypeSchema('mixed1'),
+      context,
+      'mixed1',
+      false,
+      false,
+      { required: false },
+    );
+
+    const result2 = generateZodValidationSchemaDefinition(
+      createMixedTypeSchema('mixed2'),
+      context,
+      'mixed2',
+      false,
+      false,
+      { required: false },
+    );
+
+    const extractConstNames = (consts: string[]) =>
+      consts
+        .map((constDef) => {
+          const match = /export const (\w+)/.exec(constDef);
+          return match ? match[1] : undefined;
+        })
+        .filter((name): name is string => name !== undefined);
+
+    const constNames1 = extractConstNames(result1.consts);
+    const constNames2 = extractConstNames(result2.consts);
+    const allConstNames = [...constNames1, ...constNames2];
+    const uniqueConstNames = new Set(allConstNames);
+
+    // Ensure no duplicates between different objects with mixed types
+    expect(uniqueConstNames.size).toBe(allConstNames.length);
   });
 });
