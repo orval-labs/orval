@@ -311,7 +311,8 @@ export const generateZodValidationSchemaDefinition = (
             const arrayItems = value.map((item) =>
               isString(item) ? `"${escape(item)}"` : `${item}`,
             );
-            return `${key}: [${arrayItems.join(', ')}]`;
+            // Add 'as const' for arrays in objects to preserve literal types
+            return `${key}: [${arrayItems.join(', ')}] as const`;
           }
 
           if (
@@ -323,7 +324,8 @@ export const generateZodValidationSchemaDefinition = (
             return `${key}: ${value}`;
         })
         .join(', ');
-      defaultValue = `{ ${entries} }`;
+      // Use 'as const satisfies' for object default values to preserve literal types
+      defaultValue = `{ ${entries} } as const satisfies Record<string, unknown>`;
       defaultType = 'Record<string, unknown>';
     } else {
       // openapi3-ts's SchemaObject defines default as 'any'
@@ -338,7 +340,8 @@ export const generateZodValidationSchemaDefinition = (
       if (rawStringified === 'null') {
         defaultType = 'null';
       } else if (Array.isArray(schema.default)) {
-        defaultType = 'unknown[]';
+        // Use readonly array type for better TypeScript support
+        defaultType = 'readonly unknown[]';
       } else if (typeof schema.default === 'string') {
         defaultType = 'string';
       } else if (typeof schema.default === 'number') {
@@ -347,7 +350,7 @@ export const generateZodValidationSchemaDefinition = (
         defaultType = 'boolean';
       }
 
-      // If the schema is an array with enum items, add 'as const' for proper TypeScript typing
+      // If the schema is an array with enum items, add 'as const satisfies' for proper TypeScript typing
       const isArrayWithEnumItems =
         Array.isArray(schema.default) &&
         type === 'array' &&
@@ -355,8 +358,22 @@ export const generateZodValidationSchemaDefinition = (
         'enum' in schema.items;
 
       if (isArrayWithEnumItems) {
+        // Determine if enum items are strings for better type inference
+        const enumItems = schema.items.enum;
+        const allEnumItemsAreStrings =
+          enumItems &&
+          Array.isArray(enumItems) &&
+          enumItems.every((v) => isString(v));
+        if (allEnumItemsAreStrings) {
+          defaultValue = `${defaultValue} as const satisfies readonly string[]`;
+          defaultType = 'readonly string[]';
+        } else {
+          defaultValue = `${defaultValue} as const satisfies readonly unknown[]`;
+          defaultType = 'readonly unknown[]';
+        }
+      } else if (Array.isArray(schema.default)) {
+        // Add 'as const' for all arrays to preserve literal types
         defaultValue = `${defaultValue} as const`;
-        defaultType = 'readonly unknown[]';
       }
     }
     consts.push(
@@ -684,11 +701,15 @@ export const generateZodValidationSchemaDefinition = (
 
   if (schema.enum) {
     if (schema.enum.every((value) => isString(value))) {
+      // Use 'as const satisfies readonly string[]' for better TypeScript type inference
+      // Add spaces for better readability
       functions.push([
         'enum',
-        `[${schema.enum.map((value) => `'${escape(value)}'`).join(', ')}]`,
+        `[${schema.enum.map((value) => `'${escape(value)}'`).join(', ')}] as const satisfies readonly string[]`,
       ]);
     } else {
+      // For mixed enum types, use union with literals
+      // Add spaces for better readability
       functions.push([
         'oneOf',
         schema.enum.map((value) => ({
@@ -870,7 +891,7 @@ ${Object.entries(mergedProperties)
         },
       );
 
-      return `.union([${union}])`;
+      return `.union([${union.join(', ')}])`;
     }
 
     if (fn === 'additionalProperties') {
@@ -910,12 +931,13 @@ ${Object.entries(args)
     }
 
     if (fn === 'tuple') {
+      // Add spaces for better readability in tuple definitions
       return `zod.tuple([${(args as ZodValidationSchemaDefinition[])
         .map((x) => {
           const value = x.functions.map((prop) => parseProperty(prop)).join('');
           return `${value.startsWith('.') ? 'zod' : ''}${value}`;
         })
-        .join(',\n')}])`;
+        .join(', ')}])`;
     }
     if (fn === 'rest') {
       return `.rest(zod${(args as ZodValidationSchemaDefinition).functions.map((prop) => parseProperty(prop))})`;

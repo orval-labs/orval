@@ -1081,7 +1081,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testArrayDefaultDefault'],
         ],
         consts: [
-          'export const testArrayDefaultDefault: unknown[] = ["a", "b"];',
+          'export const testArrayDefaultDefault: readonly unknown[] = ["a", "b"] as const;',
         ],
       });
 
@@ -1096,7 +1096,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.array(zod.string()).default(testArrayDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testArrayDefaultDefault: unknown[] = ["a", "b"];',
+        'export const testArrayDefaultDefault: readonly unknown[] = ["a", "b"] as const;',
       );
     });
 
@@ -1149,7 +1149,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testObjectDefaultDefault'],
         ],
         consts: [
-          'export const testObjectDefaultDefault: Record<string, unknown> = { name: "Fluffy", age: 3 };',
+          'export const testObjectDefaultDefault: Record<string, unknown> = { name: "Fluffy", age: 3 } as const satisfies Record<string, unknown>;',
         ],
       });
 
@@ -1164,7 +1164,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.object({\n  "name": zod.string().optional(),\n  "age": zod.number().optional()\n}).default(testObjectDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testObjectDefaultDefault: Record<string, unknown> = { name: "Fluffy", age: 3 };',
+        'export const testObjectDefaultDefault: Record<string, unknown> = { name: "Fluffy", age: 3 } as const satisfies Record<string, unknown>;',
       );
     });
 
@@ -1242,7 +1242,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
 
       expect(result).toEqual({
         functions: [
-          ['enum', "['cat', 'dog']"],
+          ['enum', "['cat', 'dog'] as const satisfies readonly string[]"],
           ['optional', undefined],
         ],
         consts: [],
@@ -1255,7 +1255,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
         false,
       );
-      expect(parsed.zod).toBe("zod.enum(['cat', 'dog']).optional()");
+      expect(parsed.zod).toBe(
+        "zod.enum(['cat', 'dog'] as const satisfies readonly string[]).optional()",
+      );
     });
 
     it('generates an enum for a number', () => {
@@ -1295,7 +1297,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        'zod.union([zod.literal(1),zod.literal(2)]).optional()',
+        'zod.union([zod.literal(1), zod.literal(2)]).optional()',
       );
     });
 
@@ -1336,7 +1338,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        'zod.union([zod.literal(true),zod.literal(false)]).optional()',
+        'zod.union([zod.literal(true), zod.literal(false)]).optional()',
       );
     });
 
@@ -1410,7 +1412,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        "zod.union([zod.literal('cat'),zod.literal(1),zod.literal(true)]).optional()",
+        "zod.union([zod.literal('cat'), zod.literal(1), zod.literal(true)]).optional()",
       );
     });
 
@@ -1438,14 +1440,19 @@ describe('generateZodValidationSchemaDefinition`', () => {
           [
             'array',
             {
-              functions: [['enum', "['A', 'B', 'C']"]],
+              functions: [
+                [
+                  'enum',
+                  "['A', 'B', 'C'] as const satisfies readonly string[]",
+                ],
+              ],
               consts: [],
             },
           ],
           ['default', 'testEnumArrayDefaultDefault'],
         ],
         consts: [
-          'export const testEnumArrayDefaultDefault: readonly unknown[] = ["A"] as const;',
+          'export const testEnumArrayDefaultDefault: readonly string[] = ["A"] as const satisfies readonly string[];',
         ],
       });
 
@@ -1457,10 +1464,10 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        "zod.array(zod.enum(['A', 'B', 'C'])).default(testEnumArrayDefaultDefault)",
+        "zod.array(zod.enum(['A', 'B', 'C'] as const satisfies readonly string[])).default(testEnumArrayDefaultDefault)",
       );
       expect(parsed.consts).toBe(
-        'export const testEnumArrayDefaultDefault: readonly unknown[] = ["A"] as const;',
+        'export const testEnumArrayDefaultDefault: readonly string[] = ["A"] as const satisfies readonly string[];',
       );
     });
 
@@ -2692,7 +2699,7 @@ describe('generateZodWithMultiTypeArray', () => {
 
     // Should create a union of string, number, and boolean, with nullable
     expect(parsed.zod).toBe(
-      'zod.union([zod.string(),zod.number(),zod.boolean()]).nullable()',
+      'zod.union([zod.string(), zod.number(), zod.boolean()]).nullable()',
     );
   });
 
@@ -2726,7 +2733,7 @@ describe('generateZodWithMultiTypeArray', () => {
       false,
     );
 
-    expect(parsed.zod).toBe('zod.union([zod.string(),zod.number()])');
+    expect(parsed.zod).toBe('zod.union([zod.string(), zod.number()])');
   });
 
   it('handles multi-type arrays with optional', () => {
@@ -2760,7 +2767,7 @@ describe('generateZodWithMultiTypeArray', () => {
     );
 
     expect(parsed.zod).toBe(
-      'zod.union([zod.string(),zod.number()]).optional()',
+      'zod.union([zod.string(), zod.number()]).optional()',
     );
   });
 });
