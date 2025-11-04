@@ -2057,7 +2057,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const testParams = zod.object({\n  "id": zod.string()\n})\n\nexport const testQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\nexport const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\nexport const testBody = zod.object({\n  "name": zod.string().optional()\n})\n\nexport const testResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+      'const testParamsInternal = zod.object({\n  "id": zod.string()\n})\n\nexport type TestParams = zod.infer<typeof testParamsInternal>;\n\nexport const testParams: zod.ZodType<TestParams> = testParamsInternal;\n\nconst testQueryParamsInternal = zod.object({\n  "page": zod.number().optional()\n})\n\nexport type TestQueryParams = zod.infer<typeof testQueryParamsInternal>;\n\nexport const testQueryParams: zod.ZodType<TestQueryParams> = testQueryParamsInternal;\n\nconst testHeaderInternal = zod.object({\n  "x-header": zod.string()\n})\n\nexport type TestHeader = zod.infer<typeof testHeaderInternal>;\n\nexport const testHeader: zod.ZodType<TestHeader> = testHeaderInternal;\n\nconst testBodyInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\nconst testResponseInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestResponse = zod.infer<typeof testResponseInternal>;\n\nexport const testResponse: zod.ZodType<TestResponse> = testResponseInternal;\n\n',
     );
   });
 
@@ -2097,7 +2097,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+      'const testResponseInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestResponse = zod.infer<typeof testResponseInternal>;\n\nexport const testResponse: zod.ZodType<TestResponse> = testResponseInternal;\n\n',
     );
   });
 
@@ -2137,7 +2137,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+      'const testBodyInternal = zod.object({\n  "name": zod.string().optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 
@@ -2177,7 +2177,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\n',
+      'const testQueryParamsInternal = zod.object({\n  "page": zod.number().optional()\n})\n\nexport type TestQueryParams = zod.infer<typeof testQueryParamsInternal>;\n\nexport const testQueryParams: zod.ZodType<TestQueryParams> = testQueryParamsInternal;\n\n',
     );
   });
 
@@ -2217,7 +2217,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testParams = zod.object({\n  "id": zod.string()\n})\n\n',
+      'const testParamsInternal = zod.object({\n  "id": zod.string()\n})\n\nexport type TestParams = zod.infer<typeof testParamsInternal>;\n\nexport const testParams: zod.ZodType<TestParams> = testParamsInternal;\n\n',
     );
   });
 
@@ -2257,7 +2257,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
+      'const testHeaderInternal = zod.object({\n  "x-header": zod.string()\n})\n\nexport type TestHeader = zod.infer<typeof testHeaderInternal>;\n\nexport const testHeader: zod.ZodType<TestHeader> = testHeaderInternal;\n\n',
     );
   });
 });
@@ -2457,7 +2457,7 @@ describe('generateFormData', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\n',
+      'const testBodyInternal = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 });
@@ -2551,7 +2551,7 @@ describe('generateZodWithEdgeCases', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
+      'const testBodyInternal = zod.object({\n  "$ref": zod.string().optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 });
@@ -2643,7 +2643,7 @@ describe('generateZodWithLiteralProperty', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
+      'const testBodyInternal = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\nexport type TestBody = zod.infer<typeof testBodyInternal>;\n\nexport const testBody: zod.ZodType<TestBody> = testBodyInternal;\n\n',
     );
   });
 });

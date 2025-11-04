@@ -695,6 +695,27 @@ export const generateZodValidationSchemaDefinition = (
   return { functions, consts: unique(consts) };
 };
 
+/**
+ * Generates an isolated declaration-compatible export for a zod schema.
+ * Creates an internal schema, exports the inferred type, and exports the schema with explicit type.
+ *
+ * @param schemaName - The name of the schema to export
+ * @param zodSchemaExpression - The zod schema expression (e.g., "zod.object({...})")
+ * @returns An array of strings representing the export statements
+ */
+const generateIsolatedDeclarationExport = (
+  schemaName: string,
+  zodSchemaExpression: string,
+): string[] => {
+  const internalName = `${schemaName}Internal`;
+  const typeName = pascal(schemaName);
+  return [
+    `const ${internalName} = ${zodSchemaExpression}`,
+    `export type ${typeName} = zod.infer<typeof ${internalName}>;`,
+    `export const ${schemaName}: zod.ZodType<${typeName}> = ${internalName};`,
+  ];
+};
+
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
   context: ContextSpecs,
@@ -1403,32 +1424,69 @@ const generateZodRoute = async (
     };
   }
 
+  // Helper function to generate isolated declaration exports
+  const generateSchemaExport = (
+    schemaName: string,
+    zodExpression: string,
+  ): string[] => {
+    return generateIsolatedDeclarationExport(schemaName, zodExpression);
+  };
+
+  // Helper function to generate array schema exports with isolated declarations
+  const generateArraySchemaExport = (
+    itemSchemaName: string,
+    arraySchemaName: string,
+    itemZodExpression: string,
+    min?: number,
+    max?: number,
+  ): string[] => {
+    const itemExports = generateSchemaExport(itemSchemaName, itemZodExpression);
+    const constraints: string[] = [];
+    if (min !== undefined) {
+      constraints.push(`.min(${min})`);
+    }
+    if (max !== undefined) {
+      constraints.push(`.max(${max})`);
+    }
+    const arrayConstraints = constraints.join('');
+    const arrayInternalName = `${arraySchemaName}Internal`;
+    const arrayTypeName = pascal(arraySchemaName);
+    const arrayExports = [
+      `const ${arrayInternalName} = zod.array(${itemSchemaName})${arrayConstraints}`,
+      `export type ${arrayTypeName} = zod.infer<typeof ${arrayInternalName}>;`,
+      `export const ${arraySchemaName}: zod.ZodType<${arrayTypeName}> = ${arrayInternalName};`,
+    ];
+    return [...itemExports, ...arrayExports];
+  };
+
   return {
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.zod
-        ? [`export const ${operationName}Params = ${inputParams.zod}`]
+        ? generateSchemaExport(`${operationName}Params`, inputParams.zod)
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.zod
-        ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
+        ? generateSchemaExport(
+            `${operationName}QueryParams`,
+            inputQueryParams.zod,
+          )
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.zod
-        ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
+        ? generateSchemaExport(`${operationName}Header`, inputHeaders.zod)
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
-        ? [
-            parsedBody.isArray
-              ? `export const ${operationName}BodyItem = ${inputBody.zod}
-export const ${operationName}Body = zod.array(${operationName}BodyItem)${
-                  parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
-                }${
-                  parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
-                }`
-              : `export const ${operationName}Body = ${inputBody.zod}`,
-          ]
+        ? parsedBody.isArray
+          ? generateArraySchemaExport(
+              `${operationName}BodyItem`,
+              `${operationName}Body`,
+              inputBody.zod,
+              parsedBody.rules?.min,
+              parsedBody.rules?.max,
+            )
+          : generateSchemaExport(`${operationName}Body`, inputBody.zod)
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
         const operationResponse = camel(
@@ -1437,22 +1495,15 @@ export const ${operationName}Body = zod.array(${operationName}BodyItem)${
         return [
           ...(inputResponse.consts ? [inputResponse.consts] : []),
           ...(inputResponse.zod
-            ? [
-                parsedResponses[index].isArray
-                  ? `export const ${operationResponse}Item = ${
-                      inputResponse.zod
-                    }
-export const ${operationResponse} = zod.array(${operationResponse}Item)${
-                      parsedResponses[index].rules?.min
-                        ? `.min(${parsedResponses[index].rules.min})`
-                        : ''
-                    }${
-                      parsedResponses[index].rules?.max
-                        ? `.max(${parsedResponses[index].rules.max})`
-                        : ''
-                    }`
-                  : `export const ${operationResponse} = ${inputResponse.zod}`,
-              ]
+            ? parsedResponses[index].isArray
+              ? generateArraySchemaExport(
+                  `${operationResponse}Item`,
+                  operationResponse,
+                  inputResponse.zod,
+                  parsedResponses[index].rules?.min,
+                  parsedResponses[index].rules?.max,
+                )
+              : generateSchemaExport(operationResponse, inputResponse.zod)
             : []),
         ];
       }),
