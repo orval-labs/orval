@@ -716,8 +716,7 @@ export interface ContextSpecs {
 }
 
 export interface GlobalOptions {
-  projectName?: string;
-  watch?: boolean | string | (string | boolean)[];
+  watch?: boolean | string | string[];
   clean?: boolean | string[];
   prettier?: boolean;
   biome?: boolean;

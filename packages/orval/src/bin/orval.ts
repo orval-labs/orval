@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import path from 'node:path';
+
 import { Option, program } from '@commander-js/extra-typings';
 import {
   ErrorWithTag,
@@ -11,7 +13,8 @@ import {
 } from '@orval/core';
 
 import pkg from '../../package.json';
-import { generateConfig, generateSpec } from '../generate';
+import { generateSpec } from '../generate-spec';
+import { findConfigFile, loadConfigFile } from '../utils/config';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';
 
@@ -26,17 +29,37 @@ const cli = program
   .version(pkg.version);
 
 cli
-  .option('-o, --output <path>', 'output file destination')
-  .option('-i, --input <path>', 'input file (yaml or json openapi specs)')
-  .option('-c, --config <path>', 'override flags by a config file')
-  .option('-p, --project <name>', 'focus a project of the config')
+  .addOption(
+    new Option('-o, --output <path>', 'output file destination').conflicts([
+      'config',
+      'project',
+    ]),
+  )
+  .addOption(
+    new Option(
+      '-i, --input <path>',
+      'input file (yaml or json openapi specs)',
+    ).conflicts(['config', 'project']),
+  )
+  .addOption(
+    new Option(
+      '-c, --config <path>',
+      'override flags by a config file',
+    ).conflicts(['input', 'output']),
+  )
+  .addOption(
+    new Option(
+      '-p, --project <name>',
+      'focus a project of the config',
+    ).conflicts(['input', 'output']),
+  )
   .addOption(
     new Option('-m, --mode <name>', 'default mode that will be used').choices(
       Object.values(OutputMode),
     ),
   )
   .option(
-    '-w, --watch [path]',
+    '-w, --watch [paths...]',
     'Watch mode, if path is not specified, it watches the input target',
   )
   .addOption(
@@ -45,17 +68,14 @@ cli
     ),
   )
   .option('--mock', 'activate the mock')
-  .option('--clean [path...]', 'Clean output directory')
+  .option('--clean [paths...]', 'Clean output directory')
   .option('--prettier', 'Prettier generated files')
   .option('--biome', 'biome generated files')
   .option('--tsconfig <path>', 'path to your tsconfig file')
   .action(async (options) => {
     log(orvalMessage);
-    if (
-      !options.config &&
-      isString(options.input) &&
-      isString(options.output)
-    ) {
+
+    if (isString(options.input) && isString(options.output)) {
       const normalizedOptions = await normalizeOptions({
         input: options.input,
         output: {
@@ -96,21 +116,61 @@ cli
         }
       }
     } else {
-      await generateConfig(options.config, {
-        projectName: options.project,
-        watch: options.watch,
-        clean: options.clean,
-        prettier: options.prettier,
-        biome: options.biome,
-        mock: options.mock,
-        client: options.client,
-        mode: options.mode,
-        tsconfig: options.tsconfig,
-        input: options.input,
-        output: options.output,
-      });
+      const configFilePath = findConfigFile(options.config);
+      const workspace = path.dirname(configFilePath);
+      const configFile = await loadConfigFile(configFilePath);
+
+      if (
+        isString(options.project) &&
+        !Object.hasOwn(configFile, options.project)
+      ) {
+        logError('Project not found in config', options.project);
+        process.exit(1);
+      }
+
+      const configs = Object.entries(configFile).filter(
+        ([projectName]) =>
+          // only filter by project if specified
+          !isString(options.project) || projectName === options.project,
+      );
+
+      let hasErrors = false;
+      for (const [projectName, config] of configs) {
+        const normalizedOptions = await normalizeOptions(
+          config,
+          workspace,
+          options,
+        );
+
+        if (options.watch === undefined) {
+          try {
+            await generateSpec(workspace, normalizedOptions, projectName);
+          } catch (error) {
+            hasErrors = true;
+            logError(error, projectName);
+          }
+        } else {
+          const fileToWatch = isString(normalizedOptions.input.target)
+            ? normalizedOptions.input.target
+            : undefined;
+
+          await startWatcher(
+            options.watch,
+            async () => {
+              try {
+                await generateSpec(workspace, normalizedOptions, projectName);
+              } catch (error) {
+                logError(error, projectName);
+              }
+            },
+            fileToWatch,
+          );
+        }
+      }
+
+      if (hasErrors)
+        logError('One or more project failed, see above for details');
     }
   });
 
-// TODO when moving to pure ESM change void to await
-void cli.parseAsync(process.argv);
+await cli.parseAsync(process.argv);
