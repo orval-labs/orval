@@ -13,7 +13,7 @@ import {
 } from '@orval/core';
 
 import pkg from '../../package.json';
-import { generateSpec } from '../generate';
+import { generateSpec } from '../generate-spec';
 import { findConfigFile, loadConfigFile } from '../utils/config';
 import { normalizeOptions } from '../utils/options';
 import { startWatcher } from '../utils/watcher';

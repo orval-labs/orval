@@ -1,49 +1,89 @@
 import {
-  getFileInfo,
-  log,
-  type NormalizedOptions,
-  removeFilesAndEmptyFolders,
+  type GlobalOptions,
+  isString,
+  logError,
+  type OptionsExport,
 } from '@orval/core';
 
-import { importSpecs } from './import-specs';
-import { writeSpecs } from './write-specs';
+import { generateSpec } from './generate-spec';
+import { findConfigFile, loadConfigFile } from './utils/config';
+import { normalizeOptions } from './utils/options';
+import { startWatcher } from './utils/watcher';
 
-/**
- * Generate client/spec files for a single Orval project.
- *
- * @param workspace - Absolute or relative workspace path used to resolve imports.
- * @param options - Normalized generation options for this project.
- * @param projectName - Optional project name used in logging output.
- * @returns A promise that resolves once generation (and optional cleaning) completes.
- *
- * @example
- * await generateSpec(process.cwd(), normalizedOptions, 'my-project');
- */
-export async function generateSpec(
-  workspace: string,
-  options: NormalizedOptions,
-  projectName?: string,
+export async function generate(
+  optionsExport?: string | OptionsExport,
+  workspace = process.cwd(),
+  options?: GlobalOptions,
 ) {
-  if (options.output.clean) {
-    const extraPatterns = Array.isArray(options.output.clean)
-      ? options.output.clean
-      : [];
+  if (!optionsExport || isString(optionsExport)) {
+    const configFilePath = findConfigFile(optionsExport);
+    const configFile = await loadConfigFile(configFilePath);
 
-    if (options.output.target) {
-      await removeFilesAndEmptyFolders(
-        ['**/*', '!**/*.d.ts', ...extraPatterns],
-        getFileInfo(options.output.target).dirname,
+    const configs = Object.entries(configFile);
+
+    let hasErrors = false;
+    for (const [projectName, config] of configs) {
+      const normalizedOptions = await normalizeOptions(
+        config,
+        workspace,
+        options,
       );
+
+      if (options?.watch === undefined) {
+        try {
+          await generateSpec(workspace, normalizedOptions, projectName);
+        } catch (error) {
+          hasErrors = true;
+          logError(error, projectName);
+        }
+      } else {
+        const fileToWatch = isString(normalizedOptions.input.target)
+          ? normalizedOptions.input.target
+          : undefined;
+
+        await startWatcher(
+          options.watch,
+          async () => {
+            try {
+              await generateSpec(workspace, normalizedOptions, projectName);
+            } catch (error) {
+              logError(error, projectName);
+            }
+          },
+          fileToWatch,
+        );
+      }
     }
-    if (options.output.schemas) {
-      await removeFilesAndEmptyFolders(
-        ['**/*', '!**/*.d.ts', ...extraPatterns],
-        getFileInfo(options.output.schemas).dirname,
-      );
-    }
-    log(`${projectName} Cleaning output folder`);
+
+    if (hasErrors)
+      logError('One or more project failed, see above for details');
+
+    return;
   }
 
-  const writeSpecBuilder = await importSpecs(workspace, options);
-  await writeSpecs(writeSpecBuilder, workspace, options, projectName);
+  const normalizedOptions = await normalizeOptions(
+    optionsExport,
+    workspace,
+    options,
+  );
+
+  if (options?.watch) {
+    await startWatcher(
+      options.watch,
+      async () => {
+        try {
+          await generateSpec(workspace, normalizedOptions);
+        } catch (error) {
+          logError(error);
+        }
+      },
+      normalizedOptions.input.target as string,
+    );
+  } else {
+    try {
+      await generateSpec(workspace, normalizedOptions);
+    } catch (error) {
+      logError(error);
+    }
+  }
 }
