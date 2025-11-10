@@ -6,8 +6,9 @@ export const baseConfig: UserConfig = {
   platform: 'node',
   format: 'esm',
   tsconfig: 'tsconfig.build.json',
-  dts: {
-    sourcemap: true,
+  dts: true,
+  exports: {
+    // https://tsdown.dev/options/package-exports#dev-exports
+    devExports: true,
   },
-  exports: true,
 };
