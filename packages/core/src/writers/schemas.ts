@@ -1,8 +1,8 @@
 import fs from 'fs-extra';
 
-import { generateImports } from '../generators';
-import { type GeneratorSchema, NamingConvention } from '../types';
-import { conventionName, upath } from '../utils';
+import { generateImports } from '../generators/index.ts';
+import { type GeneratorSchema, NamingConvention } from '../types.ts';
+import { conventionName, upath } from '../utils/index.ts';
 
 const getSchema = ({
   schema: { imports, model },

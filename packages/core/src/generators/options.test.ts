@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateAxiosOptions } from './options';
+import { generateAxiosOptions } from './options.ts';
 
 describe('generateAxiosOptions', () => {
   it('should return "...options"', () => {

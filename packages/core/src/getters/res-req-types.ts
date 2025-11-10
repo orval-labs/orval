@@ -8,18 +8,18 @@ import type {
 } from 'openapi3-ts/oas30';
 import { uniqueBy } from 'remeda';
 
-import { resolveObject } from '../resolvers/object';
-import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
+import { resolveObject } from '../resolvers/object.ts';
+import { resolveExampleRefs, resolveRef } from '../resolvers/ref.ts';
 import {
   type ContextSpecs,
   FormDataArrayHandling,
   type GeneratorImport,
   type ResReqTypesValue,
-} from '../types';
-import { camel } from '../utils';
-import { isReference } from '../utils/assertion';
-import { pascal } from '../utils/case';
-import { getNumberWord } from '../utils/string';
+} from '../types.ts';
+import { isReference } from '../utils/assertion.ts';
+import { pascal } from '../utils/case.ts';
+import { camel } from '../utils/index.ts';
+import { getNumberWord } from '../utils/string.ts';
 
 const formDataContentTypes = new Set(['multipart/form-data']);
 

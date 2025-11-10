@@ -6,8 +6,8 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   NamingConvention,
-} from '../types';
-import { conventionName, upath } from '../utils';
+} from '../types.ts';
+import { conventionName, upath } from '../utils/index.ts';
 
 export const generateImports = ({
   imports = [],

@@ -1,7 +1,7 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
-import { SchemaType, Verbs } from '../types';
-import { extname } from './path';
+import { SchemaType, Verbs } from '../types.ts';
+import { extname } from './path.ts';
 
 /**
  * Discriminator helper for `ReferenceObject`

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isUrl } from './assertion';
+import { isUrl } from './assertion.ts';
 
 describe('assertion testing', () => {
   it('check for valid URLs', () => {

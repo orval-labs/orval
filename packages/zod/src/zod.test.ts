@@ -8,7 +8,7 @@ import {
   generateZodValidationSchemaDefinition,
   parseZodValidationSchemaDefinition,
   type ZodValidationSchemaDefinition,
-} from '.';
+} from './index.ts';
 
 const queryParams: ZodValidationSchemaDefinition = {
   functions: [

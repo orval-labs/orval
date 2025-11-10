@@ -12,7 +12,7 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { importOpenApi } from './import-open-api';
+import { importOpenApi } from './import-open-api.ts';
 
 const resolveSpecs = async (
   path: string,

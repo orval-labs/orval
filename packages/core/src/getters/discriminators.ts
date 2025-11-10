@@ -1,8 +1,8 @@
 import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
 
-import type { ContextSpecs } from '../types';
-import { pascal } from '../utils';
-import { getRefInfo } from './ref';
+import type { ContextSpecs } from '../types.ts';
+import { pascal } from '../utils/index.ts';
+import { getRefInfo } from './ref.ts';
 
 export const resolveDiscriminators = (
   schemas: SchemasObject,
