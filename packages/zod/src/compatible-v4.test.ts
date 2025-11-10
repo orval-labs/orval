@@ -8,7 +8,7 @@ import {
   getZodDateTimeFormat,
   getZodTimeFormat,
   isZodVersionV4,
-} from './compatible-v4';
+} from './compatible-v4.ts';
 
 describe('isZodVersionV4', () => {
   it('should return false when zod is not in package.json', () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { camel, pascal } from './case';
-import { kebab } from './case';
+import { camel, pascal } from './case.ts';
+import { kebab } from './case.ts';
 
 describe('pascal case testing', () => {
   it('should convert to pascal case', () => {

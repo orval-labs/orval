@@ -4,13 +4,13 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
-import { type GeneratorSchema, NamingConvention } from '../types';
+import { type GeneratorSchema, NamingConvention } from '../types.ts';
 import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   splitSchemasByType,
   writeSchemas,
-} from './schemas';
+} from './schemas.ts';
 
 const createMockSchema = (name: string): GeneratorSchema => ({
   name,

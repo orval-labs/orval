@@ -12,7 +12,7 @@ import { generateRequestFunction as generateFetchRequestFunction } from '@orval/
 import {
   generateAxiosRequestFunction,
   getQueryArgumentsRequestType,
-} from '../client';
+} from '../client.ts';
 import type {
   FrameworkAdapterConfig,
   MutationHookBodyContext,
@@ -21,9 +21,9 @@ import type {
   QueryInvocationContext,
   QueryReturnStatementContext,
   QueryReturnTypeContext,
-} from '../framework-adapter';
-import { getQueryOptionsDefinition } from '../query-options';
-import { getQueryTypeForFramework } from '../utils';
+} from '../framework-adapter.ts';
+import { getQueryOptionsDefinition } from '../query-options.ts';
+import { getQueryTypeForFramework } from '../utils.ts';
 
 export const createSvelteAdapter = ({
   hasSvelteQueryV4,

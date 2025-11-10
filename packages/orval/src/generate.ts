@@ -6,10 +6,10 @@ import {
   setVerbose,
 } from '@orval/core';
 
-import { generateSpec } from './generate-spec';
-import { findConfigFile, loadConfigFile } from './utils/config';
-import { normalizeOptions } from './utils/options';
-import { startWatcher } from './utils/watcher';
+import { generateSpec } from './generate-spec.ts';
+import { findConfigFile, loadConfigFile } from './utils/config.ts';
+import { normalizeOptions } from './utils/options.ts';
+import { startWatcher } from './utils/watcher.ts';
 
 export async function generate(
   optionsExport?: string | OptionsExport,

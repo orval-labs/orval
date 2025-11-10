@@ -33,7 +33,7 @@ import {
   getSwrMutationFetcherType,
   getSwrRequestOptions,
   getSwrRequestSecondArg,
-} from './client';
+} from './client.ts';
 
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   {

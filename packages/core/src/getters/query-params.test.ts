@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiParameterObject } from '../types';
-import { getQueryParams } from './query-params';
+import type { ContextSpec, OpenApiParameterObject } from '../types.ts';
+import { getQueryParams } from './query-params.ts';
 
 // Mock context for getQueryParams
 const context: ContextSpec = {

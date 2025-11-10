@@ -5,7 +5,7 @@ import type {
 } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { builder } from './index';
+import { builder } from './index.ts';
 
 describe('throws when trying to use named parameters with vue-query client', () => {
   it('vue-query builder type', () => {

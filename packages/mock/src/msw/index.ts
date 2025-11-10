@@ -13,9 +13,9 @@ import {
   type ResReqTypesValue,
 } from '@orval/core';
 
-import { getDelay } from '../delay';
-import { getRouteMSW, overrideVarName } from '../faker/getters';
-import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
+import { getDelay } from '../delay.ts';
+import { getRouteMSW, overrideVarName } from '../faker/getters/index.ts';
+import { getMockDefinition, getMockOptionsDataOverride } from './mocks.ts';
 
 function getMSWDependencies(
   options?: GlobalMockOptions,

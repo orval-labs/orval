@@ -1,18 +1,18 @@
 import { isArray } from 'remeda';
 
-import { resolveExampleRefs } from '../resolvers';
+import { resolveExampleRefs } from '../resolvers/index.ts';
 import type {
   ContextSpec,
   OpenApiSchemaObject,
   OpenApiSchemaObjectType,
   ScalarValue,
-} from '../types';
-import { escape, isString } from '../utils';
-import { getFormDataFieldFileType } from '../utils/content-type';
-import { getArray } from './array';
-import { combineSchemas } from './combine';
-import type { FormDataContext } from './object';
-import { getObject } from './object';
+} from '../types.ts';
+import { getFormDataFieldFileType } from '../utils/content-type.ts';
+import { escape, isString } from '../utils/index.ts';
+import { getArray } from './array.ts';
+import { combineSchemas } from './combine.ts';
+import type { FormDataContext } from './object.ts';
+import { getObject } from './object.ts';
 
 /** Bridge type for enum values extracted from OpenAPI schemas infected by AnyOtherAttribute */
 type SchemaEnumValue = string | number | boolean | null;

@@ -4,9 +4,9 @@ import type {
   OpenApiResponsesObject,
   OverrideOutputContentType,
   ResReqTypesValue,
-} from '../types';
-import { dedupeUnionType, filterByContentType } from '../utils';
-import { getResReqTypes } from './res-req-types';
+} from '../types.ts';
+import { dedupeUnionType, filterByContentType } from '../utils/index.ts';
+import { getResReqTypes } from './res-req-types.ts';
 
 interface GetResponseOptions {
   responses: OpenApiResponsesObject;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { NormalizedInputOptions } from '../types';
-import { _filteredVerbs } from './verbs-options';
+import type { NormalizedInputOptions } from '../types.ts';
+import { _filteredVerbs } from './verbs-options.ts';
 
 describe('_filteredVerbs', () => {
   it('should return all verbs if filters.tags is undefined', () => {

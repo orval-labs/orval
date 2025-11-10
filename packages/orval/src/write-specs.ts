@@ -26,9 +26,12 @@ import fs from 'fs-extra';
 import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
-import { formatWithPrettier } from './formatters/prettier';
-import { executeHook } from './utils';
-import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
+import { formatWithPrettier } from './formatters/prettier.ts';
+import { executeHook } from './utils/index.ts';
+import {
+  writeZodSchemas,
+  writeZodSchemasFromVerbs,
+} from './write-zod-specs.ts';
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),

@@ -12,7 +12,7 @@ import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { normalizePath } from './options';
+import { normalizePath } from './options.ts';
 
 type CatalogData = Pick<PackageJson, 'catalog' | 'catalogs'>;
 

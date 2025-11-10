@@ -16,9 +16,9 @@ import {
   getHooksOptionImplementation,
   getMutationRequestArgs,
   getQueryErrorType,
-} from './client';
-import type { FrameworkAdapter } from './framework-adapter';
-import { getQueryOptionsDefinition } from './query-options';
+} from './client.ts';
+import type { FrameworkAdapter } from './framework-adapter.ts';
+import { getQueryOptionsDefinition } from './query-options.ts';
 
 type NormalizedTarget = {
   query: string;

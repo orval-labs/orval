@@ -15,7 +15,7 @@ import {
 import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
 import { isNullish } from 'remeda';
 
-import { importOpenApi } from './import-open-api';
+import { importOpenApi } from './import-open-api.ts';
 
 async function resolveSpec(
   input: string | Record<string, unknown>,

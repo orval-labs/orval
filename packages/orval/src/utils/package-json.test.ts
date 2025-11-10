@@ -45,7 +45,7 @@ import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { _resetResolvedCache, loadPackageJson } from './package-json';
+import { _resetResolvedCache, loadPackageJson } from './package-json.ts';
 
 describe('loadPackageJson - catalog resolution', () => {
   beforeEach(() => {

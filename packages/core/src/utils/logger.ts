@@ -2,7 +2,7 @@ import readline from 'node:readline';
 
 import chalk from 'chalk';
 
-import { isString } from './assertion';
+import { isString } from './assertion.ts';
 
 export const log = console.log;
 

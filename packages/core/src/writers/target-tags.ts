@@ -5,8 +5,8 @@ import {
   type NormalizedOutputOptions,
   OutputClient,
   type WriteSpecBuilder,
-} from '../types';
-import { compareVersions, kebab, pascal } from '../utils';
+} from '../types.ts';
+import { compareVersions, kebab, pascal } from '../utils/index.ts';
 
 function addDefaultTagIfEmpty(operation: GeneratorOperation) {
   return {

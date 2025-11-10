@@ -4,8 +4,8 @@ import type {
   ContextSpec,
   InputFiltersOptions,
   OpenApiSchemasObject,
-} from '../types';
-import { generateSchemasDefinition } from './schema-definition';
+} from '../types.ts';
+import { generateSchemasDefinition } from './schema-definition.ts';
 
 describe('generateSchemasDefinition', () => {
   const context: ContextSpec = {

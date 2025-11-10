@@ -5,8 +5,8 @@ import type {
   GetterQueryParam,
   OpenApiReferenceObject,
   OpenApiRequestBodyObject,
-} from '../types';
-import { getProps } from './props';
+} from '../types.ts';
+import { getProps } from './props.ts';
 
 describe('getProps', () => {
   it('should make props required when optionsParamRequired is true', () => {

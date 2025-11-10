@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiComponentsObject } from '../types';
-import { generateParameterDefinition } from './parameter-definition';
+import type { ContextSpec, OpenApiComponentsObject } from '../types.ts';
+import { generateParameterDefinition } from './parameter-definition.ts';
 
 describe('generateParameterDefinition', () => {
   const context: ContextSpec = {

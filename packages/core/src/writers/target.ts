@@ -4,8 +4,8 @@ import {
   type NormalizedOutputOptions,
   OutputClient,
   type WriteSpecBuilder,
-} from '../types';
-import { compareVersions, pascal } from '../utils';
+} from '../types.ts';
+import { compareVersions, pascal } from '../utils/index.ts';
 
 export function generateTarget(
   builder: WriteSpecBuilder,

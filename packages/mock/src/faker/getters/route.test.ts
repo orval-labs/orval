@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getRouteMSW } from './route';
+import { getRouteMSW } from './route.ts';
 
 describe('getRoute getter', () => {
   for (const [input, expected] of [

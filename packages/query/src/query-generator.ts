@@ -20,15 +20,19 @@ import {
   Verbs,
 } from '@orval/core';
 
-import { getHookOptions, getQueryErrorType, getQueryOptions } from './client';
-import type { FrameworkAdapter } from './framework-adapter';
-import { generateMutationHook } from './mutation-generator';
+import {
+  getHookOptions,
+  getQueryErrorType,
+  getQueryOptions,
+} from './client.ts';
+import type { FrameworkAdapter } from './framework-adapter.ts';
+import { generateMutationHook } from './mutation-generator.ts';
 import {
   generateQueryOptions,
   getQueryOptionsDefinition,
   QueryType,
-} from './query-options';
-import { getHasSignal } from './utils';
+} from './query-options.ts';
+import { getHasSignal } from './utils.ts';
 
 const getQueryFnArguments = ({
   hasQueryParam,

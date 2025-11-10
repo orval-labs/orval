@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, OpenApiSchemaObject } from '../types';
-import { combineSchemas } from './combine';
+import type { ContextSpec, OpenApiSchemaObject } from '../types.ts';
+import { combineSchemas } from './combine.ts';
 
 const petSchema: OpenApiSchemaObject = {
   type: 'object',

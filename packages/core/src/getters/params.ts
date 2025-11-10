@@ -1,11 +1,11 @@
-import { resolveValue } from '../resolvers';
+import { resolveValue } from '../resolvers/index.ts';
 import type {
   ContextSpec,
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
-} from '../types';
-import { camel, sanitize, stringify } from '../utils';
+} from '../types.ts';
+import { camel, sanitize, stringify } from '../utils/index.ts';
 
 /**
  * Return every params in a path
