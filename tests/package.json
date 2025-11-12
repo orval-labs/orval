@@ -27,8 +27,8 @@
     "nuke": "rimraf .turbo dist generated .yarn node_modules"
   },
   "devDependencies": {
-    "@angular/common": "^20.3.0",
-    "@angular/core": "^20.3.0",
+    "@angular/common": "catalog:angular",
+    "@angular/core": "catalog:angular",
     "@faker-js/faker": "^10.1.0",
     "@hono/zod-validator": "^0.7.4",
     "@modelcontextprotocol/sdk": "1.20.2",

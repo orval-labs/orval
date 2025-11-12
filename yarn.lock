@@ -8882,10 +8882,10 @@ __metadata:
   dependencies:
     "@angular/build": "npm:^20.3.1"
     "@angular/cli": "npm:^20.3.1"
-    "@angular/common": "npm:^20.3.0"
+    "@angular/common": "catalog:angular"
     "@angular/compiler": "npm:^20.3.0"
     "@angular/compiler-cli": "npm:^20.3.2"
-    "@angular/core": "npm:^20.3.0"
+    "@angular/core": "catalog:angular"
     "@angular/forms": "npm:^20.3.0"
     "@angular/platform-browser": "npm:^20.3.0"
     "@angular/router": "npm:^20.3.9"
@@ -18488,8 +18488,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "orval-tests@workspace:tests"
   dependencies:
-    "@angular/common": "npm:^20.3.0"
-    "@angular/core": "npm:^20.3.0"
+    "@angular/common": "catalog:angular"
+    "@angular/core": "catalog:angular"
     "@faker-js/faker": "npm:^10.1.0"
     "@hono/zod-validator": "npm:^0.7.4"
     "@modelcontextprotocol/sdk": "npm:1.20.2"
