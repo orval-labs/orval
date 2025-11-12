@@ -1,24 +1,9 @@
 {
+  "extends": "../tsconfig.base.json",
   "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
   "compilerOptions": {
-    "skipLibCheck": true,
-    "target": "es6",
-    "module": "preserve",
-    "lib": ["es2019", "dom", "es2016.array.include", "es2017.object"],
-    "declaration": true,
-    "declarationMap": true,
-    "downlevelIteration": true,
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": false,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "inlineSourceMap": true,
-    "resolveJsonModule": true,
-    "experimentalDecorators": true,
-    "outDir": "./dist"
+    "lib": ["ESNext", "DOM"],
+    "verbatimModuleSyntax": false,
+    "noEmit": true
   }
 }
