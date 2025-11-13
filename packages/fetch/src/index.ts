@@ -260,12 +260,9 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       // Remove the headers from the object going into globalFetchOptions
       delete globalFetchOptionsObject.headers;
       // Add it to the dedicated headers object
-      const stringifiedHeaders = stringify(override.requestOptions.headers)
-        ?.slice(1, -1) // Remove enclosing braces
-        .trim() // Remove possible leading/trailing spaces
-        .slice(0, -1); // Remove trailing comma
+      const stringifiedHeaders = stringify(override.requestOptions.headers);
       if (stringifiedHeaders) {
-        headersToAdd.push(stringifiedHeaders);
+        headersToAdd.push('...' + stringifiedHeaders);
       }
     }
     globalFetchOptions = stringify(globalFetchOptionsObject)
