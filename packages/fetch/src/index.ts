@@ -232,9 +232,6 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `Promise<${successName}>`
       : `Promise<${responseTypeName}>`;
 
-  const globalFetchOptions = isObject(override.requestOptions)
-    ? stringify(override.requestOptions)?.slice(1, -1).trim()
-    : '';
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];
   const headersToAdd: string[] = [
@@ -252,6 +249,31 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       : []),
     ...(headers ? ['...headers'] : []),
   ];
+
+  let globalFetchOptions;
+  if (isObject(override.requestOptions)) {
+    // If both requestOptions and fetchHeadersOptions will be adding a header, we must merge them to avoid multiple properties with the same name
+    const shouldMergeFetchOptionHeaders =
+      headersToAdd.length > 0 && 'headers' in override.requestOptions;
+    const globalFetchOptionsObject = { ...override.requestOptions };
+    if (shouldMergeFetchOptionHeaders && override.requestOptions.headers) {
+      // Remove the headers from the object going into globalFetchOptions
+      delete globalFetchOptionsObject.headers;
+      // Add it to the dedicated headers object
+      const stringifiedHeaders = stringify(override.requestOptions.headers)
+        ?.slice(1, -1) // Remove enclosing braces
+        .trim() // Remove possible leading/trailing spaces
+        .slice(0, -1); // Remove trailing comma
+      if (stringifiedHeaders) {
+        headersToAdd.push(stringifiedHeaders);
+      }
+    }
+    globalFetchOptions = stringify(globalFetchOptionsObject)
+      ?.slice(1, -1)
+      .trim();
+  } else {
+    globalFetchOptions = '';
+  }
   const fetchHeadersOption =
     headersToAdd.length > 0
       ? `headers: { ${headersToAdd.join(',')}, ...options?.headers }`
@@ -268,7 +290,6 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? `body: ${requestBodyParams}`
       : `body: JSON.stringify(${requestBodyParams})`
     : '';
-
   const fetchFnOptions = `${getUrlFnName}(${getUrlFnProperties}),
   {${globalFetchOptions ? '\n' : ''}      ${globalFetchOptions}
     ${isRequestOptions ? '...options,' : ''}
