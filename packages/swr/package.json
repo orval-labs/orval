@@ -25,9 +25,9 @@
     "@orval/fetch": "workspace:*"
   },
   "devDependencies": {
-    "eslint": "^9.38.0",
-    "rimraf": "^6.0.1",
-    "tsdown": "^0.15.9"
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:"
   },
   "stableVersion": "8.0.0-rc.0"
 }
