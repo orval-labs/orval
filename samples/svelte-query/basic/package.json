@@ -21,11 +21,11 @@
     "@faker-js/faker": "^10.1.0",
     "@sveltejs/adapter-auto": "^2.1.1",
     "@sveltejs/kit": "^1.30.4",
-    "@typescript-eslint/eslint-plugin": "^8.46.2",
-    "@typescript-eslint/parser": "^8.46.2",
-    "eslint": "^9.38.0",
+    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/parser": "^8.46.4",
+    "eslint": "^9.39.1",
     "eslint-plugin-svelte3": "^4.0.0",
-    "msw": "^2.11.6",
+    "msw": "^2.12.1",
     "orval": "workspace:*",
     "svelte": "^5.43.2",
     "svelte-check": "^3.8.6",
@@ -35,7 +35,7 @@
   },
   "dependencies": {
     "@tanstack/svelte-query": "^4.41.0",
-    "axios": "^1.13.1"
+    "axios": "^1.13.2"
   },
   "dependenciesMeta": {
     "msw": {

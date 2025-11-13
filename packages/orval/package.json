@@ -84,7 +84,7 @@
     "@orval/zod": "workspace:*",
     "chalk": "^5.6.2",
     "chokidar": "^4.0.3",
-    "commander": "^14.0.1",
+    "commander": "^14.0.2",
     "enquirer": "^2.4.1",
     "execa": "^9.6.0",
     "find-up": "8.0.0",

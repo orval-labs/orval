@@ -42,7 +42,7 @@
     "chalk": "^5.6.2",
     "compare-versions": "^6.1.1",
     "debug": "^4.4.3",
-    "esbuild": "^0.25.11",
+    "esbuild": "^0.27.0",
     "esutils": "2.0.3",
     "fs-extra": "^11.3.2",
     "globby": "15.0.0",
