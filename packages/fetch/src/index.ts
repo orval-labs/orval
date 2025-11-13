@@ -262,7 +262,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       // Add it to the dedicated headers object
       const stringifiedHeaders = stringify(override.requestOptions.headers);
       if (stringifiedHeaders) {
-        headersToAdd.push('...' + stringifiedHeaders);
+        headersToAdd.unshift('...' + stringifiedHeaders);
       }
     }
     globalFetchOptions = stringify(globalFetchOptionsObject)
