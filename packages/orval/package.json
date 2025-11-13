@@ -9,7 +9,7 @@
     "!dist/**/*.d.ts.map",
     "!dist/**/*.d.mts.map"
   ],
-  "bin": "./dist/bin/orval.js",
+  "bin": "./dist/bin/orval.mjs",
   "exports": {
     ".": {
       "types": "./dist/index.d.mts",
