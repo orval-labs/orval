@@ -1,8 +1,9 @@
-import type { Options } from 'tsdown';
+import type { UserConfig } from 'tsdown';
 
-export const baseOptions: Options = {
+export const baseConfig: UserConfig = {
   entry: ['src/index.ts'],
   target: 'node22.18',
+  platform: 'node',
   format: 'esm',
   tsconfig: 'tsconfig.build.json',
   dts: {

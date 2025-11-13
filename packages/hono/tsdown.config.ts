@@ -1,8 +1,8 @@
 import { defineConfig } from 'tsdown';
 
-import { baseOptions } from '../tsdown.base';
+import { baseConfig } from '../tsdown.base';
 
 export default defineConfig({
-  ...baseOptions,
+  ...baseConfig,
   copy: ['src/zValidator.ts'],
 });
