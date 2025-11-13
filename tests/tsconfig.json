@@ -19,6 +19,7 @@
     "inlineSourceMap": true,
     "resolveJsonModule": true,
     "experimentalDecorators": true,
+    "isolatedDeclarations": true,
     "outDir": "./dist"
   }
 }
