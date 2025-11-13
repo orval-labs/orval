@@ -14,8 +14,8 @@
     "!dist/**/*.d.ts.map"
   ],
   "scripts": {
-    "build": "tsdown --config-loader unconfig",
-    "dev": "tsdown --config-loader unconfig --watch src",
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
     "test": "vitest",
     "clean": "rimraf .turbo dist",

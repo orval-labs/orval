@@ -51,8 +51,8 @@
     "url": "git+https://github.com/orval-labs/orval.git"
   },
   "scripts": {
-    "build": "tsdown --config-loader unconfig",
-    "dev": "tsdown --config-loader unconfig --watch src --onSuccess 'yarn generate-api'",
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint .",
     "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
     "test": "tsc --noEmit && vitest",
