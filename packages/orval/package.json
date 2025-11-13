@@ -6,7 +6,8 @@
   "type": "module",
   "files": [
     "dist",
-    "!dist/**/*.d.ts.map"
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
   ],
   "bin": "./dist/bin/orval.js",
   "exports": {
