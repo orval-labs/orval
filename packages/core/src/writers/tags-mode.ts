@@ -75,7 +75,7 @@ export const writeTagsMode = async ({
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
           hasTagsMutator: Object.values(output.override.tags).some(
-            (tag) => !!tag.mutator,
+            (tag) => !!tag?.mutator,
           ),
           hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
           packageJson: output.packageJson,

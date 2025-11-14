@@ -75,7 +75,7 @@ export const writeSingleMode = async ({
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
       hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag.mutator,
+        (tag) => !!tag?.mutator,
       ),
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
@@ -145,8 +145,9 @@ export const writeSingleMode = async ({
 
     return [path];
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'unknown error';
     throw new Error(
-      `Oups... 🍻. An Error occurred while writing file => ${error}`,
+      `Oups... 🍻. An Error occurred while writing file => ${errorMsg}`,
     );
   }
 };
