@@ -5,17 +5,18 @@
   "type": "module",
   "exports": {
     "import": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     }
   },
   "files": [
     "dist",
-    "!dist/**/*.d.ts.map"
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
   ],
   "scripts": {
-    "build": "tsdown --config-loader unconfig",
-    "dev": "tsdown --config-loader unconfig --watch src",
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
     "lint": "tsc --noEmit src/zValidator.ts && eslint .",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
