@@ -1,6 +1,6 @@
 {
   "name": "@orval/swr",
-  "version": "8.0.0-rc.1",
+  "version": "8.0.0-rc.2",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -30,5 +30,5 @@
     "rimraf": "catalog:",
     "tsdown": "catalog:"
   },
-  "stableVersion": "8.0.0-rc.0"
+  "stableVersion": "8.0.0-rc.1"
 }
