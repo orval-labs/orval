@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "8.0.0-rc.1",
+  "version": "8.0.0-rc.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -18,5 +18,5 @@
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
-  "stableVersion": "8.0.0-rc.0"
+  "stableVersion": "8.0.0-rc.1"
 }

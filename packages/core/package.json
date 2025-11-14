@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "8.0.0-rc.1",
+  "version": "8.0.0-rc.2",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -52,5 +52,5 @@
     "swagger2openapi": "^7.0.8",
     "typedoc": "^0.28.14"
   },
-  "stableVersion": "8.0.0-rc.0"
+  "stableVersion": "8.0.0-rc.1"
 }
