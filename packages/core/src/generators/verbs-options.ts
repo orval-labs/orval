@@ -71,7 +71,7 @@ const generateVerbOptions = async ({
     output.override.tags,
   ).reduce<NormalizedOperationOptions>(
     (acc, [tag, options]) =>
-      tags.includes(tag) ? mergeDeep(acc, options) : acc,
+      tags.includes(tag) && options ? mergeDeep(acc, options) : acc,
     {},
   );
 
@@ -81,7 +81,7 @@ const generateVerbOptions = async ({
   );
 
   const overrideOperationName =
-    overrideOperation?.operationName || output.override?.operationName;
+    overrideOperation?.operationName ?? output.override.operationName;
   const operationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
     : sanitize(camel(operationId), { es5keyword: true });
@@ -112,7 +112,7 @@ const generateVerbOptions = async ({
   });
 
   const headers = output.headers
-    ? await getQueryParams({
+    ? getQueryParams({
         queryParams: parameters.header,
         operationName,
         context,
@@ -140,7 +140,7 @@ const generateVerbOptions = async ({
   const mutator = await generateMutator({
     output: output.target,
     name: operationName,
-    mutator: override?.mutator,
+    mutator: override.mutator,
     workspace: context.workspace,
     tsconfig: context.output.tsconfig,
   });
@@ -157,7 +157,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const formUrlEncoded =
-    isString(override?.formUrlEncoded) || isObject(override?.formUrlEncoded)
+    isString(override.formUrlEncoded) || isObject(override.formUrlEncoded)
       ? await generateMutator({
           output: output.target,
           name: operationName,
@@ -168,7 +168,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const paramsSerializer =
-    isString(override?.paramsSerializer) || isObject(override?.paramsSerializer)
+    isString(override.paramsSerializer) || isObject(override.paramsSerializer)
       ? await generateMutator({
           output: output.target,
           name: 'paramsSerializer',
@@ -179,8 +179,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const fetchReviver =
-    isString(override?.fetch.jsonReviver) ||
-    isObject(override?.fetch.jsonReviver)
+    isString(override.fetch.jsonReviver) || isObject(override.fetch.jsonReviver)
       ? await generateMutator({
           output: output.target,
           name: 'fetchReviver',
@@ -197,7 +196,7 @@ const generateVerbOptions = async ({
     route,
     pathRoute,
     summary: operation.summary,
-    operationId: operationId!,
+    operationId,
     operationName,
     response,
     body,
@@ -217,7 +216,7 @@ const generateVerbOptions = async ({
   };
 
   const transformer = await dynamicImport(
-    override?.transformer,
+    override.transformer,
     context.workspace,
   );
 
@@ -270,11 +269,11 @@ export const _filteredVerbs = (
   }
 
   const filterTags = filters.tags || [];
-  const filterMode = filters.mode || 'include';
+  const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
-    ([_verb, operation]: [string, OperationObject]) => {
-      const operationTags = operation.tags || [];
+    ([, operation]: [string, OperationObject]) => {
+      const operationTags = operation.tags ?? [];
 
       const isMatch = operationTags.some((tag) =>
         filterTags.some((filterTag) =>

@@ -2,6 +2,7 @@ import path from 'node:path';
 
 import { type ecmaVersion, Parser, type Program } from 'acorn';
 import { build, type BuildOptions } from 'esbuild';
+import { isArray } from 'remeda';
 
 import type {
   GeneratorMutatorParsingInfo,
@@ -101,7 +102,9 @@ function parseFunction(
 ): GeneratorMutatorParsingInfo | undefined {
   const node = ast.body.find((childNode) => {
     if (childNode.type === 'VariableDeclaration') {
-      return childNode.declarations.find((d) => d.id.name === funcName);
+      return childNode.declarations.find(
+        (d) => d.id.type === 'Identifier' && d.id.name === funcName,
+      );
     }
     if (
       childNode.type === 'FunctionDeclaration' &&
@@ -121,7 +124,7 @@ function parseFunction(
     );
 
     // If the function directly returns an arrow function
-    if (returnStatement?.argument?.params) {
+    if (returnStatement?.argument && 'params' in returnStatement.argument) {
       return {
         numberOfParams: node.params.length,
         returnNumberOfParams: returnStatement.argument.params.length,
@@ -141,42 +144,59 @@ function parseFunction(
     };
   }
 
-  const declaration = node.declarations.find((d) => d.id.name === funcName);
+  const declaration =
+    'declarations' in node
+      ? node.declarations.find(
+          (d) => d.id.type === 'Identifier' && d.id.name === funcName,
+        )
+      : undefined;
 
-  if (declaration.init.name) {
-    return parseFunction(ast, declaration.init.name);
+  if (declaration?.init) {
+    if ('name' in declaration.init) {
+      return parseFunction(ast, declaration.init.name);
+    }
+
+    if (
+      'body' in declaration.init &&
+      'params' in declaration.init &&
+      declaration.init.body.type === 'ArrowFunctionExpression'
+    ) {
+      return {
+        numberOfParams: declaration.init.params.length,
+        returnNumberOfParams: declaration.init.body.params.length,
+      };
+    }
+
+    const returnStatement =
+      'body' in declaration.init &&
+      'body' in declaration.init.body &&
+      isArray(declaration.init.body.body)
+        ? declaration.init.body.body.find((b) => b.type === 'ReturnStatement')
+        : undefined;
+
+    if ('params' in declaration.init) {
+      if (returnStatement?.argument && 'params' in returnStatement.argument) {
+        return {
+          numberOfParams: declaration.init.params.length,
+          returnNumberOfParams: returnStatement.argument.params.length,
+        };
+      } else if (
+        returnStatement?.argument?.type === 'CallExpression' &&
+        returnStatement.argument.arguments[0]?.type ===
+          'ArrowFunctionExpression'
+      ) {
+        const arrowFn = returnStatement.argument.arguments[0];
+        return {
+          numberOfParams: declaration.init.params.length,
+          returnNumberOfParams: arrowFn.params.length,
+        };
+      }
+
+      return {
+        numberOfParams: declaration.init.params.length,
+      };
+    }
   }
-
-  if (declaration.init.body.type === 'ArrowFunctionExpression') {
-    return {
-      numberOfParams: declaration.init.params.length,
-      returnNumberOfParams: declaration.init.body.params.length,
-    };
-  }
-
-  const returnStatement = declaration.init.body?.body?.find(
-    (b: any) => b.type === 'ReturnStatement',
-  );
-
-  if (returnStatement?.argument?.params) {
-    return {
-      numberOfParams: declaration.init.params.length,
-      returnNumberOfParams: returnStatement.argument.params.length,
-    };
-  } else if (
-    returnStatement?.argument?.type === 'CallExpression' &&
-    returnStatement.argument.arguments?.[0]?.type === 'ArrowFunctionExpression'
-  ) {
-    const arrowFn = returnStatement.argument.arguments[0];
-    return {
-      numberOfParams: declaration.init.params.length,
-      returnNumberOfParams: arrowFn.params.length,
-    };
-  }
-
-  return {
-    numberOfParams: declaration.init.params.length,
-  };
 }
 
 function getEcmaVersion(target?: TsConfigTarget): ecmaVersion | undefined {
