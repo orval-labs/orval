@@ -1,5 +1,6 @@
 import type SwaggerParser from '@apidevtools/swagger-parser';
 import type { allLocales } from '@faker-js/faker';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import type { JSONSchema6, JSONSchema7 } from 'json-schema';
 import type {
   InfoObject,
@@ -1223,3 +1224,6 @@ export class ErrorWithTag extends Error {
     this.tag = tag;
   }
 }
+
+// OpenAPI type alias. Intended to make it easy to swap to OpenAPI v3.2 in the future
+export type OpenApiDocument = OpenAPIV3_1.Document;

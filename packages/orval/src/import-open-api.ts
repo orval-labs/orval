@@ -14,21 +14,21 @@ import {
   isSchema,
   type NormalizedOutputOptions,
   openApiConverter,
+  type OpenApiDocument,
   upath,
   type WriteSpecsBuilder,
 } from '@orval/core';
-import type { JSONSchema6, JSONSchema7 } from 'json-schema';
 import type { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
 
 import { getApiBuilder } from './api';
 
-export const importOpenApi = async ({
+export async function importOpenApi({
   data,
   input,
   output,
   target,
   workspace,
-}: ImportOpenApi): Promise<WriteSpecsBuilder> => {
+}: ImportOpenApi): Promise<WriteSpecsBuilder> {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
 
   const schemas = getApiSchemas({ input, output, target, workspace, specs });
@@ -54,17 +54,17 @@ export const importOpenApi = async ({
     target,
     info: specs[target].info,
   };
-};
+}
 
-const generateInputSpecs = async ({
+async function generateInputSpecs({
   specs,
   input,
   workspace,
 }: {
-  specs: JSONSchema6 | JSONSchema7 | Record<string, OpenAPIObject | unknown>;
+  specs: OpenApiDocument;
   input: InputOptions;
   workspace: string;
-}): Promise<Record<string, OpenAPIObject>> => {
+}): Promise<Record<string, OpenAPIObject>> {
   const transformerFn = input.override?.transformer
     ? await dynamicImport(input.override.transformer, workspace)
     : undefined;
@@ -78,19 +78,19 @@ const generateInputSpecs = async ({
         specKey,
       );
 
-      const transfomedSchema = transformerFn ? transformerFn(schema) : schema;
+      const transformedSchema = transformerFn ? transformerFn(schema) : schema;
 
       if (input.validation) {
-        await ibmOpenapiValidator(transfomedSchema, input.validation);
+        await ibmOpenapiValidator(transformedSchema, input.validation);
       }
 
-      acc[specKey] = transfomedSchema;
+      acc[specKey] = transformedSchema;
 
       return acc;
     },
     {} as Record<string, OpenAPIObject>,
   );
-};
+}
 
 const getApiSchemas = ({
   input,
