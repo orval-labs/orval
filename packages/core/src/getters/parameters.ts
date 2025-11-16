@@ -1,8 +1,8 @@
 import type { ParameterObject, ReferenceObject } from 'openapi3-ts/oas30';
 
-import { resolveRef } from '../resolvers/ref';
-import type { ContextSpecs, GetterParameters } from '../types';
-import { isReference } from '../utils';
+import { resolveRef } from '../resolvers/ref.ts';
+import type { ContextSpecs, GetterParameters } from '../types.ts';
+import { isReference } from '../utils/index.ts';
 
 export const getParameters = ({
   parameters = [],

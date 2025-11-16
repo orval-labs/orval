@@ -6,7 +6,7 @@ import type { OpenAPIObject } from 'openapi3-ts/oas30';
 import {
   ibmOpenapiValidatorErrors,
   ibmOpenapiValidatorWarnings,
-} from './logger';
+} from './logger.ts';
 
 /**
  * Validate the spec with ibm-openapi-validator (with a custom pretty logger).

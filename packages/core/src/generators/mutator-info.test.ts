@@ -17,8 +17,8 @@ import {
   nestedLambda1Param,
   nestedLambda2Param,
   nestedLambda3Param,
-} from './__tests__/mutator-test-files/named-export-tests';
-import { getMutatorInfo } from './mutator-info';
+} from './__tests__/mutator-test-files/named-export-tests.ts';
+import { getMutatorInfo } from './mutator-info.ts';
 
 const basePath = path.join(import.meta.dirname, '__tests__/mutator-test-files');
 

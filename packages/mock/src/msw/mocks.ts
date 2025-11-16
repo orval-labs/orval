@@ -12,7 +12,7 @@ import {
 } from '@orval/core';
 import type { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
 
-import { getMockScalar } from '../faker/getters';
+import { getMockScalar } from '../faker/getters/index.ts';
 
 const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
   Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<

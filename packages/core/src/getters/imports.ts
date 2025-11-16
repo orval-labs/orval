@@ -1,6 +1,6 @@
-import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
-import { pascal } from '../utils';
-import { getSpecName } from '../utils/path';
+import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types.ts';
+import { pascal } from '../utils/index.ts';
+import { getSpecName } from '../utils/path.ts';
 
 export const getAliasedImports = ({
   name,

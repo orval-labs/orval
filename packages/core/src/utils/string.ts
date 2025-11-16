@@ -7,7 +7,7 @@ import {
   isNumber,
   isString,
   isUndefined,
-} from './assertion';
+} from './assertion.ts';
 
 export const stringify = (
   data?: string | any[] | Record<string, any>,

@@ -24,7 +24,7 @@ import {
   makeRouteSafe,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
-} from './utils';
+} from './utils.ts';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   {

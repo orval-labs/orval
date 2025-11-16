@@ -1,8 +1,8 @@
 import type { ComponentsObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs } from '../types';
-import { generateParameterDefinition } from './parameter-definition';
+import type { ContextSpecs } from '../types.ts';
+import { generateParameterDefinition } from './parameter-definition.ts';
 
 describe('generateParameterDefinition', () => {
   const context: ContextSpecs = {

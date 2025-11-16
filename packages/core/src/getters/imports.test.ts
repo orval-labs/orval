@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
+import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types.ts';
 import {
   getAliasedImports,
   getImportAliasForRefOrValue,
   needCreateImportAlias,
-} from './imports';
+} from './imports.ts';
 
 const baseContext: Omit<ContextSpecs, 'output'> = {
   specKey: 'spec',

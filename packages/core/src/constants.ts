@@ -1,4 +1,4 @@
-import { Verbs } from './types';
+import { Verbs } from './types.ts';
 
 export const generalJSTypes = [
   'number',

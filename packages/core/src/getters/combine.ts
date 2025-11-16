@@ -1,22 +1,22 @@
 import type { SchemaObject } from 'openapi3-ts/oas30';
 import { unique } from 'remeda';
 
-import { resolveExampleRefs, resolveObject } from '../resolvers';
+import { resolveExampleRefs, resolveObject } from '../resolvers/index.ts';
 import {
   type ContextSpecs,
   type GeneratorImport,
   type GeneratorSchema,
   type ScalarValue,
   SchemaType,
-} from '../types';
-import { getNumberWord, isSchema, pascal } from '../utils';
+} from '../types.ts';
+import { getNumberWord, isSchema, pascal } from '../utils/index.ts';
 import {
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
-} from './enum';
-import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import { getScalar } from './scalar';
+} from './enum.ts';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports.ts';
+import { getScalar } from './scalar.ts';
 
 type CombinedData = {
   imports: GeneratorImport[];
