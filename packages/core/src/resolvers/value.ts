@@ -43,8 +43,10 @@ export const resolveValue = ({
       hasReadonlyProps = scalar.hasReadonlyProps;
     }
 
+    const nullable = schemaObject.nullable ? ' | null' : '';
+
     return {
-      value: resolvedImport.name,
+      value: resolvedImport.name + nullable,
       imports: [
         {
           name: resolvedImport.name,

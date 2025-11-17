@@ -101,9 +101,15 @@ function getSchema<Schema extends ComponentObject = ComponentObject>(
   if (isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);
   }
-  const currentSchema = schemaByRefPaths
+
+  let currentSchema = schemaByRefPaths
     ? schemaByRefPaths
     : (context.specs[specKey || context.specKey] as unknown as Schema);
+
+  if ('nullable' in schema) {
+    currentSchema = { ...currentSchema, nullable: schema.nullable } as Schema;
+  }
+
   return {
     currentSchema,
     refInfo,
