@@ -6985,10 +6985,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tsconfig/svelte@npm:^5.0.5":
-  version: 5.0.5
-  resolution: "@tsconfig/svelte@npm:5.0.5"
-  checksum: 10c0/2dc33d4f9d16aca01ad8add95ace069e89c9347d6fff0609be5ceab6d227c9377a3ac7c827a77beafc138e1ff467df48aac0080f9173a906eeff31331ebf0c6c
+"@tsconfig/svelte@npm:^5.0.6":
+  version: 5.0.6
+  resolution: "@tsconfig/svelte@npm:5.0.6"
+  checksum: 10c0/0b382dd946e516271a97ee72c513bc509a5fd8f2d7ba9b315cf4b8d85a1796f4e043fd8e2a01c90b652e528a7cfd243f65ef373c18299a90872f602c5f93683e
   languageName: node
   linkType: hard
 
@@ -23070,7 +23070,7 @@ __metadata:
     "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
     "@sveltestack/svelte-query": "npm:^1.6.0"
     "@tanstack/svelte-query": "npm:^4.41.0"
-    "@tsconfig/svelte": "npm:^5.0.5"
+    "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
     svelte: "npm:^5.43.2"
     svelte-check: "npm:^3.8.6"
