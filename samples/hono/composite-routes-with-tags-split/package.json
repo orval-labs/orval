@@ -15,7 +15,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20251117.0",
     "orval": "workspace:*",
-    "wrangler": "^3.114.14"
+    "wrangler": "^4.47.0"
   },
   "stableVersion": "8.0.0-rc.1"
 }
