@@ -27,7 +27,7 @@
     "typescript": "~5.9.3",
     "vite": "^7.1.12",
     "vitest": "^4.0.8",
-    "vue-tsc": "^3.1.1"
+    "vue-tsc": "^3.1.4"
   },
   "dependenciesMeta": {
     "msw": {
