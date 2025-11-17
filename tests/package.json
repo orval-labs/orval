@@ -33,7 +33,7 @@
     "@hono/zod-validator": "^0.7.4",
     "@modelcontextprotocol/sdk": "1.20.2",
     "@tanstack/react-query": "~5.62.16",
-    "@tanstack/svelte-query": "^4.41.0",
+    "@tanstack/svelte-query": "^6.0.8",
     "@tanstack/vue-query": "^5.90.6",
     "@types/react": "18.3.24",
     "axios": "^1.13.2",

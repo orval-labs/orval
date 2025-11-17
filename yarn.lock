@@ -6808,17 +6808,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:4.41.0":
-  version: 4.41.0
-  resolution: "@tanstack/query-core@npm:4.41.0"
-  checksum: 10c0/e8a502c855ac08006665293478a692dbbca39fddc1fff815d99c7dcfd01dec75705548237fe162d0db6c35f9c7bb9e8313aeaed81c952f244eed91cc1d54006c
-  languageName: node
-  linkType: hard
-
 "@tanstack/query-core@npm:5.62.16":
   version: 5.62.16
   resolution: "@tanstack/query-core@npm:5.62.16"
   checksum: 10c0/3df0c19916cb363b055a20590c856b4f08006754b8169222a12e94ed5647733c389ac0d58878dfb8d6803f23a2a092d8a29b3259330576bd4170dad86798eb6d
+  languageName: node
+  linkType: hard
+
+"@tanstack/query-core@npm:5.90.10":
+  version: 5.90.10
+  resolution: "@tanstack/query-core@npm:5.90.10"
+  checksum: 10c0/c51762d4413f99886af24d0a4897e286233fae305131df2db8294c26b1375e74e87d0cd7dafbe1b7d23338221fca0304c05058dd9a909c0988a8829d8f7283e6
   languageName: node
   linkType: hard
 
@@ -6840,14 +6840,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/svelte-query@npm:^4.41.0":
-  version: 4.41.0
-  resolution: "@tanstack/svelte-query@npm:4.41.0"
+"@tanstack/svelte-query@npm:^6.0.8":
+  version: 6.0.8
+  resolution: "@tanstack/svelte-query@npm:6.0.8"
   dependencies:
-    "@tanstack/query-core": "npm:4.41.0"
+    "@tanstack/query-core": "npm:5.90.10"
   peerDependencies:
-    svelte: ">=3 <5"
-  checksum: 10c0/9224b55bc20e3e4c00385bc281d5a8ab43b7d6461b51734ee06f51b9eff785393897cfa8ca9007d752df99fe9eae69640ac03b02cc15d0967cb6ec58b9371719
+    svelte: ^5.25.0
+  checksum: 10c0/170af1a8b774c704b5def4696c105195ddecc83de74681934d1709c567d1f8dc241406d94d84ce965c5cba71e9ad7e4e8c9b70a21085e51373c2c0b5a4d1319c
   languageName: node
   linkType: hard
 
@@ -18588,7 +18588,7 @@ __metadata:
     "@hono/zod-validator": "npm:^0.7.4"
     "@modelcontextprotocol/sdk": "npm:1.20.2"
     "@tanstack/react-query": "npm:~5.62.16"
-    "@tanstack/svelte-query": "npm:^4.41.0"
+    "@tanstack/svelte-query": "npm:^6.0.8"
     "@tanstack/vue-query": "npm:^5.90.6"
     "@types/react": "npm:18.3.24"
     axios: "npm:^1.13.2"
@@ -23087,7 +23087,7 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@sveltejs/adapter-auto": "npm:^2.1.1"
     "@sveltejs/kit": "npm:^1.30.4"
-    "@tanstack/svelte-query": "npm:^4.41.0"
+    "@tanstack/svelte-query": "npm:^6.0.8"
     "@typescript-eslint/eslint-plugin": "npm:^8.46.4"
     "@typescript-eslint/parser": "npm:^8.46.4"
     axios: "npm:^1.13.2"
@@ -23113,7 +23113,7 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
     "@sveltestack/svelte-query": "npm:^1.6.0"
-    "@tanstack/svelte-query": "npm:^4.41.0"
+    "@tanstack/svelte-query": "npm:^6.0.8"
     "@tsconfig/svelte": "npm:^5.0.5"
     orval: "workspace:*"
     svelte: "npm:^5.43.2"
