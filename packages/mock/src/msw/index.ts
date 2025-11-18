@@ -134,7 +134,9 @@ const generateDefinition = (
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
-    typeof delay === 'number' ? `await delay(${delay});` : ''
+    delay === false
+      ? ''
+      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
