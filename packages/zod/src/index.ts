@@ -395,7 +395,7 @@ export const generateZodValidationSchemaDefinition = (
               'tuple',
               schema31.prefixItems.map((item, idx) =>
                 generateZodValidationSchemaDefinition(
-                  deference(item as SchemaObject | ReferenceObject, context),
+                  dereference(item as SchemaObject | ReferenceObject, context),
                   context,
                   camel(`${name}-${idx}-item`),
                   isZodV4,
@@ -913,17 +913,17 @@ ${Object.entries(args)
   return { zod, consts };
 };
 
-const deferenceScalar = (value: any, context: ContextSpecs): unknown => {
+const dereferenceScalar = (value: any, context: ContextSpecs): unknown => {
   if (isObject(value)) {
-    return deference(value, context);
+    return dereference(value, context);
   } else if (Array.isArray(value)) {
-    return value.map((item) => deferenceScalar(item, context));
+    return value.map((item) => dereferenceScalar(item, context));
   } else {
     return value;
   }
 };
 
-const deference = (
+const dereference = (
   schema: SchemaObject | ReferenceObject,
   context: ContextSpecs,
 ): SchemaObject => {
@@ -957,7 +957,7 @@ const deference = (
     if (key === 'properties' && isObject(value)) {
       acc[key] = Object.entries(value).reduce<Record<string, SchemaObject>>(
         (props, [propKey, propSchema]) => {
-          props[propKey] = deference(
+          props[propKey] = dereference(
             propSchema as SchemaObject | ReferenceObject,
             resolvedContext,
           );
@@ -968,7 +968,7 @@ const deference = (
     } else if (key === 'default' || key === 'example' || key === 'examples') {
       acc[key] = value;
     } else {
-      acc[key] = deferenceScalar(value, resolvedContext);
+      acc[key] = dereferenceScalar(value, resolvedContext);
     }
 
     return acc;
@@ -1022,7 +1022,7 @@ const parseBodyAndResponse = ({
     };
   }
 
-  const resolvedJsonSchema = deference(schema, context);
+  const resolvedJsonSchema = dereference(schema, context);
 
   // keep the same behaviour for array
   if (resolvedJsonSchema.items) {
@@ -1134,7 +1134,7 @@ const parseParameters = ({
         return acc;
       }
 
-      const schema = deference(parameter.schema, context);
+      const schema = dereference(parameter.schema, context);
       schema.description = parameter.description;
 
       const mapStrict = {
