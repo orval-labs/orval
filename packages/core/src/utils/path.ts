@@ -1,8 +1,8 @@
 import basepath from 'node:path';
 
-import { isUrl } from './assertion';
-import { getExtension } from './extension';
-import { getFileInfo } from './file';
+import { isUrl } from './assertion.ts';
+import { getExtension } from './extension.ts';
+import { getFileInfo } from './file.ts';
 
 // override path to support windows paths
 // https://github.com/anodynos/upath/blob/master/source/code/upath.coffee

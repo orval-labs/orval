@@ -1,8 +1,8 @@
 import { keyword } from 'esutils';
 import type { SchemaObject } from 'openapi3-ts/oas30';
 
-import { EnumGeneration, NamingConvention } from '../types';
-import { conventionName, isNumeric, sanitize } from '../utils';
+import { EnumGeneration, NamingConvention } from '../types.ts';
+import { conventionName, isNumeric, sanitize } from '../utils/index.ts';
 
 export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
   return (

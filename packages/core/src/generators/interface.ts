@@ -1,8 +1,8 @@
 import type { SchemaObject } from 'openapi3-ts/oas30';
 
-import { getScalar } from '../getters';
-import type { ContextSpecs } from '../types';
-import { jsDoc } from '../utils';
+import { getScalar } from '../getters/index.ts';
+import type { ContextSpecs } from '../types.ts';
+import { jsDoc } from '../utils/index.ts';
 
 /**
  * Generate the interface string

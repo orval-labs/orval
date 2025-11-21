@@ -18678,7 +18678,7 @@ __metadata:
     typescript: "catalog:"
     vitest: "catalog:"
   bin:
-    orval: ./dist/bin/orval.mjs
+    orval: ./src/bin/orval.ts
   languageName: unknown
   linkType: soft
 

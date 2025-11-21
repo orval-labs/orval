@@ -5,8 +5,8 @@ import type {
   GetterResponse,
   OverrideOutputContentType,
   ResReqTypesValue,
-} from '../types';
-import { getResReqTypes } from './res-req-types';
+} from '../types.ts';
+import { getResReqTypes } from './res-req-types.ts';
 
 export const getResponse = ({
   responses,

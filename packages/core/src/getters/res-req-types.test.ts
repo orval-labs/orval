@@ -1,7 +1,7 @@
 import type { RequestBodyObject, SchemaObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import { getResReqTypes } from './res-req-types';
+import { getResReqTypes } from './res-req-types.ts';
 
 // Simulates an OpenAPI schema with a readOnly property
 const schemaWithReadOnly: SchemaObject = {

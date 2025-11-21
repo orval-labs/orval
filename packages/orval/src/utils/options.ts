@@ -43,11 +43,11 @@ import {
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
 
-import pkg from '../../package.json';
-import { githubResolver } from './github';
-import { httpResolver } from './http-resolver';
-import { loadPackageJson } from './package-json';
-import { loadTsconfig } from './tsconfig';
+import pkg from '../../package.json' with { type: 'json' };
+import { githubResolver } from './github.ts';
+import { httpResolver } from './http-resolver.ts';
+import { loadPackageJson } from './package-json.ts';
+import { loadTsconfig } from './tsconfig.ts';
 
 /**
  * Type helper to make it easier to use orval.config.ts

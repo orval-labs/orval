@@ -7,9 +7,9 @@ import type {
   SchemaObject,
 } from 'openapi3-ts/oas30';
 
-import { getRefInfo, type RefInfo } from '../getters/ref';
-import type { ContextSpecs, GeneratorImport } from '../types';
-import { isReference } from '../utils';
+import { getRefInfo, type RefInfo } from '../getters/ref.ts';
+import type { ContextSpecs, GeneratorImport } from '../types.ts';
+import { isReference } from '../utils/index.ts';
 
 type ComponentObject =
   | SchemaObject

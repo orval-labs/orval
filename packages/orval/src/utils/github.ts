@@ -5,7 +5,7 @@ import { upath } from '@orval/core';
 import enquirer from 'enquirer';
 import fs from 'fs-extra';
 
-import { request } from './request';
+import { request } from './request.ts';
 
 export const getGithubSpecReq = ({
   accessToken,

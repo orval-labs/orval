@@ -1,9 +1,9 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
-import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
-import type { ContextSpecs, ResolverValue } from '../types';
-import { jsDoc } from '../utils';
-import { resolveValue } from './value';
+import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum.ts';
+import type { ContextSpecs, ResolverValue } from '../types.ts';
+import { jsDoc } from '../utils/index.ts';
+import { resolveValue } from './value.ts';
 
 const resolveObjectOriginal = ({
   schema,

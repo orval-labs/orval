@@ -2,7 +2,7 @@ import type { ContextSpecs } from '@orval/core';
 import type { SchemaObjectType } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import { getMockScalar } from './scalar';
+import { getMockScalar } from './scalar.ts';
 
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {

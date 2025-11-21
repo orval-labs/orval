@@ -14,7 +14,7 @@ import {
   getProps,
   getQueryParams,
   getResponse,
-} from '../getters';
+} from '../getters/index.ts';
 import type {
   ContextSpecs,
   GeneratorVerbOptions,
@@ -24,7 +24,7 @@ import type {
   NormalizedOperationOptions,
   NormalizedOutputOptions,
   Verbs,
-} from '../types';
+} from '../types.ts';
 import {
   asyncReduce,
   camel,
@@ -35,8 +35,8 @@ import {
   jsDoc,
   mergeDeep,
   sanitize,
-} from '../utils';
-import { generateMutator } from './mutator';
+} from '../utils/index.ts';
+import { generateMutator } from './mutator.ts';
 
 const generateVerbOptions = async ({
   verb,

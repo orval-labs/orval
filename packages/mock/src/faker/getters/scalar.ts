@@ -10,15 +10,15 @@ import {
 } from '@orval/core';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
-import { isFakerVersionV9 } from '../compatible-v9';
-import { DEFAULT_FORMAT_MOCK } from '../constants';
+import type { MockDefinition, MockSchemaObject } from '../../types.ts';
+import { isFakerVersionV9 } from '../compatible-v9.ts';
+import { DEFAULT_FORMAT_MOCK } from '../constants.ts';
 import {
   getNullable,
   resolveMockOverride,
   resolveMockValue,
-} from '../resolvers';
-import { getMockObject } from './object';
+} from '../resolvers/index.ts';
+import { getMockObject } from './object.ts';
 
 export const getMockScalar = ({
   item,
