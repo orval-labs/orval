@@ -163,6 +163,7 @@ const generateSwrImplementation = ({
   httpClient,
   pathOnlyParams,
   hasQueryParams,
+  queryParamType,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -179,6 +180,7 @@ const generateSwrImplementation = ({
   httpClient: OutputHttpClient;
   pathOnlyParams: string;
   hasQueryParams: boolean;
+  queryParamType: string;
 }) => {
   const swrProps = toObjectString(props, 'implementation');
 
@@ -228,7 +230,7 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = ${
     hasQueryParams
-      ? `(_url: string, pageParams: any) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
+      ? `(_url: string, pageParams: ${queryParamType}) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
       : `(_url: string) => ${operationName}(${pathOnlyParams}${httpRequestSecondArg ? (pathOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
   }
 
@@ -490,6 +492,12 @@ const generateSwrHook = (
       (prop) => prop.type === GetterPropType.QUERY_PARAM,
     );
 
+    // Extract just the type name from definition (e.g., "params: ListPetsParams" -> "ListPetsParams")
+    const queryParamType =
+      props
+        .find((prop) => prop.type === GetterPropType.QUERY_PARAM)
+        ?.definition.split(': ')[1] || 'never';
+
     const queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
@@ -533,6 +541,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       httpClient,
       pathOnlyParams,
       hasQueryParams,
+      queryParamType,
     });
 
     if (!override.swr.useSWRMutationForGet) {
