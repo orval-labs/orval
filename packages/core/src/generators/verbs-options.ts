@@ -36,6 +36,8 @@ import {
   mergeDeep,
   sanitize,
 } from '../utils';
+import { log } from '../utils/logger';
+import chalk from 'chalk';
 import { generateMutator } from './mutator';
 
 const generateVerbOptions = async ({
@@ -77,7 +79,7 @@ const generateVerbOptions = async ({
 
   const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
-    overrideOperation,
+    overrideOperation || {},
   );
 
   const overrideOperationName =
@@ -349,22 +351,34 @@ export const _filteredVerbs = (
 export const _filteredPaths = (
   paths: Record<string, PathItemObject>,
   filters: NormalizedInputOptions['filters'],
-) => {
+): {
+  filteredPaths: Array<[string, PathItemObject]>;
+  unmatchedFilters: Array<string | RegExp | [string | RegExp, string[]]>;
+} => {
   if (filters === undefined || filters.paths === undefined) {
-    return Object.entries(paths);
+    return {
+      filteredPaths: Object.entries(paths),
+      unmatchedFilters: [],
+    };
   }
 
   const filterPaths = filters.paths || [];
   const filterMode = filters.mode || 'include';
+  const allPathRoutes = Object.keys(paths);
 
-  return Object.entries(paths).filter(
+  // Check if this is method-specific filtering (array of tuples)
+  const isMethodSpecificFilter =
+    Array.isArray(filterPaths) &&
+    filterPaths.length > 0 &&
+    Array.isArray(filterPaths[0]);
+
+  // Track matched filters using a Map for proper type handling
+  const matchedFilters = new Map<
+    string | RegExp | [string | RegExp, string[]],
+    boolean
+  >();
+  const filteredPaths = Object.entries(paths).filter(
     ([pathRoute, verbs]: [string, PathItemObject]) => {
-      // Check if this is method-specific filtering (array of tuples)
-      const isMethodSpecificFilter =
-        Array.isArray(filterPaths) &&
-        filterPaths.length > 0 &&
-        Array.isArray(filterPaths[0]);
-
       if (isMethodSpecificFilter) {
         // Method-specific filtering: [path, [methods]]
         const isMatch = filterPaths.some((filterItem) => {
@@ -383,7 +397,7 @@ export const _filteredPaths = (
           if (!pathMatches) return false;
 
           // Check if any of the specified methods exist in this path
-          return methods.some((method: string) => {
+          const methodMatches = methods.some((method: string) => {
             const lowerMethod = method.toLowerCase();
             return lowerMethod === 'get'
               ? !!verbs.get
@@ -399,19 +413,173 @@ export const _filteredPaths = (
                         ? !!verbs.head
                         : false;
           });
+
+          if (methodMatches) {
+            matchedFilters.set(filterItem, true);
+          }
+
+          return methodMatches;
         });
 
         return filterMode === 'exclude' ? !isMatch : isMatch;
       } else {
         // Simple path filtering (backward compatibility)
-        const isMatch = filterPaths.some((filterPath) =>
-          filterPath instanceof RegExp
-            ? filterPath.test(pathRoute)
-            : filterPath === pathRoute,
-        );
+        const isMatch = filterPaths.some((filterPath) => {
+          const matches =
+            filterPath instanceof RegExp
+              ? filterPath.test(pathRoute)
+              : filterPath === pathRoute;
+          if (matches) {
+            matchedFilters.set(filterPath, true);
+          }
+          return matches;
+        });
 
         return filterMode === 'exclude' ? !isMatch : isMatch;
       }
     },
+  );
+
+  // Find unmatched filters
+  const unmatchedFilters: Array<
+    string | RegExp | [string | RegExp, string[]]
+  > = [];
+  
+  for (const filterItem of filterPaths) {
+    if (isMethodSpecificFilter) {
+      if (!Array.isArray(filterItem) || filterItem.length !== 2) {
+        continue;
+      }
+      
+      // If this filter was matched, skip it
+      if (matchedFilters.has(filterItem)) {
+        continue;
+      }
+      
+      const [filterPath, methods] = filterItem as [
+        string | RegExp,
+        string[],
+      ];
+      
+      // Check if path matches any route
+      const matchingPaths = allPathRoutes.filter((pathRoute) =>
+        filterPath instanceof RegExp
+          ? filterPath.test(pathRoute)
+          : filterPath === pathRoute,
+      );
+      
+      if (matchingPaths.length === 0) {
+        // Path doesn't exist at all
+        unmatchedFilters.push(filterItem);
+        continue;
+      }
+      
+      // Check if any of the methods exist in matching paths
+      const hasMatchingMethod = matchingPaths.some((pathRoute) => {
+        const verbs = paths[pathRoute];
+        return methods.some((method: string) => {
+          const lowerMethod = method.toLowerCase();
+          return lowerMethod === 'get'
+            ? !!verbs.get
+            : lowerMethod === 'post'
+              ? !!verbs.post
+              : lowerMethod === 'put'
+                ? !!verbs.put
+                : lowerMethod === 'delete'
+                  ? !!verbs.delete
+                  : lowerMethod === 'patch'
+                    ? !!verbs.patch
+                    : lowerMethod === 'head'
+                      ? !!verbs.head
+                      : false;
+        });
+      });
+      
+      if (!hasMatchingMethod) {
+        // Path exists but none of the specified methods exist
+        unmatchedFilters.push(filterItem);
+      }
+    } else {
+      // Simple path filtering
+      const filterPath = filterItem as string | RegExp;
+      
+      // If this filter was matched, skip it
+      if (matchedFilters.has(filterPath)) {
+        continue;
+      }
+      
+      const pathMatches = allPathRoutes.some((pathRoute) =>
+        filterPath instanceof RegExp
+          ? filterPath.test(pathRoute)
+          : filterPath === pathRoute,
+      );
+      
+      if (!pathMatches) {
+        unmatchedFilters.push(filterPath);
+      }
+    }
+  }
+
+  return {
+    filteredPaths,
+    unmatchedFilters,
+  };
+};
+
+/**
+ * Validates path filters and warns about unmatched paths
+ */
+export const validatePathFilters = (
+  unmatchedFilters: Array<
+    string | RegExp | [string | RegExp, string[]]
+  >,
+  filters: NormalizedInputOptions['filters'],
+) => {
+  if (unmatchedFilters.length === 0 || !filters?.paths) {
+    return;
+  }
+
+  const filterMode = filters.mode || 'include';
+  const modeLabel = filterMode === 'exclude' ? 'excluded' : 'included';
+
+  log(
+    chalk.yellow(
+      `⚠️  Warning: ${unmatchedFilters.length} path filter${
+        unmatchedFilters.length === 1 ? '' : 's'
+      } did not match any paths in the OpenAPI specification:`,
+    ),
+  );
+
+  for (const filterItem of unmatchedFilters) {
+    if (Array.isArray(filterItem) && filterItem.length === 2) {
+      // Method-specific filter: [path, [methods]]
+      const [filterPath, methods] = filterItem as [
+        string | RegExp,
+        string[],
+      ];
+      const pathStr =
+        filterPath instanceof RegExp
+          ? filterPath.toString()
+          : `"${filterPath}"`;
+      log(
+        chalk.yellow(
+          `   - Path ${pathStr} with methods [${methods.join(', ')}]`,
+        ),
+      );
+    } else {
+      // Simple path filter
+      const filterPath = filterItem as string | RegExp;
+      const pathStr =
+        filterPath instanceof RegExp
+          ? filterPath.toString()
+          : `"${filterPath}"`;
+      log(chalk.yellow(`   - Path ${pathStr}`));
+    }
+  }
+
+  log(
+    chalk.yellow(
+      `   These filters will not ${modeLabel} any operations. Please check for typos or ensure the paths exist in your OpenAPI specification.`,
+    ),
   );
 };

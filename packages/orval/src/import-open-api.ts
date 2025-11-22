@@ -1,7 +1,10 @@
 import {
+  _filteredPaths,
+  _filteredVerbs,
   asyncReduce,
   type ContextSpecs,
   dynamicImport,
+  filterSchemasByDependencies,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
@@ -15,17 +18,14 @@ import {
   type NormalizedOutputOptions,
   openApiConverter,
   upath,
-  WriteSpecsBuilder,
-  filterSchemasByDependencies,
-  _filteredPaths,
-  _filteredVerbs,
+  validatePathFilters,
+  type WriteSpecsBuilder,
 } from '@orval/core';
-import { JSONSchema6, JSONSchema7 } from 'json-schema';
-import {
+import type { JSONSchema6, JSONSchema7 } from 'json-schema';
+import type {
   OpenAPIObject,
-  SchemasObject,
-  PathItemObject,
   OperationObject,
+  SchemasObject,
 } from 'openapi3-ts/oas30';
 
 import { getApiBuilder } from './api';
@@ -130,7 +130,7 @@ const getApiSchemas = ({
   workspace: string;
   target: string;
   specs: Record<string, OpenAPIObject>;
-  filteredOperations?: Array<{ operation: any; path: string; method: string }>;
+  filteredOperations?: { operation: any; path: string; method: string }[];
 }) => {
   return Object.entries(specs).reduce<Record<string, GeneratorSchema[]>>(
     (acc, [specKey, spec]) => {
@@ -265,37 +265,45 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
 
   return {
     ...schemas,
-    ...((spec as OpenAPIObject)?.components?.schemas as SchemasObject),
+    ...((spec as OpenAPIObject).components?.schemas as SchemasObject),
   };
 };
 
 const getFilteredOperations = (
   spec: OpenAPIObject,
   filters: InputOptions['filters'],
-): Array<{ operation: OperationObject; path: string; method: string }> => {
+): { operation: OperationObject; path: string; method: string }[] => {
   if (!filters || !spec.paths) {
     return [];
   }
 
-  const operations: Array<{
+  const operations: {
     operation: OperationObject;
     path: string;
     method: string;
-  }> = [];
+  }[] = [];
 
-  const filteredPaths = _filteredPaths(spec.paths, filters);
+  const { filteredPaths, unmatchedFilters } = _filteredPaths(
+    spec.paths,
+    filters,
+  );
 
-  filteredPaths.forEach(([pathRoute, verbs]) => {
+  // Warn about unmatched filters
+  if (unmatchedFilters.length > 0) {
+    validatePathFilters(unmatchedFilters, filters);
+  }
+
+  for (const [pathRoute, verbs] of filteredPaths) {
     const filteredVerbs = _filteredVerbs(verbs, filters, pathRoute);
 
-    filteredVerbs.forEach(([method, operation]) => {
+    for (const [method, operation] of filteredVerbs) {
       operations.push({
         operation,
         path: pathRoute,
         method: method.toLowerCase(),
       });
-    });
-  });
+    }
+  }
 
   return operations;
 };
