@@ -197,7 +197,7 @@ const generateSwrImplementation = ({
       : ''
   }`;
   const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
-  const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (() => isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : null);`;
+  const swrKeyLoaderImplementation = `const swrKeyLoader = swrOptions?.swrKeyLoader ?? (isEnabled ? ${swrKeyLoaderFnName}(${swrKeyProperties}) : () => null);`;
 
   const errorType = getSwrErrorType(response, httpClient, mutator);
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
