@@ -161,6 +161,8 @@ const generateSwrImplementation = ({
   props,
   doc,
   httpClient,
+  pathOnlyParams,
+  hasQueryParams,
 }: {
   isRequestOptions: boolean;
   operationName: string;
@@ -175,6 +177,8 @@ const generateSwrImplementation = ({
   swrOptions: SwrOptions;
   doc?: string;
   httpClient: OutputHttpClient;
+  pathOnlyParams: string;
+  hasQueryParams: boolean;
 }) => {
   const swrProps = toObjectString(props, 'implementation');
 
@@ -222,9 +226,11 @@ ${doc}export const ${camel(
 
   ${enabledImplementation}
   ${swrKeyLoaderImplementation}
-  const swrFn = () => ${operationName}(${httpFunctionProps}${
-    httpFunctionProps && httpRequestSecondArg ? ', ' : ''
-  }${httpRequestSecondArg})
+  const swrFn = ${
+    hasQueryParams
+      ? `(_url: string, pageParams: any) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
+      : `(_url: string) => ${operationName}(${pathOnlyParams}${httpRequestSecondArg ? (pathOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
+  }
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
     swrOptions.swrInfiniteOptions
@@ -466,6 +472,24 @@ const generateSwrHook = (
       })
       .join(',');
 
+    // For useSWRInfinite: separate path params from query params
+    const pathOnlyParams = props
+      .filter(
+        (prop) =>
+          prop.type === GetterPropType.PARAM ||
+          prop.type === GetterPropType.NAMED_PATH_PARAMS,
+      )
+      .map((param) => {
+        return param.type === GetterPropType.NAMED_PATH_PARAMS
+          ? param.destructured
+          : param.name;
+      })
+      .join(',');
+
+    const hasQueryParams = props.some(
+      (prop) => prop.type === GetterPropType.QUERY_PARAM,
+    );
+
     const queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),
       'implementation',
@@ -507,6 +531,8 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       swrOptions: override.swr,
       doc,
       httpClient,
+      pathOnlyParams,
+      hasQueryParams,
     });
 
     if (!override.swr.useSWRMutationForGet) {
