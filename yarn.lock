@@ -5400,6 +5400,7 @@ __metadata:
     eslint: "catalog:"
     rimraf: "catalog:"
     tsdown: "catalog:"
+    vitest: "catalog:"
   languageName: unknown
   linkType: soft
 
