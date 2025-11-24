@@ -5,8 +5,11 @@ import {
 import {
   useListPets as useListPetsWithHeaders,
   useListPetsInfinite as useListPetsInfiniteWithHeaders,
+  useCreatePets,
+  getCreatePetsMutationFetcher,
 } from '../generated/swr/petstore-with-headers/endpoints';
 import { ListPetsXExample } from '../generated/swr/petstore-with-headers/model';
+import type { CreatePetsHeaders } from '../generated/swr/petstore-with-headers/model';
 
 export const useInfiniteQueryTest = () => {
   const { data } = useListPetsInfinite(
@@ -81,4 +84,24 @@ export const testRegularHookWithHeaders = () => {
     return data.data.map((pet) => pet.name);
   }
   return [];
+};
+
+// Test that mutation hooks accept headers parameter
+export const testMutationHookWithHeaders = () => {
+  const headers: CreatePetsHeaders = { 'X-EXAMPLE': ListPetsXExample.ONE };
+  const { trigger } = useCreatePets({ sort: 'name' }, headers);
+
+  // Type check: trigger should be defined
+  return Boolean(trigger);
+};
+
+// Test that mutation fetcher accepts headers parameter
+export const testMutationFetcherSignature = () => {
+  const headers: CreatePetsHeaders = { 'X-EXAMPLE': ListPetsXExample.ONE };
+
+  // The mutation fetcher should accept headers as a parameter
+  const fetcher = getCreatePetsMutationFetcher({ sort: 'name' }, headers);
+
+  // Type check: fetcher should be a function
+  return typeof fetcher === 'function';
 };
