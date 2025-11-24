@@ -162,6 +162,7 @@ const generateSwrImplementation = ({
   doc,
   httpClient,
   pathOnlyParams,
+  headerOnlyParams,
   hasQueryParams,
   queryParamType,
 }: {
@@ -179,6 +180,7 @@ const generateSwrImplementation = ({
   doc?: string;
   httpClient: OutputHttpClient;
   pathOnlyParams: string;
+  headerOnlyParams: string;
   hasQueryParams: boolean;
   queryParamType: string;
 }) => {
@@ -230,8 +232,8 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = ${
     hasQueryParams
-      ? `(_url: string, pageParams: ${queryParamType} & { page: number }) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
-      : `(_url: string) => ${operationName}(${pathOnlyParams}${httpRequestSecondArg ? (pathOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
+      ? `(_url: string, pageParams: ${queryParamType} & { page: number }) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${headerOnlyParams ? ', ' + headerOnlyParams : ''}${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
+      : `(_url: string) => ${operationName}(${pathOnlyParams}${headerOnlyParams ? (pathOnlyParams ? ', ' : '') + headerOnlyParams : ''}${httpRequestSecondArg ? (pathOnlyParams || headerOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
   }
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
@@ -488,6 +490,11 @@ const generateSwrHook = (
       })
       .join(',');
 
+    const headerOnlyParams = props
+      .filter((prop) => prop.type === GetterPropType.HEADER)
+      .map((param) => param.name)
+      .join(',');
+
     const hasQueryParams = props.some(
       (prop) => prop.type === GetterPropType.QUERY_PARAM,
     );
@@ -540,6 +547,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       doc,
       httpClient,
       pathOnlyParams,
+      headerOnlyParams,
       hasQueryParams,
       queryParamType,
     });
