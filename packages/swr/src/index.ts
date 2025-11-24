@@ -233,8 +233,8 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = ${
     hasQueryParams
-      ? `(_url: string, pageParams: ${queryParamType} & { page: number }) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${headerOnlyParams ? ', ' + headerOnlyParams : ''}${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
-      : `(_url: string) => ${operationName}(${pathOnlyParams}${headerOnlyParams ? (pathOnlyParams ? ', ' : '') + headerOnlyParams : ''}${httpRequestSecondArg ? (pathOnlyParams || headerOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
+      ? `([_url, pageParams]: [string, ${queryParamType} & { page: number }]) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${headerOnlyParams ? ', ' + headerOnlyParams : ''}${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
+      : `([_url]: [string]) => ${operationName}(${pathOnlyParams}${headerOnlyParams ? (pathOnlyParams ? ', ' : '') + headerOnlyParams : ''}${httpRequestSecondArg ? (pathOnlyParams || headerOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
   }
 
   const ${queryResultVarName} = useSWRInfinite<Awaited<ReturnType<typeof swrFn>>, TError>(swrKeyLoader, swrFn, ${
