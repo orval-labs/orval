@@ -1,9 +1,11 @@
+import chalk from 'chalk';
 import type {
   ComponentsObject,
   OperationObject,
   ParameterObject,
   PathItemObject,
   ReferenceObject,
+  RequestBodyObject,
 } from 'openapi3-ts/oas30';
 
 import {
@@ -37,7 +39,6 @@ import {
   sanitize,
 } from '../utils';
 import { log } from '../utils/logger';
-import chalk from 'chalk';
 import { generateMutator } from './mutator';
 
 const generateVerbOptions = async ({
@@ -68,18 +69,19 @@ const generateVerbOptions = async ({
     summary,
   } = operation;
   const operationId = getOperationId(operation, route, verb);
-  const overrideOperation = output.override.operations[operation.operationId!];
-  const overrideTag = Object.entries(
-    output.override.tags,
-  ).reduce<NormalizedOperationOptions>(
-    (acc, [tag, options]) =>
-      tags.includes(tag) && options ? mergeDeep(acc, options) : acc,
-    {},
-  );
+  const overrideOperation = operation.operationId
+    ? output.override.operations[operation.operationId]
+    : undefined;
+  const overrideTag: NormalizedOperationOptions = {};
+  for (const [tag, options] of Object.entries(output.override.tags)) {
+    if (tags.includes(tag) && options) {
+      mergeDeep(overrideTag, options);
+    }
+  }
 
   const override = mergeDeep(
     mergeDeep(output.override, overrideTag),
-    overrideOperation || {},
+    overrideOperation ?? {},
   );
 
   const overrideOperationName =
@@ -95,12 +97,24 @@ const generateVerbOptions = async ({
     contentType: override.contentType,
   });
 
-  const body = getBody({
-    requestBody: requestBody!,
-    operationName,
-    context,
-    contentType: override.contentType,
-  });
+  const body = requestBody
+    ? getBody({
+        requestBody,
+        operationName,
+        context,
+        contentType: override.contentType,
+      })
+    : {
+        originalSchema: {} as RequestBodyObject,
+        imports: [],
+        definition: '',
+        implementation: '',
+        schemas: [],
+        formData: '',
+        formUrlEncoded: '',
+        contentType: '',
+        isOptional: true,
+      };
 
   const parameters = getParameters({
     parameters: [...verbParameters, ...(operationParameters ?? [])],
@@ -125,7 +139,7 @@ const generateVerbOptions = async ({
   const params = getParams({
     route,
     pathParams: parameters.path,
-    operationId: operationId!,
+    operationId,
     context,
     output,
   });
@@ -274,8 +288,8 @@ export const _filteredVerbs = (
     return Object.entries(verbs);
   }
 
-  const filterTags = filters.tags || [];
-  const filterPaths = filters.paths || [];
+  const filterTags = filters.tags ?? [];
+  const filterPaths = filters.paths ?? [];
   const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
@@ -290,8 +304,7 @@ export const _filteredVerbs = (
         if (isMethodSpecificFilter) {
           // Method-specific filtering: [path, [methods]]
           const pathMatch = filterPaths.some((filterItem) => {
-            if (!Array.isArray(filterItem) || filterItem.length !== 2)
-              return false;
+            if (!Array.isArray(filterItem)) return false;
 
             const [filterPath, methods] = filterItem as [
               string | RegExp,
@@ -308,17 +321,13 @@ export const _filteredVerbs = (
             return methods.includes(verb.toLowerCase());
           });
 
-          if (filterMode === 'exclude') {
-            return !pathMatch;
-          } else {
-            return pathMatch;
-          }
+          return filterMode === 'exclude' ? !pathMatch : pathMatch;
         }
       }
 
       // Regular tag filtering
       if (filters.tags) {
-        const operationTags = operation.tags || [];
+        const operationTags = operation.tags ?? [];
 
         const isMatch = operationTags.some((tag) =>
           filterTags.some((filterTag) =>
@@ -352,18 +361,18 @@ export const _filteredPaths = (
   paths: Record<string, PathItemObject>,
   filters: NormalizedInputOptions['filters'],
 ): {
-  filteredPaths: Array<[string, PathItemObject]>;
-  unmatchedFilters: Array<string | RegExp | [string | RegExp, string[]]>;
+  filteredPaths: [string, PathItemObject][];
+  unmatchedFilters: (string | RegExp | [string | RegExp, string[]])[];
 } => {
-  if (filters === undefined || filters.paths === undefined) {
+  if (filters?.paths === undefined) {
     return {
       filteredPaths: Object.entries(paths),
       unmatchedFilters: [],
     };
   }
 
-  const filterPaths = filters.paths || [];
-  const filterMode = filters.mode || 'include';
+  const filterPaths = filters.paths ?? [];
+  const filterMode = filters.mode ?? 'include';
   const allPathRoutes = Object.keys(paths);
 
   // Check if this is method-specific filtering (array of tuples)
@@ -382,8 +391,7 @@ export const _filteredPaths = (
       if (isMethodSpecificFilter) {
         // Method-specific filtering: [path, [methods]]
         const isMatch = filterPaths.some((filterItem) => {
-          if (!Array.isArray(filterItem) || filterItem.length !== 2)
-            return false;
+          if (!Array.isArray(filterItem)) return false;
 
           const [filterPath, methods] = filterItem as [
             string | RegExp,
@@ -441,39 +449,35 @@ export const _filteredPaths = (
   );
 
   // Find unmatched filters
-  const unmatchedFilters: Array<
-    string | RegExp | [string | RegExp, string[]]
-  > = [];
-  
+  const unmatchedFilters: (string | RegExp | [string | RegExp, string[]])[] =
+    [];
+
   for (const filterItem of filterPaths) {
     if (isMethodSpecificFilter) {
-      if (!Array.isArray(filterItem) || filterItem.length !== 2) {
+      if (!Array.isArray(filterItem)) {
         continue;
       }
-      
+
       // If this filter was matched, skip it
       if (matchedFilters.has(filterItem)) {
         continue;
       }
-      
-      const [filterPath, methods] = filterItem as [
-        string | RegExp,
-        string[],
-      ];
-      
+
+      const [filterPath, methods] = filterItem as [string | RegExp, string[]];
+
       // Check if path matches any route
       const matchingPaths = allPathRoutes.filter((pathRoute) =>
         filterPath instanceof RegExp
           ? filterPath.test(pathRoute)
           : filterPath === pathRoute,
       );
-      
+
       if (matchingPaths.length === 0) {
         // Path doesn't exist at all
         unmatchedFilters.push(filterItem);
         continue;
       }
-      
+
       // Check if any of the methods exist in matching paths
       const hasMatchingMethod = matchingPaths.some((pathRoute) => {
         const verbs = paths[pathRoute];
@@ -494,7 +498,7 @@ export const _filteredPaths = (
                       : false;
         });
       });
-      
+
       if (!hasMatchingMethod) {
         // Path exists but none of the specified methods exist
         unmatchedFilters.push(filterItem);
@@ -502,18 +506,18 @@ export const _filteredPaths = (
     } else {
       // Simple path filtering
       const filterPath = filterItem as string | RegExp;
-      
+
       // If this filter was matched, skip it
       if (matchedFilters.has(filterPath)) {
         continue;
       }
-      
+
       const pathMatches = allPathRoutes.some((pathRoute) =>
         filterPath instanceof RegExp
           ? filterPath.test(pathRoute)
           : filterPath === pathRoute,
       );
-      
+
       if (!pathMatches) {
         unmatchedFilters.push(filterPath);
       }
@@ -530,16 +534,14 @@ export const _filteredPaths = (
  * Validates path filters and warns about unmatched paths
  */
 export const validatePathFilters = (
-  unmatchedFilters: Array<
-    string | RegExp | [string | RegExp, string[]]
-  >,
+  unmatchedFilters: (string | RegExp | [string | RegExp, string[]])[],
   filters: NormalizedInputOptions['filters'],
 ) => {
   if (unmatchedFilters.length === 0 || !filters?.paths) {
     return;
   }
 
-  const filterMode = filters.mode || 'include';
+  const filterMode = filters.mode ?? 'include';
   const modeLabel = filterMode === 'exclude' ? 'excluded' : 'included';
 
   log(
@@ -551,12 +553,9 @@ export const validatePathFilters = (
   );
 
   for (const filterItem of unmatchedFilters) {
-    if (Array.isArray(filterItem) && filterItem.length === 2) {
+    if (Array.isArray(filterItem)) {
       // Method-specific filter: [path, [methods]]
-      const [filterPath, methods] = filterItem as [
-        string | RegExp,
-        string[],
-      ];
+      const [filterPath, methods] = filterItem as [string | RegExp, string[]];
       const pathStr =
         filterPath instanceof RegExp
           ? filterPath.toString()
