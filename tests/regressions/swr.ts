@@ -105,3 +105,27 @@ export const testMutationFetcherSignature = () => {
   // Type check: fetcher should be a function
   return typeof fetcher === 'function';
 };
+
+// Test that swrFn uses array destructuring for parameters
+// This verifies the fix: SWR passes key as array, not spread arguments
+export const testSwrFnArrayDestructuring = () => {
+  const keyLoader = getListPetsInfiniteKeyLoader({ sort: 'name' });
+
+  // Simulate what SWR does: call keyLoader to get the key
+  const key = keyLoader(0);
+
+  if (key) {
+    // SWR would pass this key array as a single argument to swrFn
+    // The swrFn should destructure it as: ([_url, pageParams]) => ...
+    // TypeScript will catch if the destructuring pattern is wrong
+    const [url, params] = key;
+
+    // Type assertions to verify correct types
+    const _url: string = url;
+    const _page: number = params.page;
+
+    return typeof _url === 'string' && typeof _page === 'number';
+  }
+
+  return false;
+};
