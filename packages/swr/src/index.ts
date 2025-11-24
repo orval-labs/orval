@@ -416,7 +416,8 @@ const generateSwrHook = (
       (prop) =>
         prop.type === GetterPropType.PARAM ||
         prop.type === GetterPropType.QUERY_PARAM ||
-        prop.type === GetterPropType.NAMED_PATH_PARAMS,
+        prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+        prop.type === GetterPropType.HEADER,
     ),
     'implementation',
   );
@@ -426,7 +427,8 @@ const generateSwrHook = (
       (prop) =>
         prop.type === GetterPropType.PARAM ||
         prop.type === GetterPropType.QUERY_PARAM ||
-        prop.type === GetterPropType.NAMED_PATH_PARAMS,
+        prop.type === GetterPropType.NAMED_PATH_PARAMS ||
+        prop.type === GetterPropType.HEADER,
     )
     .map((param) => {
       return param.type === GetterPropType.NAMED_PATH_PARAMS
@@ -554,13 +556,25 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     }
 
     // For OutputClient.SWR_GET_MUTATION, generate both useSWR and useSWRMutation
-    const httpFnPropertiesForGet = props
+    const httpFnPropertiesForGetWithoutHeaders = props
       .filter((prop) => prop.type !== GetterPropType.HEADER)
       .map((prop) => {
         return prop.type === GetterPropType.NAMED_PATH_PARAMS
           ? prop.destructured
           : prop.name;
       })
+      .join(', ');
+
+    const headerParamsForGet = props
+      .filter((prop) => prop.type === GetterPropType.HEADER)
+      .map((param) => param.name)
+      .join(', ');
+
+    const httpFnPropertiesForGet = [
+      httpFnPropertiesForGetWithoutHeaders,
+      headerParamsForGet,
+    ]
+      .filter(Boolean)
       .join(', ');
 
     const swrMutationFetcherType = getSwrMutationFetcherType(
@@ -618,7 +632,7 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
       swrMutationImplementation
     );
   } else {
-    const httpFnProperties = props
+    const httpFnPropertiesWithoutHeaders = props
       .filter((prop) => prop.type !== GetterPropType.HEADER)
       .map((prop) => {
         if (prop.type === GetterPropType.NAMED_PATH_PARAMS) {
@@ -629,6 +643,15 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
           return prop.name;
         }
       })
+      .join(', ');
+
+    const headerParams = props
+      .filter((prop) => prop.type === GetterPropType.HEADER)
+      .map((param) => param.name)
+      .join(', ');
+
+    const httpFnProperties = [httpFnPropertiesWithoutHeaders, headerParams]
+      .filter(Boolean)
       .join(', ');
 
     const swrKeyFnName = camel(`get-${operationName}-mutation-key`);
