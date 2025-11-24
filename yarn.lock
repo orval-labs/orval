@@ -5717,6 +5717,7 @@ __metadata:
     eslint: "npm:^9.38.0"
     rimraf: "npm:^6.0.1"
     tsdown: "npm:^0.15.8"
+    vitest: "npm:^3.2.4"
   languageName: unknown
   linkType: soft
 

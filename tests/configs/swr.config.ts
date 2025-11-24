@@ -187,6 +187,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  petstoreWithHeaders: {
+    output: {
+      target: '../generated/swr/petstore-with-headers/endpoints.ts',
+      schemas: '../generated/swr/petstore-with-headers/model',
+      client: 'swr',
+      headers: true,
+      override: {
+        swr: {
+          useInfinite: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   blobFile: {
     output: {
       target: '../generated/swr/blob-file/endpoints.ts',

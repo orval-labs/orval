@@ -16,6 +16,7 @@
     "build": "tsdown --config-loader unconfig",
     "dev": "tsdown --config-loader unconfig --watch src",
     "lint": "eslint .",
+    "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -26,6 +27,7 @@
   "devDependencies": {
     "eslint": "^9.38.0",
     "rimraf": "^6.0.1",
-    "tsdown": "^0.15.8"
+    "tsdown": "^0.15.8",
+    "vitest": "^3.2.4"
   }
 }
