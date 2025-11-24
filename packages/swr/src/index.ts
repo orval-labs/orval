@@ -502,7 +502,7 @@ const generateSwrHook = (
     const queryParamType =
       props
         .find((prop) => prop.type === GetterPropType.QUERY_PARAM)
-        ?.definition.split(': ')[1] || 'never';
+        ?.definition.split(': ')[1] ?? 'never';
 
     const queryKeyProps = toObjectString(
       props.filter((prop) => prop.type !== GetterPropType.HEADER),

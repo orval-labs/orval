@@ -17,7 +17,7 @@ describe('query parameter type extraction', () => {
     const queryParam = props.find(
       (prop) => prop.type === GetterPropType.QUERY_PARAM,
     );
-    const extractedType = queryParam?.definition.split(': ')[1] || 'never';
+    const extractedType = queryParam?.definition.split(': ')[1] ?? 'never';
 
     expect(extractedType).toBe('ListPetsParams');
   });
@@ -36,7 +36,7 @@ describe('query parameter type extraction', () => {
     const queryParam = props.find(
       (prop) => prop.type === GetterPropType.QUERY_PARAM,
     );
-    const extractedType = queryParam?.definition.split(': ')[1] || 'never';
+    const extractedType = queryParam?.definition.split(': ')[1] ?? 'never';
 
     expect(extractedType).toBe('GetUsersParams');
   });
@@ -55,7 +55,7 @@ describe('query parameter type extraction', () => {
     const queryParam = props.find(
       (prop) => prop.type === GetterPropType.QUERY_PARAM,
     );
-    const extractedType = queryParam?.definition.split(': ')[1] || 'never';
+    const extractedType = queryParam?.definition.split(': ')[1] ?? 'never';
 
     expect(extractedType).toBe('never');
   });
