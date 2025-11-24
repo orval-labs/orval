@@ -231,7 +231,7 @@ ${doc}export const ${camel(
   ${swrKeyLoaderImplementation}
   const swrFn = ${
     hasQueryParams
-      ? `(_url: string, pageParams: ${queryParamType}) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
+      ? `(_url: string, pageParams: ${queryParamType} & { page: number }) => ${operationName}(${pathOnlyParams}${pathOnlyParams ? ', ' : ''}pageParams${httpRequestSecondArg ? ', ' + httpRequestSecondArg : ''})`
       : `(_url: string) => ${operationName}(${pathOnlyParams}${httpRequestSecondArg ? (pathOnlyParams ? ', ' : '') + httpRequestSecondArg : ''})`
   }
 
@@ -512,7 +512,7 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     );
     const swrKeyLoader = override.swr.useInfinite
       ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
-  return (page: number, previousPageData: Awaited<ReturnType<typeof ${operationName}>>) => {
+  return (page: number, previousPageData?: Awaited<ReturnType<typeof ${operationName}>>) => {
     if (previousPageData && !previousPageData.data) return null
 
     return [\`${route}\`${queryParams ? ', ...(params ? [{...params,page}]: [{page}])' : ''}${
