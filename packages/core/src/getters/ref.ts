@@ -1,5 +1,3 @@
-import type { ReferenceObject } from 'openapi3-ts/oas30';
-
 import type { ContextSpecs, NormalizedOverrideOutput } from '../types';
 import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
 
@@ -42,14 +40,11 @@ export interface RefInfo {
  *
  * @param $ref
  */
-export const getRefInfo = (
-  $ref: ReferenceObject['$ref'],
-  context: ContextSpecs,
-): RefInfo => {
+export function getRefInfo($ref: string, context: ContextSpecs): RefInfo {
   const [pathname, ref] = $ref.split('#');
 
   const refPaths = ref
-    ?.slice(1)
+    .slice(1)
     .split('/')
     .map((part) => decodeURIComponent(part.replaceAll(regex, '/')));
 
@@ -63,12 +58,10 @@ export const getRefInfo = (
     const secondLevel = (firstLevel as Record<string, { suffix?: string }>)[
       paths[1]
     ];
-    return secondLevel?.suffix ?? '';
+    return secondLevel.suffix ?? '';
   };
 
-  const suffix = refPaths
-    ? getOverrideSuffix(context.output.override, refPaths)
-    : '';
+  const suffix = getOverrideSuffix(context.output.override, refPaths);
 
   const originalName = ref
     ? refPaths[refPaths.length - 1]
@@ -108,4 +101,4 @@ export const getRefInfo = (
     specKey: path,
     refPaths,
   };
-};
+}

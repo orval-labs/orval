@@ -25,7 +25,7 @@ import {
   generateOperations,
 } from './client';
 
-export const getApiBuilder = async ({
+export async function getApiBuilder({
   input,
   output,
   context,
@@ -33,9 +33,9 @@ export const getApiBuilder = async ({
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   context: ContextSpecs;
-}): Promise<GeneratorApiBuilder> => {
+}): Promise<GeneratorApiBuilder> {
   const api = await asyncReduce(
-    Object.entries(context.specs[context.specKey].paths ?? {}),
+    Object.entries(context.spec.paths ?? {}),
     async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
       const route = getRoute(pathRoute);
 
@@ -100,7 +100,7 @@ export const getApiBuilder = async ({
 
       const fullRoute = getFullRoute(
         route,
-        verbs.servers ?? context.specs[context.specKey].servers,
+        verbs.servers ?? context.spec.servers,
         output.baseUrl,
       );
       if (!output.target) {
@@ -153,4 +153,4 @@ export const getApiBuilder = async ({
     importsMock: generateMockImports,
     extraFiles,
   };
-};
+}

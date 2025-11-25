@@ -139,7 +139,7 @@ describe('generateSchemasDefinition', () => {
         },
       },
       target: 'typescript',
-      specs: {},
+      spec: {},
     };
 
     const schemas: SchemasObject = {

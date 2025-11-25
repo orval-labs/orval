@@ -12,6 +12,8 @@ import type {
   ContextSpecs,
   GeneratorSchema,
   InputFiltersOption,
+  OpenApiSchemaObject,
+  OpenApiSchemasObject,
 } from '../types';
 import {
   conventionName,
@@ -30,7 +32,7 @@ import { generateInterface } from './interface';
  * @param schemas
  */
 export const generateSchemasDefinition = (
-  schemas: SchemasObject = {},
+  schemas: OpenApiSchemasObject = {},
   context: ContextSpecs,
   suffix: string,
   filters?: InputFiltersOption,
@@ -44,7 +46,7 @@ export const generateSchemasDefinition = (
   let generateSchemas = Object.entries(transformedSchemas);
   if (filters?.schemas) {
     const schemasFilters = filters.schemas;
-    const mode = filters.mode || 'include';
+    const mode = filters.mode ?? 'include';
 
     generateSchemas = generateSchemas.filter(([schemaName]) => {
       const isMatch = schemasFilters.some((filter) =>
@@ -95,7 +97,7 @@ export const generateSchemasDefinition = (
             getEnumNames(resolvedValue.originalSchema),
             context.output.override.enumGenerationType,
             getEnumDescriptions(resolvedValue.originalSchema),
-            context.output.override.namingConvention?.enum,
+            context.output.override.namingConvention.enum,
           );
         } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
           // Don't add type if schema has same name and the referred schema will be an interface
@@ -165,7 +167,7 @@ export const generateSchemasDefinition = (
   return deduplicatedModels;
 };
 
-function shouldCreateInterface(schema: SchemaObject) {
+function shouldCreateInterface(schema: OpenApiSchemaObject) {
   return (
     (!schema.type || schema.type === 'object') &&
     !schema.allOf &&

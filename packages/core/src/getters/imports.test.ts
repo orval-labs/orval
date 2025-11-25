@@ -11,7 +11,7 @@ const baseContext: Omit<ContextSpecs, 'output'> = {
   specKey: 'spec',
   target: 'spec',
   workspace: '',
-  specs: {},
+  spec: {},
 };
 
 const contextWithSchemas = {

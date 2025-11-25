@@ -14,19 +14,41 @@ import {
   parseYaml,
   readFiles,
 } from '@scalar/json-magic/bundle/plugins/node';
-import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
+import {
+  dereference,
+  upgrade,
+  validate as validateSpec,
+} from '@scalar/openapi-parser';
 
 // import chalk from 'chalk';
 // import fs from 'fs-extra';
 // import yaml from 'js-yaml';
 import { importOpenApi } from './import-open-api';
 
+async function resolveSpec(
+  input: string | Record<string, unknown>,
+): Promise<OpenApiDocument> {
+  const data = await bundle(input, {
+    plugins: [readFiles(), fetchUrls(), parseJson(), parseYaml()],
+    treeShake: true,
+  });
+
+  const { valid, errors } = await validateSpec(data);
+  if (!valid) {
+    throw new Error('Validation failed', { cause: errors });
+  }
+
+  const { specification } = upgrade(data);
+
+  return specification;
+}
+
 async function resolveSpecs(
   path: string,
   { validate, ...options }: SwaggerParserOptions,
   _isUrl: boolean,
   isOnlySchema: boolean,
-): Promise<OpenApiDocument> {
+): Promise<Record<string, OpenApiDocument>> {
   const data = await bundle(path, {
     plugins: [readFiles(), fetchUrls(), parseJson(), parseYaml()],
     treeShake: true,
@@ -38,8 +60,9 @@ async function resolveSpecs(
     }
   }
   const { specification } = upgrade(data);
+  // const { specification: deref } = await dereference(specification);
 
-  return specification;
+  return { [path]: specification };
 
   // try {
   //   if (validate) {
@@ -83,27 +106,22 @@ export async function importSpecs(
 ): Promise<WriteSpecsBuilder> {
   const { input, output } = options;
 
-  if (!isString(input.target)) {
-    return importOpenApi({
-      data: { [workspace]: input.target },
-      input,
-      output,
-      target: workspace,
-      workspace,
-    });
-  }
+  // if (!isString(input.target)) {
+  //   return importOpenApi({
+  //     data: { [workspace]: input.target },
+  //     input,
+  //     output,
+  //     target: workspace,
+  //     workspace,
+  //   });
+  // }
 
-  const isPathUrl = isUrl(input.target);
+  // const isPathUrl = isUrl(input.target);
 
-  const data = await resolveSpecs(
-    input.target,
-    input.parserOptions,
-    isPathUrl,
-    !output.target,
-  );
+  const spec = await resolveSpec(input.target);
 
   return importOpenApi({
-    data,
+    spec,
     input,
     output,
     target: input.target,

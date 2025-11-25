@@ -242,10 +242,7 @@ export const getMockDefinition = ({
   mockOptions?: GlobalMockOptions;
   splitMockImplementations: string[];
 }) => {
-  const mockOptionsWithoutFunc = getMockWithoutFunc(
-    context.specs[context.specKey],
-    override,
-  );
+  const mockOptionsWithoutFunc = getMockWithoutFunc(context.spec, override);
 
   const { definitions, imports } = getResponsesMockDefinition({
     operationId,

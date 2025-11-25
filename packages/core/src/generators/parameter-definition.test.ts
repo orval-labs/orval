@@ -15,7 +15,7 @@ describe('generateParameterDefinition', () => {
       },
     },
     target: 'typescript',
-    specs: {},
+    spec: {},
   };
 
   it('should return an empty array if parameters are empty', () => {

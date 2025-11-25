@@ -1,7 +1,12 @@
 import type { SchemaObject } from 'openapi3-ts/oas30';
 
 import { resolveExampleRefs } from '../resolvers';
-import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
+import type {
+  ContextSpecs,
+  OpenApiSchemaObject,
+  ScalarValue,
+  SchemaWithConst,
+} from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -13,15 +18,15 @@ import { getObject } from './object';
  * @param item
  * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
  */
-export const getScalar = ({
+export function getScalar({
   item,
   name,
   context,
 }: {
-  item: SchemaObject;
+  item: OpenApiSchemaObject;
   name?: string;
   context: ContextSpecs;
-}): ScalarValue => {
+}): ScalarValue {
   const nullable = item.nullable ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
@@ -201,4 +206,4 @@ export const getScalar = ({
       return { value: value, ...rest };
     }
   }
-};
+}

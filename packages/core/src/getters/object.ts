@@ -134,7 +134,7 @@ export const getObject = ({
         }
 
         const allSpecSchemas =
-          context.specs[context.target]?.components?.schemas ?? {};
+          context.spec[context.target]?.components?.schemas ?? {};
 
         const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
           (schemaName) => pascal(schemaName) === propName,

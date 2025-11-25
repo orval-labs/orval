@@ -1,6 +1,9 @@
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-
-import { SchemaType, Verbs } from '../types';
+import {
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
+  SchemaType,
+  Verbs,
+} from '../types';
 import { extname } from './path';
 
 /**
@@ -8,9 +11,9 @@ import { extname } from './path';
  *
  * @param property
  */
-export const isReference = (property: any): property is ReferenceObject => {
-  return Boolean(property?.$ref);
-};
+export function isReference(obj: object): obj is OpenApiReferenceObject {
+  return Object.hasOwn(obj, '$ref');
+}
 
 export const isDirectory = (path: string) => {
   return !extname(path);
@@ -52,7 +55,7 @@ export function isNull(x: any): x is null {
   return x === null;
 }
 
-export function isSchema(x: any): x is SchemaObject {
+export function isSchema(x: unknown): x is OpenApiSchemaObject {
   if (!isObject(x)) {
     return false;
   }

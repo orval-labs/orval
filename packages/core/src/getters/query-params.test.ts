@@ -6,7 +6,7 @@ import { getQueryParams } from './query-params';
 
 // Mock context for getQueryParams
 const context: ContextSpecs = {
-  specs: {},
+  spec: {},
   output: {
     // @ts-expect-error
     override: {

@@ -83,7 +83,7 @@ export const getArray = ({
       examples: resolveExampleRefs(schema.examples, context),
     };
   } else if (
-    compareVersions(context.specs[context.specKey].openapi, '3.1', '>=')
+    compareVersions(context.spec[context.specKey].openapi, '3.1', '>=')
   ) {
     return {
       value: 'unknown[]',

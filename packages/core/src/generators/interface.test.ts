@@ -12,7 +12,7 @@ describe('generateInterface', () => {
       override: {},
     },
     target: 'typescript',
-    specs: {},
+    spec: {},
   };
 
   it('should return const object with typeof', () => {

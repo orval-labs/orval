@@ -80,15 +80,11 @@ export const resolveMockValue = ({
   allowOverride?: boolean;
 }): MockDefinition & { type?: string } => {
   if (isReference(schema)) {
-    const {
-      originalName,
-      specKey = context.specKey,
-      refPaths,
-    } = getRefInfo(schema.$ref, context);
+    const { originalName, refPaths } = getRefInfo(schema.$ref, context);
 
     const schemaRef = Array.isArray(refPaths)
       ? (prop(
-          context.specs[specKey],
+          context.spec,
           // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
           ...refPaths,
         ) as Partial<SchemaObject>)
@@ -121,10 +117,7 @@ export const resolveMockValue = ({
               newSeparator === 'allOf' ? [] : combine.includedProperties,
           }
         : undefined,
-      context: {
-        ...context,
-        specKey,
-      },
+      context,
       imports,
       existingReferencedProperties,
       splitMockImplementations,
@@ -157,10 +150,7 @@ export const resolveMockValue = ({
         ? `${funcName}()`
         : `{...${funcName}()}`;
 
-      scalar.imports.push({
-        name: newSchema.name,
-        specKey: isRootKey(specKey, context.target) ? undefined : specKey,
-      });
+      scalar.imports.push({ name: newSchema.name });
     }
 
     return {

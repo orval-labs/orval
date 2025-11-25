@@ -1,21 +1,26 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
-import type { ContextSpecs, ResolverValue } from '../types';
+import type {
+  ContextSpecs,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ResolverValue,
+} from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
 
-const resolveObjectOriginal = ({
+function resolveObjectOriginal({
   schema,
   propName,
   combined = false,
   context,
 }: {
-  schema: SchemaObject | ReferenceObject;
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
   propName?: string;
   combined?: boolean;
   context: ContextSpecs;
-}): ResolverValue => {
+}): ResolverValue {
   const resolvedValue = resolveValue({
     schema,
     name: propName,
@@ -89,7 +94,7 @@ const resolveObjectOriginal = ({
   }
 
   return resolvedValue;
-};
+}
 
 const resolveObjectCacheMap = new Map<string, ResolverValue>();
 

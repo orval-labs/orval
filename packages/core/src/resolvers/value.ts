@@ -1,30 +1,30 @@
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-
 import { getScalar } from '../getters';
-import { type ContextSpecs, type ResolverValue, SchemaType } from '../types';
+import type {
+  ContextSpecs,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ResolverValue,
+  SchemaType,
+} from '../types';
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
 
-export const resolveValue = ({
+export function resolveValue({
   schema,
   name,
   context,
 }: {
-  schema: SchemaObject | ReferenceObject;
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
   name?: string;
   context: ContextSpecs;
-}): ResolverValue => {
+}): ResolverValue {
   if (isReference(schema)) {
-    const { schema: schemaObject, imports } = resolveRef<SchemaObject>(
+    const { schema: schemaObject, imports } = resolveRef<OpenApiSchemaObject>(
       schema,
       context,
     );
 
     const resolvedImport = imports[0];
-
-    const importSpecKey =
-      resolvedImport.specKey ||
-      (context.specKey === context.target ? undefined : context.specKey);
 
     let hasReadonlyProps = false;
 
@@ -35,8 +35,7 @@ export const resolveValue = ({
         name: resolvedImport.name,
         context: {
           ...context,
-          specKey: importSpecKey || context.specKey,
-          ...(name ? { parents: [...(context.parents || []), name] } : {}),
+          ...(name ? { parents: [...(context.parents ?? []), name] } : {}),
         },
       });
 
@@ -50,13 +49,12 @@ export const resolveValue = ({
       imports: [
         {
           name: resolvedImport.name,
-          specKey: importSpecKey,
           schemaName: resolvedImport.schemaName,
         },
       ],
-      type: (schemaObject?.type as SchemaType) || 'object',
+      type: (schemaObject.type as SchemaType | undefined) ?? 'object',
       schemas: [],
-      isEnum: !!schemaObject?.enum,
+      isEnum: !!schemaObject.enum,
       originalSchema: schemaObject,
       hasReadonlyProps,
       isRef: true,
@@ -70,4 +68,4 @@ export const resolveValue = ({
     originalSchema: schema,
     isRef: false,
   };
-};
+}

@@ -6,54 +6,88 @@ import {
   generateParameterDefinition,
   generateSchemasDefinition,
   type GeneratorSchema,
-  ibmOpenapiValidator,
   type ImportOpenApi,
   type InputOptions,
-  isObject,
   isReference,
   isSchema,
   type NormalizedOutputOptions,
   openApiConverter,
   type OpenApiDocument,
+  type OpenApiSchemaObject,
+  type OverrideInput,
   upath,
   type WriteSpecsBuilder,
 } from '@orval/core';
-import type { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
+import { validate } from '@scalar/openapi-parser';
+import type { SchemasObject } from 'openapi3-ts/oas30';
+import { isPlainObject, omit } from 'remeda';
 
 import { getApiBuilder } from './api';
 
 export async function importOpenApi({
-  data,
+  spec,
   input,
   output,
   target,
   workspace,
 }: ImportOpenApi): Promise<WriteSpecsBuilder> {
-  const specs = await generateInputSpecs({ specs: data, input, workspace });
+  const transformedOpenApi = await applyTransformer(
+    spec,
+    input.override.transformer,
+    workspace,
+  );
 
-  const schemas = getApiSchemas({ input, output, target, workspace, specs });
+  const schemas = getApiSchemas({
+    input,
+    output,
+    target,
+    workspace,
+    spec: transformedOpenApi,
+  });
 
   const api = await getApiBuilder({
     input,
     output,
     context: {
-      specKey: target,
+      // specKey: target,
       target,
       workspace,
-      specs,
+      spec: transformedOpenApi,
       output,
     },
   });
 
   return {
     ...api,
-    schemas: {
-      ...schemas,
-      [target]: [...(schemas[target] ?? []), ...api.schemas],
-    },
+    schemas,
     target,
-    info: specs[target].info,
+    // a valid spec will have info
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    info: transformedOpenApi.info!,
   };
+}
+
+async function applyTransformer(
+  openApi: OpenApiDocument,
+  transformer: OverrideInput['transformer'],
+  workspace: string,
+): Promise<OpenApiDocument> {
+  const transformerFn = transformer
+    ? await dynamicImport(transformer, workspace)
+    : undefined;
+
+  if (!transformerFn) {
+    return openApi;
+  }
+
+  const transformedOpenApi = transformerFn(openApi);
+
+  const { valid, errors } = await validate(transformedOpenApi);
+  if (!valid) {
+    throw new Error(`Validation failed`, { cause: errors });
+  }
+
+  return transformedOpenApi;
 }
 
 async function generateInputSpecs({
@@ -61,10 +95,10 @@ async function generateInputSpecs({
   input,
   workspace,
 }: {
-  specs: OpenApiDocument;
+  specs: Record<string, OpenApiDocument>;
   input: InputOptions;
   workspace: string;
-}): Promise<Record<string, OpenAPIObject>> {
+}): Promise<Record<string, OpenApiDocument>> {
   const transformerFn = input.override?.transformer
     ? await dynamicImport(input.override.transformer, workspace)
     : undefined;
@@ -81,46 +115,51 @@ async function generateInputSpecs({
       const transformedSchema = transformerFn ? transformerFn(schema) : schema;
 
       if (input.validation) {
-        await ibmOpenapiValidator(transformedSchema, input.validation);
+        const { valid, errors } = await validate(transformedSchema);
+        if (!valid) {
+          throw new Error(`Validation failed for specKey: ${specKey}`, {
+            cause: errors,
+          });
+        }
       }
 
       acc[specKey] = transformedSchema;
 
       return acc;
     },
-    {} as Record<string, OpenAPIObject>,
+    {} as Record<string, OpenApiDocument>,
   );
 }
 
-const getApiSchemas = ({
+function getApiSchemas({
   input,
   output,
   target,
   workspace,
-  specs,
+  spec,
 }: {
   input: InputOptions;
   output: NormalizedOutputOptions;
   workspace: string;
   target: string;
-  specs: Record<string, OpenAPIObject>;
-}) => {
-  return Object.entries(specs).reduce<Record<string, GeneratorSchema[]>>(
+  spec: OpenApiDocument;
+}) {
+  return Object.entries(spec).reduce<Record<string, GeneratorSchema[]>>(
     (acc, [specKey, spec]) => {
       const context: ContextSpecs = {
-        specKey,
+        // specKey,
         target,
         workspace,
-        specs,
+        spec,
         output,
       };
 
-      const parsedSchemas = spec.openapi
-        ? (spec.components?.schemas as SchemasObject)
-        : getAllSchemas(spec, specKey);
+      // const parsedSchemas = spec.openapi
+      //   ? spec.components?.schemas
+      //   : getAllSchemas(spec, specKey);
 
       const schemaDefinition = generateSchemasDefinition(
-        parsedSchemas,
+        spec.components?.schemas,
         context,
         output.override.components.schemas.suffix,
         input.filters,
@@ -161,10 +200,13 @@ const getApiSchemas = ({
     },
     {},
   );
-};
+}
 
-const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
-  const keysToOmit = new Set([
+function getAllSchemas(
+  spec: OpenApiDocument,
+  specKey?: string,
+): OpenApiSchemaObject {
+  const cleanedSpec = omit(spec, [
     'openapi',
     'info',
     'servers',
@@ -175,37 +217,26 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
     'externalDocs',
   ]);
 
-  const cleanedSpec = Object.fromEntries(
-    Object.entries(spec).filter(([key]) => !keysToOmit.has(key)),
-  );
-
-  if (specKey && isSchema(cleanedSpec)) {
+  if (specKey) {
     const name = upath.getSchemaFileName(specKey);
-
-    const additionalKeysToOmit = new Set([
-      'type',
-      'properties',
-      'allOf',
-      'oneOf',
-      'anyOf',
-      'items',
-    ]);
-
     return {
-      [name]: cleanedSpec as SchemasObject,
+      [name]: cleanedSpec,
       ...getAllSchemas(
-        Object.fromEntries(
-          Object.entries(cleanedSpec).filter(
-            ([key]) => !additionalKeysToOmit.has(key),
-          ),
-        ),
+        omit(cleanedSpec, [
+          'type',
+          'properties',
+          'allOf',
+          'oneOf',
+          'anyOf',
+          'items',
+        ]),
       ),
     };
   }
 
   const schemas = Object.entries(cleanedSpec).reduce<SchemasObject>(
     (acc, [key, value]) => {
-      if (!isObject(value)) {
+      if (!isPlainObject(value)) {
         return acc;
       }
 
@@ -222,6 +253,6 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
 
   return {
     ...schemas,
-    ...((spec as OpenAPIObject)?.components?.schemas as SchemasObject),
+    ...(spec as OpenApiDocument)?.components?.schemas,
   };
-};
+}
