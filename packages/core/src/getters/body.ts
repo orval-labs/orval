@@ -10,7 +10,7 @@ import type {
 import { camel, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
-export const getBody = ({
+export function getBody({
   requestBody,
   operationName,
   context,
@@ -20,7 +20,7 @@ export const getBody = ({
   operationName: string;
   context: ContextSpecs;
   contentType?: OverrideOutputContentType;
-}): GetterBody => {
+}): GetterBody {
   const allBodyTypes = getResReqTypes(
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
@@ -100,4 +100,4 @@ export const getBody = ({
           contentType: '',
         }),
   };
-};
+}

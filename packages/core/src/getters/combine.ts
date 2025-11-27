@@ -123,7 +123,7 @@ const combineValues = ({
   return values.join(' | ');
 };
 
-export const combineSchemas = ({
+export function combineSchemas({
   name,
   schema,
   separator,
@@ -135,7 +135,7 @@ export const combineSchemas = ({
   separator: Separator;
   context: ContextSpecs;
   nullable: string;
-}): ScalarValue => {
+}): ScalarValue {
   const items = schema[separator] ?? [];
 
   const resolvedData = items.reduce<CombinedData>(
@@ -278,7 +278,7 @@ export const combineSchemas = ({
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };
-};
+}
 
 const getCombineEnumValue = ({
   values,

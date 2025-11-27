@@ -4,7 +4,7 @@ import chalk from 'chalk';
 
 export const log = console.log;
 
-export const startMessage = ({
+export function startMessage({
   name,
   version,
   description,
@@ -12,12 +12,13 @@ export const startMessage = ({
   name: string;
   version: string;
   description: string;
-}) =>
-  `🍻 ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
+}): string {
+  return `🍻 ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
     description ? ` - ${description}` : ''
   }`;
+}
 
-export const logError = (err: unknown, tag?: string) => {
+export function logError(err: unknown, tag?: string) {
   log(
     chalk.red(
       [
@@ -29,9 +30,9 @@ export const logError = (err: unknown, tag?: string) => {
         .join(' '),
     ),
   );
-};
+}
 
-export const mismatchArgsMessage = (mismatchArgs: string[]) => {
+export function mismatchArgsMessage(mismatchArgs: string[]) {
   log(
     chalk.yellow(
       `${mismatchArgs.join(', ')} ${
@@ -39,39 +40,39 @@ export const mismatchArgsMessage = (mismatchArgs: string[]) => {
       } not defined in your configuration!`,
     ),
   );
-};
+}
 
-export const createSuccessMessage = (backend?: string) => {
+export function createSuccessMessage(backend?: string) {
   log(
     `🎉 ${
       backend ? `${chalk.green(backend)} - ` : ''
     }Your OpenAPI spec has been converted into ready to use orval!`,
   );
-};
+}
 
-export const ibmOpenapiValidatorWarnings = (
+export function ibmOpenapiValidatorWarnings(
   warnings: {
     path: string[];
     message: string;
   }[],
-) => {
+) {
   log(chalk.yellow('(!) Warnings'));
 
   for (const i of warnings)
     log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
-};
+}
 
-export const ibmOpenapiValidatorErrors = (
+export function ibmOpenapiValidatorErrors(
   errors: {
     path: string[];
     message: string;
   }[],
-) => {
+) {
   log(chalk.red('(!) Errors'));
 
   for (const i of errors)
     log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
-};
+}
 
 export type LogType = 'error' | 'warn' | 'info';
 export type LogLevel = LogType | 'silent';

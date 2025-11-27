@@ -4,10 +4,10 @@ import type { ContextSpecs, OpenApiSchemasObject } from '../types';
 import { pascal } from '../utils';
 import { getRefInfo } from './ref';
 
-export const resolveDiscriminators = (
+export function resolveDiscriminators(
   schemas: OpenApiSchemasObject,
   context: ContextSpecs,
-): OpenApiSchemasObject => {
+): OpenApiSchemasObject {
   const transformedSchemas = { ...schemas };
 
   for (const schema of Object.values(transformedSchemas)) {
@@ -60,4 +60,4 @@ export const resolveDiscriminators = (
   }
 
   return transformedSchemas;
-};
+}

@@ -2,7 +2,7 @@ import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
 import { pascal } from '../utils';
 import { getSpecName } from '../utils/path';
 
-export const getAliasedImports = ({
+export function getAliasedImports({
   name,
   resolvedValue,
   existingImports,
@@ -12,8 +12,8 @@ export const getAliasedImports = ({
   resolvedValue: ResolverValue;
   existingImports: GeneratorImport[];
   context: ContextSpecs;
-}): GeneratorImport[] =>
-  context.output.schemas && resolvedValue.isRef
+}): GeneratorImport[] {
+  return context.output.schemas && resolvedValue.isRef
     ? resolvedValue.imports.map((imp) => {
         if (
           !needCreateImportAlias({
@@ -40,8 +40,9 @@ export const getAliasedImports = ({
         };
       })
     : resolvedValue.imports;
+}
 
-export const needCreateImportAlias = ({
+export function needCreateImportAlias({
   existingImports,
   imp,
   name,
@@ -49,17 +50,20 @@ export const needCreateImportAlias = ({
   name?: string;
   imp: GeneratorImport;
   existingImports: GeneratorImport[];
-}): boolean =>
-  !imp.alias &&
-  // !!imp.specKey &&
-  (imp.name === name ||
-    existingImports.some(
-      (existingImport) =>
-        imp.name === existingImport.name &&
-        imp.specKey !== existingImport.specKey,
-    ));
+}): boolean {
+  return (
+    !imp.alias &&
+    // !!imp.specKey &&
+    (imp.name === name ||
+      existingImports.some(
+        (existingImport) =>
+          imp.name === existingImport.name &&
+          imp.specKey !== existingImport.specKey,
+      ))
+  );
+}
 
-export const getImportAliasForRefOrValue = ({
+export function getImportAliasForRefOrValue({
   context,
   imports,
   resolvedValue,
@@ -67,7 +71,7 @@ export const getImportAliasForRefOrValue = ({
   resolvedValue: ResolverValue;
   imports: GeneratorImport[];
   context: ContextSpecs;
-}): string => {
+}): string {
   if (!context.output.schemas || !resolvedValue.isRef) {
     return resolvedValue.value;
   }
@@ -75,4 +79,4 @@ export const getImportAliasForRefOrValue = ({
     (imp) => imp.name === resolvedValue.value,
   );
   return importWithSameName?.alias ?? resolvedValue.value;
-};
+}

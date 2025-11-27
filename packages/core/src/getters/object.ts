@@ -52,7 +52,7 @@ const getIndexSignatureKey = (item: SchemaObject): string => {
  *
  * @param item item with type === "object"
  */
-export const getObject = ({
+export function getObject({
   item,
   name,
   context,
@@ -62,7 +62,7 @@ export const getObject = ({
   name?: string;
   context: ContextSpecs;
   nullable: string;
-}): ScalarValue => {
+}): ScalarValue {
   if (isReference(item)) {
     const { name } = getRefInfo(item.$ref, context);
     return {
@@ -273,4 +273,4 @@ export const getObject = ({
     isRef: false,
     hasReadonlyProps: item.readOnly || false,
   };
-};
+}
