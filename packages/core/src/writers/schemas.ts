@@ -91,7 +91,7 @@ export const writeSchema = async ({
   }
 };
 
-export const writeSchemas = async ({
+export async function writeSchemas({
   schemaPath,
   schemas,
   target,
@@ -113,7 +113,7 @@ export const writeSchemas = async ({
   specsName: Record<string, string>;
   header: string;
   indexFiles: boolean;
-}) => {
+}) {
   await Promise.all(
     schemas.map((schema) =>
       writeSchema({
@@ -180,4 +180,4 @@ export const writeSchemas = async ({
       );
     }
   }
-};
+}

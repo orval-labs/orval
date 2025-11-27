@@ -1,68 +1,58 @@
-import type {
-  ComponentsObject,
-  ReferenceObject,
-  RequestBodyObject,
-  ResponseObject,
-} from 'openapi3-ts/oas30';
-import { isEmptyish } from 'remeda';
+import { entries, isEmptyish } from 'remeda';
 
 import { getResReqTypes } from '../getters';
-import type { ContextSpecs, GeneratorSchema } from '../types';
+import type {
+  ContextSpecs,
+  GeneratorSchema,
+  OpenApiComponentsObject,
+} from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
 
-export const generateComponentDefinition = (
+export function generateComponentDefinition(
   responses:
-    | ComponentsObject['responses']
-    | ComponentsObject['requestBodies'] = {},
+    | OpenApiComponentsObject['responses']
+    | OpenApiComponentsObject['requestBodies'] = {},
   context: ContextSpecs,
   suffix: string,
-): GeneratorSchema[] => {
+): GeneratorSchema[] {
   if (isEmptyish(responses)) {
     return [];
   }
 
-  return Object.entries(responses).reduce<GeneratorSchema[]>(
-    (
-      acc,
-      [name, response]: [
-        string,
-        ReferenceObject | RequestBodyObject | ResponseObject,
-      ],
-    ) => {
-      const allResponseTypes = getResReqTypes(
-        [[suffix, response]],
-        name,
-        context,
-        'void',
-      );
+  const generatorSchemas: GeneratorSchema[] = [];
+  for (const [name, response] of entries(responses)) {
+    const allResponseTypes = getResReqTypes(
+      [[suffix, response]],
+      name,
+      context,
+      'void',
+    );
 
-      const imports = allResponseTypes.flatMap(({ imports }) => imports);
-      const schemas = allResponseTypes.flatMap(({ schemas }) => schemas);
+    const imports = allResponseTypes.flatMap(({ imports }) => imports);
+    const schemas = allResponseTypes.flatMap(({ schemas }) => schemas);
 
-      const type = allResponseTypes.map(({ value }) => value).join(' | ');
+    const type = allResponseTypes.map(({ value }) => value).join(' | ');
 
-      const modelName = sanitize(`${pascal(name)}${suffix}`, {
-        underscore: '_',
-        whitespace: '_',
-        dash: true,
-        es5keyword: true,
-        es5IdentifierName: true,
+    const modelName = sanitize(`${pascal(name)}${suffix}`, {
+      underscore: '_',
+      whitespace: '_',
+      dash: true,
+      es5keyword: true,
+      es5IdentifierName: true,
+    });
+    const doc = jsDoc(response);
+    const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
+
+    generatorSchemas.push(...schemas);
+
+    if (modelName !== type) {
+      generatorSchemas.push({
+        name: modelName,
+        model,
+        imports,
       });
-      const doc = jsDoc(response as ResponseObject | RequestBodyObject);
-      const model = `${doc}export type ${modelName} = ${type || 'unknown'};\n`;
+    }
+  }
 
-      acc.push(...schemas);
-
-      if (modelName !== type) {
-        acc.push({
-          name: modelName,
-          model,
-          imports,
-        });
-      }
-
-      return acc;
-    },
-    [],
-  );
-};
+  return generatorSchemas;
+}

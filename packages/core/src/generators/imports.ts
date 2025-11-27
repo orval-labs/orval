@@ -7,21 +7,16 @@ import {
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { conventionName, upath } from '../utils';
+import { conventionName } from '../utils';
 
 export const generateImports = ({
   imports = [],
-  target,
-  isRootKey,
-  specsName,
-  specKey: currentSpecKey,
   namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specsName: Record<string, string>;
-  specKey: string;
   namingConvention?: NamingConvention;
 }) => {
   if (imports.length === 0) {
@@ -30,32 +25,15 @@ export const generateImports = ({
 
   return uniqueWith(
     imports,
-    (a, b) =>
-      a.name === b.name && a.default === b.default && a.specKey === b.specKey,
+    (a, b) => a.name === b.name && a.default === b.default,
   )
-    .sort()
-    .map(({ specKey, name, values, alias, isConstant }) => {
-      const isSameSpecKey = currentSpecKey === specKey;
-
+    .toSorted()
+    .map(({ name, values, alias, isConstant }) => {
       const fileName = conventionName(name, namingConvention);
-
-      if (specKey && !isSameSpecKey) {
-        const path = specKey === target ? '' : specsName[specKey];
-
-        if (!isRootKey && specKey) {
-          return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
-            alias ? ` as ${alias}` : ''
-          } } from \'../${upath.join(path, fileName)}\';`;
-        }
-
-        return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
-          alias ? ` as ${alias}` : ''
-        } } from \'./${upath.join(path, fileName)}\';`;
-      }
 
       return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from \'./${fileName}\';`;
+      } } from './${fileName}';`;
     })
     .join('\n');
 };

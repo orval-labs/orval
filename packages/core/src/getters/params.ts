@@ -79,14 +79,7 @@ export const getParams = ({
 
     const resolvedValue = resolveValue({
       schema,
-      context: {
-        ...context,
-        ...(pathParam.imports.length > 0
-          ? {
-              specKey: pathParam.imports[0].specKey,
-            }
-          : {}),
-      },
+      context,
     });
 
     let paramType = resolvedValue.value;

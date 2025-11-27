@@ -37,12 +37,12 @@ const getHeader = (
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
 
-export const writeSpecs = async (
+export async function writeSpecs(
   builder: WriteSpecsBuilder,
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
-) => {
+) {
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName ?? info.title;
@@ -247,7 +247,7 @@ export const writeSpecs = async (
   }
 
   createSuccessMessage(projectTitle);
-};
+}
 
 const getWriteMode = (mode: OutputMode) => {
   switch (mode) {

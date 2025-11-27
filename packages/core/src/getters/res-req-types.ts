@@ -14,6 +14,9 @@ import {
   type ContextSpecs,
   FormDataArrayHandling,
   type GeneratorImport,
+  type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
+  type OpenApiResponseObject,
   type ResReqTypesValue,
 } from '../types';
 import { camel } from '../utils';
@@ -27,7 +30,7 @@ const formUrlEncodedContentTypes = new Set([
   'application/x-www-form-urlencoded',
 ]);
 
-const getResReqContentTypes = ({
+function getResReqContentTypes({
   mediaType,
   propName,
   context,
@@ -35,7 +38,7 @@ const getResReqContentTypes = ({
   mediaType: MediaTypeObject;
   propName?: string;
   context: ContextSpecs;
-}) => {
+}) {
   if (!mediaType.schema) {
     return;
   }
@@ -47,12 +50,12 @@ const getResReqContentTypes = ({
   });
 
   return resolvedObject;
-};
+}
 
-export const getResReqTypes = (
+export function getResReqTypes(
   responsesOrRequests: [
     string,
-    ResponseObject | ReferenceObject | RequestBodyObject,
+    OpenApiReferenceObject | OpenApiResponseObject | OpenApiRequestBodyObject,
   ][],
   name: string,
   context: ContextSpecs,
@@ -62,14 +65,14 @@ export const getResReqTypes = (
     index: number,
     data: ResReqTypesValue[],
   ) => unknown = (item) => item.value,
-): ResReqTypesValue[] => {
+): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
     .filter(([_, res]) => Boolean(res))
     .map(([key, res]) => {
       if (isReference(res)) {
         const {
           schema: bodySchema,
-          imports: [{ name, specKey, schemaName }],
+          imports: [{ name, schemaName }],
         } = resolveRef<RequestBodyObject | ResponseObject>(res, context);
 
         const [contentType, mediaType] =
@@ -78,19 +81,19 @@ export const getResReqTypes = (
         const isFormData = formDataContentTypes.has(contentType);
         const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
 
-        if ((!isFormData && !isFormUrlEncoded) || !mediaType?.schema) {
+        if ((!isFormData && !isFormUrlEncoded) || !mediaType.schema) {
           return [
             {
               value: name,
-              imports: [{ name, specKey, schemaName }],
+              imports: [{ name, schemaName }],
               schemas: [],
               type: 'unknown',
               isEnum: false,
               isRef: true,
               hasReadonlyProps: false,
-              originalSchema: mediaType?.schema,
-              example: mediaType?.example,
-              examples: resolveExampleRefs(mediaType?.examples, context),
+              originalSchema: mediaType.schema,
+              example: mediaType.example,
+              examples: resolveExampleRefs(mediaType.examples, context),
               key,
               contentType,
             },
@@ -100,11 +103,8 @@ export const getResReqTypes = (
         const formData = isFormData
           ? getSchemaFormDataAndUrlEncoded({
               name,
-              schemaObject: mediaType?.schema,
-              context: {
-                ...context,
-                specKey: specKey || context.specKey,
-              },
+              schemaObject: mediaType.schema,
+              context,
               isRequestBodyOptional:
                 // Even though required is false by default, we only consider required to be false if specified. (See pull 1277)
                 'required' in bodySchema && bodySchema.required === false,
@@ -115,11 +115,8 @@ export const getResReqTypes = (
         const formUrlEncoded = isFormUrlEncoded
           ? getSchemaFormDataAndUrlEncoded({
               name,
-              schemaObject: mediaType?.schema,
-              context: {
-                ...context,
-                specKey: specKey || context.specKey,
-              },
+              schemaObject: mediaType.schema,
+              context,
               isRequestBodyOptional:
                 'required' in bodySchema && bodySchema.required === false,
               isUrlEncoded: true,
@@ -128,17 +125,14 @@ export const getResReqTypes = (
           : undefined;
 
         const additionalImports = getFormDataAdditionalImports({
-          schemaObject: mediaType?.schema,
-          context: {
-            ...context,
-            specKey: specKey || context.specKey,
-          },
+          schemaObject: mediaType.schema,
+          context,
         });
 
         return [
           {
             value: name,
-            imports: [{ name, specKey, schemaName }, ...additionalImports],
+            imports: [{ name, schemaName }, ...additionalImports],
             schemas: [],
             type: 'unknown',
             isEnum: false,
@@ -146,7 +140,7 @@ export const getResReqTypes = (
             formData,
             formUrlEncoded,
             isRef: true,
-            originalSchema: mediaType?.schema,
+            originalSchema: mediaType.schema,
             example: mediaType.example,
             examples: resolveExampleRefs(mediaType.examples, context),
             key,
@@ -246,7 +240,7 @@ export const getResReqTypes = (
     });
 
   return uniqueBy(typesArray.flat(), uniqueKey);
-};
+}
 
 const getFormDataAdditionalImports = ({
   schemaObject,

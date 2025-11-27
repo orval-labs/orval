@@ -1,7 +1,4 @@
-// import SwaggerParser from '@apidevtools/swagger-parser';
 import {
-  isString,
-  isUrl,
   type NormalizedOptions,
   type OpenApiDocument,
   type SwaggerParserOptions,
@@ -14,15 +11,8 @@ import {
   parseYaml,
   readFiles,
 } from '@scalar/json-magic/bundle/plugins/node';
-import {
-  dereference,
-  upgrade,
-  validate as validateSpec,
-} from '@scalar/openapi-parser';
+import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
 
-// import chalk from 'chalk';
-// import fs from 'fs-extra';
-// import yaml from 'js-yaml';
 import { importOpenApi } from './import-open-api';
 
 async function resolveSpec(

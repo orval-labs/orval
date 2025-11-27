@@ -68,7 +68,6 @@ describe('generateAxiosOptions', () => {
         imports: [
           {
             name: 'Pet',
-            specKey: undefined,
             schemaName: 'Pet',
           },
         ],
@@ -84,7 +83,6 @@ describe('generateAxiosOptions', () => {
               imports: [
                 {
                   name: 'Pet',
-                  specKey: undefined,
                   schemaName: 'Pet',
                 },
               ],

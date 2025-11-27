@@ -144,62 +144,51 @@ function getApiSchemas({
   target: string;
   spec: OpenApiDocument;
 }) {
-  return Object.entries(spec).reduce<Record<string, GeneratorSchema[]>>(
-    (acc, [specKey, spec]) => {
-      const context: ContextSpecs = {
-        // specKey,
-        target,
-        workspace,
-        spec,
-        output,
-      };
+  const context: ContextSpecs = {
+    // specKey,
+    target,
+    workspace,
+    spec,
+    output,
+  };
 
-      // const parsedSchemas = spec.openapi
-      //   ? spec.components?.schemas
-      //   : getAllSchemas(spec, specKey);
+  // const parsedSchemas = spec.openapi
+  //   ? spec.components?.schemas
+  //   : getAllSchemas(spec, specKey);
 
-      const schemaDefinition = generateSchemasDefinition(
-        spec.components?.schemas,
-        context,
-        output.override.components.schemas.suffix,
-        input.filters,
-      );
-
-      const responseDefinition = generateComponentDefinition(
-        spec.components?.responses,
-        context,
-        output.override.components.responses.suffix,
-      );
-
-      const bodyDefinition = generateComponentDefinition(
-        spec.components?.requestBodies,
-        context,
-        output.override.components.requestBodies.suffix,
-      );
-
-      const parameters = generateParameterDefinition(
-        spec.components?.parameters,
-        context,
-        output.override.components.parameters.suffix,
-      );
-
-      const schemas = [
-        ...schemaDefinition,
-        ...responseDefinition,
-        ...bodyDefinition,
-        ...parameters,
-      ];
-
-      if (schemas.length === 0) {
-        return acc;
-      }
-
-      acc[specKey] = schemas;
-
-      return acc;
-    },
-    {},
+  const schemaDefinition = generateSchemasDefinition(
+    spec.components?.schemas,
+    context,
+    output.override.components.schemas.suffix,
+    input.filters,
   );
+
+  const responseDefinition = generateComponentDefinition(
+    spec.components?.responses,
+    context,
+    output.override.components.responses.suffix,
+  );
+
+  const bodyDefinition = generateComponentDefinition(
+    spec.components?.requestBodies,
+    context,
+    output.override.components.requestBodies.suffix,
+  );
+
+  const parameters = generateParameterDefinition(
+    spec.components?.parameters,
+    context,
+    output.override.components.parameters.suffix,
+  );
+
+  const schemas = [
+    ...schemaDefinition,
+    ...responseDefinition,
+    ...bodyDefinition,
+    ...parameters,
+  ];
+
+  return schemas;
 }
 
 function getAllSchemas(

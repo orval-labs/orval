@@ -64,15 +64,15 @@ export const getObject = ({
   nullable: string;
 }): ScalarValue => {
   if (isReference(item)) {
-    const { name, specKey } = getRefInfo(item.$ref, context);
+    const { name } = getRefInfo(item.$ref, context);
     return {
       value: name + nullable,
-      imports: [{ name, specKey }],
+      imports: [{ name }],
       schemas: [],
       isEnum: false,
       type: 'object',
       isRef: true,
-      hasReadonlyProps: item.readOnly || false,
+      hasReadonlyProps: item.readOnly ?? false,
       example: item.example,
       examples: resolveExampleRefs(item.examples, context),
     };

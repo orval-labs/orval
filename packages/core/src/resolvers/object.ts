@@ -1,5 +1,3 @@
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import type {
   ContextSpecs,
@@ -98,25 +96,26 @@ function resolveObjectOriginal({
 
 const resolveObjectCacheMap = new Map<string, ResolverValue>();
 
-export const resolveObject = ({
+export function resolveObject({
   schema,
   propName,
   combined = false,
   context,
 }: {
-  schema: SchemaObject | ReferenceObject;
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
   propName?: string;
   combined?: boolean;
   context: ContextSpecs;
-}): ResolverValue => {
+}): ResolverValue {
   const hashKey = JSON.stringify({
     schema,
     propName,
     combined,
-    specKey: context.specKey,
   });
 
   if (resolveObjectCacheMap.has(hashKey)) {
+    // .has(...) guarantees existence
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return resolveObjectCacheMap.get(hashKey)!;
   }
 
@@ -130,4 +129,4 @@ export const resolveObject = ({
   resolveObjectCacheMap.set(hashKey, result);
 
   return result;
-};
+}
