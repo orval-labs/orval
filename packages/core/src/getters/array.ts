@@ -6,6 +6,12 @@ import { resolveObject } from '../resolvers/object';
 import type { ContextSpecs, ScalarValue } from '../types';
 import { compareVersions } from '../utils';
 
+interface GetArrayOptions {
+  schema: SchemaObject;
+  name?: string;
+  context: ContextSpecs;
+}
+
 /**
  * Return the output type from an array
  *
@@ -15,11 +21,7 @@ export function getArray({
   schema,
   name,
   context,
-}: {
-  schema: SchemaObject;
-  name?: string;
-  context: ContextSpecs;
-}): ScalarValue {
+}: GetArrayOptions): ScalarValue {
   const schema31 = schema as SchemaObject31;
   if (schema31.prefixItems) {
     const resolvedObjects = schema31.prefixItems.map((item, index) =>

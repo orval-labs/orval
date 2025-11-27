@@ -8,17 +8,19 @@ import type {
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
 
+interface ResolveOptions {
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
+  propName?: string;
+  combined?: boolean;
+  context: ContextSpecs;
+}
+
 function resolveObjectOriginal({
   schema,
   propName,
   combined = false,
   context,
-}: {
-  schema: OpenApiSchemaObject | OpenApiReferenceObject;
-  propName?: string;
-  combined?: boolean;
-  context: ContextSpecs;
-}): ResolverValue {
+}: ResolveOptions): ResolverValue {
   const resolvedValue = resolveValue({
     schema,
     name: propName,
@@ -101,12 +103,7 @@ export function resolveObject({
   propName,
   combined = false,
   context,
-}: {
-  schema: OpenApiSchemaObject | OpenApiReferenceObject;
-  propName?: string;
-  combined?: boolean;
-  context: ContextSpecs;
-}): ResolverValue {
+}: ResolveOptions): ResolverValue {
   const hashKey = JSON.stringify({
     schema,
     propName,

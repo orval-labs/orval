@@ -28,19 +28,21 @@ export function getParamsInPath(path: string) {
   return output;
 }
 
+interface GetParamsOptions {
+  route: string;
+  pathParams?: GetterParameters['query'];
+  operationId: string;
+  context: ContextSpecs;
+  output: NormalizedOutputOptions;
+}
+
 export function getParams({
   route,
   pathParams = [],
   operationId,
   context,
   output,
-}: {
-  route: string;
-  pathParams?: GetterParameters['query'];
-  operationId: string;
-  context: ContextSpecs;
-  output: NormalizedOutputOptions;
-}): GetterParams {
+}: GetParamsOptions): GetterParams {
   const params = getParamsInPath(route);
   return params.map((p) => {
     const pathParam = pathParams.find(

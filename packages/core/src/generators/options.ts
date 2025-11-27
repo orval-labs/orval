@@ -9,6 +9,14 @@ import {
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';
 
+interface GenerateFormDataAndUrlEncodedFunctionOptions {
+  body: GetterBody;
+  formData?: GeneratorMutator;
+  formUrlEncoded?: GeneratorMutator;
+  isFormData: boolean;
+  isFormUrlEncoded: boolean;
+}
+
 export function generateBodyOptions(
   body: GetterBody,
   isFormData: boolean,
@@ -29,6 +37,19 @@ export function generateBodyOptions(
   return '';
 }
 
+interface GenerateAxiosOptions {
+  response: GetterResponse;
+  isExactOptionalPropertyTypes: boolean;
+  queryParams?: GeneratorSchema;
+  headers?: GeneratorSchema;
+  requestOptions?: object | boolean;
+  hasSignal: boolean;
+  isVue: boolean;
+  isAngular: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
+}
+
 export function generateAxiosOptions({
   response,
   isExactOptionalPropertyTypes,
@@ -40,18 +61,7 @@ export function generateAxiosOptions({
   isAngular,
   paramsSerializer,
   paramsSerializerOptions,
-}: {
-  response: GetterResponse;
-  isExactOptionalPropertyTypes: boolean;
-  queryParams?: GeneratorSchema;
-  headers?: GeneratorSchema;
-  requestOptions?: object | boolean;
-  hasSignal: boolean;
-  isVue: boolean;
-  isAngular: boolean;
-  paramsSerializer?: GeneratorMutator;
-  paramsSerializerOptions?: ParamsSerializerOptions;
-}) {
+}: GenerateAxiosOptions) {
   const isRequestOptions = requestOptions !== false;
   if (
     !queryParams &&
@@ -136,6 +146,24 @@ export function generateAxiosOptions({
   return value;
 }
 
+interface GenerateOptionsOptions {
+  route: string;
+  body: GetterBody;
+  headers?: GetterQueryParam;
+  queryParams?: GetterQueryParam;
+  response: GetterResponse;
+  verb: Verbs;
+  requestOptions?: object | boolean;
+  isFormData: boolean;
+  isFormUrlEncoded: boolean;
+  isAngular?: boolean;
+  isExactOptionalPropertyTypes: boolean;
+  hasSignal: boolean;
+  isVue?: boolean;
+  paramsSerializer?: GeneratorMutator;
+  paramsSerializerOptions?: ParamsSerializerOptions;
+}
+
 export function generateOptions({
   route,
   body,
@@ -152,23 +180,7 @@ export function generateOptions({
   isVue,
   paramsSerializer,
   paramsSerializerOptions,
-}: {
-  route: string;
-  body: GetterBody;
-  headers?: GetterQueryParam;
-  queryParams?: GetterQueryParam;
-  response: GetterResponse;
-  verb: Verbs;
-  requestOptions?: object | boolean;
-  isFormData: boolean;
-  isFormUrlEncoded: boolean;
-  isAngular?: boolean;
-  isExactOptionalPropertyTypes: boolean;
-  hasSignal: boolean;
-  isVue?: boolean;
-  paramsSerializer?: GeneratorMutator;
-  paramsSerializerOptions?: ParamsSerializerOptions;
-}) {
+}: GenerateOptionsOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
     : '';
@@ -249,6 +261,20 @@ export function generateQueryParamsAxiosConfig(
   return value;
 }
 
+interface GenerateMutatorConfigOptions {
+  route: string;
+  body: GetterBody;
+  headers?: GetterQueryParam;
+  queryParams?: GetterQueryParam;
+  response: GetterResponse;
+  verb: Verbs;
+  isFormData: boolean;
+  isFormUrlEncoded: boolean;
+  hasSignal: boolean;
+  isExactOptionalPropertyTypes: boolean;
+  isVue?: boolean;
+}
+
 export function generateMutatorConfig({
   route,
   body,
@@ -261,19 +287,7 @@ export function generateMutatorConfig({
   hasSignal,
   isExactOptionalPropertyTypes,
   isVue,
-}: {
-  route: string;
-  body: GetterBody;
-  headers?: GetterQueryParam;
-  queryParams?: GetterQueryParam;
-  response: GetterResponse;
-  verb: Verbs;
-  isFormData: boolean;
-  isFormUrlEncoded: boolean;
-  hasSignal: boolean;
-  isExactOptionalPropertyTypes: boolean;
-  isVue?: boolean;
-}) {
+}: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
     : '';
@@ -326,13 +340,7 @@ export function generateFormDataAndUrlEncodedFunction({
   formUrlEncoded,
   isFormData,
   isFormUrlEncoded,
-}: {
-  body: GetterBody;
-  formData?: GeneratorMutator;
-  formUrlEncoded?: GeneratorMutator;
-  isFormData: boolean;
-  isFormUrlEncoded: boolean;
-}) {
+}: GenerateFormDataAndUrlEncodedFunctionOptions) {
   if (isFormData && body.formData) {
     if (formData) {
       return `const formData = ${formData.name}(${body.implementation})`;

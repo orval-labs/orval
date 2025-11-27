@@ -4,6 +4,13 @@ import { getScalar } from '../getters';
 import type { ContextSpecs } from '../types';
 import { jsDoc } from '../utils';
 
+interface GenerateInterfaceOptions {
+  name: string;
+  schema: SchemaObject;
+  context: ContextSpecs;
+  suffix: string;
+}
+
 /**
  * Generate the interface string
  * An eslint comment is insert if the resulted object is empty
@@ -16,12 +23,7 @@ export function generateInterface({
   schema,
   context,
   suffix,
-}: {
-  name: string;
-  schema: SchemaObject;
-  context: ContextSpecs;
-  suffix: string;
-}) {
+}: GenerateInterfaceOptions) {
   const scalar = getScalar({
     item: schema,
     name,

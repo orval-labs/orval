@@ -37,17 +37,19 @@ type CombinedData = {
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 
-const combineValues = ({
-  resolvedData,
-  resolvedValue,
-  separator,
-  context,
-}: {
+interface CombineValuesOptions {
   resolvedData: CombinedData;
   resolvedValue?: ScalarValue;
   separator: Separator;
   context: ContextSpecs;
-}) => {
+}
+
+function combineValues({
+  resolvedData,
+  resolvedValue,
+  separator,
+  context,
+}: CombineValuesOptions) {
   const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums) {
@@ -121,7 +123,7 @@ const combineValues = ({
   }
 
   return values.join(' | ');
-};
+}
 
 export function combineSchemas({
   name,

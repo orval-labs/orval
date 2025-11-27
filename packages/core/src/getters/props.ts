@@ -9,6 +9,15 @@ import {
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
+interface GetPropsOptions {
+  body: GetterBody;
+  queryParams?: GetterQueryParam;
+  params: GetterParams;
+  operationName: string;
+  headers?: GetterQueryParam;
+  context: ContextSpecs;
+}
+
 export function getProps({
   body,
   queryParams,
@@ -16,14 +25,7 @@ export function getProps({
   operationName,
   headers,
   context,
-}: {
-  body: GetterBody;
-  queryParams?: GetterQueryParam;
-  params: GetterParams;
-  operationName: string;
-  headers?: GetterQueryParam;
-  context: ContextSpecs;
-}): GetterProps {
+}: GetPropsOptions): GetterProps {
   const bodyProp = {
     name: body.implementation,
     definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,

@@ -9,16 +9,18 @@ import {
 } from '../types';
 import { conventionName } from '../utils';
 
-export function generateImports({
-  imports = [],
-  namingConvention = NamingConvention.CAMEL_CASE,
-}: {
+interface GenerateImportsOptions {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
   specName: string;
   namingConvention?: NamingConvention;
-}) {
+}
+
+export function generateImports({
+  imports = [],
+  namingConvention = NamingConvention.CAMEL_CASE,
+}: GenerateImportsOptions) {
   if (imports.length === 0) {
     return '';
   }
@@ -38,15 +40,17 @@ export function generateImports({
     .join('\n');
 }
 
+interface GenerateMutatorImportsOptions {
+  mutators: GeneratorMutator[];
+  implementation?: string;
+  oneMore?: boolean;
+}
+
 export function generateMutatorImports({
   mutators,
   implementation,
   oneMore,
-}: {
-  mutators: GeneratorMutator[];
-  implementation?: string;
-  oneMore?: boolean;
-}) {
+}: GenerateMutatorImportsOptions) {
   const imports = uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
@@ -98,6 +102,15 @@ export function generateMutatorImports({
   return imports;
 }
 
+interface GenerateDependencyOptions {
+  key: string;
+  deps: GeneratorImport[];
+  dependency: string;
+  specsName: Record<string, string>;
+  isAllowSyntheticDefaultImports: boolean;
+  onlyTypes: boolean;
+}
+
 function generateDependency({
   deps,
   isAllowSyntheticDefaultImports,
@@ -105,14 +118,7 @@ function generateDependency({
   specsName,
   key,
   onlyTypes,
-}: {
-  key: string;
-  deps: GeneratorImport[];
-  dependency: string;
-  specsName: Record<string, string>;
-  isAllowSyntheticDefaultImports: boolean;
-  onlyTypes: boolean;
-}) {
+}: GenerateDependencyOptions) {
   // find default import if dependency either is not a synthetic import or synthetic imports are allowed
   const defaultDep = deps.find(
     (e) =>
@@ -164,6 +170,15 @@ function generateDependency({
   return importString;
 }
 
+interface AddDependencyOptions {
+  implementation: string;
+  exports: GeneratorImport[];
+  dependency: string;
+  specsName: Record<string, string>;
+  hasSchemaDir: boolean;
+  isAllowSyntheticDefaultImports: boolean;
+}
+
 export function addDependency({
   implementation,
   exports,
@@ -171,14 +186,7 @@ export function addDependency({
   specsName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
-}: {
-  implementation: string;
-  exports: GeneratorImport[];
-  dependency: string;
-  specsName: Record<string, string>;
-  hasSchemaDir: boolean;
-  isAllowSyntheticDefaultImports: boolean;
-}) {
+}: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
     const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
     const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');

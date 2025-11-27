@@ -1,5 +1,3 @@
-import type { SchemaObject } from 'openapi3-ts/oas30';
-
 import { resolveExampleRefs } from '../resolvers';
 import type {
   ContextSpecs,
@@ -12,6 +10,12 @@ import { getArray } from './array';
 import { combineSchemas } from './combine';
 import { getObject } from './object';
 
+interface GetScalarOptions {
+  item: OpenApiSchemaObject;
+  name?: string;
+  context: ContextSpecs;
+}
+
 /**
  * Return the typescript equivalent of open-api data type
  *
@@ -22,11 +26,7 @@ export function getScalar({
   item,
   name,
   context,
-}: {
-  item: OpenApiSchemaObject;
-  name?: string;
-  context: ContextSpecs;
-}): ScalarValue {
+}: GetScalarOptions): ScalarValue {
   const nullable = item.nullable ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);

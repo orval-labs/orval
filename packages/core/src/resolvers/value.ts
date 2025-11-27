@@ -9,15 +9,17 @@ import type {
 import { isReference } from '../utils';
 import { resolveRef } from './ref';
 
+interface ResolveValueOptions {
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
+  name?: string;
+  context: ContextSpecs;
+}
+
 export function resolveValue({
   schema,
   name,
   context,
-}: {
-  schema: OpenApiSchemaObject | OpenApiReferenceObject;
-  name?: string;
-  context: ContextSpecs;
-}): ResolverValue {
+}: ResolveValueOptions): ResolverValue {
   if (isReference(schema)) {
     const { schema: schemaObject, imports } = resolveRef<OpenApiSchemaObject>(
       schema,

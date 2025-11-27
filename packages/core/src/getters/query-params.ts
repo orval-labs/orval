@@ -19,11 +19,11 @@ type QueryParamsType = {
   originalSchema: SchemaObject;
 };
 
-const getQueryParamsTypes = (
+function getQueryParamsTypes(
   queryParams: GetterParameters['query'],
   operationName: string,
   context: ContextSpecs,
-): QueryParamsType[] => {
+): QueryParamsType[] {
   return queryParams.map(({ parameter, imports: parameterImports }) => {
     const {
       name,
@@ -109,19 +109,21 @@ const getQueryParamsTypes = (
       originalSchema: resolvedValue.originalSchema,
     };
   });
-};
+}
+
+interface GetQueryParamsOptions {
+  queryParams: GetterParameters['query'];
+  operationName: string;
+  context: ContextSpecs;
+  suffix?: string;
+}
 
 export function getQueryParams({
   queryParams = [],
   operationName,
   context,
   suffix = 'params',
-}: {
-  queryParams: GetterParameters['query'];
-  operationName: string;
-  context: ContextSpecs;
-  suffix?: string;
-}): GetterQueryParam | undefined {
+}: GetQueryParamsOptions): GetterQueryParam | undefined {
   if (queryParams.length === 0) {
     return;
   }

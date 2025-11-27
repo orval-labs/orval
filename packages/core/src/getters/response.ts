@@ -8,17 +8,19 @@ import type {
 } from '../types';
 import { getResReqTypes } from './res-req-types';
 
+interface GetResponseOptions {
+  responses: ResponsesObject;
+  operationName: string;
+  context: ContextSpecs;
+  contentType?: OverrideOutputContentType;
+}
+
 export function getResponse({
   responses,
   operationName,
   context,
   contentType,
-}: {
-  responses: ResponsesObject;
-  operationName: string;
-  context: ContextSpecs;
-  contentType?: OverrideOutputContentType;
-}): GetterResponse {
+}: GetResponseOptions): GetterResponse {
   if (!responses) {
     return {
       imports: [],
