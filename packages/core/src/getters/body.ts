@@ -10,17 +10,19 @@ import type {
 import { camel, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
+interface GetBodyOptions {
+  requestBody: ReferenceObject | RequestBodyObject;
+  operationName: string;
+  context: ContextSpecs;
+  contentType?: OverrideOutputContentType;
+}
+
 export function getBody({
   requestBody,
   operationName,
   context,
   contentType,
-}: {
-  requestBody: ReferenceObject | RequestBodyObject;
-  operationName: string;
-  context: ContextSpecs;
-  contentType?: OverrideOutputContentType;
-}): GetterBody {
+}: GetBodyOptions): GetterBody {
   const allBodyTypes = getResReqTypes(
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,

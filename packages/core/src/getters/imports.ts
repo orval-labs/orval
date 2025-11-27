@@ -2,17 +2,19 @@ import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
 import { pascal } from '../utils';
 import { getSpecName } from '../utils/path';
 
+interface GetAliasedImportsOptions {
+  name?: string;
+  resolvedValue: ResolverValue;
+  existingImports: GeneratorImport[];
+  context: ContextSpecs;
+}
+
 export function getAliasedImports({
   name,
   resolvedValue,
   existingImports,
   context,
-}: {
-  name?: string;
-  resolvedValue: ResolverValue;
-  existingImports: GeneratorImport[];
-  context: ContextSpecs;
-}): GeneratorImport[] {
+}: GetAliasedImportsOptions): GeneratorImport[] {
   return context.output.schemas && resolvedValue.isRef
     ? resolvedValue.imports.map((imp) => {
         if (
@@ -42,15 +44,17 @@ export function getAliasedImports({
     : resolvedValue.imports;
 }
 
+interface NeedCreateImportAliasOptions {
+  name?: string;
+  imp: GeneratorImport;
+  existingImports: GeneratorImport[];
+}
+
 export function needCreateImportAlias({
   existingImports,
   imp,
   name,
-}: {
-  name?: string;
-  imp: GeneratorImport;
-  existingImports: GeneratorImport[];
-}): boolean {
+}: NeedCreateImportAliasOptions): boolean {
   return (
     !imp.alias &&
     // !!imp.specKey &&
@@ -63,15 +67,17 @@ export function needCreateImportAlias({
   );
 }
 
+interface GetImportAliasForRefOrValueOptions {
+  resolvedValue: ResolverValue;
+  imports: GeneratorImport[];
+  context: ContextSpecs;
+}
+
 export function getImportAliasForRefOrValue({
   context,
   imports,
   resolvedValue,
-}: {
-  resolvedValue: ResolverValue;
-  imports: GeneratorImport[];
-  context: ContextSpecs;
-}): string {
+}: GetImportAliasForRefOrValueOptions): string {
   if (!context.output.schemas || !resolvedValue.isRef) {
     return resolvedValue.value;
   }

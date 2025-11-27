@@ -47,6 +47,13 @@ const getIndexSignatureKey = (item: SchemaObject): string => {
   return 'string';
 };
 
+interface GetObjectOptions {
+  item: SchemaObject;
+  name?: string;
+  context: ContextSpecs;
+  nullable: string;
+}
+
 /**
  * Return the output type from an object
  *
@@ -57,12 +64,7 @@ export function getObject({
   name,
   context,
   nullable,
-}: {
-  item: SchemaObject;
-  name?: string;
-  context: ContextSpecs;
-  nullable: string;
-}): ScalarValue {
+}: GetObjectOptions): ScalarValue {
   if (isReference(item)) {
     const { name } = getRefInfo(item.$ref, context);
     return {
