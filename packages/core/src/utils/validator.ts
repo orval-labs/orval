@@ -13,10 +13,10 @@ import {
  * More information: https://github.com/IBM/openapi-validator/#configuration
  * @param specs openAPI spec
  */
-export const ibmOpenapiValidator = async (
+export async function ibmOpenapiValidator(
   specs: OpenAPIObject,
   validation: boolean | object,
-) => {
+) {
   const ruleset =
     typeof validation === 'boolean' ? ibmOpenapiRuleset : validation;
   const spectral = new stoplight.Spectral();
@@ -51,4 +51,4 @@ export const ibmOpenapiValidator = async (
     ibmOpenapiValidatorErrors(errors);
     throw new Error('Spec validation failed');
   }
-};
+}

@@ -17,7 +17,7 @@ import { camel, sanitize, stringify } from '../utils';
  * ```
  * @param path
  */
-export const getParamsInPath = (path: string) => {
+export function getParamsInPath(path: string) {
   let n;
   const output = [];
   const templatePathRegex = /\{(.*?)\}/g;
@@ -26,9 +26,9 @@ export const getParamsInPath = (path: string) => {
   }
 
   return output;
-};
+}
 
-export const getParams = ({
+export function getParams({
   route,
   pathParams = [],
   operationId,
@@ -40,7 +40,7 @@ export const getParams = ({
   operationId: string;
   context: ContextSpecs;
   output: NormalizedOutputOptions;
-}): GetterParams => {
+}): GetterParams {
   const params = getParamsInPath(route);
   return params.map((p) => {
     const pathParam = pathParams.find(
@@ -109,4 +109,4 @@ export const getParams = ({
       originalSchema: resolvedValue.originalSchema,
     };
   });
-};
+}

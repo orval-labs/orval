@@ -14,13 +14,13 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
-export const writeSplitMode = async ({
+export async function writeSplitMode({
   builder,
   output,
   specsName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: conventionName(
@@ -191,4 +191,4 @@ export const writeSplitMode = async ({
       `Oups... 🍻. An Error occurred while splitting => ${error}`,
     );
   }
-};
+}

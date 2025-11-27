@@ -26,7 +26,7 @@ const getRoutePath = (path: string): string => {
     : `${prev}${param}${next}`;
 };
 
-export const getRoute = (route: string) => {
+export function getRoute(route: string) {
   const splittedRoute = route.split('/');
 
   return splittedRoute.reduce((acc, path, i) => {
@@ -40,13 +40,13 @@ export const getRoute = (route: string) => {
 
     return `${acc}/${getRoutePath(path)}`;
   }, '');
-};
+}
 
-export const getFullRoute = (
+export function getFullRoute(
   route: string,
   servers: ServerObject[] | undefined,
   baseUrl: string | BaseUrlFromConstant | BaseUrlFromSpec | undefined,
-): string => {
+): string {
   const getBaseUrl = (): string => {
     if (!baseUrl) return '';
     if (typeof baseUrl === 'string') return baseUrl;
@@ -94,11 +94,11 @@ export const getFullRoute = (
     fullRoute = `${base}${fullRoute}`;
   }
   return fullRoute;
-};
+}
 
 // Creates a mixed use array with path variables and string from template string route
-export const getRouteAsArray = (route: string): string =>
-  route
+export function getRouteAsArray(route: string): string {
+  return route
     .replaceAll(TEMPLATE_TAG_IN_PATH_REGEX, '/$1/${')
     .split('/')
     .filter((i) => i !== '')
@@ -108,3 +108,4 @@ export const getRouteAsArray = (route: string): string =>
     )
     .join(',')
     .replace(',,', '');
+}

@@ -14,13 +14,13 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
-export const writeTagsMode = async ({
+export async function writeTagsMode({
   builder,
   output,
   specsName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
     extension: output.fileExtension,
@@ -171,4 +171,4 @@ export const writeTagsMode = async ({
   );
 
   return generatedFilePathsArray.flat();
-};
+}

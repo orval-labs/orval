@@ -11,7 +11,7 @@ import { compareVersions } from '../utils';
  *
  * @param item item with type === "array"
  */
-export const getArray = ({
+export function getArray({
   schema,
   name,
   context,
@@ -19,7 +19,7 @@ export const getArray = ({
   schema: SchemaObject;
   name?: string;
   context: ContextSpecs;
-}): ScalarValue => {
+}): ScalarValue {
   const schema31 = schema as SchemaObject31;
   if (schema31.prefixItems) {
     const resolvedObjects = schema31.prefixItems.map((item, index) =>
@@ -99,4 +99,4 @@ export const getArray = ({
       `All arrays must have an \`items\` key defined (name=${name}, schema=${JSON.stringify(schema)})`,
     );
   }
-};
+}

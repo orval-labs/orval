@@ -111,7 +111,7 @@ const getQueryParamsTypes = (
   });
 };
 
-export const getQueryParams = ({
+export function getQueryParams({
   queryParams = [],
   operationName,
   context,
@@ -121,7 +121,7 @@ export const getQueryParams = ({
   operationName: string;
   context: ContextSpecs;
   suffix?: string;
-}): GetterQueryParam | undefined => {
+}): GetterQueryParam | undefined {
   if (queryParams.length === 0) {
     return;
   }
@@ -144,4 +144,4 @@ export const getQueryParams = ({
     deps: schemas,
     isOptional: allOptional,
   };
-};
+}

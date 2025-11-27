@@ -38,15 +38,7 @@ import {
 } from '../utils';
 import { generateMutator } from './mutator';
 
-const generateVerbOptions = async ({
-  verb,
-  output,
-  operation,
-  route,
-  pathRoute,
-  verbParameters = [],
-  context,
-}: {
+export interface GenerateVerbOptionsParams {
   verb: Verbs;
   output: NormalizedOutputOptions;
   operation: OperationObject;
@@ -55,7 +47,17 @@ const generateVerbOptions = async ({
   verbParameters?: (ReferenceObject | ParameterObject)[];
   components?: ComponentsObject;
   context: ContextSpecs;
-}): Promise<GeneratorVerbOptions> => {
+}
+
+export async function generateVerbOptions({
+  verb,
+  output,
+  operation,
+  route,
+  pathRoute,
+  verbParameters = [],
+  context,
+}: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions> {
   const {
     responses,
     requestBody,
@@ -221,24 +223,26 @@ const generateVerbOptions = async ({
   );
 
   return transformer ? transformer(verbOption) : verbOption;
-};
+}
 
-export const generateVerbsOptions = ({
-  verbs,
-  input,
-  output,
-  route,
-  pathRoute,
-  context,
-}: {
+export interface GenerateVerbsOptionsParams {
   verbs: PathItemObject;
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   route: string;
   pathRoute: string;
   context: ContextSpecs;
-}): Promise<GeneratorVerbsOptions> =>
-  asyncReduce(
+}
+
+export function generateVerbsOptions({
+  verbs,
+  input,
+  output,
+  route,
+  pathRoute,
+  context,
+}: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
+  return asyncReduce(
     _filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OperationObject]) => {
       if (isVerb(verb)) {
@@ -259,11 +263,12 @@ export const generateVerbsOptions = ({
     },
     [] as GeneratorVerbsOptions,
   );
+}
 
-export const _filteredVerbs = (
+export function _filteredVerbs(
   verbs: PathItemObject,
   filters: NormalizedInputOptions['filters'],
-) => {
+) {
   if (filters?.tags === undefined) {
     return Object.entries(verbs);
   }
@@ -284,4 +289,4 @@ export const _filteredVerbs = (
       return filterMode === 'exclude' ? !isMatch : isMatch;
     },
   );
-};
+}

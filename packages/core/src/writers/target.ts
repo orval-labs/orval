@@ -7,10 +7,10 @@ import {
 } from '../types';
 import { compareVersions, pascal } from '../utils';
 
-export const generateTarget = (
+export function generateTarget(
   builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-): GeneratorTarget => {
+): GeneratorTarget {
   const operationNames = Object.values(builder.operations).map(
     ({ operationName }) => operationName,
   );
@@ -127,4 +127,4 @@ export const generateTarget = (
     implementationMock:
       target.implementationMock.function + target.implementationMock.handler,
   };
-};
+}

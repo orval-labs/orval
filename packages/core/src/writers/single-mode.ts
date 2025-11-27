@@ -13,13 +13,13 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
-export const writeSingleMode = async ({
+export async function writeSingleMode({
   builder,
   output,
   specsName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   try {
     const { path, dirname } = getFileInfo(output.target, {
       backupFilename: conventionName(
@@ -150,4 +150,4 @@ export const writeSingleMode = async ({
       `Oups... 🍻. An Error occurred while writing file => ${errorMsg}`,
     );
   }
-};
+}

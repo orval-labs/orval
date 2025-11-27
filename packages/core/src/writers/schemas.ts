@@ -4,6 +4,16 @@ import { generateImports } from '../generators';
 import { type GeneratorSchema, NamingConvention } from '../types';
 import { conventionName, upath } from '../utils';
 
+interface GetSchemaOptions {
+  schema: GeneratorSchema;
+  target: string;
+  isRootKey: boolean;
+  specName: string;
+  header: string;
+  specKey: string;
+  namingConvention?: NamingConvention;
+}
+
 function getSchema({
   schema: { imports, model },
   target,
@@ -12,15 +22,7 @@ function getSchema({
   header,
   specKey,
   namingConvention = NamingConvention.CAMEL_CASE,
-}: {
-  schema: GeneratorSchema;
-  target: string;
-  isRootKey: boolean;
-  specName: string;
-  header: string;
-  specKey: string;
-  namingConvention?: NamingConvention;
-}): string {
+}: GetSchemaOptions): string {
   let file = header;
   file += generateImports({
     imports: imports.filter(
@@ -42,11 +44,29 @@ function getSchema({
 const getPath = (path: string, name: string, fileExtension: string): string =>
   upath.join(path, `/${name}${fileExtension}`);
 
-export const writeModelInline = (acc: string, model: string): string =>
-  acc + `${model}\n`;
+export function writeModelInline(acc: string, model: string): string {
+  return acc + `${model}\n`;
+}
 
-export const writeModelsInline = (array: GeneratorSchema[]): string =>
-  array.reduce((acc, { model }) => writeModelInline(acc, model), '');
+export function writeModelsInline(array: GeneratorSchema[]): string {
+  let acc = '';
+  for (const { model } of array) {
+    acc = writeModelInline(acc, model);
+  }
+  return acc;
+}
+
+interface WriteSchemaOptions {
+  path: string;
+  schema: GeneratorSchema;
+  target: string;
+  namingConvention: NamingConvention;
+  fileExtension: string;
+  specKey: string;
+  isRootKey: boolean;
+  specName: string;
+  header: string;
+}
 
 export async function writeSchema({
   path,
@@ -58,17 +78,7 @@ export async function writeSchema({
   isRootKey,
   specName,
   header,
-}: {
-  path: string;
-  schema: GeneratorSchema;
-  target: string;
-  namingConvention: NamingConvention;
-  fileExtension: string;
-  specKey: string;
-  isRootKey: boolean;
-  specName: string;
-  header: string;
-}) {
+}: WriteSchemaOptions) {
   const name = conventionName(schema.name, namingConvention);
 
   try {
@@ -91,6 +101,19 @@ export async function writeSchema({
   }
 }
 
+interface WriteSchemasOptions {
+  schemaPath: string;
+  schemas: GeneratorSchema[];
+  target: string;
+  namingConvention: NamingConvention;
+  fileExtension: string;
+  specKey: string;
+  isRootKey: boolean;
+  specName: string;
+  header: string;
+  indexFiles: boolean;
+}
+
 export async function writeSchemas({
   schemaPath,
   schemas,
@@ -102,18 +125,7 @@ export async function writeSchemas({
   specName,
   header,
   indexFiles,
-}: {
-  schemaPath: string;
-  schemas: GeneratorSchema[];
-  target: string;
-  namingConvention: NamingConvention;
-  fileExtension: string;
-  specKey: string;
-  isRootKey: boolean;
-  specName: string;
-  header: string;
-  indexFiles: boolean;
-}) {
+}: WriteSchemasOptions) {
   await Promise.all(
     schemas.map(async (schema) => {
       await writeSchema({

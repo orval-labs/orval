@@ -31,12 +31,12 @@ import { generateInterface } from './interface';
  *
  * @param schemas
  */
-export const generateSchemasDefinition = (
+export function generateSchemasDefinition(
   schemas: OpenApiSchemasObject = {},
   context: ContextSpecs,
   suffix: string,
   filters?: InputFiltersOption,
-): GeneratorSchema[] => {
+): GeneratorSchema[] {
   if (isEmptyish(schemas)) {
     return [];
   }
@@ -165,7 +165,7 @@ export const generateSchemasDefinition = (
   }
 
   return deduplicatedModels;
-};
+}
 
 function shouldCreateInterface(schema: OpenApiSchemaObject) {
   return (

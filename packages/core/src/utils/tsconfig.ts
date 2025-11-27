@@ -1,6 +1,6 @@
 import type { Tsconfig } from '../types';
 
-export const isSyntheticDefaultImportsAllow = (config?: Tsconfig) => {
+export function isSyntheticDefaultImportsAllow(config?: Tsconfig) {
   if (!config) {
     return true;
   }
@@ -9,4 +9,4 @@ export const isSyntheticDefaultImportsAllow = (config?: Tsconfig) => {
     config?.compilerOptions?.allowSyntheticDefaultImports ??
     config?.compilerOptions?.esModuleInterop
   );
-};
+}

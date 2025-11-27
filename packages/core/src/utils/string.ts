@@ -9,9 +9,9 @@ import {
   isUndefined,
 } from './assertion';
 
-export const stringify = (
+export function stringify(
   data?: string | any[] | Record<string, any>,
-): string | undefined => {
+): string | undefined {
   if (isUndefined(data) || isNull(data)) {
     return;
   }
@@ -44,9 +44,9 @@ export const stringify = (
 
     return acc + `${key}: ${strValue}, `;
   }, '');
-};
+}
 
-export const sanitize = (
+export function sanitize(
   value: string,
   options?: {
     whitespace?: string | true;
@@ -57,7 +57,7 @@ export const sanitize = (
     es5IdentifierName?: boolean;
     special?: boolean;
   },
-) => {
+) {
   const {
     whitespace = '',
     underscore = '',
@@ -107,9 +107,9 @@ export const sanitize = (
   }
 
   return newValue;
-};
+}
 
-export const toObjectString = <T>(props: T[], path?: keyof T) => {
+export function toObjectString<T>(props: T[], path?: keyof T) {
   if (props.length === 0) {
     return '';
   }
@@ -128,7 +128,7 @@ export const toObjectString = <T>(props: T[], path?: keyof T) => {
       : props;
 
   return arrayOfString.join(',\n    ') + ',';
-};
+}
 
 const NUMBERS = {
   '0': 'zero',
@@ -143,13 +143,14 @@ const NUMBERS = {
   '9': 'nine',
 };
 
-export const getNumberWord = (num: number) => {
+export function getNumberWord(num: number) {
   const arrayOfNumber = num.toString().split('') as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
-};
+}
 
-export const escape = (str: string | null, char = "'") =>
-  str?.replace(char, `\\${char}`);
+export function escape(str: string | null, char = "'") {
+  return str?.replace(char, `\\${char}`);
+}
 
 /**
  * Escape all characters not included in SingleStringCharacters and
@@ -160,8 +161,8 @@ export const escape = (str: string | null, char = "'") =>
  *
  * @param input String to escape
  */
-export const jsStringEscape = (input: string) =>
-  input.replaceAll(/["'\\\n\r\u2028\u2029]/g, (character) => {
+export function jsStringEscape(input: string) {
+  return input.replaceAll(/["'\\\n\r\u2028\u2029]/g, (character) => {
     switch (character) {
       case '"':
       case "'":
@@ -186,3 +187,4 @@ export const jsStringEscape = (input: string) =>
       }
     }
   });
+}

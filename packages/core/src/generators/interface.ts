@@ -11,7 +11,7 @@ import { jsDoc } from '../utils';
  * @param name interface name
  * @param schema
  */
-export const generateInterface = ({
+export function generateInterface({
   name,
   schema,
   context,
@@ -21,7 +21,7 @@ export const generateInterface = ({
   schema: SchemaObject;
   context: ContextSpecs;
   suffix: string;
-}) => {
+}) {
   const scalar = getScalar({
     item: schema,
     name,
@@ -76,4 +76,4 @@ export const generateInterface = ({
       imports: externalModulesImportsOnly,
     },
   ];
-};
+}

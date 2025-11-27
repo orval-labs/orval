@@ -9,7 +9,7 @@ import {
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
-export const getProps = ({
+export function getProps({
   body,
   queryParams,
   params,
@@ -23,7 +23,7 @@ export const getProps = ({
   operationName: string;
   headers?: GetterQueryParam;
   context: ContextSpecs;
-}): GetterProps => {
+}): GetterProps {
   const bodyProp = {
     name: body.implementation,
     definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
@@ -115,7 +115,7 @@ export const getProps = ({
   const sortedProps = sortByPriority(props);
 
   return sortedProps;
-};
+}
 
 function getQueryParamDefinition(
   queryParams: GetterQueryParam | undefined,

@@ -108,10 +108,10 @@ function getSchema<
 
 type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type Examples = Example[] | Record<string, Example> | undefined;
-export const resolveExampleRefs = (
+export function resolveExampleRefs(
   examples: Examples,
   context: ContextSpecs,
-): Examples => {
+): Examples {
   if (!examples) {
     return undefined;
   }
@@ -134,4 +134,4 @@ export const resolveExampleRefs = (
           [key]: schema,
         };
       }, {});
-};
+}

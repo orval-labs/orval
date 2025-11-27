@@ -8,7 +8,7 @@ import type {
 } from '../types';
 import { getResReqTypes } from './res-req-types';
 
-export const getResponse = ({
+export function getResponse({
   responses,
   operationName,
   context,
@@ -18,7 +18,7 @@ export const getResponse = ({
   operationName: string;
   context: ContextSpecs;
   contentType?: OverrideOutputContentType;
-}): GetterResponse => {
+}): GetterResponse {
   if (!responses) {
     return {
       imports: [],
@@ -99,4 +99,4 @@ export const getResponse = ({
     schemas,
     originalSchema: responses,
   };
-};
+}
