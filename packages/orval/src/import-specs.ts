@@ -2,7 +2,7 @@ import {
   type NormalizedOptions,
   type OpenApiDocument,
   type SwaggerParserOptions,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
 } from '@orval/core';
 import { bundle } from '@scalar/json-magic/bundle';
 import {
@@ -93,7 +93,7 @@ async function resolveSpecs(
 export async function importSpecs(
   workspace: string,
   options: NormalizedOptions,
-): Promise<WriteSpecsBuilder> {
+): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
   // if (!isString(input.target)) {

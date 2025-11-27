@@ -4,11 +4,11 @@ import { generateImports } from '../generators';
 import { type GeneratorSchema, NamingConvention } from '../types';
 import { conventionName, upath } from '../utils';
 
-const getSchema = ({
+function getSchema({
   schema: { imports, model },
   target,
   isRootKey,
-  specsName,
+  specName,
   header,
   specKey,
   namingConvention = NamingConvention.CAMEL_CASE,
@@ -16,11 +16,11 @@ const getSchema = ({
   schema: GeneratorSchema;
   target: string;
   isRootKey: boolean;
-  specsName: Record<string, string>;
+  specName: string;
   header: string;
   specKey: string;
   namingConvention?: NamingConvention;
-}): string => {
+}): string {
   let file = header;
   file += generateImports({
     imports: imports.filter(
@@ -30,14 +30,14 @@ const getSchema = ({
     ),
     target,
     isRootKey,
-    specsName,
+    specName,
     specKey,
     namingConvention,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
   file += model;
   return file;
-};
+}
 
 const getPath = (path: string, name: string, fileExtension: string): string =>
   upath.join(path, `/${name}${fileExtension}`);
@@ -48,7 +48,7 @@ export const writeModelInline = (acc: string, model: string): string =>
 export const writeModelsInline = (array: GeneratorSchema[]): string =>
   array.reduce((acc, { model }) => writeModelInline(acc, model), '');
 
-export const writeSchema = async ({
+export async function writeSchema({
   path,
   schema,
   target,
@@ -56,7 +56,7 @@ export const writeSchema = async ({
   fileExtension,
   specKey,
   isRootKey,
-  specsName,
+  specName,
   header,
 }: {
   path: string;
@@ -66,9 +66,9 @@ export const writeSchema = async ({
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
-  specsName: Record<string, string>;
+  specName: string;
   header: string;
-}) => {
+}) {
   const name = conventionName(schema.name, namingConvention);
 
   try {
@@ -78,7 +78,7 @@ export const writeSchema = async ({
         schema,
         target,
         isRootKey,
-        specsName,
+        specName,
         header,
         specKey,
         namingConvention,
@@ -89,7 +89,7 @@ export const writeSchema = async ({
       `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
     );
   }
-};
+}
 
 export async function writeSchemas({
   schemaPath,
@@ -110,13 +110,13 @@ export async function writeSchemas({
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
-  specName: Record<string, string>;
+  specName: string;
   header: string;
   indexFiles: boolean;
 }) {
-  await specName.all(
-    schemas.map((schema) =>
-      writeSchema({
+  await Promise.all(
+    schemas.map(async (schema) => {
+      await writeSchema({
         path: schemaPath,
         schema,
         target,
@@ -124,10 +124,10 @@ export async function writeSchemas({
         fileExtension,
         specKey,
         isRootKey,
-        specsName: specName,
+        specName,
         header,
-      }),
-    ),
+      });
+    }),
   );
 
   if (indexFiles) {

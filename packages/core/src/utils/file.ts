@@ -43,7 +43,7 @@ export async function removeFilesAndEmptyFolders(
   });
 
   // Remove files
-  await specName.all(files.map((file) => fs.promises.unlink(file)));
+  await Promise.all(files.map((file) => fs.promises.unlink(file)));
 
   // Find and remove empty directories
   const directories = await globby(['**/*'], {

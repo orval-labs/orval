@@ -4,7 +4,7 @@ import {
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
   OutputClient,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
@@ -91,7 +91,7 @@ const generateTargetTags = (
 };
 
 export const generateTargetForTags = (
-  builder: WriteSpecsBuilder,
+  builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
 ) => {
   const isAngularClient = options.client === OutputClient.ANGULAR;

@@ -21,7 +21,7 @@ export const writeSplitTagsMode = async ({
   specsName,
   header,
   needSchema,
-}: WriteModeProps): specName<string[]> => {
+}: WriteModeProps): Promise<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
     extension: output.fileExtension,
@@ -44,7 +44,7 @@ export const writeSplitTagsMode = async ({
     await fs.outputFile(indexFilePath, '');
   }
 
-  const generatedFilePathsArray = await specName.all(
+  const generatedFilePathsArray = await Promise.all(
     Object.entries(target).map(async ([tag, target]) => {
       try {
         const {

@@ -10,7 +10,7 @@ import {
   upath,
   writeSchemas,
   writeSingleMode,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
@@ -38,7 +38,7 @@ const getHeader = (
 };
 
 export async function writeSpecs(
-  builder: WriteSpecsBuilder,
+  builder: WriteSpecBuilder,
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
@@ -69,12 +69,11 @@ export async function writeSpecs(
       namingConvention: output.namingConvention,
       fileExtension,
       specName,
-      specKey,
+      specKey: target,
       isRootKey: isRootKey(target, target),
       header,
       indexFiles: output.indexFiles,
     });
-    return;
   }
 
   let implementationPaths: string[] = [];

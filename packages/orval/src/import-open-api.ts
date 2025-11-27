@@ -16,7 +16,7 @@ import {
   type OpenApiSchemaObject,
   type OverrideInput,
   upath,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
 } from '@orval/core';
 import { validate } from '@scalar/openapi-parser';
 import type { SchemasObject } from 'openapi3-ts/oas30';
@@ -30,7 +30,7 @@ export async function importOpenApi({
   output,
   target,
   workspace,
-}: ImportOpenApi): Promise<WriteSpecsBuilder> {
+}: ImportOpenApi): Promise<WriteSpecBuilder> {
   const transformedOpenApi = await applyTransformer(
     spec,
     input.override.transformer,

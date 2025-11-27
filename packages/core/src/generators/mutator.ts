@@ -31,7 +31,7 @@ export async function generateMutator({
   name: string;
   workspace: string;
   tsconfig?: Tsconfig;
-}): specName<GeneratorMutator | undefined> {
+}): Promise<GeneratorMutator | undefined> {
   if (!mutator || !output) {
     return;
   }

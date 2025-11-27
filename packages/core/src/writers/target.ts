@@ -3,12 +3,12 @@ import {
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
   OutputClient,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
 } from '../types';
 import { compareVersions, pascal } from '../utils';
 
 export const generateTarget = (
-  builder: WriteSpecsBuilder,
+  builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
 ): GeneratorTarget => {
   const operationNames = Object.values(builder.operations).map(

@@ -8,7 +8,7 @@ export const openApiConverter = async (
   schema: any,
   options: Partial<ConvertInputOptions> = {},
   specKey: string,
-): specName<OpenAPIObject> => {
+): Promise<OpenAPIObject> => {
   try {
     return new specName((resolve) => {
       if (!schema.openapi && schema.swagger === '2.0') {

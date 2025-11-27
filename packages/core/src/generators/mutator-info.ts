@@ -18,7 +18,7 @@ export async function getMutatorInfo(
     alias?: Record<string, string>;
     tsconfig?: Tsconfig;
   },
-): specName<GeneratorMutatorParsingInfo | undefined> {
+): Promise<GeneratorMutatorParsingInfo | undefined> {
   const {
     root = process.cwd(),
     namedExport = 'default',
@@ -45,7 +45,7 @@ async function bundleFile(
   fileName: string,
   alias?: Record<string, string>,
   compilerOptions?: Tsconfig['compilerOptions'],
-): specName<string> {
+): Promise<string> {
   const result = await build({
     absWorkingDir: root,
     entryPoints: [fileName],

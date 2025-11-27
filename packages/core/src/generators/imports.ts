@@ -9,16 +9,16 @@ import {
 } from '../types';
 import { conventionName } from '../utils';
 
-export const generateImports = ({
+export function generateImports({
   imports = [],
   namingConvention = NamingConvention.CAMEL_CASE,
 }: {
   imports: GeneratorImport[];
   target: string;
   isRootKey: boolean;
-  specsName: Record<string, string>;
+  specName: string;
   namingConvention?: NamingConvention;
-}) => {
+}) {
   if (imports.length === 0) {
     return '';
   }
@@ -36,9 +36,9 @@ export const generateImports = ({
       } } from './${fileName}';`;
     })
     .join('\n');
-};
+}
 
-export const generateMutatorImports = ({
+export function generateMutatorImports({
   mutators,
   implementation,
   oneMore,
@@ -46,7 +46,7 @@ export const generateMutatorImports = ({
   mutators: GeneratorMutator[];
   implementation?: string;
   oneMore?: boolean;
-}) => {
+}) {
   const imports = uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
@@ -96,9 +96,9 @@ export const generateMutatorImports = ({
   }, '');
 
   return imports;
-};
+}
 
-const generateDependency = ({
+function generateDependency({
   deps,
   isAllowSyntheticDefaultImports,
   dependency,
@@ -112,7 +112,7 @@ const generateDependency = ({
   specsName: Record<string, string>;
   isAllowSyntheticDefaultImports: boolean;
   onlyTypes: boolean;
-}) => {
+}) {
   // find default import if dependency either is not a synthetic import or synthetic imports are allowed
   const defaultDep = deps.find(
     (e) =>
@@ -162,9 +162,9 @@ const generateDependency = ({
   }';`;
 
   return importString;
-};
+}
 
-export const addDependency = ({
+export function addDependency({
   implementation,
   exports,
   dependency,
@@ -178,7 +178,7 @@ export const addDependency = ({
   specsName: Record<string, string>;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
-}) => {
+}) {
   const toAdds = exports.filter((e) => {
     const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
     const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
@@ -253,14 +253,14 @@ export const addDependency = ({
       })
       .join('\n') + '\n'
   );
-};
+}
 
-const getLibName = (code: string) => {
+function getLibName(code: string) {
   const splitString = code.split(' from ');
   return splitString[splitString.length - 1].split(';')[0].trim();
-};
+}
 
-export const generateDependencyImports = (
+export function generateDependencyImports(
   implementation: string,
   imports: {
     exports: GeneratorImport[];
@@ -269,7 +269,7 @@ export const generateDependencyImports = (
   specsName: Record<string, string>,
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
-): string => {
+): string {
   const dependencies = imports
     .map((dep) =>
       addDependency({
@@ -297,24 +297,26 @@ export const generateDependencyImports = (
     .join('\n');
 
   return dependencies ? dependencies + '\n' : '';
-};
+}
 
-export const generateVerbImports = ({
+export function generateVerbImports({
   response,
   body,
   queryParams,
   props,
   headers,
   params,
-}: GeneratorVerbOptions): GeneratorImport[] => [
-  ...response.imports,
-  ...body.imports,
-  ...props.flatMap((prop) =>
-    prop.type === GetterPropType.NAMED_PATH_PARAMS
-      ? [{ name: prop.schema.name }]
-      : [],
-  ),
-  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
-  ...(headers ? [{ name: headers.schema.name }] : []),
-  ...params.flatMap<GeneratorImport>(({ imports }) => imports),
-];
+}: GeneratorVerbOptions): GeneratorImport[] {
+  return [
+    ...response.imports,
+    ...body.imports,
+    ...props.flatMap((prop) =>
+      prop.type === GetterPropType.NAMED_PATH_PARAMS
+        ? [{ name: prop.schema.name }]
+        : [],
+    ),
+    ...(queryParams ? [{ name: queryParams.schema.name }] : []),
+    ...(headers ? [{ name: headers.schema.name }] : []),
+    ...params.flatMap<GeneratorImport>(({ imports }) => imports),
+  ];
+}
