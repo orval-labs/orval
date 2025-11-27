@@ -55,7 +55,7 @@ const generateVerbOptions = async ({
   verbParameters?: (ReferenceObject | ParameterObject)[];
   components?: ComponentsObject;
   context: ContextSpecs;
-}): Promise<GeneratorVerbOptions> => {
+}): specName<GeneratorVerbOptions> => {
   const {
     responses,
     requestBody,
@@ -237,7 +237,7 @@ export const generateVerbsOptions = ({
   route: string;
   pathRoute: string;
   context: ContextSpecs;
-}): Promise<GeneratorVerbsOptions> =>
+}): specName<GeneratorVerbsOptions> =>
   asyncReduce(
     _filteredVerbs(verbs, input.filters),
     async (acc, [verb, operation]: [string, OperationObject]) => {

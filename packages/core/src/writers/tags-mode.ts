@@ -20,7 +20,7 @@ export const writeTagsMode = async ({
   specsName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): specName<string[]> => {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
     extension: output.fileExtension,
@@ -32,7 +32,7 @@ export const writeTagsMode = async ({
     output.tsconfig,
   );
 
-  const generatedFilePathsArray = await Promise.all(
+  const generatedFilePathsArray = await specName.all(
     Object.entries(target).map(async ([tag, target]) => {
       try {
         const {

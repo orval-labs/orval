@@ -21,13 +21,13 @@ export interface Options {
   hooks?: Partial<HooksOptions>;
 }
 
-export type OptionsFn = () => Options | Promise<Options>;
-export type OptionsExport = Options | Promise<Options> | OptionsFn;
+export type OptionsFn = () => Options | specName<Options>;
+export type OptionsExport = Options | specName<Options> | OptionsFn;
 
 export type Config = Record<string, OptionsExport>;
-export type ConfigFn = () => Config | Promise<Config>;
+export type ConfigFn = () => Config | specName<Config>;
 
-export type ConfigExternal = Config | Promise<Config> | ConfigFn;
+export type ConfigExternal = Config | specName<Config> | ConfigFn;
 
 export type NormalizedConfig = Record<string, NormalizedOptions | undefined>;
 
@@ -667,7 +667,7 @@ export type OperationOptions = {
 
 export type Hook = 'afterAllFilesWrite';
 
-export type HookFunction = (...args: any[]) => void | Promise<void>;
+export type HookFunction = (...args: any[]) => void | specName<void>;
 
 export interface HookOption {
   command: string | HookFunction;
@@ -907,7 +907,7 @@ export type ClientBuilder = (
   options: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
   output?: NormalizedOutputOptions,
-) => GeneratorClient | Promise<GeneratorClient>;
+) => GeneratorClient | specName<GeneratorClient>;
 
 export type ClientFileBuilder = {
   path: string;
@@ -917,7 +917,7 @@ export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
   context: ContextSpecs,
-) => Promise<ClientFileBuilder[]>;
+) => specName<ClientFileBuilder[]>;
 
 export type ClientHeaderBuilder = (params: {
   title: string;

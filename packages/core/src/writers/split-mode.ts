@@ -20,7 +20,7 @@ export const writeSplitMode = async ({
   specsName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): specName<string[]> => {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: conventionName(

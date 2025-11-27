@@ -99,7 +99,7 @@ export async function writeSchemas({
   fileExtension,
   specKey,
   isRootKey,
-  specsName,
+  specName,
   header,
   indexFiles,
 }: {
@@ -110,11 +110,11 @@ export async function writeSchemas({
   fileExtension: string;
   specKey: string;
   isRootKey: boolean;
-  specsName: Record<string, string>;
+  specName: Record<string, string>;
   header: string;
   indexFiles: boolean;
 }) {
-  await Promise.all(
+  await specName.all(
     schemas.map((schema) =>
       writeSchema({
         path: schemaPath,
@@ -124,7 +124,7 @@ export async function writeSchemas({
         fileExtension,
         specKey,
         isRootKey,
-        specsName,
+        specsName: specName,
         header,
       }),
     ),

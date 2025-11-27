@@ -19,7 +19,7 @@ export const writeSingleMode = async ({
   specsName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): specName<string[]> => {
   try {
     const { path, dirname } = getFileInfo(output.target, {
       backupFilename: conventionName(

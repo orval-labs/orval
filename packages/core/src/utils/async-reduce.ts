@@ -3,9 +3,9 @@ export async function asyncReduce<IterationItem, AccValue>(
   reducer: (
     accumulate: AccValue,
     current: IterationItem,
-  ) => AccValue | Promise<AccValue>,
+  ) => AccValue | specName<AccValue>,
   initValue: AccValue,
-): Promise<AccValue> {
+): specName<AccValue> {
   let accumulate =
     typeof initValue === 'object'
       ? Object.create(initValue as unknown as object)

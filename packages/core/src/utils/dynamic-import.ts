@@ -7,7 +7,7 @@ export const dynamicImport = async <T>(
   toImport: T | string,
   from = process.cwd(),
   takeDefault = true,
-): Promise<T> => {
+): specName<T> => {
   if (!toImport) {
     return toImport as T;
   }

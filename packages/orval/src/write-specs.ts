@@ -46,17 +46,8 @@ export async function writeSpecs(
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName ?? info.title;
-
-  const specsName = Object.keys(schemas).reduce<
-    Record<keyof typeof schemas, string>
-  >((acc, specKey) => {
-    const basePath = upath.getSpecName(specKey, target);
-    const name = basePath.slice(1).split('/').join('-');
-
-    acc[specKey] = name;
-
-    return acc;
-  }, {});
+  const basePath = upath.getSpecName(target, target);
+  const specName = basePath.slice(1).split('/').join('-');
 
   const header = getHeader(output.override.header, info as InfoObject);
 
@@ -65,28 +56,25 @@ export async function writeSpecs(
 
     const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
       ? '.ts'
-      : (output.fileExtension ?? '.ts');
+      : output.fileExtension;
 
-    await Promise.all(
-      Object.entries(schemas).map(([specKey, schemas]) => {
-        const schemaPath = isRootKey(specKey, target)
-          ? rootSchemaPath
-          : upath.join(rootSchemaPath, specsName[specKey]);
+    const schemaPath = isRootKey(target, target)
+      ? rootSchemaPath
+      : upath.join(rootSchemaPath, specName);
 
-        return writeSchemas({
-          schemaPath,
-          schemas,
-          target,
-          namingConvention: output.namingConvention,
-          fileExtension,
-          specsName,
-          specKey,
-          isRootKey: isRootKey(specKey, target),
-          header,
-          indexFiles: output.indexFiles,
-        });
-      }),
-    );
+    await writeSchemas({
+      schemaPath,
+      schemas,
+      target,
+      namingConvention: output.namingConvention,
+      fileExtension,
+      specName,
+      specKey,
+      isRootKey: isRootKey(target, target),
+      header,
+      indexFiles: output.indexFiles,
+    });
+    return;
   }
 
   let implementationPaths: string[] = [];
@@ -97,7 +85,7 @@ export async function writeSpecs(
       builder,
       workspace,
       output,
-      specsName,
+      specsName: specName,
       header,
       needSchema: !output.schemas && output.client !== 'zod',
     });
