@@ -173,6 +173,43 @@ export default defineConfig({
 });
 ```
 
+### paths
+
+Type: `(String | RegExp)[] | Array<[String | RegExp, String[]]>`.
+
+Only endpoints that match the specified `String` or `RegExp` will be automatically generated.
+For instance, the example below only generates the endpoints that match the path `/pets` or regular expression `/health/`.
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      filters: {
+        paths: ['/pets', /health/],
+      },
+    },
+  },
+};
+```
+
+You can also filter by specific HTTP methods for each path using the tuple format `[path, [methods]]`:
+
+```js
+module.exports = {
+  petstore: {
+    input: {
+      filters: {
+        paths: [
+          ['/pets', ['get', 'post']],
+          ['/pets/{petId}', ['get', 'put']],
+          [/health/, ['get']],
+        ],
+      },
+    },
+  },
+};
+```
+
 ## converterOptions
 
 Type: `Object`.

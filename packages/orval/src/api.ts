@@ -12,6 +12,8 @@ import {
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
   resolveRef,
+  _filteredPaths,
+  validatePathFilters,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
 import type { PathItemObject } from 'openapi3-ts/oas30';
@@ -34,8 +36,18 @@ export const getApiBuilder = async ({
   output: NormalizedOutputOptions;
   context: ContextSpecs;
 }): Promise<GeneratorApiBuilder> => {
+  const { filteredPaths, unmatchedFilters } = _filteredPaths(
+    context.specs[context.specKey].paths ?? {},
+    input.filters,
+  );
+
+  // Warn about unmatched filters
+  if (unmatchedFilters.length > 0) {
+    validatePathFilters(unmatchedFilters, input.filters);
+  }
+
   const api = await asyncReduce(
-    Object.entries(context.specs[context.specKey].paths ?? {}),
+    filteredPaths,
     async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
       const route = getRoute(pathRoute);
 
