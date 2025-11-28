@@ -168,20 +168,37 @@ export const getSwrRequestOptions = (
   }
 };
 
+// Helper to deduplicate union type string: "A | B | B" -> "A | B"
+const dedupeUnionTypes = (types: string): string => {
+  if (!types) return types;
+  // Split by '|', trim spaces, filter out empty, and dedupe using a Set
+  const unique = [
+    ...new Set(
+      types
+        .split('|')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return unique.join(' | ');
+};
+
 export const getSwrErrorType = (
   response: GetterResponse,
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
+  const errorsType = dedupeUnionTypes(response.definition.errors || 'unknown');
+
   if (mutator) {
     return mutator.hasErrorType
-      ? `ErrorType<${response.definition.errors || 'unknown'}>`
-      : response.definition.errors || 'unknown';
+      ? `ErrorType<${errorsType}>`
+      : errorsType;
   } else {
     const errorType =
       httpClient === OutputHttpClient.AXIOS ? 'AxiosError' : 'Promise';
 
-    return `${errorType}<${response.definition.errors || 'unknown'}>`;
+    return `${errorType}<${errorsType}>`;
   }
 };
 
