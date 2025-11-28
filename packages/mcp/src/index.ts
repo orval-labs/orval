@@ -373,7 +373,7 @@ const generateHttpClientFiles = async (
   const fetchHeader = generateFetchHeader({
     title: '',
     isRequestOptions: false,
-    isMutator: false,
+    isMutator: output.override.mutator !== undefined,
     noFunction: false,
     isGlobalMutator: false,
     provideIn: false,
@@ -383,8 +383,26 @@ const generateHttpClientFiles = async (
     clientImplementation,
   });
 
+  let importMutatorImplementation = '';
+  if (output.override.mutator) {
+    const mutatorImport = output.override.mutator;
+    // Relative path between mutator and http client file
+    const importPath = upath.relativeSafe(dirname, mutatorImport.path);
+    //Remove extension from import path
+    const importPathWithoutExt = importPath.replace(
+      new RegExp(`${upath.extname(importPath)}$`),
+      '',
+    );
+    const importDefault = mutatorImport.default
+      ? mutatorImport.name
+      : `{ ${mutatorImport.name} }`;
+
+    importMutatorImplementation = `import ${importDefault} from '${importPathWithoutExt}';\n`;
+  }
+
   const content = [
     header,
+    importMutatorImplementation,
     importImplementation,
     fetchHeader,
     clientImplementation,
