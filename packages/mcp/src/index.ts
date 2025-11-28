@@ -193,7 +193,7 @@ export const generateServer = (
       const toolImplementation = `
 server.tool(
   '${verbOption.operationName}',
-  '${verbOption.summary}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
+  '${verbOption.summary}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : '\n{},'}
   ${verbOption.operationName}Handler
 );`;
 
