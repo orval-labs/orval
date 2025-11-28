@@ -241,13 +241,17 @@ const server = new McpServer({
   version: '1.0.0',
 });
 `;
-  const serverConnectImplementation = `
+
+  const serverConnectImplementation =
+    output.override.mcp.transport === 'stdio'
+      ? `
 const transport = new StdioServerTransport();
 
 server.connect(transport).then(() => {
   console.error('MCP server running on stdio');
 }).catch(console.error);
-`;
+`
+      : 'export default server';
 
   const content = [
     header,
