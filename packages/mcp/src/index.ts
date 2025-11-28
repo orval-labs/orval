@@ -11,7 +11,6 @@ import {
   getFullRoute,
   jsDoc,
   type NormalizedOutputOptions,
-  pascal,
   upath,
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
@@ -42,14 +41,13 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const importSchemaNames = new Set(
     Object.values(verbOptions).flatMap((verbOption) => {
       const imports = [];
-      const pascalOperationName = pascal(verbOption.operationName);
 
       if (verbOption.queryParams) {
-        imports.push(`${pascalOperationName}Params`);
+        imports.push(verbOption.queryParams.schema.name);
       }
 
       if (verbOption.body.definition) {
-        imports.push(`${pascalOperationName}Body`);
+        imports.push(verbOption.body.definition);
       }
 
       return imports;
