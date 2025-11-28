@@ -38,23 +38,23 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
     ? upath.relativeSafe(targetInfo.dirname, schemaInfo.dirname)
     : './' + targetInfo.filename + '.schemas';
 
-  const importSchemaNames = new Set(
-    Object.values(verbOptions).flatMap((verbOption) => {
-      const imports = [];
+  const importSchemaNames = [
+    ...new Set(
+      Object.values(verbOptions).flatMap((verbOption) => {
+        const imports = [];
 
-      if (verbOption.queryParams) {
-        imports.push(verbOption.queryParams.schema.name);
-      }
+        if (verbOption.queryParams) {
+          imports.push(verbOption.queryParams.schema.name);
+        }
 
-      if (verbOption.body.definition) {
-        imports.push(verbOption.body.definition);
-      }
+        if (verbOption.body.definition) {
+          imports.push(verbOption.body.definition);
+        }
 
-      return imports;
-    }),
-  )
-    .values()
-    .toArray();
+        return imports;
+      }),
+    ),
+  ];
 
   const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
     ',\n  ',
@@ -62,13 +62,13 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
 `;
 
   const relativeFetchClientPath = './http-client';
-  const importFetchClientNames = new Set(
-    Object.values(verbOptions).flatMap(
-      (verbOption) => verbOption.operationName,
+  const importFetchClientNames = [
+    ...new Set(
+      Object.values(verbOptions).flatMap(
+        (verbOption) => verbOption.operationName,
+      ),
     ),
-  )
-    .values()
-    .toArray();
+  ];
 
   const importFetchClientImplementation = `import {\n  ${importFetchClientNames.join(
     ',\n  ',
@@ -300,11 +300,11 @@ const generateZodFiles = async (
     ),
   );
 
-  const allMutators = new Map(
-    zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
-  )
-    .values()
-    .toArray();
+  const allMutators = [
+    ...new Map(
+      zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
+    ).values(),
+  ];
 
   const mutatorsImports = generateMutatorImports({
     mutators: allMutators,
@@ -368,7 +368,7 @@ const generateHttpClientFiles = async (
   const importNames = clients
     .flatMap((client) => client.imports)
     .map((imp) => imp.name);
-  const uniqueImportNames = new Set(importNames).values().toArray();
+  const uniqueImportNames = [...new Set(importNames)];
 
   const importImplementation = `import { ${uniqueImportNames.join(
     ',\n',
