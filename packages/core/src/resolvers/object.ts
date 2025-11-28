@@ -49,6 +49,7 @@ const resolveObjectOriginal = ({
           name: propName,
           model,
           imports: resolvedValue.imports,
+          dependencies: resolvedValue.dependencies,
         },
       ],
       isEnum: false,
@@ -56,6 +57,7 @@ const resolveObjectOriginal = ({
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+      dependencies: resolvedValue.dependencies,
     };
   }
 
@@ -78,6 +80,7 @@ const resolveObjectOriginal = ({
           name: propName,
           model: doc + enumValue,
           imports: resolvedValue.imports,
+          dependencies: resolvedValue.dependencies,
         },
       ],
       isEnum: false,
@@ -85,6 +88,7 @@ const resolveObjectOriginal = ({
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+      dependencies: resolvedValue.dependencies,
     };
   }
 

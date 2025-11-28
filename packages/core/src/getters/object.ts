@@ -73,6 +73,7 @@ export const getObject = ({
       type: 'object',
       isRef: true,
       hasReadonlyProps: item.readOnly || false,
+      dependencies: [name],
       example: item.example,
       examples: resolveExampleRefs(item.examples, context),
     };
@@ -180,6 +181,7 @@ export const getObject = ({
             : ''
         }${getKey(key)}${isRequired ? '' : '?'}: ${propValue};`;
         acc.schemas.push(...resolvedValue.schemas);
+        acc.dependencies.push(...resolvedValue.dependencies);
 
         if (arr.length - 1 === index) {
           if (item.additionalProperties) {
@@ -193,6 +195,7 @@ export const getObject = ({
                 context,
               });
               acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
+              acc.dependencies.push(...resolvedValue.dependencies);
             }
           } else {
             acc.value += '\n}';
@@ -212,6 +215,7 @@ export const getObject = ({
         isRef: false,
         schema: {},
         hasReadonlyProps: false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       } as ScalarValue,
@@ -229,6 +233,7 @@ export const getObject = ({
         type: 'object',
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
       };
     }
     const resolvedValue = resolveValue({
@@ -244,6 +249,7 @@ export const getObject = ({
       type: 'object',
       isRef: false,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+      dependencies: resolvedValue.dependencies,
     };
   }
 
@@ -257,6 +263,7 @@ export const getObject = ({
       type: 'string',
       isRef: false,
       hasReadonlyProps: item.readOnly || false,
+      dependencies: [],
     };
   }
 
@@ -272,5 +279,6 @@ export const getObject = ({
     type: 'object',
     isRef: false,
     hasReadonlyProps: item.readOnly || false,
+    dependencies: [],
   };
 };
