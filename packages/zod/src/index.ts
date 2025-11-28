@@ -283,7 +283,7 @@ export const generateZodValidationSchemaDefinition = (
   let defaultVarName: string | undefined;
   if (schema.default !== undefined) {
     defaultVarName = `${name}Default${constsCounterValue}`;
-    let defaultValue: string;
+    let defaultValue: string | undefined;
 
     const isDateType =
       schema.type === 'string' &&
@@ -327,18 +327,22 @@ export const generateZodValidationSchemaDefinition = (
           ? 'null'
           : rawStringified.replaceAll("'", '"');
 
-      // If the schema is an array with enum items, add 'as const' for proper TypeScript typing
+      // If the schema is an array with enum items, inject inplace to avoid issues with default values
       const isArrayWithEnumItems =
         Array.isArray(schema.default) &&
         type === 'array' &&
         schema.items &&
-        'enum' in schema.items;
+        'enum' in schema.items &&
+        schema.default.length > 0;
 
       if (isArrayWithEnumItems) {
-        defaultValue = `${defaultValue} as const`;
+        defaultVarName = defaultValue;
+        defaultValue = undefined;
       }
     }
-    consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+    if (defaultValue) {
+      consts.push(`export const ${defaultVarName} = ${defaultValue};`);
+    }
   }
 
   // Handle multi-type schemas (OpenAPI 3.1+ type arrays)

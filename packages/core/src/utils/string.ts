@@ -17,7 +17,7 @@ export const stringify = (
   }
 
   if (isString(data)) {
-    return `'${data}'`;
+    return `'${data.replaceAll("'", String.raw`\'`)}'`;
   }
 
   if (isNumber(data) || isBoolean(data) || isFunction(data)) {

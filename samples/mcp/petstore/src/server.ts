@@ -99,6 +99,7 @@ server.tool(
 server.tool(
   'getInventory',
   'Returns pet inventories by status.',
+  {},
   getInventoryHandler,
 );
 
@@ -132,6 +133,7 @@ server.tool(
 server.tool(
   'logoutUser',
   'Logs out current logged in user session.',
+  {},
   logoutUserHandler,
 );
 
