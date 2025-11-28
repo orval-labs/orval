@@ -29,6 +29,7 @@ export default defineConfig({
               useSuspenseInfiniteQuery: true,
               useInfinite: true,
               useInfiniteQueryParam: 'limit',
+              useInvalidate: true,
             },
           },
           showPetById: {

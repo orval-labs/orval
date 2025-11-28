@@ -1193,7 +1193,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
       type === QueryType.INFINITE ||
       (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
       (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
-  const invalidateFnName = camel(`invalidate-${operationName}`);
+  const invalidateFnName = camel(`invalidate-${name}`);
 
   return `
 ${queryOptionsFn}
