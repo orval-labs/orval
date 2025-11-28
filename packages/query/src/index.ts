@@ -1488,7 +1488,15 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
         ? `'infinite'`
         : '',
       queryKeyIdentifier,
-      queryParams ? '...(params ? [params]: [])' : '',
+      props
+        .filter((p) =>
+          override.query.useOperationIdAsQueryKey
+            ? true
+            : p.type === GetterPropType.QUERY_PARAM,
+        )
+        .toSorted((a) => (a.required ? -1 : 1))
+        .map((p) => `...(${p.name} ? [${p.name}] : [])`)
+        .join(', '),
       body.implementation,
     ]
       .filter((x) => !!x)
