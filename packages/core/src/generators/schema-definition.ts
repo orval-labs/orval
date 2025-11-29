@@ -1,5 +1,6 @@
-import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
-import { isEmptyish } from 'remeda';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+import type { SchemaObject } from 'openapi3-ts/oas30';
+import { isArray, isEmptyish } from 'remeda';
 
 import {
   getEnum,
@@ -9,15 +10,14 @@ import {
 } from '../getters';
 import { resolveRef, resolveValue } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorSchema,
-  InputFiltersOption,
+  InputFiltersOptions,
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
 import {
   conventionName,
-  isReference,
   isString,
   jsDoc,
   pascal,
@@ -33,9 +33,9 @@ import { generateInterface } from './interface';
  */
 export function generateSchemasDefinition(
   schemas: OpenApiSchemasObject = {},
-  context: ContextSpecs,
+  context: ContextSpec,
   suffix: string,
-  filters?: InputFiltersOption,
+  filters?: InputFiltersOptions,
 ): GeneratorSchema[] {
   if (isEmptyish(schemas)) {
     return [];
@@ -57,97 +57,25 @@ export function generateSchemasDefinition(
     });
   }
 
-  const models = generateSchemas.reduce<GeneratorSchema[]>(
-    (acc, [name, schema]) => {
-      const schemaName = sanitize(`${pascal(name)}${suffix}`, {
-        underscore: '_',
-        whitespace: '_',
-        dash: true,
-        es5keyword: true,
-        es5IdentifierName: true,
-      });
-      if (shouldCreateInterface(schema)) {
-        acc.push(
-          ...generateInterface({
-            name: schemaName,
-            schema,
-            context,
-            suffix,
-          }),
-        );
-
-        return acc;
-      } else {
-        const resolvedValue = resolveValue({
-          schema,
-          name: schemaName,
-          context,
-        });
-
-        let output = '';
-
-        let imports = resolvedValue.imports;
-
-        output += jsDoc(schema);
-
-        if (resolvedValue.isEnum && !resolvedValue.isRef) {
-          output += getEnum(
-            resolvedValue.value,
-            schemaName,
-            getEnumNames(resolvedValue.originalSchema),
-            context.output.override.enumGenerationType,
-            getEnumDescriptions(resolvedValue.originalSchema),
-            context.output.override.namingConvention.enum,
-          );
-        } else if (schemaName === resolvedValue.value && resolvedValue.isRef) {
-          // Don't add type if schema has same name and the referred schema will be an interface
-          const { schema: referredSchema } = resolveRef(schema, context);
-          if (!shouldCreateInterface(referredSchema as SchemaObject)) {
-            const imp = resolvedValue.imports.find(
-              (imp) => imp.name === schemaName,
-            );
-
-            if (imp) {
-              const alias = imp?.specKey
-                ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
-                    resolvedValue.value
-                  }`
-                : `${resolvedValue.value}Bis`;
-
-              output += `export type ${schemaName} = ${alias};\n`;
-
-              imports = imports.map((imp) =>
-                imp.name === schemaName ? { ...imp, alias } : imp,
-              );
-            } else {
-              output += `export type ${schemaName} = ${resolvedValue.value};\n`;
-            }
-          }
-        } else {
-          resolvedValue.schemas = resolvedValue.schemas.filter((schema) => {
-            if (schema.name !== schemaName) {
-              return true;
-            }
-
-            output += `${schema.model}\n`;
-            imports = imports.concat(schema.imports);
-
-            return false;
-          });
-          output += `export type ${schemaName} = ${resolvedValue.value};\n`;
-        }
-
-        acc.push(...resolvedValue.schemas, {
-          name: schemaName,
-          model: output,
-          imports,
-        });
-
-        return acc;
-      }
-    },
-    [],
+  const models = generateSchemas.flatMap(([schemaName, schema]) =>
+    generateSchemaDefinitions(schemaName, schema, context, suffix),
   );
+
+  // const models = generateSchemas.reduce<GeneratorSchema[]>(
+  //   (acc, [name, schema]) => {
+  //     const schemaDefinitions = generateSchemaDefinitions(
+  //       name,
+  //       schema as OpenApiSchemaObject,
+  //       context,
+  //       suffix,
+  //     );
+
+  //     acc.push(...schemaDefinitions);
+
+  //     return acc;
+  //   },
+  //   [],
+  // );
 
   // Deduplicate schemas by normalized name to prevent duplicate exports
   // This handles cases where different source schemas produce the same normalized name
@@ -168,13 +96,119 @@ export function generateSchemasDefinition(
 }
 
 function shouldCreateInterface(schema: OpenApiSchemaObject) {
+  const isNullable = isArray(schema.type) && schema.type.includes('null');
+
   return (
     (!schema.type || schema.type === 'object') &&
     !schema.allOf &&
     !schema.oneOf &&
     !schema.anyOf &&
-    !isReference(schema) &&
-    !schema.nullable &&
-    !schema.enum
+    isDereferenced(schema) &&
+    !schema.enum &&
+    !isNullable
   );
+}
+
+function generateSchemaDefinitions(
+  schemaName: string,
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  suffix: string,
+): GeneratorSchema[] {
+  const sanitizedSchemaName = sanitize(`${pascal(schemaName)}${suffix}`, {
+    underscore: '_',
+    whitespace: '_',
+    dash: true,
+    es5keyword: true,
+    es5IdentifierName: true,
+  });
+
+  if (typeof schema === 'boolean') {
+    return [
+      {
+        name: sanitizedSchemaName,
+        model: `export type ${sanitizedSchemaName} = ${schema ? 'any' : 'never'};\n`,
+        imports: [],
+      },
+    ];
+  }
+
+  if (shouldCreateInterface(schema)) {
+    return generateInterface({
+      name: sanitizedSchemaName,
+      schema,
+      context,
+    });
+  }
+
+  const resolvedValue = resolveValue({
+    schema,
+    name: sanitizedSchemaName,
+    context,
+  });
+
+  let output = '';
+
+  let imports = resolvedValue.imports;
+
+  output += jsDoc(schema);
+
+  if (resolvedValue.isEnum && !resolvedValue.isRef) {
+    output += getEnum(
+      resolvedValue.value,
+      sanitizedSchemaName,
+      getEnumNames(resolvedValue.originalSchema),
+      context.output.override.enumGenerationType,
+      getEnumDescriptions(resolvedValue.originalSchema),
+      context.output.override.namingConvention.enum,
+    );
+  } else if (
+    sanitizedSchemaName === resolvedValue.value &&
+    resolvedValue.isRef
+  ) {
+    // Don't add type if schema has same name and the referred schema will be an interface
+    const { schema: referredSchema } = resolveRef(schema, context);
+    if (!shouldCreateInterface(referredSchema as OpenApiSchemaObject)) {
+      const imp = resolvedValue.imports.find(
+        (imp) => imp.name === sanitizedSchemaName,
+      );
+
+      if (imp) {
+        const alias = imp?.specKey
+          ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
+              resolvedValue.value
+            }`
+          : `${resolvedValue.value}Bis`;
+
+        output += `export type ${sanitizedSchemaName} = ${alias};\n`;
+
+        imports = imports.map((imp) =>
+          imp.name === sanitizedSchemaName ? { ...imp, alias } : imp,
+        );
+      } else {
+        output += `export type ${sanitizedSchemaName} = ${resolvedValue.value};\n`;
+      }
+    }
+  } else {
+    resolvedValue.schemas = resolvedValue.schemas.filter((schema) => {
+      if (schema.name !== sanitizedSchemaName) {
+        return true;
+      }
+
+      output += `${schema.model}\n`;
+      imports = imports.concat(schema.imports);
+
+      return false;
+    });
+    output += `export type ${sanitizedSchemaName} = ${resolvedValue.value};\n`;
+  }
+
+  return [
+    ...resolvedValue.schemas,
+    {
+      name: sanitizedSchemaName,
+      model: output,
+      imports,
+    },
+  ];
 }

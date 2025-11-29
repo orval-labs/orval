@@ -3,7 +3,7 @@ import { unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
-  type ContextSpecs,
+  type ContextSpec,
   type GeneratorImport,
   type GeneratorSchema,
   type ScalarValue,
@@ -41,7 +41,7 @@ interface CombineValuesOptions {
   resolvedData: CombinedData;
   resolvedValue?: ScalarValue;
   separator: Separator;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 function combineValues({
@@ -135,7 +135,7 @@ export function combineSchemas({
   name?: string;
   schema: SchemaObject;
   separator: Separator;
-  context: ContextSpecs;
+  context: ContextSpec;
   nullable: string;
 }): ScalarValue {
   const items = schema[separator] ?? [];

@@ -1,4 +1,4 @@
-import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
+import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
 import { pascal } from '../utils';
 import { getSpecName } from '../utils/path';
 
@@ -6,7 +6,7 @@ interface GetAliasedImportsOptions {
   name?: string;
   resolvedValue: ResolverValue;
   existingImports: GeneratorImport[];
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 export function getAliasedImports({
@@ -70,7 +70,7 @@ export function needCreateImportAlias({
 interface GetImportAliasForRefOrValueOptions {
   resolvedValue: ResolverValue;
   imports: GeneratorImport[];
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 export function getImportAliasForRefOrValue({

@@ -54,9 +54,7 @@ export const generateRequestFunction = (
     'implementation',
   );
 
-  const spec = context.specs[context.specKey].paths[pathRoute] as
-    | PathItemObject
-    | undefined;
+  const spec = context.spec.paths?.[pathRoute];
   const parameters =
     spec?.[verb]?.parameters ?? ([] as (ParameterObject | ReferenceObject)[]);
 

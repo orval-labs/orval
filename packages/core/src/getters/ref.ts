@@ -1,4 +1,4 @@
-import type { ContextSpecs, NormalizedOverrideOutput } from '../types';
+import type { ContextSpec, NormalizedOverrideOutput } from '../types';
 import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
@@ -40,7 +40,7 @@ export interface RefInfo {
  *
  * @param $ref
  */
-export function getRefInfo($ref: string, context: ContextSpecs): RefInfo {
+export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
   const [pathname, ref] = $ref.split('#');
 
   const refPaths = ref

@@ -1,5 +1,5 @@
 import {
-  type ContextSpecs,
+  type ContextSpec,
   type GetterBody,
   type GetterParams,
   type GetterProps,
@@ -15,7 +15,7 @@ interface GetPropsOptions {
   params: GetterParams;
   operationName: string;
   headers?: GetterQueryParam;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 export function getProps({
@@ -121,7 +121,7 @@ export function getProps({
 
 function getQueryParamDefinition(
   queryParams: GetterQueryParam | undefined,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): string {
   let paramType = queryParams?.schema.name;
   if (OutputClient.ANGULAR === context.output.client) {

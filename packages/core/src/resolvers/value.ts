@@ -1,6 +1,6 @@
 import { getScalar } from '../getters';
 import type {
-  ContextSpecs,
+  ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
@@ -12,7 +12,7 @@ import { resolveRef } from './ref';
 interface ResolveValueOptions {
   schema: OpenApiSchemaObject | OpenApiReferenceObject;
   name?: string;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 export function resolveValue({

@@ -1,6 +1,8 @@
+import { isArray } from 'remeda';
+
 import { resolveExampleRefs } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   OpenApiSchemaObject,
   ScalarValue,
   SchemaWithConst,
@@ -13,29 +15,37 @@ import { getObject } from './object';
 interface GetScalarOptions {
   item: OpenApiSchemaObject;
   name?: string;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 /**
  * Return the typescript equivalent of open-api data type
  *
  * @param item
- * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
+ * @ref https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#data-types
  */
 export function getScalar({
   item,
   name,
   context,
 }: GetScalarOptions): ScalarValue {
-  const nullable = item.nullable ? ' | null' : '';
+  const nullable =
+    isArray(item.type) && item.type.includes('null') ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
-  if (!item.type && item.items) {
+  let itemType = item.type;
+  if (!itemType && item.items) {
     item.type = 'array';
+    itemType = 'array';
+  }
+  if (isArray(item.type) && item.type.includes('null')) {
+    const typesWithoutNull = item.type.filter((x) => x !== 'null');
+    itemType =
+      typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
   }
 
-  switch (item.type) {
+  switch (itemType) {
     case 'number':
     case 'integer': {
       let value =
@@ -161,10 +171,10 @@ export function getScalar({
 
     case 'object':
     default: {
-      if (Array.isArray(item.type)) {
+      if (isArray(itemType)) {
         return combineSchemas({
           schema: {
-            anyOf: item.type.map((type) => ({
+            anyOf: itemType.map((type) => ({
               ...item,
               type,
             })),

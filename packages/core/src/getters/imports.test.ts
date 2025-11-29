@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
+import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
 import {
   getAliasedImports,
   getImportAliasForRefOrValue,
   needCreateImportAlias,
 } from './imports';
 
-const baseContext: Omit<ContextSpecs, 'output'> = {
+const baseContext: Omit<ContextSpec, 'output'> = {
   specKey: 'spec',
   target: 'spec',
   workspace: '',
@@ -19,14 +19,14 @@ const contextWithSchemas = {
   output: {
     schemas: '/schemas',
   },
-} as ContextSpecs;
+} as ContextSpec;
 
 const contextWithouSchemas = {
   ...baseContext,
   output: {
     schemas: undefined,
   },
-} as ContextSpecs;
+} as ContextSpec;
 
 const baseResolvedValue: ResolverValue = {
   isRef: false,

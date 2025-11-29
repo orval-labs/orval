@@ -2,7 +2,7 @@ import {
   camel,
   type ClientBuilder,
   type ClientGeneratorsBuilder,
-  type ContextSpecs,
+  type ContextSpec,
   escape,
   generateMutator,
   type GeneratorDependency,
@@ -168,7 +168,7 @@ type TimeOptions = {
 
 export const generateZodValidationSchemaDefinition = (
   schema: SchemaObject | SchemaObject31 | undefined,
-  context: ContextSpecs,
+  context: ContextSpec,
   name: string,
   strict: boolean,
   isZodV4: boolean,
@@ -696,7 +696,7 @@ export const generateZodValidationSchemaDefinition = (
 
 export const parseZodValidationSchemaDefinition = (
   input: ZodValidationSchemaDefinition,
-  context: ContextSpecs,
+  context: ContextSpec,
   coerceTypes: boolean | ZodCoerceType[] = false,
   strict: boolean,
   isZodV4: boolean,
@@ -913,7 +913,7 @@ ${Object.entries(args)
   return { zod, consts };
 };
 
-const dereferenceScalar = (value: any, context: ContextSpecs): unknown => {
+const dereferenceScalar = (value: any, context: ContextSpec): unknown => {
   if (isObject(value)) {
     return dereference(value, context);
   } else if (Array.isArray(value)) {
@@ -925,14 +925,14 @@ const dereferenceScalar = (value: any, context: ContextSpecs): unknown => {
 
 const dereference = (
   schema: SchemaObject | ReferenceObject,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): SchemaObject => {
   const refName = '$ref' in schema ? schema.$ref : undefined;
   if (refName && context.parents?.includes(refName)) {
     return {};
   }
 
-  const childContext: ContextSpecs = {
+  const childContext: ContextSpec = {
     ...context,
     ...(refName
       ? { parents: [...(context.parents ?? []), refName] }
@@ -948,7 +948,7 @@ const dereference = (
     ? getRefInfo(refName, context).specKey
     : undefined;
 
-  const resolvedContext: ContextSpecs = {
+  const resolvedContext: ContextSpec = {
     ...childContext,
     specKey: resolvedSpecKey ?? childContext.specKey,
   };
@@ -985,7 +985,7 @@ const parseBodyAndResponse = ({
   parseType,
 }: {
   data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
-  context: ContextSpecs;
+  context: ContextSpec;
   name: string;
   strict: boolean;
   generate: boolean;
@@ -1082,7 +1082,7 @@ const parseParameters = ({
   generate,
 }: {
   data: (ParameterObject | ReferenceObject)[] | undefined;
-  context: ContextSpecs;
+  context: ContextSpec;
   operationName: string;
   isZodV4: boolean;
   strict: {
@@ -1248,9 +1248,7 @@ const generateZodRoute = async (
 ) => {
   const isZodV4 =
     !!context.output.packageJson && isZodVersionV4(context.output.packageJson);
-  const spec = context.specs[context.specKey].paths[pathRoute] as
-    | PathItemObject
-    | undefined;
+  const spec = context.spec.paths?.[pathRoute];
 
   if (spec == undefined) {
     throw new Error(`No such path ${pathRoute} in ${context.specKey}`);

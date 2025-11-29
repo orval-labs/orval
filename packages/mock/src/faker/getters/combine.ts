@@ -1,5 +1,5 @@
 import {
-  type ContextSpecs,
+  type ContextSpec,
   type GeneratorImport,
   isReference,
   isSchema,
@@ -31,7 +31,7 @@ export const combineSchemasMock = ({
     separator: 'allOf' | 'oneOf' | 'anyOf';
     includedProperties: string[];
   };
-  context: ContextSpecs;
+  context: ContextSpec;
   imports: GeneratorImport[];
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property

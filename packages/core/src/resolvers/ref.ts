@@ -3,7 +3,7 @@ import { prop } from 'remeda';
 
 import { getRefInfo, type RefInfo } from '../getters/ref';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorImport,
   OpenApiComponentsObject,
   OpenApiExampleObject,
@@ -16,7 +16,7 @@ export function resolveRef<
   TSchema extends OpenApiComponentsObject = OpenApiComponentsObject,
 >(
   schema: OpenApiComponentsObject,
-  context: ContextSpecs,
+  context: ContextSpec,
   imports: GeneratorImport[] = [],
 ): {
   schema: TSchema;
@@ -69,7 +69,7 @@ function getSchema<
   TSchema extends OpenApiComponentsObject = OpenApiComponentsObject,
 >(
   schema: OpenApiReferenceObject,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): {
   refInfo: RefInfo;
   currentSchema: TSchema | undefined;
@@ -110,7 +110,7 @@ type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type Examples = Example[] | Record<string, Example> | undefined;
 export function resolveExampleRefs(
   examples: Examples,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): Examples {
   if (!examples) {
     return undefined;

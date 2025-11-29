@@ -16,7 +16,7 @@ import {
   getResponse,
 } from '../getters';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   NormalizedInputOptions,
@@ -46,7 +46,7 @@ export interface GenerateVerbOptionsParams {
   pathRoute: string;
   verbParameters?: (ReferenceObject | ParameterObject)[];
   components?: ComponentsObject;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 export async function generateVerbOptions({
@@ -231,7 +231,7 @@ export interface GenerateVerbsOptionsParams {
   output: NormalizedOutputOptions;
   route: string;
   pathRoute: string;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 export function generateVerbsOptions({

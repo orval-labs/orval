@@ -1,6 +1,6 @@
 import {
   asyncReduce,
-  type ContextSpecs,
+  type ContextSpec,
   generateVerbsOptions,
   type GeneratorApiBuilder,
   type GeneratorApiOperations,
@@ -32,7 +32,7 @@ export async function getApiBuilder({
 }: {
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
-  context: ContextSpecs;
+  context: ContextSpec;
 }): Promise<GeneratorApiBuilder> {
   const api = await asyncReduce(
     Object.entries(context.spec.paths ?? {}),

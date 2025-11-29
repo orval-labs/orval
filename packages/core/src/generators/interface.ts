@@ -1,14 +1,11 @@
-import type { SchemaObject } from 'openapi3-ts/oas30';
-
 import { getScalar } from '../getters';
-import type { ContextSpecs } from '../types';
+import type { ContextSpec, OpenApiSchemaObject } from '../types';
 import { jsDoc } from '../utils';
 
 interface GenerateInterfaceOptions {
   name: string;
-  schema: SchemaObject;
-  context: ContextSpecs;
-  suffix: string;
+  schema: OpenApiSchemaObject;
+  context: ContextSpec;
 }
 
 /**
@@ -22,7 +19,6 @@ export function generateInterface({
   name,
   schema,
   context,
-  suffix,
 }: GenerateInterfaceOptions) {
   const scalar = getScalar({
     item: schema,

@@ -3,7 +3,7 @@ import type { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 import { generalJSTypesWithArray } from '../constants';
 import { resolveRef } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GetterBody,
   OverrideOutputContentType,
 } from '../types';
@@ -13,7 +13,7 @@ import { getResReqTypes } from './res-req-types';
 interface GetBodyOptions {
   requestBody: ReferenceObject | RequestBodyObject;
   operationName: string;
-  context: ContextSpecs;
+  context: ContextSpec;
   contentType?: OverrideOutputContentType;
 }
 

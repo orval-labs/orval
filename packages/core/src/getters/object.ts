@@ -1,10 +1,9 @@
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-
 import { resolveExampleRefs, resolveValue } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
 import {
-  type ContextSpecs,
+  type ContextSpec,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
   PropertySortOrder,
   type ScalarValue,
   SchemaType,
@@ -20,37 +19,36 @@ import { getRefInfo } from './ref';
  * Extract enum values from propertyNames schema (OpenAPI 3.1)
  * Returns undefined if propertyNames doesn't have an enum
  */
-const getPropertyNamesEnum = (item: SchemaObject): string[] | undefined => {
-  const schema31 = item as SchemaObject31;
+function getPropertyNamesEnum(item: OpenApiSchemaObject): string[] | undefined {
   if (
-    'propertyNames' in schema31 &&
-    schema31.propertyNames &&
-    'enum' in schema31.propertyNames &&
-    Array.isArray(schema31.propertyNames.enum)
+    'propertyNames' in item &&
+    item.propertyNames &&
+    'enum' in item.propertyNames &&
+    Array.isArray(item.propertyNames.enum)
   ) {
-    return schema31.propertyNames.enum.filter(
+    return item.propertyNames.enum.filter(
       (val): val is string => typeof val === 'string',
     );
   }
   return undefined;
-};
+}
 
 /**
  * Generate index signature key type based on propertyNames enum
  * Returns union type string like "'foo' | 'bar'" or 'string' if no enum
  */
-const getIndexSignatureKey = (item: SchemaObject): string => {
+function getIndexSignatureKey(item: OpenApiSchemaObject): string {
   const enumValues = getPropertyNamesEnum(item);
   if (enumValues && enumValues.length > 0) {
     return enumValues.map((val) => `'${val}'`).join(' | ');
   }
   return 'string';
-};
+}
 
 interface GetObjectOptions {
-  item: SchemaObject;
+  item: OpenApiSchemaObject;
   name?: string;
-  context: ContextSpecs;
+  context: ContextSpec;
   nullable: string;
 }
 
@@ -117,7 +115,7 @@ export function getObject({
     return entries.reduce(
       (
         acc,
-        [key, schema]: [string, ReferenceObject | SchemaObject],
+        [key, schema]: [string, OpenApiReferenceObject | OpenApiSchemaObject],
         index,
         arr,
       ) => {
@@ -135,8 +133,7 @@ export function getObject({
           );
         }
 
-        const allSpecSchemas =
-          context.spec[context.target]?.components?.schemas ?? {};
+        const allSpecSchemas = context.spec.components?.schemas ?? {};
 
         const isNameAlreadyTaken = Object.keys(allSpecSchemas).some(
           (schemaName) => pascal(schemaName) === propName,
@@ -152,12 +149,13 @@ export function getObject({
           context,
         });
 
-        const isReadOnly = item.readOnly || (schema as SchemaObject).readOnly;
+        const isReadOnly =
+          item.readOnly || (schema as OpenApiSchemaObject).readOnly;
         if (!index) {
           acc.value += '{';
         }
 
-        const doc = jsDoc(schema as SchemaObject, true, context);
+        const doc = jsDoc(schema as OpenApiSchemaObject, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
 

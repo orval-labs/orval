@@ -1,6 +1,6 @@
 import { resolveValue } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
@@ -32,7 +32,7 @@ interface GetParamsOptions {
   route: string;
   pathParams?: GetterParameters['query'];
   operationId: string;
-  context: ContextSpecs;
+  context: ContextSpec;
   output: NormalizedOutputOptions;
 }
 

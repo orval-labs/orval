@@ -4,7 +4,7 @@ import {
   type ClientExtraFilesBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
-  type ContextSpecs,
+  type ContextSpec,
   generateMutatorImports,
   type GeneratorVerbOptions,
   getFileInfo,
@@ -160,9 +160,9 @@ export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${ha
 export const generateServer = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
-  const info = context.specs[context.specKey].info;
+  const info = context.spec.info;
   const { extension, dirname } = getFileInfo(output.target);
   const serverPath = upath.join(dirname, `server${extension}`);
   const header = getHeader(output.override.header, info);
@@ -268,14 +268,11 @@ server.connect(transport).then(() => {
 const generateZodFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const { extension, dirname } = getFileInfo(output.target);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   const zods = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) =>
@@ -321,20 +318,17 @@ const generateZodFiles = async (
 const generateHttpClientFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const { extension, dirname, filename } = getFileInfo(output.target);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   const clients = await Promise.all(
     Object.values(verbOptions).map(async (verbOption) => {
       const fullRoute = getFullRoute(
         verbOption.route,
-        context.specs[context.specKey].servers,
+        context.spec.servers,
         output.baseUrl,
       );
 

@@ -106,7 +106,7 @@ interface GenerateDependencyOptions {
   key: string;
   deps: GeneratorImport[];
   dependency: string;
-  specsName: Record<string, string>;
+  projectName?: string;
   isAllowSyntheticDefaultImports: boolean;
   onlyTypes: boolean;
 }
@@ -115,7 +115,7 @@ function generateDependency({
   deps,
   isAllowSyntheticDefaultImports,
   dependency,
-  specsName,
+  projectName,
   key,
   onlyTypes,
 }: GenerateDependencyOptions) {
@@ -164,7 +164,7 @@ function generateDependency({
   importString += `import ${onlyTypes ? 'type ' : ''}${
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
   }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
-    key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
+    key !== 'default' && projectName ? `/${projectName}` : ''
   }';`;
 
   return importString;
@@ -174,7 +174,7 @@ interface AddDependencyOptions {
   implementation: string;
   exports: GeneratorImport[];
   dependency: string;
-  specsName: Record<string, string>;
+  projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
 }
@@ -183,7 +183,7 @@ export function addDependency({
   implementation,
   exports,
   dependency,
-  specsName,
+  projectName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
 }: AddDependencyOptions) {
@@ -233,7 +233,7 @@ export function addDependency({
             deps: values,
             isAllowSyntheticDefaultImports,
             dependency,
-            specsName,
+            projectName,
             key,
             onlyTypes: false,
           });
@@ -251,7 +251,7 @@ export function addDependency({
             deps: uniqueTypes,
             isAllowSyntheticDefaultImports,
             dependency,
-            specsName,
+            projectName,
             key,
             onlyTypes: true,
           });
@@ -274,7 +274,7 @@ export function generateDependencyImports(
     exports: GeneratorImport[];
     dependency: string;
   }[],
-  specsName: Record<string, string>,
+  projectName: string | undefined,
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
 ): string {
@@ -283,7 +283,7 @@ export function generateDependencyImports(
       addDependency({
         ...dep,
         implementation,
-        specsName,
+        projectName,
         hasSchemaDir,
         isAllowSyntheticDefaultImports,
       }),

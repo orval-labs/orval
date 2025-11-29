@@ -2,7 +2,7 @@ import { entries, isEmptyish } from 'remeda';
 
 import { getResReqTypes } from '../getters';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorSchema,
   OpenApiComponentsObject,
 } from '../types';
@@ -12,7 +12,7 @@ export function generateComponentDefinition(
   responses:
     | OpenApiComponentsObject['responses']
     | OpenApiComponentsObject['requestBodies'] = {},
-  context: ContextSpecs,
+  context: ContextSpec,
   suffix: string,
 ): GeneratorSchema[] {
   if (isEmptyish(responses)) {

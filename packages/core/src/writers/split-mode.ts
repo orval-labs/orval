@@ -17,7 +17,7 @@ import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 export async function writeSplitMode({
   builder,
   output,
-  specsName,
+  projectName,
   header,
   needSchema,
 }: WriteModeProps): Promise<string[]> {
@@ -68,7 +68,7 @@ export async function writeSplitMode({
       client: output.client,
       implementation,
       imports: importsForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
@@ -89,7 +89,7 @@ export async function writeSplitMode({
     mockData += builder.importsMock({
       implementation: implementationMock,
       imports: importsMockForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       options: isFunction(output.mock) ? undefined : output.mock,

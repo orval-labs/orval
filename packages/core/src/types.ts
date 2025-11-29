@@ -154,12 +154,12 @@ export type NormalizedOperationOptions = {
 };
 
 export type NormalizedInputOptions = {
-  target: string | Record<string, unknown> | OpenApiDocument;
+  target: string | OpenApiDocument;
   validation: boolean | object;
   override: OverrideInput;
   converterOptions: Partial<ConvertInputOptions>;
   parserOptions: SwaggerParserOptions;
-  filters?: InputFiltersOption;
+  filters?: InputFiltersOptions;
 };
 
 export type OutputClientFunc = (
@@ -239,7 +239,7 @@ export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
   validate?: boolean;
 };
 
-export type InputFiltersOption = {
+export type InputFiltersOptions = {
   mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
@@ -251,7 +251,7 @@ export type InputOptions = {
   override?: OverrideInput;
   converterOptions?: Partial<ConvertInputOptions>;
   parserOptions?: SwaggerParserOptions;
-  filters?: InputFiltersOption;
+  filters?: InputFiltersOptions;
 };
 
 export const OutputClient = {
@@ -669,7 +669,7 @@ export type Hook = 'afterAllFilesWrite';
 
 export type HookFunction = (...args: any[]) => void | Promise<void>;
 
-export interface HookOption {
+export interface HookOptions {
   command: string | HookFunction;
   injectGeneratedDirsAndFiles?: boolean;
 }
@@ -677,8 +677,8 @@ export interface HookOption {
 export type HookCommand =
   | string
   | HookFunction
-  | HookOption
-  | (string | HookFunction | HookOption)[];
+  | HookOptions
+  | (string | HookFunction | HookOptions)[];
 
 export type NormalizedHookCommand = HookCommand[];
 
@@ -707,7 +707,7 @@ export type ImportOpenApi = {
   workspace: string;
 };
 
-export interface ContextSpecs {
+export interface ContextSpec {
   // specKey: string;
   target: string;
   workspace: string;
@@ -875,7 +875,7 @@ export type GeneratorOptions = {
   route: string;
   pathRoute: string;
   override: NormalizedOverrideOutput;
-  context: ContextSpecs;
+  context: ContextSpec;
   mock?: GlobalMockOptions | ClientMockBuilder;
   output: string;
 };
@@ -916,7 +916,7 @@ export type ClientFileBuilder = {
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => Promise<ClientFileBuilder[]>;
 
 export type ClientHeaderBuilder = (params: {
@@ -1129,7 +1129,7 @@ export type WriteModeProps = {
   builder: WriteSpecBuilder;
   output: NormalizedOutputOptions;
   workspace: string;
-  specsName: Record<string, string>;
+  projectName?: string;
   header: string;
   needSchema: boolean;
 };
@@ -1182,7 +1182,7 @@ export type GeneratorClientImports = (data: {
     exports: GeneratorImport[];
     dependency: string;
   }[];
-  specsName: Record<string, string>;
+  projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   hasGlobalMutator: boolean;
@@ -1198,7 +1198,7 @@ export type GenerateMockImports = (data: {
     exports: GeneratorImport[];
     dependency: string;
   }[];
-  specsName: Record<string, string>;
+  projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   options?: GlobalMockOptions;
@@ -1228,7 +1228,7 @@ export class ErrorWithTag extends Error {
 // OpenAPI type aliases. Intended to make it easy to swap to OpenAPI v3.2 in the future
 export type OpenApiDocument = OpenAPIV3_1.Document;
 export type OpenApiSchemaObject = OpenAPIV3_1.SchemaObject;
-export type OpenApiSchemasObject = OpenApiComponentsObject['schemas'];
+export type OpenApiSchemasObject = Record<string, OpenApiSchemaObject>;
 export type OpenApiReferenceObject = OpenAPIV3_1.ReferenceObject & {
   // https://github.com/scalar/scalar/issues/7405
   $ref?: string;

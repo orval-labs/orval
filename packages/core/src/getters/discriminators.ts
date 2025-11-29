@@ -1,15 +1,12 @@
-import type { SchemaObject } from 'openapi3-ts/oas30';
-
-import type { ContextSpecs, OpenApiSchemasObject } from '../types';
+import type { ContextSpec, OpenApiSchemasObject } from '../types';
 import { pascal } from '../utils';
 import { getRefInfo } from './ref';
 
 export function resolveDiscriminators(
   schemas: OpenApiSchemasObject,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): OpenApiSchemasObject {
-  const transformedSchemas = { ...schemas };
-
+  const transformedSchemas = schemas;
   for (const schema of Object.values(transformedSchemas)) {
     if (typeof schema === 'boolean') {
       continue; // skip boolean schemas as we can't do anything meaningful with them

@@ -3,13 +3,13 @@ import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import { resolveExampleRefs } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
-import type { ContextSpecs, ScalarValue } from '../types';
+import type { ContextSpec, ScalarValue } from '../types';
 import { compareVersions } from '../utils';
 
 interface GetArrayOptions {
   schema: SchemaObject;
   name?: string;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 /**
@@ -84,9 +84,7 @@ export function getArray({
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
     };
-  } else if (
-    compareVersions(context.spec[context.specKey].openapi, '3.1', '>=')
-  ) {
+  } else if (compareVersions(context.spec.openapi, '3.1', '>=')) {
     return {
       value: 'unknown[]',
       imports: [],

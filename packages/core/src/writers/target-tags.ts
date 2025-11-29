@@ -8,15 +8,17 @@ import {
 } from '../types';
 import { compareVersions, kebab, pascal } from '../utils';
 
-const addDefaultTagIfEmpty = (operation: GeneratorOperation) => ({
-  ...operation,
-  tags: operation.tags.length > 0 ? operation.tags : ['default'],
-});
+function addDefaultTagIfEmpty(operation: GeneratorOperation) {
+  return {
+    ...operation,
+    tags: operation.tags.length > 0 ? operation.tags : ['default'],
+  };
+}
 
-const generateTargetTags = (
+function generateTargetTags(
   currentAcc: Record<string, GeneratorTargetFull>,
   operation: GeneratorOperation,
-): Record<string, GeneratorTargetFull> => {
+): Record<string, GeneratorTargetFull> {
   const tag = kebab(operation.tags[0]);
   const currentOperation = currentAcc[tag];
 
@@ -88,16 +90,16 @@ const generateTargetTags = (
       : currentOperation.fetchReviver,
   };
   return currentAcc;
-};
+}
 
-export const generateTargetForTags = (
+export function generateTargetForTags(
   builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-) => {
+) {
   const isAngularClient = options.client === OutputClient.ANGULAR;
 
   const allTargetTags = Object.values(builder.operations)
-    .map(addDefaultTagIfEmpty)
+    .map((operation) => addDefaultTagIfEmpty(operation))
     .reduce<Record<string, GeneratorTargetFull>>(
       (acc, operation, index, arr) => {
         const targetTags = generateTargetTags(acc, operation);
@@ -113,7 +115,10 @@ export const generateTargetForTags = (
               // Operations can have multiple tags, but they are grouped by the first
               // tag, therefore we only want to handle the case where the tag
               // is the first in the list of tags.
-              .filter(({ tags }) => tags.map(kebab).indexOf(kebab(tag)) === 0)
+              .filter(
+                ({ tags }) =>
+                  tags.map((tag) => kebab(tag)).indexOf(kebab(tag)) === 0,
+              )
               .map(({ operationName }) => operationName);
 
             const typescriptVersion =
@@ -199,4 +204,4 @@ export const generateTargetForTags = (
     },
     {},
   );
-};
+}

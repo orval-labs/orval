@@ -1,6 +1,6 @@
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import type {
-  ContextSpecs,
+  ContextSpec,
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
@@ -12,7 +12,7 @@ interface ResolveOptions {
   schema: OpenApiSchemaObject | OpenApiReferenceObject;
   propName?: string;
   combined?: boolean;
-  context: ContextSpecs;
+  context: ContextSpec;
 }
 
 function resolveObjectOriginal({

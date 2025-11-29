@@ -2,7 +2,7 @@ import { entries, isEmptyish } from 'remeda';
 
 import { resolveObject, resolveRef } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorSchema,
   OpenApiComponentsObject,
   OpenApiParameterObject,
@@ -11,7 +11,7 @@ import { jsDoc, pascal, sanitize } from '../utils';
 
 export function generateParameterDefinition(
   parameters: OpenApiComponentsObject['parameters'] = {},
-  context: ContextSpecs,
+  context: ContextSpec,
   suffix: string,
 ): GeneratorSchema[] {
   if (isEmptyish(parameters)) {

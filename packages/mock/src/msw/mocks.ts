@@ -1,5 +1,5 @@
 import {
-  type ContextSpecs,
+  type ContextSpec,
   generalJSTypesWithArray,
   type GeneratorImport,
   type GlobalMockOptions,
@@ -141,7 +141,7 @@ export const getResponsesMockDefinition = ({
   imports: GeneratorImport[];
   mockOptionsWithoutFunc: Record<string, unknown>;
   transformer?: (value: unknown, definition: string) => string;
-  context: ContextSpecs;
+  context: ContextSpec;
   mockOptions?: GlobalMockOptions;
   splitMockImplementations: string[];
 }) => {
@@ -238,7 +238,7 @@ export const getMockDefinition = ({
   imports: GeneratorImport[];
   override: NormalizedOverrideOutput;
   transformer?: (value: unknown, definition: string) => string;
-  context: ContextSpecs;
+  context: ContextSpec;
   mockOptions?: GlobalMockOptions;
   splitMockImplementations: string[];
 }) => {

@@ -1,11 +1,11 @@
 import type { ComponentsObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs } from '../types';
+import type { ContextSpec } from '../types';
 import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {
-  const context: ContextSpecs = {
+  const context: ContextSpec = {
     specKey: 'testSpec',
     output: {
       override: {

@@ -47,7 +47,7 @@ const getMSWDependencies = (
 export const generateMSWImports: GenerateMockImports = ({
   implementation,
   imports,
-  specsName,
+  projectName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   options,
@@ -55,7 +55,7 @@ export const generateMSWImports: GenerateMockImports = ({
   return generateDependencyImports(
     implementation,
     [...getMSWDependencies(options), ...imports],
-    specsName,
+    projectName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );

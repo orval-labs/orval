@@ -1,4 +1,4 @@
-import type { ContextSpecs } from '@orval/core';
+import type { ContextSpec } from '@orval/core';
 import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
@@ -78,7 +78,7 @@ describe('parseZodValidationSchemaDefinition', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -149,7 +149,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'strict',
       true,
       false,
@@ -203,7 +203,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'strict',
       true,
       false,
@@ -260,7 +260,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'strict',
       true,
       false,
@@ -329,7 +329,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       false,
       false,
@@ -350,7 +350,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -410,7 +410,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       false,
       false,
@@ -444,7 +444,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -486,7 +486,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       false,
       false,
@@ -507,7 +507,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -540,7 +540,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       false,
       false,
@@ -559,7 +559,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -589,7 +589,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       false,
       false,
@@ -608,7 +608,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -652,7 +652,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       true, // strict mode enabled
       false, // Zod v3
@@ -673,7 +673,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       true, // strict mode
       false, // Zod v3
@@ -724,7 +724,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       true, // strict mode enabled
       true, // Zod v4
@@ -745,7 +745,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       true, // strict mode
       true, // Zod v4
@@ -786,7 +786,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'test',
       false,
       false,
@@ -805,7 +805,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
             useDates: false,
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       false,
       false,
       false,
@@ -818,13 +818,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('description handling', () => {
-    const context: ContextSpecs = {
+    const context: ContextSpec = {
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     it('generates a description for a parameter', () => {
       const schemaWithDefault: SchemaObject30 = {
@@ -865,13 +865,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('default value handling', () => {
-    const context: ContextSpecs = {
+    const context: ContextSpec = {
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     it('generates a default value for a non-required string schema', () => {
       const schemaWithDefault: SchemaObject30 = {
@@ -1102,11 +1102,11 @@ describe('generateZodValidationSchemaDefinition`', () => {
         default: { name: 'Fluffy', age: 3 },
       };
 
-      const context: ContextSpecs = {
+      const context: ContextSpec = {
         output: {
           override: { useDates: false },
         },
-      } as ContextSpecs;
+      } as ContextSpec;
 
       const result = generateZodValidationSchemaDefinition(
         schemaWithObjectDefault,
@@ -1167,13 +1167,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
         default: '2025-01-01',
       };
 
-      const dateContext: ContextSpecs = {
+      const dateContext: ContextSpec = {
         output: {
           override: {
             useDates: true,
           },
         },
-      } as ContextSpecs;
+      } as ContextSpec;
 
       const result = generateZodValidationSchemaDefinition(
         schemaWithDateDefault,
@@ -1209,13 +1209,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 
   describe('enum handling', () => {
-    const context: ContextSpecs = {
+    const context: ContextSpec = {
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     it('generates an enum for a string', () => {
       const schema: SchemaObject30 = {
@@ -1493,13 +1493,13 @@ describe('generateZodValidationSchemaDefinition`', () => {
     });
   });
   describe('number handling', () => {
-    const context: ContextSpecs = {
+    const context: ContextSpec = {
       output: {
         override: {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     it('generates an number', () => {
       const schema: SchemaObject30 = {
@@ -2277,7 +2277,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             zod: {},
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'example_tuple',
       true,
       false,
@@ -2330,7 +2330,7 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
             zod: {},
           },
         },
-      } as ContextSpecs,
+      } as ContextSpec,
       'example_tuple',
       true,
       false,
@@ -2656,7 +2656,7 @@ describe('generateZodWithMultiTypeArray', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case from the issue: type: ["string", "number", "boolean", "null"]
     const schemaWithMultiType: SchemaObject31 = {
@@ -2693,7 +2693,7 @@ describe('generateZodWithMultiTypeArray', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     const schemaWithMultiType: SchemaObject31 = {
       type: ['string', 'number'],
@@ -2726,7 +2726,7 @@ describe('generateZodWithMultiTypeArray', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     const schemaWithMultiType: SchemaObject31 = {
       type: ['string', 'number'],
@@ -2763,7 +2763,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: anyOf with multiple nullable refs that could cause duplicate names
     const schemaWithAnyOfNullableRefs: SchemaObject30 = {
@@ -2820,7 +2820,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     const schemaWithOneOfNullableRefs: SchemaObject30 = {
       oneOf: [
@@ -2876,7 +2876,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     const schemaWithAllOfNullableRefs: SchemaObject30 = {
       allOf: [
@@ -2929,7 +2929,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     const schemaWithAllOfAndProperties: SchemaObject30 = {
       allOf: [
@@ -2985,7 +2985,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case from issue #2511: nullable oneOf with multiple enum refs
     // This should not generate duplicate schema names like "Item1Hello" and "Item2Hello"
@@ -3072,7 +3072,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: anyOf with 3 nullable refs (like Animals.animalId)
     const schemaWithThreeRefs: SchemaObject30 = {
@@ -3114,7 +3114,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: object with multiple anyOf properties (like Animals)
     const schemaWithMultipleAnyOf: SchemaObject30 = {
@@ -3175,7 +3175,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: multiple objects (Pets and Animals) with similar anyOf structures
     const petsSchema: SchemaObject30 = {
@@ -3246,7 +3246,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: oneOf with different enum types (like Item3.world)
     const schemaWithMixedEnums: SchemaObject30 = {
@@ -3304,7 +3304,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: object with multiple oneOf properties (like Item3)
     const schemaWithMultipleOneOf: SchemaObject30 = {
@@ -3374,7 +3374,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: three objects (Item1, Item2, Item3) with same oneOf structure
     const createItemSchema = (name: string): SchemaObject30 => ({
@@ -3444,7 +3444,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: required anyOf property vs optional anyOf property
     const schemaRequired: SchemaObject30 = {
@@ -3509,7 +3509,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: anyOf mixing nullable and not-null refs (like MixedNullable.mixedId)
     const schemaWithMixedNullable: SchemaObject30 = {
@@ -3557,7 +3557,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: oneOf mixing nullable and not-null enum refs (like MixedEnumItem.mixed)
     const schemaWithMixedEnum: SchemaObject30 = {
@@ -3611,7 +3611,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: nested object with anyOf properties (like NestedAnimals)
     const schemaWithNestedAnyOf: SchemaObject30 = {
@@ -3679,7 +3679,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: nested object with oneOf enum properties (like NestedItem)
     const schemaWithNestedOneOf: SchemaObject30 = {
@@ -3747,7 +3747,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: multiple nested objects with same anyOf structure
     const createNestedSchema = (name: string): SchemaObject30 => ({
@@ -3810,7 +3810,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: deeply nested (3 levels) object with anyOf
     const deeplyNestedSchema: SchemaObject30 = {
@@ -3874,7 +3874,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: allOf with mixed nullable and not-null refs
     const schemaWithMixedAllOf: SchemaObject30 = {
@@ -3921,7 +3921,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: anyOf mixing different types (like MixedTypes.mixedAnyOf)
     const schemaWithMixedTypes: SchemaObject30 = {
@@ -3970,7 +3970,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: anyOf with not-null types of different kinds
     const schemaWithMixedNotNullTypes: SchemaObject30 = {
@@ -4018,7 +4018,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: oneOf with number enum (nullable and not-null)
     const schemaWithNumberEnum: SchemaObject30 = {
@@ -4078,7 +4078,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: oneOf with integer enum (nullable and not-null)
     const schemaWithIntegerEnum: SchemaObject30 = {
@@ -4138,7 +4138,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: object with multiple oneOf properties of different types (like MixedTypeEnums)
     const schemaWithMultipleTypeEnums: SchemaObject30 = {
@@ -4215,7 +4215,7 @@ describe('generateZodWithNullableAnyOfRefs', () => {
           useDates: false,
         },
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     // Test case: multiple objects with same mixed type anyOf structure
     const createMixedTypeSchema = (name: string): SchemaObject30 => ({

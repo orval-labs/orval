@@ -2,7 +2,7 @@ import type { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import { resolveValue } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorImport,
   GeneratorSchema,
   GetterParameters,
@@ -22,7 +22,7 @@ type QueryParamsType = {
 function getQueryParamsTypes(
   queryParams: GetterParameters['query'],
   operationName: string,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): QueryParamsType[] {
   return queryParams.map(({ parameter, imports: parameterImports }) => {
     const {
@@ -114,7 +114,7 @@ function getQueryParamsTypes(
 interface GetQueryParamsOptions {
   queryParams: GetterParameters['query'];
   operationName: string;
-  context: ContextSpecs;
+  context: ContextSpec;
   suffix?: string;
 }
 

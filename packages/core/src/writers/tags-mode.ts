@@ -17,7 +17,7 @@ import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 export async function writeTagsMode({
   builder,
   output,
-  specsName,
+  projectName,
   header,
   needSchema,
 }: WriteModeProps): Promise<string[]> {
@@ -70,7 +70,7 @@ export async function writeTagsMode({
           client: output.client,
           implementation,
           imports: importsForBuilder,
-          specsName,
+          projectName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
@@ -92,7 +92,7 @@ export async function writeTagsMode({
           data += builder.importsMock({
             implementation: implementationMock,
             imports: importsMockForBuilder,
-            specsName,
+            projectName,
             hasSchemaDir: !!output.schemas,
             isAllowSyntheticDefaultImports,
             options: isFunction(output.mock) ? undefined : output.mock,

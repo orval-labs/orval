@@ -1,5 +1,5 @@
 import {
-  type ContextSpecs,
+  type ContextSpec,
   EnumGeneration,
   escape,
   type GeneratorImport,
@@ -42,7 +42,7 @@ export const getMockScalar = ({
     separator: 'allOf' | 'oneOf' | 'anyOf';
     includedProperties: string[];
   };
-  context: ContextSpecs;
+  context: ContextSpec;
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
@@ -329,7 +329,7 @@ function getItemType(item: MockSchemaObject) {
 const getEnum = (
   item: MockSchemaObject,
   imports: GeneratorImport[],
-  context: ContextSpecs,
+  context: ContextSpec,
   existingReferencedProperties: string[],
   type?: 'string' | 'number',
 ) => {

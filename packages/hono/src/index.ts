@@ -5,7 +5,7 @@ import {
   type ClientFooterBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
-  type ContextSpecs,
+  type ContextSpec,
   generateMutatorImports,
   type GeneratorDependency,
   type GeneratorImport,
@@ -561,13 +561,10 @@ const generateContextFile = ({
 const generateContextFiles = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
   schemaModule: string,
 ) => {
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
   const { extension, dirname, filename } = getFileInfo(output.target);
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
@@ -605,14 +602,11 @@ const generateContextFiles = (
 const generateZodFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const { extension, dirname, filename } = getFileInfo(output.target);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
@@ -715,12 +709,9 @@ const generateZodFiles = async (
 
 const generateZvalidator = (
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   let validatorPath = output.override.hono.validatorOutputPath;
   if (!output.override.hono.validatorOutputPath) {
@@ -738,15 +729,12 @@ const generateZvalidator = (
 const generateCompositeRoutes = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const targetInfo = getFileInfo(output.target);
   const compositeRouteInfo = getFileInfo(output.override.hono.compositeRoute);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   const routes = Object.values(verbOptions)
     .map((verbOption) => {

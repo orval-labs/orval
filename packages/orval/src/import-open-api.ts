@@ -1,6 +1,6 @@
 import {
   asyncReduce,
-  type ContextSpecs,
+  type ContextSpec,
   dynamicImport,
   generateComponentDefinition,
   generateParameterDefinition,
@@ -131,30 +131,27 @@ async function generateInputSpecs({
   );
 }
 
+interface GetApiSchemasOptions {
+  input: InputOptions;
+  output: NormalizedOutputOptions;
+  workspace: string;
+  target: string;
+  spec: OpenApiDocument;
+}
+
 function getApiSchemas({
   input,
   output,
   target,
   workspace,
   spec,
-}: {
-  input: InputOptions;
-  output: NormalizedOutputOptions;
-  workspace: string;
-  target: string;
-  spec: OpenApiDocument;
-}) {
-  const context: ContextSpecs = {
-    // specKey,
+}: GetApiSchemasOptions) {
+  const context: ContextSpec = {
     target,
     workspace,
     spec,
     output,
   };
-
-  // const parsedSchemas = spec.openapi
-  //   ? spec.components?.schemas
-  //   : getAllSchemas(spec, specKey);
 
   const schemaDefinition = generateSchemasDefinition(
     spec.components?.schemas,

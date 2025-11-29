@@ -1,11 +1,11 @@
 import type { ParameterObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs } from '../types';
+import type { ContextSpec } from '../types';
 import { getQueryParams } from './query-params';
 
 // Mock context for getQueryParams
-const context: ContextSpecs = {
+const context: ContextSpec = {
   spec: {},
   output: {
     // @ts-expect-error

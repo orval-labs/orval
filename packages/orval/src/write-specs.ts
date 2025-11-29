@@ -84,7 +84,7 @@ export async function writeSpecs(
       builder,
       workspace,
       output,
-      specsName: specName,
+      projectName,
       header,
       needSchema: !output.schemas && output.client !== 'zod',
     });

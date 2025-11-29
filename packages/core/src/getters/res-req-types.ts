@@ -11,7 +11,7 @@ import { uniqueBy } from 'remeda';
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
-  type ContextSpecs,
+  type ContextSpec,
   FormDataArrayHandling,
   type GeneratorImport,
   type OpenApiReferenceObject,
@@ -37,7 +37,7 @@ function getResReqContentTypes({
 }: {
   mediaType: MediaTypeObject;
   propName?: string;
-  context: ContextSpecs;
+  context: ContextSpec;
 }) {
   if (!mediaType.schema) {
     return;
@@ -58,7 +58,7 @@ export function getResReqTypes(
     OpenApiReferenceObject | OpenApiResponseObject | OpenApiRequestBodyObject,
   ][],
   name: string,
-  context: ContextSpecs,
+  context: ContextSpec,
   defaultType = 'unknown',
   uniqueKey: (
     item: ResReqTypesValue,
@@ -247,7 +247,7 @@ const getFormDataAdditionalImports = ({
   context,
 }: {
   schemaObject: SchemaObject | ReferenceObject;
-  context: ContextSpecs;
+  context: ContextSpec;
 }): GeneratorImport[] => {
   const { schema } = resolveRef<SchemaObject>(schemaObject, context);
 
@@ -276,7 +276,7 @@ const getSchemaFormDataAndUrlEncoded = ({
 }: {
   name: string;
   schemaObject: SchemaObject | ReferenceObject;
-  context: ContextSpecs;
+  context: ContextSpec;
   isRequestBodyOptional: boolean;
   isUrlEncoded?: boolean;
   isRef?: boolean;
@@ -394,7 +394,7 @@ const resolveSchemaPropertiesToFormData = ({
   schema: SchemaObject;
   variableName: string;
   propName: string;
-  context: ContextSpecs;
+  context: ContextSpec;
   isRequestBodyOptional: boolean;
   keyPrefix?: string;
   depth?: number;

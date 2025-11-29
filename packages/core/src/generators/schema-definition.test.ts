@@ -1,11 +1,11 @@
 import type { SchemasObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs, InputFiltersOption } from '../types';
+import type { ContextSpec, InputFiltersOptions } from '../types';
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {
-  const context: ContextSpecs = {
+  const context: ContextSpec = {
     specKey: 'testSpec',
     output: {
       override: {},
@@ -50,7 +50,7 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const filters: InputFiltersOption = {
+    const filters: InputFiltersOptions = {
       schemas: ['TestSchema'],
       mode: 'include',
     };
@@ -81,7 +81,7 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const filters: InputFiltersOption = {
+    const filters: InputFiltersOptions = {
       schemas: ['TestSchema'],
       mode: 'exclude',
     };
@@ -112,7 +112,7 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const filters: InputFiltersOption = {
+    const filters: InputFiltersOptions = {
       tags: ['TestTag'],
     };
 
@@ -128,7 +128,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with changed enum nameConvention', () => {
-    const context: ContextSpecs = {
+    const context: ContextSpec = {
       specKey: 'testSpec',
       output: {
         override: {
