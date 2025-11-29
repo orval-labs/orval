@@ -6,10 +6,9 @@
  */
 
 export type DomainStatusEnum =
-  (typeof DomainStatusEnum)[keyof typeof DomainStatusEnum];
+  (typeof DomainStatusEnumConsts)[keyof typeof DomainStatusEnumConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const DomainStatusEnum = {
+export const DomainStatusEnumConsts = {
   new: 'new',
   sold: 'sold',
   uknown: 'uknown',

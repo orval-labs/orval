@@ -16,10 +16,10 @@ Some useful links:
 /**
  * Order Status
  */
-export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
+export type OrderStatus =
+  (typeof OrderStatusConsts)[keyof typeof OrderStatusConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const OrderStatus = {
+export const OrderStatusConsts = {
   placed: 'placed',
   approved: 'approved',
   delivered: 'delivered',

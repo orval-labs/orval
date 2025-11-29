@@ -8,18 +8,17 @@ import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export type PetCallingCode =
-  (typeof PetCallingCode)[keyof typeof PetCallingCode];
+  (typeof PetCallingCodeConsts)[keyof typeof PetCallingCodeConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetCallingCode = {
+export const PetCallingCodeConsts = {
   '+33': '+33',
   '+420': '+420',
 } as const;
 
-export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
+export type PetCountry =
+  (typeof PetCountryConsts)[keyof typeof PetCountryConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetCountry = {
+export const PetCountryConsts = {
   "People's_Republic_of_China": "People's Republic of China",
   Uruguay: 'Uruguay',
 } as const;
