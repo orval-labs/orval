@@ -6,9 +6,8 @@
  */
 
 export type DachshundBreed =
-  (typeof DachshundBreed)[keyof typeof DachshundBreed];
+  (typeof DachshundBreedConsts)[keyof typeof DachshundBreedConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const DachshundBreed = {
+export const DachshundBreedConsts = {
   Dachshund: 'Dachshund',
 } as const;

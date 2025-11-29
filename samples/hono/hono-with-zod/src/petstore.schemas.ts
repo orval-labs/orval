@@ -5,18 +5,17 @@
  * OpenAPI spec version: 1.0.0
  */
 export type PetCallingCode =
-  (typeof PetCallingCode)[keyof typeof PetCallingCode];
+  (typeof PetCallingCodeConsts)[keyof typeof PetCallingCodeConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetCallingCode = {
+export const PetCallingCodeConsts = {
   '+33': '+33',
   '+420': '+420',
 } as const;
 
-export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
+export type PetCountry =
+  (typeof PetCountryConsts)[keyof typeof PetCountryConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetCountry = {
+export const PetCountryConsts = {
   "People's_Republic_of_China": "People's Republic of China",
   Uruguay: 'Uruguay',
 } as const;
@@ -41,10 +40,9 @@ export type Pet =
       country?: PetCountry;
     });
 
-export type DogType = (typeof DogType)[keyof typeof DogType];
+export type DogType = (typeof DogTypeConsts)[keyof typeof DogTypeConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const DogType = {
+export const DogTypeConsts = {
   dog: 'dog',
 } as const;
 
@@ -59,10 +57,9 @@ export type Dog =
     });
 
 export type LabradoodleBreed =
-  (typeof LabradoodleBreed)[keyof typeof LabradoodleBreed];
+  (typeof LabradoodleBreedConsts)[keyof typeof LabradoodleBreedConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const LabradoodleBreed = {
+export const LabradoodleBreedConsts = {
   Labradoodle: 'Labradoodle',
 } as const;
 
@@ -72,10 +69,9 @@ export interface Labradoodle {
 }
 
 export type DachshundBreed =
-  (typeof DachshundBreed)[keyof typeof DachshundBreed];
+  (typeof DachshundBreedConsts)[keyof typeof DachshundBreedConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const DachshundBreed = {
+export const DachshundBreedConsts = {
   Dachshund: 'Dachshund',
 } as const;
 
@@ -84,10 +80,9 @@ export interface Dachshund {
   breed: DachshundBreed;
 }
 
-export type CatType = (typeof CatType)[keyof typeof CatType];
+export type CatType = (typeof CatTypeConsts)[keyof typeof CatTypeConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const CatType = {
+export const CatTypeConsts = {
   cat: 'cat',
 } as const;
 

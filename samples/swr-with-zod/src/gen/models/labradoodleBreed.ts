@@ -6,9 +6,8 @@
  */
 
 export type LabradoodleBreed =
-  (typeof LabradoodleBreed)[keyof typeof LabradoodleBreed];
+  (typeof LabradoodleBreedConsts)[keyof typeof LabradoodleBreedConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const LabradoodleBreed = {
+export const LabradoodleBreedConsts = {
   Labradoodle: 'Labradoodle',
 } as const;
