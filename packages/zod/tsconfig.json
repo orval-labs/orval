@@ -1,4 +1,7 @@
 {
-  "extends": "../../tsconfig.base.json"
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "isolatedDeclarations": true
+  }
   // config that covers all files so eslint can use type checked rules
 }
