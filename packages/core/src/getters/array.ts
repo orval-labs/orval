@@ -1,10 +1,10 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
-import { resolveExampleRefs } from '../resolvers';
-import { resolveObject } from '../resolvers/object';
-import type { ContextSpecs, ScalarValue } from '../types';
-import { compareVersions } from '../utils';
+import { resolveExampleRefs } from '../resolvers/index.ts';
+import { resolveObject } from '../resolvers/object.ts';
+import type { ContextSpecs, ScalarValue } from '../types.ts';
+import { compareVersions } from '../utils/index.ts';
 
 /**
  * Return the output type from an array

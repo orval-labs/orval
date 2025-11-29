@@ -44,14 +44,14 @@ import {
   getQueryErrorType,
   getQueryHeader,
   getQueryOptions,
-} from './client';
+} from './client.ts';
 import {
   getHasSignal,
   isVue,
   normalizeQueryOptions,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
-} from './utils';
+} from './utils.ts';
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {

@@ -6,8 +6,8 @@ import {
   GetterPropType,
   type GetterQueryParam,
   OutputClient,
-} from '../types';
-import { isUndefined, pascal, sortByPriority } from '../utils';
+} from '../types.ts';
+import { isUndefined, pascal, sortByPriority } from '../utils/index.ts';
 
 export const getProps = ({
   body,

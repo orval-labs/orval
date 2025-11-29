@@ -4,7 +4,7 @@ import {
   makeRouteSafe,
   normalizeQueryOptions,
   wrapRouteParameters,
-} from './utils';
+} from './utils.ts';
 
 describe('wrapRouteParameters', () => {
   it('wraps parameters correctly', () => {

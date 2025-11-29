@@ -4,7 +4,7 @@ import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
-import { normalizePath } from './options';
+import { normalizePath } from './options.ts';
 
 export const loadPackageJson = async (
   packageJson?: string,

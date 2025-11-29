@@ -3,9 +3,13 @@ import path from 'node:path';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 
-import type { GeneratorMutator, NormalizedMutator, Tsconfig } from '../types';
-import { getFileInfo, pascal, upath } from '../utils';
-import { getMutatorInfo } from './mutator-info';
+import type {
+  GeneratorMutator,
+  NormalizedMutator,
+  Tsconfig,
+} from '../types.ts';
+import { getFileInfo, pascal, upath } from '../utils/index.ts';
+import { getMutatorInfo } from './mutator-info.ts';
 
 export const BODY_TYPE_NAME = 'BodyType';
 
