@@ -136,12 +136,12 @@ export function getMockScalar({
           ? 'bigInt'
           : 'int';
       let value = getNullable(
-        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        `faker.number.${intFunction}({min: ${item.exclusiveMinimum ?? item.minimum ?? mockOptions?.numberMin}, max: ${item.exclusiveMaximum ?? item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
         isNullable,
       );
       if (type === 'number') {
         value = getNullable(
-          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
+          `faker.number.float({min: ${item.exclusiveMinimum ?? item.minimum ?? mockOptions?.numberMin}, max: ${item.exclusiveMaximum ?? item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
           isNullable,
         );
       }

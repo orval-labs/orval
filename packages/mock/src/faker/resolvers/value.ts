@@ -13,12 +13,14 @@ import type { MockDefinition, MockSchemaObject } from '../../types';
 import { overrideVarName } from '../getters';
 import { getMockScalar } from '../getters/scalar';
 
-const isRegex = (key: string) => key.startsWith('/') && key.endsWith('/');
+function isRegex(key: string) {
+  return key.startsWith('/') && key.endsWith('/');
+}
 
-export const resolveMockOverride = (
+export function resolveMockOverride(
   properties: Record<string, unknown> | undefined = {},
   item: OpenApiSchemaObject & { name: string; path?: string },
-) => {
+) {
   const path = item.path ?? `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
     if (isRegex(key)) {
@@ -39,29 +41,21 @@ export const resolveMockOverride = (
     return;
   }
 
+  const isNullable = Array.isArray(item.type) && item.type.includes('null');
+
   return {
-    value: getNullable(property[1] as string, item.nullable),
+    value: getNullable(property[1] as string, isNullable),
     imports: [],
     name: item.name,
     overrided: true,
   };
-};
+}
 
-export const getNullable = (value: string, nullable?: boolean) =>
-  nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+export function getNullable(value: string, nullable?: boolean) {
+  return nullable ? `faker.helpers.arrayElement([${value}, null])` : value;
+}
 
-export const resolveMockValue = ({
-  schema,
-  mockOptions,
-  operationId,
-  tags,
-  combine,
-  context,
-  imports,
-  existingReferencedProperties,
-  splitMockImplementations,
-  allowOverride,
-}: {
+interface ResolveMockValueOptions {
   schema: MockSchemaObject;
   operationId: string;
   mockOptions?: MockOptions;
@@ -77,7 +71,20 @@ export const resolveMockValue = ({
   existingReferencedProperties: string[];
   splitMockImplementations: string[];
   allowOverride?: boolean;
-}): MockDefinition & { type?: string } => {
+}
+
+export function resolveMockValue({
+  schema,
+  mockOptions,
+  operationId,
+  tags,
+  combine,
+  context,
+  imports,
+  existingReferencedProperties,
+  splitMockImplementations,
+  allowOverride,
+}: ResolveMockValueOptions): MockDefinition & { type?: string } {
   if (isReference(schema)) {
     const { originalName, refPaths } = getRefInfo(schema.$ref, context);
 
@@ -174,11 +181,11 @@ export const resolveMockValue = ({
     ...scalar,
     type: getType(schema),
   };
-};
+}
 
-const getType = (schema: MockSchemaObject) => {
+function getType(schema: MockSchemaObject) {
   return (
     (schema.type as string | undefined) ??
     (schema.properties ? 'object' : schema.items ? 'array' : undefined)
   );
-};
+}
