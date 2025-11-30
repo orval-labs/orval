@@ -1,5 +1,4 @@
 import { isDereferenced } from '@scalar/openapi-types/helpers';
-import type { SchemaObject } from 'openapi3-ts/oas30';
 import { isArray, isEmptyish } from 'remeda';
 
 import {

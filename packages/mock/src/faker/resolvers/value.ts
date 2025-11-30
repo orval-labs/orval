@@ -3,11 +3,10 @@ import {
   type GeneratorImport,
   getRefInfo,
   isReference,
-  isRootKey,
   type MockOptions,
+  type OpenApiSchemaObject,
   pascal,
 } from '@orval/core';
-import type { SchemaObject } from 'openapi3-ts/oas30';
 import { prop } from 'remeda';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
@@ -18,7 +17,7 @@ const isRegex = (key: string) => key.startsWith('/') && key.endsWith('/');
 
 export const resolveMockOverride = (
   properties: Record<string, unknown> | undefined = {},
-  item: SchemaObject & { name: string; path?: string },
+  item: OpenApiSchemaObject & { name: string; path?: string },
 ) => {
   const path = item.path ?? `#.${item.name}`;
   const property = Object.entries(properties).find(([key]) => {
@@ -87,7 +86,7 @@ export const resolveMockValue = ({
           context.spec,
           // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
           ...refPaths,
-        ) as Partial<SchemaObject>)
+        ) as Partial<OpenApiSchemaObject>)
       : undefined;
 
     const newSchema = {

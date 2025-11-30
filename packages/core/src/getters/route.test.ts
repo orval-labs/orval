@@ -1,7 +1,10 @@
-import type { ServerObject } from 'openapi3-ts/oas30';
 import { describe, expect, it, test } from 'vitest';
 
-import type { BaseUrlFromConstant, BaseUrlFromSpec } from '../types';
+import type {
+  BaseUrlFromConstant,
+  BaseUrlFromSpec,
+  OpenApiServerObject,
+} from '../types';
 import { getFullRoute, getRoute, getRouteAsArray } from './route';
 
 describe('getRoute getter', () => {
@@ -108,7 +111,7 @@ describe('getFullRoute getter', () => {
       },
       'eu.prod.example.com/path',
     ],
-  ] as [string, ServerObject[] | undefined, BaseUrlFromSpec, string][]) {
+  ] as [string, OpenApiServerObject[] | undefined, BaseUrlFromSpec, string][]) {
     it(`should make path ${path} with config ${JSON.stringify(config)} and servers ${JSON.stringify(servers)} be ${expected}`, () => {
       expect(getFullRoute(path, servers, config)).toBe(expected);
     });
@@ -126,7 +129,12 @@ describe('getFullRoute getter', () => {
       { getBaseUrlFromSpecification: false, baseUrl: 'api.example.com' },
       'api.example.com/path',
     ],
-  ] as [string, ServerObject[] | undefined, BaseUrlFromConstant, string][]) {
+  ] as [
+    string,
+    OpenApiServerObject[] | undefined,
+    BaseUrlFromConstant,
+    string,
+  ][]) {
     it(`should make path ${path} with config ${JSON.stringify(config)} and servers ${JSON.stringify(servers)} be ${expected}`, () => {
       expect(getFullRoute(path, servers, config)).toBe(expected);
     });
@@ -154,7 +162,7 @@ describe('getFullRoute getter', () => {
       { getBaseUrlFromSpecification: true, variables: { region: 'euwest' } },
       `Invalid variable value 'euwest' for variable 'region' when resolving {region}.example.com. Valid values are: us, eu.`,
     ],
-  ] as [string, ServerObject[] | undefined, BaseUrlFromSpec, string][]) {
+  ] as [string, OpenApiServerObject[] | undefined, BaseUrlFromSpec, string][]) {
     it(`should throw '${error}' when path ${path} with config ${JSON.stringify(config)} and servers ${JSON.stringify(servers)} is evaluated`, () => {
       expect(() => getFullRoute(path, servers, config)).toThrow(error);
     });

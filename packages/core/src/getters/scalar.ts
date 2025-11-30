@@ -1,12 +1,7 @@
 import { isArray } from 'remeda';
 
 import { resolveExampleRefs } from '../resolvers';
-import type {
-  ContextSpec,
-  OpenApiSchemaObject,
-  ScalarValue,
-  SchemaWithConst,
-} from '../types';
+import type { ContextSpec, OpenApiSchemaObject, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
@@ -62,7 +57,7 @@ export function getScalar({
         isEnum = true;
       }
 
-      const itemWithConst = item as SchemaWithConst;
+      const itemWithConst = item;
       if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
@@ -83,7 +78,7 @@ export function getScalar({
     case 'boolean': {
       let value = 'boolean';
 
-      const itemWithConst = item as SchemaWithConst;
+      const itemWithConst = item;
       if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
@@ -139,7 +134,7 @@ export function getScalar({
         value = 'Date';
       }
 
-      const itemWithConst = item as SchemaWithConst;
+      const itemWithConst = item;
       if (itemWithConst.const) {
         value = `'${itemWithConst.const}'`;
       }

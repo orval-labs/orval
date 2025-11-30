@@ -1,5 +1,4 @@
-import type { ContextSpec } from '@orval/core';
-import type { SchemaObjectType } from 'openapi3-ts/oas30';
+import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import { getMockScalar } from './scalar';
@@ -7,7 +6,7 @@ import { getMockScalar } from './scalar';
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {
     item: {
-      type: 'integer' as SchemaObjectType,
+      type: 'integer' as OpenApiSchemaObjectType,
       format: 'int64',
       minimum: 1,
       maximum: 100,

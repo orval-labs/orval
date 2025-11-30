@@ -7,7 +7,6 @@ import {
   PropertySortOrder,
   type ScalarValue,
   SchemaType,
-  type SchemaWithConst,
 } from '../types';
 import { isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
@@ -247,7 +246,7 @@ export function getObject({
     };
   }
 
-  const itemWithConst = item as SchemaWithConst;
+  const itemWithConst = item;
   if (itemWithConst.const) {
     return {
       value: `'${itemWithConst.const}'` + nullable,

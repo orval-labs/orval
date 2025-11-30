@@ -50,30 +50,6 @@ export function createSuccessMessage(backend?: string) {
   );
 }
 
-export function ibmOpenapiValidatorWarnings(
-  warnings: {
-    path: string[];
-    message: string;
-  }[],
-) {
-  log(chalk.yellow('(!) Warnings'));
-
-  for (const i of warnings)
-    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
-}
-
-export function ibmOpenapiValidatorErrors(
-  errors: {
-    path: string[];
-    message: string;
-  }[],
-) {
-  log(chalk.red('(!) Errors'));
-
-  for (const i of errors)
-    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`));
-}
-
 export type LogType = 'error' | 'warn' | 'info';
 export type LogLevel = LogType | 'silent';
 export interface Logger {

@@ -1,13 +1,15 @@
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-
 import { resolveExampleRefs } from '../resolvers';
 import { resolveObject } from '../resolvers/object';
-import type { ContextSpec, ScalarValue } from '../types';
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ScalarValue,
+} from '../types';
 import { compareVersions } from '../utils';
 
 interface GetArrayOptions {
-  schema: SchemaObject;
+  schema: OpenApiSchemaObject;
   name?: string;
   context: ContextSpec;
 }
@@ -22,11 +24,11 @@ export function getArray({
   name,
   context,
 }: GetArrayOptions): ScalarValue {
-  const schema31 = schema as SchemaObject31;
+  const schema31 = schema as OpenApiSchemaObject;
   if (schema31.prefixItems) {
     const resolvedObjects = schema31.prefixItems.map((item, index) =>
       resolveObject({
-        schema: item as SchemaObject | ReferenceObject,
+        schema: item as OpenApiSchemaObject | OpenApiReferenceObject,
         propName:
           name + context.output.override.components.schemas.itemSuffix + index,
         context,
@@ -34,7 +36,7 @@ export function getArray({
     );
     if (schema31.items) {
       const additional = resolveObject({
-        schema: schema31.items as SchemaObject | ReferenceObject,
+        schema: schema31.items as OpenApiSchemaObject | OpenApiReferenceObject,
         propName:
           name +
           context.output.override.components.schemas.itemSuffix +

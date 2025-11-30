@@ -1,5 +1,3 @@
-import type { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
-
 import { resolveValue } from '../resolvers';
 import type {
   ContextSpec,
@@ -7,6 +5,8 @@ import type {
   GeneratorSchema,
   GetterParameters,
   GetterQueryParam,
+  OpenApiParameterObject,
+  OpenApiSchemaObject,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
@@ -16,7 +16,7 @@ type QueryParamsType = {
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema: SchemaObject;
+  originalSchema: OpenApiSchemaObject;
 };
 
 function getQueryParamsTypes(
@@ -33,8 +33,8 @@ function getQueryParamsTypes(
     } = parameter as {
       name: string;
       required: boolean;
-      schema: SchemaObject;
-      content: ContentObject;
+      schema: OpenApiSchemaObject;
+      content: OpenApiParameterObject['content'];
     };
 
     const queryName = sanitize(`${pascal(operationName)}${pascal(name)}`, {

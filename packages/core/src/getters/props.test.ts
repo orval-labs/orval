@@ -1,7 +1,11 @@
-import type { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, GetterQueryParam } from '../types';
+import type {
+  ContextSpec,
+  GetterQueryParam,
+  OpenApiReferenceObject,
+  OpenApiRequestBodyObject,
+} from '../types';
 import { getProps } from './props';
 
 describe('getProps', () => {
@@ -30,7 +34,7 @@ describe('getProps', () => {
         implementation: '',
         definition: '',
         isOptional: true,
-        originalSchema: {} as ReferenceObject | RequestBodyObject,
+        originalSchema: {} as OpenApiReferenceObject | OpenApiRequestBodyObject,
         imports: [],
         schemas: [],
         contentType: '',

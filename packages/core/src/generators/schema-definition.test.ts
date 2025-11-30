@@ -1,7 +1,10 @@
-import type { SchemasObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, InputFiltersOptions } from '../types';
+import type {
+  ContextSpec,
+  InputFiltersOptions,
+  OpenApiSchemasObject,
+} from '../types';
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {
@@ -20,7 +23,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas without filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -35,7 +38,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with include filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -66,7 +69,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with exclude filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -97,7 +100,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas when filters.schemas is undefined with other filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -142,7 +145,7 @@ describe('generateSchemasDefinition', () => {
       spec: {},
     };
 
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {

@@ -1,17 +1,17 @@
-import type { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
-
 import { generalJSTypesWithArray } from '../constants';
 import { resolveRef } from '../resolvers';
 import type {
   ContextSpec,
   GetterBody,
+  OpenApiReferenceObject,
+  OpenApiRequestBodyObject,
   OverrideOutputContentType,
 } from '../types';
 import { camel, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetBodyOptions {
-  requestBody: ReferenceObject | RequestBodyObject;
+  requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject;
   operationName: string;
   context: ContextSpec;
   contentType?: OverrideOutputContentType;
@@ -71,7 +71,7 @@ export function getBody({
       es5IdentifierName: true,
     });
     if (isReference(requestBody)) {
-      const { schema: bodySchema } = resolveRef<RequestBodyObject>(
+      const { schema: bodySchema } = resolveRef<OpenApiRequestBodyObject>(
         requestBody,
         context,
       );

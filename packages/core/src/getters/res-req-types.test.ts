@@ -1,10 +1,10 @@
-import type { RequestBodyObject, SchemaObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
+import type { OpenApiRequestBodyObject, OpenApiSchemaObject } from '../types';
 import { getResReqTypes } from './res-req-types';
 
 // Simulates an OpenAPI schema with a readOnly property
-const schemaWithReadOnly: SchemaObject = {
+const schemaWithReadOnly: OpenApiSchemaObject = {
   type: 'object',
   properties: {
     id: { type: 'integer', readOnly: true },
@@ -33,7 +33,7 @@ const context = {
 
 describe('getResReqTypes (formData, readOnly property)', () => {
   it('should not include readOnly properties in the generated formData', () => {
-    const reqBody: [string, RequestBodyObject][] = [
+    const reqBody: [string, OpenApiRequestBodyObject][] = [
       [
         'requestBody',
         {

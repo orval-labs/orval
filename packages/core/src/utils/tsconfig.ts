@@ -6,7 +6,7 @@ export function isSyntheticDefaultImportsAllow(config?: Tsconfig) {
   }
 
   return !!(
-    config?.compilerOptions?.allowSyntheticDefaultImports ??
-    config?.compilerOptions?.esModuleInterop
+    config.compilerOptions?.allowSyntheticDefaultImports ??
+    config.compilerOptions?.esModuleInterop
   );
 }

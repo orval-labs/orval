@@ -17,7 +17,6 @@ import {
   isUndefined,
   isUrl,
   type JsDocOptions,
-  mergeDeep,
   type Mutator,
   NamingConvention,
   type NormalizedHonoOptions,
@@ -37,15 +36,12 @@ import {
   PropertySortOrder,
   type QueryOptions,
   RefComponentSuffix,
-  type SwaggerParserOptions,
   upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
 
 import pkg from '../../package.json';
-import { githubResolver } from './github';
-import { httpResolver } from './http-resolver';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
 
@@ -160,18 +156,12 @@ export const normalizeOptions = async (
       target: globalOptions.input
         ? normalizePathOrUrl(globalOptions.input, process.cwd())
         : normalizePathOrUrl(inputOptions.target, workspace),
-      validation: inputOptions.validation || false,
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
           workspace,
         ),
       },
-      converterOptions: inputOptions.converterOptions ?? {},
-      parserOptions: mergeDeep(
-        parserDefaultOptions,
-        inputOptions.parserOptions ?? {},
-      ),
       filters: inputOptions.filters,
     },
     output: {
@@ -383,11 +373,6 @@ export const normalizeOptions = async (
 
   return normalizedOptions;
 };
-
-const parserDefaultOptions = {
-  validate: true,
-  resolve: { github: githubResolver, http: httpResolver },
-} as SwaggerParserOptions;
 
 const normalizeMutator = (
   workspace: string,

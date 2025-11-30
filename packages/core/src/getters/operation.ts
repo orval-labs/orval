@@ -1,10 +1,8 @@
-import type { OperationObject } from 'openapi3-ts/oas30';
-
-import { Verbs } from '../types';
+import { type OpenApiOperationObject, Verbs } from '../types';
 import { pascal, sanitize } from '../utils';
 
 export function getOperationId(
-  operation: OperationObject,
+  operation: OpenApiOperationObject,
   route: string,
   verb: Verbs,
 ): string {

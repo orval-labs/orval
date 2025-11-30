@@ -1,10 +1,13 @@
 import { keyword } from 'esutils';
-import type { SchemaObject } from 'openapi3-ts/oas30';
 
-import { EnumGeneration, NamingConvention } from '../types';
+import {
+  EnumGeneration,
+  NamingConvention,
+  type OpenApiSchemaObject,
+} from '../types';
 import { conventionName, isNumeric, sanitize } from '../utils';
 
-export function getEnumNames(schemaObject: SchemaObject | undefined) {
+export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
   return (
     schemaObject?.['x-enumNames'] ||
     schemaObject?.['x-enumnames'] ||
@@ -12,7 +15,9 @@ export function getEnumNames(schemaObject: SchemaObject | undefined) {
   );
 }
 
-export function getEnumDescriptions(schemaObject: SchemaObject | undefined) {
+export function getEnumDescriptions(
+  schemaObject: OpenApiSchemaObject | undefined,
+) {
   return (
     schemaObject?.['x-enumDescriptions'] ||
     schemaObject?.['x-enumdescriptions'] ||

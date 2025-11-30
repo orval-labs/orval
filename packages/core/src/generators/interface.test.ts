@@ -1,8 +1,10 @@
-import type { SchemaObject as SchemaObject30 } from 'openapi3-ts/oas30';
-import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpec, GeneratorSchema } from '../types';
+import type {
+  ContextSpec,
+  GeneratorSchema,
+  OpenApiSchemaObject,
+} from '../types';
 import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
@@ -16,7 +18,7 @@ describe('generateInterface', () => {
   };
 
   it('should return const object with typeof', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {
         message: {
@@ -38,7 +40,7 @@ describe('generateInterface', () => {
     const got = generateInterface({
       name: 'TestSchema',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
     const want: GeneratorSchema[] = [
@@ -58,7 +60,7 @@ export type TestSchema = typeof TestSchemaValue;
   });
 
   it('should return type', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {},
       required: ['message', 'code'],
@@ -67,7 +69,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'TestSchema',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
     const want: GeneratorSchema[] = [
@@ -81,7 +83,7 @@ export type TestSchema = typeof TestSchemaValue;
   });
 
   it('should generate index signature with propertyNames enum (OpenAPI 3.1)', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       propertyNames: {
         type: 'string',
@@ -95,7 +97,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
     const want: GeneratorSchema[] = [
@@ -109,7 +111,7 @@ export type TestSchema = typeof TestSchemaValue;
   });
 
   it('should handle propertyNames enum with additional properties as boolean', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       propertyNames: {
         type: 'string',
@@ -121,7 +123,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
     const want: GeneratorSchema[] = [
@@ -135,7 +137,7 @@ export type TestSchema = typeof TestSchemaValue;
   });
 
   it('should handle propertyNames enum with specific type in additionalProperties', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       propertyNames: {
         type: 'string',
@@ -149,7 +151,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
     const want: GeneratorSchema[] = [
@@ -163,7 +165,7 @@ export type TestSchema = typeof TestSchemaValue;
   });
 
   it('should use string when propertyNames has no enum', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       propertyNames: {
         type: 'string',
@@ -177,7 +179,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
     const want: GeneratorSchema[] = [
@@ -191,7 +193,7 @@ export type TestSchema = typeof TestSchemaValue;
   });
 
   it('should handle propertyNames enum with properties already defined', () => {
-    const schema: SchemaObject31 = {
+    const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {
         existingProp: {
@@ -211,7 +213,7 @@ export type TestSchema = typeof TestSchemaValue;
     const got = generateInterface({
       name: 'MyObject',
       context,
-      schema: schema as unknown as SchemaObject30,
+      schema: schema as unknown as OpenApiSchemaObject,
       suffix: '',
     });
 

@@ -1,18 +1,5 @@
-import type SwaggerParser from '@apidevtools/swagger-parser';
 import type { allLocales } from '@faker-js/faker';
 import type { OpenAPIV3_1 } from '@scalar/openapi-types';
-import type { JSONSchema6, JSONSchema7 } from 'json-schema';
-import type {
-  InfoObject,
-  OpenAPIObject,
-  OperationObject,
-  ParameterObject,
-  ReferenceObject,
-  RequestBodyObject,
-  ResponsesObject,
-  SchemaObject,
-} from 'openapi3-ts/oas30';
-import type { ConvertInputOptions } from 'swagger2openapi';
 import type { TypeDocOptions } from 'typedoc';
 
 export interface Options {
@@ -76,7 +63,7 @@ export type NormalizedOverrideOutput = {
   tags: Record<string, NormalizedOperationOptions | undefined>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
-  header: false | ((info: InfoObject) => string[] | string);
+  header: false | ((info: OpenApiInfoObject) => string[] | string);
   formData: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
@@ -106,7 +93,7 @@ export type NormalizedOverrideOutput = {
   zod: NormalizedZodOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -142,7 +129,7 @@ export type NormalizedOperationOptions = {
   swr?: SwrOptions;
   zod?: NormalizedZodOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -155,10 +142,7 @@ export type NormalizedOperationOptions = {
 
 export type NormalizedInputOptions = {
   target: string | OpenApiDocument;
-  validation: boolean | object;
   override: OverrideInput;
-  converterOptions: Partial<ConvertInputOptions>;
-  parserOptions: SwaggerParserOptions;
   filters?: InputFiltersOptions;
 };
 
@@ -235,10 +219,6 @@ export type OutputOptions = {
   propertySortOrder?: PropertySortOrder;
 };
 
-export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
-  validate?: boolean;
-};
-
 export type InputFiltersOptions = {
   mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
@@ -247,10 +227,7 @@ export type InputFiltersOptions = {
 
 export type InputOptions = {
   target: string | Record<string, unknown> | OpenApiDocument;
-  validation?: boolean | object;
   override?: OverrideInput;
-  converterOptions?: Partial<ConvertInputOptions>;
-  parserOptions?: SwaggerParserOptions;
   filters?: InputFiltersOptions;
 };
 
@@ -414,7 +391,7 @@ export type OverrideOutput = {
   tags?: Record<string, OperationOptions>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
-  header?: boolean | ((info: InfoObject) => string[] | string);
+  header?: boolean | ((info: OpenApiInfoObject) => string[] | string);
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
@@ -443,7 +420,7 @@ export type OverrideOutput = {
   angular?: AngularOptions;
   zod?: ZodOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -654,7 +631,7 @@ export type OperationOptions = {
   swr?: SwrOptions;
   zod?: ZodOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -669,7 +646,7 @@ export type Hook = 'afterAllFilesWrite';
 
 export type HookFunction = (...args: any[]) => void | Promise<void>;
 
-export interface HookOptions {
+export interface HookOption {
   command: string | HookFunction;
   injectGeneratedDirsAndFiles?: boolean;
 }
@@ -677,8 +654,8 @@ export interface HookOptions {
 export type HookCommand =
   | string
   | HookFunction
-  | HookOptions
-  | (string | HookFunction | HookOptions)[];
+  | HookOption
+  | (string | HookFunction | HookOption)[];
 
 export type NormalizedHookCommand = HookCommand[];
 
@@ -866,7 +843,7 @@ export type GeneratorVerbOptions = {
   fetchReviver?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
-  originalOperation: OperationObject;
+  originalOperation: OpenApiOperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -993,11 +970,11 @@ export type GetterResponse = {
   contentTypes: string[];
   schemas: GeneratorSchema[];
 
-  originalSchema?: ResponsesObject;
+  originalSchema?: OpenApiResponsesObject;
 };
 
 export type GetterBody = {
-  originalSchema: ReferenceObject | RequestBodyObject;
+  originalSchema: OpenApiReferenceObject | OpenApiRequestBodyObject;
   imports: GeneratorImport[];
   definition: string;
   implementation: string;
@@ -1009,9 +986,9 @@ export type GetterBody = {
 };
 
 export type GetterParameters = {
-  query: { parameter: ParameterObject; imports: GeneratorImport[] }[];
-  path: { parameter: ParameterObject; imports: GeneratorImport[] }[];
-  header: { parameter: ParameterObject; imports: GeneratorImport[] }[];
+  query: { parameter: OpenApiParameterObject; imports: GeneratorImport[] }[];
+  path: { parameter: OpenApiParameterObject; imports: GeneratorImport[] }[];
+  header: { parameter: OpenApiParameterObject; imports: GeneratorImport[] }[];
 };
 
 export type GetterParam = {
@@ -1028,7 +1005,7 @@ export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
-  originalSchema?: SchemaObject;
+  originalSchema?: OpenApiSchemaObject;
 };
 
 export type GetterPropType =
@@ -1108,7 +1085,7 @@ export type ResReqTypesValue = ScalarValue & {
   hasReadonlyProps?: boolean;
   key: string;
   contentType: string;
-  originalSchema?: SchemaObject;
+  originalSchema?: OpenApiSchemaObject;
 };
 
 export type WriteSpecBuilder = {
@@ -1213,10 +1190,6 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   extraFiles: ClientFileBuilder[];
 };
 
-export interface SchemaWithConst extends SchemaObject {
-  const: string;
-}
-
 export class ErrorWithTag extends Error {
   tag: string;
   constructor(message: string, tag: string, options?: ErrorOptions) {
@@ -1224,6 +1197,15 @@ export class ErrorWithTag extends Error {
     this.tag = tag;
   }
 }
+
+export type OpenApiSchemaObjectType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'object'
+  | 'integer'
+  | 'null'
+  | 'array';
 
 // OpenAPI type aliases. Intended to make it easy to swap to OpenAPI v3.2 in the future
 export type OpenApiDocument = OpenAPIV3_1.Document;
@@ -1244,3 +1226,4 @@ export type OpenApiInfoObject = OpenAPIV3_1.InfoObject;
 export type OpenApiExampleObject = OpenAPIV3_1.ExampleObject;
 export type OpenApiOperationObject = OpenAPIV3_1.OperationObject;
 export type OpenApiMediaTypeObject = OpenAPIV3_1.MediaTypeObject;
+export type OpenApiServerObject = OpenAPIV3_1.ServerObject;

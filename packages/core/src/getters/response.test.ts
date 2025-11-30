@@ -1,6 +1,6 @@
-import type { ResponsesObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
+import type { OpenApiResponsesObject } from '../types';
 import { getResponse } from './response';
 
 const context = {
@@ -23,7 +23,7 @@ const context = {
 describe('getResponse', () => {
   describe('multiple status codes with same schema', () => {
     it('should generate separate types for each status code when using custom uniqueKey function', () => {
-      const responses: ResponsesObject = {
+      const responses: OpenApiResponsesObject = {
         '200': {
           description: 'Existing subscription',
           content: {

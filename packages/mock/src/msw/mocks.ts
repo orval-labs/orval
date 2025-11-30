@@ -6,15 +6,16 @@ import {
   isFunction,
   type MockOptions,
   type NormalizedOverrideOutput,
+  type OpenApiDocument,
+  type OpenApiSchemaObject,
   resolveRef,
   type ResReqTypesValue,
   stringify,
 } from '@orval/core';
-import type { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import { getMockScalar } from '../faker/getters';
 
-const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
+const getMockPropertiesWithoutFunc = (properties: any, spec: OpenApiDocument) =>
   Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<
     Record<string, string>
   >((acc, [key, value]) => {
@@ -30,7 +31,7 @@ const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
   }, {});
 
 const getMockWithoutFunc = (
-  spec: OpenAPIObject,
+  spec: OpenApiDocument,
   override?: NormalizedOverrideOutput,
 ): MockOptions => ({
   arrayMin: override?.mock?.arrayMin,
@@ -183,7 +184,10 @@ export const getResponsesMockDefinition = ({
         return acc;
       }
 
-      const resolvedRef = resolveRef<SchemaObject>(originalSchema, context);
+      const resolvedRef = resolveRef<OpenApiSchemaObject>(
+        originalSchema,
+        context,
+      );
 
       const scalar = getMockScalar({
         item: {

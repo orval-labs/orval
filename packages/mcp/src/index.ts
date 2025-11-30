@@ -11,16 +11,16 @@ import {
   getFullRoute,
   jsDoc,
   type NormalizedOutputOptions,
+  type OpenApiInfoObject,
   pascal,
   upath,
 } from '@orval/core';
 import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod } from '@orval/zod';
-import type { InfoObject } from 'openapi3-ts/oas30';
 
 const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
 ): string => {
   if (!option) {
     return '';

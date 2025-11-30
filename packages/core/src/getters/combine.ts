@@ -1,4 +1,3 @@
-import type { SchemaObject } from 'openapi3-ts/oas30';
 import { unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
@@ -6,6 +5,7 @@ import {
   type ContextSpec,
   type GeneratorImport,
   type GeneratorSchema,
+  type OpenApiSchemaObject,
   type ScalarValue,
   SchemaType,
 } from '../types';
@@ -21,7 +21,7 @@ import { getScalar } from './scalar';
 type CombinedData = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema: (SchemaObject | undefined)[];
+  originalSchema: (OpenApiSchemaObject | undefined)[];
   values: string[];
   isRef: boolean[];
   isEnum: boolean[];
@@ -65,7 +65,7 @@ function combineValues({
         (s) =>
           s?.discriminator &&
           resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
-      ) as SchemaObject[];
+      ) as OpenApiSchemaObject[];
       if (discriminatedPropertySchemas.length > 0) {
         resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
       }
@@ -133,7 +133,7 @@ export function combineSchemas({
   nullable,
 }: {
   name?: string;
-  schema: SchemaObject;
+  schema: OpenApiSchemaObject;
   separator: Separator;
   context: ContextSpec;
   nullable: string;

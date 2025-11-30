@@ -296,13 +296,15 @@ function isBinaryContentType(contentType: string): boolean {
   return !textApplicationTypes.has(contentType);
 }
 
+interface GetFormDataAdditionalImportsOptions {
+  schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
+  context: ContextSpec;
+}
+
 function getFormDataAdditionalImports({
   schemaObject,
   context,
-}: {
-  schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
-  context: ContextSpec;
-}): GeneratorImport[] {
+}: GetFormDataAdditionalImportsOptions): GeneratorImport[] {
   const { schema } = resolveRef<OpenApiSchemaObject>(schemaObject, context);
 
   if (schema.type !== 'object') {
@@ -322,21 +324,23 @@ function getFormDataAdditionalImports({
     .filter(Boolean);
 }
 
-const getSchemaFormDataAndUrlEncoded = ({
-  name,
-  schemaObject,
-  context,
-  isRequestBodyOptional,
-  isUrlEncoded,
-  isRef,
-}: {
+interface GetSchemaFormDataAndUrlEncodedOptions {
   name: string;
   schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
   context: ContextSpec;
   isRequestBodyOptional: boolean;
   isUrlEncoded?: boolean;
   isRef?: boolean;
-}): string => {
+}
+
+function getSchemaFormDataAndUrlEncoded({
+  name,
+  schemaObject,
+  context,
+  isRequestBodyOptional,
+  isUrlEncoded,
+  isRef,
+}: GetSchemaFormDataAndUrlEncodedOptions): string {
   const { schema, imports } = resolveRef<OpenApiSchemaObject>(
     schemaObject,
     context,
@@ -437,17 +441,9 @@ const getSchemaFormDataAndUrlEncoded = ({
   }
 
   return `${form}${variableName}.append('data', ${propName})\n`;
-};
+}
 
-const resolveSchemaPropertiesToFormData = ({
-  schema,
-  variableName,
-  propName,
-  context,
-  isRequestBodyOptional,
-  keyPrefix = '',
-  depth = 0,
-}: {
+interface ResolveSchemaPropertiesToFormDataOptions {
   schema: OpenApiSchemaObject;
   variableName: string;
   propName: string;
@@ -455,7 +451,17 @@ const resolveSchemaPropertiesToFormData = ({
   isRequestBodyOptional: boolean;
   keyPrefix?: string;
   depth?: number;
-}) => {
+}
+
+function resolveSchemaPropertiesToFormData({
+  schema,
+  variableName,
+  propName,
+  context,
+  isRequestBodyOptional,
+  keyPrefix = '',
+  depth = 0,
+}: ResolveSchemaPropertiesToFormDataOptions): string {
   const formDataValues = Object.entries(schema.properties ?? {}).reduce(
     (acc, [key, value]) => {
       const { schema: property } = resolveRef<OpenApiSchemaObject>(
@@ -609,4 +615,4 @@ const resolveSchemaPropertiesToFormData = ({
   );
 
   return formDataValues;
-};
+}

@@ -6,9 +6,9 @@ import {
   isRootKey,
   mergeDeep,
   type MockOptions,
+  type OpenApiSchemaObject,
   pascal,
 } from '@orval/core';
-import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
 import { isFakerVersionV9 } from '../compatible-v9';
@@ -256,7 +256,7 @@ export const getMockScalar = ({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
       } else if ('const' in item) {
-        value = `'${(item as SchemaObject31).const}'`;
+        value = `'${(item as OpenApiSchemaObject).const}'`;
       }
 
       return {

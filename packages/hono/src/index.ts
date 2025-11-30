@@ -17,13 +17,13 @@ import {
   kebab,
   type NormalizedMutator,
   type NormalizedOutputOptions,
+  type OpenApiInfoObject,
   pascal,
   sanitize,
   upath,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
-import { type InfoObject } from 'openapi3-ts/oas30';
 
 import { getRoute } from './route';
 
@@ -491,8 +491,8 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
 };
 
 const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
 ): string => {
   if (!option) {
     return '';

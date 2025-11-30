@@ -10,17 +10,14 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   isObject,
+  type OpenApiParameterObject,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
   pascal,
   resolveRef,
   stringify,
   toObjectString,
 } from '@orval/core';
-import type {
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-} from 'openapi3-ts/oas30';
-import type { SchemaObject } from 'openapi3-ts/oas31';
 
 export const generateRequestFunction = (
   {
@@ -56,11 +53,12 @@ export const generateRequestFunction = (
 
   const spec = context.spec.paths?.[pathRoute];
   const parameters =
-    spec?.[verb]?.parameters ?? ([] as (ParameterObject | ReferenceObject)[]);
+    spec?.[verb]?.parameters ??
+    ([] as (OpenApiParameterObject | OpenApiReferenceObject)[]);
 
   const explodeParameters = parameters.filter((parameter) => {
-    const { schema } = resolveRef<ParameterObject>(parameter, context);
-    const schemaObject = schema.schema as SchemaObject;
+    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
+    const schemaObject = schema.schema as OpenApiSchemaObject;
 
     return (
       schema.in === 'query' && schemaObject.type === 'array' && schema.explode
@@ -68,7 +66,7 @@ export const generateRequestFunction = (
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
-    const { schema } = resolveRef<ParameterObject>(parameter, context);
+    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
 
     return schema.name;
   });

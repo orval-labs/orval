@@ -16,20 +16,16 @@ import {
   isObject,
   isString,
   jsStringEscape,
+  type OpenApiParameterObject,
+  type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
+  type OpenApiResponseObject,
+  type OpenApiSchemaObject,
   pascal,
   resolveRef,
   stringify,
   type ZodCoerceType,
 } from '@orval/core';
-import {
-  type ParameterObject,
-  type PathItemObject,
-  type ReferenceObject,
-  type RequestBodyObject,
-  type ResponseObject,
-  type SchemaObject,
-} from 'openapi3-ts/oas30';
-import { type SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 import { unique } from 'remeda';
 
 import {
@@ -72,7 +68,7 @@ const possibleSchemaTypes = new Set([
   'array',
 ]);
 
-const resolveZodType = (schema: SchemaObject | SchemaObject31) => {
+const resolveZodType = (schema: OpenApiSchemaObject) => {
   const schemaTypeValue = schema.type;
 
   // Handle array of types (OpenAPI 3.1+)
@@ -134,15 +130,17 @@ export type ZodValidationSchemaDefinition = {
 
 const minAndMaxTypes = new Set(['number', 'string', 'array']);
 
-const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
+const removeReadOnlyProperties = (
+  schema: OpenApiSchemaObject,
+): OpenApiSchemaObject => {
   if (schema.properties) {
     return {
       ...schema,
       properties: Object.entries(schema.properties).reduce<
-        Record<string, SchemaObject>
+        Record<string, OpenApiSchemaObject>
       >((acc, [key, value]) => {
         if ('readOnly' in value && value.readOnly) return acc;
-        acc[key] = value as SchemaObject;
+        acc[key] = value as OpenApiSchemaObject;
         return acc;
       }, {}),
     };
@@ -150,7 +148,7 @@ const removeReadOnlyProperties = (schema: SchemaObject): SchemaObject => {
   if (schema.items && 'properties' in schema.items) {
     return {
       ...schema,
-      items: removeReadOnlyProperties(schema.items as SchemaObject),
+      items: removeReadOnlyProperties(schema.items as OpenApiSchemaObject),
     };
   }
   return schema;
@@ -167,7 +165,7 @@ type TimeOptions = {
 };
 
 export const generateZodValidationSchemaDefinition = (
-  schema: SchemaObject | SchemaObject31 | undefined,
+  schema: OpenApiSchemaObject | undefined,
   context: ContextSpec,
   name: string,
   strict: boolean,
@@ -231,15 +229,15 @@ export const generateZodValidationSchemaDefinition = (
     const separator = schema.allOf ? 'allOf' : schema.oneOf ? 'oneOf' : 'anyOf';
 
     const schemas = (schema.allOf ?? schema.oneOf ?? schema.anyOf) as (
-      | SchemaObject
-      | ReferenceObject
+      | OpenApiSchemaObject
+      | OpenApiReferenceObject
     )[];
 
     // Use index-based naming to ensure uniqueness when processing multiple schemas
     // This prevents duplicate schema names when nullable refs are used
     const baseSchemas = schemas.map((schema, index) =>
       generateZodValidationSchemaDefinition(
-        schema as SchemaObject,
+        schema as OpenApiSchemaObject,
         context,
         `${camel(name)}${pascal(getNumberWord(index + 1))}`,
         strict,
@@ -257,7 +255,7 @@ export const generateZodValidationSchemaDefinition = (
         required: schema.required,
         additionalProperties: schema.additionalProperties,
         type: schema.type,
-      } as SchemaObject;
+      } as OpenApiSchemaObject;
 
       // Use index-based naming to ensure uniqueness
       const additionalIndex = baseSchemas.length + 1;
@@ -291,7 +289,7 @@ export const generateZodValidationSchemaDefinition = (
       context.output.override.useDates;
 
     if (isDateType) {
-      // openapi3-ts's SchemaObject defines default as 'any'
+      // OpenApiSchemaObject defines default as 'any'
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       defaultValue = `new Date("${escape(schema.default)}")`;
     } else if (isObject(schema.default)) {
@@ -319,7 +317,7 @@ export const generateZodValidationSchemaDefinition = (
         .join(', ');
       defaultValue = `{ ${entries} }`;
     } else {
-      // openapi3-ts's SchemaObject defines default as 'any'
+      // OpenApiSchemaObject defines default as 'any'
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       const rawStringified = stringify(schema.default);
       defaultValue =
@@ -388,14 +386,17 @@ export const generateZodValidationSchemaDefinition = (
          * > Omitting this keyword has the same assertion behavior as an empty array.
          */
         if ('prefixItems' in schema) {
-          const schema31 = schema as SchemaObject31;
+          const schema31 = schema as OpenApiSchemaObject;
 
           if (schema31.prefixItems && schema31.prefixItems.length > 0) {
             functions.push([
               'tuple',
               schema31.prefixItems.map((item, idx) =>
                 generateZodValidationSchemaDefinition(
-                  dereference(item as SchemaObject | ReferenceObject, context),
+                  dereference(
+                    item as OpenApiSchemaObject | OpenApiReferenceObject,
+                    context,
+                  ),
                   context,
                   camel(`${name}-${idx}-item`),
                   isZodV4,
@@ -415,7 +416,7 @@ export const generateZodValidationSchemaDefinition = (
               functions.push([
                 'rest',
                 generateZodValidationSchemaDefinition(
-                  schema.items as SchemaObject | undefined,
+                  schema.items as OpenApiSchemaObject | undefined,
                   context,
                   camel(`${name}-item`),
                   strict,
@@ -434,7 +435,7 @@ export const generateZodValidationSchemaDefinition = (
         functions.push([
           'array',
           generateZodValidationSchemaDefinition(
-            schema.items as SchemaObject | undefined,
+            schema.items as OpenApiSchemaObject | undefined,
             context,
             camel(`${name}-item`),
             strict,
@@ -540,10 +541,7 @@ export const generateZodValidationSchemaDefinition = (
             Object.keys(schema.properties)
               .map((key) => ({
                 [key]: generateZodValidationSchemaDefinition(
-                  schema.properties?.[key] as
-                    | SchemaObject
-                    | SchemaObject31
-                    | undefined,
+                  schema.properties?.[key] as OpenApiSchemaObject | undefined,
                   context,
                   camel(`${name}-${key}`),
                   strict,
@@ -569,7 +567,7 @@ export const generateZodValidationSchemaDefinition = (
             generateZodValidationSchemaDefinition(
               isBoolean(schema.additionalProperties)
                 ? {}
-                : (schema.additionalProperties as SchemaObject),
+                : (schema.additionalProperties as OpenApiSchemaObject),
               context,
               name,
               strict,
@@ -924,9 +922,9 @@ const dereferenceScalar = (value: any, context: ContextSpec): unknown => {
 };
 
 const dereference = (
-  schema: SchemaObject | ReferenceObject,
+  schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
-): SchemaObject => {
+): OpenApiSchemaObject => {
   const refName = '$ref' in schema ? schema.$ref : undefined;
   if (refName && context.parents?.includes(refName)) {
     return {};
@@ -939,7 +937,7 @@ const dereference = (
       : undefined),
   };
 
-  const { schema: resolvedSchema } = resolveRef<SchemaObject>(
+  const { schema: resolvedSchema } = resolveRef<OpenApiSchemaObject>(
     schema,
     childContext,
   );
@@ -955,16 +953,15 @@ const dereference = (
 
   return Object.entries(resolvedSchema).reduce<any>((acc, [key, value]) => {
     if (key === 'properties' && isObject(value)) {
-      acc[key] = Object.entries(value).reduce<Record<string, SchemaObject>>(
-        (props, [propKey, propSchema]) => {
-          props[propKey] = dereference(
-            propSchema as SchemaObject | ReferenceObject,
-            resolvedContext,
-          );
-          return props;
-        },
-        {},
-      );
+      acc[key] = Object.entries(value).reduce<
+        Record<string, OpenApiSchemaObject>
+      >((props, [propKey, propSchema]) => {
+        props[propKey] = dereference(
+          propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
+          resolvedContext,
+        );
+        return props;
+      }, {});
     } else if (key === 'default' || key === 'example' || key === 'examples') {
       acc[key] = value;
     } else {
@@ -984,7 +981,11 @@ const parseBodyAndResponse = ({
   isZodV4,
   parseType,
 }: {
-  data: ResponseObject | RequestBodyObject | ReferenceObject | undefined;
+  data:
+    | OpenApiResponseObject
+    | OpenApiRequestBodyObject
+    | OpenApiReferenceObject
+    | undefined;
   context: ContextSpec;
   name: string;
   strict: boolean;
@@ -1006,10 +1007,9 @@ const parseBodyAndResponse = ({
     };
   }
 
-  const resolvedRef = resolveRef<ResponseObject | RequestBodyObject>(
-    data,
-    context,
-  ).schema;
+  const resolvedRef = resolveRef<
+    OpenApiResponseObject | OpenApiRequestBodyObject
+  >(data, context).schema;
 
   const schema =
     resolvedRef.content?.['application/json']?.schema ??
@@ -1038,8 +1038,10 @@ const parseBodyAndResponse = ({
     return {
       input: generateZodValidationSchemaDefinition(
         parseType === 'body'
-          ? removeReadOnlyProperties(resolvedJsonSchema.items as SchemaObject)
-          : (resolvedJsonSchema.items as SchemaObject),
+          ? removeReadOnlyProperties(
+              resolvedJsonSchema.items as OpenApiSchemaObject,
+            )
+          : (resolvedJsonSchema.items as OpenApiSchemaObject),
         context,
         name,
         strict,
@@ -1081,7 +1083,7 @@ const parseParameters = ({
   strict,
   generate,
 }: {
-  data: (ParameterObject | ReferenceObject)[] | undefined;
+  data: (OpenApiParameterObject | OpenApiReferenceObject)[] | undefined;
   context: ContextSpec;
   operationName: string;
   isZodV4: boolean;
@@ -1128,7 +1130,10 @@ const parseParameters = ({
     >
   >(
     (acc, val) => {
-      const { schema: parameter } = resolveRef<ParameterObject>(val, context);
+      const { schema: parameter } = resolveRef<OpenApiParameterObject>(
+        val,
+        context,
+      );
 
       if (!parameter.schema) {
         return acc;
@@ -1283,7 +1288,7 @@ const generateZodRoute = async (
     context.output.override.zod.generateEachHttpStatus
       ? Object.entries(spec[verb]?.responses ?? {})
       : [['', spec[verb]?.responses[200]]]
-  ) as [string, ResponseObject | ReferenceObject][];
+  ) as [string, OpenApiResponseObject | OpenApiReferenceObject][];
   const parsedResponses = responses.map(([code, response]) =>
     parseBodyAndResponse({
       data: response,
