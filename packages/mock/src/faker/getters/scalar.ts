@@ -20,18 +20,7 @@ import {
 } from '../resolvers';
 import { getMockObject } from './object';
 
-export const getMockScalar = ({
-  item,
-  imports,
-  mockOptions,
-  operationId,
-  tags,
-  combine,
-  context,
-  existingReferencedProperties,
-  splitMockImplementations,
-  allowOverride = false,
-}: {
+interface GetMockScalarOptions {
   item: MockSchemaObject;
   imports: GeneratorImport[];
   mockOptions?: MockOptions;
@@ -49,7 +38,20 @@ export const getMockScalar = ({
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
-}): MockDefinition => {
+}
+
+export function getMockScalar({
+  item,
+  imports,
+  mockOptions,
+  operationId,
+  tags,
+  combine,
+  context,
+  existingReferencedProperties,
+  splitMockImplementations,
+  allowOverride = false,
+}: GetMockScalarOptions): MockDefinition {
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
     existingReferencedProperties = [...existingReferencedProperties, item.name];
@@ -103,6 +105,7 @@ export const getMockScalar = ({
     ...mockOptions?.format,
   };
 
+  const isNullable = Array.isArray(item.type) && item.type.includes('null');
   if (item.format && ALL_FORMAT[item.format]) {
     let value = ALL_FORMAT[item.format] as string;
 
@@ -112,7 +115,7 @@ export const getMockScalar = ({
     }
 
     return {
-      value: getNullable(value, item.nullable),
+      value: getNullable(value, isNullable),
       imports: [],
       name: item.name,
       overrided: false,
@@ -134,12 +137,12 @@ export const getMockScalar = ({
           : 'int';
       let value = getNullable(
         `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
-        item.nullable,
+        isNullable,
       );
       if (type === 'number') {
         value = getNullable(
           `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
-          item.nullable,
+          isNullable,
         );
       }
       const numberImports: GeneratorImport[] = [];
@@ -260,7 +263,7 @@ export const getMockScalar = ({
       }
 
       return {
-        value: getNullable(value, item.nullable),
+        value: getNullable(value, isNullable),
         enums: item.enum,
         name: item.name,
         imports: stringImports,
@@ -312,9 +315,17 @@ export const getMockScalar = ({
       });
     }
   }
-};
+}
 
 function getItemType(item: MockSchemaObject) {
+  if (Array.isArray(item.type) && item.type.includes('null')) {
+    const typesWithoutNull = item.type.filter((x) => x !== 'null');
+    const itemType =
+      typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
+
+    return itemType;
+  }
+
   if (item.type) return item.type;
   if (!item.enum) return;
 
@@ -326,13 +337,13 @@ function getItemType(item: MockSchemaObject) {
   return ['string', 'number'].includes(type) ? type : undefined;
 }
 
-const getEnum = (
+function getEnum(
   item: MockSchemaObject,
   imports: GeneratorImport[],
   context: ContextSpec,
   existingReferencedProperties: string[],
   type?: 'string' | 'number',
-) => {
+) {
   if (!item.enum) return '';
   const joinedEnumValues = item.enum
     .filter((e) => e !== null) // TODO fix type, e can absolutely be null
@@ -384,4 +395,4 @@ const getEnum = (
   return item.path?.endsWith('[]')
     ? `faker.helpers.arrayElements(${enumValue})`
     : `faker.helpers.arrayElement(${enumValue})`;
-};
+}
