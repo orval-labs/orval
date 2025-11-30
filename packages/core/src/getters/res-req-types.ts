@@ -165,8 +165,8 @@ export function getResReqTypes(
             });
 
             if (!resolvedValue) {
-              // openapi spec 3.1 allows describing responses with only a content type
-              if (contentType === 'application/octet-stream') {
+              // openapi spec 3.1 allows describing binary responses with only a content type
+              if (isBinaryContentType(contentType)) {
                 return {
                   value: 'Blob',
                   imports: [],
@@ -257,13 +257,52 @@ export function getResReqTypes(
   return uniqueBy(typesArray.flat(), uniqueKey);
 }
 
-const getFormDataAdditionalImports = ({
+function isBinaryContentType(contentType: string): boolean {
+  if (contentType === 'application/octet-stream') return true;
+
+  if (contentType.startsWith('image/')) return true;
+  if (contentType.startsWith('audio/')) return true;
+  if (contentType.startsWith('video/')) return true;
+  if (contentType.startsWith('font/')) return true;
+
+  // text-based suffixes (RFC 6838)
+  const textSuffixes = [
+    '+json',
+    '-json',
+    '+xml',
+    '-xml',
+    '+yaml',
+    '-yaml',
+    '+rss',
+    '-rss',
+    '+csv',
+    '-csv',
+  ];
+  if (textSuffixes.some((suffix) => contentType.includes(suffix))) {
+    return false;
+  }
+
+  // text-based whitelist - these as NOT binary
+  const textApplicationTypes = new Set([
+    'application/json',
+    'application/xml',
+    'application/yaml',
+    'application/x-www-form-urlencoded',
+    'application/javascript',
+    'application/ecmascript',
+    'application/graphql',
+  ]);
+
+  return !textApplicationTypes.has(contentType);
+}
+
+function getFormDataAdditionalImports({
   schemaObject,
   context,
 }: {
   schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
   context: ContextSpec;
-}): GeneratorImport[] => {
+}): GeneratorImport[] {
   const { schema } = resolveRef<OpenApiSchemaObject>(schemaObject, context);
 
   if (schema.type !== 'object') {
@@ -281,7 +320,7 @@ const getFormDataAdditionalImports = ({
       (schema) => resolveRef<OpenApiSchemaObject>(schema, context).imports[0],
     )
     .filter(Boolean);
-};
+}
 
 const getSchemaFormDataAndUrlEncoded = ({
   name,
