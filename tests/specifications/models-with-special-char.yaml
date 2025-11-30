@@ -90,7 +90,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/42Pet[sNestedArray'
+                $ref: '#/components/schemas/42PetsNestedArray'
         default:
           description: unexpected error
           content:
@@ -165,7 +165,7 @@ components:
         country:
           type: string
           enum: ["People's Republic of China", 'Uruguay']
-    42Pet[sNestedArray:
+    42PetsNestedArray:
       type: object
       required:
         - pets

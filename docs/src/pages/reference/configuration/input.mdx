@@ -21,53 +21,6 @@ export default defineConfig({
 });
 ```
 
-Using a secure URL target with authentication:
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      target: 'https://example.com/api-docs/v2/swagger.yaml',
-      parserOptions: {
-        resolve: {
-          http: {
-            headers: {
-              Authorization:
-                'Basic ' + Buffer.from('username:password').toString('base64'),
-            },
-          },
-        },
-      },
-    },
-  },
-});
-```
-
-## validation
-
-Type: `Boolean | Object`
-
-Default value: `false`.
-
-To enforce the quality of your OpenAPI specification, Orval supports validating specifications with the <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>.
-
-Specifying `true` will by default use the <a href="https://github.com/IBM/openapi-validator/blob/main/docs/ibm-cloud-rules.md"><em>IBM Cloud Validation Ruleset</em></a>.
-Specifying an `Object` will use the provided ruleset instead. Learn more about creating rulesets <a href="https://docs.stoplight.io/docs/spectral/aa15cdee143a1-java-script-ruleset-format">here</a>.
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      validation: true,
-    },
-  },
-});
-```
-
 ## override
 
 Type: `Object`.
@@ -192,31 +145,6 @@ export default defineConfig({
       converterOptions: {
         patch: true,
         indent: 2,
-      },
-    },
-  },
-});
-```
-
-## parserOptions
-
-Type: `Object`.
-
-Default Value: `{ resolve: { github: githubResolver, http: { safeUrlResolver: false } }, validate: true }`.
-
-Orval utilizes a parser to process multiple file specifications. This behavior can be customized using the `parserOptions` property. See the [available options](https://apidevtools.com/swagger-parser/options.html) for configuration.
-By default, Orval includes a GitHub parser, but you can add your own for private specifications or other specific needs.
-
-The specification is automatically validated by default.
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      parserOptions: {
-        resolve: { gitlab: gitlabResolver },
       },
     },
   },
