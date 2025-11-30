@@ -9,13 +9,12 @@ import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {
   const context: ContextSpec = {
-    specKey: 'testSpec',
     output: {
       override: {},
-    } as any,
+    },
     target: 'typescript',
-    specs: {},
-  } as any;
+    spec: {},
+  };
 
   it('should return an empty array if schemas are empty', () => {
     const result = generateSchemasDefinition({}, context, 'Suffix');
@@ -132,7 +131,6 @@ describe('generateSchemasDefinition', () => {
 
   it('should generate schemas with changed enum nameConvention', () => {
     const context: ContextSpec = {
-      specKey: 'testSpec',
       output: {
         override: {
           enumGenerationType: 'enum',

@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import type { OpenApiRequestBodyObject, OpenApiSchemaObject } from '../types';
+import type {
+  ContextSpec,
+  OpenApiRequestBodyObject,
+  OpenApiSchemaObject,
+} from '../types';
 import { getResReqTypes } from './res-req-types';
 
 // Simulates an OpenAPI schema with a readOnly property
@@ -14,20 +18,17 @@ const schemaWithReadOnly: OpenApiSchemaObject = {
   required: ['file'],
 };
 
-const context = {
+const context: ContextSpec = {
   output: {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
     },
   },
-  specKey: 'spec',
   target: 'spec',
   workspace: '',
-  specs: {
-    spec: {
-      components: { schemas: {} },
-    },
+  spec: {
+    components: { schemas: {} },
   },
 };
 
@@ -46,7 +47,7 @@ describe('getResReqTypes (formData, readOnly property)', () => {
         },
       ],
     ];
-    const types = getResReqTypes(reqBody, 'UploadBody', context as any);
+    const types = getResReqTypes(reqBody, 'UploadBody', context);
     // Get the generated code for formData
     expect(types[0]).toBeDefined();
     expect(typeof types[0].formData).toBe('string');

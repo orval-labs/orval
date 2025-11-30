@@ -1,4 +1,8 @@
-import type { ContextSpec, OpenApiSchemaObject } from '@orval/core';
+import type {
+  ContextSpec,
+  GeneratorOptions,
+  OpenApiSchemaObject,
+} from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -1936,44 +1940,57 @@ describe('generateZodValidationSchemaDefinition`', () => {
   });
 });
 
-const basicApiSchema = {
+const basicApiSchema: GeneratorOptions = {
   pathRoute: '/cats',
   context: {
-    specKey: 'cat',
-    specs: {
-      cat: {
-        paths: {
-          '/cats': {
-            post: {
-              operationId: 'xyz',
-              parameters: [
-                {
-                  name: 'id',
-                  required: true,
-                  in: 'path',
-                  schema: {
-                    type: 'string',
-                  },
-                },
-                {
-                  name: 'page',
-                  required: false,
-                  in: 'query',
-                  schema: {
-                    type: 'number',
-                  },
-                },
-                {
-                  name: 'x-header',
-                  in: 'header',
-                  required: true,
-                  schema: {
-                    type: 'string',
-                  },
-                },
-              ],
-              requestBody: {
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'xyz',
+            parameters: [
+              {
+                name: 'id',
                 required: true,
+                in: 'path',
+                schema: {
+                  type: 'string',
+                },
+              },
+              {
+                name: 'page',
+                required: false,
+                in: 'query',
+                schema: {
+                  type: 'number',
+                },
+              },
+              {
+                name: 'x-header',
+                in: 'header',
+                required: true,
+                schema: {
+                  type: 'string',
+                },
+              },
+            ],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      name: {
+                        type: 'string',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
                 content: {
                   'application/json': {
                     schema: {
@@ -1981,22 +1998,6 @@ const basicApiSchema = {
                       properties: {
                         name: {
                           type: 'string',
-                        },
-                      },
-                    },
-                  },
-                },
-              },
-              responses: {
-                '200': {
-                  content: {
-                    'application/json': {
-                      schema: {
-                        type: 'object',
-                        properties: {
-                          name: {
-                            type: 'string',
-                          },
                         },
                       },
                     },
@@ -2358,45 +2359,42 @@ describe('parsePrefixItemsArrayAsTupleZod', () => {
   });
 });
 
-const formDataSchema = {
+const formDataSchema: GeneratorOptions = {
   pathRoute: '/cats',
   context: {
-    specKey: 'cat',
-    specs: {
-      cat: {
-        paths: {
-          '/cats': {
-            post: {
-              operationId: 'xyz',
-              requestBody: {
-                required: true,
-                content: {
-                  'multipart/form-data': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        name: {
-                          type: 'string',
-                        },
-                        catImage: {
-                          type: 'string',
-                          format: 'binary',
-                        },
+    spec: {
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'multipart/form-data': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      name: {
+                        type: 'string',
+                      },
+                      catImage: {
+                        type: 'string',
+                        format: 'binary',
                       },
                     },
                   },
                 },
               },
-              responses: {
-                '200': {
-                  content: {
-                    'application/json': {
-                      schema: {
-                        type: 'object',
-                        properties: {
-                          name: {
-                            type: 'string',
-                          },
+            },
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: {
+                          type: 'string',
                         },
                       },
                     },
@@ -2460,42 +2458,39 @@ describe('generateFormData', () => {
   });
 });
 
-const schemaWithRefProperty = {
+const schemaWithRefProperty: GeneratorOptions = {
   pathRoute: '/cats',
   context: {
-    specKey: 'cat',
-    specs: {
-      cat: {
-        openapi: '3.0.0',
-        info: {
-          version: '1.0.0',
-          title: 'Cats',
-        },
-        paths: {
-          '/cats': {
-            post: {
-              operationId: 'xyz',
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        $ref: {
-                          type: 'string',
-                        },
+    spec: {
+      openapi: '3.0.0',
+      info: {
+        version: '1.0.0',
+        title: 'Cats',
+      },
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      $ref: {
+                        type: 'string',
                       },
-                      example: {
-                        $ref: 'hello',
-                      },
+                    },
+                    example: {
+                      $ref: 'hello',
                     },
                   },
                 },
               },
-              responses: {
-                '200': {},
-              },
+            },
+            responses: {
+              '200': {},
             },
           },
         },
@@ -2554,40 +2549,37 @@ describe('generateZodWithEdgeCases', () => {
   });
 });
 
-const schemaWithLiteralProperty = {
+const schemaWithLiteralProperty: GeneratorOptions = {
   pathRoute: '/cats',
   context: {
-    specKey: 'cat',
-    specs: {
-      cat: {
-        openapi: '3.0.0',
-        info: {
-          version: '1.0.0',
-          title: 'Cats',
-        },
-        paths: {
-          '/cats': {
-            post: {
-              operationId: 'xyz',
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        type: {
-                          type: 'string',
-                          const: 'WILD',
-                        },
+    spec: {
+      openapi: '3.0.0',
+      info: {
+        version: '1.0.0',
+        title: 'Cats',
+      },
+      paths: {
+        '/cats': {
+          post: {
+            operationId: 'xyz',
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      type: {
+                        type: 'string',
+                        const: 'WILD',
                       },
                     },
                   },
                 },
               },
-              responses: {
-                '200': {},
-              },
+            },
+            responses: {
+              '200': {},
             },
           },
         },
