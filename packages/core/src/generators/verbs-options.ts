@@ -1,11 +1,3 @@
-import type {
-  ComponentsObject,
-  OperationObject,
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-} from 'openapi3-ts/oas30';
-
 import {
   getBody,
   getOperationId,
@@ -23,6 +15,9 @@ import type {
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
+  OpenApiComponentsObject,
+  OpenApiOperationObject,
+  OpenApiPathItemObject,
   Verbs,
 } from '../types';
 import {
@@ -41,11 +36,11 @@ import { generateMutator } from './mutator';
 export interface GenerateVerbOptionsParams {
   verb: Verbs;
   output: NormalizedOutputOptions;
-  operation: OperationObject;
+  operation: OpenApiOperationObject;
   route: string;
   pathRoute: string;
-  verbParameters?: (ReferenceObject | ParameterObject)[];
-  components?: ComponentsObject;
+  verbParameters?: OpenApiPathItemObject['parameters'];
+  components?: OpenApiComponentsObject;
   context: ContextSpec;
 }
 
@@ -226,7 +221,7 @@ export async function generateVerbOptions({
 }
 
 export interface GenerateVerbsOptionsParams {
-  verbs: PathItemObject;
+  verbs: OpenApiPathItemObject;
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   route: string;
@@ -244,7 +239,7 @@ export function generateVerbsOptions({
 }: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
   return asyncReduce(
     _filteredVerbs(verbs, input.filters),
-    async (acc, [verb, operation]: [string, OperationObject]) => {
+    async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
           verb,
@@ -266,7 +261,7 @@ export function generateVerbsOptions({
 }
 
 export function _filteredVerbs(
-  verbs: PathItemObject,
+  verbs: OpenApiPathItemObject,
   filters: NormalizedInputOptions['filters'],
 ) {
   if (filters?.tags === undefined) {
@@ -277,7 +272,7 @@ export function _filteredVerbs(
   const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
-    ([, operation]: [string, OperationObject]) => {
+    ([, operation]: [string, OpenApiOperationObject]) => {
       const operationTags = operation.tags ?? [];
 
       const isMatch = operationTags.some((tag) =>

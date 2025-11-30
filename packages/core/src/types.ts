@@ -1234,8 +1234,13 @@ export type OpenApiReferenceObject = OpenAPIV3_1.ReferenceObject & {
   $ref?: string;
 };
 export type OpenApiComponentsObject = OpenAPIV3_1.ComponentsObject;
+export type OpenApiPathsObject = OpenAPIV3_1.PathsObject;
+export type OpenApiPathItemObject = OpenAPIV3_1.PathItemObject;
+export type OpenApiResponsesObject = OpenAPIV3_1.ResponsesObject;
 export type OpenApiResponseObject = OpenAPIV3_1.ResponseObject;
 export type OpenApiParameterObject = OpenAPIV3_1.ParameterObject;
 export type OpenApiRequestBodyObject = OpenAPIV3_1.RequestBodyObject;
 export type OpenApiInfoObject = OpenAPIV3_1.InfoObject;
 export type OpenApiExampleObject = OpenAPIV3_1.ExampleObject;
+export type OpenApiOperationObject = OpenAPIV3_1.OperationObject;
+export type OpenApiMediaTypeObject = OpenAPIV3_1.MediaTypeObject;

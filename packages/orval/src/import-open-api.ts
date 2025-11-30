@@ -49,7 +49,6 @@ export async function importOpenApi({
     input,
     output,
     context: {
-      // specKey: target,
       target,
       workspace,
       spec: transformedOpenApi,
@@ -59,7 +58,7 @@ export async function importOpenApi({
 
   return {
     ...api,
-    schemas,
+    schemas: [...schemas, ...api.schemas],
     target,
     // a valid spec will have info
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -88,47 +87,6 @@ async function applyTransformer(
   }
 
   return transformedOpenApi;
-}
-
-async function generateInputSpecs({
-  specs,
-  input,
-  workspace,
-}: {
-  specs: Record<string, OpenApiDocument>;
-  input: InputOptions;
-  workspace: string;
-}): Promise<Record<string, OpenApiDocument>> {
-  const transformerFn = input.override?.transformer
-    ? await dynamicImport(input.override.transformer, workspace)
-    : undefined;
-
-  return asyncReduce(
-    Object.entries(specs),
-    async (acc, [specKey, value]) => {
-      const schema = await openApiConverter(
-        value,
-        input.converterOptions,
-        specKey,
-      );
-
-      const transformedSchema = transformerFn ? transformerFn(schema) : schema;
-
-      if (input.validation) {
-        const { valid, errors } = await validate(transformedSchema);
-        if (!valid) {
-          throw new Error(`Validation failed for specKey: ${specKey}`, {
-            cause: errors,
-          });
-        }
-      }
-
-      acc[specKey] = transformedSchema;
-
-      return acc;
-    },
-    {} as Record<string, OpenApiDocument>,
-  );
 }
 
 interface GetApiSchemasOptions {
@@ -186,59 +144,4 @@ function getApiSchemas({
   ];
 
   return schemas;
-}
-
-function getAllSchemas(
-  spec: OpenApiDocument,
-  specKey?: string,
-): OpenApiSchemaObject {
-  const cleanedSpec = omit(spec, [
-    'openapi',
-    'info',
-    'servers',
-    'paths',
-    'components',
-    'security',
-    'tags',
-    'externalDocs',
-  ]);
-
-  if (specKey) {
-    const name = upath.getSchemaFileName(specKey);
-    return {
-      [name]: cleanedSpec,
-      ...getAllSchemas(
-        omit(cleanedSpec, [
-          'type',
-          'properties',
-          'allOf',
-          'oneOf',
-          'anyOf',
-          'items',
-        ]),
-      ),
-    };
-  }
-
-  const schemas = Object.entries(cleanedSpec).reduce<SchemasObject>(
-    (acc, [key, value]) => {
-      if (!isPlainObject(value)) {
-        return acc;
-      }
-
-      if (!isSchema(value) && !isReference(value)) {
-        return { ...acc, ...getAllSchemas(value) };
-      }
-
-      acc[key] = value;
-
-      return acc;
-    },
-    {},
-  );
-
-  return {
-    ...schemas,
-    ...(spec as OpenApiDocument)?.components?.schemas,
-  };
 }

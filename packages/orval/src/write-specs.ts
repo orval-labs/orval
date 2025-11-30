@@ -6,6 +6,7 @@ import {
   jsDoc,
   log,
   type NormalizedOptions,
+  type OpenApiInfoObject,
   OutputMode,
   upath,
   writeSchemas,
@@ -18,16 +19,15 @@ import {
 import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import type { InfoObject } from 'openapi3-ts/oas30';
 import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { executeHook } from './utils';
 
-const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
-): string => {
+function getHeader(
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
+): string {
   if (!option) {
     return '';
   }
@@ -35,7 +35,7 @@ const getHeader = (
   const header = option(info);
 
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
-};
+}
 
 export async function writeSpecs(
   builder: WriteSpecBuilder,
@@ -49,7 +49,7 @@ export async function writeSpecs(
   const basePath = upath.getSpecName(target, target);
   const specName = basePath.slice(1).split('/').join('-');
 
-  const header = getHeader(output.override.header, info as InfoObject);
+  const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
@@ -236,7 +236,7 @@ export async function writeSpecs(
   createSuccessMessage(projectTitle);
 }
 
-const getWriteMode = (mode: OutputMode) => {
+function getWriteMode(mode: OutputMode) {
   switch (mode) {
     case OutputMode.SPLIT: {
       return writeSplitMode;
@@ -252,4 +252,4 @@ const getWriteMode = (mode: OutputMode) => {
       return writeSingleMode;
     }
   }
-};
+}

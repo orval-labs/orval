@@ -1,15 +1,14 @@
-import type { ResponsesObject } from 'openapi3-ts/oas30';
-
 import type {
   ContextSpec,
   GetterResponse,
+  OpenApiResponsesObject,
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
 import { getResReqTypes } from './res-req-types';
 
 interface GetResponseOptions {
-  responses: ResponsesObject;
+  responses: OpenApiResponsesObject;
   operationName: string;
   context: ContextSpec;
   contentType?: OverrideOutputContentType;

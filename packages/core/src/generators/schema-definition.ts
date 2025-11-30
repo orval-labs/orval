@@ -61,22 +61,6 @@ export function generateSchemasDefinition(
     generateSchemaDefinitions(schemaName, schema, context, suffix),
   );
 
-  // const models = generateSchemas.reduce<GeneratorSchema[]>(
-  //   (acc, [name, schema]) => {
-  //     const schemaDefinitions = generateSchemaDefinitions(
-  //       name,
-  //       schema as OpenApiSchemaObject,
-  //       context,
-  //       suffix,
-  //     );
-
-  //     acc.push(...schemaDefinitions);
-
-  //     return acc;
-  //   },
-  //   [],
-  // );
-
   // Deduplicate schemas by normalized name to prevent duplicate exports
   // This handles cases where different source schemas produce the same normalized name
   const seenNames = new Set<string>();

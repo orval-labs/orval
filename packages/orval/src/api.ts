@@ -11,10 +11,10 @@ import {
   isReference,
   type NormalizedInputOptions,
   type NormalizedOutputOptions,
+  type OpenApiPathItemObject,
   resolveRef,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
-import type { PathItemObject } from 'openapi3-ts/oas30';
 
 import {
   generateClientFooter,
@@ -36,14 +36,17 @@ export async function getApiBuilder({
 }): Promise<GeneratorApiBuilder> {
   const api = await asyncReduce(
     Object.entries(context.spec.paths ?? {}),
-    async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
+    async (acc, [pathRoute, verbs]) => {
       const route = getRoute(pathRoute);
 
       let resolvedVerbs = verbs;
       let resolvedContext = context;
 
       if (isReference(verbs)) {
-        const { schema, imports } = resolveRef<PathItemObject>(verbs, context);
+        const { schema, imports } = resolveRef<OpenApiPathItemObject>(
+          verbs,
+          context,
+        );
 
         resolvedVerbs = schema;
 
