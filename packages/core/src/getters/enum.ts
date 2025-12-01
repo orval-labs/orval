@@ -50,14 +50,14 @@ const getTypeConstEnum = (
   descriptions?: string[],
   enumNamingConvention?: NamingConvention,
 ) => {
-  let enumValue = `export type ${enumName} = typeof ${enumName}[keyof typeof ${enumName}]`;
+  let enumValue = `export type ${enumName} = (typeof ${enumName}Consts)[keyof typeof ${enumName}Consts]`;
 
   if (value.endsWith(' | null')) {
     value = value.replace(' | null', '');
     enumValue += ' | null';
   }
 
-  enumValue += ';\n';
+  enumValue += ';\n\n';
 
   const implementation = getEnumImplementation(
     value,
@@ -66,11 +66,7 @@ const getTypeConstEnum = (
     enumNamingConvention,
   );
 
-  enumValue += '\n\n';
-
-  enumValue += '// eslint-disable-next-line @typescript-eslint/no-redeclare\n';
-
-  enumValue += `export const ${enumName} = {\n${implementation}} as const;\n`;
+  enumValue += `export const ${enumName}Consts = {\n${implementation}} as const;\n`;
 
   return enumValue;
 };

@@ -6,10 +6,9 @@
  */
 
 export type PetCallingCode =
-  (typeof PetCallingCode)[keyof typeof PetCallingCode];
+  (typeof PetCallingCodeConsts)[keyof typeof PetCallingCodeConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetCallingCode = {
+export const PetCallingCodeConsts = {
   '+33': '+33',
   '+420': '+420',
 } as const;

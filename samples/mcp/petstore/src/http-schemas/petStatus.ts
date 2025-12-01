@@ -16,10 +16,9 @@ Some useful links:
 /**
  * pet status in the store
  */
-export type PetStatus = (typeof PetStatus)[keyof typeof PetStatus];
+export type PetStatus = (typeof PetStatusConsts)[keyof typeof PetStatusConsts];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const PetStatus = {
+export const PetStatusConsts = {
   available: 'available',
   pending: 'pending',
   sold: 'sold',
