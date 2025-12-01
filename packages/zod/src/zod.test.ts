@@ -1436,9 +1436,9 @@ describe('generateZodValidationSchemaDefinition`', () => {
               consts: [],
             },
           ],
-          ['default', 'testEnumArrayDefaultDefault'],
+          ['default', '["A"]'],
         ],
-        consts: ['export const testEnumArrayDefaultDefault = ["A"] as const;'],
+        consts: [],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1449,10 +1449,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        "zod.array(zod.enum(['A', 'B', 'C'])).default(testEnumArrayDefaultDefault)",
-      );
-      expect(parsed.consts).toBe(
-        'export const testEnumArrayDefaultDefault = ["A"] as const;',
+        "zod.array(zod.enum(['A', 'B', 'C'])).default([\"A\"])",
       );
     });
 
@@ -1489,8 +1486,16 @@ describe('generateZodValidationSchemaDefinition`', () => {
       >;
       const someEnumProperty = objectProperties.some_enum;
 
-      expect(someEnumProperty.consts).toEqual(
-        expect.arrayContaining([expect.stringContaining('as const')]),
+      const parsed = parseZodValidationSchemaDefinition(
+        someEnumProperty,
+        context,
+        false,
+        false,
+        false,
+      );
+
+      expect(parsed.zod).toBe(
+        "zod.array(zod.enum(['A', 'B', 'C'])).default([\"A\"])",
       );
     });
   });

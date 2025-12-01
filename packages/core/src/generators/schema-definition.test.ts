@@ -159,4 +159,51 @@ describe('generateSchemasDefinition', () => {
     expect(result[0].model.includes('SnakeCase')).toBe(true);
     expect(result[0].model.includes('CamelCase')).toBe(true);
   });
+
+  it('should order spread enum dependencies before the enum that uses them', () => {
+    // Reproduces issue #1511: BlankEnum used before declaration
+    // Input order is alphabetical (Aaa... before Zzz...) but ZzzFirst must come before AaaCombined
+    const schemas: OpenApiSchemasObject = {
+      AaaCombined: {
+        allOf: [
+          { $ref: '#/components/schemas/ZzzFirst' },
+          { $ref: '#/components/schemas/ZzzSecond' },
+        ],
+      },
+      ZzzFirst: {
+        type: 'string',
+        enum: ['a'],
+      },
+      ZzzSecond: {
+        type: 'string',
+        enum: ['b'],
+      },
+    };
+
+    const specContext: ContextSpec = {
+      ...context,
+      output: {
+        override: { enumGenerationType: 'const' },
+      },
+      spec: {
+        components: { schemas },
+      },
+    };
+
+    const result = generateSchemasDefinition(schemas, specContext, '');
+
+    // Verify spread syntax is generated (the pattern that causes TS error if misordered)
+    const combinedSchema = result.find((s) => s.name === 'AaaCombined');
+    expect(combinedSchema?.model).toContain('...ZzzFirst');
+    expect(combinedSchema?.model).toContain('...ZzzSecond');
+
+    // Verify dependencies come before the schema that spreads them
+    const order = result.map((schema) => schema.name);
+    expect(order.indexOf('ZzzFirst')).toBeLessThan(
+      order.indexOf('AaaCombined'),
+    );
+    expect(order.indexOf('ZzzSecond')).toBeLessThan(
+      order.indexOf('AaaCombined'),
+    );
+  });
 });

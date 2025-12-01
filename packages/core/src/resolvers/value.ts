@@ -60,6 +60,7 @@ export function resolveValue({
       originalSchema: schemaObject,
       hasReadonlyProps,
       isRef: true,
+      dependencies: [resolvedImport.name],
     };
   }
 

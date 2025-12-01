@@ -27,6 +27,7 @@ type CombinedData = {
   isEnum: boolean[];
   types: string[];
   hasReadonlyProps: boolean;
+  dependencies: string[];
   /**
    * List of all properties in all subschemas
    * - used to add missing properties in subschemas to avoid TS error described in @see https://github.com/orval-labs/orval/issues/935
@@ -174,6 +175,7 @@ export function combineSchemas({
       acc.values.push(value);
       acc.imports.push(...aliasedImports);
       acc.schemas.push(...resolvedValue.schemas);
+      acc.dependencies.push(...resolvedValue.dependencies);
       acc.isEnum.push(resolvedValue.isEnum);
       acc.types.push(resolvedValue.type);
       acc.isRef.push(resolvedValue.isRef);
@@ -198,6 +200,7 @@ export function combineSchemas({
       isEnum: [], // check if only enums
       isRef: [],
       types: [],
+      dependencies: [],
       originalSchema: [],
       allProperties: [],
       hasReadonlyProps: false,
@@ -238,6 +241,7 @@ export function combineSchemas({
       type: 'object' as SchemaType,
       isRef: false,
       hasReadonlyProps: resolvedData.hasReadonlyProps,
+      dependencies: resolvedData.dependencies,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
     };
@@ -270,6 +274,9 @@ export function combineSchemas({
     schemas: resolvedValue
       ? [...resolvedData.schemas, ...resolvedValue.schemas]
       : resolvedData.schemas,
+    dependencies: resolvedValue
+      ? [...resolvedData.dependencies, ...resolvedValue.dependencies]
+      : resolvedData.dependencies,
     isEnum: false,
     type: 'object' as SchemaType,
     isRef: false,

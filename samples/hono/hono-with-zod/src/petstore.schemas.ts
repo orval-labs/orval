@@ -21,43 +21,6 @@ export const PetCountry = {
   Uruguay: 'Uruguay',
 } as const;
 
-export type Pet =
-  | (Dog & {
-      '@id'?: string;
-      id: number;
-      name: string;
-      tag?: string;
-      email?: string;
-      callingCode?: PetCallingCode;
-      country?: PetCountry;
-    })
-  | (Cat & {
-      '@id'?: string;
-      id: number;
-      name: string;
-      tag?: string;
-      email?: string;
-      callingCode?: PetCallingCode;
-      country?: PetCountry;
-    });
-
-export type DogType = (typeof DogType)[keyof typeof DogType];
-
-// eslint-disable-next-line @typescript-eslint/no-redeclare
-export const DogType = {
-  dog: 'dog',
-} as const;
-
-export type Dog =
-  | (Labradoodle & {
-      barksPerMinute?: number;
-      type: DogType;
-    })
-  | (Dachshund & {
-      barksPerMinute?: number;
-      type: DogType;
-    });
-
 export type LabradoodleBreed =
   (typeof LabradoodleBreed)[keyof typeof LabradoodleBreed];
 
@@ -84,6 +47,23 @@ export interface Dachshund {
   breed: DachshundBreed;
 }
 
+export type DogType = (typeof DogType)[keyof typeof DogType];
+
+// eslint-disable-next-line @typescript-eslint/no-redeclare
+export const DogType = {
+  dog: 'dog',
+} as const;
+
+export type Dog =
+  | (Labradoodle & {
+      barksPerMinute?: number;
+      type: DogType;
+    })
+  | (Dachshund & {
+      barksPerMinute?: number;
+      type: DogType;
+    });
+
 export type CatType = (typeof CatType)[keyof typeof CatType];
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare
@@ -95,6 +75,26 @@ export interface Cat {
   readonly petsRequested?: number;
   type: CatType;
 }
+
+export type Pet =
+  | (Dog & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    })
+  | (Cat & {
+      '@id'?: string;
+      id: number;
+      name: string;
+      tag?: string;
+      email?: string;
+      callingCode?: PetCallingCode;
+      country?: PetCountry;
+    });
 
 export type Pets = Pet[];
 

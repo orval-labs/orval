@@ -75,7 +75,76 @@ export function generateSchemasDefinition(
     }
   }
 
-  return deduplicatedModels;
+  return sortSchemasByDependencies(deduplicatedModels);
+}
+
+function sortSchemasByDependencies(
+  schemas: GeneratorSchema[],
+): GeneratorSchema[] {
+  if (schemas.length === 0) {
+    return schemas;
+  }
+
+  const schemaNames = new Set(schemas.map((schema) => schema.name));
+  const dependencyMap = new Map<string, Set<string>>();
+
+  for (const schema of schemas) {
+    const dependencies = new Set<string>();
+
+    if (schema.dependencies)
+      for (const dependencyName of schema.dependencies) {
+        if (dependencyName && schemaNames.has(dependencyName)) {
+          dependencies.add(dependencyName);
+        }
+      }
+
+    for (const imp of schema.imports) {
+      const dependencyName = imp.alias || imp.name;
+      if (dependencyName && schemaNames.has(dependencyName)) {
+        dependencies.add(dependencyName);
+      }
+    }
+
+    dependencyMap.set(schema.name, dependencies);
+  }
+
+  const sorted: GeneratorSchema[] = [];
+  const temporary = new Set<string>();
+  const permanent = new Set<string>();
+  const schemaMap = new Map(schemas.map((schema) => [schema.name, schema]));
+
+  const visit = (name: string) => {
+    if (permanent.has(name)) {
+      return;
+    }
+
+    if (temporary.has(name)) {
+      // Circular dependency detected; retain current DFS order for this cycle
+      return;
+    }
+
+    temporary.add(name);
+
+    const dependencies = dependencyMap.get(name);
+    if (dependencies)
+      for (const dep of dependencies) {
+        if (dep !== name) {
+          visit(dep);
+        }
+      }
+
+    temporary.delete(name);
+    permanent.add(name);
+
+    const schema = schemaMap.get(name);
+    if (schema) {
+      sorted.push(schema);
+    }
+  };
+
+  for (const schema of schemas) visit(schema.name);
+
+  return sorted;
 }
 
 function shouldCreateInterface(schema: OpenApiSchemaObject) {
@@ -143,7 +212,7 @@ function generateSchemaDefinitions(
       getEnumNames(resolvedValue.originalSchema),
       context.output.override.enumGenerationType,
       getEnumDescriptions(resolvedValue.originalSchema),
-      context.output.override.namingConvention.enum,
+      context.output.override.namingConvention?.enum,
     );
   } else if (
     sanitizedSchemaName === resolvedValue.value &&
@@ -168,6 +237,7 @@ function generateSchemaDefinitions(
         imports = imports.map((imp) =>
           imp.name === sanitizedSchemaName ? { ...imp, alias } : imp,
         );
+        resolvedValue.dependencies = [imp.name];
       } else {
         output += `export type ${sanitizedSchemaName} = ${resolvedValue.value};\n`;
       }
@@ -180,6 +250,7 @@ function generateSchemaDefinitions(
 
       output += `${schema.model}\n`;
       imports = imports.concat(schema.imports);
+      resolvedValue.dependencies.push(...(schema.dependencies ?? []));
 
       return false;
     });
@@ -192,6 +263,7 @@ function generateSchemaDefinitions(
       name: sanitizedSchemaName,
       model: output,
       imports,
+      dependencies: resolvedValue.dependencies,
     },
   ];
 }

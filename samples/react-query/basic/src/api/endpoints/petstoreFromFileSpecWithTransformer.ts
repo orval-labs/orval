@@ -17,6 +17,7 @@ import type {
   DefinedUseInfiniteQueryResult,
   DefinedUseQueryResult,
   InfiniteData,
+  InvalidateOptions,
   MutationFunction,
   QueryClient,
   QueryFunction,
@@ -279,6 +280,23 @@ export function useListPetsInfinite<
   return query;
 }
 
+/**
+ * @summary List all pets
+ */
+export const invalidateListPetsInfinite = async (
+  queryClient: QueryClient,
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getListPetsInfiniteQueryKey(params, version) },
+    options,
+  );
+
+  return queryClient;
+};
+
 export const getListPetsQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,
   TError = ErrorType<Error>,
@@ -406,6 +424,23 @@ export function useListPets<
 
   return query;
 }
+
+/**
+ * @summary List all pets
+ */
+export const invalidateListPets = async (
+  queryClient: QueryClient,
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getListPetsQueryKey(params, version) },
+    options,
+  );
+
+  return queryClient;
+};
 
 export const getListPetsSuspenseQueryOptions = <
   TData = Awaited<ReturnType<typeof listPets>>,

@@ -743,6 +743,7 @@ export type GeneratorSchema = {
   name: string;
   model: string;
   imports: GeneratorImport[];
+  dependencies?: string[];
 };
 
 export type GeneratorImport = {
@@ -1070,6 +1071,7 @@ export type ScalarValue = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   isRef: boolean;
+  dependencies: string[];
   example?: any;
   examples?: Record<string, any>;
 };
