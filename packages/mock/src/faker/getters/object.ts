@@ -151,8 +151,14 @@ export const getMockObject = ({
         includedProperties.push(key);
 
         const keyDefinition = getKey(key);
+
         if (!isRequired && !resolvedValue.overrided) {
           return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
+        }
+
+        const isNullable = 'nullable' in prop && prop.nullable;
+        if (isNullable && !resolvedValue.overrided) {
+          return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, null])`;
         }
 
         return `${keyDefinition}: ${resolvedValue.value}`;
