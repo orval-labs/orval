@@ -1478,6 +1478,18 @@ ${
           ? `"${operationName}"`
           : routeString;
 
+        // Use all params in query key when useOperationIdAsQueryKey=true, otherwise use only query param
+        // All params sorted by required first
+        const queryKeyParams = props
+          .filter((p) =>
+            override.query.useOperationIdAsQueryKey
+              ? true
+              : p.type === GetterPropType.QUERY_PARAM,
+          )
+          .toSorted((a) => (a.required ? -1 : 1))
+          .map((p) => `...(${p.name} ? [${p.name}] : [])`)
+          .join(', ');
+
         // Note: do not unref() params in Vue - this will make key lose reactivity
         const queryKeyFn = `
 ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
@@ -1488,7 +1500,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
         ? `'infinite'`
         : '',
       queryKeyIdentifier,
-      queryParams ? '...(params ? [params]: [])' : '',
+      queryKeyParams,
       body.implementation,
     ]
       .filter((x) => !!x)
