@@ -234,6 +234,13 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
   const ignoreContentTypes = ['multipart/form-data'];
+  const overrideHeaders =
+    isObject(override.requestOptions) && override.requestOptions.headers
+      ? Object.entries(override.requestOptions.headers).map(
+          ([key, value]) => `'${key}': \`${value}\``,
+        )
+      : [];
+
   const headersToAdd: string[] = [
     ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
       ? [`'Content-Type': '${body.contentType}'`]
@@ -247,6 +254,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
           }`,
         ]
       : []),
+    ...overrideHeaders,
     ...(headers ? ['...headers'] : []),
   ];
 
@@ -260,10 +268,6 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       // Remove the headers from the object going into globalFetchOptions
       delete globalFetchOptionsObject.headers;
       // Add it to the dedicated headers object
-      const stringifiedHeaders = stringify(override.requestOptions.headers);
-      if (stringifiedHeaders) {
-        headersToAdd.unshift('...' + stringifiedHeaders);
-      }
     }
     globalFetchOptions = stringify(globalFetchOptionsObject)
       ?.slice(1, -1)
