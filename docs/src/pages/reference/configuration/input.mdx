@@ -125,28 +125,3 @@ export default defineConfig({
   },
 });
 ```
-
-## converterOptions
-
-Type: `Object`.
-
-Default Value: `{}`.
-
-Orval converts Swagger 2.0 definitions into OpenAPI 3.0.x using [swagger2openapi](https://github.com/Mermade/oas-kit/tree/main/packages/swagger2openapi). Use the `converterOptions` property to provide custom config for that. See the available options [here](https://github.com/orval-labs/orval/blob/next/src/types/swagger2openapi.d.ts#L10).
-
-Example:
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      converterOptions: {
-        patch: true,
-        indent: 2,
-      },
-    },
-  },
-});
-```
