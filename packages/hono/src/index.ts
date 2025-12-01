@@ -197,8 +197,8 @@ const getHonoHandlers = (
       }
       if (
         validator !== 'hono' &&
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         verbOption.response.originalSchema?.['200']?.content?.[
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           'application/json'
         ]
       ) {
