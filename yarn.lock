@@ -5205,6 +5205,7 @@ __metadata:
   resolution: "@orval/fetch@workspace:packages/fetch"
   dependencies:
     "@orval/core": "workspace:*"
+    "@scalar/openapi-types": "catalog:"
     eslint: "catalog:"
     rimraf: "catalog:"
     tsdown: "catalog:"

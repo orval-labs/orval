@@ -11,13 +11,13 @@ import {
   GetterPropType,
   isObject,
   type OpenApiParameterObject,
-  type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   pascal,
   resolveRef,
   stringify,
   toObjectString,
 } from '@orval/core';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 export const generateRequestFunction = (
   {
@@ -52,9 +52,7 @@ export const generateRequestFunction = (
   );
 
   const spec = context.spec.paths?.[pathRoute];
-  const parameters =
-    spec?.[verb]?.parameters ??
-    ([] as (OpenApiParameterObject | OpenApiReferenceObject)[]);
+  const parameters = spec?.[verb]?.parameters ?? [];
 
   const explodeParameters = parameters.filter((parameter) => {
     const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
@@ -73,11 +71,7 @@ export const generateRequestFunction = (
   const hasDateParams =
     context.output.override.useDates &&
     parameters.some(
-      (p) =>
-        'schema' in p &&
-        p.schema &&
-        'format' in p.schema &&
-        p.schema.format === 'date-time',
+      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
     );
 
   const explodeArrayImplementation =
