@@ -273,6 +273,9 @@ export const normalizeOptions = async (
         hono: normalizeHonoOptions(outputOptions.override?.hono, workspace),
         jsDoc: normalizeJSDocOptions(outputOptions.override?.jsDoc),
         query: globalQueryOptions,
+        mcp: {
+          transport: outputOptions.override?.mcp?.transport ?? 'stdio',
+        },
         zod: {
           strict: {
             param: outputOptions.override?.zod?.strict?.param ?? false,
