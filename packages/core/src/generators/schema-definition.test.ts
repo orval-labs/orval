@@ -200,7 +200,11 @@ describe('generateSchemasDefinition', () => {
 
     // Verify dependencies come before the schema that spreads them
     const order = result.map((schema) => schema.name);
-    expect(order.indexOf('ZzzFirst')).toBeLessThan(order.indexOf('AaaCombined'));
-    expect(order.indexOf('ZzzSecond')).toBeLessThan(order.indexOf('AaaCombined'));
+    expect(order.indexOf('ZzzFirst')).toBeLessThan(
+      order.indexOf('AaaCombined'),
+    );
+    expect(order.indexOf('ZzzSecond')).toBeLessThan(
+      order.indexOf('AaaCombined'),
+    );
   });
 });

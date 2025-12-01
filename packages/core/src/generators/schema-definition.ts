@@ -168,7 +168,9 @@ export const generateSchemasDefinition = (
   return sortSchemasByDependencies(deduplicatedModels);
 };
 
-const sortSchemasByDependencies = (schemas: GeneratorSchema[]): GeneratorSchema[] => {
+const sortSchemasByDependencies = (
+  schemas: GeneratorSchema[],
+): GeneratorSchema[] => {
   if (schemas.length === 0) {
     return schemas;
   }
