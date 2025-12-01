@@ -74,6 +74,7 @@ export const generateInterface = ({
       name,
       model,
       imports: externalModulesImportsOnly,
+      dependencies: scalar.dependencies,
     },
   ];
 };

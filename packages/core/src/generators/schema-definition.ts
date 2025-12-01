@@ -117,6 +117,7 @@ export const generateSchemasDefinition = (
               imports = imports.map((imp) =>
                 imp.name === schemaName ? { ...imp, alias } : imp,
               );
+              resolvedValue.dependencies = [imp.name];
             } else {
               output += `export type ${schemaName} = ${resolvedValue.value};\n`;
             }
@@ -129,6 +130,7 @@ export const generateSchemasDefinition = (
 
             output += `${schema.model}\n`;
             imports = imports.concat(schema.imports);
+            resolvedValue.dependencies.push(...(schema.dependencies ?? []));
 
             return false;
           });
@@ -139,6 +141,7 @@ export const generateSchemasDefinition = (
           name: schemaName,
           model: output,
           imports,
+          dependencies: resolvedValue.dependencies,
         });
 
         return acc;
@@ -162,7 +165,74 @@ export const generateSchemasDefinition = (
     }
   }
 
-  return deduplicatedModels;
+  return sortSchemasByDependencies(deduplicatedModels);
+};
+
+const sortSchemasByDependencies = (
+  schemas: GeneratorSchema[],
+): GeneratorSchema[] => {
+  if (schemas.length === 0) {
+    return schemas;
+  }
+
+  const schemaNames = new Set(schemas.map((schema) => schema.name));
+  const dependencyMap = new Map<string, Set<string>>();
+
+  schemas.forEach((schema) => {
+    const dependencies = new Set<string>();
+
+    schema.dependencies?.forEach((dependencyName) => {
+      if (dependencyName && schemaNames.has(dependencyName)) {
+        dependencies.add(dependencyName);
+      }
+    });
+
+    schema.imports.forEach((imp) => {
+      const dependencyName = imp.alias || imp.name;
+      if (dependencyName && schemaNames.has(dependencyName)) {
+        dependencies.add(dependencyName);
+      }
+    });
+
+    dependencyMap.set(schema.name, dependencies);
+  });
+
+  const sorted: GeneratorSchema[] = [];
+  const temporary = new Set<string>();
+  const permanent = new Set<string>();
+  const schemaMap = new Map(schemas.map((schema) => [schema.name, schema]));
+
+  const visit = (name: string) => {
+    if (permanent.has(name)) {
+      return;
+    }
+
+    if (temporary.has(name)) {
+      // Circular dependency detected; retain current DFS order for this cycle
+      return;
+    }
+
+    temporary.add(name);
+
+    const dependencies = dependencyMap.get(name);
+    dependencies?.forEach((dep) => {
+      if (dep !== name) {
+        visit(dep);
+      }
+    });
+
+    temporary.delete(name);
+    permanent.add(name);
+
+    const schema = schemaMap.get(name);
+    if (schema) {
+      sorted.push(schema);
+    }
+  };
+
+  schemas.forEach((schema) => visit(schema.name));
+
+  return sorted;
 };
 
 function shouldCreateInterface(schema: SchemaObject) {

@@ -60,6 +60,7 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
@@ -81,6 +82,7 @@ export const getScalar = ({
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
@@ -95,6 +97,7 @@ export const getScalar = ({
       return {
         value: value + nullable,
         ...rest,
+        dependencies: rest.dependencies ?? [],
       };
     }
 
@@ -137,6 +140,7 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
@@ -151,6 +155,7 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
       };
     }
 
@@ -187,6 +192,7 @@ export const getScalar = ({
           schemas: [],
           isRef: false,
           hasReadonlyProps: item.readOnly || false,
+          dependencies: [],
           example: item.example,
           examples: resolveExampleRefs(item.examples, context),
         };

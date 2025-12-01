@@ -43,6 +43,7 @@ export const generateParameterDefinition = (
           model: `export type ${modelName} = ${
             imports.length > 0 ? imports[0].name : 'unknown'
           };\n`,
+          dependencies: imports.length > 0 ? [imports[0].name] : [],
         });
 
         return acc;
@@ -67,6 +68,7 @@ export const generateParameterDefinition = (
           name: modelName,
           model,
           imports: resolvedObject.imports,
+          dependencies: resolvedObject.dependencies,
         });
       }
 
