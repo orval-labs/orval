@@ -239,7 +239,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
       ? Object.entries(override.requestOptions.headers).map(
           ([key, value]) => `'${key}': \`${value}\``,
         )
-      : '';
+      : [];
 
   const headersToAdd: string[] = [
     ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
