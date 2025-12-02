@@ -74,9 +74,9 @@ export const generateRequestFunction = (
 
     return schema.name;
   });
-  const hasDateParams =
+  const hasExplodedDateParams =
     context.output.override.useDates &&
-    parameters.some(
+    explodeParameters.some(
       (p) =>
         'schema' in p &&
         p.schema &&
@@ -90,7 +90,7 @@ export const generateRequestFunction = (
 
     if (Array.isArray(value) && explodeParameters.includes(key)) {
       value.forEach((v) => {
-        normalizedParams.append(key, v === null ? 'null' : ${hasDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString());
+        normalizedParams.append(key, v === null ? 'null' : ${hasExplodedDateParams ? 'v instanceof Date ? v.toISOString() : ' : ''}v.toString());
       });
       return;
     }
@@ -100,7 +100,17 @@ export const generateRequestFunction = (
   const isExplodeParametersOnly =
     explodeParameters.length === parameters.length;
 
-  const nomalParamsImplementation = `if (value !== undefined) {
+  const hasDateParams =
+    context.output.override.useDates &&
+    parameters.some(
+      (p) =>
+        'schema' in p &&
+        p.schema &&
+        'format' in p.schema &&
+        p.schema.format === 'date-time',
+    );
+
+  const normalParamsImplementation = `if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : ${hasDateParams ? 'value instanceof Date ? value.toISOString() : ' : ''}value.toString())
     }`;
 
@@ -111,7 +121,7 @@ ${
 
   Object.entries(params || {}).forEach(([key, value]) => {
     ${explodeArrayImplementation}
-    ${isExplodeParametersOnly ? '' : nomalParamsImplementation}
+    ${isExplodeParametersOnly ? '' : normalParamsImplementation}
   });`
     : ''
 }
