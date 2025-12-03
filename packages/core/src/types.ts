@@ -103,6 +103,7 @@ export type NormalizedOverrideOutput = {
   angular: Required<AngularOptions>;
   swr: SwrOptions;
   zod: NormalizedZodOptions;
+  mcp: NormalizedMcpOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
     operation: OperationObject,
@@ -440,6 +441,7 @@ export type OverrideOutput = {
   query?: QueryOptions;
   swr?: SwrOptions;
   angular?: AngularOptions;
+  mcp?: McpOptions;
   zod?: ZodOptions;
   operationName?: (
     operation: OperationObject,
@@ -476,6 +478,10 @@ export type NormalizedHonoOptions = {
   compositeRoute: string;
   validator: boolean | 'hono';
   validatorOutputPath: string;
+};
+
+export type McpOptions = {
+  transport?: 'stdio' | 'http';
 };
 
 export type ZodDateTimeOptions = {
@@ -556,6 +562,10 @@ export type NormalizedZodOptions = {
   generateEachHttpStatus: boolean;
   dateTimeOptions: ZodDateTimeOptions;
   timeOptions: ZodTimeOptions;
+};
+
+export type NormalizedMcpOptions = {
+  transport: 'stdio' | 'http';
 };
 
 export type HonoOptions = {
