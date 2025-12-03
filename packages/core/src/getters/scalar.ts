@@ -57,13 +57,15 @@ export function getScalar({
         isEnum = true;
       }
 
+      value += nullable;
+
       const itemWithConst = item;
       if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
 
       return {
-        value: value + nullable,
+        value,
         isEnum,
         type: 'number',
         schemas: [],
@@ -77,7 +79,7 @@ export function getScalar({
     }
 
     case 'boolean': {
-      let value = 'boolean';
+      let value = 'boolean' + nullable;
 
       const itemWithConst = item;
       if (itemWithConst.const !== undefined) {
@@ -85,7 +87,7 @@ export function getScalar({
       }
 
       return {
-        value: value + nullable,
+        value: value,
         type: 'boolean',
         isEnum: false,
         schemas: [],
@@ -137,13 +139,15 @@ export function getScalar({
         value = 'Date';
       }
 
+      value += nullable;
+
       const itemWithConst = item;
       if (itemWithConst.const) {
         value = `'${itemWithConst.const}'`;
       }
 
       return {
-        value: value + nullable,
+        value: value,
         isEnum,
         type: 'string',
         imports: [],

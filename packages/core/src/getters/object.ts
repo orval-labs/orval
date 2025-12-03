@@ -255,7 +255,7 @@ export function getObject({
   const itemWithConst = item;
   if (itemWithConst.const) {
     return {
-      value: `'${itemWithConst.const}'` + nullable,
+      value: `'${itemWithConst.const}'`,
       imports: [],
       schemas: [],
       isEnum: false,
