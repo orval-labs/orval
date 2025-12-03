@@ -18,18 +18,7 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
-export const getMockObject = ({
-  item,
-  mockOptions,
-  operationId,
-  tags,
-  combine,
-  context,
-  imports,
-  existingReferencedProperties,
-  splitMockImplementations,
-  allowOverride = false,
-}: {
+interface GetMockObjectOptions {
   item: MockSchemaObject;
   operationId: string;
   mockOptions?: MockOptions;
@@ -46,7 +35,20 @@ export const getMockObject = ({
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
-}): MockDefinition => {
+}
+
+export function getMockObject({
+  item,
+  mockOptions,
+  operationId,
+  tags,
+  combine,
+  context,
+  imports,
+  existingReferencedProperties,
+  splitMockImplementations,
+  allowOverride = false,
+}: GetMockObjectOptions): MockDefinition {
   if (isReference(item)) {
     return resolveMockValue({
       schema: {
@@ -112,7 +114,7 @@ export const getMockObject = ({
         return a[0].localeCompare(b[0]);
       });
     }
-    const properyScalars = entries
+    const propertyScalars = entries
       .map(
         ([key, prop]: [
           string,
@@ -173,10 +175,10 @@ export const getMockObject = ({
       .filter(Boolean);
 
     if (allowOverride) {
-      properyScalars.push(`...${overrideVarName}`);
+      propertyScalars.push(`...${overrideVarName}`);
     }
 
-    value += properyScalars.join(', ');
+    value += propertyScalars.join(', ');
     value +=
       !combine || combine.separator === 'oneOf' || combine.separator === 'anyOf'
         ? '}'
@@ -227,4 +229,4 @@ export const getMockObject = ({
   }
 
   return { value: '{}', imports: [], name: item.name };
-};
+}

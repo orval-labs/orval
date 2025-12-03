@@ -44,7 +44,10 @@ export function resolveValue({
       hasReadonlyProps = scalar.hasReadonlyProps;
     }
 
-    const nullable = schemaObject.nullable ? ' | null' : '';
+    const nullable =
+      Array.isArray(schemaObject.type) && schemaObject.type.includes('null')
+        ? ' | null'
+        : '';
 
     return {
       value: resolvedImport.name + nullable,

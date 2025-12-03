@@ -112,6 +112,7 @@ export function resolveObject({
     schema,
     propName,
     combined,
+    projectName: context.projectName ?? context.output.target,
   });
 
   if (resolveObjectCacheMap.has(hashKey)) {

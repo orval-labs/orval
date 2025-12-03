@@ -21,6 +21,7 @@ export async function importOpenApi({
   output,
   target,
   workspace,
+  projectName,
 }: ImportOpenApi): Promise<WriteSpecBuilder> {
   const transformedOpenApi = await applyTransformer(
     spec,
@@ -40,11 +41,12 @@ export async function importOpenApi({
     input,
     output,
     context: {
+      projectName,
       target,
       workspace,
       spec: transformedOpenApi,
       output,
-    },
+    } satisfies ContextSpec,
   });
 
   return {

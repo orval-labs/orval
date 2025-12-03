@@ -682,10 +682,11 @@ export type ImportOpenApi = {
   output: NormalizedOutputOptions;
   target: string;
   workspace: string;
+  projectName?: string;
 };
 
 export interface ContextSpec {
-  // specKey: string;
+  projectName?: string;
   target: string;
   workspace: string;
   spec: OpenApiDocument;

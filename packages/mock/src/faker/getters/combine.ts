@@ -10,18 +10,7 @@ import {
 import type { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
-export const combineSchemasMock = ({
-  item,
-  separator,
-  mockOptions,
-  operationId,
-  tags,
-  combine,
-  context,
-  imports,
-  existingReferencedProperties,
-  splitMockImplementations,
-}: {
+interface CombineSchemasMockOptions {
   item: MockSchemaObject;
   separator: 'allOf' | 'oneOf' | 'anyOf';
   operationId: string;
@@ -37,7 +26,20 @@ export const combineSchemasMock = ({
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
   splitMockImplementations: string[];
-}): MockDefinition => {
+}
+
+export function combineSchemasMock({
+  item,
+  separator,
+  mockOptions,
+  operationId,
+  tags,
+  combine,
+  context,
+  imports,
+  existingReferencedProperties,
+  splitMockImplementations,
+}: CombineSchemasMockOptions): MockDefinition {
   const combineImports: GeneratorImport[] = [];
   const includedProperties: string[] = [...(combine?.includedProperties ?? [])];
 
@@ -140,6 +142,7 @@ export const combineSchemasMock = ({
     value === 'undefined'
       ? value
       : // containsOnlyPrimitiveValues isn't just true, it's being set to false inside the above reduce and the type system doesn't detect it
+
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
@@ -157,4 +160,4 @@ export const combineSchemasMock = ({
     name: item.name,
     includedProperties,
   };
-};
+}

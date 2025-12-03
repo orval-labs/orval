@@ -35,6 +35,7 @@ async function resolveSpec(
 export async function importSpecs(
   workspace: string,
   options: NormalizedOptions,
+  projectName?: string,
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
@@ -46,5 +47,6 @@ export async function importSpecs(
     output,
     target: input.target,
     workspace,
+    projectName,
   });
 }
