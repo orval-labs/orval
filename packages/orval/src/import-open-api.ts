@@ -1,7 +1,10 @@
 import {
+  _filteredPaths,
+  _filteredVerbs,
   asyncReduce,
   type ContextSpecs,
   dynamicImport,
+  filterSchemasByDependencies,
   generateComponentDefinition,
   generateParameterDefinition,
   generateSchemasDefinition,
@@ -15,10 +18,15 @@ import {
   type NormalizedOutputOptions,
   openApiConverter,
   upath,
+  validatePathFilters,
   type WriteSpecsBuilder,
 } from '@orval/core';
 import type { JSONSchema6, JSONSchema7 } from 'json-schema';
-import type { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
+import type {
+  OpenAPIObject,
+  OperationObject,
+  SchemasObject,
+} from 'openapi3-ts/oas30';
 
 import { getApiBuilder } from './api';
 
@@ -31,7 +39,24 @@ export const importOpenApi = async ({
 }: ImportOpenApi): Promise<WriteSpecsBuilder> => {
   const specs = await generateInputSpecs({ specs: data, input, workspace });
 
-  const schemas = getApiSchemas({ input, output, target, workspace, specs });
+  // Get filtered operations for schema dependency analysis
+  // Enable dependency analysis automatically when path filters are used
+  const hasPathFilters = input.filters?.paths && input.filters.paths.length > 0;
+  const shouldAnalyzeDependencies =
+    input.filters?.schemaDependencyAnalysis ?? hasPathFilters;
+
+  const filteredOperations = shouldAnalyzeDependencies
+    ? getFilteredOperations(specs[target], input.filters)
+    : undefined;
+
+  const schemas = getApiSchemas({
+    input,
+    output,
+    target,
+    workspace,
+    specs,
+    filteredOperations,
+  });
 
   const api = await getApiBuilder({
     input,
@@ -98,12 +123,14 @@ const getApiSchemas = ({
   target,
   workspace,
   specs,
+  filteredOperations,
 }: {
   input: InputOptions;
   output: NormalizedOutputOptions;
   workspace: string;
   target: string;
   specs: Record<string, OpenAPIObject>;
+  filteredOperations?: { operation: any; path: string; method: string }[];
 }) => {
   return Object.entries(specs).reduce<Record<string, GeneratorSchema[]>>(
     (acc, [specKey, spec]) => {
@@ -115,9 +142,25 @@ const getApiSchemas = ({
         output,
       };
 
-      const parsedSchemas = spec.openapi
+      let parsedSchemas = spec.openapi
         ? (spec.components?.schemas as SchemasObject)
         : getAllSchemas(spec, specKey);
+
+      // Apply schema dependency analysis if enabled and we have filtered operations
+      if (filteredOperations && filteredOperations.length > 0) {
+        const specFilteredOperations = filteredOperations.filter(
+          (op) => op.path.startsWith(specKey) || specKey === target,
+        );
+
+        if (specFilteredOperations.length > 0) {
+          const dependencySchemas = filterSchemasByDependencies(
+            specFilteredOperations,
+            parsedSchemas,
+          );
+          // Merge dependency schemas with original schemas to preserve explicit schema filters
+          parsedSchemas = { ...parsedSchemas, ...dependencySchemas };
+        }
+      }
 
       const schemaDefinition = generateSchemasDefinition(
         parsedSchemas,
@@ -222,6 +265,45 @@ const getAllSchemas = (spec: object, specKey?: string): SchemasObject => {
 
   return {
     ...schemas,
-    ...((spec as OpenAPIObject)?.components?.schemas as SchemasObject),
+    ...((spec as OpenAPIObject).components?.schemas as SchemasObject),
   };
+};
+
+const getFilteredOperations = (
+  spec: OpenAPIObject,
+  filters: InputOptions['filters'],
+): { operation: OperationObject; path: string; method: string }[] => {
+  if (!filters || !spec.paths) {
+    return [];
+  }
+
+  const operations: {
+    operation: OperationObject;
+    path: string;
+    method: string;
+  }[] = [];
+
+  const { filteredPaths, unmatchedFilters } = _filteredPaths(
+    spec.paths,
+    filters,
+  );
+
+  // Warn about unmatched filters
+  if (unmatchedFilters.length > 0) {
+    validatePathFilters(unmatchedFilters, filters);
+  }
+
+  for (const [pathRoute, verbs] of filteredPaths) {
+    const filteredVerbs = _filteredVerbs(verbs, filters, pathRoute);
+
+    for (const [method, operation] of filteredVerbs) {
+      operations.push({
+        operation,
+        path: pathRoute,
+        method: method.toLowerCase(),
+      });
+    }
+  }
+
+  return operations;
 };
