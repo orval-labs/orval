@@ -6,9 +6,9 @@ import type {
 } from 'openapi3-ts/oas30';
 import { isEmptyish } from 'remeda';
 
-import { getResReqTypes } from '../getters';
-import type { ContextSpecs, GeneratorSchema } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { getResReqTypes } from '../getters/index.ts';
+import type { ContextSpecs, GeneratorSchema } from '../types.ts';
+import { jsDoc, pascal, sanitize } from '../utils/index.ts';
 
 export const generateComponentDefinition = (
   responses:

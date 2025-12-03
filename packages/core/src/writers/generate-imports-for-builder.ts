@@ -1,7 +1,7 @@
 import { uniqueBy } from 'remeda';
 
-import type { GeneratorImport, NormalizedOutputOptions } from '../types';
-import { conventionName, upath } from '../utils';
+import type { GeneratorImport, NormalizedOutputOptions } from '../types.ts';
+import { conventionName, upath } from '../utils/index.ts';
 
 export const generateImportsForBuilder = (
   output: NormalizedOutputOptions,

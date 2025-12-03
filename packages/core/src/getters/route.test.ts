@@ -1,8 +1,8 @@
 import type { ServerObject } from 'openapi3-ts/oas30';
 import { describe, expect, it, test } from 'vitest';
 
-import type { BaseUrlFromConstant, BaseUrlFromSpec } from '../types';
-import { getFullRoute, getRoute, getRouteAsArray } from './route';
+import type { BaseUrlFromConstant, BaseUrlFromSpec } from '../types.ts';
+import { getFullRoute, getRoute, getRouteAsArray } from './route.ts';
 
 describe('getRoute getter', () => {
   for (const [input, expected] of [

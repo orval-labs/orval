@@ -1,7 +1,7 @@
 import type { ReferenceObject } from 'openapi3-ts/oas30';
 
-import type { ContextSpecs, NormalizedOverrideOutput } from '../types';
-import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils';
+import type { ContextSpecs, NormalizedOverrideOutput } from '../types.ts';
+import { getFileInfo, isUrl, pascal, sanitize, upath } from '../utils/index.ts';
 
 type RefComponent = 'schemas' | 'responses' | 'parameters' | 'requestBodies';
 

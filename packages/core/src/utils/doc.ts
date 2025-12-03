@@ -1,4 +1,4 @@
-import type { ContextSpecs } from '../types';
+import type { ContextSpecs } from '../types.ts';
 
 const search = String.raw`\*/`; // Find '*/'
 const replacement = String.raw`*\/`; // Replace With '*\/'

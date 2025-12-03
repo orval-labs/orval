@@ -1,7 +1,7 @@
 import type { ResponsesObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import { getResponse } from './response';
+import { getResponse } from './response.ts';
 
 const context = {
   output: {

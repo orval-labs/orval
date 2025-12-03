@@ -39,7 +39,7 @@ import {
   getZodDateTimeFormat,
   getZodTimeFormat,
   isZodVersionV4,
-} from './compatible-v4';
+} from './compatible-v4.ts';
 
 const ZOD_DEPENDENCIES: GeneratorDependency[] = [
   {

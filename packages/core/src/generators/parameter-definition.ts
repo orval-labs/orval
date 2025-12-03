@@ -1,8 +1,8 @@
 import type { ComponentsObject, ParameterObject } from 'openapi3-ts/oas30';
 
-import { resolveObject, resolveRef } from '../resolvers';
-import type { ContextSpecs, GeneratorSchema } from '../types';
-import { jsDoc, pascal, sanitize } from '../utils';
+import { resolveObject, resolveRef } from '../resolvers/index.ts';
+import type { ContextSpecs, GeneratorSchema } from '../types.ts';
+import { jsDoc, pascal, sanitize } from '../utils/index.ts';
 
 export const generateParameterDefinition = (
   parameters: ComponentsObject['parameters'] = {},

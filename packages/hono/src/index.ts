@@ -25,7 +25,7 @@ import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
 import { type InfoObject } from 'openapi3-ts/oas30';
 
-import { getRoute } from './route';
+import { getRoute } from './route.ts';
 
 const ZVALIDATOR_SOURCE = fs
   .readFileSync(upath.join(import.meta.dirname, 'zValidator.ts'))

@@ -1,9 +1,9 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
-import { getScalar } from '../getters';
-import { type ContextSpecs, type ResolverValue, SchemaType } from '../types';
-import { isReference } from '../utils';
-import { resolveRef } from './ref';
+import { getScalar } from '../getters/index.ts';
+import { type ContextSpecs, type ResolverValue, SchemaType } from '../types.ts';
+import { isReference } from '../utils/index.ts';
+import { resolveRef } from './ref.ts';
 
 export const resolveValue = ({
   schema,

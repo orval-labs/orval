@@ -1,7 +1,7 @@
 import type { OperationObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import { getOperationId } from './operation';
+import { getOperationId } from './operation.ts';
 
 describe('getOperationId getter', () => {
   for (const [input, expected] of [

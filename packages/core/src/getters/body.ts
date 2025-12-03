@@ -1,14 +1,14 @@
 import type { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 
-import { generalJSTypesWithArray } from '../constants';
-import { resolveRef } from '../resolvers';
+import { generalJSTypesWithArray } from '../constants.ts';
+import { resolveRef } from '../resolvers/index.ts';
 import type {
   ContextSpecs,
   GetterBody,
   OverrideOutputContentType,
-} from '../types';
-import { camel, isReference, sanitize } from '../utils';
-import { getResReqTypes } from './res-req-types';
+} from '../types.ts';
+import { camel, isReference, sanitize } from '../utils/index.ts';
+import { getResReqTypes } from './res-req-types.ts';
 
 export const getBody = ({
   requestBody,

@@ -6,8 +6,8 @@ import {
   type GetterResponse,
   type ParamsSerializerOptions,
   Verbs,
-} from '../types';
-import { getIsBodyVerb, isObject, stringify } from '../utils';
+} from '../types.ts';
+import { getIsBodyVerb, isObject, stringify } from '../utils/index.ts';
 
 export const generateBodyOptions = (
   body: GetterBody,

@@ -3,7 +3,7 @@ import { findUp } from 'find-up';
 import fs from 'fs-extra';
 import { parse } from 'tsconfck';
 
-import { normalizePath } from './options';
+import { normalizePath } from './options.ts';
 
 export const loadTsconfig = async (
   tsconfig?: Tsconfig | string,

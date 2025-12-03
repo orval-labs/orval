@@ -1,20 +1,20 @@
 import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
 
-import { resolveExampleRefs, resolveValue } from '../resolvers';
-import { resolveObject } from '../resolvers/object';
+import { resolveExampleRefs, resolveValue } from '../resolvers/index.ts';
+import { resolveObject } from '../resolvers/object.ts';
 import {
   type ContextSpecs,
   PropertySortOrder,
   type ScalarValue,
   SchemaType,
   type SchemaWithConst,
-} from '../types';
-import { isBoolean, isReference, jsDoc, pascal } from '../utils';
-import { combineSchemas } from './combine';
-import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import { getKey } from './keys';
-import { getRefInfo } from './ref';
+} from '../types.ts';
+import { isBoolean, isReference, jsDoc, pascal } from '../utils/index.ts';
+import { combineSchemas } from './combine.ts';
+import { getAliasedImports, getImportAliasForRefOrValue } from './imports.ts';
+import { getKey } from './keys.ts';
+import { getRefInfo } from './ref.ts';
 
 /**
  * Extract enum values from propertyNames schema (OpenAPI 3.1)

@@ -20,7 +20,7 @@ import {
 import type { JSONSchema6, JSONSchema7 } from 'json-schema';
 import type { OpenAPIObject, SchemasObject } from 'openapi3-ts/oas30';
 
-import { getApiBuilder } from './api';
+import { getApiBuilder } from './api.ts';
 
 export const importOpenApi = async ({
   data,

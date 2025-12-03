@@ -22,7 +22,7 @@ import type { InfoObject } from 'openapi3-ts/oas30';
 import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
-import { executeHook } from './utils';
+import { executeHook } from './utils/index.ts';
 
 const getHeader = (
   option: false | ((info: InfoObject) => string | string[]),

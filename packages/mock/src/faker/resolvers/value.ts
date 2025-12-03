@@ -10,9 +10,9 @@ import {
 import type { SchemaObject } from 'openapi3-ts/oas30';
 import { prop } from 'remeda';
 
-import type { MockDefinition, MockSchemaObject } from '../../types';
-import { overrideVarName } from '../getters';
-import { getMockScalar } from '../getters/scalar';
+import type { MockDefinition, MockSchemaObject } from '../../types.ts';
+import { overrideVarName } from '../getters/index.ts';
+import { getMockScalar } from '../getters/scalar.ts';
 
 const isRegex = (key: string) => key.startsWith('/') && key.endsWith('/');
 

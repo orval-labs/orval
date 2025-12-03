@@ -1,11 +1,11 @@
 import type { SchemaObject } from 'openapi3-ts/oas30';
 
-import { resolveExampleRefs } from '../resolvers';
-import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
-import { escape, isString } from '../utils';
-import { getArray } from './array';
-import { combineSchemas } from './combine';
-import { getObject } from './object';
+import { resolveExampleRefs } from '../resolvers/index.ts';
+import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types.ts';
+import { escape, isString } from '../utils/index.ts';
+import { getArray } from './array.ts';
+import { combineSchemas } from './combine.ts';
+import { getObject } from './object.ts';
 
 /**
  * Return the typescript equivalent of open-api data type

@@ -1,8 +1,8 @@
 import type { ParameterObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs } from '../types';
-import { getQueryParams } from './query-params';
+import type { ContextSpecs } from '../types.ts';
+import { getQueryParams } from './query-params.ts';
 
 // Mock context for getQueryParams
 const context: ContextSpecs = {

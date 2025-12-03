@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import type { OpenAPIObject } from 'openapi3-ts/oas30';
 import { type ConvertInputOptions, convertObj } from 'swagger2openapi';
 
-import { log } from './logger';
+import { log } from './logger.ts';
 
 export const openApiConverter = async (
   schema: any,
