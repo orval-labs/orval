@@ -19,15 +19,26 @@ export function startMessage({
 }
 
 export function logError(err: unknown, tag?: string) {
+  let message = '';
+
+  if (err instanceof Error) {
+    message = (err.message || err.stack) ?? 'Unknown error';
+    if (err.cause) {
+      const causeMsg =
+        err.cause instanceof Error
+          ? err.cause.message
+          : typeof err.cause === 'string'
+            ? err.cause
+            : JSON.stringify(err.cause, undefined, 2);
+      message += `\n  Cause: ${causeMsg}`;
+    }
+  } else {
+    message = String(err);
+  }
+
   log(
     chalk.red(
-      [
-        '🛑',
-        tag ? `${tag} -` : undefined,
-        err instanceof Error ? err.stack : err,
-      ]
-        .filter(Boolean)
-        .join(' '),
+      ['🛑', tag ? `${tag} -` : undefined, message].filter(Boolean).join(' '),
     ),
   );
 }

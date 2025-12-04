@@ -21,13 +21,13 @@ async function resolveSpec(
     plugins: [readFiles(), fetchUrls(), parseJson(), parseYaml()],
     treeShake: true,
   });
-
-  const { valid, errors } = await validateSpec(data);
+  const dereferencedData = dereferenceExternalRef(data);
+  const { valid, errors } = await validateSpec(dereferencedData);
   if (!valid) {
     throw new Error('Validation failed', { cause: errors });
   }
 
-  const { specification } = upgrade(data);
+  const { specification } = upgrade(dereferencedData);
 
   return specification;
 }
@@ -49,4 +49,96 @@ export async function importSpecs(
     workspace,
     projectName,
   });
+}
+
+/**
+ * The plugins from `@scalar/json-magic` does not dereference $ref.
+ * Instead if fetches them and puts them under x-ext, and changes the $ref to point to #x-ext/<name>.
+ * This function dereferences those x-ext $ref's.
+ */
+export function dereferenceExternalRef(data: object): object {
+  const extensions = data['x-ext'] ?? {};
+
+  const UNWANTED_KEYS = new Set(['$schema', '$id']);
+
+  function scrub(obj: unknown): unknown {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map((x) => scrub(x));
+    if (typeof obj === 'object') {
+      const rec = obj as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rec)) {
+        if (UNWANTED_KEYS.has(k)) continue;
+        out[k] = scrub(v);
+      }
+      return out;
+    }
+    return obj;
+  }
+
+  function replaceRefs(obj: unknown): unknown {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    if (typeof obj === 'object') {
+      if (Array.isArray(obj)) {
+        return obj.map((element) => replaceRefs(element));
+      }
+
+      const record = obj as Record<string, unknown>;
+
+      // Check if this object is a $ref to x-ext
+      if ('$ref' in record && typeof record.$ref === 'string') {
+        const refValue = record.$ref;
+        if (refValue.startsWith('#/x-ext/')) {
+          const pathStr = refValue.replace('#/x-ext/', '');
+          const parts = pathStr.split('/');
+          const extKey = parts.shift();
+          if (extKey) {
+            let refObj: unknown = extensions[extKey];
+            // Traverse remaining path parts inside the extension object
+            for (const p of parts) {
+              if (
+                refObj &&
+                typeof refObj === 'object' &&
+                p in (refObj as Record<string, unknown>)
+              ) {
+                refObj = (refObj as Record<string, unknown>)[p];
+              } else {
+                refObj = undefined;
+                break;
+              }
+            }
+
+            if (refObj) {
+              // Scrub unwanted keys from the extension before inlining
+              const cleaned = scrub(refObj);
+              // Replace the $ref with the dereferenced (and scrubbed) object
+              return replaceRefs(cleaned);
+            }
+          }
+        }
+      }
+
+      // Recursively process all properties
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(record)) {
+        result[key] = replaceRefs(value);
+      }
+      return result;
+    }
+
+    return obj;
+  }
+
+  // Create a new object with dereferenced properties (excluding x-ext)
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key !== 'x-ext') {
+      result[key] = replaceRefs(value);
+    }
+  }
+
+  return result;
 }
