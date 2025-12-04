@@ -3,7 +3,6 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
-  isRootKey,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -358,12 +357,7 @@ function getEnum(
   if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
     if (item.isRef || existingReferencedProperties.length === 0) {
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
-      imports.push({
-        name: item.name,
-        ...(isRootKey(context.specKey, context.target)
-          ? {}
-          : { specKey: context.specKey }),
-      });
+      imports.push({ name: item.name });
     } else {
       enumValue += ` as ${existingReferencedProperties[existingReferencedProperties.length - 1]}['${item.name}']`;
       if (!item.path?.endsWith('[]')) enumValue += '[]';
@@ -371,9 +365,6 @@ function getEnum(
         name: existingReferencedProperties[
           existingReferencedProperties.length - 1
         ],
-        ...(isRootKey(context.specKey, context.target)
-          ? {}
-          : { specKey: context.specKey }),
       });
     }
   } else {
@@ -386,9 +377,6 @@ function getEnum(
     imports.push({
       name: item.name,
       values: true,
-      ...(isRootKey(context.specKey, context.target)
-        ? {}
-        : { specKey: context.specKey }),
     });
   }
 

@@ -7,20 +7,16 @@ import { conventionName, upath } from '../utils';
 interface GetSchemaOptions {
   schema: GeneratorSchema;
   target: string;
-  isRootKey: boolean;
   specName: string;
   header: string;
-  specKey: string;
   namingConvention?: NamingConvention;
 }
 
 function getSchema({
   schema: { imports, model },
   target,
-  isRootKey,
   specName,
   header,
-  specKey,
   namingConvention = NamingConvention.CAMEL_CASE,
 }: GetSchemaOptions): string {
   let file = header;
@@ -31,9 +27,7 @@ function getSchema({
         !model.includes(`interface ${imp.alias || imp.name} {`),
     ),
     target,
-    isRootKey,
     specName,
-    specKey,
     namingConvention,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
@@ -62,8 +56,6 @@ interface WriteSchemaOptions {
   target: string;
   namingConvention: NamingConvention;
   fileExtension: string;
-  specKey: string;
-  isRootKey: boolean;
   specName: string;
   header: string;
 }
@@ -74,8 +66,6 @@ export async function writeSchema({
   target,
   namingConvention,
   fileExtension,
-  specKey,
-  isRootKey,
   specName,
   header,
 }: WriteSchemaOptions) {
@@ -87,10 +77,8 @@ export async function writeSchema({
       getSchema({
         schema,
         target,
-        isRootKey,
         specName,
         header,
-        specKey,
         namingConvention,
       }),
     );
@@ -107,8 +95,6 @@ interface WriteSchemasOptions {
   target: string;
   namingConvention: NamingConvention;
   fileExtension: string;
-  specKey: string;
-  isRootKey: boolean;
   specName: string;
   header: string;
   indexFiles: boolean;
@@ -120,8 +106,6 @@ export async function writeSchemas({
   target,
   namingConvention,
   fileExtension,
-  specKey,
-  isRootKey,
   specName,
   header,
   indexFiles,
@@ -134,8 +118,6 @@ export async function writeSchemas({
         target,
         namingConvention,
         fileExtension,
-        specKey,
-        isRootKey,
         specName,
         header,
       });

@@ -2,7 +2,6 @@ import {
   createSuccessMessage,
   getFileInfo,
   getMockFileExtensionByTypeName,
-  isRootKey,
   jsDoc,
   log,
   type NormalizedOptions,
@@ -58,10 +57,7 @@ export async function writeSpecs(
       ? '.ts'
       : output.fileExtension;
 
-    const schemaPath = isRootKey(target, target)
-      ? rootSchemaPath
-      : upath.join(rootSchemaPath, specName);
-
+    const schemaPath = rootSchemaPath;
     await writeSchemas({
       schemaPath,
       schemas,
@@ -69,8 +65,6 @@ export async function writeSpecs(
       namingConvention: output.namingConvention,
       fileExtension,
       specName,
-      specKey: target,
-      isRootKey: isRootKey(target, target),
       header,
       indexFiles: output.indexFiles,
     });

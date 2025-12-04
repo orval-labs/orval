@@ -80,10 +80,6 @@ export function isVerb(verb: string): verb is Verbs {
   return Object.values(Verbs).includes(verb as Verbs);
 }
 
-export function isRootKey(specKey: string, target: string) {
-  return specKey === target;
-}
-
 export function isUrl(str: string) {
   let givenURL;
   try {

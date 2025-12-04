@@ -12,7 +12,6 @@ import { conventionName } from '../utils';
 interface GenerateImportsOptions {
   imports: GeneratorImport[];
   target: string;
-  isRootKey: boolean;
   specName: string;
   namingConvention?: NamingConvention;
 }
