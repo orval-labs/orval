@@ -2,15 +2,15 @@ import {
   createSuccessMessage,
   getFileInfo,
   getMockFileExtensionByTypeName,
-  isRootKey,
   jsDoc,
   log,
   type NormalizedOptions,
+  type OpenApiInfoObject,
   OutputMode,
   upath,
   writeSchemas,
   writeSingleMode,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
@@ -18,16 +18,15 @@ import {
 import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import type { InfoObject } from 'openapi3-ts/oas30';
 import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { executeHook } from './utils';
 
-const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
-): string => {
+function getHeader(
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
+): string {
   if (!option) {
     return '';
   }
@@ -35,58 +34,37 @@ const getHeader = (
   const header = option(info);
 
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
-};
+}
 
-export const writeSpecs = async (
-  builder: WriteSpecsBuilder,
+export async function writeSpecs(
+  builder: WriteSpecBuilder,
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
-) => {
+) {
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName ?? info.title;
 
-  const specsName = Object.keys(schemas).reduce<
-    Record<keyof typeof schemas, string>
-  >((acc, specKey) => {
-    const basePath = upath.getSpecName(specKey, target);
-    const name = basePath.slice(1).split('/').join('-');
-
-    acc[specKey] = name;
-
-    return acc;
-  }, {});
-
-  const header = getHeader(output.override.header, info as InfoObject);
+  const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
     const rootSchemaPath = output.schemas;
 
     const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
       ? '.ts'
-      : (output.fileExtension ?? '.ts');
+      : output.fileExtension;
 
-    await Promise.all(
-      Object.entries(schemas).map(([specKey, schemas]) => {
-        const schemaPath = isRootKey(specKey, target)
-          ? rootSchemaPath
-          : upath.join(rootSchemaPath, specsName[specKey]);
-
-        return writeSchemas({
-          schemaPath,
-          schemas,
-          target,
-          namingConvention: output.namingConvention,
-          fileExtension,
-          specsName,
-          specKey,
-          isRootKey: isRootKey(specKey, target),
-          header,
-          indexFiles: output.indexFiles,
-        });
-      }),
-    );
+    const schemaPath = rootSchemaPath;
+    await writeSchemas({
+      schemaPath,
+      schemas,
+      target,
+      namingConvention: output.namingConvention,
+      fileExtension,
+      header,
+      indexFiles: output.indexFiles,
+    });
   }
 
   let implementationPaths: string[] = [];
@@ -97,7 +75,7 @@ export const writeSpecs = async (
       builder,
       workspace,
       output,
-      specsName,
+      projectName,
       header,
       needSchema: !output.schemas && output.client !== 'zod',
     });
@@ -247,9 +225,9 @@ export const writeSpecs = async (
   }
 
   createSuccessMessage(projectTitle);
-};
+}
 
-const getWriteMode = (mode: OutputMode) => {
+function getWriteMode(mode: OutputMode) {
   switch (mode) {
     case OutputMode.SPLIT: {
       return writeSplitMode;
@@ -265,4 +243,4 @@ const getWriteMode = (mode: OutputMode) => {
       return writeSingleMode;
     }
   }
-};
+}

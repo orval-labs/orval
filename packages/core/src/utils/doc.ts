@@ -1,4 +1,4 @@
-import type { ContextSpecs } from '../types';
+import type { ContextSpec } from '../types';
 
 const search = String.raw`\*/`; // Find '*/'
 const replacement = String.raw`*\/`; // Replace With '*\/'
@@ -14,15 +14,15 @@ export function jsDoc(
     maxLength?: number;
     minimum?: number;
     maximum?: number;
-    exclusiveMinimum?: boolean;
-    exclusiveMaximum?: boolean;
+    exclusiveMinimum?: number;
+    exclusiveMaximum?: number;
     minItems?: number;
     maxItems?: number;
-    nullable?: boolean;
+    type?: string | string[];
     pattern?: string;
   },
   tryOneLine = false,
-  context?: ContextSpecs,
+  context?: ContextSpec,
 ): string {
   if (context?.output?.override?.jsDoc) {
     const { filter } = context.output.override.jsDoc;
@@ -42,9 +42,11 @@ export function jsDoc(
     exclusiveMaximum,
     minItems,
     maxItems,
-    nullable,
     pattern,
   } = schema;
+  const isNullable =
+    schema.type === 'null' ||
+    (Array.isArray(schema.type) && schema.type.includes('null'));
   // Ensure there aren't any comment terminations in doc
   const lines = (
     Array.isArray(description)
@@ -64,7 +66,7 @@ export function jsDoc(
     exclusiveMaximum?.toString(),
     minItems?.toString(),
     maxItems?.toString(),
-    nullable?.toString(),
+    isNullable ? 'null' : '',
     pattern,
   ].reduce((acc, it) => (it ? acc + 1 : acc), 0);
 
@@ -120,11 +122,11 @@ export function jsDoc(
   tryAppendNumberDocLine('maxLength', maxLength);
   tryAppendNumberDocLine('minimum', minimum);
   tryAppendNumberDocLine('maximum', maximum);
-  tryAppendBooleanDocLine('exclusiveMinimum', exclusiveMinimum);
-  tryAppendBooleanDocLine('exclusiveMaximum', exclusiveMaximum);
+  tryAppendNumberDocLine('exclusiveMinimum', exclusiveMinimum);
+  tryAppendNumberDocLine('exclusiveMaximum', exclusiveMaximum);
   tryAppendNumberDocLine('minItems', minItems);
   tryAppendNumberDocLine('maxItems', maxItems);
-  tryAppendBooleanDocLine('nullable', nullable);
+  tryAppendBooleanDocLine('nullable', isNullable);
   tryAppendStringDocLine('pattern', pattern);
 
   doc += oneLine ? ' ' : `\n ${tryOneLine ? '  ' : ''}`;

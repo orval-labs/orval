@@ -1,18 +1,20 @@
-import type { SchemasObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
-import type { ContextSpecs, InputFiltersOption } from '../types';
+import type {
+  ContextSpec,
+  InputFiltersOptions,
+  OpenApiSchemasObject,
+} from '../types';
 import { generateSchemasDefinition } from './schema-definition';
 
 describe('generateSchemasDefinition', () => {
-  const context: ContextSpecs = {
-    specKey: 'testSpec',
+  const context: ContextSpec = {
     output: {
       override: {},
-    } as any,
+    },
     target: 'typescript',
-    specs: {},
-  } as any;
+    spec: {},
+  };
 
   it('should return an empty array if schemas are empty', () => {
     const result = generateSchemasDefinition({}, context, 'Suffix');
@@ -20,7 +22,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas without filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -35,7 +37,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with include filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -50,7 +52,7 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const filters: InputFiltersOption = {
+    const filters: InputFiltersOptions = {
       schemas: ['TestSchema'],
       mode: 'include',
     };
@@ -66,7 +68,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with exclude filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -81,7 +83,7 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const filters: InputFiltersOption = {
+    const filters: InputFiltersOptions = {
       schemas: ['TestSchema'],
       mode: 'exclude',
     };
@@ -97,7 +99,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas when filters.schemas is undefined with other filters', () => {
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -112,7 +114,7 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const filters: InputFiltersOption = {
+    const filters: InputFiltersOptions = {
       tags: ['TestTag'],
     };
 
@@ -128,8 +130,7 @@ describe('generateSchemasDefinition', () => {
   });
 
   it('should generate schemas with changed enum nameConvention', () => {
-    const context: ContextSpecs = {
-      specKey: 'testSpec',
+    const context: ContextSpec = {
       output: {
         override: {
           enumGenerationType: 'enum',
@@ -139,10 +140,10 @@ describe('generateSchemasDefinition', () => {
         },
       },
       target: 'typescript',
-      specs: {},
+      spec: {},
     };
 
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       TestSchema: {
         type: 'object',
         properties: {
@@ -162,7 +163,7 @@ describe('generateSchemasDefinition', () => {
   it('should order spread enum dependencies before the enum that uses them', () => {
     // Reproduces issue #1511: BlankEnum used before declaration
     // Input order is alphabetical (Aaa... before Zzz...) but ZzzFirst must come before AaaCombined
-    const schemas: SchemasObject = {
+    const schemas: OpenApiSchemasObject = {
       AaaCombined: {
         allOf: [
           { $ref: '#/components/schemas/ZzzFirst' },
@@ -179,17 +180,15 @@ describe('generateSchemasDefinition', () => {
       },
     };
 
-    const specContext: ContextSpecs = {
+    const specContext: ContextSpec = {
       ...context,
       output: {
         override: { enumGenerationType: 'const' },
-      } as any,
-      specs: {
-        testSpec: {
-          components: { schemas },
-        },
       },
-    } as ContextSpecs;
+      spec: {
+        components: { schemas },
+      },
+    };
 
     const result = generateSchemasDefinition(schemas, specContext, '');
 

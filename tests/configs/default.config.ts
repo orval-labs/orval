@@ -481,12 +481,6 @@ export default defineConfig({
   'external-ref': {
     input: {
       target: '../specifications/external-ref.yaml',
-      parserOptions: {
-        resolve: {
-          external: true,
-          http: {},
-        },
-      },
     },
     output: '../generated/default/external-ref/endpoints.ts',
   },

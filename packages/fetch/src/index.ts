@@ -10,17 +10,14 @@ import {
   type GeneratorVerbOptions,
   GetterPropType,
   isObject,
+  type OpenApiParameterObject,
+  type OpenApiSchemaObject,
   pascal,
   resolveRef,
   stringify,
   toObjectString,
 } from '@orval/core';
-import type {
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-} from 'openapi3-ts/oas30';
-import type { SchemaObject } from 'openapi3-ts/oas31';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
 
 export const generateRequestFunction = (
   {
@@ -54,15 +51,12 @@ export const generateRequestFunction = (
     'implementation',
   );
 
-  const spec = context.specs[context.specKey].paths[pathRoute] as
-    | PathItemObject
-    | undefined;
-  const parameters =
-    spec?.[verb]?.parameters ?? ([] as (ParameterObject | ReferenceObject)[]);
+  const spec = context.spec.paths?.[pathRoute];
+  const parameters = spec?.[verb]?.parameters ?? [];
 
   const explodeParameters = parameters.filter((parameter) => {
-    const { schema } = resolveRef<ParameterObject>(parameter, context);
-    const schemaObject = schema.schema as SchemaObject;
+    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
+    const schemaObject = schema.schema as OpenApiSchemaObject;
 
     return (
       schema.in === 'query' && schemaObject.type === 'array' && schema.explode
@@ -70,18 +64,14 @@ export const generateRequestFunction = (
   });
 
   const explodeParametersNames = explodeParameters.map((parameter) => {
-    const { schema } = resolveRef<ParameterObject>(parameter, context);
+    const { schema } = resolveRef<OpenApiParameterObject>(parameter, context);
 
     return schema.name;
   });
   const hasExplodedDateParams =
     context.output.override.useDates &&
     explodeParameters.some(
-      (p) =>
-        'schema' in p &&
-        p.schema &&
-        'format' in p.schema &&
-        p.schema.format === 'date-time',
+      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
     );
 
   const explodeArrayImplementation =
@@ -103,11 +93,7 @@ export const generateRequestFunction = (
   const hasDateParams =
     context.output.override.useDates &&
     parameters.some(
-      (p) =>
-        'schema' in p &&
-        p.schema &&
-        'format' in p.schema &&
-        p.schema.format === 'date-time',
+      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
     );
 
   const normalParamsImplementation = `if (value !== undefined) {

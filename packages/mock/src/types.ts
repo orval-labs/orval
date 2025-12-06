@@ -1,5 +1,4 @@
-import type { GeneratorImport } from '@orval/core';
-import type { SchemaObject } from 'openapi3-ts/oas30';
+import type { GeneratorImport, OpenApiSchemaObject } from '@orval/core';
 
 export interface MockDefinition {
   value: string;
@@ -10,7 +9,7 @@ export interface MockDefinition {
   includedProperties?: string[];
 }
 
-export type MockSchemaObject = Omit<SchemaObject, 'enum'> & {
+export type MockSchemaObject = Omit<OpenApiSchemaObject, 'enum'> & {
   name: string;
   path?: string;
   isRef?: boolean;

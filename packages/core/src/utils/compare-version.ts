@@ -1,10 +1,10 @@
 import { compare, type CompareOperator } from 'compare-versions';
 
-export const compareVersions = (
+export function compareVersions(
   firstVersion: string,
   secondVersions: string,
   operator: CompareOperator = '>=',
-) => {
+) {
   if (firstVersion === 'latest' || firstVersion === '*') {
     return true;
   }
@@ -20,4 +20,4 @@ export const compareVersions = (
     secondVersions,
     operator,
   );
-};
+}

@@ -34,7 +34,7 @@ export default (inputSchema) => {
       };
     });
 
-    transformedPaths[`v{version}${path}`] = transformedPathItem;
+    transformedPaths[`/v{version}${path}`] = transformedPathItem;
   });
 
   return {

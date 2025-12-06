@@ -33,10 +33,8 @@ export interface Pet {
    */
   name: string;
   /**
-   * @minimum 0
-   * @maximum 30
-   * @exclusiveMinimum
-   * @exclusiveMaximum
+   * @exclusiveMinimum 0
+   * @exclusiveMaximum 30
    */
   age?: number;
   /**

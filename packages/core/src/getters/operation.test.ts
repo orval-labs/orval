@@ -1,6 +1,6 @@
-import type { OperationObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
 
+import type { OpenApiOperationObject } from '../types';
 import { getOperationId } from './operation';
 
 describe('getOperationId getter', () => {
@@ -13,7 +13,9 @@ describe('getOperationId getter', () => {
     ['/api/test/user{param1}-{param2}.html', 'ApiTestUserparam1Param2Html'],
   ]) {
     it(`should process ${input} to ${expected}`, () => {
-      expect(getOperationId({} as OperationObject, input, '')).toBe(expected);
+      expect(getOperationId({} as OpenApiOperationObject, input, '')).toBe(
+        expected,
+      );
     });
   }
 });

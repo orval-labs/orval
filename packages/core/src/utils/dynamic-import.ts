@@ -3,11 +3,11 @@ import { pathToFileURL } from 'node:url';
 
 import { isModule, isObject, isString } from './assertion';
 
-export const dynamicImport = async <T>(
+export async function dynamicImport<T>(
   toImport: T | string,
   from = process.cwd(),
   takeDefault = true,
-): Promise<T> => {
+): Promise<T> {
   if (!toImport) {
     return toImport as T;
   }
@@ -26,11 +26,11 @@ export const dynamicImport = async <T>(
         return (data as any).default as T;
       }
 
-      return data;
+      return data as unknown as T;
     }
 
-    return toImport;
+    return toImport as T;
   } catch (error) {
     throw new Error(`Oups... 🍻. Path: ${toImport} => ${error}`);
   }
-};
+}

@@ -5,13 +5,13 @@ import { globby } from 'globby';
 
 import { isDirectory } from './assertion';
 
-export const getFileInfo = (
+export function getFileInfo(
   target = '',
   {
     backupFilename = 'filename',
     extension = '.ts',
   }: { backupFilename?: string; extension?: string } = {},
-) => {
+) {
   const isDir = isDirectory(target);
   const filePath = isDir
     ? path.join(target, backupFilename + extension)
@@ -31,7 +31,7 @@ export const getFileInfo = (
     dirname: dir,
     filename,
   };
-};
+}
 
 export async function removeFilesAndEmptyFolders(
   patterns: string[],

@@ -1,91 +1,144 @@
-import SwaggerParser from '@apidevtools/swagger-parser';
 import {
-  isString,
-  isUrl,
-  log,
   type NormalizedOptions,
-  type SwaggerParserOptions,
-  upath,
-  type WriteSpecsBuilder,
+  type OpenApiDocument,
+  type WriteSpecBuilder,
 } from '@orval/core';
-import chalk from 'chalk';
-import fs from 'fs-extra';
-import yaml from 'js-yaml';
+import { bundle } from '@scalar/json-magic/bundle';
+import {
+  fetchUrls,
+  parseJson,
+  parseYaml,
+  readFiles,
+} from '@scalar/json-magic/bundle/plugins/node';
+import { upgrade, validate as validateSpec } from '@scalar/openapi-parser';
 
 import { importOpenApi } from './import-open-api';
 
-const resolveSpecs = async (
-  path: string,
-  { validate, ...options }: SwaggerParserOptions,
-  _isUrl: boolean,
-  isOnlySchema: boolean,
-) => {
-  try {
-    if (validate) {
-      try {
-        await SwaggerParser.validate(path, options);
-      } catch (error) {
-        if (error instanceof Error && error.name === 'ParserError') {
-          throw error;
-        }
-
-        if (!isOnlySchema) {
-          log(`⚠️  ${chalk.yellow(error)}`);
-        }
-      }
-    }
-
-    const data = (await SwaggerParser.resolve(path, options)).values();
-
-    if (_isUrl) {
-      return data;
-    }
-
-    // normalizing slashes after SwaggerParser
-    return Object.fromEntries(
-      Object.entries(data)
-        .sort()
-        .map(([key, value]) => [isUrl(key) ? key : upath.resolve(key), value]),
-    );
-  } catch {
-    const file = await fs.readFile(path, 'utf8');
-
-    return {
-      [path]: yaml.load(file),
-    };
+async function resolveSpec(
+  input: string | Record<string, unknown>,
+): Promise<OpenApiDocument> {
+  const data = await bundle(input, {
+    plugins: [readFiles(), fetchUrls(), parseJson(), parseYaml()],
+    treeShake: true,
+  });
+  const dereferencedData = dereferenceExternalRef(data);
+  const { valid, errors } = await validateSpec(dereferencedData);
+  if (!valid) {
+    throw new Error('Validation failed', { cause: errors });
   }
-};
 
-export const importSpecs = async (
+  const { specification } = upgrade(dereferencedData);
+
+  return specification;
+}
+
+export async function importSpecs(
   workspace: string,
   options: NormalizedOptions,
-): Promise<WriteSpecsBuilder> => {
+  projectName?: string,
+): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  if (!isString(input.target)) {
-    return importOpenApi({
-      data: { [workspace]: input.target },
-      input,
-      output,
-      target: workspace,
-      workspace,
-    });
-  }
-
-  const isPathUrl = isUrl(input.target);
-
-  const data = await resolveSpecs(
-    input.target,
-    input.parserOptions,
-    isPathUrl,
-    !output.target,
-  );
+  const spec = await resolveSpec(input.target);
 
   return importOpenApi({
-    data,
+    spec,
     input,
     output,
     target: input.target,
     workspace,
+    projectName,
   });
-};
+}
+
+/**
+ * The plugins from `@scalar/json-magic` does not dereference $ref.
+ * Instead if fetches them and puts them under x-ext, and changes the $ref to point to #x-ext/<name>.
+ * This function dereferences those x-ext $ref's.
+ */
+export function dereferenceExternalRef(data: object): object {
+  const extensions = data['x-ext'] ?? {};
+
+  const UNWANTED_KEYS = new Set(['$schema', '$id']);
+
+  function scrub(obj: unknown): unknown {
+    if (obj === null || obj === undefined) return obj;
+    if (Array.isArray(obj)) return obj.map((x) => scrub(x));
+    if (typeof obj === 'object') {
+      const rec = obj as Record<string, unknown>;
+      const out: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rec)) {
+        if (UNWANTED_KEYS.has(k)) continue;
+        out[k] = scrub(v);
+      }
+      return out;
+    }
+    return obj;
+  }
+
+  function replaceRefs(obj: unknown): unknown {
+    if (obj === null || obj === undefined) {
+      return obj;
+    }
+
+    if (typeof obj === 'object') {
+      if (Array.isArray(obj)) {
+        return obj.map((element) => replaceRefs(element));
+      }
+
+      const record = obj as Record<string, unknown>;
+
+      // Check if this object is a $ref to x-ext
+      if ('$ref' in record && typeof record.$ref === 'string') {
+        const refValue = record.$ref;
+        if (refValue.startsWith('#/x-ext/')) {
+          const pathStr = refValue.replace('#/x-ext/', '');
+          const parts = pathStr.split('/');
+          const extKey = parts.shift();
+          if (extKey) {
+            let refObj: unknown = extensions[extKey];
+            // Traverse remaining path parts inside the extension object
+            for (const p of parts) {
+              if (
+                refObj &&
+                typeof refObj === 'object' &&
+                p in (refObj as Record<string, unknown>)
+              ) {
+                refObj = (refObj as Record<string, unknown>)[p];
+              } else {
+                refObj = undefined;
+                break;
+              }
+            }
+
+            if (refObj) {
+              // Scrub unwanted keys from the extension before inlining
+              const cleaned = scrub(refObj);
+              // Replace the $ref with the dereferenced (and scrubbed) object
+              return replaceRefs(cleaned);
+            }
+          }
+        }
+      }
+
+      // Recursively process all properties
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(record)) {
+        result[key] = replaceRefs(value);
+      }
+      return result;
+    }
+
+    return obj;
+  }
+
+  // Create a new object with dereferenced properties (excluding x-ext)
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (key !== 'x-ext') {
+      result[key] = replaceRefs(value);
+    }
+  }
+
+  return result;
+}

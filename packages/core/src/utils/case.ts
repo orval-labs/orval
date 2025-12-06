@@ -95,7 +95,7 @@ const lower = (s: string, fillWith: string, isDeapostrophe: boolean) => {
 // Caches the previously converted strings to improve performance
 const pascalMemory: Record<string, string> = {};
 
-export const pascal = (s: string) => {
+export function pascal(s: string) {
   if (pascalMemory[s]) {
     return pascalMemory[s];
   }
@@ -117,35 +117,31 @@ export const pascal = (s: string) => {
   pascalMemory[s] = pascalWithUnderscore;
 
   return pascalWithUnderscore;
-};
+}
 
-export const camel = (s: string) => {
+export function camel(s: string) {
   const isStartWithUnderscore = s?.startsWith('_');
   const camelString = decap(pascal(s), isStartWithUnderscore ? 1 : 0);
   return isStartWithUnderscore ? `_${camelString}` : camelString;
-};
+}
 
-export const snake = (s: string) => {
+export function snake(s: string) {
   return lower(s, '_', true);
-};
+}
 
-export const kebab = (s: string) => {
+export function kebab(s: string) {
   return lower(s, '-', true);
-};
+}
 
-export const upper = (
-  s: string,
-  fillWith: string,
-  isDeapostrophe?: boolean,
-) => {
+export function upper(s: string, fillWith: string, isDeapostrophe?: boolean) {
   return fill(
     up.call(prep(s, !!fillWith, false, true)),
     fillWith,
     isDeapostrophe,
   );
-};
+}
 
-export const conventionName = (name: string, convention: NamingConvention) => {
+export function conventionName(name: string, convention: NamingConvention) {
   let nameConventionTransform = camel;
   switch (convention) {
     case NamingConvention.PASCAL_CASE: {
@@ -167,4 +163,4 @@ export const conventionName = (name: string, convention: NamingConvention) => {
   }
 
   return nameConventionTransform(name);
-};
+}

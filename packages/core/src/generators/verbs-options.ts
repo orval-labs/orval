@@ -1,11 +1,3 @@
-import type {
-  ComponentsObject,
-  OperationObject,
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-} from 'openapi3-ts/oas30';
-
 import {
   getBody,
   getOperationId,
@@ -16,13 +8,16 @@ import {
   getResponse,
 } from '../getters';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   NormalizedInputOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
+  OpenApiComponentsObject,
+  OpenApiOperationObject,
+  OpenApiPathItemObject,
   Verbs,
 } from '../types';
 import {
@@ -38,7 +33,18 @@ import {
 } from '../utils';
 import { generateMutator } from './mutator';
 
-const generateVerbOptions = async ({
+export interface GenerateVerbOptionsParams {
+  verb: Verbs;
+  output: NormalizedOutputOptions;
+  operation: OpenApiOperationObject;
+  route: string;
+  pathRoute: string;
+  verbParameters?: OpenApiPathItemObject['parameters'];
+  components?: OpenApiComponentsObject;
+  context: ContextSpec;
+}
+
+export async function generateVerbOptions({
   verb,
   output,
   operation,
@@ -46,16 +52,7 @@ const generateVerbOptions = async ({
   pathRoute,
   verbParameters = [],
   context,
-}: {
-  verb: Verbs;
-  output: NormalizedOutputOptions;
-  operation: OperationObject;
-  route: string;
-  pathRoute: string;
-  verbParameters?: (ReferenceObject | ParameterObject)[];
-  components?: ComponentsObject;
-  context: ContextSpecs;
-}): Promise<GeneratorVerbOptions> => {
+}: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions> {
   const {
     responses,
     requestBody,
@@ -221,26 +218,28 @@ const generateVerbOptions = async ({
   );
 
   return transformer ? transformer(verbOption) : verbOption;
-};
+}
 
-export const generateVerbsOptions = ({
+export interface GenerateVerbsOptionsParams {
+  verbs: OpenApiPathItemObject;
+  input: NormalizedInputOptions;
+  output: NormalizedOutputOptions;
+  route: string;
+  pathRoute: string;
+  context: ContextSpec;
+}
+
+export function generateVerbsOptions({
   verbs,
   input,
   output,
   route,
   pathRoute,
   context,
-}: {
-  verbs: PathItemObject;
-  input: NormalizedInputOptions;
-  output: NormalizedOutputOptions;
-  route: string;
-  pathRoute: string;
-  context: ContextSpecs;
-}): Promise<GeneratorVerbsOptions> =>
-  asyncReduce(
+}: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
+  return asyncReduce(
     _filteredVerbs(verbs, input.filters),
-    async (acc, [verb, operation]: [string, OperationObject]) => {
+    async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
           verb,
@@ -259,11 +258,12 @@ export const generateVerbsOptions = ({
     },
     [] as GeneratorVerbsOptions,
   );
+}
 
-export const _filteredVerbs = (
-  verbs: PathItemObject,
+export function _filteredVerbs(
+  verbs: OpenApiPathItemObject,
   filters: NormalizedInputOptions['filters'],
-) => {
+) {
   if (filters?.tags === undefined) {
     return Object.entries(verbs);
   }
@@ -272,7 +272,7 @@ export const _filteredVerbs = (
   const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
-    ([, operation]: [string, OperationObject]) => {
+    ([, operation]: [string, OpenApiOperationObject]) => {
       const operationTags = operation.tags ?? [];
 
       const isMatch = operationTags.some((tag) =>
@@ -284,4 +284,4 @@ export const _filteredVerbs = (
       return filterMode === 'exclude' ? !isMatch : isMatch;
     },
   );
-};
+}

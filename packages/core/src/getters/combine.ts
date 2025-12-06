@@ -1,11 +1,11 @@
-import type { SchemaObject } from 'openapi3-ts/oas30';
 import { unique } from 'remeda';
 
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
-  type ContextSpecs,
+  type ContextSpec,
   type GeneratorImport,
   type GeneratorSchema,
+  type OpenApiSchemaObject,
   type ScalarValue,
   SchemaType,
 } from '../types';
@@ -21,7 +21,7 @@ import { getScalar } from './scalar';
 type CombinedData = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema: (SchemaObject | undefined)[];
+  originalSchema: (OpenApiSchemaObject | undefined)[];
   values: string[];
   isRef: boolean[];
   isEnum: boolean[];
@@ -38,17 +38,19 @@ type CombinedData = {
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 
-const combineValues = ({
+interface CombineValuesOptions {
+  resolvedData: CombinedData;
+  resolvedValue?: ScalarValue;
+  separator: Separator;
+  context: ContextSpec;
+}
+
+function combineValues({
   resolvedData,
   resolvedValue,
   separator,
   context,
-}: {
-  resolvedData: CombinedData;
-  resolvedValue?: ScalarValue;
-  separator: Separator;
-  context: ContextSpecs;
-}) => {
+}: CombineValuesOptions) {
   const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums) {
@@ -64,7 +66,7 @@ const combineValues = ({
         (s) =>
           s?.discriminator &&
           resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
-      ) as SchemaObject[];
+      ) as OpenApiSchemaObject[];
       if (discriminatedPropertySchemas.length > 0) {
         resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
       }
@@ -122,9 +124,9 @@ const combineValues = ({
   }
 
   return values.join(' | ');
-};
+}
 
-export const combineSchemas = ({
+export function combineSchemas({
   name,
   schema,
   separator,
@@ -132,11 +134,11 @@ export const combineSchemas = ({
   nullable,
 }: {
   name?: string;
-  schema: SchemaObject;
+  schema: OpenApiSchemaObject;
   separator: Separator;
-  context: ContextSpecs;
+  context: ContextSpec;
   nullable: string;
-}): ScalarValue => {
+}): ScalarValue {
   const items = schema[separator] ?? [];
 
   const resolvedData = items.reduce<CombinedData>(
@@ -161,7 +163,6 @@ export const combineSchemas = ({
         context,
         name,
         resolvedValue,
-        existingImports: acc.imports,
       });
 
       const value = getImportAliasForRefOrValue({
@@ -285,7 +286,7 @@ export const combineSchemas = ({
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };
-};
+}
 
 const getCombineEnumValue = ({
   values,

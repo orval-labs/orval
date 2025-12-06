@@ -5,7 +5,7 @@ import {
   type ClientFooterBuilder,
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
-  type ContextSpecs,
+  type ContextSpec,
   generateMutatorImports,
   type GeneratorDependency,
   type GeneratorImport,
@@ -17,13 +17,13 @@ import {
   kebab,
   type NormalizedMutator,
   type NormalizedOutputOptions,
+  type OpenApiInfoObject,
   pascal,
   sanitize,
   upath,
 } from '@orval/core';
 import { generateZod } from '@orval/zod';
 import fs from 'fs-extra';
-import { type InfoObject } from 'openapi3-ts/oas30';
 
 import { getRoute } from './route';
 
@@ -197,8 +197,8 @@ const getHonoHandlers = (
       }
       if (
         validator !== 'hono' &&
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         verbOption.response.originalSchema?.['200']?.content?.[
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           'application/json'
         ]
       ) {
@@ -491,8 +491,8 @@ const getContext = (verbOption: GeneratorVerbOptions) => {
 };
 
 const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
 ): string => {
   if (!option) {
     return '';
@@ -561,13 +561,10 @@ const generateContextFile = ({
 const generateContextFiles = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
   schemaModule: string,
 ) => {
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
   const { extension, dirname, filename } = getFileInfo(output.target);
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
@@ -605,14 +602,11 @@ const generateContextFiles = (
 const generateZodFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const { extension, dirname, filename } = getFileInfo(output.target);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   if (output.mode === 'tags' || output.mode === 'tags-split') {
     const groupByTags = getVerbOptionGroupByTag(verbOptions);
@@ -715,12 +709,9 @@ const generateZodFiles = async (
 
 const generateZvalidator = (
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   let validatorPath = output.override.hono.validatorOutputPath;
   if (!output.override.hono.validatorOutputPath) {
@@ -738,15 +729,12 @@ const generateZvalidator = (
 const generateCompositeRoutes = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const targetInfo = getFileInfo(output.target);
   const compositeRouteInfo = getFileInfo(output.override.hono.compositeRoute);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   const routes = Object.values(verbOptions)
     .map((verbOption) => {

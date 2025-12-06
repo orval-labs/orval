@@ -15,13 +15,13 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTargetForTags } from './target-tags';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
-export const writeSplitTagsMode = async ({
+export async function writeSplitTagsMode({
   builder,
   output,
-  specsName,
+  projectName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   const { filename, dirname, extension } = getFileInfo(output.target, {
     backupFilename: camel(builder.info.title),
     extension: output.fileExtension,
@@ -82,7 +82,7 @@ export const writeSplitTagsMode = async ({
           client: output.client,
           implementation,
           imports: importsForBuilder,
-          specsName,
+          projectName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           hasGlobalMutator: !!output.override.mutator,
@@ -103,7 +103,7 @@ export const writeSplitTagsMode = async ({
         mockData += builder.importsMock({
           implementation: implementationMock,
           imports: importsMockForBuilder,
-          specsName,
+          projectName,
           hasSchemaDir: !!output.schemas,
           isAllowSyntheticDefaultImports,
           options: isFunction(output.mock) ? undefined : output.mock,
@@ -225,4 +225,4 @@ export const writeSplitTagsMode = async ({
   );
 
   return generatedFilePathsArray.flat();
-};
+}

@@ -1,16 +1,17 @@
-import type { SchemaObject, SchemasObject } from 'openapi3-ts/oas30';
-
-import type { ContextSpecs } from '../types';
+import type { ContextSpec, OpenApiSchemasObject } from '../types';
 import { pascal } from '../utils';
 import { getRefInfo } from './ref';
 
-export const resolveDiscriminators = (
-  schemas: SchemasObject,
-  context: ContextSpecs,
-): SchemasObject => {
-  const transformedSchemas = { ...schemas };
-
+export function resolveDiscriminators(
+  schemas: OpenApiSchemasObject,
+  context: ContextSpec,
+): OpenApiSchemasObject {
+  const transformedSchemas = schemas;
   for (const schema of Object.values(transformedSchemas)) {
+    if (typeof schema === 'boolean') {
+      continue; // skip boolean schemas as we can't do anything meaningful with them
+    }
+
     if (schema.discriminator?.mapping) {
       const { mapping, propertyName } = schema.discriminator;
 
@@ -27,12 +28,15 @@ export const resolveDiscriminators = (
           subTypeSchema = transformedSchemas[mappingValue];
         }
 
-        if (!subTypeSchema) {
+        if (typeof subTypeSchema === 'boolean' || propertyName === undefined) {
           continue;
         }
-        const property = subTypeSchema.properties?.[
-          propertyName
-        ] as SchemaObject;
+
+        const property = subTypeSchema.properties?.[propertyName];
+        if (typeof property === 'boolean' || property === undefined) {
+          continue;
+        }
+
         subTypeSchema.properties = {
           ...subTypeSchema.properties,
           [propertyName]: {
@@ -53,4 +57,4 @@ export const resolveDiscriminators = (
   }
 
   return transformedSchemas;
-};
+}
