@@ -163,7 +163,6 @@ export function combineSchemas({
         context,
         name,
         resolvedValue,
-        existingImports: acc.imports,
       });
 
       const value = getImportAliasForRefOrValue({

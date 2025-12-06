@@ -3,14 +3,12 @@ import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
 interface GetAliasedImportsOptions {
   name?: string;
   resolvedValue: ResolverValue;
-  existingImports: GeneratorImport[];
   context: ContextSpec;
 }
 
 export function getAliasedImports({
   name,
   resolvedValue,
-  existingImports,
   context,
 }: GetAliasedImportsOptions): GeneratorImport[] {
   return context.output.schemas && resolvedValue.isRef
@@ -19,7 +17,6 @@ export function getAliasedImports({
           !needCreateImportAlias({
             name,
             imp,
-            existingImports,
           })
         ) {
           return imp;
@@ -36,21 +33,13 @@ export function getAliasedImports({
 interface NeedCreateImportAliasOptions {
   name?: string;
   imp: GeneratorImport;
-  existingImports: GeneratorImport[];
 }
 
 export function needCreateImportAlias({
-  existingImports,
   imp,
   name,
 }: NeedCreateImportAliasOptions): boolean {
-  return (
-    !imp.alias && imp.name === name
-    // ||
-    // existingImports.some(
-    //   (existingImport) => imp.name === existingImport.name,
-    // )
-  );
+  return !imp.alias && imp.name === name;
 }
 
 interface GetImportAliasForRefOrValueOptions {

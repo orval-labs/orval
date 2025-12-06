@@ -162,7 +162,6 @@ export function getObject({
           name,
           context,
           resolvedValue,
-          existingImports: acc.imports,
         });
 
         acc.imports.push(...aliasedImports);
