@@ -93,11 +93,7 @@ export const generateRequestFunction = (
   const hasDateParams =
     context.output.override.useDates &&
     parameters.some(
-      (p) =>
-        'schema' in p &&
-        p.schema &&
-        'format' in p.schema &&
-        p.schema.format === 'date-time',
+      (p) => isDereferenced(p) && p.schema?.format === 'date-time',
     );
 
   const normalParamsImplementation = `if (value !== undefined) {
