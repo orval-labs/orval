@@ -1,6 +1,6 @@
 {
   "name": "@orval/mock",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -32,5 +32,5 @@
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

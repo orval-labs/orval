@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -46,5 +46,5 @@
     "remeda": "^2.32.0",
     "typedoc": "^0.28.14"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }
