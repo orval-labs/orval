@@ -274,10 +274,10 @@ my-app
                   href="https://opencollective.com/orval"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="opacity-60 hover:opacity-100 transition-opacity"
+                  className="hover:opacity-80 transition-opacity"
                 >
                   <img
-                    className="h-40 w-auto grayscale hover:grayscale-0 transition-all"
+                    className="h-40 w-auto"
                     src="/images/orval-logo-horizontal.svg"
                     alt="Sample Sponsor"
                     title="Sample Sponsor"
@@ -296,10 +296,10 @@ my-app
                   href="https://opencollective.com/orval"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="opacity-60 hover:opacity-100 transition-opacity"
+                  className="hover:opacity-80 transition-opacity"
                 >
                   <img
-                    className="h-20 w-20 rounded-full grayscale hover:grayscale-0 transition-all"
+                    className="h-20 w-20 rounded-full"
                     src="/images/emblem.svg"
                     alt="Sample Backer"
                     title="Sample Backer"
@@ -309,10 +309,10 @@ my-app
                   href="https://opencollective.com/orval"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="opacity-60 hover:opacity-100 transition-opacity"
+                  className="hover:opacity-80 transition-opacity"
                 >
                   <img
-                    className="h-20 w-20 rounded-full grayscale hover:grayscale-0 transition-all"
+                    className="h-20 w-20 rounded-full"
                     src="/images/emblem.svg"
                     alt="Sample Backer"
                     title="Sample Backer"
@@ -322,10 +322,10 @@ my-app
                   href="https://opencollective.com/orval"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="opacity-60 hover:opacity-100 transition-opacity"
+                  className="hover:opacity-80 transition-opacity"
                 >
                   <img
-                    className="h-20 w-20 rounded-full grayscale hover:grayscale-0 transition-all"
+                    className="h-20 w-20 rounded-full"
                     src="/images/emblem.svg"
                     alt="Sample Backer"
                     title="Sample Backer"
