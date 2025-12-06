@@ -7,7 +7,6 @@ import { conventionName, upath } from '../utils';
 interface GetSchemaOptions {
   schema: GeneratorSchema;
   target: string;
-  specName: string;
   header: string;
   namingConvention?: NamingConvention;
 }
@@ -15,7 +14,6 @@ interface GetSchemaOptions {
 function getSchema({
   schema: { imports, model },
   target,
-  specName,
   header,
   namingConvention = NamingConvention.CAMEL_CASE,
 }: GetSchemaOptions): string {
@@ -27,7 +25,6 @@ function getSchema({
         !model.includes(`interface ${imp.alias || imp.name} {`),
     ),
     target,
-    specName,
     namingConvention,
   });
   file += imports.length > 0 ? '\n\n' : '\n';
@@ -56,7 +53,6 @@ interface WriteSchemaOptions {
   target: string;
   namingConvention: NamingConvention;
   fileExtension: string;
-  specName: string;
   header: string;
 }
 
@@ -66,7 +62,6 @@ export async function writeSchema({
   target,
   namingConvention,
   fileExtension,
-  specName,
   header,
 }: WriteSchemaOptions) {
   const name = conventionName(schema.name, namingConvention);
@@ -77,7 +72,6 @@ export async function writeSchema({
       getSchema({
         schema,
         target,
-        specName,
         header,
         namingConvention,
       }),
@@ -95,7 +89,6 @@ interface WriteSchemasOptions {
   target: string;
   namingConvention: NamingConvention;
   fileExtension: string;
-  specName: string;
   header: string;
   indexFiles: boolean;
 }
@@ -106,7 +99,6 @@ export async function writeSchemas({
   target,
   namingConvention,
   fileExtension,
-  specName,
   header,
   indexFiles,
 }: WriteSchemasOptions) {
@@ -118,7 +110,6 @@ export async function writeSchemas({
         target,
         namingConvention,
         fileExtension,
-        specName,
         header,
       });
     }),

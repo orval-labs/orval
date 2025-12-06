@@ -45,7 +45,6 @@ export async function writeSpecs(
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName ?? info.title;
-  const specName = projectName;
 
   const header = getHeader(output.override.header, info);
 
@@ -63,7 +62,6 @@ export async function writeSpecs(
       target,
       namingConvention: output.namingConvention,
       fileExtension,
-      specName,
       header,
       indexFiles: output.indexFiles,
     });

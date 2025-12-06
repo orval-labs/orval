@@ -12,7 +12,6 @@ import { conventionName } from '../utils';
 interface GenerateImportsOptions {
   imports: GeneratorImport[];
   target: string;
-  specName: string;
   namingConvention?: NamingConvention;
 }
 
