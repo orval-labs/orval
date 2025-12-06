@@ -1,4 +1,3 @@
-import { Banner } from '@/components/Banner';
 import { Footer } from '@/components/Footer';
 import { Nav } from '@/components/Nav';
 import { Seo } from '@/components/Seo';
@@ -32,7 +31,7 @@ const Home = (props) => {
           <div className="py-24 mx-auto container px-4 sm:mt-12  relative">
             <img
               src="/images/emblem.svg"
-              className="absolute transform right-0 top-5/12 h-0 lg:h-full scale-100 translate-x-1/12 -translate-y-1/4"
+              className="absolute transform right-0 top-1/2 h-0 lg:h-96 xl:h-full scale-100 translate-x-1/12 -translate-y-1/2"
               alt="orval Emblem"
             />
             <div className="grid grid-cols-12 lg:gap-8">
