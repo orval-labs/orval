@@ -6021,55 +6021,55 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@scalar/helpers@npm:0.1.2":
-  version: 0.1.2
-  resolution: "@scalar/helpers@npm:0.1.2"
-  checksum: 10c0/02b55a4e39fb3f734113fc4acbd9bd520abaafbafd1614c31bdebbee10ac26525c25bf616aab9aa7cbfae3f4f5af07a9c9a27d543b289924137223c0a13ac90e
+"@scalar/helpers@npm:0.1.3":
+  version: 0.1.3
+  resolution: "@scalar/helpers@npm:0.1.3"
+  checksum: 10c0/45d2958225836026f4fd49047b2b3340dc6791dd96233375fae5606b824135e3654157b2e621a1386fe5ec3ecccc305fd2e5ec27c48d3d685e06691337357bdd
   languageName: node
   linkType: hard
 
-"@scalar/json-magic@npm:0.8.2, @scalar/json-magic@npm:^0.8.2":
-  version: 0.8.2
-  resolution: "@scalar/json-magic@npm:0.8.2"
+"@scalar/json-magic@npm:0.8.3, @scalar/json-magic@npm:^0.8.3":
+  version: 0.8.3
+  resolution: "@scalar/json-magic@npm:0.8.3"
   dependencies:
-    "@scalar/helpers": "npm:0.1.2"
+    "@scalar/helpers": "npm:0.1.3"
     yaml: "npm:2.8.0"
-  checksum: 10c0/203ad125dcbaae4f10e6de00ec4eb06fb271c937c696ed6549a293a65061975762bc84c28371a5da8a1c6a1198310d7b5b1cfad6dac467b59be441514e6c5301
+  checksum: 10c0/e41b807dda89dfe1f06affa37bd22eba61e147f3def09fff67fc48220d301d1479bfa0af153414087cf944502902d7221a5836900a9be69e848a7c99e984068d
   languageName: node
   linkType: hard
 
-"@scalar/openapi-parser@npm:^0.23.3":
-  version: 0.23.3
-  resolution: "@scalar/openapi-parser@npm:0.23.3"
+"@scalar/openapi-parser@npm:^0.23.4":
+  version: 0.23.4
+  resolution: "@scalar/openapi-parser@npm:0.23.4"
   dependencies:
-    "@scalar/json-magic": "npm:0.8.2"
-    "@scalar/openapi-types": "npm:0.5.1"
-    "@scalar/openapi-upgrader": "npm:0.1.4"
+    "@scalar/json-magic": "npm:0.8.3"
+    "@scalar/openapi-types": "npm:0.5.2"
+    "@scalar/openapi-upgrader": "npm:0.1.5"
     ajv: "npm:^8.17.1"
     ajv-draft-04: "npm:^1.0.0"
     ajv-formats: "npm:^3.0.1"
     jsonpointer: "npm:^5.0.1"
     leven: "npm:^4.0.0"
     yaml: "npm:2.8.0"
-  checksum: 10c0/25f06e260637e444dc4241f064ef6d95b8455af18956a5a8139e3968ca0660fc75a1f053091d13e02b788b10540f8cbf0991511998f93443af0388cd303feeeb
+  checksum: 10c0/e75f8249c1d0a8b2241660316f42cf601084e988f24b84ca46195cba0c65dd2fa9a75d458811e07a8dff1b5f84d3c7f246ea14112948a047f60ff32be710ece1
   languageName: node
   linkType: hard
 
-"@scalar/openapi-types@npm:0.5.1":
-  version: 0.5.1
-  resolution: "@scalar/openapi-types@npm:0.5.1"
+"@scalar/openapi-types@npm:0.5.2":
+  version: 0.5.2
+  resolution: "@scalar/openapi-types@npm:0.5.2"
   dependencies:
     zod: "npm:4.1.11"
-  checksum: 10c0/99fee8b4d1df8cd8921a23a20af9e7917e3b3d54a1a86417d3ca3489923c839beefb44d12c10dcbe7f842c1e573b8b0bd272b93720db48adf3bb14411bf5a8d1
+  checksum: 10c0/1f89678e0cd680f7d55a20b5a3c65e5010668e91a1afc2bed04f1a7b028e04e75ed4e1a9e15701ff9f10d082087042d0055415aaaf7fb5d4c2c0c5aa49fbf30d
   languageName: node
   linkType: hard
 
-"@scalar/openapi-upgrader@npm:0.1.4":
-  version: 0.1.4
-  resolution: "@scalar/openapi-upgrader@npm:0.1.4"
+"@scalar/openapi-upgrader@npm:0.1.5":
+  version: 0.1.5
+  resolution: "@scalar/openapi-upgrader@npm:0.1.5"
   dependencies:
-    "@scalar/openapi-types": "npm:0.5.1"
-  checksum: 10c0/74129f3e375be030a97c67ac6f5234df6bf56fc1831eafb1510a281e96e7908c22b7d732780bede4fd165c974a2c45a9d61e6d971765245a426d9fdc6dc332e3
+    "@scalar/openapi-types": "npm:0.5.2"
+  checksum: 10c0/2ec7c206c6c74cf6b8721c59186b91472daf8f00542f26ac9f161d35e7199cd7d7348c2eb9e94fa912c576b3c98583dae15b1038373dac1706505ef85a6fec1b
   languageName: node
   linkType: hard
 
@@ -18242,8 +18242,8 @@ __metadata:
     "@orval/query": "workspace:*"
     "@orval/swr": "workspace:*"
     "@orval/zod": "workspace:*"
-    "@scalar/json-magic": "npm:^0.8.2"
-    "@scalar/openapi-parser": "npm:^0.23.3"
+    "@scalar/json-magic": "npm:^0.8.3"
+    "@scalar/openapi-parser": "npm:^0.23.4"
     "@scalar/openapi-types": "catalog:"
     "@types/fs-extra": "npm:^11.0.4"
     "@types/js-yaml": "npm:^4.0.9"
