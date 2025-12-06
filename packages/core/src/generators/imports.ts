@@ -200,7 +200,7 @@ export function addDependency({
   const groupedBySpecKey = toAdds.reduce<
     Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
   >((acc, dep) => {
-    const key = hasSchemaDir && dep.specKey ? dep.specKey : 'default';
+    const key = 'default';
 
     if (
       dep.values &&

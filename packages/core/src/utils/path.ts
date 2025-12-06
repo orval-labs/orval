@@ -59,21 +59,6 @@ export function relativeSafe(from: string, to: string) {
   return relativePath;
 }
 
-export function getSpecName(specKey: string, target: string) {
-  if (isUrl(specKey)) {
-    return specKey;
-  }
-
-  return (
-    '/' +
-    path
-      .normalize(path.relative(getFileInfo(target).dirname, specKey))
-      .split('../')
-      .join('')
-      .replace(`.${getExtension(specKey)}`, '')
-  );
-}
-
 export function getSchemaFileName(path: string) {
   return path
     .replace(`.${getExtension(path)}`, '')

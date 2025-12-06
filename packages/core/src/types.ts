@@ -752,7 +752,6 @@ export type GeneratorImport = {
   schemaName?: string;
   isConstant?: boolean;
   alias?: string;
-  specKey?: string;
   default?: boolean;
   values?: boolean;
   syntheticDefaultImport?: boolean;

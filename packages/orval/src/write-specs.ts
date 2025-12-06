@@ -45,8 +45,7 @@ export async function writeSpecs(
   const { info = { title: '', version: 0 }, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName ?? info.title;
-  const basePath = upath.getSpecName(target, target);
-  const specName = basePath.slice(1).split('/').join('-');
+  const specName = projectName;
 
   const header = getHeader(output.override.header, info);
 

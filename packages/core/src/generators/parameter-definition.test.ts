@@ -5,7 +5,6 @@ import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {
   const context: ContextSpec = {
-    specKey: 'testSpec',
     output: {
       override: {
         components: {

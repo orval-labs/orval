@@ -149,13 +149,12 @@ export function getObject({
           context,
         });
 
-        const isReadOnly =
-          item.readOnly || (schema as OpenApiSchemaObject).readOnly;
+        const isReadOnly = item.readOnly || schema.readOnly;
         if (!index) {
           acc.value += '{';
         }
 
-        const doc = jsDoc(schema as OpenApiSchemaObject, true, context);
+        const doc = jsDoc(schema, true, context);
 
         acc.hasReadonlyProps ||= isReadOnly || false;
 

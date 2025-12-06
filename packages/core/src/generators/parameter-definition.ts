@@ -44,7 +44,6 @@ export function generateParameterDefinition(
             ? [
                 {
                   name: imports[0].name,
-                  specKey: imports[0].specKey,
                   schemaName: imports[0].schemaName,
                 },
               ]

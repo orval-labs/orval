@@ -9,7 +9,6 @@ import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
   const context: ContextSpec = {
-    specKey: 'testSpec',
     output: {
       override: {},
     },
@@ -41,7 +40,6 @@ describe('generateInterface', () => {
       name: 'TestSchema',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
@@ -71,7 +69,6 @@ export type TestSchema = typeof TestSchemaValue;
       name: 'TestSchema',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
@@ -100,7 +97,6 @@ export type TestSchema = typeof TestSchemaValue;
       name: 'MyObject',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
@@ -127,7 +123,6 @@ export type TestSchema = typeof TestSchemaValue;
       name: 'MyObject',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
@@ -156,7 +151,6 @@ export type TestSchema = typeof TestSchemaValue;
       name: 'MyObject',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
@@ -185,7 +179,6 @@ export type TestSchema = typeof TestSchemaValue;
       name: 'MyObject',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
     const want: GeneratorSchema[] = [
       {
@@ -220,7 +213,6 @@ export type TestSchema = typeof TestSchemaValue;
       name: 'MyObject',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
-      suffix: '',
     });
 
     expect(got).toHaveLength(1);

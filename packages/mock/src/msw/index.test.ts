@@ -20,7 +20,6 @@ describe('generateMSW', () => {
     pathRoute: '/users/{id}',
     override: { operations: {}, tags: {} },
     context: {
-      specKey: 'test',
       specs: { test: {} },
       output: { override: {} },
     },

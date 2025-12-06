@@ -33,7 +33,6 @@ export interface RefInfo {
   name: string;
   originalName: string;
   refPaths?: string[];
-  specKey?: string;
 }
 /**
  * Return the output type from the $ref
@@ -80,16 +79,6 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
     };
   }
 
-  let path: string;
-
-  if (isUrl($ref)) {
-    path = $ref;
-  } else if (isUrl(context.specKey)) {
-    path = resolveUrl(context.specKey, pathname);
-  } else {
-    path = upath.resolve(getFileInfo(context.specKey).dirname, pathname);
-  }
-
   return {
     name: sanitize(pascal(originalName) + suffix, {
       es5keyword: true,
@@ -98,7 +87,6 @@ export function getRefInfo($ref: string, context: ContextSpec): RefInfo {
       dash: true,
     }),
     originalName,
-    specKey: path,
     refPaths,
   };
 }

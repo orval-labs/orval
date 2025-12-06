@@ -40,7 +40,6 @@ export async function getApiBuilder({
       const route = getRoute(pathRoute);
 
       let resolvedVerbs = verbs;
-      let resolvedContext = context;
 
       if (isReference(verbs)) {
         const { schema, imports } = resolveRef<OpenApiPathItemObject>(
@@ -49,15 +48,6 @@ export async function getApiBuilder({
         );
 
         resolvedVerbs = schema;
-
-        resolvedContext = {
-          ...context,
-          ...(imports.length > 0
-            ? {
-                specKey: imports[0].specKey,
-              }
-            : {}),
-        };
       }
 
       let verbsOptions = await generateVerbsOptions({
@@ -66,7 +56,7 @@ export async function getApiBuilder({
         output,
         route,
         pathRoute,
-        context: resolvedContext,
+        context,
       });
 
       // GitHub #564 check if we want to exclude deprecated operations
@@ -116,7 +106,7 @@ export async function getApiBuilder({
           route: fullRoute,
           pathRoute,
           override: output.override,
-          context: resolvedContext,
+          context,
           mock: output.mock,
           output: output.target,
         },

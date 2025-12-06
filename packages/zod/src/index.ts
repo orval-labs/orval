@@ -946,14 +946,7 @@ const dereference = (
     childContext,
   );
 
-  const resolvedSpecKey = refName
-    ? getRefInfo(refName, context).specKey
-    : undefined;
-
-  const resolvedContext: ContextSpec = {
-    ...childContext,
-    specKey: resolvedSpecKey ?? childContext.specKey,
-  };
+  const resolvedContext = childContext;
 
   return Object.entries(resolvedSchema).reduce<any>((acc, [key, value]) => {
     if (key === 'properties' && isObject(value)) {
@@ -1260,7 +1253,7 @@ const generateZodRoute = async (
   const spec = context.spec.paths?.[pathRoute];
 
   if (spec == undefined) {
-    throw new Error(`No such path ${pathRoute} in ${context.specKey}`);
+    throw new Error(`No such path ${pathRoute} in ${context.projectName}`);
   }
 
   const parameters = [

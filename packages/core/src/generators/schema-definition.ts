@@ -226,11 +226,7 @@ function generateSchemaDefinitions(
       );
 
       if (imp) {
-        const alias = imp?.specKey
-          ? `${pascal(upath.getSpecName(imp.specKey, context.specKey))}${
-              resolvedValue.value
-            }`
-          : `${resolvedValue.value}Bis`;
+        const alias = `${resolvedValue.value}Bis`;
 
         output += `export type ${sanitizedSchemaName} = ${alias};\n`;
 

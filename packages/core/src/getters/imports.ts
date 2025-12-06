@@ -1,6 +1,4 @@
 import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
-import { pascal } from '../utils';
-import { getSpecName } from '../utils/path';
 
 interface GetAliasedImportsOptions {
   name?: string;
@@ -27,18 +25,9 @@ export function getAliasedImports({
           return imp;
         }
 
-        const specName = pascal(
-          getSpecName(imp.specKey ?? '', context.specKey),
-        );
-
-        // for spec starts from digit
-        const normalizedSpecName = /^\d/.test(specName)
-          ? `__${specName}`
-          : specName;
-
         return {
           ...imp,
-          alias: `${normalizedSpecName}__${imp.name}`,
+          alias: `__${imp.name}`,
         };
       })
     : resolvedValue.imports;
@@ -56,14 +45,11 @@ export function needCreateImportAlias({
   name,
 }: NeedCreateImportAliasOptions): boolean {
   return (
-    !imp.alias &&
-    // !!imp.specKey &&
-    (imp.name === name ||
-      existingImports.some(
-        (existingImport) =>
-          imp.name === existingImport.name &&
-          imp.specKey !== existingImport.specKey,
-      ))
+    !imp.alias && imp.name === name
+    // ||
+    // existingImports.some(
+    //   (existingImport) => imp.name === existingImport.name,
+    // )
   );
 }
 
