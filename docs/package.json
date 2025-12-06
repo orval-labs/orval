@@ -29,7 +29,7 @@
     "copy-to-clipboard": "^3.3.3",
     "dedent": "^1.7.0",
     "docsearch.js": "^2.6.3",
-    "next": "16.0.0",
+    "next": "16.0.7",
     "orval": "^7.15.0",
     "prettier": "3.6.2",
     "prism-react-renderer": "^2.4.1",
