@@ -24,9 +24,14 @@ async function resolveSpec(
   },
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
-    plugins: [readFiles(), fetchUrls({
-      headers: parserOptions?.headers,
-    }), parseJson(), parseYaml()],
+    plugins: [
+      readFiles(),
+      fetchUrls({
+        headers: parserOptions?.headers,
+      }),
+      parseJson(),
+      parseYaml(),
+    ],
     treeShake: true,
   });
   const dereferencedData = dereferenceExternalRef(data);
