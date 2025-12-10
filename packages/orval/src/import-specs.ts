@@ -16,9 +16,17 @@ import { importOpenApi } from './import-open-api';
 
 async function resolveSpec(
   input: string | Record<string, unknown>,
+  parserOptions?: {
+    headers?: {
+      domains: string[];
+      headers: Record<string, string>;
+    }[];
+  },
 ): Promise<OpenApiDocument> {
   const data = await bundle(input, {
-    plugins: [readFiles(), fetchUrls(), parseJson(), parseYaml()],
+    plugins: [readFiles(), fetchUrls({
+      headers: parserOptions?.headers,
+    }), parseJson(), parseYaml()],
     treeShake: true,
   });
   const dereferencedData = dereferenceExternalRef(data);
@@ -39,7 +47,7 @@ export async function importSpecs(
 ): Promise<WriteSpecBuilder> {
   const { input, output } = options;
 
-  const spec = await resolveSpec(input.target);
+  const spec = await resolveSpec(input.target, input.parserOptions);
 
   return importOpenApi({
     spec,

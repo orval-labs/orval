@@ -144,6 +144,12 @@ export type NormalizedInputOptions = {
   target: string | OpenApiDocument;
   override: OverrideInput;
   filters?: InputFiltersOptions;
+  parserOptions?: {
+    headers?: {
+      domains: string[];
+      headers: Record<string, string>;
+    }[];
+  };
 };
 
 export type OutputClientFunc = (
@@ -229,6 +235,12 @@ export type InputOptions = {
   target: string | Record<string, unknown> | OpenApiDocument;
   override?: OverrideInput;
   filters?: InputFiltersOptions;
+  parserOptions?: {
+    headers?: {
+      domains: string[];
+      headers: Record<string, string>;
+    }[];
+  };
 };
 
 export const OutputClient = {
