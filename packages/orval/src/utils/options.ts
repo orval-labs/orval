@@ -163,6 +163,7 @@ export async function normalizeOptions(
         ),
       },
       filters: inputOptions.filters,
+      parserOptions: inputOptions.parserOptions,
     },
     output: {
       target: globalOptions.output
