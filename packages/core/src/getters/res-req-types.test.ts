@@ -79,9 +79,10 @@ describe('isBinaryContentType', () => {
 });
 
 describe('getResReqTypes (content type handling)', () => {
-  describe('media key precedence', () => {
-    it('binary media key overrides schema to Blob', () => {
-      const reqBody: [string, OpenApiRequestBodyObject][] = [
+  describe('media key precedence (type generation)', () => {
+    it('binary media key → Blob; text/JSON media key ignores contentMediaType', () => {
+      // Binary media key overrides schema to Blob
+      const binaryReq: [string, OpenApiRequestBodyObject][] = [
         [
           'requestBody',
           {
@@ -90,11 +91,10 @@ describe('getResReqTypes (content type handling)', () => {
           },
         ],
       ];
-      expect(getResReqTypes(reqBody, 'Body', context)[0].value).toBe('Blob');
-    });
+      expect(getResReqTypes(binaryReq, 'Body', context)[0].value).toBe('Blob');
 
-    it('text/JSON media key ignores contentMediaType', () => {
-      const reqBody: [string, OpenApiRequestBodyObject][] = [
+      // Text/JSON media key ignores contentMediaType (stays string)
+      const jsonReq: [string, OpenApiRequestBodyObject][] = [
         [
           'requestBody',
           {
@@ -107,12 +107,12 @@ describe('getResReqTypes (content type handling)', () => {
           },
         ],
       ];
-      expect(getResReqTypes(reqBody, 'Body', context)[0].value).toBe('string');
+      expect(getResReqTypes(jsonReq, 'Body', context)[0].value).toBe('string');
     });
   });
 
-  describe('FormData: encoding.contentType vs contentMediaType', () => {
-    // Comprehensive test: one schema with all combinations
+  describe('FormData generation (comprehensive)', () => {
+    // One schema covering all content type combinations
     const reqBody: [string, OpenApiRequestBodyObject][] = [
       [
         'requestBody',
@@ -122,19 +122,17 @@ describe('getResReqTypes (content type handling)', () => {
               schema: {
                 type: 'object',
                 properties: {
-                  // encoding.contentType takes precedence (binary → append directly)
                   encBinary: { type: 'string' },
-                  // encoding.contentType takes precedence (text → instanceof check)
                   encText: { type: 'string' },
-                  // No encoding, contentMediaType applies (binary → append directly)
                   cmtBinary: { type: 'string', contentMediaType: 'image/png' },
-                  // No encoding, contentMediaType applies (text → instanceof check)
                   cmtText: { type: 'string', contentMediaType: 'application/xml' },
-                  // encoding overrides conflicting contentMediaType
                   encOverride: { type: 'string', contentMediaType: 'image/png' },
-                  // format:binary (no encoding needed)
                   formatBinary: { type: 'string', format: 'binary' },
-                  // Object with encoding → JSON.stringify + Blob wrap
+                  base64Field: {
+                    type: 'string',
+                    contentMediaType: 'image/png',
+                    contentEncoding: 'base64',
+                  },
                   metadata: { type: 'object', properties: { name: { type: 'string' } } },
                 },
                 required: [
@@ -144,6 +142,7 @@ describe('getResReqTypes (content type handling)', () => {
                   'cmtText',
                   'encOverride',
                   'formatBinary',
+                  'base64Field',
                   'metadata',
                 ],
               },
@@ -160,49 +159,18 @@ describe('getResReqTypes (content type handling)', () => {
       ],
     ];
 
-    it('binary encoding.contentType appends directly', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      expect(formData).toMatch(/\.encBinary\)/);
-      expect(formData).not.toMatch(/encBinary.*instanceof/);
-    });
-
-    it('text encoding.contentType generates instanceof Blob check', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      expect(formData).toMatch(/encText.*instanceof Blob/);
-      expect(formData).toContain("type: 'text/plain'");
-    });
-
-    it('binary contentMediaType (no encoding) appends directly', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      expect(formData).toMatch(/\.cmtBinary\)/);
-      expect(formData).not.toMatch(/cmtBinary.*instanceof/);
-    });
-
-    it('text contentMediaType (no encoding) generates instanceof Blob check', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      expect(formData).toMatch(/cmtText.*instanceof Blob/);
-      expect(formData).toContain("type: 'application/xml'");
-    });
-
-    it('encoding.contentType overrides contentMediaType', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      // encOverride: contentMediaType=image/png but encoding=text/csv
-      // text/csv wins → instanceof check with text/csv
-      expect(formData).toMatch(/encOverride.*instanceof Blob/);
-      expect(formData).toContain("type: 'text/csv'");
-      expect(formData).not.toMatch(/encOverride.*image\/png/);
-    });
-
-    it('format:binary appends directly', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      expect(formData).toMatch(/\.formatBinary\)/);
-      expect(formData).not.toMatch(/formatBinary.*instanceof/);
-    });
-
-    it('object with encoding wraps in Blob with JSON.stringify', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData!;
-      expect(formData).toMatch(/new Blob\(\[JSON\.stringify\(.*metadata/);
-      expect(formData).toContain("type: 'application/json'");
+    it('generates correct FormData code for all content type combinations', () => {
+      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData;
+      expect(formData).toBe(`const formData = new FormData();
+formData.append(\`encBinary\`, bodyRequestBody.encBinary);
+formData.append(\`encText\`, bodyRequestBody.encText instanceof Blob ? bodyRequestBody.encText : new Blob([bodyRequestBody.encText], { type: 'text/plain' }));
+formData.append(\`cmtBinary\`, bodyRequestBody.cmtBinary);
+formData.append(\`cmtText\`, bodyRequestBody.cmtText instanceof Blob ? bodyRequestBody.cmtText : new Blob([bodyRequestBody.cmtText], { type: 'application/xml' }));
+formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? bodyRequestBody.encOverride : new Blob([bodyRequestBody.encOverride], { type: 'text/csv' }));
+formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
+formData.append(\`base64Field\`, bodyRequestBody.base64Field);
+formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
+`);
     });
   });
 });
