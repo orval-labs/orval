@@ -54,7 +54,7 @@ await generate(config);
 
 #### Global Options Override
 
-Pass global options to override config file settings. See the complete [GlobalOptions interface](https://github.com/orval-labs/orval/blob/706b86bdfdb39b3c150a62fbf3c4c74ca12a0c50/packages/core/src/types.ts#L718) for all available options.
+Pass global options to override config file settings. See the complete [GlobalOptions interface](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L718) for all available options.
 
 ```typescript
 import { generate, type GlobalOptions } from 'orval';
@@ -62,40 +62,51 @@ import { generate, type GlobalOptions } from 'orval';
 const globalOptions: GlobalOptions = {
   // File watching
   watch: true,                    // Enable watch mode (boolean)
-  watch: './specs/**/*.yaml',     // Watch specific file pattern (string)
-  watch: ['./specs/*.yaml', './src/types.ts'], // Watch multiple patterns (string[])
+  
+  // OR
+  // watch: './specs/**/*.yaml',     // Watch specific file pattern (string)
+  
+  // OR
+  // watch: ['./specs/*.yaml', './src/types.ts'], // Watch multiple patterns (string[])
   
   // Output control
   clean: true,                    // Clean all output directories (boolean)
-  clean: ['./src/api', './types'], // Clean specific directories (string[])
+  
+  // OR
+  // clean: ['./src/api', './types'], // Clean specific directories (string[])
+  
   output: './src/generated',      // Override output directory
   
   // Code formatting
-  prettier: true,                 // Format with Prettier
-  biome: true,                   // Format with Biome (alternative to Prettier)
+  prettier: true,                 // Format with Prettier [Pretter Output Options](https://orval.dev/reference/configuration/output#prettier)
+  biome: true,                   // Format with Biome [Biome Output Options](https://orval.dev/reference/configuration/output#biome)
   
-  // HTTP client configuration
-  client: 'fetch',               // Override HTTP client: 'axios' | 'angular' | 'fetch' | 'swr' | 'react-query' | 'vue-query' | 'svelte-query'
-  httpClient: 'fetch',           // HTTP implementation: 'axios' | 'fetch'
+  // HTTP client configuration 
+  client: 'fetch',               // Override HTTP client: 'axios' | 'angular' | 'fetch' | 'swr' | 'react-query' | 'vue-query' | 'svelte-query' [Client Output Options](https://orval.dev/reference/configuration/output#client)
+  httpClient: 'fetch',           // HTTP implementation: 'axios' | 'fetch' [HttpClient Output Options](https://orval.dev/reference/configuration/output#httpclient)
   
   // Generation mode
   mode: 'split',                 // Output mode: 'single' | 'split' | 'tags' | 'tags-split'
   
   // Mock data generation
   mock: true,                    // Enable mock data generation (boolean)
-  mock: {                        // Configure mock options (GlobalMockOptions)
-    type: 'msw',
-    delay: 1000,
-  },
+  
+  // OR 
+  // mock: {                        // Configure mock options (GlobalMockOptions)
+  //   type: 'msw',
+  //   delay: 1000,
+  // },
   
   // TypeScript configuration
+  // Use EITHER a custom tsconfig path (string)... 
   tsconfig: './tsconfig.json',   // Custom tsconfig path (string)
-  tsconfig: {                    // Inline tsconfig (Tsconfig object)
-    compilerOptions: {
-      target: 'ES2020',
-      esModuleInterop: true,
-    },
-  },
+  // ...OR an inline tsconfig object:  
+  // tsconfig: {  
+  //   compilerOptions: {  
+  //     target: 'ES2020',  
+  //     esModuleInterop: true,  
+  //   },  
+  // },
   
   // Package configuration
   packageJson: './package.json', // Custom package.json path
