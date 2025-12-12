@@ -150,8 +150,9 @@ export function getObject({
           context,
         });
 
-        // encoding.contentType takes precedence over contentMediaType (applied in getScalar).
-        // Skip if: $ref (can't inspect), has format (already Blob), or has contentEncoding (stays string).
+        // encoding.contentType overrides contentMediaType (already applied in getScalar).
+        // Skip if: $ref, has format (already Blob), or has contentEncoding (encoded string).
+        // Binary → Blob; Text → Blob | string (allows passing string, runtime wraps in Blob)
         const encodingContentType = context.encoding?.[key]?.contentType;
         if (
           encodingContentType &&

@@ -133,15 +133,16 @@ export function getScalar({
         value = 'Blob';
       }
 
-      // contentMediaType presence indicates media/file content
-      // But if contentEncoding is present (e.g., base64), it's an encoded string, not Blob
-      // Per OAS 3.1: contentMediaType SHALL be ignored if it contradicts the media key
+      // OAS 3.1 contentMediaType replaces format: binary (but with specific MIME type).
+      // If contentEncoding is present (e.g., base64), it's an encoded string, not Blob.
+      // Per OAS 3.1: contentMediaType SHALL be ignored if it contradicts the media key.
+      // Binary MIME → Blob; Text MIME → Blob | string (user can pass string, runtime wraps in Blob)
       if (
         item.contentMediaType &&
+        !item.format &&
         !item.contentEncoding &&
         !context.mediaKeyIsText
       ) {
-        // Binary MIME → Blob only; Text MIME → Blob | string (can pass string, runtime wraps)
         value = isBinaryContentType(item.contentMediaType)
           ? 'Blob'
           : 'Blob | string';
