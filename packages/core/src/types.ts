@@ -704,6 +704,10 @@ export interface ContextSpec {
   spec: OpenApiDocument;
   parents?: string[];
   output: NormalizedOutputOptions;
+  /** OpenAPI Encoding Object from multipart/form-data, keyed by field name */
+  encoding?: Record<string, OpenApiEncodingObject>;
+  /** True for text/JSON media keys (contentMediaType would be ignored per OAS 3.1) */
+  mediaKeyIsText?: boolean;
 }
 
 export interface GlobalOptions {
@@ -1240,4 +1244,5 @@ export type OpenApiInfoObject = OpenAPIV3_1.InfoObject;
 export type OpenApiExampleObject = OpenAPIV3_1.ExampleObject;
 export type OpenApiOperationObject = OpenAPIV3_1.OperationObject;
 export type OpenApiMediaTypeObject = OpenAPIV3_1.MediaTypeObject;
+export type OpenApiEncodingObject = OpenAPIV3_1.EncodingObject;
 export type OpenApiServerObject = OpenAPIV3_1.ServerObject;

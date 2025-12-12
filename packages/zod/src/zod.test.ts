@@ -4262,3 +4262,47 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     expect(uniqueConstNames.size).toBe(allConstNames.length);
   });
 });
+
+describe('generateZodValidationSchemaDefinition (contentMediaType)', () => {
+  const context = { output: { override: { useDates: false } } } as ContextSpec;
+
+  it('binary contentMediaType → instanceof(File) only', () => {
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', contentMediaType: 'application/pdf' },
+      context,
+      'BinaryFile',
+      false,
+      false,
+      { required: true },
+    );
+    const parsed = parseZodValidationSchemaDefinition(result, context, false, false, false);
+    expect(parsed.zod).toBe('zod.instanceof(File)');
+  });
+
+  it('text contentMediaType → instanceof(File).or(string())', () => {
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', contentMediaType: 'text/plain' },
+      context,
+      'TextFile',
+      false,
+      false,
+      { required: true },
+    );
+    const parsed = parseZodValidationSchemaDefinition(result, context, false, false, false);
+    expect(parsed.zod).toBe('zod.instanceof(File).or(zod.string())');
+  });
+
+  it('contentEncoding present → stays string (base64 encoded)', () => {
+    const result = generateZodValidationSchemaDefinition(
+      { type: 'string', contentMediaType: 'image/png', contentEncoding: 'base64' },
+      context,
+      'Base64Image',
+      false,
+      false,
+      { required: true },
+    );
+    const parsed = parseZodValidationSchemaDefinition(result, context, false, false, false);
+    expect(parsed.zod).not.toContain('instanceof');
+    expect(parsed.zod).toContain('string');
+  });
+});
