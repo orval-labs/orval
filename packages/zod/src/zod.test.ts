@@ -4275,7 +4275,13 @@ describe('generateZodValidationSchemaDefinition (contentMediaType)', () => {
       false,
       { required: true },
     );
-    const parsed = parseZodValidationSchemaDefinition(result, context, false, false, false);
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
     expect(parsed.zod).toBe('zod.instanceof(File)');
   });
 
@@ -4288,20 +4294,36 @@ describe('generateZodValidationSchemaDefinition (contentMediaType)', () => {
       false,
       { required: true },
     );
-    const parsed = parseZodValidationSchemaDefinition(result, context, false, false, false);
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
     expect(parsed.zod).toBe('zod.instanceof(File).or(zod.string())');
   });
 
   it('contentEncoding present → stays string (base64 encoded)', () => {
     const result = generateZodValidationSchemaDefinition(
-      { type: 'string', contentMediaType: 'image/png', contentEncoding: 'base64' },
+      {
+        type: 'string',
+        contentMediaType: 'image/png',
+        contentEncoding: 'base64',
+      },
       context,
       'Base64Image',
       false,
       false,
       { required: true },
     );
-    const parsed = parseZodValidationSchemaDefinition(result, context, false, false, false);
+    const parsed = parseZodValidationSchemaDefinition(
+      result,
+      context,
+      false,
+      false,
+      false,
+    );
     expect(parsed.zod).not.toContain('instanceof');
     expect(parsed.zod).toContain('string');
   });

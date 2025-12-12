@@ -86,7 +86,9 @@ describe('getResReqTypes (content type handling)', () => {
         [
           'requestBody',
           {
-            content: { 'application/octet-stream': { schema: { type: 'string' } } },
+            content: {
+              'application/octet-stream': { schema: { type: 'string' } },
+            },
             required: true,
           },
         ],
@@ -125,15 +127,24 @@ describe('getResReqTypes (content type handling)', () => {
                   encBinary: { type: 'string' },
                   encText: { type: 'string' },
                   cmtBinary: { type: 'string', contentMediaType: 'image/png' },
-                  cmtText: { type: 'string', contentMediaType: 'application/xml' },
-                  encOverride: { type: 'string', contentMediaType: 'image/png' },
+                  cmtText: {
+                    type: 'string',
+                    contentMediaType: 'application/xml',
+                  },
+                  encOverride: {
+                    type: 'string',
+                    contentMediaType: 'image/png',
+                  },
                   formatBinary: { type: 'string', format: 'binary' },
                   base64Field: {
                     type: 'string',
                     contentMediaType: 'image/png',
                     contentEncoding: 'base64',
                   },
-                  metadata: { type: 'object', properties: { name: { type: 'string' } } },
+                  metadata: {
+                    type: 'object',
+                    properties: { name: { type: 'string' } },
+                  },
                 },
                 required: [
                   'encBinary',
