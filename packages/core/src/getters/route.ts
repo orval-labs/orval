@@ -1,7 +1,9 @@
-import type { ServerObject } from 'openapi3-ts/oas31';
-
 import { TEMPLATE_TAG_REGEX } from '../constants';
-import type { BaseUrlFromConstant, BaseUrlFromSpec } from '../types';
+import type {
+  BaseUrlFromConstant,
+  BaseUrlFromSpec,
+  OpenApiServerObject,
+} from '../types';
 import { camel, sanitize } from '../utils';
 
 const TEMPLATE_TAG_IN_PATH_REGEX = /\/([\w]+)(?:\$\{)/g; // all dynamic parts of path
@@ -26,7 +28,7 @@ const getRoutePath = (path: string): string => {
     : `${prev}${param}${next}`;
 };
 
-export const getRoute = (route: string) => {
+export function getRoute(route: string) {
   const splittedRoute = route.split('/');
 
   return splittedRoute.reduce((acc, path, i) => {
@@ -40,13 +42,13 @@ export const getRoute = (route: string) => {
 
     return `${acc}/${getRoutePath(path)}`;
   }, '');
-};
+}
 
-export const getFullRoute = (
+export function getFullRoute(
   route: string,
-  servers: ServerObject[] | undefined,
+  servers: OpenApiServerObject[] | undefined,
   baseUrl: string | BaseUrlFromConstant | BaseUrlFromSpec | undefined,
-): string => {
+): string {
   const getBaseUrl = (): string => {
     if (!baseUrl) return '';
     if (typeof baseUrl === 'string') return baseUrl;
@@ -94,11 +96,11 @@ export const getFullRoute = (
     fullRoute = `${base}${fullRoute}`;
   }
   return fullRoute;
-};
+}
 
 // Creates a mixed use array with path variables and string from template string route
-export const getRouteAsArray = (route: string): string =>
-  route
+export function getRouteAsArray(route: string): string {
+  return route
     .replaceAll(TEMPLATE_TAG_IN_PATH_REGEX, '/$1/${')
     .split('/')
     .filter((i) => i !== '')
@@ -108,3 +110,4 @@ export const getRouteAsArray = (route: string): string =>
     )
     .join(',')
     .replace(',,', '');
+}

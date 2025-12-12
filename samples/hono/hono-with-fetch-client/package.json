@@ -1,6 +1,6 @@
 {
   "name": "hono-with-fetch-client",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,5 +9,5 @@
   "devDependencies": {
     "orval": "workspace:*"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

@@ -1,19 +1,17 @@
 import { keyword } from 'esutils';
-import type {
-  MediaTypeObject,
-  ReferenceObject,
-  RequestBodyObject,
-  ResponseObject,
-  SchemaObject,
-} from 'openapi3-ts/oas30';
 import { uniqueBy } from 'remeda';
 
 import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
-  type ContextSpecs,
+  type ContextSpec,
   FormDataArrayHandling,
   type GeneratorImport,
+  type OpenApiMediaTypeObject,
+  type OpenApiReferenceObject,
+  type OpenApiRequestBodyObject,
+  type OpenApiResponseObject,
+  type OpenApiSchemaObject,
   type ResReqTypesValue,
 } from '../types';
 import { camel } from '../utils';
@@ -27,15 +25,17 @@ const formUrlEncodedContentTypes = new Set([
   'application/x-www-form-urlencoded',
 ]);
 
-const getResReqContentTypes = ({
+interface GetResReqContentTypesOptions {
+  mediaType: OpenApiMediaTypeObject;
+  propName?: string;
+  context: ContextSpec;
+}
+
+function getResReqContentTypes({
   mediaType,
   propName,
   context,
-}: {
-  mediaType: MediaTypeObject;
-  propName?: string;
-  context: ContextSpecs;
-}) => {
+}: GetResReqContentTypesOptions) {
   if (!mediaType.schema) {
     return;
   }
@@ -47,30 +47,33 @@ const getResReqContentTypes = ({
   });
 
   return resolvedObject;
-};
+}
 
-export const getResReqTypes = (
+export function getResReqTypes(
   responsesOrRequests: [
     string,
-    ResponseObject | ReferenceObject | RequestBodyObject,
+    OpenApiReferenceObject | OpenApiResponseObject | OpenApiRequestBodyObject,
   ][],
   name: string,
-  context: ContextSpecs,
+  context: ContextSpec,
   defaultType = 'unknown',
   uniqueKey: (
     item: ResReqTypesValue,
     index: number,
     data: ResReqTypesValue[],
   ) => unknown = (item) => item.value,
-): ResReqTypesValue[] => {
+): ResReqTypesValue[] {
   const typesArray = responsesOrRequests
     .filter(([_, res]) => Boolean(res))
     .map(([key, res]) => {
       if (isReference(res)) {
         const {
           schema: bodySchema,
-          imports: [{ name, specKey, schemaName }],
-        } = resolveRef<RequestBodyObject | ResponseObject>(res, context);
+          imports: [{ name, schemaName }],
+        } = resolveRef<OpenApiRequestBodyObject | OpenApiResponseObject>(
+          res,
+          context,
+        );
 
         const [contentType, mediaType] =
           Object.entries(bodySchema.content ?? {})[0] ?? [];
@@ -78,19 +81,19 @@ export const getResReqTypes = (
         const isFormData = formDataContentTypes.has(contentType);
         const isFormUrlEncoded = formUrlEncodedContentTypes.has(contentType);
 
-        if ((!isFormData && !isFormUrlEncoded) || !mediaType?.schema) {
+        if ((!isFormData && !isFormUrlEncoded) || !mediaType.schema) {
           return [
             {
               value: name,
-              imports: [{ name, specKey, schemaName }],
+              imports: [{ name, schemaName }],
               schemas: [],
               type: 'unknown',
               isEnum: false,
               isRef: true,
               hasReadonlyProps: false,
-              originalSchema: mediaType?.schema,
-              example: mediaType?.example,
-              examples: resolveExampleRefs(mediaType?.examples, context),
+              originalSchema: mediaType.schema,
+              example: mediaType.example,
+              examples: resolveExampleRefs(mediaType.examples, context),
               key,
               contentType,
             },
@@ -100,11 +103,8 @@ export const getResReqTypes = (
         const formData = isFormData
           ? getSchemaFormDataAndUrlEncoded({
               name,
-              schemaObject: mediaType?.schema,
-              context: {
-                ...context,
-                specKey: specKey || context.specKey,
-              },
+              schemaObject: mediaType.schema,
+              context,
               isRequestBodyOptional:
                 // Even though required is false by default, we only consider required to be false if specified. (See pull 1277)
                 'required' in bodySchema && bodySchema.required === false,
@@ -115,11 +115,8 @@ export const getResReqTypes = (
         const formUrlEncoded = isFormUrlEncoded
           ? getSchemaFormDataAndUrlEncoded({
               name,
-              schemaObject: mediaType?.schema,
-              context: {
-                ...context,
-                specKey: specKey || context.specKey,
-              },
+              schemaObject: mediaType.schema,
+              context,
               isRequestBodyOptional:
                 'required' in bodySchema && bodySchema.required === false,
               isUrlEncoded: true,
@@ -128,17 +125,14 @@ export const getResReqTypes = (
           : undefined;
 
         const additionalImports = getFormDataAdditionalImports({
-          schemaObject: mediaType?.schema,
-          context: {
-            ...context,
-            specKey: specKey || context.specKey,
-          },
+          schemaObject: mediaType.schema,
+          context,
         });
 
         return [
           {
             value: name,
-            imports: [{ name, specKey, schemaName }, ...additionalImports],
+            imports: [{ name, schemaName }, ...additionalImports],
             schemas: [],
             type: 'unknown',
             isEnum: false,
@@ -146,7 +140,7 @@ export const getResReqTypes = (
             formData,
             formUrlEncoded,
             isRef: true,
-            originalSchema: mediaType?.schema,
+            originalSchema: mediaType.schema,
             example: mediaType.example,
             examples: resolveExampleRefs(mediaType.examples, context),
             key,
@@ -171,6 +165,21 @@ export const getResReqTypes = (
             });
 
             if (!resolvedValue) {
+              // openapi spec 3.1 allows describing binary responses with only a content type
+              if (isBinaryContentType(contentType)) {
+                return {
+                  value: 'Blob',
+                  imports: [],
+                  schemas: [],
+                  type: 'Blob',
+                  isEnum: false,
+                  key,
+                  isRef: false,
+                  hasReadonlyProps: false,
+                  contentType,
+                };
+              }
+
               return;
             }
 
@@ -246,16 +255,57 @@ export const getResReqTypes = (
     });
 
   return uniqueBy(typesArray.flat(), uniqueKey);
-};
+}
 
-const getFormDataAdditionalImports = ({
+function isBinaryContentType(contentType: string): boolean {
+  if (contentType === 'application/octet-stream') return true;
+
+  if (contentType.startsWith('image/')) return true;
+  if (contentType.startsWith('audio/')) return true;
+  if (contentType.startsWith('video/')) return true;
+  if (contentType.startsWith('font/')) return true;
+
+  // text-based suffixes (RFC 6838)
+  const textSuffixes = [
+    '+json',
+    '-json',
+    '+xml',
+    '-xml',
+    '+yaml',
+    '-yaml',
+    '+rss',
+    '-rss',
+    '+csv',
+    '-csv',
+  ];
+  if (textSuffixes.some((suffix) => contentType.includes(suffix))) {
+    return false;
+  }
+
+  // text-based whitelist - these as NOT binary
+  const textApplicationTypes = new Set([
+    'application/json',
+    'application/xml',
+    'application/yaml',
+    'application/x-www-form-urlencoded',
+    'application/javascript',
+    'application/ecmascript',
+    'application/graphql',
+  ]);
+
+  return !textApplicationTypes.has(contentType);
+}
+
+interface GetFormDataAdditionalImportsOptions {
+  schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
+  context: ContextSpec;
+}
+
+function getFormDataAdditionalImports({
   schemaObject,
   context,
-}: {
-  schemaObject: SchemaObject | ReferenceObject;
-  context: ContextSpecs;
-}): GeneratorImport[] => {
-  const { schema } = resolveRef<SchemaObject>(schemaObject, context);
+}: GetFormDataAdditionalImportsOptions): GeneratorImport[] {
+  const { schema } = resolveRef<OpenApiSchemaObject>(schemaObject, context);
 
   if (schema.type !== 'object') {
     return [];
@@ -268,26 +318,33 @@ const getFormDataAdditionalImports = ({
   }
 
   return combinedSchemas
-    .map((schema) => resolveRef<SchemaObject>(schema, context).imports[0])
+    .map(
+      (schema) => resolveRef<OpenApiSchemaObject>(schema, context).imports[0],
+    )
     .filter(Boolean);
-};
+}
 
-const getSchemaFormDataAndUrlEncoded = ({
+interface GetSchemaFormDataAndUrlEncodedOptions {
+  name: string;
+  schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
+  context: ContextSpec;
+  isRequestBodyOptional: boolean;
+  isUrlEncoded?: boolean;
+  isRef?: boolean;
+}
+
+function getSchemaFormDataAndUrlEncoded({
   name,
   schemaObject,
   context,
   isRequestBodyOptional,
   isUrlEncoded,
   isRef,
-}: {
-  name: string;
-  schemaObject: SchemaObject | ReferenceObject;
-  context: ContextSpecs;
-  isRequestBodyOptional: boolean;
-  isUrlEncoded?: boolean;
-  isRef?: boolean;
-}): string => {
-  const { schema, imports } = resolveRef<SchemaObject>(schemaObject, context);
+}: GetSchemaFormDataAndUrlEncodedOptions): string {
+  const { schema, imports } = resolveRef<OpenApiSchemaObject>(
+    schemaObject,
+    context,
+  );
   const propName = camel(
     !isRef && isReference(schemaObject) ? imports[0].name : name,
   );
@@ -308,10 +365,8 @@ const getSchemaFormDataAndUrlEncoded = ({
 
       const combinedSchemasFormData = combinedSchemas!
         .map((schema) => {
-          const { schema: combinedSchema, imports } = resolveRef<SchemaObject>(
-            schema,
-            context,
-          );
+          const { schema: combinedSchema, imports } =
+            resolveRef<OpenApiSchemaObject>(schema, context);
 
           let newPropName = propName;
           let newPropDefinition = '';
@@ -359,7 +414,7 @@ const getSchemaFormDataAndUrlEncoded = ({
   if (schema.type === 'array') {
     let valueStr = 'value';
     if (schema.items) {
-      const { schema: itemSchema } = resolveRef<SchemaObject>(
+      const { schema: itemSchema } = resolveRef<OpenApiSchemaObject>(
         schema.items,
         context,
       );
@@ -386,9 +441,19 @@ const getSchemaFormDataAndUrlEncoded = ({
   }
 
   return `${form}${variableName}.append('data', ${propName})\n`;
-};
+}
 
-const resolveSchemaPropertiesToFormData = ({
+interface ResolveSchemaPropertiesToFormDataOptions {
+  schema: OpenApiSchemaObject;
+  variableName: string;
+  propName: string;
+  context: ContextSpec;
+  isRequestBodyOptional: boolean;
+  keyPrefix?: string;
+  depth?: number;
+}
+
+function resolveSchemaPropertiesToFormData({
   schema,
   variableName,
   propName,
@@ -396,18 +461,13 @@ const resolveSchemaPropertiesToFormData = ({
   isRequestBodyOptional,
   keyPrefix = '',
   depth = 0,
-}: {
-  schema: SchemaObject;
-  variableName: string;
-  propName: string;
-  context: ContextSpecs;
-  isRequestBodyOptional: boolean;
-  keyPrefix?: string;
-  depth?: number;
-}) => {
+}: ResolveSchemaPropertiesToFormDataOptions): string {
   const formDataValues = Object.entries(schema.properties ?? {}).reduce(
     (acc, [key, value]) => {
-      const { schema: property } = resolveRef<SchemaObject>(value, context);
+      const { schema: property } = resolveRef<OpenApiSchemaObject>(
+        value,
+        context,
+      );
 
       // Skip readOnly properties for formData
       if (property.readOnly) {
@@ -446,7 +506,7 @@ const resolveSchemaPropertiesToFormData = ({
         let valueStr = 'value';
         let hasNonPrimitiveChild = false;
         if (property.items) {
-          const { schema: itemSchema } = resolveRef<SchemaObject>(
+          const { schema: itemSchema } = resolveRef<OpenApiSchemaObject>(
             property.items,
             context,
           );
@@ -555,4 +615,4 @@ const resolveSchemaPropertiesToFormData = ({
   );
 
   return formDataValues;
-};
+}

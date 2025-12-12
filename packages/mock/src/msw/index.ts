@@ -17,9 +17,9 @@ import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
-const getMSWDependencies = (
+function getMSWDependencies(
   options?: GlobalMockOptions,
-): GeneratorDependency[] => {
+): GeneratorDependency[] {
   const hasDelay = options?.delay !== false;
   const locale = options?.locale;
 
@@ -42,12 +42,12 @@ const getMSWDependencies = (
         : '@faker-js/faker',
     },
   ];
-};
+}
 
 export const generateMSWImports: GenerateMockImports = ({
   implementation,
   imports,
-  specsName,
+  projectName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   options,
@@ -55,13 +55,13 @@ export const generateMSWImports: GenerateMockImports = ({
   return generateDependencyImports(
     implementation,
     [...getMSWDependencies(options), ...imports],
-    specsName,
+    projectName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );
 };
 
-const generateDefinition = (
+function generateDefinition(
   name: string,
   route: string,
   getResponseMockFunctionNameBase: string,
@@ -74,7 +74,7 @@ const generateDefinition = (
   responses: ResReqTypesValue[],
   contentTypes: string[],
   splitMockImplementations: string[],
-) => {
+) {
   const oldSplitMockImplementations = [...splitMockImplementations];
   const { definitions, definition, imports } = getMockDefinition({
     operationId,
@@ -134,7 +134,9 @@ const generateDefinition = (
   const handlerImplementation = `
 export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
-    typeof delay === 'number' ? `await delay(${delay});` : ''
+    delay === false
+      ? ''
+      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
@@ -175,12 +177,12 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
     },
     imports: includeResponseImports,
   };
-};
+}
 
-export const generateMSW = (
+export function generateMSW(
   generatorVerbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
-): ClientMockGeneratorBuilder => {
+): ClientMockGeneratorBuilder {
   const { pathRoute, override, mock } = generatorOptions;
   const { operationId, response } = generatorVerbOptions;
 
@@ -250,4 +252,4 @@ export const generateMSW = (
     },
     imports: imports,
   };
-};
+}

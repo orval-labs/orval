@@ -1,24 +1,25 @@
-import type { ResponsesObject } from 'openapi3-ts/oas30';
-
 import type {
-  ContextSpecs,
+  ContextSpec,
   GetterResponse,
+  OpenApiResponsesObject,
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
 import { getResReqTypes } from './res-req-types';
 
-export const getResponse = ({
+interface GetResponseOptions {
+  responses: OpenApiResponsesObject;
+  operationName: string;
+  context: ContextSpec;
+  contentType?: OverrideOutputContentType;
+}
+
+export function getResponse({
   responses,
   operationName,
   context,
   contentType,
-}: {
-  responses: ResponsesObject;
-  operationName: string;
-  context: ContextSpecs;
-  contentType?: OverrideOutputContentType;
-}): GetterResponse => {
+}: GetResponseOptions): GetterResponse {
   if (!responses) {
     return {
       imports: [],
@@ -99,4 +100,4 @@ export const getResponse = ({
     schemas,
     originalSchema: responses,
   };
-};
+}

@@ -1,6 +1,6 @@
 {
   "name": "@orval/swr",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -18,6 +18,7 @@
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
     "lint": "eslint .",
+    "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -28,7 +29,8 @@
   "devDependencies": {
     "eslint": "catalog:",
     "rimraf": "catalog:",
-    "tsdown": "catalog:"
+    "tsdown": "catalog:",
+    "vitest": "catalog:"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

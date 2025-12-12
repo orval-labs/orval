@@ -12,7 +12,7 @@ export default (inputSchema) => ({
   ...inputSchema,
   paths: Object.fromEntries(
     Object.entries(inputSchema.paths).map(([path, pathItem]) => [
-      `v{version}${path}`,
+      `/v{version}${path}`,
       Object.fromEntries(
         Object.entries(pathItem).map(([verb, operation]) => [
           verb,

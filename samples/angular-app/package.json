@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -16,7 +16,7 @@
   "private": true,
   "dependencies": {
     "@angular/common": "catalog:angular",
-    "@angular/compiler": "^20.3.0",
+    "@angular/compiler": "^20.3.15",
     "@angular/core": "catalog:angular",
     "@angular/forms": "^20.3.0",
     "@angular/platform-browser": "^20.3.0",
@@ -45,5 +45,5 @@
       "public"
     ]
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

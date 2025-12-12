@@ -3,11 +3,11 @@ import { uniqueBy } from 'remeda';
 import type { GeneratorImport, NormalizedOutputOptions } from '../types';
 import { conventionName, upath } from '../utils';
 
-export const generateImportsForBuilder = (
+export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
   relativeSchemasPath: string,
-) => {
+) {
   return output.schemas && !output.indexFiles
     ? uniqueBy(imports, (x) => x.name).map((i) => {
         const name = conventionName(i.name, output.namingConvention);
@@ -17,4 +17,4 @@ export const generateImportsForBuilder = (
         };
       })
     : [{ exports: imports, dependency: relativeSchemasPath }];
-};
+}

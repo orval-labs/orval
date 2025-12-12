@@ -276,4 +276,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  requestOptionsHeaders: {
+    output: {
+      target: '../generated/fetch/request-options-headers/endpoints.ts',
+      schemas: '../generated/fetch/request-options-headers/model',
+      client: 'fetch',
+      override: {
+        requestOptions: {
+          headers: {
+            Authorization: "Bearer ${process.env.API_TOKEN || ''}",
+            'X-Static-Header': 'static-value',
+          },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -1,7 +1,7 @@
 {
   "name": "swr-with-fetch-client",
   "private": true,
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -19,7 +19,7 @@
     "@faker-js/faker": "^10.1.0",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.46.4",
     "@vitejs/plugin-react": "^5.1.0",
     "eslint": "^9.39.1",
@@ -29,5 +29,5 @@
     "typescript": "~5.8.3",
     "vite": "^7.2.2"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

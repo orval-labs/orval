@@ -1,23 +1,26 @@
-import type { ParameterObject, ReferenceObject } from 'openapi3-ts/oas30';
-
 import { resolveRef } from '../resolvers/ref';
-import type { ContextSpecs, GetterParameters } from '../types';
+import type {
+  ContextSpec,
+  GetterParameters,
+  OpenApiParameterObject,
+  OpenApiReferenceObject,
+} from '../types';
 import { isReference } from '../utils';
 
-export const getParameters = ({
+interface GetParametersOptions {
+  parameters: (OpenApiReferenceObject | OpenApiParameterObject)[];
+  context: ContextSpec;
+}
+
+export function getParameters({
   parameters = [],
   context,
-}: {
-  parameters: (ReferenceObject | ParameterObject)[];
-  context: ContextSpecs;
-}): GetterParameters => {
+}: GetParametersOptions): GetterParameters {
   return parameters.reduce<GetterParameters>(
     (acc, p) => {
       if (isReference(p)) {
-        const { schema: parameter, imports } = resolveRef<ParameterObject>(
-          p,
-          context,
-        );
+        const { schema: parameter, imports } =
+          resolveRef<OpenApiParameterObject>(p, context);
 
         if (
           parameter.in === 'path' ||
@@ -40,4 +43,4 @@ export const getParameters = ({
       header: [],
     },
   );
-};
+}

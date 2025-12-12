@@ -1,21 +1,26 @@
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
-import type { ContextSpecs, ResolverValue } from '../types';
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ResolverValue,
+} from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
 
-const resolveObjectOriginal = ({
+interface ResolveOptions {
+  schema: OpenApiSchemaObject | OpenApiReferenceObject;
+  propName?: string;
+  combined?: boolean;
+  context: ContextSpec;
+}
+
+function resolveObjectOriginal({
   schema,
   propName,
   combined = false,
   context,
-}: {
-  schema: SchemaObject | ReferenceObject;
-  propName?: string;
-  combined?: boolean;
-  context: ContextSpecs;
-}): ResolverValue => {
+}: ResolveOptions): ResolverValue {
   const resolvedValue = resolveValue({
     schema,
     name: propName,
@@ -49,6 +54,7 @@ const resolveObjectOriginal = ({
           name: propName,
           model,
           imports: resolvedValue.imports,
+          dependencies: resolvedValue.dependencies,
         },
       ],
       isEnum: false,
@@ -56,6 +62,7 @@ const resolveObjectOriginal = ({
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+      dependencies: resolvedValue.dependencies,
     };
   }
 
@@ -78,6 +85,7 @@ const resolveObjectOriginal = ({
           name: propName,
           model: doc + enumValue,
           imports: resolvedValue.imports,
+          dependencies: resolvedValue.dependencies,
         },
       ],
       isEnum: false,
@@ -85,33 +93,31 @@ const resolveObjectOriginal = ({
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+      dependencies: resolvedValue.dependencies,
     };
   }
 
   return resolvedValue;
-};
+}
 
 const resolveObjectCacheMap = new Map<string, ResolverValue>();
 
-export const resolveObject = ({
+export function resolveObject({
   schema,
   propName,
   combined = false,
   context,
-}: {
-  schema: SchemaObject | ReferenceObject;
-  propName?: string;
-  combined?: boolean;
-  context: ContextSpecs;
-}): ResolverValue => {
+}: ResolveOptions): ResolverValue {
   const hashKey = JSON.stringify({
     schema,
     propName,
     combined,
-    specKey: context.specKey,
+    projectName: context.projectName ?? context.output.target,
   });
 
   if (resolveObjectCacheMap.has(hashKey)) {
+    // .has(...) guarantees existence
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return resolveObjectCacheMap.get(hashKey)!;
   }
 
@@ -125,4 +131,4 @@ export const resolveObject = ({
   resolveObjectCacheMap.set(hashKey, result);
 
   return result;
-};
+}

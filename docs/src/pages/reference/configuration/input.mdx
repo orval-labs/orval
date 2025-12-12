@@ -21,53 +21,6 @@ export default defineConfig({
 });
 ```
 
-Using a secure URL target with authentication:
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      target: 'https://example.com/api-docs/v2/swagger.yaml',
-      parserOptions: {
-        resolve: {
-          http: {
-            headers: {
-              Authorization:
-                'Basic ' + Buffer.from('username:password').toString('base64'),
-            },
-          },
-        },
-      },
-    },
-  },
-});
-```
-
-## validation
-
-Type: `Boolean | Object`
-
-Default value: `false`.
-
-To enforce the quality of your OpenAPI specification, Orval supports validating specifications with the <a href="https://github.com/IBM/openapi-validator" target="_blank">OpenAPI linter from IBM</a>.
-
-Specifying `true` will by default use the <a href="https://github.com/IBM/openapi-validator/blob/main/docs/ibm-cloud-rules.md"><em>IBM Cloud Validation Ruleset</em></a>.
-Specifying an `Object` will use the provided ruleset instead. Learn more about creating rulesets <a href="https://docs.stoplight.io/docs/spectral/aa15cdee143a1-java-script-ruleset-format">here</a>.
-
-```js
-import { defineConfig } from 'orval';
-
-export default defineConfig({
-  petstore: {
-    input: {
-      validation: true,
-    },
-  },
-});
-```
-
 ## override
 
 Type: `Object`.
@@ -173,15 +126,17 @@ export default defineConfig({
 });
 ```
 
-## converterOptions
+## parserOptions
 
 Type: `Object`.
 
-Default Value: `{}`.
+Optional configuration for the OpenAPI spec parser, particularly useful for fetching specs from protected URLs.
 
-Orval converts Swagger 2.0 definitions into OpenAPI 3.0.x using [swagger2openapi](https://github.com/Mermade/oas-kit/tree/main/packages/swagger2openapi). Use the `converterOptions` property to provide custom config for that. See the available options [here](https://github.com/orval-labs/orval/blob/next/src/types/swagger2openapi.d.ts#L10).
+### headers
 
-Example:
+Type: `Array<{ domains: string[]; headers: Record<string, string> }>`.
+
+Domain-specific headers to send when fetching the OpenAPI specification from remote URLs. Headers are matched based on the domain of the URL being fetched. This is useful for authentication or other custom headers required by the spec server.
 
 ```js
 import { defineConfig } from 'orval';
@@ -189,25 +144,24 @@ import { defineConfig } from 'orval';
 export default defineConfig({
   petstore: {
     input: {
-      converterOptions: {
-        patch: true,
-        indent: 2,
+      target: 'https://api.example.com/openapi.json',
+      parserOptions: {
+        headers: [
+          {
+            domains: ['api.example.com'],
+            headers: {
+              'Authorization': 'Bearer YOUR_TOKEN',
+              'X-API-Key': 'your-api-key',
+            },
+          },
+        ],
       },
     },
   },
 });
 ```
 
-## parserOptions
-
-Type: `Object`.
-
-Default Value: `{ resolve: { github: githubResolver, http: { safeUrlResolver: false } }, validate: true }`.
-
-Orval utilizes a parser to process multiple file specifications. This behavior can be customized using the `parserOptions` property. See the [available options](https://apidevtools.com/swagger-parser/options.html) for configuration.
-By default, Orval includes a GitHub parser, but you can add your own for private specifications or other specific needs.
-
-The specification is automatically validated by default.
+You can configure different headers for different domains:
 
 ```js
 import { defineConfig } from 'orval';
@@ -215,8 +169,22 @@ import { defineConfig } from 'orval';
 export default defineConfig({
   petstore: {
     input: {
+      target: 'https://api.example.com/openapi.json',
       parserOptions: {
-        resolve: { gitlab: gitlabResolver },
+        headers: [
+          {
+            domains: ['api.example.com', 'api.prod.example.com'],
+            headers: {
+              'Authorization': 'Bearer PROD_TOKEN',
+            },
+          },
+          {
+            domains: ['api.dev.example.com'],
+            headers: {
+              'Authorization': 'Bearer DEV_TOKEN',
+            },
+          },
+        ],
       },
     },
   },

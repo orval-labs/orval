@@ -17,7 +17,6 @@ import {
   isUndefined,
   isUrl,
   type JsDocOptions,
-  mergeDeep,
   type Mutator,
   NamingConvention,
   type NormalizedHonoOptions,
@@ -37,15 +36,12 @@ import {
   PropertySortOrder,
   type QueryOptions,
   RefComponentSuffix,
-  type SwaggerParserOptions,
   upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
 import chalk from 'chalk';
 
 import pkg from '../../package.json';
-import { githubResolver } from './github';
-import { httpResolver } from './http-resolver';
 import { loadPackageJson } from './package-json';
 import { loadTsconfig } from './tsconfig';
 
@@ -57,10 +53,10 @@ export function defineConfig(options: ConfigExternal): ConfigExternal {
   return options;
 }
 
-const createFormData = (
+function createFormData(
   workspace: string,
   formData: OverrideOutput['formData'],
-): NormalizedOverrideOutput['formData'] => {
+): NormalizedOverrideOutput['formData'] {
   const defaultArrayHandling = FormDataArrayHandling.SERIALIZE;
   if (formData === undefined)
     return { disabled: false, arrayHandling: defaultArrayHandling };
@@ -83,13 +79,13 @@ const createFormData = (
     mutator: normalizeMutator(workspace, formData),
     arrayHandling: defaultArrayHandling,
   };
-};
+}
 
-export const normalizeOptions = async (
+export async function normalizeOptions(
   optionsExport: OptionsExport,
   workspace = process.cwd(),
   globalOptions: GlobalOptions = {},
-) => {
+) {
   const options = await (isFunction(optionsExport)
     ? optionsExport()
     : optionsExport);
@@ -160,19 +156,14 @@ export const normalizeOptions = async (
       target: globalOptions.input
         ? normalizePathOrUrl(globalOptions.input, process.cwd())
         : normalizePathOrUrl(inputOptions.target, workspace),
-      validation: inputOptions.validation || false,
       override: {
         transformer: normalizePath(
           inputOptions.override?.transformer,
           workspace,
         ),
       },
-      converterOptions: inputOptions.converterOptions ?? {},
-      parserOptions: mergeDeep(
-        parserDefaultOptions,
-        inputOptions.parserOptions ?? {},
-      ),
       filters: inputOptions.filters,
+      parserOptions: inputOptions.parserOptions,
     },
     output: {
       target: globalOptions.output
@@ -382,17 +373,12 @@ export const normalizeOptions = async (
   }
 
   return normalizedOptions;
-};
+}
 
-const parserDefaultOptions = {
-  validate: true,
-  resolve: { github: githubResolver, http: httpResolver },
-} as SwaggerParserOptions;
-
-const normalizeMutator = (
+function normalizeMutator(
   workspace: string,
   mutator?: Mutator,
-): NormalizedMutator | undefined => {
+): NormalizedMutator | undefined {
   if (isObject(mutator)) {
     if (!mutator.path) {
       throw new Error(chalk.red(`Mutator need a path`));
@@ -413,30 +399,30 @@ const normalizeMutator = (
   }
 
   return mutator;
-};
+}
 
-const normalizePathOrUrl = <T>(path: T, workspace: string) => {
+function normalizePathOrUrl<T>(path: T, workspace: string) {
   if (isString(path) && !isUrl(path)) {
     return normalizePath(path, workspace);
   }
 
   return path;
-};
+}
 
-export const normalizePath = <T>(path: T, workspace: string) => {
+export function normalizePath<T>(path: T, workspace: string) {
   if (!isString(path)) {
     return path;
   }
   return upath.resolve(workspace, path);
-};
+}
 
-const normalizeOperationsAndTags = (
+function normalizeOperationsAndTags(
   operationsOrTags: Record<string, OperationOptions>,
   workspace: string,
   global: {
     query: NormalizedQueryOptions;
   },
-): Record<string, NormalizedOperationOptions> => {
+): Record<string, NormalizedOperationOptions> {
   return Object.fromEntries(
     Object.entries(operationsOrTags).map(
       ([
@@ -561,9 +547,9 @@ const normalizeOperationsAndTags = (
       },
     ),
   );
-};
+}
 
-const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
+function normalizeOutputMode(mode?: OutputMode): OutputMode {
   if (!mode) {
     return OutputMode.SINGLE;
   }
@@ -574,9 +560,9 @@ const normalizeOutputMode = (mode?: OutputMode): OutputMode => {
   }
 
   return mode;
-};
+}
 
-const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
+function normalizeHooks(hooks: HooksOptions): NormalizedHookOptions {
   const keys = Object.keys(hooks) as unknown as Hook[];
 
   return keys.reduce<NormalizedHookOptions>((acc, key: Hook) => {
@@ -604,12 +590,12 @@ const normalizeHooks = (hooks: HooksOptions): NormalizedHookOptions => {
 
     return acc;
   }, {});
-};
+}
 
-const normalizeHonoOptions = (
+function normalizeHonoOptions(
   hono: HonoOptions = {},
   workspace: string,
-): NormalizedHonoOptions => {
+): NormalizedHonoOptions {
   return {
     ...(hono.handlers
       ? { handlers: upath.resolve(workspace, hono.handlers) }
@@ -620,21 +606,21 @@ const normalizeHonoOptions = (
       ? upath.resolve(workspace, hono.validatorOutputPath)
       : '',
   };
-};
+}
 
-const normalizeJSDocOptions = (
+function normalizeJSDocOptions(
   jsdoc: JsDocOptions = {},
-): NormalizedJsDocOptions => {
+): NormalizedJsDocOptions {
   return {
     ...jsdoc,
   };
-};
+}
 
-const normalizeQueryOptions = (
+function normalizeQueryOptions(
   queryOptions: QueryOptions = {},
   outputWorkspace: string,
   globalOptions: NormalizedQueryOptions = {},
-): NormalizedQueryOptions => {
+): NormalizedQueryOptions {
   if (queryOptions.options) {
     console.warn(
       '[WARN] Using query options is deprecated and will be removed in a future major release. Please use queryOptions or mutationOptions instead.',
@@ -765,9 +751,9 @@ const normalizeQueryOptions = (
       ? {}
       : { version: queryOptions.version }),
   };
-};
+}
 
-export const getDefaultFilesHeader = ({
+export function getDefaultFilesHeader({
   title,
   description,
   version,
@@ -775,10 +761,12 @@ export const getDefaultFilesHeader = ({
   title?: string;
   description?: string;
   version?: string;
-} = {}) => [
-  `Generated by ${pkg.name} v${pkg.version} 🍺`,
-  `Do not edit manually.`,
-  ...(title ? [title] : []),
-  ...(description ? [description] : []),
-  ...(version ? [`OpenAPI spec version: ${version}`] : []),
-];
+} = {}) {
+  return [
+    `Generated by ${pkg.name} v${pkg.version} 🍺`,
+    `Do not edit manually.`,
+    ...(title ? [title] : []),
+    ...(description ? [description] : []),
+    ...(version ? [`OpenAPI spec version: ${version}`] : []),
+  ];
+}

@@ -21,16 +21,16 @@ export const generateMockImports: GenerateMockImports = (importOptions) => {
   }
 };
 
-export const generateMock = (
+export function generateMock(
   generatorVerbOptions: GeneratorVerbOptions,
   generatorOptions: Omit<GeneratorOptions, 'mock'> & {
     mock: GlobalMockOptions;
   },
-) => {
+) {
   switch (generatorOptions.mock.type) {
     default: {
       // case 'msw':
       return generateMSW(generatorVerbOptions, generatorOptions);
     }
   }
-};
+}

@@ -1,12 +1,12 @@
-import type { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
-
 import { resolveValue } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorImport,
   GeneratorSchema,
   GetterParameters,
   GetterQueryParam,
+  OpenApiParameterObject,
+  OpenApiSchemaObject,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
@@ -16,14 +16,14 @@ type QueryParamsType = {
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema: SchemaObject;
+  originalSchema: OpenApiSchemaObject;
 };
 
-const getQueryParamsTypes = (
+function getQueryParamsTypes(
   queryParams: GetterParameters['query'],
   operationName: string,
-  context: ContextSpecs,
-): QueryParamsType[] => {
+  context: ContextSpec,
+): QueryParamsType[] {
   return queryParams.map(({ parameter, imports: parameterImports }) => {
     const {
       name,
@@ -33,8 +33,8 @@ const getQueryParamsTypes = (
     } = parameter as {
       name: string;
       required: boolean;
-      schema: SchemaObject;
-      content: ContentObject;
+      schema: OpenApiSchemaObject;
+      content: OpenApiParameterObject['content'];
     };
 
     const queryName = sanitize(`${pascal(operationName)}${pascal(name)}`, {
@@ -109,19 +109,21 @@ const getQueryParamsTypes = (
       originalSchema: resolvedValue.originalSchema,
     };
   });
-};
+}
 
-export const getQueryParams = ({
+interface GetQueryParamsOptions {
+  queryParams: GetterParameters['query'];
+  operationName: string;
+  context: ContextSpec;
+  suffix?: string;
+}
+
+export function getQueryParams({
   queryParams = [],
   operationName,
   context,
   suffix = 'params',
-}: {
-  queryParams: GetterParameters['query'];
-  operationName: string;
-  context: ContextSpecs;
-  suffix?: string;
-}): GetterQueryParam | undefined => {
+}: GetQueryParamsOptions): GetterQueryParam | undefined {
   if (queryParams.length === 0) {
     return;
   }
@@ -144,4 +146,4 @@ export const getQueryParams = ({
     deps: schemas,
     isOptional: allOptional,
   };
-};
+}

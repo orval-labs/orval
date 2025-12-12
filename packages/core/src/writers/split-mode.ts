@@ -14,13 +14,13 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
-export const writeSplitMode = async ({
+export async function writeSplitMode({
   builder,
   output,
-  specsName,
+  projectName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: conventionName(
@@ -68,7 +68,7 @@ export const writeSplitMode = async ({
       client: output.client,
       implementation,
       imports: importsForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
@@ -89,7 +89,7 @@ export const writeSplitMode = async ({
     mockData += builder.importsMock({
       implementation: implementationMock,
       imports: importsMockForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       options: isFunction(output.mock) ? undefined : output.mock,
@@ -191,4 +191,4 @@ export const writeSplitMode = async ({
       `Oups... 🍻. An Error occurred while splitting => ${error}`,
     );
   }
-};
+}

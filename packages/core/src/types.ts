@@ -1,17 +1,5 @@
-import type SwaggerParser from '@apidevtools/swagger-parser';
 import type { allLocales } from '@faker-js/faker';
-import type { JSONSchema6, JSONSchema7 } from 'json-schema';
-import type {
-  InfoObject,
-  OpenAPIObject,
-  OperationObject,
-  ParameterObject,
-  ReferenceObject,
-  RequestBodyObject,
-  ResponsesObject,
-  SchemaObject,
-} from 'openapi3-ts/oas30';
-import type { ConvertInputOptions } from 'swagger2openapi';
+import type { OpenAPIV3_1 } from '@scalar/openapi-types';
 import type { TypeDocOptions } from 'typedoc';
 
 export interface Options {
@@ -75,7 +63,7 @@ export type NormalizedOverrideOutput = {
   tags: Record<string, NormalizedOperationOptions | undefined>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
-  header: false | ((info: InfoObject) => string[] | string);
+  header: false | ((info: OpenApiInfoObject) => string[] | string);
   formData: NormalizedFormDataType<NormalizedMutator>;
   formUrlEncoded: boolean | NormalizedMutator;
   paramsSerializer?: NormalizedMutator;
@@ -105,7 +93,7 @@ export type NormalizedOverrideOutput = {
   zod: NormalizedZodOptions;
   fetch: NormalizedFetchOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -141,7 +129,7 @@ export type NormalizedOperationOptions = {
   swr?: SwrOptions;
   zod?: NormalizedZodOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -153,12 +141,15 @@ export type NormalizedOperationOptions = {
 };
 
 export type NormalizedInputOptions = {
-  target: string | Record<string, unknown> | OpenAPIObject;
-  validation: boolean | object;
+  target: string | OpenApiDocument;
   override: OverrideInput;
-  converterOptions: Partial<ConvertInputOptions>;
-  parserOptions: SwaggerParserOptions;
-  filters?: InputFiltersOption;
+  filters?: InputFiltersOptions;
+  parserOptions?: {
+    headers?: {
+      domains: string[];
+      headers: Record<string, string>;
+    }[];
+  };
 };
 
 export type OutputClientFunc = (
@@ -234,23 +225,22 @@ export type OutputOptions = {
   propertySortOrder?: PropertySortOrder;
 };
 
-export type SwaggerParserOptions = Omit<SwaggerParser.Options, 'validate'> & {
-  validate?: boolean;
-};
-
-export type InputFiltersOption = {
+export type InputFiltersOptions = {
   mode?: 'include' | 'exclude';
   tags?: (string | RegExp)[];
   schemas?: (string | RegExp)[];
 };
 
 export type InputOptions = {
-  target: string | Record<string, unknown> | OpenAPIObject;
-  validation?: boolean | object;
+  target: string | Record<string, unknown> | OpenApiDocument;
   override?: OverrideInput;
-  converterOptions?: Partial<ConvertInputOptions>;
-  parserOptions?: SwaggerParserOptions;
-  filters?: InputFiltersOption;
+  filters?: InputFiltersOptions;
+  parserOptions?: {
+    headers?: {
+      domains: string[];
+      headers: Record<string, string>;
+    }[];
+  };
 };
 
 export const OutputClient = {
@@ -338,18 +328,18 @@ export type MockOptions = Omit<OverrideMockOptions, 'properties'> & {
 
 export type MockPropertiesObject = Record<string, unknown>;
 export type MockPropertiesObjectFn = (
-  specs: OpenAPIObject,
+  specs: OpenApiDocument,
 ) => MockPropertiesObject;
 
 export type MockProperties = MockPropertiesObject | MockPropertiesObjectFn;
 
 export type MockDataObject = Record<string, unknown>;
 
-export type MockDataObjectFn = (specs: OpenAPIObject) => MockDataObject;
+export type MockDataObjectFn = (specs: OpenApiDocument) => MockDataObject;
 
 export type MockDataArray = unknown[];
 
-export type MockDataArrayFn = (specs: OpenAPIObject) => MockDataArray;
+export type MockDataArrayFn = (specs: OpenApiDocument) => MockDataArray;
 
 export type MockData =
   | MockDataObject
@@ -413,7 +403,7 @@ export type OverrideOutput = {
   tags?: Record<string, OperationOptions>;
   mock?: OverrideMockOptions;
   contentType?: OverrideOutputContentType;
-  header?: boolean | ((info: InfoObject) => string[] | string);
+  header?: boolean | ((info: OpenApiInfoObject) => string[] | string);
   formData?: boolean | Mutator | FormDataType<Mutator>;
   formUrlEncoded?: boolean | Mutator;
   paramsSerializer?: Mutator;
@@ -442,7 +432,7 @@ export type OverrideOutput = {
   angular?: AngularOptions;
   zod?: ZodOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -633,7 +623,7 @@ export type FetchOptions = {
   jsonReviver?: Mutator;
 };
 
-export type InputTransformerFn = (spec: OpenAPIObject) => OpenAPIObject;
+export type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
 
 type InputTransformer = string | InputTransformerFn;
 
@@ -653,7 +643,7 @@ export type OperationOptions = {
   swr?: SwrOptions;
   zod?: ZodOptions;
   operationName?: (
-    operation: OperationObject,
+    operation: OpenApiOperationObject,
     route: string,
     verb: Verbs,
   ) => string;
@@ -699,18 +689,19 @@ export const Verbs = {
 };
 
 export type ImportOpenApi = {
-  data: JSONSchema6 | JSONSchema7 | Record<string, unknown | OpenAPIObject>;
+  spec: OpenApiDocument;
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
   target: string;
   workspace: string;
+  projectName?: string;
 };
 
-export interface ContextSpecs {
-  specKey: string;
+export interface ContextSpec {
+  projectName?: string;
   target: string;
   workspace: string;
-  specs: Record<string, OpenAPIObject>;
+  spec: OpenApiDocument;
   parents?: string[];
   output: NormalizedOutputOptions;
 }
@@ -765,6 +756,7 @@ export type GeneratorSchema = {
   name: string;
   model: string;
   imports: GeneratorImport[];
+  dependencies?: string[];
 };
 
 export type GeneratorImport = {
@@ -772,7 +764,6 @@ export type GeneratorImport = {
   schemaName?: string;
   isConstant?: boolean;
   alias?: string;
-  specKey?: string;
   default?: boolean;
   values?: boolean;
   syntheticDefaultImport?: boolean;
@@ -865,7 +856,7 @@ export type GeneratorVerbOptions = {
   fetchReviver?: GeneratorMutator;
   override: NormalizedOverrideOutput;
   deprecated?: boolean;
-  originalOperation: OperationObject;
+  originalOperation: OpenApiOperationObject;
 };
 
 export type GeneratorVerbsOptions = GeneratorVerbOptions[];
@@ -874,7 +865,7 @@ export type GeneratorOptions = {
   route: string;
   pathRoute: string;
   override: NormalizedOverrideOutput;
-  context: ContextSpecs;
+  context: ContextSpec;
   mock?: GlobalMockOptions | ClientMockBuilder;
   output: string;
 };
@@ -915,7 +906,7 @@ export type ClientFileBuilder = {
 export type ClientExtraFilesBuilder = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => Promise<ClientFileBuilder[]>;
 
 export type ClientHeaderBuilder = (params: {
@@ -992,11 +983,11 @@ export type GetterResponse = {
   contentTypes: string[];
   schemas: GeneratorSchema[];
 
-  originalSchema?: ResponsesObject;
+  originalSchema?: OpenApiResponsesObject;
 };
 
 export type GetterBody = {
-  originalSchema: ReferenceObject | RequestBodyObject;
+  originalSchema: OpenApiReferenceObject | OpenApiRequestBodyObject;
   imports: GeneratorImport[];
   definition: string;
   implementation: string;
@@ -1008,9 +999,9 @@ export type GetterBody = {
 };
 
 export type GetterParameters = {
-  query: { parameter: ParameterObject; imports: GeneratorImport[] }[];
-  path: { parameter: ParameterObject; imports: GeneratorImport[] }[];
-  header: { parameter: ParameterObject; imports: GeneratorImport[] }[];
+  query: { parameter: OpenApiParameterObject; imports: GeneratorImport[] }[];
+  path: { parameter: OpenApiParameterObject; imports: GeneratorImport[] }[];
+  header: { parameter: OpenApiParameterObject; imports: GeneratorImport[] }[];
 };
 
 export type GetterParam = {
@@ -1027,7 +1018,7 @@ export type GetterQueryParam = {
   schema: GeneratorSchema;
   deps: GeneratorSchema[];
   isOptional: boolean;
-  originalSchema?: SchemaObject;
+  originalSchema?: OpenApiSchemaObject;
 };
 
 export type GetterPropType =
@@ -1092,12 +1083,13 @@ export type ScalarValue = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
   isRef: boolean;
+  dependencies: string[];
   example?: any;
   examples?: Record<string, any>;
 };
 
 export type ResolverValue = ScalarValue & {
-  originalSchema: SchemaObject;
+  originalSchema: OpenApiSchemaObject;
 };
 
 export type ResReqTypesValue = ScalarValue & {
@@ -1107,28 +1099,28 @@ export type ResReqTypesValue = ScalarValue & {
   hasReadonlyProps?: boolean;
   key: string;
   contentType: string;
-  originalSchema?: SchemaObject;
+  originalSchema?: OpenApiSchemaObject;
 };
 
-export type WriteSpecsBuilder = {
+export type WriteSpecBuilder = {
   operations: GeneratorOperations;
-  schemas: Record<string, GeneratorSchema[]>;
   verbOptions: Record<string, GeneratorVerbOptions>;
+  schemas: GeneratorSchema[];
   title: GeneratorClientTitle;
   header: GeneratorClientHeader;
   footer: GeneratorClientFooter;
   imports: GeneratorClientImports;
   importsMock: GenerateMockImports;
   extraFiles: ClientFileBuilder[];
-  info: InfoObject;
+  info: OpenApiInfoObject;
   target: string;
 };
 
 export type WriteModeProps = {
-  builder: WriteSpecsBuilder;
+  builder: WriteSpecBuilder;
   output: NormalizedOutputOptions;
   workspace: string;
-  specsName: Record<string, string>;
+  projectName?: string;
   header: string;
   needSchema: boolean;
 };
@@ -1181,7 +1173,7 @@ export type GeneratorClientImports = (data: {
     exports: GeneratorImport[];
     dependency: string;
   }[];
-  specsName: Record<string, string>;
+  projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   hasGlobalMutator: boolean;
@@ -1197,7 +1189,7 @@ export type GenerateMockImports = (data: {
     exports: GeneratorImport[];
     dependency: string;
   }[];
-  specsName: Record<string, string>;
+  projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
   options?: GlobalMockOptions;
@@ -1212,10 +1204,6 @@ export type GeneratorApiBuilder = GeneratorApiOperations & {
   extraFiles: ClientFileBuilder[];
 };
 
-export interface SchemaWithConst extends SchemaObject {
-  const: string;
-}
-
 export class ErrorWithTag extends Error {
   tag: string;
   constructor(message: string, tag: string, options?: ErrorOptions) {
@@ -1223,3 +1211,33 @@ export class ErrorWithTag extends Error {
     this.tag = tag;
   }
 }
+
+export type OpenApiSchemaObjectType =
+  | 'string'
+  | 'number'
+  | 'boolean'
+  | 'object'
+  | 'integer'
+  | 'null'
+  | 'array';
+
+// OpenAPI type aliases. Intended to make it easy to swap to OpenAPI v3.2 in the future
+export type OpenApiDocument = OpenAPIV3_1.Document;
+export type OpenApiSchemaObject = OpenAPIV3_1.SchemaObject;
+export type OpenApiSchemasObject = Record<string, OpenApiSchemaObject>;
+export type OpenApiReferenceObject = OpenAPIV3_1.ReferenceObject & {
+  // https://github.com/scalar/scalar/issues/7405
+  $ref?: string;
+};
+export type OpenApiComponentsObject = OpenAPIV3_1.ComponentsObject;
+export type OpenApiPathsObject = OpenAPIV3_1.PathsObject;
+export type OpenApiPathItemObject = OpenAPIV3_1.PathItemObject;
+export type OpenApiResponsesObject = OpenAPIV3_1.ResponsesObject;
+export type OpenApiResponseObject = OpenAPIV3_1.ResponseObject;
+export type OpenApiParameterObject = OpenAPIV3_1.ParameterObject;
+export type OpenApiRequestBodyObject = OpenAPIV3_1.RequestBodyObject;
+export type OpenApiInfoObject = OpenAPIV3_1.InfoObject;
+export type OpenApiExampleObject = OpenAPIV3_1.ExampleObject;
+export type OpenApiOperationObject = OpenAPIV3_1.OperationObject;
+export type OpenApiMediaTypeObject = OpenAPIV3_1.MediaTypeObject;
+export type OpenApiServerObject = OpenAPIV3_1.ServerObject;

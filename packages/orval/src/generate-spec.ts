@@ -44,6 +44,6 @@ export async function generateSpec(
     log(`${projectName} Cleaning output folder`);
   }
 
-  const writeSpecBuilder = await importSpecs(workspace, options);
+  const writeSpecBuilder = await importSpecs(workspace, options, projectName);
   await writeSpecs(writeSpecBuilder, workspace, options, projectName);
 }

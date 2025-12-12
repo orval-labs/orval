@@ -1,6 +1,6 @@
 {
   "name": "svelte-query-basic",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -21,7 +21,7 @@
     "@faker-js/faker": "^10.1.0",
     "@sveltejs/adapter-auto": "^2.1.1",
     "@sveltejs/kit": "^1.30.4",
-    "@typescript-eslint/eslint-plugin": "^8.46.4",
+    "@typescript-eslint/eslint-plugin": "^8.48.0",
     "@typescript-eslint/parser": "^8.46.4",
     "eslint": "^9.39.1",
     "eslint-plugin-svelte3": "^4.0.0",
@@ -45,5 +45,5 @@
   "msw": {
     "workerDirectory": "static"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -56,7 +56,7 @@
     "dev": "tsdown --config-loader unrun --watch src --onSuccess 'yarn generate-api'",
     "lint": "eslint .",
     "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
-    "test": "tsc --noEmit && vitest",
+    "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },
@@ -64,14 +64,12 @@
     "@types/fs-extra": "^11.0.4",
     "@types/js-yaml": "^4.0.9",
     "eslint": "catalog:",
-    "openapi-types": "^12.1.3",
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   },
   "dependencies": {
-    "@apidevtools/swagger-parser": "^12.1.0",
     "@commander-js/extra-typings": "^14.0.0",
     "@orval/angular": "workspace:*",
     "@orval/axios": "workspace:*",
@@ -83,6 +81,9 @@
     "@orval/query": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
+    "@scalar/json-magic": "^0.8.3",
+    "@scalar/openapi-parser": "^0.23.4",
+    "@scalar/openapi-types": "catalog:",
     "chalk": "^5.6.2",
     "chokidar": "^4.0.3",
     "commander": "^14.0.2",
@@ -92,7 +93,6 @@
     "fs-extra": "^11.3.2",
     "jiti": "^2.6.1",
     "js-yaml": "4.1.1",
-    "openapi3-ts": "4.5.0",
     "remeda": "^2.32.0",
     "string-argv": "^0.3.2",
     "tsconfck": "^3.1.6",
@@ -100,5 +100,5 @@
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

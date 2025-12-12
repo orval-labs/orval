@@ -49,7 +49,7 @@ export { basename, dirname, extname, isAbsolute, join, resolve };
 /**
  * Behaves exactly like `path.relative(from, to)`, but keeps the first meaningful "./"
  */
-export const relativeSafe = (from: string, to: string) => {
+export function relativeSafe(from: string, to: string) {
   const normalizedRelativePath = path.relative(from, to);
   /**
    * Prepend "./" to every path and then use normalizeSafe method to normalize it
@@ -57,28 +57,13 @@ export const relativeSafe = (from: string, to: string) => {
    */
   const relativePath = normalizeSafe(`.${separator}${normalizedRelativePath}`);
   return relativePath;
-};
+}
 
-export const getSpecName = (specKey: string, target: string) => {
-  if (isUrl(specKey)) {
-    return specKey;
-  }
-
-  return (
-    '/' +
-    path
-      .normalize(path.relative(getFileInfo(target).dirname, specKey))
-      .split('../')
-      .join('')
-      .replace(`.${getExtension(specKey)}`, '')
-  );
-};
-
-export const getSchemaFileName = (path: string) => {
+export function getSchemaFileName(path: string) {
   return path
     .replace(`.${getExtension(path)}`, '')
     .slice(path.lastIndexOf('/') + 1);
-};
+}
 
 export const separator = '/';
 
@@ -88,7 +73,7 @@ const toUnix = function (value: string) {
   return value;
 };
 
-export const normalizeSafe = (value: string) => {
+export function normalizeSafe(value: string) {
   let result;
   value = toUnix(value);
   result = path.normalize(value);
@@ -102,9 +87,9 @@ export const normalizeSafe = (value: string) => {
     result = value.startsWith('//./') ? '//.' + result : '/' + result;
   }
   return result;
-};
+}
 
-export const joinSafe = function (...values: string[]) {
+export function joinSafe(...values: string[]) {
   let result = path.join(...values);
 
   if (values.length > 0) {
@@ -120,4 +105,4 @@ export const joinSafe = function (...values: string[]) {
     }
   }
   return result;
-};
+}

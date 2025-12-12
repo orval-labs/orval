@@ -4,7 +4,7 @@ import {
   asyncReduce,
   type ClientFileBuilder,
   type ClientMockGeneratorBuilder,
-  type ContextSpecs,
+  type ContextSpec,
   generateDependencyImports,
   type GeneratorClientFooter,
   type GeneratorClientHeader,
@@ -64,7 +64,7 @@ export const generateClientImports: GeneratorClientImports = ({
   client = DEFAULT_CLIENT,
   implementation,
   imports,
-  specsName,
+  projectName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   hasGlobalMutator,
@@ -89,7 +89,7 @@ export const generateClientImports: GeneratorClientImports = ({
           ...imports,
         ]
       : imports,
-    specsName,
+    projectName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );
@@ -279,7 +279,7 @@ export const generateExtraFiles = (
   outputClient: OutputClient | OutputClientFunc = DEFAULT_CLIENT,
   verbsOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): Promise<ClientFileBuilder[]> => {
   const { extraFiles: generateExtraFiles } = getGeneratorClient(
     outputClient,

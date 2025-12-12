@@ -3,14 +3,14 @@ import {
   type GeneratorTargetFull,
   type NormalizedOutputOptions,
   OutputClient,
-  type WriteSpecsBuilder,
+  type WriteSpecBuilder,
 } from '../types';
 import { compareVersions, pascal } from '../utils';
 
-export const generateTarget = (
-  builder: WriteSpecsBuilder,
+export function generateTarget(
+  builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-): GeneratorTarget => {
+): GeneratorTarget {
   const operationNames = Object.values(builder.operations).map(
     ({ operationName }) => operationName,
   );
@@ -127,4 +127,4 @@ export const generateTarget = (
     implementationMock:
       target.implementationMock.function + target.implementationMock.handler,
   };
-};
+}

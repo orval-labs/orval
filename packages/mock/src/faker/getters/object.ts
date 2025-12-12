@@ -1,14 +1,15 @@
 import {
-  type ContextSpecs,
+  type ContextSpec,
   type GeneratorImport,
   getKey,
   isBoolean,
   isReference,
   type MockOptions,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
   pascal,
   PropertySortOrder,
 } from '@orval/core';
-import type { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
 
 import type { MockDefinition, MockSchemaObject } from '../../types';
 import { DEFAULT_OBJECT_KEY_MOCK } from '../constants';
@@ -17,7 +18,26 @@ import { combineSchemasMock } from './combine';
 
 export const overrideVarName = 'overrideResponse';
 
-export const getMockObject = ({
+interface GetMockObjectOptions {
+  item: MockSchemaObject;
+  operationId: string;
+  mockOptions?: MockOptions;
+  tags: string[];
+  combine?: {
+    separator: 'allOf' | 'oneOf' | 'anyOf';
+    includedProperties: string[];
+  };
+  context: ContextSpec;
+  imports: GeneratorImport[];
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
+  splitMockImplementations: string[];
+  // This is used to add the overrideResponse to the object
+  allowOverride?: boolean;
+}
+
+export function getMockObject({
   item,
   mockOptions,
   operationId,
@@ -28,24 +48,7 @@ export const getMockObject = ({
   existingReferencedProperties,
   splitMockImplementations,
   allowOverride = false,
-}: {
-  item: MockSchemaObject;
-  operationId: string;
-  mockOptions?: MockOptions;
-  tags: string[];
-  combine?: {
-    separator: 'allOf' | 'oneOf' | 'anyOf';
-    includedProperties: string[];
-  };
-  context: ContextSpecs;
-  imports: GeneratorImport[];
-  // This is used to prevent recursion when combining schemas
-  // When an element is added to the array, it means on this iteration, we've already seen this property
-  existingReferencedProperties: string[];
-  splitMockImplementations: string[];
-  // This is used to add the overrideResponse to the object
-  allowOverride?: boolean;
-}): MockDefinition => {
+}: GetMockObjectOptions): MockDefinition {
   if (isReference(item)) {
     return resolveMockValue({
       schema: {
@@ -111,59 +114,71 @@ export const getMockObject = ({
         return a[0].localeCompare(b[0]);
       });
     }
-    const properyScalars = entries
-      .map(([key, prop]: [string, ReferenceObject | SchemaObject]) => {
-        if (combine?.includedProperties.includes(key)) {
-          return;
-        }
+    const propertyScalars = entries
+      .map(
+        ([key, prop]: [
+          string,
+          OpenApiReferenceObject | OpenApiSchemaObject,
+        ]) => {
+          if (combine?.includedProperties.includes(key)) {
+            return;
+          }
 
-        const isRequired =
-          mockOptions?.required ??
-          (Array.isArray(item.required) ? item.required : []).includes(key);
+          const isRequired =
+            mockOptions?.required ??
+            (Array.isArray(item.required) ? item.required : []).includes(key);
 
-        // Check to see if the property is a reference to an existing property
-        // Fixes issue #910
-        if (
-          '$ref' in prop &&
-          existingReferencedProperties.includes(
-            pascal(prop.$ref.split('/').pop() ?? ''),
-          )
-        ) {
-          return;
-        }
+          // Check to see if the property is a reference to an existing property
+          // Fixes issue #910
+          if (
+            '$ref' in prop &&
+            existingReferencedProperties.includes(
+              pascal(prop.$ref.split('/').pop() ?? ''),
+            )
+          ) {
+            return;
+          }
 
-        const resolvedValue = resolveMockValue({
-          schema: {
-            ...prop,
-            name: key,
-            path: item.path ? `${item.path}.${key}` : `#.${key}`,
-          },
-          mockOptions,
-          operationId,
-          tags,
-          context,
-          imports,
-          existingReferencedProperties,
-          splitMockImplementations,
-        });
+          const resolvedValue = resolveMockValue({
+            schema: {
+              ...prop,
+              name: key,
+              path: item.path ? `${item.path}.${key}` : `#.${key}`,
+            },
+            mockOptions,
+            operationId,
+            tags,
+            context,
+            imports,
+            existingReferencedProperties,
+            splitMockImplementations,
+          });
 
-        imports.push(...resolvedValue.imports);
-        includedProperties.push(key);
+          imports.push(...resolvedValue.imports);
+          includedProperties.push(key);
 
-        const keyDefinition = getKey(key);
-        if (!isRequired && !resolvedValue.overrided) {
-          return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
-        }
+          const keyDefinition = getKey(key);
 
-        return `${keyDefinition}: ${resolvedValue.value}`;
-      })
+          if (!isRequired && !resolvedValue.overrided) {
+            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, undefined])`;
+          }
+
+          const isNullable =
+            Array.isArray(prop.type) && prop.type.includes('null');
+          if (isNullable && !resolvedValue.overrided) {
+            return `${keyDefinition}: faker.helpers.arrayElement([${resolvedValue.value}, null])`;
+          }
+
+          return `${keyDefinition}: ${resolvedValue.value}`;
+        },
+      )
       .filter(Boolean);
 
     if (allowOverride) {
-      properyScalars.push(`...${overrideVarName}`);
+      propertyScalars.push(`...${overrideVarName}`);
     }
 
-    value += properyScalars.join(', ');
+    value += propertyScalars.join(', ');
     value +=
       !combine || combine.separator === 'oneOf' || combine.separator === 'anyOf'
         ? '}'
@@ -214,4 +229,4 @@ export const getMockObject = ({
   }
 
   return { value: '{}', imports: [], name: item.name };
-};
+}

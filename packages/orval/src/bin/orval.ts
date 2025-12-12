@@ -49,8 +49,8 @@ cli
   )
   .addOption(
     new Option(
-      '-p, --project <name>',
-      'focus a project of the config',
+      '-p, --project <name...>',
+      'focus one or more projects of the config',
     ).conflicts(['input', 'output']),
   )
   .addOption(
@@ -120,18 +120,20 @@ cli
       const workspace = path.dirname(configFilePath);
       const configFile = await loadConfigFile(configFilePath);
 
-      if (
-        isString(options.project) &&
-        !Object.hasOwn(configFile, options.project)
-      ) {
-        logError('Project not found in config', options.project);
+      const missingProjects = options.project?.filter(
+        (p) => !Object.hasOwn(configFile, p),
+      );
+
+      if (missingProjects?.length) {
+        logError(`Project not found in config: ${missingProjects.join(', ')}`);
         process.exit(1);
       }
 
       const configs = Object.entries(configFile).filter(
         ([projectName]) =>
           // only filter by project if specified
-          !isString(options.project) || projectName === options.project,
+          !Array.isArray(options.project) ||
+          options.project.includes(projectName),
       );
 
       let hasErrors = false;

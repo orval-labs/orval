@@ -1,6 +1,6 @@
 {
   "name": "orval-tests",
-  "version": "8.0.0-rc.2",
+  "version": "8.0.0-rc.3",
   "description": "",
   "author": "Victor Bury",
   "license": "ISC",
@@ -31,7 +31,7 @@
     "@angular/core": "catalog:angular",
     "@faker-js/faker": "^10.1.0",
     "@hono/zod-validator": "^0.7.4",
-    "@modelcontextprotocol/sdk": "1.20.2",
+    "@modelcontextprotocol/sdk": "1.24.0",
     "@tanstack/react-query": "~5.62.16",
     "@tanstack/svelte-query": "^4.41.0",
     "@tanstack/vue-query": "^5.90.6",
@@ -51,5 +51,5 @@
     "vue": "^3.5.22",
     "zod": "^3.25.76"
   },
-  "stableVersion": "8.0.0-rc.1"
+  "stableVersion": "8.0.0-rc.2"
 }

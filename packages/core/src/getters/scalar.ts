@@ -1,36 +1,46 @@
-import type { SchemaObject } from 'openapi3-ts/oas30';
+import { isArray } from 'remeda';
 
 import { resolveExampleRefs } from '../resolvers';
-import type { ContextSpecs, ScalarValue, SchemaWithConst } from '../types';
+import type { ContextSpec, OpenApiSchemaObject, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
 import { getObject } from './object';
 
+interface GetScalarOptions {
+  item: OpenApiSchemaObject;
+  name?: string;
+  context: ContextSpec;
+}
+
 /**
  * Return the typescript equivalent of open-api data type
  *
  * @param item
- * @ref https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.1.md#data-types
+ * @ref https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md#data-types
  */
-export const getScalar = ({
+export function getScalar({
   item,
   name,
   context,
-}: {
-  item: SchemaObject;
-  name?: string;
-  context: ContextSpecs;
-}): ScalarValue => {
-  const nullable = item.nullable ? ' | null' : '';
+}: GetScalarOptions): ScalarValue {
+  const nullable =
+    isArray(item.type) && item.type.includes('null') ? ' | null' : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 
-  if (!item.type && item.items) {
+  let itemType = item.type;
+  if (!itemType && item.items) {
     item.type = 'array';
+    itemType = 'array';
+  }
+  if (isArray(item.type) && item.type.includes('null')) {
+    const typesWithoutNull = item.type.filter((x) => x !== 'null');
+    itemType =
+      typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
   }
 
-  switch (item.type) {
+  switch (itemType) {
     case 'number':
     case 'integer': {
       let value =
@@ -47,40 +57,44 @@ export const getScalar = ({
         isEnum = true;
       }
 
-      const itemWithConst = item as SchemaWithConst;
+      value += nullable;
+
+      const itemWithConst = item;
       if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
 
       return {
-        value: value + nullable,
+        value,
         isEnum,
         type: 'number',
         schemas: [],
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
     }
 
     case 'boolean': {
-      let value = 'boolean';
+      let value = 'boolean' + nullable;
 
-      const itemWithConst = item as SchemaWithConst;
+      const itemWithConst = item;
       if (itemWithConst.const !== undefined) {
         value = itemWithConst.const;
       }
 
       return {
-        value: value + nullable,
+        value: value,
         type: 'boolean',
         isEnum: false,
         schemas: [],
         imports: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
@@ -95,6 +109,7 @@ export const getScalar = ({
       return {
         value: value + nullable,
         ...rest,
+        dependencies: rest.dependencies ?? [],
       };
     }
 
@@ -124,19 +139,22 @@ export const getScalar = ({
         value = 'Date';
       }
 
-      const itemWithConst = item as SchemaWithConst;
+      value += nullable;
+
+      const itemWithConst = item;
       if (itemWithConst.const) {
         value = `'${itemWithConst.const}'`;
       }
 
       return {
-        value: value + nullable,
+        value: value,
         isEnum,
         type: 'string',
         imports: [],
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
       };
@@ -151,15 +169,16 @@ export const getScalar = ({
         schemas: [],
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        dependencies: [],
       };
     }
 
     case 'object':
     default: {
-      if (Array.isArray(item.type)) {
+      if (isArray(itemType)) {
         return combineSchemas({
           schema: {
-            anyOf: item.type.map((type) => ({
+            anyOf: itemType.map((type) => ({
               ...item,
               type,
             })),
@@ -187,6 +206,7 @@ export const getScalar = ({
           schemas: [],
           isRef: false,
           hasReadonlyProps: item.readOnly || false,
+          dependencies: [],
           example: item.example,
           examples: resolveExampleRefs(item.examples, context),
         };
@@ -201,4 +221,4 @@ export const getScalar = ({
       return { value: value, ...rest };
     }
   }
-};
+}

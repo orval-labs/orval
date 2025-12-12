@@ -1,6 +1,6 @@
 import { resolveValue } from '../resolvers';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
@@ -17,7 +17,7 @@ import { camel, sanitize, stringify } from '../utils';
  * ```
  * @param path
  */
-export const getParamsInPath = (path: string) => {
+export function getParamsInPath(path: string) {
   let n;
   const output = [];
   const templatePathRegex = /\{(.*?)\}/g;
@@ -26,21 +26,23 @@ export const getParamsInPath = (path: string) => {
   }
 
   return output;
-};
+}
 
-export const getParams = ({
+interface GetParamsOptions {
+  route: string;
+  pathParams?: GetterParameters['query'];
+  operationId: string;
+  context: ContextSpec;
+  output: NormalizedOutputOptions;
+}
+
+export function getParams({
   route,
   pathParams = [],
   operationId,
   context,
   output,
-}: {
-  route: string;
-  pathParams?: GetterParameters['query'];
-  operationId: string;
-  context: ContextSpecs;
-  output: NormalizedOutputOptions;
-}): GetterParams => {
+}: GetParamsOptions): GetterParams {
   const params = getParamsInPath(route);
   return params.map((p) => {
     const pathParam = pathParams.find(
@@ -79,14 +81,7 @@ export const getParams = ({
 
     const resolvedValue = resolveValue({
       schema,
-      context: {
-        ...context,
-        ...(pathParam.imports.length > 0
-          ? {
-              specKey: pathParam.imports[0].specKey,
-            }
-          : {}),
-      },
+      context,
     });
 
     let paramType = resolvedValue.value;
@@ -116,4 +111,4 @@ export const getParams = ({
       originalSchema: resolvedValue.originalSchema,
     };
   });
-};
+}
