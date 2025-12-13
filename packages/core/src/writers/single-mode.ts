@@ -47,8 +47,12 @@ export async function writeSingleMode({
     const schemasPath = output.schemas
       ? upath.relativeSafe(
           dirname,
-          getFileInfo(output.schemas, { extension: output.fileExtension })
-            .dirname,
+          getFileInfo(
+            typeof output.schemas === 'string'
+              ? output.schemas
+              : output.schemas.path,
+            { extension: output.fileExtension },
+          ).dirname,
         )
       : undefined;
 

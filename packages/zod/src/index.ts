@@ -925,7 +925,7 @@ const dereferenceScalar = (value: any, context: ContextSpec): unknown => {
   }
 };
 
-const dereference = (
+export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): OpenApiSchemaObject => {
@@ -1485,5 +1485,7 @@ const zodClientBuilder: ClientGeneratorsBuilder = {
 };
 
 export const builder = () => () => zodClientBuilder;
+
+export { isZodVersionV4 } from './compatible-v4';
 
 export default builder;

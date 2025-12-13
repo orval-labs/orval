@@ -1,7 +1,11 @@
 import fs from 'fs-extra';
 
 import { generateImports } from '../generators';
-import { type GeneratorSchema, NamingConvention } from '../types';
+import {
+  type ContextSpec,
+  type GeneratorSchema,
+  NamingConvention,
+} from '../types';
 import { conventionName, upath } from '../utils';
 
 interface GetSchemaOptions {

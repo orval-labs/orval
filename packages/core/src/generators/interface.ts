@@ -73,6 +73,7 @@ export function generateInterface({
       model,
       imports: externalModulesImportsOnly,
       dependencies: scalar.dependencies,
+      schema,
     },
   ];
 }

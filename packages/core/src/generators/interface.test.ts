@@ -53,6 +53,7 @@ export type TestSchema = typeof TestSchemaValue;
 `,
         imports: [],
         dependencies: [],
+        schema,
       },
     ];
     expect(got).toEqual(want);
@@ -76,6 +77,7 @@ export type TestSchema = typeof TestSchemaValue;
         model: `export interface TestSchema { [key: string]: unknown }\n`,
         imports: [],
         dependencies: [],
+        schema,
       },
     ];
     expect(got).toEqual(want);
@@ -104,6 +106,7 @@ export type TestSchema = typeof TestSchemaValue;
         model: `export interface MyObject {[key: 'foo' | 'bar']: string}\n`,
         imports: [],
         dependencies: [],
+        schema,
       },
     ];
     expect(got).toEqual(want);
@@ -130,6 +133,7 @@ export type TestSchema = typeof TestSchemaValue;
         model: `export interface MyObject { [key: 'key1' | 'key2' | 'key3']: unknown }\n`,
         imports: [],
         dependencies: [],
+        schema,
       },
     ];
     expect(got).toEqual(want);
@@ -158,6 +162,7 @@ export type TestSchema = typeof TestSchemaValue;
         model: `export interface MyObject {[key: 'id' | 'name']: number}\n`,
         imports: [],
         dependencies: [],
+        schema,
       },
     ];
     expect(got).toEqual(want);
@@ -186,6 +191,7 @@ export type TestSchema = typeof TestSchemaValue;
         model: `export interface MyObject {[key: string]: string}\n`,
         imports: [],
         dependencies: [],
+        schema,
       },
     ];
     expect(got).toEqual(want);

@@ -56,6 +56,7 @@ export async function importOpenApi({
     // a valid spec will have info
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     info: transformedOpenApi.info!,
+    spec: transformedOpenApi,
   };
 }
 
