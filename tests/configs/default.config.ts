@@ -524,7 +524,7 @@ export default defineConfig({
         path: '../generated/default/schemas-zod-only/model',
         type: 'zod',
       },
-      client: 'fetch',
+      client: 'zod',
     },
     input: {
       target: '../specifications/petstore.yaml',

@@ -925,7 +925,7 @@ const dereferenceScalar = (value: any, context: ContextSpec): unknown => {
   }
 };
 
-const dereference = (
+export const dereference = (
   schema: OpenApiSchemaObject | OpenApiReferenceObject,
   context: ContextSpec,
 ): OpenApiSchemaObject => {

@@ -6,6 +6,7 @@ import {
   type WriteSpecBuilder,
 } from '@orval/core';
 import {
+  dereference,
   generateZodValidationSchemaDefinition,
   isZodVersionV4,
   parseZodValidationSchemaDefinition,
@@ -50,12 +51,18 @@ export async function writeZodSchemas(
           ? (output.override.zod.coerce.body ?? false)
           : (output.override?.zod?.coerce ?? false);
 
+      // Dereference the schema to resolve $ref
+      const dereferencedSchema = dereference(schemaObject, context);
+
       const zodDefinition = generateZodValidationSchemaDefinition(
-        schemaObject,
+        dereferencedSchema,
         context,
         name,
         strict,
         isZodV4,
+        {
+          required: true,
+        },
       );
 
       const parsedZodDefinition = parseZodValidationSchemaDefinition(
@@ -66,17 +73,8 @@ export async function writeZodSchemas(
         isZodV4,
       );
 
-      // Use dependencies from generatorSchema
-      const schemaImports = (generatorSchema.dependencies || [])
-        .map((depName) => {
-          const fileName = conventionName(depName, output.namingConvention);
-          return `import { ${depName}Schema } from './${fileName}${importFileExtension}';`;
-        })
-        .join('\n');
-
       const fileContent = `${header}import { z as zod } from 'zod';
-${schemaImports ? `${schemaImports}\n` : ''}
-${parsedZodDefinition.consts ? `${parsedZodDefinition.consts}\n` : ''}
+${parsedZodDefinition.consts ? `\n${parsedZodDefinition.consts}\n` : ''}
 export const ${name}Schema = ${parsedZodDefinition.zod};
 export type ${name} = zod.infer<typeof ${name}Schema>;
 `;
