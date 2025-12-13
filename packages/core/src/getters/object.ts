@@ -13,6 +13,7 @@ import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
+import { isBinaryContentType } from './res-req-types';
 
 /**
  * Extract enum values from propertyNames schema (OpenAPI 3.1)
@@ -148,6 +149,22 @@ export function getObject({
           propName,
           context,
         });
+
+        // encoding.contentType overrides contentMediaType (already applied in getScalar).
+        // Skip if: $ref, has format (already Blob), or has contentEncoding (encoded string).
+        // Binary → Blob; Text → Blob | string (allows passing string, runtime wraps in Blob)
+        const encodingContentType = context.encoding?.[key]?.contentType;
+        if (
+          encodingContentType &&
+          !isReference(schema) &&
+          schema.type === 'string' &&
+          !schema.format &&
+          !schema.contentEncoding
+        ) {
+          resolvedValue.value = isBinaryContentType(encodingContentType)
+            ? 'Blob'
+            : 'Blob | string';
+        }
 
         const isReadOnly = item.readOnly || schema.readOnly;
         if (!index) {

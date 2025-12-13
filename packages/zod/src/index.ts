@@ -12,6 +12,7 @@ import {
   getNumberWord,
   getPropertySafe,
   getRefInfo,
+  isBinaryContentType,
   isBoolean,
   isObject,
   isString,
@@ -469,6 +470,23 @@ export const generateZodValidationSchemaDefinition = (
           break;
         }
 
+        // contentMediaType presence indicates media/file content
+        // But if contentEncoding is present (e.g., base64), it's an encoded string
+        // Per OAS 3.1: contentMediaType SHALL be ignored if it contradicts the media key
+        if (
+          schema.contentMediaType &&
+          !schema.contentEncoding &&
+          !context.mediaKeyIsText
+        ) {
+          // Binary MIME → File only; Text MIME → File | string (can pass string, runtime wraps)
+          functions.push(
+            isBinaryContentType(schema.contentMediaType)
+              ? ['instanceof', 'File']
+              : ['fileOrString', undefined],
+          );
+          break;
+        }
+
         if (isZodV4) {
           if (
             ![
@@ -712,6 +730,11 @@ export const parseZodValidationSchemaDefinition = (
 
   const parseProperty = (property: [string, any]): string => {
     const [fn, args = ''] = property;
+
+    // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
+    if (fn === 'fileOrString') {
+      return 'zod.instanceof(File).or(zod.string())';
+    }
 
     if (fn === 'allOf') {
       const allOfArgs = args as ZodValidationSchemaDefinition[];

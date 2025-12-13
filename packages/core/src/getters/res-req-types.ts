@@ -7,6 +7,7 @@ import {
   type ContextSpec,
   FormDataArrayHandling,
   type GeneratorImport,
+  type OpenApiEncodingObject,
   type OpenApiMediaTypeObject,
   type OpenApiReferenceObject,
   type OpenApiRequestBodyObject,
@@ -29,22 +30,46 @@ interface GetResReqContentTypesOptions {
   mediaType: OpenApiMediaTypeObject;
   propName?: string;
   context: ContextSpec;
+  isFormData?: boolean;
+  contentType: string;
 }
 
 function getResReqContentTypes({
   mediaType,
   propName,
   context,
+  isFormData,
+  contentType,
 }: GetResReqContentTypesOptions) {
   if (!mediaType.schema) {
     return;
   }
 
+  // Per OAS 3.1: contentMediaType is ignored if it contradicts the media key
+  const mediaKeyIsText = !isFormData && !isBinaryContentType(contentType);
+
+  // Build context with encoding and media key info
+  const resolveContext: ContextSpec = {
+    ...context,
+    mediaKeyIsText,
+    ...(isFormData && mediaType.encoding
+      ? { encoding: mediaType.encoding }
+      : {}),
+  };
+
   const resolvedObject = resolveObject({
     schema: mediaType.schema,
     propName,
-    context,
+    context: resolveContext,
   });
+
+  // Media key has highest precedence: binary media key → Blob (overrides schema)
+  if (!isFormData && isBinaryContentType(contentType)) {
+    return {
+      ...resolvedObject,
+      value: 'Blob',
+    };
+  }
 
   return resolvedObject;
 }
@@ -109,6 +134,7 @@ export function getResReqTypes(
                 // Even though required is false by default, we only consider required to be false if specified. (See pull 1277)
                 'required' in bodySchema && bodySchema.required === false,
               isRef: true,
+              encoding: mediaType.encoding,
             })
           : undefined;
 
@@ -121,6 +147,7 @@ export function getResReqTypes(
                 'required' in bodySchema && bodySchema.required === false,
               isUrlEncoded: true,
               isRef: true,
+              encoding: mediaType.encoding,
             })
           : undefined;
 
@@ -158,10 +185,14 @@ export function getResReqTypes(
               propName = propName + pascal(getNumberWord(index + 1));
             }
 
+            const isFormData = formDataContentTypes.has(contentType);
+
             const resolvedValue = getResReqContentTypes({
               mediaType,
               propName,
               context,
+              isFormData,
+              contentType,
             });
 
             if (!resolvedValue) {
@@ -183,7 +214,6 @@ export function getResReqTypes(
               return;
             }
 
-            const isFormData = formDataContentTypes.has(contentType);
             const isFormUrlEncoded =
               formUrlEncodedContentTypes.has(contentType);
 
@@ -204,6 +234,7 @@ export function getResReqTypes(
                   context,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
+                  encoding: mediaType.encoding,
                 })
               : undefined;
 
@@ -215,6 +246,7 @@ export function getResReqTypes(
                   isUrlEncoded: true,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
+                  encoding: mediaType.encoding,
                 })
               : undefined;
 
@@ -257,13 +289,16 @@ export function getResReqTypes(
   return uniqueBy(typesArray.flat(), uniqueKey);
 }
 
-function isBinaryContentType(contentType: string): boolean {
+export function isBinaryContentType(contentType: string): boolean {
   if (contentType === 'application/octet-stream') return true;
 
   if (contentType.startsWith('image/')) return true;
   if (contentType.startsWith('audio/')) return true;
   if (contentType.startsWith('video/')) return true;
   if (contentType.startsWith('font/')) return true;
+
+  // text/* types are not binary
+  if (contentType.startsWith('text/')) return false;
 
   // text-based suffixes (RFC 6838)
   const textSuffixes = [
@@ -331,6 +366,7 @@ interface GetSchemaFormDataAndUrlEncodedOptions {
   isRequestBodyOptional: boolean;
   isUrlEncoded?: boolean;
   isRef?: boolean;
+  encoding?: Record<string, OpenApiEncodingObject>;
 }
 
 function getSchemaFormDataAndUrlEncoded({
@@ -340,6 +376,7 @@ function getSchemaFormDataAndUrlEncoded({
   isRequestBodyOptional,
   isUrlEncoded,
   isRef,
+  encoding,
 }: GetSchemaFormDataAndUrlEncodedOptions): string {
   const { schema, imports } = resolveRef<OpenApiSchemaObject>(
     schemaObject,
@@ -387,6 +424,7 @@ function getSchemaFormDataAndUrlEncoded({
               propName: newPropName,
               context,
               isRequestBodyOptional,
+              encoding,
             })
           );
         })
@@ -403,6 +441,7 @@ function getSchemaFormDataAndUrlEncoded({
         propName,
         context,
         isRequestBodyOptional,
+        encoding,
       });
 
       form += formDataValues;
@@ -451,6 +490,38 @@ interface ResolveSchemaPropertiesToFormDataOptions {
   isRequestBodyOptional: boolean;
   keyPrefix?: string;
   depth?: number;
+  encoding?: Record<string, OpenApiEncodingObject>;
+}
+
+/**
+ * Generate FormData append call with proper encoding.contentType handling.
+ */
+function generateFormDataAppend(
+  variableName: string,
+  fieldName: string,
+  valueExpr: string,
+  encodingContentType: string | undefined,
+  needsStringify: boolean,
+): string {
+  // If encoding.contentType is specified, wrap in Blob with the content type
+  if (encodingContentType) {
+    if (isBinaryContentType(encodingContentType)) {
+      // Binary content type - value is already Blob/File, append directly
+      return `${variableName}.append(\`${fieldName}\`, ${valueExpr});\n`;
+    } else if (needsStringify) {
+      // Text content type with object/array - stringify and wrap in Blob
+      return `${variableName}.append(\`${fieldName}\`, new Blob([JSON.stringify(${valueExpr})], { type: '${encodingContentType}' }));\n`;
+    } else {
+      // Text content type with string field (type is Blob | string) - check at runtime
+      return `${variableName}.append(\`${fieldName}\`, ${valueExpr} instanceof Blob ? ${valueExpr} : new Blob([${valueExpr}], { type: '${encodingContentType}' }));\n`;
+    }
+  }
+
+  // No encoding.contentType - use default behavior
+  if (needsStringify) {
+    return `${variableName}.append(\`${fieldName}\`, JSON.stringify(${valueExpr}));\n`;
+  }
+  return `${variableName}.append(\`${fieldName}\`, ${valueExpr});\n`;
 }
 
 function resolveSchemaPropertiesToFormData({
@@ -461,6 +532,7 @@ function resolveSchemaPropertiesToFormData({
   isRequestBodyOptional,
   keyPrefix = '',
   depth = 0,
+  encoding,
 }: ResolveSchemaPropertiesToFormDataOptions): string {
   const formDataValues = Object.entries(schema.properties ?? {}).reduce(
     (acc, [key, value]) => {
@@ -476,6 +548,10 @@ function resolveSchemaPropertiesToFormData({
 
       let formDataValue = '';
 
+      // Get encoding.contentType for this field (only at top level, depth === 0)
+      const fieldEncoding = depth === 0 ? encoding?.[key] : undefined;
+      const encodingContentType = fieldEncoding?.contentType;
+
       const formattedKeyPrefix = isRequestBodyOptional
         ? keyword.isIdentifierNameES5(key)
           ? '?'
@@ -488,7 +564,37 @@ function resolveSchemaPropertiesToFormData({
       const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
       const nonOptionalValueKey = `${propName}${formattedKey}`;
 
-      if (property.type === 'object') {
+      // encoding.contentType takes precedence over contentMediaType
+      const isBinaryEncodingContentType =
+        encodingContentType && isBinaryContentType(encodingContentType);
+      const isTextEncodingContentType =
+        encodingContentType &&
+        !isBinaryContentType(encodingContentType) &&
+        property.type === 'string' &&
+        !property.format &&
+        !property.contentEncoding;
+
+      // contentMediaType only applies if no encoding.contentType
+      const isBinaryContentMediaType =
+        !encodingContentType &&
+        (property.format === 'binary' ||
+          (property.contentMediaType &&
+            isBinaryContentType(property.contentMediaType)));
+      const isTextContentMediaType =
+        !encodingContentType &&
+        property.contentMediaType &&
+        !isBinaryContentType(property.contentMediaType);
+
+      if (isBinaryEncodingContentType || isBinaryContentMediaType) {
+        // Binary: append directly (value is Blob)
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
+      } else if (isTextEncodingContentType) {
+        // Text encoding.contentType: value is Blob | string, check at runtime
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${encodingContentType}' }));\n`;
+      } else if (isTextContentMediaType) {
+        // Text contentMediaType: value is Blob | string, check at runtime
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${property.contentMediaType}' }));\n`;
+      } else if (property.type === 'object') {
         formDataValue =
           context.output.override.formData.arrayHandling ===
           FormDataArrayHandling.EXPLODE
@@ -500,8 +606,15 @@ function resolveSchemaPropertiesToFormData({
                 isRequestBodyOptional,
                 keyPrefix: `${keyPrefix}${key}.`,
                 depth: depth + 1,
+                encoding,
               })
-            : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
+            : generateFormDataAppend(
+                variableName,
+                `${keyPrefix}${key}`,
+                nonOptionalValueKey,
+                encodingContentType,
+                true,
+              );
       } else if (property.type === 'array') {
         let valueStr = 'value';
         let hasNonPrimitiveChild = false;
