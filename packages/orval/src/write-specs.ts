@@ -7,6 +7,7 @@ import {
   type NormalizedOptions,
   type OpenApiInfoObject,
   OutputMode,
+  type SchemaGenerationType,
   upath,
   writeSchemas,
   writeSingleMode,
@@ -64,30 +65,34 @@ export async function writeSpecs(
         indexFiles: output.indexFiles,
       });
     } else {
-      const schemaType = output.schemas.type;
+      const types: SchemaGenerationType[] = Array.isArray(output.schemas.type)
+        ? output.schemas.type
+        : [output.schemas.type];
 
-      if (schemaType === 'typescript') {
-        const fileExtension = output.fileExtension || '.ts';
+      for (const schemaType of types) {
+        if (schemaType === 'typescript') {
+          const fileExtension = output.fileExtension || '.ts';
 
-        await writeSchemas({
-          schemaPath: output.schemas.path,
-          schemas,
-          target,
-          namingConvention: output.namingConvention,
-          fileExtension,
-          header,
-          indexFiles: output.indexFiles,
-        });
-      } else if (schemaType === 'zod') {
-        const fileExtension = '.zod.ts';
+          await writeSchemas({
+            schemaPath: output.schemas.path,
+            schemas,
+            target,
+            namingConvention: output.namingConvention,
+            fileExtension,
+            header,
+            indexFiles: output.indexFiles,
+          });
+        } else if (schemaType === 'zod') {
+          const fileExtension = '.zod.ts';
 
-        await writeZodSchemas(
-          builder,
-          output.schemas.path,
-          fileExtension,
-          header,
-          output,
-        );
+          await writeZodSchemas(
+            builder,
+            output.schemas.path,
+            fileExtension,
+            header,
+            output,
+          );
+        }
       }
     }
   }
