@@ -302,7 +302,7 @@ export const getQueryOptions = ({
   }
 
   if (hasSignal) {
-    return 'signal';
+    return httpClient === OutputHttpClient.AXIOS ? 'signal' : '{ signal }';
   }
 
   return '';

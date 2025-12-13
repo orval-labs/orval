@@ -141,7 +141,7 @@ export const getListPetsQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, signal);
+  }) => listPets(params, { signal });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -370,7 +370,7 @@ export const getListPetsNestedArrayQueryOptions = <
 
   const queryFn: QueryFunction<
     Awaited<ReturnType<typeof listPetsNestedArray>>
-  > = ({ signal }) => listPetsNestedArray(params, signal);
+  > = ({ signal }) => listPetsNestedArray(params, { signal });
 
   return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
     Awaited<ReturnType<typeof listPetsNestedArray>>,
@@ -473,7 +473,7 @@ export const getShowPetByIdQueryOptions = <
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(petId, signal);
+  }) => showPetById(petId, { signal });
 
   return {
     queryKey,
