@@ -83,7 +83,7 @@ export async function writeSpecs(
             indexFiles: output.indexFiles,
           });
         } else if (schemaType === 'zod') {
-          const fileExtension = output.fileExtension || '.zod.ts';
+          const fileExtension = '.zod.ts';
 
           await writeZodSchemas(
             builder,
