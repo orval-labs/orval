@@ -127,6 +127,8 @@ Support us with a one-time donation and help us continue our activities on [Open
   <img src="https://orval.dev/images/emblem.svg" width="50" height="50" alt="Backer" />
 </a>
 
+**Note:** After becoming a sponsor or backer, please contact us on [Discord](https://discord.gg/6fC2sjDU7w) to upload your logo.
+
 ## Star History
 
 <a href="https://star-history.com/#orval-labs/orval&Date">

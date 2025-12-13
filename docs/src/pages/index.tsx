@@ -344,6 +344,19 @@ my-app
                 Support us on Open Collective
               </a>
             </div>
+
+            <p className="mt-6 text-sm text-gray-600">
+              After becoming a sponsor or backer, please contact us on{' '}
+              <a
+                href={siteConfig.discordUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-coral-default hover:text-coral-light underline"
+              >
+                Discord
+              </a>{' '}
+              to upload your logo.
+            </p>
           </div>
         </div>
         <div className="bg-gray-50 border-b border-gray-100">
