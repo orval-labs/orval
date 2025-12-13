@@ -101,6 +101,34 @@ If you encounter issues or want to start completely fresh:
 1. Run `yarn nuke:all` to clean everything
 2. Reinstall dependencies and rebuild from scratch
 
+## Sponsors
+
+Thank you to all our sponsors! 🍻
+
+Support orval development by [Open Collective](https://opencollective.com/orval) and your logo will be displayed here with a link to your website.
+
+<a href="https://opencollective.com/orval">
+  <img src="https://orval.dev/images/orval-logo-horizontal.svg?raw=true" width="300" alt="Become a sponsor" />
+</a>
+
+## Backers
+
+Thank you to all our backers! 🙏
+
+Support us with a one-time donation and help us continue our activities on [Open Collective](https://opencollective.com/orval).
+
+<a href="https://opencollective.com/orval">
+  <img src="https://orval.dev/images/emblem.svg" width="50" height="50" alt="Backer" />
+</a>
+<a href="https://opencollective.com/orval">
+  <img src="https://orval.dev/images/emblem.svg" width="50" height="50" alt="Backer" />
+</a>
+<a href="https://opencollective.com/orval">
+  <img src="https://orval.dev/images/emblem.svg" width="50" height="50" alt="Backer" />
+</a>
+
+**Note:** After becoming a sponsor or backer, please contact us on [Discord](https://discord.gg/6fC2sjDU7w) to upload your logo.
+
 ## Star History
 
 <a href="https://star-history.com/#orval-labs/orval&Date">
