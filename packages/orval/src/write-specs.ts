@@ -7,6 +7,7 @@ import {
   type NormalizedOptions,
   type OpenApiInfoObject,
   OutputMode,
+  type SchemaGenerationType,
   upath,
   writeSchemas,
   writeSingleMode,
@@ -14,6 +15,7 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
+  isString,
 } from '@orval/core';
 import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
@@ -22,6 +24,7 @@ import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { executeHook } from './utils';
+import { writeZodSchemas } from './write-zod-specs';
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -32,7 +35,6 @@ function getHeader(
   }
 
   const header = option(info);
-
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 }
 
@@ -49,22 +51,50 @@ export async function writeSpecs(
   const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
-    const rootSchemaPath = output.schemas;
+    if (isString(output.schemas)) {
+      const fileExtension = output.fileExtension || '.ts';
+      const schemaPath = output.schemas;
 
-    const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
-      ? '.ts'
-      : output.fileExtension;
+      await writeSchemas({
+        schemaPath,
+        schemas,
+        target,
+        namingConvention: output.namingConvention,
+        fileExtension,
+        header,
+        indexFiles: output.indexFiles,
+      });
+    } else {
+      const types: SchemaGenerationType[] = Array.isArray(output.schemas.type)
+        ? output.schemas.type
+        : [output.schemas.type];
 
-    const schemaPath = rootSchemaPath;
-    await writeSchemas({
-      schemaPath,
-      schemas,
-      target,
-      namingConvention: output.namingConvention,
-      fileExtension,
-      header,
-      indexFiles: output.indexFiles,
-    });
+      for (const schemaType of types) {
+        if (schemaType === 'typescript') {
+          const fileExtension = output.fileExtension || '.ts';
+
+          await writeSchemas({
+            schemaPath: output.schemas.path,
+            schemas,
+            target,
+            namingConvention: output.namingConvention,
+            fileExtension,
+            header,
+            indexFiles: output.indexFiles,
+          });
+        } else if (schemaType === 'zod') {
+          const fileExtension = output.fileExtension || '.zod.ts';
+
+          await writeZodSchemas(
+            builder,
+            output.schemas.path,
+            fileExtension,
+            header,
+            output,
+          );
+        }
+      }
+    }
   }
 
   let implementationPaths: string[] = [];
@@ -97,8 +127,12 @@ export async function writeSpecs(
       );
 
     if (output.schemas) {
+      const schemasPath =
+        typeof output.schemas === 'string'
+          ? output.schemas
+          : output.schemas.path;
       imports.push(
-        upath.relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
+        upath.relativeSafe(workspacePath, getFileInfo(schemasPath).dirname),
       );
     }
 
@@ -141,7 +175,15 @@ export async function writeSpecs(
   }
 
   const paths = [
-    ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
+    ...(output.schemas
+      ? [
+          getFileInfo(
+            typeof output.schemas === 'string'
+              ? output.schemas
+              : output.schemas.path,
+          ).dirname,
+        ]
+      : []),
     ...implementationPaths,
   ];
 

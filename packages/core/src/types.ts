@@ -764,6 +764,7 @@ export type GeneratorSchema = {
   model: string;
   imports: GeneratorImport[];
   dependencies?: string[];
+  schema?: OpenApiSchemaObject;
 };
 
 export type GeneratorImport = {
@@ -1121,6 +1122,7 @@ export type WriteSpecBuilder = {
   extraFiles: ClientFileBuilder[];
   info: OpenApiInfoObject;
   target: string;
+  spec: OpenApiDocument;
 };
 
 export type WriteModeProps = {

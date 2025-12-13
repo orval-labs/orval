@@ -1486,4 +1486,6 @@ const zodClientBuilder: ClientGeneratorsBuilder = {
 
 export const builder = () => () => zodClientBuilder;
 
+export { isZodVersionV4 } from './compatible-v4';
+
 export default builder;
