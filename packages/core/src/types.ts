@@ -201,7 +201,7 @@ export type SchemaGenerationType = 'typescript' | 'zod';
 
 export type SchemaOptions = {
   path: string;
-  type: SchemaGenerationType | SchemaGenerationType[];
+  type: SchemaGenerationType;
 };
 
 export type OutputOptions = {

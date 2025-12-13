@@ -95,13 +95,9 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
-  const types: SchemaGenerationType[] = Array.isArray(schemas.type)
-    ? schemas.type
-    : [schemas.type];
-
   return {
     path: normalizePath(schemas.path, workspace),
-    type: types,
+    type: schemas.type,
   };
 }
 
