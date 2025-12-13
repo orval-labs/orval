@@ -27,7 +27,7 @@ export interface NormalizedOptions {
 export type NormalizedOutputOptions = {
   workspace?: string;
   target: string;
-  schemas?: string;
+  schemas?: string | SchemaOptions;
   namingConvention: NamingConvention;
   fileExtension: string;
   mode: OutputMode;
@@ -197,10 +197,17 @@ export const EnumGeneration = {
 export type EnumGeneration =
   (typeof EnumGeneration)[keyof typeof EnumGeneration];
 
+export type SchemaGenerationType = 'typescript' | 'zod';
+
+export type SchemaOptions = {
+  path: string;
+  type: SchemaGenerationType | SchemaGenerationType[];
+};
+
 export type OutputOptions = {
   workspace?: string;
   target: string;
-  schemas?: string;
+  schemas?: string | SchemaOptions;
   namingConvention?: NamingConvention;
   fileExtension?: string;
   mode?: OutputMode;
