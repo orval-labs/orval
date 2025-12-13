@@ -36,6 +36,8 @@ import {
   PropertySortOrder,
   type QueryOptions,
   RefComponentSuffix,
+  type SchemaGenerationType,
+  type SchemaOptions,
   upath,
 } from '@orval/core';
 import { DEFAULT_MOCK_OPTIONS } from '@orval/mock';
@@ -78,6 +80,28 @@ function createFormData(
     disabled: false,
     mutator: normalizeMutator(workspace, formData),
     arrayHandling: defaultArrayHandling,
+  };
+}
+
+function normalizeSchemasOption(
+  schemas: string | SchemaOptions | undefined,
+  workspace: string,
+): string | SchemaOptions | undefined {
+  if (!schemas) {
+    return undefined;
+  }
+
+  if (isString(schemas)) {
+    return normalizePath(schemas, workspace);
+  }
+
+  const types: SchemaGenerationType[] = Array.isArray(schemas.type)
+    ? schemas.type
+    : [schemas.type];
+
+  return {
+    path: normalizePath(schemas.path, workspace),
+    type: types,
   };
 }
 
@@ -169,7 +193,7 @@ export async function normalizeOptions(
       target: globalOptions.output
         ? normalizePath(globalOptions.output, process.cwd())
         : normalizePath(outputOptions.target, outputWorkspace),
-      schemas: normalizePath(outputOptions.schemas, outputWorkspace),
+      schemas: normalizeSchemasOption(outputOptions.schemas, outputWorkspace),
       namingConvention:
         outputOptions.namingConvention || NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension || defaultFileExtension,
