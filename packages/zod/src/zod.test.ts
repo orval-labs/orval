@@ -4262,3 +4262,202 @@ describe('generateZodWithNullableAnyOfRefs', () => {
     expect(uniqueConstNames.size).toBe(allConstNames.length);
   });
 });
+
+// Content type handling tests - mirrors res-req-types.test.ts structure
+describe('generateZod (content type handling - parity with res-req-types.test.ts)', () => {
+  const zodOverride = {
+    zod: {
+      strict: {
+        param: false,
+        body: false,
+        response: false,
+        query: false,
+        header: false,
+      },
+      generate: {
+        param: false,
+        body: true,
+        response: false,
+        query: false,
+        header: false,
+      },
+      coerce: {
+        param: false,
+        body: false,
+        response: false,
+        query: false,
+        header: false,
+      },
+      generateEachHttpStatus: false,
+      dateTimeOptions: {},
+      timeOptions: {},
+    },
+  };
+
+  it('media key precedence: application/json ignores contentMediaType', async () => {
+    const schema: GeneratorOptions = {
+      pathRoute: '/upload',
+      context: {
+        spec: {
+          paths: {
+            '/upload': {
+              post: {
+                operationId: 'upload',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          // contentMediaType should be IGNORED (media key is text/JSON)
+                          ignored: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                        },
+                        required: ['ignored'],
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': { schema: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    };
+    const result = await generateZod(
+      {
+        pathRoute: '/upload',
+        verb: 'post',
+        operationName: 'upload',
+        override: zodOverride,
+      },
+      schema,
+      {},
+    );
+    // contentMediaType: 'image/png' should be IGNORED because media key is application/json
+    expect(result.implementation).toContain('"ignored": zod.string()');
+    expect(result.implementation).not.toContain('instanceof');
+  });
+
+  it('multipart/form-data: comprehensive content type handling', async () => {
+    // Matches type gen test structure in res-req-types.test.ts
+    const schema: GeneratorOptions = {
+      pathRoute: '/upload-form',
+      context: {
+        spec: {
+          paths: {
+            '/upload-form': {
+              post: {
+                operationId: 'uploadForm',
+                requestBody: {
+                  required: true,
+                  content: {
+                    'multipart/form-data': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          encBinary: { type: 'string' },
+                          encText: { type: 'string' },
+                          cmtBinary: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                          cmtText: {
+                            type: 'string',
+                            contentMediaType: 'application/xml',
+                          },
+                          encOverride: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                          },
+                          formatBinary: { type: 'string', format: 'binary' },
+                          base64Field: {
+                            type: 'string',
+                            contentMediaType: 'image/png',
+                            contentEncoding: 'base64',
+                          },
+                          metadata: {
+                            type: 'object',
+                            properties: { name: { type: 'string' } },
+                          },
+                        },
+                        required: [
+                          'encBinary',
+                          'encText',
+                          'cmtBinary',
+                          'cmtText',
+                          'encOverride',
+                          'formatBinary',
+                          'base64Field',
+                          'metadata',
+                        ],
+                      },
+                      encoding: {
+                        encBinary: { contentType: 'image/png' },
+                        encText: { contentType: 'text/plain' },
+                        encOverride: { contentType: 'text/csv' },
+                        metadata: { contentType: 'application/json' },
+                      },
+                    },
+                  },
+                },
+                responses: {
+                  '200': {
+                    content: {
+                      'application/json': { schema: { type: 'string' } },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        output: { override: { zod: { generateEachHttpStatus: false } } },
+      },
+    };
+    const result = await generateZod(
+      {
+        pathRoute: '/upload-form',
+        verb: 'post',
+        operationName: 'uploadForm',
+        override: zodOverride,
+      },
+      schema,
+      {},
+    );
+    // encBinary: encoding image/png → File
+    // encText: encoding text/plain → File | string
+    // cmtBinary: contentMediaType image/png → File
+    // cmtText: contentMediaType application/xml → File | string
+    // encOverride: encoding text/csv overrides contentMediaType image/png → File | string
+    // formatBinary: format: binary → File (same as instanceof check)
+    // base64Field: contentEncoding base64 → stays string
+    // metadata: object → object schema
+    expect(result.implementation)
+      .toBe(`export const uploadFormBody = zod.object({
+  "encBinary": zod.instanceof(File),
+  "encText": zod.instanceof(File).or(zod.string()),
+  "cmtBinary": zod.instanceof(File),
+  "cmtText": zod.instanceof(File).or(zod.string()),
+  "encOverride": zod.instanceof(File).or(zod.string()),
+  "formatBinary": zod.instanceof(File),
+  "base64Field": zod.string(),
+  "metadata": zod.object({
+  "name": zod.string().optional()
+})
+})
+
+`);
+  });
+});

@@ -9,6 +9,7 @@ import {
   type GeneratorMutator,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getFormDataFieldFileType,
   getNumberWord,
   getPropertySafe,
   getRefInfo,
@@ -174,6 +175,11 @@ export const generateZodValidationSchemaDefinition = (
     required?: boolean;
     dateTimeOptions?: DateTimeOptions;
     timeOptions?: TimeOptions;
+    /**
+     * Override schemas for properties at THIS level only.
+     * Not passed to nested schemas. Used by form-data for file type handling.
+     */
+    propertyOverrides?: Record<string, ZodValidationSchemaDefinition>;
   },
 ): ZodValidationSchemaDefinition => {
   if (!schema) return { functions: [], consts: [] };
@@ -544,16 +550,16 @@ export const generateZodValidationSchemaDefinition = (
             objectType,
             Object.keys(schema.properties)
               .map((key) => ({
-                [key]: generateZodValidationSchemaDefinition(
-                  schema.properties?.[key] as OpenApiSchemaObject | undefined,
-                  context,
-                  camel(`${name}-${key}`),
-                  strict,
-                  isZodV4,
-                  {
-                    required: schema.required?.includes(key),
-                  },
-                ),
+                [key]:
+                  rules?.propertyOverrides?.[key] ??
+                  generateZodValidationSchemaDefinition(
+                    schema.properties?.[key] as OpenApiSchemaObject | undefined,
+                    context,
+                    camel(`${name}-${key}`),
+                    strict,
+                    isZodV4,
+                    { required: schema.required?.includes(key) },
+                  ),
               }))
               .reduce((acc, curr) => ({ ...acc, ...curr }), {}),
           ]);
@@ -712,6 +718,11 @@ export const parseZodValidationSchemaDefinition = (
 
   const parseProperty = (property: [string, any]): string => {
     const [fn, args = ''] = property;
+
+    // File | string for text contentMediaType/encoding (user can pass string, runtime wraps in Blob)
+    if (fn === 'fileOrString') {
+      return 'zod.instanceof(File).or(zod.string())';
+    }
 
     if (fn === 'allOf') {
       const allOfArgs = args as ZodValidationSchemaDefinition[];
@@ -969,6 +980,71 @@ export const dereference = (
   }, {});
 };
 
+/**
+ * Generate zod schema for form-data request body.
+ * Handles file type detection for top-level properties based on encoding.contentType
+ * and contentMediaType. Mirrors type gen's resolveFormDataRootObject.
+ */
+const generateFormDataZodSchema = (
+  schema: OpenApiSchemaObject,
+  context: ContextSpec,
+  name: string,
+  strict: boolean,
+  isZodV4: boolean,
+  encoding?: Record<string, { contentType?: string }>,
+): ZodValidationSchemaDefinition => {
+  // Precompute file type overrides for top-level properties only
+  const propertyOverrides: Record<string, ZodValidationSchemaDefinition> = {};
+
+  if (schema.properties) {
+    for (const key of Object.keys(schema.properties)) {
+      const propSchema = schema.properties[key];
+      const resolvedPropSchema = propSchema
+        ? dereference(
+            propSchema as OpenApiSchemaObject | OpenApiReferenceObject,
+            context,
+          )
+        : undefined;
+
+      const fileType = resolvedPropSchema
+        ? getFormDataFieldFileType(
+            resolvedPropSchema,
+            encoding?.[key]?.contentType,
+          )
+        : undefined;
+
+      if (fileType) {
+        const isRequired = schema.required?.includes(key);
+        const fileFunctions: [string, unknown][] = [
+          fileType === 'binary'
+            ? ['instanceof', 'File']
+            : ['fileOrString', undefined],
+        ];
+        if (!isRequired) {
+          fileFunctions.push(['optional', undefined]);
+        }
+        propertyOverrides[key] = { functions: fileFunctions, consts: [] };
+      }
+    }
+  }
+
+  // Delegate to generic handler with file type overrides
+  return generateZodValidationSchemaDefinition(
+    schema,
+    context,
+    name,
+    strict,
+    isZodV4,
+    {
+      required: true,
+      propertyOverrides:
+        Object.keys(propertyOverrides).length > 0
+          ? propertyOverrides
+          : undefined,
+    },
+  );
+};
+
 const parseBodyAndResponse = ({
   data,
   context,
@@ -1008,9 +1084,17 @@ const parseBodyAndResponse = ({
     OpenApiResponseObject | OpenApiRequestBodyObject
   >(data, context).schema;
 
-  const schema =
-    resolvedRef.content?.['application/json']?.schema ??
-    resolvedRef.content?.['multipart/form-data']?.schema;
+  // Only handle JSON and form-data; other content types (e.g., application/octet-stream)
+  // are skipped - unclear if this is correct behavior for root-level binary/text bodies
+  const jsonMedia = resolvedRef.content?.['application/json'];
+  const formDataMedia = resolvedRef.content?.['multipart/form-data'];
+  const [contentType, mediaType] = jsonMedia
+    ? (['application/json', jsonMedia] as const)
+    : formDataMedia
+      ? (['multipart/form-data', formDataMedia] as const)
+      : [undefined, undefined];
+
+  const schema = mediaType?.schema;
 
   if (!schema) {
     return {
@@ -1018,6 +1102,8 @@ const parseBodyAndResponse = ({
       isArray: false,
     };
   }
+
+  const encoding = mediaType.encoding;
 
   const resolvedJsonSchema = dereference(schema, context);
 
@@ -1055,19 +1141,31 @@ const parseBodyAndResponse = ({
     };
   }
 
+  const effectiveSchema =
+    parseType === 'body'
+      ? removeReadOnlyProperties(resolvedJsonSchema)
+      : resolvedJsonSchema;
+
+  const isFormData = contentType === 'multipart/form-data';
+
   return {
-    input: generateZodValidationSchemaDefinition(
-      parseType === 'body'
-        ? removeReadOnlyProperties(resolvedJsonSchema)
-        : resolvedJsonSchema,
-      context,
-      name,
-      strict,
-      isZodV4,
-      {
-        required: true,
-      },
-    ),
+    input: isFormData
+      ? generateFormDataZodSchema(
+          effectiveSchema,
+          context,
+          name,
+          strict,
+          isZodV4,
+          encoding,
+        )
+      : generateZodValidationSchemaDefinition(
+          effectiveSchema,
+          context,
+          name,
+          strict,
+          isZodV4,
+          { required: true },
+        ),
     isArray: false,
   };
 };

@@ -1249,4 +1249,5 @@ export type OpenApiInfoObject = OpenAPIV3_1.InfoObject;
 export type OpenApiExampleObject = OpenAPIV3_1.ExampleObject;
 export type OpenApiOperationObject = OpenAPIV3_1.OperationObject;
 export type OpenApiMediaTypeObject = OpenAPIV3_1.MediaTypeObject;
+export type OpenApiEncodingObject = OpenAPIV3_1.EncodingObject;
 export type OpenApiServerObject = OpenAPIV3_1.ServerObject;

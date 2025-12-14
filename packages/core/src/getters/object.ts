@@ -49,6 +49,11 @@ interface GetObjectOptions {
   name?: string;
   context: ContextSpec;
   nullable: string;
+  /**
+   * Override resolved values for properties at THIS level only.
+   * Not passed to nested schemas. Used by form-data for file type handling.
+   */
+  propertyOverrides?: Record<string, ScalarValue>;
 }
 
 /**
@@ -61,6 +66,7 @@ export function getObject({
   name,
   context,
   nullable,
+  propertyOverrides,
 }: GetObjectOptions): ScalarValue {
   if (isReference(item)) {
     const { name } = getRefInfo(item.$ref, context);
@@ -143,11 +149,14 @@ export function getObject({
           propName = propName + 'Property';
         }
 
-        const resolvedValue = resolveObject({
-          schema,
-          propName,
-          context,
-        });
+        // Check for override first, fall back to standard resolution
+        const resolvedValue =
+          propertyOverrides?.[key] ??
+          resolveObject({
+            schema,
+            propName,
+            context,
+          });
 
         const isReadOnly = item.readOnly || schema.readOnly;
         if (!index) {
