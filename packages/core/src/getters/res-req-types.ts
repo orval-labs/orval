@@ -48,17 +48,18 @@ function getResReqContentTypes({
     return;
   }
 
-  // Resolve the schema - dereferencing if needed
-  const { schema } = resolveRef<OpenApiSchemaObject>(mediaType.schema, context);
-
-  // For form-data with object schema, handle encoding at entry point
-  if (isFormData && schema.properties) {
-    return resolveFormDataRootObject({
-      schema,
+  // For form-data, try special handling for file type overrides
+  if (isFormData) {
+    const formDataResult = resolveFormDataRootObject({
+      schemaOrRef: mediaType.schema,
       propName,
       context,
       encoding: mediaType.encoding,
     });
+    if (formDataResult) {
+      return formDataResult;
+    }
+    // No file type overrides - fall through to normal resolution
   }
 
   const resolvedObject = resolveObject({
@@ -369,48 +370,57 @@ export function getFormDataFieldFileType(
 }
 
 /**
- * Resolve form-data root object - handles ALL content-type precedence at entry point.
- * Precomputes file type overrides for top-level properties.
+ * Resolve form-data root object with file type overrides.
+ * Returns undefined if no file type overrides needed (caller should use normal resolution).
  */
 function resolveFormDataRootObject({
-  schema,
+  schemaOrRef,
   propName,
   context,
   encoding,
 }: {
-  schema: OpenApiSchemaObject;
+  schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject;
   propName?: string;
   context: ContextSpec;
   encoding?: Record<string, OpenApiEncodingObject>;
-}): ScalarValue {
-  // Precompute file type overrides for top-level properties only
+}): ScalarValue | undefined {
+  const { schema } = resolveRef<OpenApiSchemaObject>(schemaOrRef, context);
+
+  if (!schema.properties) {
+    return undefined;
+  }
+
+  // Compute file type overrides for top-level properties
   const propertyOverrides: Record<string, ScalarValue> = {};
 
-  if (schema.properties) {
-    for (const key of Object.keys(schema.properties)) {
-      const propSchema = schema.properties[key];
-      const { schema: resolvedSchema } = resolveRef<OpenApiSchemaObject>(
-        propSchema,
+  for (const key of Object.keys(schema.properties)) {
+    const propSchema = schema.properties[key];
+    const { schema: resolvedSchema } = resolveRef<OpenApiSchemaObject>(
+      propSchema,
+      context,
+    );
+
+    const fileType = getFormDataFieldFileType(
+      resolvedSchema,
+      encoding?.[key]?.contentType,
+    );
+
+    if (fileType) {
+      const scalar = getScalar({
+        item: resolvedSchema,
+        name: propName,
         context,
-      );
-
-      const fileType = getFormDataFieldFileType(
-        resolvedSchema,
-        encoding?.[key]?.contentType,
-      );
-
-      if (fileType) {
-        const scalar = getScalar({
-          item: resolvedSchema,
-          name: propName,
-          context,
-        });
-        propertyOverrides[key] = {
-          ...scalar,
-          value: fileType === 'binary' ? 'Blob' : 'Blob | string',
-        };
-      }
+      });
+      propertyOverrides[key] = {
+        ...scalar,
+        value: fileType === 'binary' ? 'Blob' : 'Blob | string',
+      };
     }
+  }
+
+  // No overrides - let caller use normal resolution (preserves $ref names)
+  if (Object.keys(propertyOverrides).length === 0) {
+    return undefined;
   }
 
   return getObject({
@@ -418,8 +428,7 @@ function resolveFormDataRootObject({
     name: propName,
     context,
     nullable: '', // multipart/form-data has no native null representation
-    propertyOverrides:
-      Object.keys(propertyOverrides).length > 0 ? propertyOverrides : undefined,
+    propertyOverrides,
   });
 }
 
