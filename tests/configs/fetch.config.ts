@@ -294,4 +294,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/fetch/zod-schema-response/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response/model',
+        type: ['typescript', 'zod'],
+      },
+      client: 'fetch',
+      override: {
+        fetch: {
+          useZodSchemaResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
