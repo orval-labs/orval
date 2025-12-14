@@ -370,4 +370,22 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  runtimeValidation: {
+    output: {
+      target: '../generated/fetch/runtime-validation/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/runtime-validation/model',
+        type: ['typescript', 'zod'],
+      },
+      client: 'fetch',
+      override: {
+        fetch: {
+          runtimeValidation: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
