@@ -27,6 +27,7 @@ import {
   type NormalizedOptions,
   type NormalizedOverrideOutput,
   type NormalizedQueryOptions,
+  type NormalizedSchemaOptions,
   type OperationOptions,
   type OptionsExport,
   OutputClient,
@@ -86,7 +87,7 @@ function createFormData(
 function normalizeSchemasOption(
   schemas: string | SchemaOptions | undefined,
   workspace: string,
-): string | SchemaOptions | undefined {
+): string | NormalizedSchemaOptions | undefined {
   if (!schemas) {
     return undefined;
   }
@@ -109,7 +110,7 @@ export async function normalizeOptions(
   optionsExport: OptionsExport,
   workspace = process.cwd(),
   globalOptions: GlobalOptions = {},
-) {
+): Promise<NormalizedOptions> {
   const options = await (isFunction(optionsExport)
     ? optionsExport()
     : optionsExport);
@@ -369,6 +370,8 @@ export async function normalizeOptions(
             true,
           forceSuccessResponse:
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
+          useZodSchemaResponse:
+            outputOptions.override?.fetch?.useZodSchemaResponse ?? false,
           ...outputOptions.override?.fetch,
         },
         useDates: outputOptions.override?.useDates || false,
