@@ -6,7 +6,6 @@ import { escape, isString } from '../utils';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
 import { getObject } from './object';
-import { isBinaryContentType } from './res-req-types';
 
 interface GetScalarOptions {
   item: OpenApiSchemaObject;
@@ -131,21 +130,6 @@ export function getScalar({
 
       if (item.format === 'binary') {
         value = 'Blob';
-      }
-
-      // OAS 3.1 contentMediaType replaces format: binary (but with specific MIME type).
-      // If contentEncoding is present (e.g., base64), it's an encoded string, not Blob.
-      // Per OAS 3.1: contentMediaType SHALL be ignored if it contradicts the media key.
-      // Binary MIME → Blob; Text MIME → Blob | string (user can pass string, runtime wraps in Blob)
-      if (
-        item.contentMediaType &&
-        !item.format &&
-        !item.contentEncoding &&
-        !context.mediaKeyIsText
-      ) {
-        value = isBinaryContentType(item.contentMediaType)
-          ? 'Blob'
-          : 'Blob | string';
       }
 
       if (

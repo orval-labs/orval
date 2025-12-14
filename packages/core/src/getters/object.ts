@@ -13,7 +13,6 @@ import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
 import { getRefInfo } from './ref';
-import { isBinaryContentType } from './res-req-types';
 
 /**
  * Extract enum values from propertyNames schema (OpenAPI 3.1)
@@ -50,6 +49,11 @@ interface GetObjectOptions {
   name?: string;
   context: ContextSpec;
   nullable: string;
+  /**
+   * Override resolved values for properties at THIS level only.
+   * Not passed to nested schemas. Used by form-data for file type handling.
+   */
+  propertyOverrides?: Record<string, ScalarValue>;
 }
 
 /**
@@ -62,6 +66,7 @@ export function getObject({
   name,
   context,
   nullable,
+  propertyOverrides,
 }: GetObjectOptions): ScalarValue {
   if (isReference(item)) {
     const { name } = getRefInfo(item.$ref, context);
@@ -144,27 +149,14 @@ export function getObject({
           propName = propName + 'Property';
         }
 
-        const resolvedValue = resolveObject({
-          schema,
-          propName,
-          context,
-        });
-
-        // encoding.contentType overrides contentMediaType (already applied in getScalar).
-        // Skip if: $ref, has format (already Blob), or has contentEncoding (encoded string).
-        // Binary → Blob; Text → Blob | string (allows passing string, runtime wraps in Blob)
-        const encodingContentType = context.encoding?.[key]?.contentType;
-        if (
-          encodingContentType &&
-          !isReference(schema) &&
-          schema.type === 'string' &&
-          !schema.format &&
-          !schema.contentEncoding
-        ) {
-          resolvedValue.value = isBinaryContentType(encodingContentType)
-            ? 'Blob'
-            : 'Blob | string';
-        }
+        // Check for override first, fall back to standard resolution
+        const resolvedValue =
+          propertyOverrides?.[key] ??
+          resolveObject({
+            schema,
+            propName,
+            context,
+          });
 
         const isReadOnly = item.readOnly || schema.readOnly;
         if (!index) {

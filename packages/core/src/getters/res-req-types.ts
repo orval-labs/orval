@@ -14,11 +14,14 @@ import {
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   type ResReqTypesValue,
+  type ScalarValue,
 } from '../types';
 import { camel } from '../utils';
 import { isReference } from '../utils/assertion';
 import { pascal } from '../utils/case';
 import { getNumberWord } from '../utils/string';
+import { getObject } from './object';
+import { getScalar } from './scalar';
 
 const formDataContentTypes = new Set(['multipart/form-data']);
 
@@ -45,22 +48,23 @@ function getResReqContentTypes({
     return;
   }
 
-  // Per OAS 3.1: contentMediaType is ignored if it contradicts the media key
-  const mediaKeyIsText = !isFormData && !isBinaryContentType(contentType);
+  // Resolve the schema - dereferencing if needed
+  const { schema } = resolveRef<OpenApiSchemaObject>(mediaType.schema, context);
 
-  // Build context with encoding and media key info
-  const resolveContext: ContextSpec = {
-    ...context,
-    mediaKeyIsText,
-    ...(isFormData && mediaType.encoding
-      ? { encoding: mediaType.encoding }
-      : {}),
-  };
+  // For form-data with object schema, handle encoding at entry point
+  if (isFormData && schema.properties) {
+    return resolveFormDataRootObject({
+      schema,
+      propName,
+      context,
+      encoding: mediaType.encoding,
+    });
+  }
 
   const resolvedObject = resolveObject({
     schema: mediaType.schema,
     propName,
-    context: resolveContext,
+    context,
   });
 
   // Media key has highest precedence: binary media key → Blob (overrides schema)
@@ -331,6 +335,94 @@ export function isBinaryContentType(contentType: string): boolean {
   return !textApplicationTypes.has(contentType);
 }
 
+/**
+ * Determine if a form-data root field should be treated as binary or text file
+ * based on encoding.contentType or contentMediaType.
+ *
+ * Returns:
+ * - 'binary': field is a binary file (Blob in types, File in zod)
+ * - 'text': field is a text file that can accept string (Blob | string in types, File | string in zod)
+ * - undefined: no override, use standard resolution
+ */
+export function getFormDataFieldFileType(
+  resolvedSchema: OpenApiSchemaObject,
+  encodingContentType: string | undefined,
+): 'binary' | 'text' | undefined {
+  // Only override string fields - objects/arrays with encoding are just serialized
+  if (resolvedSchema.type !== 'string') {
+    return undefined;
+  }
+
+  // contentEncoding (e.g., base64) means the value is an encoded string, not a file
+  if (resolvedSchema.contentEncoding) {
+    return undefined;
+  }
+
+  const effectiveContentType =
+    encodingContentType ?? resolvedSchema.contentMediaType;
+
+  if (effectiveContentType) {
+    return isBinaryContentType(effectiveContentType) ? 'binary' : 'text';
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolve form-data root object - handles ALL content-type precedence at entry point.
+ * Precomputes file type overrides for top-level properties.
+ */
+function resolveFormDataRootObject({
+  schema,
+  propName,
+  context,
+  encoding,
+}: {
+  schema: OpenApiSchemaObject;
+  propName?: string;
+  context: ContextSpec;
+  encoding?: Record<string, OpenApiEncodingObject>;
+}): ScalarValue {
+  // Precompute file type overrides for top-level properties only
+  const propertyOverrides: Record<string, ScalarValue> = {};
+
+  if (schema.properties) {
+    for (const key of Object.keys(schema.properties)) {
+      const propSchema = schema.properties[key];
+      const { schema: resolvedSchema } = resolveRef<OpenApiSchemaObject>(
+        propSchema,
+        context,
+      );
+
+      const fileType = getFormDataFieldFileType(
+        resolvedSchema,
+        encoding?.[key]?.contentType,
+      );
+
+      if (fileType) {
+        const scalar = getScalar({
+          item: resolvedSchema,
+          name: propName,
+          context,
+        });
+        propertyOverrides[key] = {
+          ...scalar,
+          value: fileType === 'binary' ? 'Blob' : 'Blob | string',
+        };
+      }
+    }
+  }
+
+  return getObject({
+    item: schema,
+    name: propName,
+    context,
+    nullable: '', // multipart/form-data has no native null representation
+    propertyOverrides:
+      Object.keys(propertyOverrides).length > 0 ? propertyOverrides : undefined,
+  });
+}
+
 interface GetFormDataAdditionalImportsOptions {
   schemaObject: OpenApiSchemaObject | OpenApiReferenceObject;
   context: ContextSpec;
@@ -493,37 +585,6 @@ interface ResolveSchemaPropertiesToFormDataOptions {
   encoding?: Record<string, OpenApiEncodingObject>;
 }
 
-/**
- * Generate FormData append call with proper encoding.contentType handling.
- */
-function generateFormDataAppend(
-  variableName: string,
-  fieldName: string,
-  valueExpr: string,
-  encodingContentType: string | undefined,
-  needsStringify: boolean,
-): string {
-  // If encoding.contentType is specified, wrap in Blob with the content type
-  if (encodingContentType) {
-    if (isBinaryContentType(encodingContentType)) {
-      // Binary content type - value is already Blob/File, append directly
-      return `${variableName}.append(\`${fieldName}\`, ${valueExpr});\n`;
-    } else if (needsStringify) {
-      // Text content type with object/array - stringify and wrap in Blob
-      return `${variableName}.append(\`${fieldName}\`, new Blob([JSON.stringify(${valueExpr})], { type: '${encodingContentType}' }));\n`;
-    } else {
-      // Text content type with string field (type is Blob | string) - check at runtime
-      return `${variableName}.append(\`${fieldName}\`, ${valueExpr} instanceof Blob ? ${valueExpr} : new Blob([${valueExpr}], { type: '${encodingContentType}' }));\n`;
-    }
-  }
-
-  // No encoding.contentType - use default behavior
-  if (needsStringify) {
-    return `${variableName}.append(\`${fieldName}\`, JSON.stringify(${valueExpr}));\n`;
-  }
-  return `${variableName}.append(\`${fieldName}\`, ${valueExpr});\n`;
-}
-
 function resolveSchemaPropertiesToFormData({
   schema,
   variableName,
@@ -564,36 +625,17 @@ function resolveSchemaPropertiesToFormData({
       const valueKey = `${propName}${formattedKeyPrefix}${formattedKey}`;
       const nonOptionalValueKey = `${propName}${formattedKey}`;
 
-      // encoding.contentType takes precedence over contentMediaType
-      const isBinaryEncodingContentType =
-        encodingContentType && isBinaryContentType(encodingContentType);
-      const isTextEncodingContentType =
-        encodingContentType &&
-        !isBinaryContentType(encodingContentType) &&
-        property.type === 'string' &&
-        !property.format &&
-        !property.contentEncoding;
+      // Use shared file type detection (same logic as type generation)
+      const fileType = getFormDataFieldFileType(property, encodingContentType);
+      const effectiveContentType =
+        encodingContentType ?? property.contentMediaType;
 
-      // contentMediaType only applies if no encoding.contentType
-      const isBinaryContentMediaType =
-        !encodingContentType &&
-        (property.format === 'binary' ||
-          (property.contentMediaType &&
-            isBinaryContentType(property.contentMediaType)));
-      const isTextContentMediaType =
-        !encodingContentType &&
-        property.contentMediaType &&
-        !isBinaryContentType(property.contentMediaType);
-
-      if (isBinaryEncodingContentType || isBinaryContentMediaType) {
+      if (fileType === 'binary' || property.format === 'binary') {
         // Binary: append directly (value is Blob)
         formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
-      } else if (isTextEncodingContentType) {
-        // Text encoding.contentType: value is Blob | string, check at runtime
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${encodingContentType}' }));\n`;
-      } else if (isTextContentMediaType) {
-        // Text contentMediaType: value is Blob | string, check at runtime
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${property.contentMediaType}' }));\n`;
+      } else if (fileType === 'text') {
+        // Text file: value is Blob | string, check at runtime
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey} instanceof Blob ? ${nonOptionalValueKey} : new Blob([${nonOptionalValueKey}], { type: '${effectiveContentType}' }));\n`;
       } else if (property.type === 'object') {
         formDataValue =
           context.output.override.formData.arrayHandling ===
@@ -608,13 +650,9 @@ function resolveSchemaPropertiesToFormData({
                 depth: depth + 1,
                 encoding,
               })
-            : generateFormDataAppend(
-                variableName,
-                `${keyPrefix}${key}`,
-                nonOptionalValueKey,
-                encodingContentType,
-                true,
-              );
+            : encodingContentType
+              ? `${variableName}.append(\`${keyPrefix}${key}\`, new Blob([JSON.stringify(${nonOptionalValueKey})], { type: '${encodingContentType}' }));\n`
+              : `${variableName}.append(\`${keyPrefix}${key}\`, JSON.stringify(${nonOptionalValueKey}));\n`;
       } else if (property.type === 'array') {
         let valueStr = 'value';
         let hasNonPrimitiveChild = false;
@@ -674,7 +712,7 @@ function resolveSchemaPropertiesToFormData({
       ) {
         formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey}.toString())\n`;
       } else {
-        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey})\n`;
+        formDataValue = `${variableName}.append(\`${keyPrefix}${key}\`, ${nonOptionalValueKey});\n`;
       }
 
       let existSubSchemaNullable = false;

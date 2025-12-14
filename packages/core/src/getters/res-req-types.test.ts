@@ -170,9 +170,25 @@ describe('getResReqTypes (content type handling)', () => {
       ],
     ];
 
-    it('generates correct FormData code for all content type combinations', () => {
-      const formData = getResReqTypes(reqBody, 'Body', context)[0].formData;
-      expect(formData).toBe(`const formData = new FormData();
+    it('generates correct types and FormData for all content type combinations', () => {
+      const result = getResReqTypes(reqBody, 'Body', context)[0];
+
+      // encBinary/cmtBinary/formatBinary: Blob (binary)
+      // encText/cmtText/encOverride: Blob | string (text file)
+      // base64Field: string (contentEncoding means not a file)
+      // metadata: object (named type)
+      expect(result.value).toBe(`{
+  encBinary: Blob;
+  encText: Blob | string;
+  cmtBinary: Blob;
+  cmtText: Blob | string;
+  encOverride: Blob | string;
+  formatBinary: Blob;
+  base64Field: string;
+  metadata: BodyRequestBodyMetadata;
+}`);
+
+      expect(result.formData).toBe(`const formData = new FormData();
 formData.append(\`encBinary\`, bodyRequestBody.encBinary);
 formData.append(\`encText\`, bodyRequestBody.encText instanceof Blob ? bodyRequestBody.encText : new Blob([bodyRequestBody.encText], { type: 'text/plain' }));
 formData.append(\`cmtBinary\`, bodyRequestBody.cmtBinary);
