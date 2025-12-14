@@ -6,6 +6,8 @@ import {
   generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
+  type GeneratorDependency,
+  type GeneratorImport,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
@@ -18,6 +20,20 @@ import {
   toObjectString,
 } from '@orval/core';
 import { isDereferenced } from '@scalar/openapi-types/helpers';
+
+const FETCH_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      {
+        name: 'z',
+        values: true,
+      },
+    ],
+    dependency: 'zod',
+  },
+];
+
+export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
 export const generateRequestFunction = (
   {
@@ -146,6 +162,7 @@ ${
       schemas: [],
       type: 'unknown',
       value: 'unknown',
+      dependencies: [],
     });
   }
   const nonDefaultStatuses = allResponses
@@ -159,11 +176,19 @@ ${
     )
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
+
+      const hasValidZodSchema =
+        r.value && !['unknown', 'void'].includes(r.value);
+      const dataType =
+        override.fetch.useZodSchemaResponse && hasValidZodSchema
+          ? `z.infer<typeof ${r.value}Schema>`
+          : r.value || 'unknown';
+
       return {
         name,
         success: response.types.success.some((s) => s.key === r.key),
         value: `export type ${name} = {
-  ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${r.value}>` : `data: ${r.value || 'unknown'}`}
+  ${isContentTypeNdJson(r.contentType) ? `stream: TypedResponse<${dataType}>` : `data: ${dataType}`}
   status: ${
     r.key === 'default'
       ? nonDefaultStatuses.length > 0
@@ -357,9 +382,22 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
+  const additionalImports = verbOptions.override.fetch.useZodSchemaResponse
+    ? [
+        ...verbOptions.response.types.success,
+        ...verbOptions.response.types.errors,
+      ].flatMap((response) =>
+        response.imports.map((imp) => ({
+          ...imp,
+          name: `${imp.name}Schema`,
+          values: true,
+        })),
+      )
+    : [];
+
   return {
     implementation: `${functionImplementation}\n`,
-    imports,
+    imports: [...imports, ...additionalImports],
   };
 };
 
@@ -384,7 +422,7 @@ export const generateFetchHeader: ClientHeaderBuilder = ({
 const fetchClientBuilder: ClientGeneratorsBuilder = {
   client: generateClient,
   header: generateFetchHeader,
-  dependencies: () => [],
+  dependencies: getFetchDependencies,
 };
 
 export const builder = () => () => fetchClientBuilder;
