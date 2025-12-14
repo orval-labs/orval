@@ -7,7 +7,6 @@ import {
   generateFormDataAndUrlEncodedFunction,
   generateVerbImports,
   type GeneratorDependency,
-  type GeneratorImport,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
@@ -26,6 +25,7 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
     exports: [
       {
         name: 'z',
+        alias: 'zod',
         values: true,
       },
     ],
@@ -177,11 +177,11 @@ ${
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
 
-      const hasValidZodSchema =
-        r.value && !['unknown', 'void'].includes(r.value);
+      const primitiveTypes = ['string', 'number', 'boolean', 'void', 'unknown'];
+      const hasValidZodSchema = r.value && !primitiveTypes.includes(r.value);
       const dataType =
         override.fetch.useZodSchemaResponse && hasValidZodSchema
-          ? `z.infer<typeof ${r.value}Schema>`
+          ? `zod.infer<typeof ${r.value}Schema>`
           : r.value || 'unknown';
 
       return {
@@ -378,18 +378,24 @@ export const fetchResponseTypeName = (
     : definitionSuccessResponse;
 };
 
-export const generateClient: ClientBuilder = (verbOptions, options) => {
+export const generateClient: ClientBuilder = (
+  verbOptions,
+  options,
+  outputClient,
+  output,
+) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  const additionalImports = verbOptions.override.fetch.useZodSchemaResponse
+  const zodSchemaImports = verbOptions.override.fetch.useZodSchemaResponse
     ? [
         ...verbOptions.response.types.success,
         ...verbOptions.response.types.errors,
       ].flatMap((response) =>
         response.imports.map((imp) => ({
-          ...imp,
           name: `${imp.name}Schema`,
+          schemaName: imp.name,
+          isZodSchema: true,
           values: true,
         })),
       )
@@ -397,7 +403,7 @@ export const generateClient: ClientBuilder = (verbOptions, options) => {
 
   return {
     implementation: `${functionImplementation}\n`,
-    imports: [...imports, ...additionalImports],
+    imports: [...imports, ...zodSchemaImports],
   };
 };
 

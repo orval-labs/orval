@@ -777,6 +777,7 @@ export type GeneratorSchema = {
 export type GeneratorImport = {
   name: string;
   schemaName?: string;
+  isZodSchema?: boolean;
   isConstant?: boolean;
   alias?: string;
   default?: boolean;
