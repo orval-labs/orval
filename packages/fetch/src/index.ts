@@ -150,6 +150,13 @@ ${
     operationName,
   );
 
+  const responseType = response.definition.success;
+  const hasSchema = response.imports.some((imp) => imp.name === responseType);
+
+  const isValidateResponse =
+    override.fetch?.runtimeValidation && hasSchema && !isNdJson;
+  const responseZodSchemaName = `${responseType}Schema`;
+
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
     allResponses.push({
@@ -338,7 +345,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
+  ${
+    isValidateResponse
+      ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
+  const data = ${responseZodSchemaName}.parse(parsedBody)`
+      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
+  }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
@@ -387,7 +399,11 @@ export const generateClient: ClientBuilder = (
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  const zodSchemaImports = verbOptions.override.fetch.useZodSchemaResponse
+  const isZodSchemaImportsRequired =
+    verbOptions.override.fetch.useZodSchemaResponse ||
+    verbOptions.override.fetch.runtimeValidation;
+
+  const zodSchemaImports = isZodSchemaImportsRequired
     ? [
         ...verbOptions.response.types.success,
         ...verbOptions.response.types.errors,
