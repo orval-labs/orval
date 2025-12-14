@@ -181,6 +181,7 @@ function generateSchemaDefinitions(
         name: sanitizedSchemaName,
         model: `export type ${sanitizedSchemaName} = ${schema ? 'any' : 'never'};\n`,
         imports: [],
+        schema: schema as any,
       },
     ];
   }
@@ -260,6 +261,7 @@ function generateSchemaDefinitions(
       model: output,
       imports,
       dependencies: resolvedValue.dependencies,
+      schema,
     },
   ];
 }

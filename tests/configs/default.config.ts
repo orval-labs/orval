@@ -504,4 +504,43 @@ export default defineConfig({
       mock: true,
     },
   },
+  'schemas-typescript-only': {
+    output: {
+      target: '../generated/default/schemas-typescript-only/endpoints.ts',
+      schemas: {
+        path: '../generated/default/schemas-typescript-only/model',
+        type: 'typescript',
+      },
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'schemas-zod-only': {
+    output: {
+      target: '../generated/default/schemas-zod-only/endpoints.ts',
+      schemas: {
+        path: '../generated/default/schemas-zod-only/model',
+        type: 'zod',
+      },
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'schemas-zod-and-typescript': {
+    output: {
+      target: '../generated/default/schemas-zod-and-typescript/endpoints.ts',
+      schemas: {
+        path: '../generated/default/schemas-zod-and-typescript/model',
+        type: ['typescript', 'zod'],
+      },
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
