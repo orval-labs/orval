@@ -204,6 +204,11 @@ export type SchemaOptions = {
   type: SchemaGenerationType | SchemaGenerationType[];
 };
 
+export type NormalizedSchemaOptions = {
+  path: string;
+  type: SchemaGenerationType[];
+};
+
 export type OutputOptions = {
   workspace?: string;
   target: string;
@@ -622,12 +627,14 @@ export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
   jsonReviver?: Mutator;
+  useZodSchemaResponse: boolean;
 };
 
 export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
   jsonReviver?: Mutator;
+  useZodSchemaResponse?: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;
@@ -770,6 +777,7 @@ export type GeneratorSchema = {
 export type GeneratorImport = {
   name: string;
   schemaName?: string;
+  isZodSchema?: boolean;
   isConstant?: boolean;
   alias?: string;
   default?: boolean;
