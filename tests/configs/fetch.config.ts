@@ -294,13 +294,71 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  zodSchemaResponse: {
+  zodSchemaResponseSingle: {
     output: {
-      target: '../generated/fetch/zod-schema-response/endpoints.ts',
+      target: '../generated/fetch/zod-schema-response-single/endpoints.ts',
       schemas: {
-        path: '../generated/fetch/zod-schema-response/model',
+        path: '../generated/fetch/zod-schema-response-single/model',
         type: ['typescript', 'zod'],
       },
+      client: 'fetch',
+      override: {
+        fetch: {
+          useZodSchemaResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  zodSchemaResponseSplit: {
+    output: {
+      target: '../generated/fetch/zod-schema-response-split/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-split/model',
+        type: ['typescript', 'zod'],
+      },
+      mode: 'split',
+      indexFiles: false,
+      client: 'fetch',
+      override: {
+        fetch: {
+          useZodSchemaResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  zodSchemaResponseTags: {
+    output: {
+      target: '../generated/fetch/zod-schema-response-tags/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-tags/model',
+        type: ['typescript', 'zod'],
+      },
+      mode: 'tags',
+      client: 'fetch',
+      override: {
+        fetch: {
+          useZodSchemaResponse: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  zodSchemaResponseTagsSplit: {
+    output: {
+      target: '../generated/fetch/zod-schema-response-tags-split/endpoints.ts',
+      schemas: {
+        path: '../generated/fetch/zod-schema-response-tags-split/model',
+        type: ['typescript', 'zod'],
+      },
+      mode: 'tags-split',
       client: 'fetch',
       override: {
         fetch: {
