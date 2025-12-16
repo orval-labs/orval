@@ -20,6 +20,16 @@ import {
 } from '@orval/core';
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 
+const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
+
+const getStatusCodeType = (key: string): string => {
+  if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
+    const prefix = key[0];
+    return `HTTPStatusCode${prefix}xx`;
+  }
+  return key;
+};
+
 const FETCH_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -167,7 +177,7 @@ ${
   }
   const nonDefaultStatuses = allResponses
     .filter((r) => r.key !== 'default')
-    .map((r) => r.key);
+    .map((r) => getStatusCodeType(r.key));
   const responseDataTypes = allResponses
     .map((r) =>
       allResponses.filter((r2) => r2.key === r.key).length > 1
@@ -194,7 +204,7 @@ ${
       ? nonDefaultStatuses.length > 0
         ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
         : 'number'
-      : r.key
+      : getStatusCodeType(r.key)
   }
 }`,
       };
@@ -420,9 +430,10 @@ export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatus
 export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
 }) => {
-  return clientImplementation.includes('<HTTPStatusCodes,')
-    ? getHTTPStatusCodes()
-    : '';
+  const needsStatusCodeTypes = /HTTPStatusCode[1-5]xx|<HTTPStatusCodes,/.test(
+    clientImplementation,
+  );
+  return needsStatusCodeTypes ? getHTTPStatusCodes() : '';
 };
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
