@@ -226,4 +226,57 @@ export type TestSchema = typeof TestSchemaValue;
     expect(got[0].model).toContain('existingProp: string');
     expect(got[0].model).toContain("[key: 'allowed' | 'values']: number");
   });
+
+  it.each([
+    ['anyOf', '|', 'AnyOf'],
+    ['oneOf', '|', 'OneOf'],
+    ['allOf', '&', 'AllOf'],
+  ] as const)(
+    'should generate %s primitive properties: named type when inlineCombinedTypes is false, inlined when true',
+    (combiner, operator, combinerName) => {
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          field: {
+            [combiner]: [{ type: 'string' }, { type: 'number' }],
+          },
+        },
+      };
+
+      // Default behavior (inlineCombinedTypes: false) - creates named type
+      const defaultResult = generateInterface({
+        name: `Default${combinerName}`,
+        context,
+        schema: schema as unknown as OpenApiSchemaObject,
+      });
+      expect(defaultResult).toHaveLength(2);
+      expect(defaultResult[0].name).toBe(`Default${combinerName}Field`);
+      expect(defaultResult[0].model).toBe(
+        `export type Default${combinerName}Field = string ${operator} number;\n`,
+      );
+      expect(defaultResult[1].name).toBe(`Default${combinerName}`);
+      expect(defaultResult[1].model).toBe(
+        `export interface Default${combinerName} {\n  field?: Default${combinerName}Field;\n}\n`,
+      );
+
+      // With inlineCombinedTypes: true - inlines the union/intersection
+      const inlineContext: ContextSpec = {
+        ...context,
+        output: {
+          ...context.output,
+          override: { ...context.output.override, inlineCombinedTypes: true },
+        },
+      };
+      const inlineResult = generateInterface({
+        name: `Inline${combinerName}`,
+        context: inlineContext,
+        schema: schema as unknown as OpenApiSchemaObject,
+      });
+      expect(inlineResult).toHaveLength(1);
+      expect(inlineResult[0].name).toBe(`Inline${combinerName}`);
+      expect(inlineResult[0].model).toBe(
+        `export interface Inline${combinerName} {\n  field?: string ${operator} number;\n}\n`,
+      );
+    },
+  );
 });

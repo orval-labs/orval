@@ -28,11 +28,15 @@ function resolveObjectOriginal({
   });
   const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
+  // When inlineCombinedTypes is true, only match '{' so 'string | number' is inlined
+  // When false (default), also match '|' and '&' so 'string | number' creates a named type
   if (
     propName &&
     !resolvedValue.isEnum &&
     resolvedValue?.type === 'object' &&
-    new RegExp(/{|&|\|/).test(resolvedValue.value)
+    new RegExp(
+      context.output.override.inlineCombinedTypes ? '{' : '{|&|\\|',
+    ).test(resolvedValue.value)
   ) {
     let model = '';
     const isConstant = 'const' in schema;

@@ -143,9 +143,14 @@ export function combineSchemas({
 
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
-      let propName = name ? name + pascal(separator) : undefined;
-      if (propName && acc.schemas.length > 0) {
-        propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
+      // When inlineCombinedTypes is true, propName stays undefined so combiner
+      // items are inlined (no intermediate types like ResponseAnyOf created)
+      let propName: string | undefined = undefined;
+      if (!context.output.override.inlineCombinedTypes) {
+        propName = name ? name + pascal(separator) : undefined;
+        if (propName && acc.schemas.length > 0) {
+          propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
+        }
       }
 
       if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
