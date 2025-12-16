@@ -305,6 +305,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },
@@ -325,6 +326,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },
@@ -344,6 +346,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },
@@ -363,23 +366,6 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
-        },
-      },
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
-  },
-  runtimeValidation: {
-    output: {
-      target: '../generated/fetch/runtime-validation/endpoints.ts',
-      schemas: {
-        path: '../generated/fetch/runtime-validation/model',
-        type: ['typescript', 'zod'],
-      },
-      client: 'fetch',
-      override: {
-        fetch: {
           runtimeValidation: true,
         },
       },
