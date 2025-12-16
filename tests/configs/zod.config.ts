@@ -229,4 +229,11 @@ export default defineConfig({
       target: '../specifications/nullable-oneof-enums.yaml',
     },
   },
+  'multiline-default': {
+    output: {
+      target: '../generated/zod/multiline-default.ts',
+      client: 'zod',
+    },
+    input: '../specifications/multiline-default.yaml',
+  },
 });
