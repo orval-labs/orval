@@ -279,4 +279,43 @@ export type TestSchema = typeof TestSchemaValue;
       );
     },
   );
+
+  it('should still create named type for property with inline objects even when inlineCombinedTypes is enabled', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        result: {
+          anyOf: [
+            { type: 'object', properties: { data: { type: 'string' } } },
+            { type: 'object', properties: { error: { type: 'string' } } },
+          ],
+        },
+      },
+    };
+
+    const inlineContext: ContextSpec = {
+      ...context,
+      output: {
+        ...context.output,
+        override: { ...context.output.override, inlineCombinedTypes: true },
+      },
+    };
+
+    const result = generateInterface({
+      name: 'MyObject',
+      context: inlineContext,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+
+    // Still creates named type because value contains '{' (inline objects)
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe('MyObjectResult');
+    expect(result[0].model).toBe(
+      'export type MyObjectResult = {\n  data?: string;\n} | {\n  error?: string;\n};\n',
+    );
+    expect(result[1].name).toBe('MyObject');
+    expect(result[1].model).toBe(
+      'export interface MyObject {\n  result?: MyObjectResult;\n}\n',
+    );
+  });
 });
