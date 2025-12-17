@@ -305,6 +305,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },
@@ -325,6 +326,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },
@@ -344,6 +346,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },
@@ -363,6 +366,7 @@ export default defineConfig({
       override: {
         fetch: {
           useZodSchemaResponse: true,
+          runtimeValidation: true,
         },
       },
     },

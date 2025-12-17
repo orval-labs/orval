@@ -35,6 +35,14 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
+const PRIMITIVE_TYPES = new Set([
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+]);
+
 export const generateRequestFunction = (
   {
     queryParams,
@@ -150,6 +158,17 @@ ${
     operationName,
   );
 
+  const responseType = response.definition.success;
+  const isPrimitiveType = PRIMITIVE_TYPES.has(responseType);
+  const hasSchema = response.imports.some((imp) => imp.name === responseType);
+
+  const isValidateResponse =
+    override.fetch.runtimeValidation &&
+    !isPrimitiveType &&
+    hasSchema &&
+    !isNdJson;
+  const responseZodSchemaName = `${responseType}Schema`;
+
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
     allResponses.push({
@@ -177,8 +196,7 @@ ${
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
 
-      const primitiveTypes = ['string', 'number', 'boolean', 'void', 'unknown'];
-      const hasValidZodSchema = r.value && !primitiveTypes.includes(r.value);
+      const hasValidZodSchema = r.value && !PRIMITIVE_TYPES.has(r.value);
       const dataType =
         override.fetch.useZodSchemaResponse && hasValidZodSchema
           ? `zod.infer<typeof ${r.value}Schema>`
@@ -338,7 +356,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
+  ${
+    isValidateResponse
+      ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
+  const data = ${responseZodSchemaName}.parse(parsedBody)`
+      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
+  }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
@@ -387,7 +410,11 @@ export const generateClient: ClientBuilder = (
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  const zodSchemaImports = verbOptions.override.fetch.useZodSchemaResponse
+  const isZodSchemaImportsRequired =
+    verbOptions.override.fetch.useZodSchemaResponse ||
+    verbOptions.override.fetch.runtimeValidation;
+
+  const zodSchemaImports = isZodSchemaImportsRequired
     ? [
         ...verbOptions.response.types.success,
         ...verbOptions.response.types.errors,
