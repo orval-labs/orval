@@ -381,8 +381,8 @@ export async function normalizeOptions(
           outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
-        inlineCombinedTypes:
-          outputOptions.override?.inlineCombinedTypes ?? false,
+        useCombinedTypeAliases:
+          outputOptions.override?.useCombinedTypeAliases ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,

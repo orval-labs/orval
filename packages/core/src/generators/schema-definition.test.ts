@@ -165,7 +165,7 @@ describe('generateSchemasDefinition', () => {
     ['oneOf', '|', 'OneOf'],
     ['allOf', '&', 'AllOf'],
   ] as const)(
-    'should generate %s with inline objects: intermediate types when inlineCombinedTypes is false, inlined when true',
+    'should generate %s with inline objects: type aliases when useCombinedTypeAliases is true, inlined by default',
     (combiner, operator, combinerName) => {
       const schemas: OpenApiSchemasObject = {
         Response: {
@@ -176,35 +176,34 @@ describe('generateSchemasDefinition', () => {
         },
       };
 
-      // Default behavior (inlineCombinedTypes: false) - creates intermediate types
-      const defaultResult = generateSchemasDefinition(schemas, context, '');
-      expect(defaultResult).toHaveLength(3);
-      expect(defaultResult[0].name).toBe(`Response${combinerName}`);
-      expect(defaultResult[0].model).toBe(
-        `export type Response${combinerName} = {\n  success?: boolean;\n};\n`,
-      );
-      expect(defaultResult[1].name).toBe(`Response${combinerName}Two`);
-      expect(defaultResult[1].model).toBe(
-        `export type Response${combinerName}Two = {\n  error?: string;\n};\n`,
-      );
-      expect(defaultResult[2].name).toBe('Response');
-      expect(defaultResult[2].model).toBe(
-        `export type Response = Response${combinerName} ${operator} Response${combinerName}Two;\n`,
-      );
-
-      // With inlineCombinedTypes: true - inlines everything
-      const inlineContext: ContextSpec = {
+      // With useCombinedTypeAliases: true - creates intermediate type aliases
+      const aliasContext: ContextSpec = {
         ...context,
         output: {
           ...context.output,
-          override: { ...context.output.override, inlineCombinedTypes: true },
+          override: {
+            ...context.output.override,
+            useCombinedTypeAliases: true,
+          },
         },
       };
-      const inlineResult = generateSchemasDefinition(
-        schemas,
-        inlineContext,
-        '',
+      const aliasResult = generateSchemasDefinition(schemas, aliasContext, '');
+      expect(aliasResult).toHaveLength(3);
+      expect(aliasResult[0].name).toBe(`Response${combinerName}`);
+      expect(aliasResult[0].model).toBe(
+        `export type Response${combinerName} = {\n  success?: boolean;\n};\n`,
       );
+      expect(aliasResult[1].name).toBe(`Response${combinerName}Two`);
+      expect(aliasResult[1].model).toBe(
+        `export type Response${combinerName}Two = {\n  error?: string;\n};\n`,
+      );
+      expect(aliasResult[2].name).toBe('Response');
+      expect(aliasResult[2].model).toBe(
+        `export type Response = Response${combinerName} ${operator} Response${combinerName}Two;\n`,
+      );
+
+      // Default behavior (useCombinedTypeAliases defaults to false) - inlines everything
+      const inlineResult = generateSchemasDefinition(schemas, context, '');
       expect(inlineResult).toHaveLength(1);
       expect(inlineResult[0].name).toBe('Response');
       expect(inlineResult[0].model).toBe(

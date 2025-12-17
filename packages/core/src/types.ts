@@ -106,7 +106,7 @@ export type NormalizedOverrideOutput = {
   enumGenerationType: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   jsDoc: NormalizedJsDocOptions;
-  inlineCombinedTypes: boolean;
+  useCombinedTypeAliases: boolean;
 };
 
 export type NormalizedMutator = {
@@ -459,7 +459,7 @@ export type OverrideOutput = {
   enumGenerationType?: EnumGeneration;
   suppressReadonlyModifier?: boolean;
   jsDoc?: JsDocOptions;
-  inlineCombinedTypes?: boolean;
+  useCombinedTypeAliases?: boolean;
 };
 
 export type JsDocOptions = {

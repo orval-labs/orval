@@ -232,7 +232,7 @@ export type TestSchema = typeof TestSchemaValue;
     ['oneOf', '|', 'OneOf'],
     ['allOf', '&', 'AllOf'],
   ] as const)(
-    'should generate %s primitive properties: named type when inlineCombinedTypes is false, inlined when true',
+    'should generate %s primitive properties: type alias when useCombinedTypeAliases is true, inlined by default',
     (combiner, operator, combinerName) => {
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -243,33 +243,36 @@ export type TestSchema = typeof TestSchemaValue;
         },
       };
 
-      // Default behavior (inlineCombinedTypes: false) - creates named type
-      const defaultResult = generateInterface({
-        name: `Default${combinerName}`,
-        context,
-        schema: schema as unknown as OpenApiSchemaObject,
-      });
-      expect(defaultResult).toHaveLength(2);
-      expect(defaultResult[0].name).toBe(`Default${combinerName}Field`);
-      expect(defaultResult[0].model).toBe(
-        `export type Default${combinerName}Field = string ${operator} number;\n`,
-      );
-      expect(defaultResult[1].name).toBe(`Default${combinerName}`);
-      expect(defaultResult[1].model).toBe(
-        `export interface Default${combinerName} {\n  field?: Default${combinerName}Field;\n}\n`,
-      );
-
-      // With inlineCombinedTypes: true - inlines the union/intersection
-      const inlineContext: ContextSpec = {
+      // With useCombinedTypeAliases: true - creates named type alias
+      const aliasContext: ContextSpec = {
         ...context,
         output: {
           ...context.output,
-          override: { ...context.output.override, inlineCombinedTypes: true },
+          override: {
+            ...context.output.override,
+            useCombinedTypeAliases: true,
+          },
         },
       };
+      const aliasResult = generateInterface({
+        name: `Alias${combinerName}`,
+        context: aliasContext,
+        schema: schema as unknown as OpenApiSchemaObject,
+      });
+      expect(aliasResult).toHaveLength(2);
+      expect(aliasResult[0].name).toBe(`Alias${combinerName}Field`);
+      expect(aliasResult[0].model).toBe(
+        `export type Alias${combinerName}Field = string ${operator} number;\n`,
+      );
+      expect(aliasResult[1].name).toBe(`Alias${combinerName}`);
+      expect(aliasResult[1].model).toBe(
+        `export interface Alias${combinerName} {\n  field?: Alias${combinerName}Field;\n}\n`,
+      );
+
+      // Default behavior (useCombinedTypeAliases defaults to false) - inlines the union/intersection
       const inlineResult = generateInterface({
         name: `Inline${combinerName}`,
-        context: inlineContext,
+        context,
         schema: schema as unknown as OpenApiSchemaObject,
       });
       expect(inlineResult).toHaveLength(1);
@@ -280,7 +283,7 @@ export type TestSchema = typeof TestSchemaValue;
     },
   );
 
-  it('should still create named type for property with inline objects even when inlineCombinedTypes is enabled', () => {
+  it('should still create named type for property with inline objects even with default settings', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {
@@ -293,17 +296,9 @@ export type TestSchema = typeof TestSchemaValue;
       },
     };
 
-    const inlineContext: ContextSpec = {
-      ...context,
-      output: {
-        ...context.output,
-        override: { ...context.output.override, inlineCombinedTypes: true },
-      },
-    };
-
     const result = generateInterface({
       name: 'MyObject',
-      context: inlineContext,
+      context,
       schema: schema as unknown as OpenApiSchemaObject,
     });
 

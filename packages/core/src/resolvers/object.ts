@@ -28,14 +28,14 @@ function resolveObjectOriginal({
   });
   const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
-  // When inlineCombinedTypes is true, only match '{' so 'string | number' is inlined
-  // When false (default), also match '|' and '&' so 'string | number' creates a named type
+  // When useCombinedTypeAliases is true, also match '|' and '&' so 'string | number' creates a named type
+  // When false (default), only match '{' so 'string | number' is inlined
   if (
     propName &&
     !resolvedValue.isEnum &&
     resolvedValue?.type === 'object' &&
     new RegExp(
-      context.output.override.inlineCombinedTypes ? '{' : '{|&|\\|',
+      context.output.override.useCombinedTypeAliases ? '{|&|\\|' : '{',
     ).test(resolvedValue.value)
   ) {
     let model = '';

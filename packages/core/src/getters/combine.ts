@@ -143,10 +143,10 @@ export function combineSchemas({
 
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
-      // When inlineCombinedTypes is true, propName stays undefined so combiner
-      // items are inlined (no intermediate types like ResponseAnyOf created)
+      // When useCombinedTypeAliases is true, create intermediate type aliases
+      // like ResponseAnyOf, ResponseAnyOfTwo for combined schemas
       let propName: string | undefined = undefined;
-      if (!context.output.override.inlineCombinedTypes) {
+      if (context.output.override.useCombinedTypeAliases) {
         propName = name ? name + pascal(separator) : undefined;
         if (propName && acc.schemas.length > 0) {
           propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
