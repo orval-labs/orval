@@ -630,6 +630,7 @@ export type NormalizedFetchOptions = {
   forceSuccessResponse: boolean;
   jsonReviver?: Mutator;
   useZodSchemaResponse: boolean;
+  runtimeValidation: boolean;
 };
 
 export type FetchOptions = {
@@ -637,6 +638,7 @@ export type FetchOptions = {
   forceSuccessResponse?: boolean;
   jsonReviver?: Mutator;
   useZodSchemaResponse?: boolean;
+  runtimeValidation?: boolean;
 };
 
 export type InputTransformerFn = (spec: OpenApiDocument) => OpenApiDocument;

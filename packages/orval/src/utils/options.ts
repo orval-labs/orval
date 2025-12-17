@@ -372,6 +372,8 @@ export async function normalizeOptions(
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
           useZodSchemaResponse:
             outputOptions.override?.fetch?.useZodSchemaResponse ?? false,
+          runtimeValidation:
+            outputOptions.override?.fetch?.runtimeValidation ?? false,
           ...outputOptions.override?.fetch,
         },
         useDates: outputOptions.override?.useDates || false,

@@ -20,6 +20,16 @@ import {
 } from '@orval/core';
 import { isDereferenced } from '@scalar/openapi-types/helpers';
 
+const WILDCARD_STATUS_CODE_REGEX = /^[1-5]XX$/i;
+
+const getStatusCodeType = (key: string): string => {
+  if (WILDCARD_STATUS_CODE_REGEX.test(key)) {
+    const prefix = key[0];
+    return `HTTPStatusCode${prefix}xx`;
+  }
+  return key;
+};
+
 const FETCH_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -34,6 +44,14 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 ];
 
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
+
+const PRIMITIVE_TYPES = new Set([
+  'string',
+  'number',
+  'boolean',
+  'void',
+  'unknown',
+]);
 
 export const generateRequestFunction = (
   {
@@ -150,6 +168,17 @@ ${
     operationName,
   );
 
+  const responseType = response.definition.success;
+  const isPrimitiveType = PRIMITIVE_TYPES.has(responseType);
+  const hasSchema = response.imports.some((imp) => imp.name === responseType);
+
+  const isValidateResponse =
+    override.fetch.runtimeValidation &&
+    !isPrimitiveType &&
+    hasSchema &&
+    !isNdJson;
+  const responseZodSchemaName = `${responseType}Schema`;
+
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
     allResponses.push({
@@ -167,7 +196,7 @@ ${
   }
   const nonDefaultStatuses = allResponses
     .filter((r) => r.key !== 'default')
-    .map((r) => r.key);
+    .map((r) => getStatusCodeType(r.key));
   const responseDataTypes = allResponses
     .map((r) =>
       allResponses.filter((r2) => r2.key === r.key).length > 1
@@ -177,8 +206,7 @@ ${
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
 
-      const primitiveTypes = ['string', 'number', 'boolean', 'void', 'unknown'];
-      const hasValidZodSchema = r.value && !primitiveTypes.includes(r.value);
+      const hasValidZodSchema = r.value && !PRIMITIVE_TYPES.has(r.value);
       const dataType =
         override.fetch.useZodSchemaResponse && hasValidZodSchema
           ? `zod.infer<typeof ${r.value}Schema>`
@@ -194,7 +222,7 @@ ${
       ? nonDefaultStatuses.length > 0
         ? `Exclude<HTTPStatusCodes, ${nonDefaultStatuses.join(' | ')}>`
         : 'number'
-      : r.key
+      : getStatusCodeType(r.key)
   }
 }`,
       };
@@ -338,7 +366,12 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
 
   const body = [204, 205, 304].includes(res.status) ? null : await res.text();
   ${override.fetch.forceSuccessResponse ? throwOnErrorImplementation : ''}
-  const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}
+  ${
+    isValidateResponse
+      ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
+  const data = ${responseZodSchemaName}.parse(parsedBody)`
+      : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
+  }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
 `;
   const customFetchResponseImplementation = `return ${mutator?.name}<${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}>(${fetchFnOptions});`;
@@ -387,7 +420,11 @@ export const generateClient: ClientBuilder = (
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  const zodSchemaImports = verbOptions.override.fetch.useZodSchemaResponse
+  const isZodSchemaImportsRequired =
+    verbOptions.override.fetch.useZodSchemaResponse ||
+    verbOptions.override.fetch.runtimeValidation;
+
+  const zodSchemaImports = isZodSchemaImportsRequired
     ? [
         ...verbOptions.response.types.success,
         ...verbOptions.response.types.errors,
@@ -420,9 +457,10 @@ export type HTTPStatusCodes = HTTPStatusCode1xx | HTTPStatusCode2xx | HTTPStatus
 export const generateFetchHeader: ClientHeaderBuilder = ({
   clientImplementation,
 }) => {
-  return clientImplementation.includes('<HTTPStatusCodes,')
-    ? getHTTPStatusCodes()
-    : '';
+  const needsStatusCodeTypes = /HTTPStatusCode[1-5]xx|<HTTPStatusCodes,/.test(
+    clientImplementation,
+  );
+  return needsStatusCodeTypes ? getHTTPStatusCodes() : '';
 };
 
 const fetchClientBuilder: ClientGeneratorsBuilder = {
