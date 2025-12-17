@@ -329,7 +329,7 @@ export const generateZodValidationSchemaDefinition = (
       defaultValue =
         rawStringified === undefined
           ? 'null'
-          : rawStringified.replaceAll("'", '"');
+          : rawStringified.replaceAll("'", '`');
 
       // If the schema is an array with enum items, inject inplace to avoid issues with default values
       const isArrayWithEnumItems =

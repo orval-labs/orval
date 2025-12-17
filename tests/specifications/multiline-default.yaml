@@ -1,0 +1,41 @@
+openapi: 3.1.0
+info:
+  title: Orval Multiline Default Repro
+  version: '1.0.0'
+servers:
+  - url: https://example.com/api
+paths:
+  /multiline-default:
+    post:
+      summary: Endpoint demonstrating multiline default value
+      operationId: createMultilineDefault
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MultilineExampleRequest'
+      responses:
+        '200':
+          description: OK
+components:
+  schemas:
+    MultilineExampleRequest:
+      type: object
+      properties:
+        rerank_prompt:
+          anyOf:
+            - type: string
+            - type: 'null'
+          title: Rerank Prompt
+          description: Prompt text with a multiline default value.
+          default: |-
+            # Task
+            You are a helpful assistant. Rerank the following information blocks according to their relevance to the given question.
+            Return only the indices of the most relevant blocks in descending order of relevance, using the exact response format specified below.
+
+            # Question
+            {question}
+
+            # Information Blocks
+            {blocks}

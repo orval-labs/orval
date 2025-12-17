@@ -850,7 +850,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['default', 'testStringDescriptionDefault'],
           ['describe', "'This is a test description'"],
         ],
-        consts: ['export const testStringDescriptionDefault = "hello";'],
+        consts: ['export const testStringDescriptionDefault = \`hello\`;'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -895,7 +895,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['string', undefined],
           ['default', 'testStringDefaultDefault'],
         ],
-        consts: [`export const testStringDefaultDefault = "hello";`],
+        consts: [`export const testStringDefaultDefault = \`hello\`;`],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -907,7 +907,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
       expect(parsed.zod).toBe('zod.string().default(testStringDefaultDefault)');
       expect(parsed.consts).toBe(
-        'export const testStringDefaultDefault = "hello";',
+        'export const testStringDefaultDefault = `hello`;',
       );
     });
 
@@ -1076,7 +1076,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
           ['array', { functions: [['string', undefined]], consts: [] }],
           ['default', 'testArrayDefaultDefault'],
         ],
-        consts: ['export const testArrayDefaultDefault = ["a", "b"];'],
+        consts: ['export const testArrayDefaultDefault = [`a`, `b`];'],
       });
 
       const parsed = parseZodValidationSchemaDefinition(
@@ -1090,7 +1090,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         'zod.array(zod.string()).default(testArrayDefaultDefault)',
       );
       expect(parsed.consts).toBe(
-        'export const testArrayDefaultDefault = ["a", "b"];',
+        'export const testArrayDefaultDefault = [`a`, `b`];',
       );
     });
 
@@ -1436,7 +1436,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
               consts: [],
             },
           ],
-          ['default', '["A"]'],
+          ['default', '[`A`]'],
         ],
         consts: [],
       });
@@ -1449,7 +1449,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
         false,
       );
       expect(parsed.zod).toBe(
-        "zod.array(zod.enum(['A', 'B', 'C'])).default([\"A\"])",
+        "zod.array(zod.enum(['A', 'B', 'C'])).default([`A`])",
       );
     });
 
@@ -1495,7 +1495,7 @@ describe('generateZodValidationSchemaDefinition`', () => {
       );
 
       expect(parsed.zod).toBe(
-        "zod.array(zod.enum(['A', 'B', 'C'])).default([\"A\"])",
+        "zod.array(zod.enum(['A', 'B', 'C'])).default([`A`])",
       );
     });
   });
