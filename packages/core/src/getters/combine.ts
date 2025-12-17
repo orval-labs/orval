@@ -143,8 +143,8 @@ export function combineSchemas({
 
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
-      // When useCombinedTypeAliases is true, create intermediate type aliases
-      // like ResponseAnyOf, ResponseAnyOfTwo for combined schemas
+      // useCombinedTypeAliases (v7 compat): create intermediate types like ResponseAnyOf
+      // v8 default: propName stays undefined so combined types are inlined directly
       let propName: string | undefined = undefined;
       if (context.output.override.useCombinedTypeAliases) {
         propName = name ? name + pascal(separator) : undefined;

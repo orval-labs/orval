@@ -28,8 +28,8 @@ function resolveObjectOriginal({
   });
   const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
-  // When useCombinedTypeAliases is true, also match '|' and '&' so 'string | number' creates a named type
-  // When false (default), only match '{' so 'string | number' is inlined
+  // useCombinedTypeAliases (v7 compat): match '|' and '&' so 'string | number' creates named type
+  // v8 default: only match '{' so combined primitives are inlined
   if (
     propName &&
     !resolvedValue.isEnum &&
