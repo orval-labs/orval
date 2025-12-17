@@ -28,11 +28,15 @@ function resolveObjectOriginal({
   });
   const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
+  // useCombinedTypeAliases (v7 compat): match '|' and '&' so 'string | number' creates named type
+  // v8 default: only match '{' so combined primitives are inlined
   if (
     propName &&
     !resolvedValue.isEnum &&
     resolvedValue?.type === 'object' &&
-    new RegExp(/{|&|\|/).test(resolvedValue.value)
+    new RegExp(
+      context.output.override.useCombinedTypeAliases ? '{|&|\\|' : '{',
+    ).test(resolvedValue.value)
   ) {
     let model = '';
     const isConstant = 'const' in schema;

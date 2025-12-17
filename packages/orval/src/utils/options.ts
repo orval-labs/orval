@@ -383,6 +383,8 @@ export async function normalizeOptions(
           outputOptions.override?.enumGenerationType ?? 'const',
         suppressReadonlyModifier:
           outputOptions.override?.suppressReadonlyModifier || false,
+        useCombinedTypeAliases:
+          outputOptions.override?.useCombinedTypeAliases ?? false,
       },
       allParamsOptional: outputOptions.allParamsOptional ?? false,
       urlEncodeParameters: outputOptions.urlEncodeParameters ?? false,

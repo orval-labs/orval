@@ -226,4 +226,91 @@ export type TestSchema = typeof TestSchemaValue;
     expect(got[0].model).toContain('existingProp: string');
     expect(got[0].model).toContain("[key: 'allowed' | 'values']: number");
   });
+
+  it.each([
+    ['anyOf', '|', 'AnyOf'],
+    ['oneOf', '|', 'OneOf'],
+    ['allOf', '&', 'AllOf'],
+  ] as const)(
+    'should generate %s primitive properties: type alias when useCombinedTypeAliases is true, inlined by default',
+    (combiner, operator, combinerName) => {
+      const schema: OpenApiSchemaObject = {
+        type: 'object',
+        properties: {
+          field: {
+            [combiner]: [{ type: 'string' }, { type: 'number' }],
+          },
+        },
+      };
+
+      // With useCombinedTypeAliases: true - creates named type alias
+      const aliasContext: ContextSpec = {
+        ...context,
+        output: {
+          ...context.output,
+          override: {
+            ...context.output.override,
+            useCombinedTypeAliases: true,
+          },
+        },
+      };
+      const aliasResult = generateInterface({
+        name: `Alias${combinerName}`,
+        context: aliasContext,
+        schema: schema as unknown as OpenApiSchemaObject,
+      });
+      expect(aliasResult).toHaveLength(2);
+      expect(aliasResult[0].name).toBe(`Alias${combinerName}Field`);
+      expect(aliasResult[0].model).toBe(
+        `export type Alias${combinerName}Field = string ${operator} number;\n`,
+      );
+      expect(aliasResult[1].name).toBe(`Alias${combinerName}`);
+      expect(aliasResult[1].model).toBe(
+        `export interface Alias${combinerName} {\n  field?: Alias${combinerName}Field;\n}\n`,
+      );
+
+      // Default behavior (useCombinedTypeAliases defaults to false) - inlines the union/intersection
+      const inlineResult = generateInterface({
+        name: `Inline${combinerName}`,
+        context,
+        schema: schema as unknown as OpenApiSchemaObject,
+      });
+      expect(inlineResult).toHaveLength(1);
+      expect(inlineResult[0].name).toBe(`Inline${combinerName}`);
+      expect(inlineResult[0].model).toBe(
+        `export interface Inline${combinerName} {\n  field?: string ${operator} number;\n}\n`,
+      );
+    },
+  );
+
+  it('should still create named type for property with inline objects even with default settings', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        result: {
+          anyOf: [
+            { type: 'object', properties: { data: { type: 'string' } } },
+            { type: 'object', properties: { error: { type: 'string' } } },
+          ],
+        },
+      },
+    };
+
+    const result = generateInterface({
+      name: 'MyObject',
+      context,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+
+    // Still creates named type because value contains '{' (inline objects)
+    expect(result).toHaveLength(2);
+    expect(result[0].name).toBe('MyObjectResult');
+    expect(result[0].model).toBe(
+      'export type MyObjectResult = {\n  data?: string;\n} | {\n  error?: string;\n};\n',
+    );
+    expect(result[1].name).toBe('MyObject');
+    expect(result[1].model).toBe(
+      'export interface MyObject {\n  result?: MyObjectResult;\n}\n',
+    );
+  });
 });

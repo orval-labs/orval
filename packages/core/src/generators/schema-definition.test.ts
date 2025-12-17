@@ -160,6 +160,58 @@ describe('generateSchemasDefinition', () => {
     expect(result[0].model.includes('CamelCase')).toBe(true);
   });
 
+  it.each([
+    ['anyOf', '|', 'AnyOf'],
+    ['oneOf', '|', 'OneOf'],
+    ['allOf', '&', 'AllOf'],
+  ] as const)(
+    'should generate %s with inline objects: type aliases when useCombinedTypeAliases is true, inlined by default',
+    (combiner, operator, combinerName) => {
+      const schemas: OpenApiSchemasObject = {
+        Response: {
+          [combiner]: [
+            { type: 'object', properties: { success: { type: 'boolean' } } },
+            { type: 'object', properties: { error: { type: 'string' } } },
+          ],
+        },
+      };
+
+      // With useCombinedTypeAliases: true - creates intermediate type aliases
+      const aliasContext: ContextSpec = {
+        ...context,
+        output: {
+          ...context.output,
+          override: {
+            ...context.output.override,
+            useCombinedTypeAliases: true,
+          },
+        },
+      };
+      const aliasResult = generateSchemasDefinition(schemas, aliasContext, '');
+      expect(aliasResult).toHaveLength(3);
+      expect(aliasResult[0].name).toBe(`Response${combinerName}`);
+      expect(aliasResult[0].model).toBe(
+        `export type Response${combinerName} = {\n  success?: boolean;\n};\n`,
+      );
+      expect(aliasResult[1].name).toBe(`Response${combinerName}Two`);
+      expect(aliasResult[1].model).toBe(
+        `export type Response${combinerName}Two = {\n  error?: string;\n};\n`,
+      );
+      expect(aliasResult[2].name).toBe('Response');
+      expect(aliasResult[2].model).toBe(
+        `export type Response = Response${combinerName} ${operator} Response${combinerName}Two;\n`,
+      );
+
+      // Default behavior (useCombinedTypeAliases defaults to false) - inlines everything
+      const inlineResult = generateSchemasDefinition(schemas, context, '');
+      expect(inlineResult).toHaveLength(1);
+      expect(inlineResult[0].name).toBe('Response');
+      expect(inlineResult[0].model).toBe(
+        `export type Response = {\n  success?: boolean;\n} ${operator} {\n  error?: string;\n};\n`,
+      );
+    },
+  );
+
   it('should order spread enum dependencies before the enum that uses them', () => {
     // Reproduces issue #1511: BlankEnum used before declaration
     // Input order is alphabetical (Aaa... before Zzz...) but ZzzFirst must come before AaaCombined
