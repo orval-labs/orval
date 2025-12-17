@@ -374,4 +374,14 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  wildcardResponses: {
+    output: {
+      target: '../generated/fetch/wildcard-responses/endpoints.ts',
+      schemas: '../generated/fetch/wildcard-responses/model',
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/wildcard-responses.yaml',
+    },
+  },
 });
