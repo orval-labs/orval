@@ -154,7 +154,7 @@ ${
   const hasSchema = response.imports.some((imp) => imp.name === responseType);
 
   const isValidateResponse =
-    override.fetch?.runtimeValidation && hasSchema && !isNdJson;
+    override.fetch.runtimeValidation && hasSchema && !isNdJson;
   const responseZodSchemaName = `${responseType}Schema`;
 
   const allResponses = [...response.types.success, ...response.types.errors];
