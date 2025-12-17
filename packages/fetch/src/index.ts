@@ -35,6 +35,8 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
+const PRIMITIVE_TYPES = ['string', 'number', 'boolean', 'void', 'unknown'];
+
 export const generateRequestFunction = (
   {
     queryParams,
@@ -151,10 +153,14 @@ ${
   );
 
   const responseType = response.definition.success;
+  const isPrimitiveType = PRIMITIVE_TYPES.includes(responseType);
   const hasSchema = response.imports.some((imp) => imp.name === responseType);
 
   const isValidateResponse =
-    override.fetch.runtimeValidation && hasSchema && !isNdJson;
+    override.fetch.runtimeValidation &&
+    !isPrimitiveType &&
+    hasSchema &&
+    !isNdJson;
   const responseZodSchemaName = `${responseType}Schema`;
 
   const allResponses = [...response.types.success, ...response.types.errors];
@@ -184,8 +190,7 @@ ${
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
 
-      const primitiveTypes = ['string', 'number', 'boolean', 'void', 'unknown'];
-      const hasValidZodSchema = r.value && !primitiveTypes.includes(r.value);
+      const hasValidZodSchema = r.value && !PRIMITIVE_TYPES.includes(r.value);
       const dataType =
         override.fetch.useZodSchemaResponse && hasValidZodSchema
           ? `zod.infer<typeof ${r.value}Schema>`
