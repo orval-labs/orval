@@ -28,14 +28,14 @@ function resolveObjectOriginal({
   });
   const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
-  // useCombinedTypeAliases (v7 compat): match '|' and '&' so 'string | number' creates named type
+  // aliasCombinedTypes (v7 compat): match '|' and '&' so 'string | number' creates named type
   // v8 default: only match '{' so combined primitives are inlined
   if (
     propName &&
     !resolvedValue.isEnum &&
     resolvedValue?.type === 'object' &&
     new RegExp(
-      context.output.override.useCombinedTypeAliases ? '{|&|\\|' : '{',
+      context.output.override.aliasCombinedTypes ? '{|&|\\|' : '{',
     ).test(resolvedValue.value)
   ) {
     let model = '';

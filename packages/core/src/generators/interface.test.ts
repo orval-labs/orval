@@ -232,7 +232,7 @@ export type TestSchema = typeof TestSchemaValue;
     ['oneOf', '|', 'OneOf'],
     ['allOf', '&', 'AllOf'],
   ] as const)(
-    'should generate %s primitive properties: type alias when useCombinedTypeAliases is true, inlined by default',
+    'should generate %s primitive properties: type alias when aliasCombinedTypes is true, inlined by default',
     (combiner, operator, combinerName) => {
       const schema: OpenApiSchemaObject = {
         type: 'object',
@@ -243,14 +243,14 @@ export type TestSchema = typeof TestSchemaValue;
         },
       };
 
-      // With useCombinedTypeAliases: true - creates named type alias
+      // With aliasCombinedTypes: true - creates named type alias
       const aliasContext: ContextSpec = {
         ...context,
         output: {
           ...context.output,
           override: {
             ...context.output.override,
-            useCombinedTypeAliases: true,
+            aliasCombinedTypes: true,
           },
         },
       };
@@ -269,7 +269,7 @@ export type TestSchema = typeof TestSchemaValue;
         `export interface Alias${combinerName} {\n  field?: Alias${combinerName}Field;\n}\n`,
       );
 
-      // Default behavior (useCombinedTypeAliases defaults to false) - inlines the union/intersection
+      // Default behavior (aliasCombinedTypes defaults to false) - inlines the union/intersection
       const inlineResult = generateInterface({
         name: `Inline${combinerName}`,
         context,
@@ -283,34 +283,67 @@ export type TestSchema = typeof TestSchemaValue;
     },
   );
 
-  it('should still create named type for property with inline objects even with default settings', () => {
+  it('should generate object properties: intermediate types when aliasCombinedTypes is true, inlined by default', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
       properties: {
-        result: {
-          anyOf: [
-            { type: 'object', properties: { data: { type: 'string' } } },
-            { type: 'object', properties: { error: { type: 'string' } } },
+        field: {
+          oneOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { type: 'object', properties: { b: { type: 'string' } } },
           ],
         },
       },
     };
 
-    const result = generateInterface({
-      name: 'MyObject',
+    // With aliasCombinedTypes: true - creates intermediate types with OneOf/OneOfTwo
+    const aliasContext: ContextSpec = {
+      ...context,
+      output: {
+        ...context.output,
+        override: {
+          ...context.output.override,
+          aliasCombinedTypes: true,
+        },
+      },
+    };
+    const aliasResult = generateInterface({
+      name: 'AliasObject',
+      context: aliasContext,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+    expect(aliasResult).toHaveLength(4);
+    expect(aliasResult[0].name).toBe('AliasObjectFieldOneOf');
+    expect(aliasResult[0].model).toBe(
+      'export type AliasObjectFieldOneOf = {\n  a?: string;\n};\n',
+    );
+    expect(aliasResult[1].name).toBe('AliasObjectFieldOneOfTwo');
+    expect(aliasResult[1].model).toBe(
+      'export type AliasObjectFieldOneOfTwo = {\n  b?: string;\n};\n',
+    );
+    expect(aliasResult[2].name).toBe('AliasObjectField');
+    expect(aliasResult[2].model).toBe(
+      'export type AliasObjectField = AliasObjectFieldOneOf | AliasObjectFieldOneOfTwo;\n',
+    );
+    expect(aliasResult[3].name).toBe('AliasObject');
+    expect(aliasResult[3].model).toBe(
+      'export interface AliasObject {\n  field?: AliasObjectField;\n}\n',
+    );
+
+    // Default behavior - inlines objects into one named type
+    const inlineResult = generateInterface({
+      name: 'InlineObject',
       context,
       schema: schema as unknown as OpenApiSchemaObject,
     });
-
-    // Still creates named type because value contains '{' (inline objects)
-    expect(result).toHaveLength(2);
-    expect(result[0].name).toBe('MyObjectResult');
-    expect(result[0].model).toBe(
-      'export type MyObjectResult = {\n  data?: string;\n} | {\n  error?: string;\n};\n',
+    expect(inlineResult).toHaveLength(2);
+    expect(inlineResult[0].name).toBe('InlineObjectField');
+    expect(inlineResult[0].model).toBe(
+      'export type InlineObjectField = {\n  a?: string;\n} | {\n  b?: string;\n};\n',
     );
-    expect(result[1].name).toBe('MyObject');
-    expect(result[1].model).toBe(
-      'export interface MyObject {\n  result?: MyObjectResult;\n}\n',
+    expect(inlineResult[1].name).toBe('InlineObject');
+    expect(inlineResult[1].model).toBe(
+      'export interface InlineObject {\n  field?: InlineObjectField;\n}\n',
     );
   });
 });

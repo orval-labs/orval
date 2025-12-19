@@ -143,10 +143,10 @@ export function combineSchemas({
 
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
-      // useCombinedTypeAliases (v7 compat): create intermediate types like ResponseAnyOf
+      // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
       // v8 default: propName stays undefined so combined types are inlined directly
       let propName: string | undefined = undefined;
-      if (context.output.override.useCombinedTypeAliases) {
+      if (context.output.override.aliasCombinedTypes) {
         propName = name ? name + pascal(separator) : undefined;
         if (propName && acc.schemas.length > 0) {
           propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
