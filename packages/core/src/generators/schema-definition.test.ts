@@ -165,7 +165,7 @@ describe('generateSchemasDefinition', () => {
     ['oneOf', '|', 'OneOf'],
     ['allOf', '&', 'AllOf'],
   ] as const)(
-    'should generate %s with inline objects: type aliases when useCombinedTypeAliases is true, inlined by default',
+    'should generate %s with inline objects: type aliases when aliasCombinedTypes is true, inlined by default',
     (combiner, operator, combinerName) => {
       const schemas: OpenApiSchemasObject = {
         Response: {
@@ -176,14 +176,14 @@ describe('generateSchemasDefinition', () => {
         },
       };
 
-      // With useCombinedTypeAliases: true - creates intermediate type aliases
+      // With aliasCombinedTypes: true - creates intermediate type aliases
       const aliasContext: ContextSpec = {
         ...context,
         output: {
           ...context.output,
           override: {
             ...context.output.override,
-            useCombinedTypeAliases: true,
+            aliasCombinedTypes: true,
           },
         },
       };
@@ -202,7 +202,7 @@ describe('generateSchemasDefinition', () => {
         `export type Response = Response${combinerName} ${operator} Response${combinerName}Two;\n`,
       );
 
-      // Default behavior (useCombinedTypeAliases defaults to false) - inlines everything
+      // Default behavior (aliasCombinedTypes defaults to false) - inlines everything
       const inlineResult = generateSchemasDefinition(schemas, context, '');
       expect(inlineResult).toHaveLength(1);
       expect(inlineResult[0].name).toBe('Response');

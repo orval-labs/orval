@@ -2933,6 +2933,57 @@ Result when `enumGenerationType` is `union`:
 export const Example = 'foo' | 'bar' | 'baz';
 ```
 
+### aliasCombinedTypes
+
+Type: `Boolean`
+
+Default Value: `false`.
+
+Creates intermediate type aliases for combined types (`anyOf`, `oneOf`, `allOf`) instead of inlining them. This restores v7 behavior.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        aliasCombinedTypes: true,
+      },
+    },
+  },
+});
+```
+
+Result when `aliasCombinedTypes` is `false` (default):
+
+```ts
+// Primitives - inlined directly
+// Objects - creates one named type
+export interface Pet {
+  status?: string | number;
+  category?: PetCategory;
+}
+export type PetCategory = { id?: number; name?: string } | { code?: string };
+```
+
+Result when `aliasCombinedTypes` is `true`:
+
+```ts
+// Primitives - creates named type
+export type PetStatus = string | number;
+
+// Objects - creates intermediate types with OneOf/OneOfTwo suffixes
+export type PetCategoryOneOf = { id?: number; name?: string };
+export type PetCategoryOneOfTwo = { code?: string };
+export type PetCategory = PetCategoryOneOf | PetCategoryOneOfTwo;
+
+export interface Pet {
+  status?: PetStatus;
+  category?: PetCategory;
+}
+```
+
 ### suppressReadonlyModifier
 
 Type: `Boolean`

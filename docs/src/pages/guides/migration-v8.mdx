@@ -184,3 +184,23 @@ export default {
   },
 };
 ```
+
+## 7. Changed combined types generation (anyOf/oneOf/allOf)
+
+Combined types (`anyOf`, `oneOf`, `allOf`) are now inlined by default instead of creating intermediate type aliases.
+
+### How to maintain compatibility
+
+Use `aliasCombinedTypes`.
+
+```diff:orval.config.ts
+export default {
+  petstore: {
+    output: {
+      override: {
++       aliasCombinedTypes: true,
+      },
+    },
+  },
+};
+```
