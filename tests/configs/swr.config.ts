@@ -325,4 +325,19 @@ export default defineConfig({
       target: '../specifications/url-paths.yaml',
     },
   },
+  swrInfinitePagination: {
+    output: {
+      target: '../generated/swr/swr-infinite-pagination/endpoints.ts',
+      schemas: '../generated/swr/swr-infinite-pagination/model',
+      client: 'swr',
+      override: {
+        swr: {
+          useInfinite: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/swr-infinite-pagination.yaml',
+    },
+  },
 });
