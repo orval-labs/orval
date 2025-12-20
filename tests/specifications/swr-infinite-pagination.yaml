@@ -72,13 +72,6 @@ paths:
       operationId: getPetSingle
       tags:
         - pets
-      parameters:
-        - name: petId
-          in: path
-          required: true
-          description: The id of the pet to retrieve
-          schema:
-            type: string
       responses:
         '200':
           description: A single pet object
