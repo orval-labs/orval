@@ -10,6 +10,20 @@ import {
 } from '../generated/swr/petstore-with-headers/endpoints';
 import { ListPetsXExample } from '../generated/swr/petstore-with-headers/model';
 import type { CreatePetsHeaders } from '../generated/swr/petstore-with-headers/model';
+import {
+  getListPetsArrayInfiniteKeyLoader,
+  getListPetsWrappedInfiniteKeyLoader,
+  getGetPetSingleInfiniteKeyLoader,
+} from '../generated/swr/swr-infinite-pagination/endpoints';
+import type {
+  listPetsArrayResponse,
+  listPetsWrappedResponse,
+  getPetSingleResponse,
+} from '../generated/swr/swr-infinite-pagination/endpoints';
+import type {
+  Pet,
+  PetsWrappedResponse,
+} from '../generated/swr/swr-infinite-pagination/model';
 
 export const useInfiniteQueryTest = () => {
   const { data } = useListPetsInfinite(
@@ -128,4 +142,127 @@ export const testSwrFnArrayDestructuring = () => {
   }
 
   return false;
+};
+
+// Direct array response (e.g., API returns Pet[], orval wraps as { data: Pet[], status, headers })
+// The key loader should terminate pagination when the array is empty
+export const testInfinitePaginationTerminationForArrayResponse = () => {
+  const keyLoader = getListPetsArrayInfiniteKeyLoader({ limit: 10 });
+
+  // First page - no previous data, should return key
+  const firstPageKey = keyLoader(0);
+  if (!firstPageKey) {
+    throw new Error('First page key should not be null');
+  }
+
+  // Simulate non-empty array response (orval wrapped format)
+  const nonEmptyResponse = {
+    data: [{ id: 1, name: 'Fluffy' }] as Pet[],
+    status: 200 as const,
+    headers: new Headers(),
+  };
+  const secondPageKey = keyLoader(1, nonEmptyResponse as listPetsArrayResponse);
+  if (!secondPageKey) {
+    throw new Error(
+      'Second page key should not be null when previous data is non-empty array',
+    );
+  }
+
+  // Simulate empty array response - should terminate pagination
+  const emptyResponse = {
+    data: [] as Pet[],
+    status: 200 as const,
+    headers: new Headers(),
+  };
+  const terminatedKey = keyLoader(2, emptyResponse as listPetsArrayResponse);
+  if (terminatedKey !== null) {
+    throw new Error('Key should be null when previous data is empty array');
+  }
+
+  return true;
+};
+
+// Wrapped response with data array (e.g., API returns { data: Pet[], ... })
+// orval wraps as { data: { data: Pet[], ... }, status, headers }
+// The key loader should terminate pagination when the nested data array is empty
+export const testInfinitePaginationTerminationForWrappedResponse = () => {
+  const keyLoader = getListPetsWrappedInfiniteKeyLoader({ limit: 10 });
+
+  // First page - no previous data, should return key
+  const firstPageKey = keyLoader(0);
+  if (!firstPageKey) {
+    throw new Error('First page key should not be null');
+  }
+
+  // Simulate non-empty wrapped response (orval wrapped format)
+  const nonEmptyResponse = {
+    data: {
+      data: [{ id: 1, name: 'Fluffy' }] as Pet[],
+      status: 200,
+    } as PetsWrappedResponse,
+    status: 200 as const,
+    headers: new Headers(),
+  };
+  const secondPageKey = keyLoader(
+    1,
+    nonEmptyResponse as listPetsWrappedResponse,
+  );
+  if (!secondPageKey) {
+    throw new Error(
+      'Second page key should not be null when previous data has non-empty array',
+    );
+  }
+
+  // Simulate empty data array in wrapped response - should terminate pagination
+  const emptyDataResponse = {
+    data: {
+      data: [] as Pet[],
+      status: 200,
+    } as PetsWrappedResponse,
+    status: 200 as const,
+    headers: new Headers(),
+  };
+  const terminatedKey = keyLoader(
+    2,
+    emptyDataResponse as listPetsWrappedResponse,
+  );
+  if (terminatedKey !== null) {
+    throw new Error(
+      'Key should be null when previous data has empty data array',
+    );
+  }
+
+  return true;
+};
+
+// Single object response (non-paginated endpoint)
+// The key loader should terminate pagination after first page
+export const testInfinitePaginationTerminationForSingleObject = () => {
+  // getGetPetSingleInfiniteKeyLoader takes no arguments (path is static)
+  const keyLoader = getGetPetSingleInfiniteKeyLoader();
+
+  // First page - no previous data, should return key
+  const firstPageKey = keyLoader(0);
+  if (!firstPageKey) {
+    throw new Error('First page key should not be null');
+  }
+
+  // Simulate single object response (orval wrapped format)
+  // Because single objects don't have 'data' property and are not arrays, pagination should stop
+  const singleObjectResponse = {
+    data: { id: 1, name: 'Fluffy' } as Pet,
+    status: 200 as const,
+    headers: new Headers(),
+  };
+  const terminatedKey = keyLoader(
+    1,
+    singleObjectResponse as getPetSingleResponse,
+  );
+  if (terminatedKey !== null) {
+    throw new Error(
+      'Key should be null for single object response (non-paginated)',
+    );
+  }
+
+  return true;
 };

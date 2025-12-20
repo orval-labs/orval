@@ -522,7 +522,21 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
     const swrKeyLoader = override.swr.useInfinite
       ? `export const ${swrKeyLoaderFnName} = (${queryKeyProps}) => {
   return (page: number, previousPageData?: Awaited<ReturnType<typeof ${operationName}>>) => {
-    if (previousPageData && !previousPageData.data) return null
+    if (previousPageData) {
+      const responseData = previousPageData.data
+      if (!responseData) return null
+
+      // Direct array response (e.g., API returns Pet[]) - stop when empty
+      if (Array.isArray(responseData) && responseData.length === 0) return null
+
+      // Wrapped response with data array (e.g., { data: Pet[], ... }) - stop when nested array is empty
+      if (typeof responseData === 'object' && 'data' in responseData) {
+        if (Array.isArray(responseData.data) && responseData.data.length === 0) return null
+      }
+
+      // Single object response (non-paginated endpoint) - stop after first page
+      if (!Array.isArray(responseData) && !(typeof responseData === 'object' && 'data' in responseData)) return null
+    }
 
     return [\`${route}\`${queryParams ? ', ...(params ? [{...params,page}]: [{page}])' : ''}${
       body.implementation ? `, ${body.implementation}` : ''
