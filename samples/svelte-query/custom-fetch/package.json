@@ -26,5 +26,5 @@
     "@sveltestack/svelte-query": "^1.6.0",
     "@tanstack/svelte-query": "^4.41.0"
   },
-  "stableVersion": "8.0.0-rc.3"
+  "stableVersion": "8.0.0-rc.4"
 }
