@@ -9,14 +9,14 @@ import * as zod from 'zod';
 /**
  * @summary List all pets
  */
-export const listPetsQueryParams = zod.object({
+export const ListPetsQueryParams = zod.object({
   limit: zod
     .string()
     .optional()
     .describe('How many items to return at one time (max 100)'),
 });
 
-export const listPetsResponseItem = zod.union([
+export const ListPetsResponseItem = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -32,18 +32,18 @@ export const listPetsResponseItem = zod.union([
     type: zod.enum(['cat']),
   }),
 ]);
-export const listPetsResponse = zod.array(listPetsResponseItem);
+export const ListPetsResponse = zod.array(ListPetsResponseItem);
 
 /**
  * @summary Create a pet
  */
-export const createPetsBodyItem = zod.object({
+export const CreatePetsBodyItem = zod.object({
   name: zod.string(),
   tag: zod.string(),
 });
-export const createPetsBody = zod.array(createPetsBodyItem);
+export const CreatePetsBody = zod.array(CreatePetsBodyItem);
 
-export const createPetsResponse = zod.union([
+export const CreatePetsResponse = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -63,7 +63,7 @@ export const createPetsResponse = zod.union([
 /**
  * @summary Update a pet
  */
-export const updatePetsBody = zod.union([
+export const UpdatePetsBody = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -80,7 +80,7 @@ export const updatePetsBody = zod.union([
   }),
 ]);
 
-export const updatePetsResponse = zod.union([
+export const UpdatePetsResponse = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),
@@ -100,12 +100,12 @@ export const updatePetsResponse = zod.union([
 /**
  * @summary Info for a specific pet
  */
-export const showPetByIdParams = zod.object({
+export const ShowPetByIdParams = zod.object({
   petId: zod.string().describe('The id of the pet to retrieve'),
   testId: zod.string().describe('The id of the pet to retrieve'),
 });
 
-export const showPetByIdResponse = zod.union([
+export const ShowPetByIdResponse = zod.union([
   zod.union([
     zod.object({
       cuteness: zod.number(),

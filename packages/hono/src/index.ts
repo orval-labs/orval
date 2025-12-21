@@ -183,17 +183,19 @@ const getHonoHandlers = (
     let currentValidator = '';
 
     if (validator) {
+      const pascalOperationName = pascal(verbOption.operationName);
+
       if (verbOption.headers) {
-        currentValidator += `zValidator('header', ${verbOption.operationName}Header),\n`;
+        currentValidator += `zValidator('header', ${pascalOperationName}Header),\n`;
       }
       if (verbOption.params.length > 0) {
-        currentValidator += `zValidator('param', ${verbOption.operationName}Params),\n`;
+        currentValidator += `zValidator('param', ${pascalOperationName}Params),\n`;
       }
       if (verbOption.queryParams) {
-        currentValidator += `zValidator('query', ${verbOption.operationName}QueryParams),\n`;
+        currentValidator += `zValidator('query', ${pascalOperationName}QueryParams),\n`;
       }
       if (verbOption.body.definition) {
-        currentValidator += `zValidator('json', ${verbOption.operationName}Body),\n`;
+        currentValidator += `zValidator('json', ${pascalOperationName}Body),\n`;
       }
       if (
         validator !== 'hono' &&
@@ -202,7 +204,7 @@ const getHonoHandlers = (
           'application/json'
         ]
       ) {
-        currentValidator += `zValidator('response', ${verbOption.operationName}Response),\n`;
+        currentValidator += `zValidator('response', ${pascalOperationName}Response),\n`;
       }
     }
 
@@ -234,20 +236,22 @@ const getZvalidatorImports = (
     body,
     response,
   } of verbOptions) {
+    const pascalOperationName = pascal(operationName);
+
     if (headers) {
-      specifiers.push(`${operationName}Header`);
+      specifiers.push(`${pascalOperationName}Header`);
     }
 
     if (params.length > 0) {
-      specifiers.push(`${operationName}Params`);
+      specifiers.push(`${pascalOperationName}Params`);
     }
 
     if (queryParams) {
-      specifiers.push(`${operationName}QueryParams`);
+      specifiers.push(`${pascalOperationName}QueryParams`);
     }
 
     if (body.definition) {
-      specifiers.push(`${operationName}Body`);
+      specifiers.push(`${pascalOperationName}Body`);
     }
 
     if (
@@ -256,7 +260,7 @@ const getZvalidatorImports = (
       response.originalSchema?.['200']?.content?.['application/json'] !=
         undefined
     ) {
-      specifiers.push(`${operationName}Response`);
+      specifiers.push(`${pascalOperationName}Response`);
     }
   }
 

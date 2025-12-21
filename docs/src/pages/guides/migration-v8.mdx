@@ -204,3 +204,20 @@ export default {
   },
 };
 ```
+
+## 8. Zod Schema Naming Convention Changed to PascalCase
+
+All Zod schema exports now use PascalCase naming convention to align with TypeScript type definition standards.
+
+### What Changed
+
+```diff
+- export const createPetsBody = zod.object({
++ export const CreatePetsBody = zod.object({
+    name: zod.string(),
+    tag: zod.string()
+  })
+
+- export type CreatePetsBody = zod.infer<typeof createPetsBody>
++ export type CreatePetsBody = zod.infer<typeof CreatePetsBody>
+```
