@@ -16,5 +16,5 @@
   "devDependencies": {
     "orval": "workspace:*"
   },
-  "stableVersion": "8.0.0-rc.3"
+  "stableVersion": "8.0.0-rc.4"
 }

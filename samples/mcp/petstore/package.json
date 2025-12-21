@@ -18,5 +18,5 @@
     "ts-node": "^10.9.2",
     "typescript": "~5.8.3"
   },
-  "stableVersion": "8.0.0-rc.3"
+  "stableVersion": "8.0.0-rc.4"
 }

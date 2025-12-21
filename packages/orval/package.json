@@ -100,5 +100,5 @@
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"
   },
-  "stableVersion": "8.0.0-rc.3"
+  "stableVersion": "8.0.0-rc.4"
 }

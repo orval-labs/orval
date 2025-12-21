@@ -51,5 +51,5 @@
     "vue": "^3.5.22",
     "zod": "^3.25.76"
   },
-  "stableVersion": "8.0.0-rc.3"
+  "stableVersion": "8.0.0-rc.4"
 }
