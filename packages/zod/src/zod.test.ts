@@ -2061,7 +2061,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const testParams = zod.object({\n  "id": zod.string()\n})\n\nexport const testQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\nexport const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\nexport const testBody = zod.object({\n  "name": zod.string().optional()\n})\n\nexport const testResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+      'export const TestParams = zod.object({\n  "id": zod.string()\n})\n\nexport const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\nexport const TestHeader = zod.object({\n  "x-header": zod.string()\n})\n\nexport const TestBody = zod.object({\n  "name": zod.string().optional()\n})\n\nexport const TestResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
     );
   });
 
@@ -2101,7 +2101,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+      'export const TestResponse = zod.object({\n  "name": zod.string().optional()\n})\n\n',
     );
   });
 
@@ -2141,7 +2141,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "name": zod.string().optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "name": zod.string().optional()\n})\n\n',
     );
   });
 
@@ -2181,7 +2181,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\n',
+      'export const TestQueryParams = zod.object({\n  "page": zod.number().optional()\n})\n\n',
     );
   });
 
@@ -2221,7 +2221,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testParams = zod.object({\n  "id": zod.string()\n})\n\n',
+      'export const TestParams = zod.object({\n  "id": zod.string()\n})\n\n',
     );
   });
 
@@ -2261,7 +2261,7 @@ describe('generatePartOfSchemaGenerateZod', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
+      'export const TestHeader = zod.object({\n  "x-header": zod.string()\n})\n\n',
     );
   });
 });
@@ -2458,7 +2458,7 @@ describe('generateFormData', () => {
       {},
     );
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "name": zod.string().optional(),\n  "catImage": zod.instanceof(File).optional()\n})\n\n',
     );
   });
 });
@@ -2549,7 +2549,7 @@ describe('generateZodWithEdgeCases', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "$ref": zod.string().optional()\n})\n\n',
     );
   });
 });
@@ -2638,7 +2638,7 @@ describe('generateZodWithLiteralProperty', () => {
     );
 
     expect(result.implementation).toBe(
-      'export const testBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
+      'export const TestBody = zod.object({\n  "type": zod.literal("WILD").optional()\n})\n\n',
     );
   });
 });
@@ -4445,7 +4445,7 @@ describe('generateZod (content type handling - parity with res-req-types.test.ts
     // base64Field: contentEncoding base64 → stays string
     // metadata: object → object schema
     expect(result.implementation)
-      .toBe(`export const uploadFormBody = zod.object({
+      .toBe(`export const UploadFormBody = zod.object({
   "encBinary": zod.instanceof(File),
   "encText": zod.instanceof(File).or(zod.string()),
   "cmtBinary": zod.instanceof(File),
