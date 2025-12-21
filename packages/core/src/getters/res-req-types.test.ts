@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type {
   ContextSpec,
   OpenApiRequestBodyObject,
+  OpenApiResponseObject,
   OpenApiSchemaObject,
 } from '../types';
 import { getResReqTypes, isBinaryContentType } from './res-req-types';
@@ -67,6 +68,7 @@ describe('isBinaryContentType', () => {
     expect(isBinaryContentType('image/jpeg')).toBe(true);
     expect(isBinaryContentType('audio/mp3')).toBe(true);
     expect(isBinaryContentType('video/mp4')).toBe(true);
+    expect(isBinaryContentType('*/*')).toBe(true); // Unknown type - using Blob for now since it handles both text and binary
   });
 
   it('should return false for text-based content types', () => {
@@ -81,7 +83,7 @@ describe('isBinaryContentType', () => {
 describe('getResReqTypes (content type handling)', () => {
   describe('media key precedence (type generation)', () => {
     it('binary media key → Blob; text/JSON media key ignores contentMediaType', () => {
-      // Binary media key overrides schema to Blob
+      // Binary media key overrides schema to Blob (request)
       const binaryReq: [string, OpenApiRequestBodyObject][] = [
         [
           'requestBody',
@@ -95,7 +97,22 @@ describe('getResReqTypes (content type handling)', () => {
       ];
       expect(getResReqTypes(binaryReq, 'Body', context)[0].value).toBe('Blob');
 
-      // Text/JSON media key ignores contentMediaType (stays string)
+      // Binary media key overrides schema to Blob (response)
+      const binaryRes: [string, OpenApiResponseObject][] = [
+        [
+          '200',
+          {
+            content: {
+              'application/octet-stream': { schema: { type: 'string' } },
+            },
+          },
+        ],
+      ];
+      expect(getResReqTypes(binaryRes, 'Response', context)[0].value).toBe(
+        'Blob',
+      );
+
+      // Text/JSON media key ignores contentMediaType (request)
       const jsonReq: [string, OpenApiRequestBodyObject][] = [
         [
           'requestBody',
@@ -110,6 +127,58 @@ describe('getResReqTypes (content type handling)', () => {
         ],
       ];
       expect(getResReqTypes(jsonReq, 'Body', context)[0].value).toBe('string');
+
+      // Text/JSON media key ignores contentMediaType (response)
+      const jsonRes: [string, OpenApiResponseObject][] = [
+        [
+          '200',
+          {
+            content: {
+              'application/json': {
+                schema: { type: 'string', contentMediaType: 'image/png' },
+              },
+            },
+          },
+        ],
+      ];
+      expect(getResReqTypes(jsonRes, 'Response', context)[0].value).toBe(
+        'string',
+      );
+    });
+
+    it('wildcard */* media → Blob for both request and response', () => {
+      // Wildcard accepts any content type, generates Blob
+      const reqWithCmt: [string, OpenApiRequestBodyObject][] = [
+        [
+          'requestBody',
+          {
+            content: {
+              '*/*': {
+                schema: { type: 'string', contentMediaType: '*/*' },
+              },
+            },
+            required: true,
+          },
+        ],
+      ];
+      expect(getResReqTypes(reqWithCmt, 'Body', context)[0].value).toBe('Blob');
+
+      // Response
+      const resWithCmt: [string, OpenApiResponseObject][] = [
+        [
+          '200',
+          {
+            content: {
+              '*/*': {
+                schema: { type: 'string', contentMediaType: '*/*' },
+              },
+            },
+          },
+        ],
+      ];
+      expect(getResReqTypes(resWithCmt, 'Response', context)[0].value).toBe(
+        'Blob',
+      );
     });
   });
 
@@ -145,6 +214,7 @@ describe('getResReqTypes (content type handling)', () => {
                     type: 'object',
                     properties: { name: { type: 'string' } },
                   },
+                  wildcardFile: { type: 'string', contentMediaType: '*/*' },
                 },
                 required: [
                   'encBinary',
@@ -155,6 +225,7 @@ describe('getResReqTypes (content type handling)', () => {
                   'formatBinary',
                   'base64Field',
                   'metadata',
+                  'wildcardFile',
                 ],
               },
               encoding: {
@@ -173,7 +244,7 @@ describe('getResReqTypes (content type handling)', () => {
     it('generates correct types and FormData for all content type combinations', () => {
       const result = getResReqTypes(reqBody, 'Body', context)[0];
 
-      // encBinary/cmtBinary/formatBinary: Blob (binary)
+      // encBinary/cmtBinary/formatBinary/wildcardFile: Blob (binary)
       // encText/cmtText/encOverride: Blob | string (text file)
       // base64Field: string (contentEncoding means not a file)
       // metadata: object (named type)
@@ -186,6 +257,7 @@ describe('getResReqTypes (content type handling)', () => {
   formatBinary: Blob;
   base64Field: string;
   metadata: BodyRequestBodyMetadata;
+  wildcardFile: Blob;
 }`);
 
       expect(result.formData).toBe(`const formData = new FormData();
@@ -197,6 +269,7 @@ formData.append(\`encOverride\`, bodyRequestBody.encOverride instanceof Blob ? b
 formData.append(\`formatBinary\`, bodyRequestBody.formatBinary);
 formData.append(\`base64Field\`, bodyRequestBody.base64Field);
 formData.append(\`metadata\`, new Blob([JSON.stringify(bodyRequestBody.metadata)], { type: 'application/json' }));
+formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile);
 `);
     });
   });
