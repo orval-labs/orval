@@ -1170,7 +1170,7 @@ const parseBodyAndResponse = ({
   };
 };
 
-const parseParameters = ({
+export const parseParameters = ({
   data,
   context,
   operationName,
@@ -1506,35 +1506,39 @@ const generateZodRoute = async (
     };
   }
 
+  const pascalOperationName = pascal(operationName);
+
   return {
     implementation: [
       ...(inputParams.consts ? [inputParams.consts] : []),
       ...(inputParams.zod
-        ? [`export const ${operationName}Params = ${inputParams.zod}`]
+        ? [`export const ${pascalOperationName}Params = ${inputParams.zod}`]
         : []),
       ...(inputQueryParams.consts ? [inputQueryParams.consts] : []),
       ...(inputQueryParams.zod
-        ? [`export const ${operationName}QueryParams = ${inputQueryParams.zod}`]
+        ? [
+            `export const ${pascalOperationName}QueryParams = ${inputQueryParams.zod}`,
+          ]
         : []),
       ...(inputHeaders.consts ? [inputHeaders.consts] : []),
       ...(inputHeaders.zod
-        ? [`export const ${operationName}Header = ${inputHeaders.zod}`]
+        ? [`export const ${pascalOperationName}Header = ${inputHeaders.zod}`]
         : []),
       ...(inputBody.consts ? [inputBody.consts] : []),
       ...(inputBody.zod
         ? [
             parsedBody.isArray
-              ? `export const ${operationName}BodyItem = ${inputBody.zod}
-export const ${operationName}Body = zod.array(${operationName}BodyItem)${
+              ? `export const ${pascalOperationName}BodyItem = ${inputBody.zod}
+export const ${pascalOperationName}Body = zod.array(${pascalOperationName}BodyItem)${
                   parsedBody.rules?.min ? `.min(${parsedBody.rules.min})` : ''
                 }${
                   parsedBody.rules?.max ? `.max(${parsedBody.rules.max})` : ''
                 }`
-              : `export const ${operationName}Body = ${inputBody.zod}`,
+              : `export const ${pascalOperationName}Body = ${inputBody.zod}`,
           ]
         : []),
       ...inputResponses.flatMap((inputResponse, index) => {
-        const operationResponse = camel(
+        const operationResponse = pascal(
           `${operationName}-${responses[index][0]}-response`,
         );
         return [

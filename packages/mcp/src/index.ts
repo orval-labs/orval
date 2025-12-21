@@ -169,17 +169,16 @@ export const generateServer = (
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
+      const pascalOperationName = pascal(verbOption.operationName);
       const inputSchemaTypes = [];
       if (verbOption.params.length > 0)
-        inputSchemaTypes.push(
-          `  pathParams: ${verbOption.operationName}Params`,
-        );
+        inputSchemaTypes.push(`  pathParams: ${pascalOperationName}Params`);
       if (verbOption.queryParams)
         inputSchemaTypes.push(
-          `  queryParams: ${verbOption.operationName}QueryParams`,
+          `  queryParams: ${pascalOperationName}QueryParams`,
         );
       if (verbOption.body.definition)
-        inputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
+        inputSchemaTypes.push(`  bodyParams: ${pascalOperationName}Body`);
 
       const inputSchemaImplementation =
         inputSchemaTypes.length > 0
@@ -203,14 +202,15 @@ server.tool(
     .flatMap((verbOption) => {
       const imports = [];
 
-      if (verbOption.headers)
-        imports.push(`  ${verbOption.operationName}Header`);
+      const pascalOperationName = pascal(verbOption.operationName);
+
+      if (verbOption.headers) imports.push(`  ${pascalOperationName}Header`);
       if (verbOption.params.length > 0)
-        imports.push(`  ${verbOption.operationName}Params`);
+        imports.push(`  ${pascalOperationName}Params`);
       if (verbOption.queryParams)
-        imports.push(`  ${verbOption.operationName}QueryParams`);
+        imports.push(`  ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
-        imports.push(`  ${verbOption.operationName}Body`);
+        imports.push(`  ${pascalOperationName}Body`);
 
       return imports;
     })
