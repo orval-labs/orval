@@ -177,7 +177,6 @@ ${
     !isPrimitiveType &&
     hasSchema &&
     !isNdJson;
-  const responseZodSchemaName = `${responseType}Schema`;
 
   const allResponses = [...response.types.success, ...response.types.errors];
   if (allResponses.length === 0) {
@@ -209,7 +208,7 @@ ${
       const hasValidZodSchema = r.value && !PRIMITIVE_TYPES.has(r.value);
       const dataType =
         override.fetch.useZodSchemaResponse && hasValidZodSchema
-          ? `zod.infer<typeof ${r.value}Schema>`
+          ? `zod.infer<typeof ${r.value}>`
           : r.value || 'unknown';
 
       return {
@@ -369,7 +368,7 @@ ${override.fetch.forceSuccessResponse && hasSuccess ? '' : `export type ${respon
   ${
     isValidateResponse
       ? `const parsedBody = body ? JSON.parse(body${reviver}) : {}
-  const data = ${responseZodSchemaName}.parse(parsedBody)`
+  const data = ${responseType}.parse(parsedBody)`
       : `const data: ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}${override.fetch.includeHttpResponseReturnType ? `['data']` : ''} = body ? JSON.parse(body${reviver}) : {}`
   }
   ${override.fetch.includeHttpResponseReturnType ? `return { data, status: res.status, headers: res.headers } as ${override.fetch.forceSuccessResponse && hasSuccess ? successName : responseTypeName}` : 'return data'}
@@ -424,13 +423,13 @@ export const generateClient: ClientBuilder = (
     verbOptions.override.fetch.useZodSchemaResponse ||
     verbOptions.override.fetch.runtimeValidation;
 
-  const zodSchemaImports = isZodSchemaImportsRequired
+  const responseImports = isZodSchemaImportsRequired
     ? [
         ...verbOptions.response.types.success,
         ...verbOptions.response.types.errors,
       ].flatMap((response) =>
         response.imports.map((imp) => ({
-          name: `${imp.name}Schema`,
+          name: imp.name,
           schemaName: imp.name,
           isZodSchema: true,
           values: true,
@@ -438,9 +437,33 @@ export const generateClient: ClientBuilder = (
       )
     : [];
 
+  const requestImports = isZodSchemaImportsRequired
+    ? [
+        ...verbOptions.body.imports,
+        ...(verbOptions.queryParams
+          ? [{ name: `${pascal(verbOptions.operationName)}QueryParams` }]
+          : []),
+        ...(verbOptions.headers
+          ? [{ name: `${pascal(verbOptions.operationName)}Header` }]
+          : []),
+      ].map((imp) => ({
+        name: imp.name,
+        schemaName: imp.name,
+        isZodSchema: true,
+        values: true,
+      }))
+    : [];
+
+  const zodSchemaImports = [...responseImports, ...requestImports];
+
+  const zodSchemaNames = new Set(zodSchemaImports.map((imp) => imp.name));
+  const filteredImports = imports.filter(
+    (imp) => !zodSchemaNames.has(imp.name),
+  );
+
   return {
     implementation: `${functionImplementation}\n`,
-    imports: [...imports, ...zodSchemaImports],
+    imports: [...filteredImports, ...zodSchemaImports],
   };
 };
 

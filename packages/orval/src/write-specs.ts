@@ -24,7 +24,7 @@ import { unique } from 'remeda';
 import type { TypeDocOptions } from 'typedoc';
 
 import { executeHook } from './utils';
-import { writeZodSchemas } from './write-zod-specs';
+import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
 
 function getHeader(
   option: false | ((info: OpenApiInfoObject) => string | string[]),
@@ -92,6 +92,22 @@ export async function writeSpecs(
             header,
             output,
           );
+
+          if (builder.verbOptions) {
+            await writeZodSchemasFromVerbs(
+              builder.verbOptions,
+              output.schemas.path,
+              fileExtension,
+              header,
+              output,
+              {
+                spec: builder.spec,
+                target: builder.target,
+                workspace,
+                output,
+              },
+            );
+          }
         }
       }
     }
