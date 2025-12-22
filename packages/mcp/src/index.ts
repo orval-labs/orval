@@ -9,6 +9,7 @@ import {
   type GeneratorVerbOptions,
   getFileInfo,
   getFullRoute,
+  isObject,
   jsDoc,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -33,9 +34,12 @@ const getHeader = (
 
 export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
-  const schemaInfo = getFileInfo(output.schemas);
+  const schemasPath = isObject(output.schemas)
+    ? output.schemas.path
+    : output.schemas;
+  const schemaInfo = schemasPath ? getFileInfo(schemasPath) : undefined;
 
-  const relativeSchemaImportPath = output.schemas
+  const relativeSchemaImportPath = schemaInfo
     ? upath.relativeSafe(targetInfo.dirname, schemaInfo.dirname)
     : './' + targetInfo.filename + '.schemas';
 
@@ -349,8 +353,11 @@ const generateHttpClientFiles = async (
     .map((client) => client.implementation)
     .join('\n');
 
-  const relativeSchemasPath = output.schemas
-    ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+  const schemasPath = isObject(output.schemas)
+    ? output.schemas.path
+    : output.schemas;
+  const relativeSchemasPath = schemasPath
+    ? upath.relativeSafe(dirname, getFileInfo(schemasPath).dirname)
     : './' + filename + '.schemas';
 
   const importNames = clients

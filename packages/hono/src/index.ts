@@ -13,6 +13,7 @@ import {
   getFileInfo,
   getOrvalGeneratedTypes,
   getParamsInPath,
+  isObject,
   jsDoc,
   kebab,
   type NormalizedMutator,
@@ -819,7 +820,10 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   let schemaModule: string;
 
   if (output.schemas != undefined) {
-    schemaModule = getFileInfo(output.schemas).dirname;
+    const schemasPath = isObject(output.schemas)
+      ? output.schemas.path
+      : output.schemas;
+    schemaModule = getFileInfo(schemasPath).dirname;
   } else if (output.mode === 'single') {
     schemaModule = path;
   } else {
