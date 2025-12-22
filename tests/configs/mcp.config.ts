@@ -10,4 +10,16 @@ export default defineConfig({
       client: 'mcp',
     },
   },
+  zodSchemaResponse: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/mcp/zod-schema-response/handlers.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/mcp/zod-schema-response/http-schemas',
+      },
+      mode: 'single',
+      client: 'mcp',
+    },
+  },
 });
