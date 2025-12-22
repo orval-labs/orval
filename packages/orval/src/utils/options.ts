@@ -96,13 +96,9 @@ function normalizeSchemasOption(
     return normalizePath(schemas, workspace);
   }
 
-  const types: SchemaGenerationType[] = Array.isArray(schemas.type)
-    ? schemas.type
-    : [schemas.type];
-
   return {
     path: normalizePath(schemas.path, workspace),
-    type: types,
+    type: schemas.type,
   };
 }
 
@@ -370,8 +366,6 @@ export async function normalizeOptions(
             true,
           forceSuccessResponse:
             outputOptions.override?.fetch?.forceSuccessResponse ?? false,
-          useZodSchemaResponse:
-            outputOptions.override?.fetch?.useZodSchemaResponse ?? false,
           runtimeValidation:
             outputOptions.override?.fetch?.runtimeValidation ?? false,
           ...outputOptions.override?.fetch,
