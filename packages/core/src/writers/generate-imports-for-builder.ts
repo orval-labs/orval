@@ -17,7 +17,7 @@ export function generateImportsForBuilder(
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
       return {
-        exports: [i],
+        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
         dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}`),
       };
     });
@@ -25,7 +25,7 @@ export function generateImportsForBuilder(
     if (isZodSchemaOutput) {
       return [
         {
-          exports: imports,
+          exports: imports.map((i) => ({ ...i, values: true })),
           dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
         },
       ];
