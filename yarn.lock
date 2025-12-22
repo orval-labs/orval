@@ -9379,6 +9379,7 @@ __metadata:
     "@angular/platform-browser": "npm:^20.3.0"
     "@angular/router": "npm:^20.3.9"
     "@faker-js/faker": "npm:^10.1.0"
+    esbuild: "npm:0.25.9"
     msw: "npm:^2.12.1"
     orval: "workspace:*"
     rimraf: "npm:^6.1.0"
