@@ -34,6 +34,7 @@ import {
 import { omitBy } from 'remeda';
 
 import {
+  ANGULAR_HTTP_DEPENDENCIES,
   AXIOS_DEPENDENCIES,
   generateQueryRequestFunction,
   getHookOptions,
@@ -418,10 +419,14 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
   packageJson,
   httpClient?: OutputHttpClient,
 ) => {
+  // Use Angular HTTP dependencies by default for angular-query, or when explicitly set
+  const useAngularHttp =
+    !hasGlobalMutator && httpClient === OutputHttpClient.ANGULAR;
+  const useAxios = !hasGlobalMutator && httpClient === OutputHttpClient.AXIOS;
+
   return [
-    ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
-      ? AXIOS_DEPENDENCIES
-      : []),
+    ...(useAngularHttp ? ANGULAR_HTTP_DEPENDENCIES : []),
+    ...(useAxios ? AXIOS_DEPENDENCIES : []),
     ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
     ...ANGULAR_QUERY_DEPENDENCIES,
   ];
@@ -1043,7 +1048,10 @@ const generateQueryImplementation = ({
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
-  const httpFunctionProps = queryParam
+  const isAngularHttp =
+    isAngular(outputClient) || httpClient === OutputHttpClient.ANGULAR;
+
+  let httpFunctionProps = queryParam
     ? props
         .map((param) => {
           if (
@@ -1066,7 +1074,15 @@ const generateQueryImplementation = ({
         isVue(outputClient),
         httpClient,
         queryProperties,
+        isAngularHttp,
       );
+
+  // For Angular with infinite queries, we need to prefix with http
+  if (queryParam && isAngularHttp) {
+    httpFunctionProps = httpFunctionProps
+      ? `http, ${httpFunctionProps}`
+      : 'http';
+  }
 
   const definedInitialDataReturnType = generateQueryReturnType({
     outputClient,
@@ -1213,6 +1229,7 @@ const generateQueryImplementation = ({
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
 
 ${hookOptions}
+${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
 
   const queryKey =  ${
     queryKeyMutator
@@ -1442,6 +1459,8 @@ const generateQueryHook = async (
     );
 
   const httpClient = context.output.httpClient;
+  const isAngularHttp =
+    isAngular(outputClient) || httpClient === OutputHttpClient.ANGULAR;
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
@@ -1786,6 +1805,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
+${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
 
       ${
         mutator?.isHook
@@ -1799,7 +1819,7 @@ ${hooksOptionImplementation}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${properties}${
+          return  ${operationName}(${isAngularHttp ? 'http, ' : ''}${properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }

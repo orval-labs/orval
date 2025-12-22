@@ -8,7 +8,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "CI=true ng test --no-watch",
     "lint": "ng lint",
-    "generate-api": "node ../../packages/orval/dist/bin/orval.js"
+    "generate-api": "node ../../packages/orval/dist/bin/orval.mjs"
   },
   "private": true,
   "dependencies": {
@@ -29,7 +29,8 @@
     "@angular/compiler-cli": "^20.1.0",
     "@faker-js/faker": "^9.9.0",
     "@testing-library/angular": "16.0.0",
-    "msw": "^2.10.4",
+    "esbuild": "0.25.9",
+    "msw": "^2.12.1",
     "orval": "link:../../packages/orval/dist",
     "typescript": "~5.8.2",
     "vitest": "^3.2.4"
@@ -38,5 +39,8 @@
     "workerDirectory": [
       "public"
     ]
+  },
+  "installConfig": {
+    "hoistingLimits": "workspaces"
   }
 }

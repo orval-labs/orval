@@ -1,14 +1,5 @@
-import { Component, effect, signal } from '@angular/core';
-import {
-  getListPetsQueryOptions,
-  injectListPets,
-} from '../api/endpoints/pets/pets';
-import {
-  DataTag,
-  dataTagSymbol,
-  injectQuery,
-} from '@tanstack/angular-query-experimental';
-import { Pets } from '../api/model';
+import { Component, signal } from '@angular/core';
+import { injectListPets } from '../api/endpoints/pets/pets';
 
 @Component({
   selector: 'app-root',
@@ -25,12 +16,7 @@ import { Pets } from '../api/model';
   `,
 })
 export class App {
-  protected readonly petsDirectlyInjected = injectListPets();
-  protected readonly pets = injectQuery(() => {
-    const options = getListPetsQueryOptions();
-    options.queryKey = ['pets'];
-    return getListPetsQueryOptions();
-  });
+  protected readonly pets = injectListPets();
 
   protected readonly title = signal('angular-app');
 }

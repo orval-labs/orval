@@ -1,8 +1,4 @@
-import {
-  inject,
-  provideAppInitializer,
-  provideZonelessChangeDetection,
-} from '@angular/core';
+import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
@@ -10,19 +6,8 @@ import {
   provideTanStackQuery,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
-import {
-  ApiHttpService,
-  setApiHttpService,
-} from '../api/mutator/custom-instance';
 
 import { waitFor } from '@testing-library/angular';
-
-function initializeApiService() {
-  return () => {
-    const apiService = inject(ApiHttpService);
-    setApiHttpService(apiService);
-  };
-}
 
 describe('App', () => {
   beforeEach(async () => {
@@ -32,7 +17,6 @@ describe('App', () => {
         provideZonelessChangeDetection(),
         provideHttpClient(),
         provideTanStackQuery(new QueryClient()),
-        provideAppInitializer(initializeApiService()),
       ],
     }).compileComponents();
   });

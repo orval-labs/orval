@@ -276,6 +276,7 @@ export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
 export const OutputHttpClient = {
   AXIOS: 'axios',
   FETCH: 'fetch',
+  ANGULAR: 'angular',
 } as const;
 
 export type OutputHttpClient =

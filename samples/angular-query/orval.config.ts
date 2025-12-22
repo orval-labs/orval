@@ -8,16 +8,11 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular-query',
+      httpClient: 'angular',
       mock: true,
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
-        mutator: {
-          path: 'src/api/mutator/custom-instance.ts',
-        },
-        paramsSerializer: {
-          path: 'src/api/mutator/custom-params-serializer.ts',
-        },
         operations: {
           listPets: {
             mock: {
