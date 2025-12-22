@@ -123,7 +123,7 @@ function generateDefinition(
         isResponseOverridable
           ? `overrideResponse: Partial< ${returnType} > = {}`
           : ''
-      })${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
+      })${mockData ? '' : `: ${returnType}`} => (${value}) as ${returnType}\n\n`
     : mockImplementations;
 
   const delay = getDelay(override, isFunction(mock) ? undefined : mock);
