@@ -419,6 +419,7 @@ export const generateClient: ClientBuilder = (
   const generateImports = imports.map((imp) => ({
     ...imp,
     isZodSchema: isZodSchema,
+    values: isZodSchema ? true : imp.values,
   }));
 
   return {
