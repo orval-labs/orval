@@ -1,12 +1,11 @@
-import { OperationObject } from 'openapi3-ts/oas30';
-import { Verbs } from '../types';
+import { type OpenApiOperationObject, Verbs } from '../types';
 import { pascal, sanitize } from '../utils';
 
-export const getOperationId = (
-  operation: OperationObject,
+export function getOperationId(
+  operation: OpenApiOperationObject,
   route: string,
   verb: Verbs,
-): string => {
+): string {
   if (operation.operationId) {
     return operation.operationId;
   }
@@ -24,4 +23,4 @@ export const getOperationId = (
       ),
     ].join('-'),
   );
-};
+}

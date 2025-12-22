@@ -1,18 +1,18 @@
 import {
-  ClientBuilder,
-  ClientDependenciesBuilder,
-  ClientFooterBuilder,
-  ClientGeneratorsBuilder,
-  ClientHeaderBuilder,
-  ClientTitleBuilder,
+  type ClientBuilder,
+  type ClientDependenciesBuilder,
+  type ClientFooterBuilder,
+  type ClientGeneratorsBuilder,
+  type ClientHeaderBuilder,
+  type ClientTitleBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
   generateVerbImports,
-  GeneratorDependency,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorDependency,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   isSyntheticDefaultImportsAllow,
   pascal,
   sanitize,
@@ -49,13 +49,13 @@ const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, (title?: string) => string> = new Map();
+const returnTypesToWrite = new Map<string, (title?: string) => string>();
 
 export const getAxiosDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions: boolean,
 ) => [
-  ...(!hasGlobalMutator ? AXIOS_DEPENDENCIES : []),
+  ...(hasGlobalMutator ? [] : AXIOS_DEPENDENCIES),
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
 ];
 
@@ -76,9 +76,9 @@ const generateAxiosImplementation = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
 
@@ -110,7 +110,7 @@ const generateAxiosImplementation = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasSecondArg,
         )
       : '';
@@ -137,7 +137,7 @@ const generateAxiosImplementation = (
 
     return `const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
-        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}<${response.definition.success || 'unknown'}>>,`
         : ''
     }) => {${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
@@ -154,11 +154,11 @@ const generateAxiosImplementation = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });
@@ -177,8 +177,8 @@ const generateAxiosImplementation = (
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
-    }.${verb}(${options})${response.types.success.some((x) => x.type === 'null') ? '.then((res) => {if (res.data === "") res.data = null; return res as TData;})' : ''};
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
+    }.${verb}(${options});
   }
 `;
 };
@@ -199,7 +199,7 @@ ${
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${!noFunction ? `export const ${title} = () => {\n` : ''}`;
+  ${noFunction ? '' : `export const ${title} = () => {\n`}`;
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
@@ -220,12 +220,15 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
 \n`;
   }
 
-  operationNames.forEach((operationName) => {
+  for (const operationName of operationNames) {
     if (returnTypesToWrite.has(operationName)) {
+      // Map.has ensures Map.get will not return undefined, but TS still complains
+      // bug https://github.com/microsoft/TypeScript/issues/13086
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       const func = returnTypesToWrite.get(operationName)!;
-      footer += func(!noFunction ? title : undefined) + '\n';
+      footer += func(noFunction ? undefined : title) + '\n';
     }
-  });
+  }
 
   return footer;
 };
@@ -240,10 +243,7 @@ export const generateAxios = (
   return { implementation, imports };
 };
 
-export const generateAxiosFunctions: ClientBuilder = async (
-  verbOptions,
-  options,
-) => {
+export const generateAxiosFunctions: ClientBuilder = (verbOptions, options) => {
   const { implementation, imports } = generateAxios(verbOptions, options);
 
   return {

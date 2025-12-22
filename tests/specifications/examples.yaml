@@ -9,6 +9,7 @@ info:
 paths:
   /users:
     get:
+      tags: [users]
       operationId: 'get-users'
       responses:
         '200':
@@ -24,6 +25,7 @@ paths:
                   $ref: '#/components/examples/GetUsersResponseExample'
   /users2:
     get:
+      tags: [users2]
       operationId: 'get-users-2'
       responses:
         '200':

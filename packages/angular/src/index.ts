@@ -1,18 +1,18 @@
 import {
-  ClientBuilder,
-  ClientDependenciesBuilder,
-  ClientFooterBuilder,
-  ClientGeneratorsBuilder,
-  ClientHeaderBuilder,
-  ClientTitleBuilder,
+  type ClientBuilder,
+  type ClientDependenciesBuilder,
+  type ClientFooterBuilder,
+  type ClientGeneratorsBuilder,
+  type ClientHeaderBuilder,
+  type ClientTitleBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
   generateVerbImports,
-  GeneratorDependency,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorDependency,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   isBoolean,
   pascal,
   sanitize,
@@ -48,7 +48,7 @@ const ANGULAR_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-const returnTypesToWrite: Map<string, string> = new Map();
+const returnTypesToWrite = new Map<string, string>();
 
 export const getAngularDependencies: ClientDependenciesBuilder = () =>
   ANGULAR_DEPENDENCIES;
@@ -116,11 +116,14 @@ export const generateAngularFooter: ClientFooterBuilder = ({
 }) => {
   let footer = '};\n\n';
 
-  operationNames.forEach((operationName) => {
+  for (const operationName of operationNames) {
     if (returnTypesToWrite.has(operationName)) {
+      // Map.has ensures Map.get will not return undefined, but TS still complains
+      // bug https://github.com/microsoft/TypeScript/issues/13086
+      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
       footer += returnTypesToWrite.get(operationName) + '\n';
     }
-  });
+  }
 
   return footer;
 };
@@ -142,9 +145,9 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -159,11 +162,9 @@ const generateImplementation = (
 
   returnTypesToWrite.set(
     operationName,
-    `export type ${pascal(operationName)}ClientResult = ${
-      dataType === 'null'
-        ? 'never' // NonNullable<null> is the type never
-        : `NonNullable<${dataType}>`
-    };`,
+    `export type ${pascal(
+      operationName,
+    )}ClientResult = NonNullable<${dataType}>`,
   );
 
   if (mutator) {
@@ -182,7 +183,7 @@ const generateImplementation = (
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasThirdArg,
         )
       : '';
@@ -215,11 +216,11 @@ const generateImplementation = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isAngular: true,
     isExactOptionalPropertyTypes,
     hasSignal: false,

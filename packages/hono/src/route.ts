@@ -3,7 +3,7 @@ import { sanitize } from '@orval/core';
 const hasParam = (path: string): boolean => /[^{]*{[\w*_-]*}.*/.test(path);
 
 const getRoutePath = (path: string): string => {
-  const matches = path.match(/([^{]*){?([\w*_-]*)}?(.*)/);
+  const matches = /([^{]*){?([\w*_-]*)}?(.*)/.exec(path);
   if (!matches?.length) return path; // impossible due to regexp grouping here, but for TS
 
   const prev = matches[1];
@@ -15,25 +15,18 @@ const getRoutePath = (path: string): string => {
   });
   const next = hasParam(matches[3]) ? getRoutePath(matches[3]) : matches[3];
 
-  if (hasParam(path)) {
-    return `${prev}\:${param}${next}`;
-  } else {
-    return `${prev}${param}${next}`;
-  }
+  return hasParam(path) ? `${prev}:${param}${next}` : `${prev}${param}${next}`;
 };
 
 export const getRoute = (route: string) => {
   const splittedRoute = route.split('/');
 
-  return splittedRoute.reduce((acc, path, i) => {
-    if (!path && !i) {
-      return acc;
-    }
+  let acc = '';
+  for (const [i, path] of splittedRoute.entries()) {
+    if (!path && i === 0) continue;
 
-    if (!path.includes('{')) {
-      return `${acc}/${path}`;
-    }
+    acc += path.includes('{') ? `/${getRoutePath(path)}` : `/${path}`;
+  }
 
-    return `${acc}/${getRoutePath(path)}`;
-  }, '');
+  return acc;
 };

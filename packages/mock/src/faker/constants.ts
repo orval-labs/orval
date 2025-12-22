@@ -1,7 +1,7 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
+import type { OpenApiSchemaObject } from '@orval/core';
 
 export const DEFAULT_FORMAT_MOCK: Record<
-  Required<SchemaObject>['format'],
+  Required<OpenApiSchemaObject>['format'],
   string
 > = {
   bic: 'faker.finance.bic()',

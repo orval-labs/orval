@@ -1,16 +1,16 @@
 import {
-  GeneratorTarget,
-  GeneratorTargetFull,
-  NormalizedOutputOptions,
+  type GeneratorTarget,
+  type GeneratorTargetFull,
+  type NormalizedOutputOptions,
   OutputClient,
-  WriteSpecsBuilder,
+  type WriteSpecBuilder,
 } from '../types';
 import { compareVersions, pascal } from '../utils';
 
-export const generateTarget = (
-  builder: WriteSpecsBuilder,
+export function generateTarget(
+  builder: WriteSpecBuilder,
   options: NormalizedOutputOptions,
-): GeneratorTarget => {
+): GeneratorTarget {
   const operationNames = Object.values(builder.operations).map(
     ({ operationName }) => operationName,
   );
@@ -23,7 +23,9 @@ export const generateTarget = (
     output: options,
   });
 
-  const target = Object.values(builder.operations).reduce(
+  const target = Object.values(builder.operations).reduce<
+    Required<GeneratorTargetFull>
+  >(
     (acc, operation, index, arr) => {
       acc.imports.push(...operation.imports);
       acc.importsMock.push(...operation.importsMock);
@@ -31,9 +33,8 @@ export const generateTarget = (
       acc.implementationMock.function += operation.implementationMock.function;
       acc.implementationMock.handler += operation.implementationMock.handler;
 
-      const handlerNameSeparator = acc.implementationMock.handlerName.length
-        ? ',\n  '
-        : '  ';
+      const handlerNameSeparator =
+        acc.implementationMock.handlerName.length > 0 ? ',\n  ' : '  ';
       acc.implementationMock.handlerName +=
         handlerNameSeparator + operation.implementationMock.handlerName + '()';
 
@@ -65,8 +66,8 @@ export const generateTarget = (
         );
 
         const typescriptVersion =
-          options.packageJson?.dependencies?.['typescript'] ??
-          options.packageJson?.devDependencies?.['typescript'] ??
+          options.packageJson?.dependencies?.typescript ??
+          options.packageJson?.devDependencies?.typescript ??
           '4.4.0';
 
         const hasAwaitedType = compareVersions(typescriptVersion, '4.5.0');
@@ -93,7 +94,7 @@ export const generateTarget = (
         const footer = builder.footer({
           outputClient: options?.client,
           operationNames,
-          hasMutator: !!acc.mutators.length,
+          hasMutator: acc.mutators.length > 0,
           hasAwaitedType,
           titles,
           output: options,
@@ -118,7 +119,7 @@ export const generateTarget = (
       formUrlEncoded: [],
       paramsSerializer: [],
       fetchReviver: [],
-    } as Required<GeneratorTargetFull>,
+    },
   );
 
   return {
@@ -126,4 +127,4 @@ export const generateTarget = (
     implementationMock:
       target.implementationMock.function + target.implementationMock.handler,
   };
-};
+}

@@ -1,6 +1,6 @@
 import { resolveValue } from '../resolvers';
-import {
-  ContextSpecs,
+import type {
+  ContextSpec,
   GetterParameters,
   GetterParams,
   NormalizedOutputOptions,
@@ -17,7 +17,7 @@ import { camel, sanitize, stringify } from '../utils';
  * ```
  * @param path
  */
-export const getParamsInPath = (path: string) => {
+export function getParamsInPath(path: string) {
   let n;
   const output = [];
   const templatePathRegex = /\{(.*?)\}/g;
@@ -26,21 +26,23 @@ export const getParamsInPath = (path: string) => {
   }
 
   return output;
-};
+}
 
-export const getParams = ({
+interface GetParamsOptions {
+  route: string;
+  pathParams?: GetterParameters['query'];
+  operationId: string;
+  context: ContextSpec;
+  output: NormalizedOutputOptions;
+}
+
+export function getParams({
   route,
   pathParams = [],
   operationId,
   context,
   output,
-}: {
-  route: string;
-  pathParams?: GetterParameters['query'];
-  operationId: string;
-  context: ContextSpecs;
-  output: NormalizedOutputOptions;
-}): GetterParams => {
+}: GetParamsOptions): GetterParams {
   const params = getParamsInPath(route);
   return params.map((p) => {
     const pathParam = pathParams.find(
@@ -69,8 +71,8 @@ export const getParams = ({
     if (!schema) {
       return {
         name,
-        definition: `${name}${!required ? '?' : ''}: unknown`,
-        implementation: `${name}${!required ? '?' : ''}: unknown`,
+        definition: `${name}${required ? '' : '?'}: unknown`,
+        implementation: `${name}${required ? '' : '?'}: unknown`,
         default: false,
         required,
         imports: [],
@@ -79,14 +81,7 @@ export const getParams = ({
 
     const resolvedValue = resolveValue({
       schema,
-      context: {
-        ...context,
-        ...(pathParam.imports.length
-          ? {
-              specKey: pathParam.imports[0].specKey,
-            }
-          : {}),
-      },
+      context,
     });
 
     let paramType = resolvedValue.value;
@@ -101,9 +96,9 @@ export const getParams = ({
     const implementation = `${name}${
       !required && !resolvedValue.originalSchema!.default ? '?' : ''
     }${
-      !resolvedValue.originalSchema!.default
-        ? `: ${paramType}`
-        : `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
+      resolvedValue.originalSchema!.default
+        ? `: ${paramType} = ${stringify(resolvedValue.originalSchema!.default)}`
+        : `: ${paramType}` // FIXME: in Vue if we have `version: MaybeRef<number | undefined | null> = 1` and we don't pass version, the unref(version) will be `undefined` and not `1`, so we need to handle default value somewhere in implementation and not in the definition
     }`;
 
     return {
@@ -116,4 +111,4 @@ export const getParams = ({
       originalSchema: resolvedValue.originalSchema,
     };
   });
-};
+}

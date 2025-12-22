@@ -1,4 +1,5 @@
-export const getOrvalGeneratedTypes = () => `
+export function getOrvalGeneratedTypes() {
+  return `
 // https://stackoverflow.com/questions/49579094/typescript-conditional-types-filter-out-readonly-properties-pick-only-requir/49579497#49579497
 type IfEquals<X, Y, A = X, B = never> = (<T>() => T extends X ? 1 : 2) extends <
 T,
@@ -25,9 +26,12 @@ type NonReadonly<T> = [T] extends [UnionToIntersection<T>] ? {
     : T[P];
 } : DistributeReadOnlyOverUnions<T>;
 `;
+}
 
-export const getTypedResponse = () => `
+export function getTypedResponse() {
+  return `
 interface TypedResponse<T> extends Response {
   json(): Promise<T>;
 }
 `;
+}

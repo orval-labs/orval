@@ -1,29 +1,31 @@
 import {
-  ContextSpecs,
-  GetterBody,
-  GetterParams,
-  GetterProps,
+  type ContextSpec,
+  type GetterBody,
+  type GetterParams,
+  type GetterProps,
   GetterPropType,
-  GetterQueryParam,
+  type GetterQueryParam,
   OutputClient,
 } from '../types';
 import { isUndefined, pascal, sortByPriority } from '../utils';
 
-export const getProps = ({
+interface GetPropsOptions {
+  body: GetterBody;
+  queryParams?: GetterQueryParam;
+  params: GetterParams;
+  operationName: string;
+  headers?: GetterQueryParam;
+  context: ContextSpec;
+}
+
+export function getProps({
   body,
   queryParams,
   params,
   operationName,
   headers,
   context,
-}: {
-  body: GetterBody;
-  queryParams?: GetterQueryParam;
-  params: GetterParams;
-  operationName: string;
-  headers?: GetterQueryParam;
-  context: ContextSpecs;
-}): GetterProps => {
+}: GetPropsOptions): GetterProps {
   const bodyProp = {
     name: body.implementation,
     definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
@@ -38,9 +40,9 @@ export const getProps = ({
     definition: getQueryParamDefinition(queryParams, context),
     implementation: getQueryParamDefinition(queryParams, context),
     default: false,
-    required: !isUndefined(queryParams?.isOptional)
-      ? !queryParams?.isOptional && !context.output.allParamsOptional
-      : !context.output.allParamsOptional,
+    required: isUndefined(queryParams?.isOptional)
+      ? !context.output.allParamsOptional
+      : !queryParams?.isOptional && !context.output.allParamsOptional,
     type: GetterPropType.QUERY_PARAM,
   };
 
@@ -53,7 +55,7 @@ export const getProps = ({
       headers?.schema.name
     }`,
     default: false,
-    required: !isUndefined(headers?.isOptional) ? !headers?.isOptional : false,
+    required: isUndefined(headers?.isOptional) ? false : !headers?.isOptional,
     type: GetterPropType.HEADER,
   };
 
@@ -115,11 +117,11 @@ export const getProps = ({
   const sortedProps = sortByPriority(props);
 
   return sortedProps;
-};
+}
 
 function getQueryParamDefinition(
   queryParams: GetterQueryParam | undefined,
-  context: ContextSpecs,
+  context: ContextSpec,
 ): string {
   let paramType = queryParams?.schema.name;
   if (OutputClient.ANGULAR === context.output.client) {

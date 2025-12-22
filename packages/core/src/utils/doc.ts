@@ -1,7 +1,7 @@
-import { ContextSpecs } from '../types';
+import type { ContextSpec } from '../types';
 
-const search = '\\*/'; // Find '*/'
-const replacement = '*\\/'; // Replace With '*\/'
+const search = String.raw`\*/`; // Find '*/'
+const replacement = String.raw`*\/`; // Replace With '*\/'
 
 const regex = new RegExp(search, 'g');
 
@@ -14,15 +14,15 @@ export function jsDoc(
     maxLength?: number;
     minimum?: number;
     maximum?: number;
-    exclusiveMinimum?: boolean;
-    exclusiveMaximum?: boolean;
+    exclusiveMinimum?: number;
+    exclusiveMaximum?: number;
     minItems?: number;
     maxItems?: number;
-    nullable?: boolean;
+    type?: string | string[];
     pattern?: string;
   },
   tryOneLine = false,
-  context?: ContextSpecs,
+  context?: ContextSpec,
 ): string {
   if (context?.output?.override?.jsDoc) {
     const { filter } = context.output.override.jsDoc;
@@ -42,15 +42,17 @@ export function jsDoc(
     exclusiveMaximum,
     minItems,
     maxItems,
-    nullable,
     pattern,
   } = schema;
+  const isNullable =
+    schema.type === 'null' ||
+    (Array.isArray(schema.type) && schema.type.includes('null'));
   // Ensure there aren't any comment terminations in doc
   const lines = (
     Array.isArray(description)
       ? description.filter((d) => !d.includes('eslint-disable'))
       : [description || '']
-  ).map((line) => line.replace(regex, replacement));
+  ).map((line) => line.replaceAll(regex, replacement));
 
   const count = [
     description,
@@ -64,7 +66,7 @@ export function jsDoc(
     exclusiveMaximum?.toString(),
     minItems?.toString(),
     maxItems?.toString(),
-    nullable?.toString(),
+    isNullable ? 'null' : '',
     pattern,
   ].reduce((acc, it) => (it ? acc + 1 : acc), 0);
 
@@ -76,7 +78,7 @@ export function jsDoc(
   const eslintDisable = Array.isArray(description)
     ? description
         .find((d) => d.includes('eslint-disable'))
-        ?.replace(regex, replacement)
+        ?.replaceAll(regex, replacement)
     : undefined;
   let doc = `${eslintDisable ? `/* ${eslintDisable} */\n` : ''}/**`;
 
@@ -96,7 +98,7 @@ export function jsDoc(
   function tryAppendStringDocLine(key: string, value?: string) {
     if (value) {
       appendPrefix();
-      doc += ` @${key} ${value.replace(regex, replacement)}`;
+      doc += ` @${key} ${value.replaceAll(regex, replacement)}`;
     }
   }
 
@@ -115,19 +117,19 @@ export function jsDoc(
   }
 
   tryAppendBooleanDocLine('deprecated', deprecated);
-  tryAppendStringDocLine('summary', summary?.replace(regex, replacement));
+  tryAppendStringDocLine('summary', summary?.replaceAll(regex, replacement));
   tryAppendNumberDocLine('minLength', minLength);
   tryAppendNumberDocLine('maxLength', maxLength);
   tryAppendNumberDocLine('minimum', minimum);
   tryAppendNumberDocLine('maximum', maximum);
-  tryAppendBooleanDocLine('exclusiveMinimum', exclusiveMinimum);
-  tryAppendBooleanDocLine('exclusiveMaximum', exclusiveMaximum);
+  tryAppendNumberDocLine('exclusiveMinimum', exclusiveMinimum);
+  tryAppendNumberDocLine('exclusiveMaximum', exclusiveMaximum);
   tryAppendNumberDocLine('minItems', minItems);
   tryAppendNumberDocLine('maxItems', maxItems);
-  tryAppendBooleanDocLine('nullable', nullable);
+  tryAppendBooleanDocLine('nullable', isNullable);
   tryAppendStringDocLine('pattern', pattern);
 
-  doc += !oneLine ? `\n ${tryOneLine ? '  ' : ''}` : ' ';
+  doc += oneLine ? ' ' : `\n ${tryOneLine ? '  ' : ''}`;
 
   doc += '*/\n';
 
@@ -140,11 +142,11 @@ export function keyValuePairsToJsDoc(
     value: string;
   }[],
 ) {
-  if (!keyValues.length) return '';
+  if (keyValues.length === 0) return '';
   let doc = '/**\n';
-  keyValues.forEach(({ key, value }) => {
+  for (const { key, value } of keyValues) {
     doc += ` * @${key} ${value}\n`;
-  });
+  }
   doc += ' */\n';
   return doc;
 }

@@ -1,25 +1,26 @@
 import fs from 'fs-extra';
-import { generateImports } from '../generators';
-import { GeneratorSchema, NamingConvention } from '../types';
-import { upath, conventionName } from '../utils';
 
-const getSchema = ({
-  schema: { imports, model },
-  target,
-  isRootKey,
-  specsName,
-  header,
-  specKey,
-  namingConvention = NamingConvention.CAMEL_CASE,
-}: {
+import { generateImports } from '../generators';
+import {
+  type ContextSpec,
+  type GeneratorSchema,
+  NamingConvention,
+} from '../types';
+import { conventionName, upath } from '../utils';
+
+interface GetSchemaOptions {
   schema: GeneratorSchema;
   target: string;
-  isRootKey: boolean;
-  specsName: Record<string, string>;
   header: string;
-  specKey: string;
   namingConvention?: NamingConvention;
-}): string => {
+}
+
+function getSchema({
+  schema: { imports, model },
+  target,
+  header,
+  namingConvention = NamingConvention.CAMEL_CASE,
+}: GetSchemaOptions): string {
   let file = header;
   file += generateImports({
     imports: imports.filter(
@@ -28,46 +29,45 @@ const getSchema = ({
         !model.includes(`interface ${imp.alias || imp.name} {`),
     ),
     target,
-    isRootKey,
-    specsName,
-    specKey,
     namingConvention,
   });
-  file += imports.length ? '\n\n' : '\n';
+  file += imports.length > 0 ? '\n\n' : '\n';
   file += model;
   return file;
-};
+}
 
 const getPath = (path: string, name: string, fileExtension: string): string =>
   upath.join(path, `/${name}${fileExtension}`);
 
-export const writeModelInline = (acc: string, model: string): string =>
-  acc + `${model}\n`;
+export function writeModelInline(acc: string, model: string): string {
+  return acc + `${model}\n`;
+}
 
-export const writeModelsInline = (array: GeneratorSchema[]): string =>
-  array.reduce((acc, { model }) => writeModelInline(acc, model), '');
+export function writeModelsInline(array: GeneratorSchema[]): string {
+  let acc = '';
+  for (const { model } of array) {
+    acc = writeModelInline(acc, model);
+  }
+  return acc;
+}
 
-export const writeSchema = async ({
-  path,
-  schema,
-  target,
-  namingConvention,
-  fileExtension,
-  specKey,
-  isRootKey,
-  specsName,
-  header,
-}: {
+interface WriteSchemaOptions {
   path: string;
   schema: GeneratorSchema;
   target: string;
   namingConvention: NamingConvention;
   fileExtension: string;
-  specKey: string;
-  isRootKey: boolean;
-  specsName: Record<string, string>;
   header: string;
-}) => {
+}
+
+export async function writeSchema({
+  path,
+  schema,
+  target,
+  namingConvention,
+  fileExtension,
+  header,
+}: WriteSchemaOptions) {
   const name = conventionName(schema.name, namingConvention);
 
   try {
@@ -76,55 +76,47 @@ export const writeSchema = async ({
       getSchema({
         schema,
         target,
-        isRootKey,
-        specsName,
         header,
-        specKey,
         namingConvention,
       }),
     );
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while writing schema ${name} => ${e}`;
+  } catch (error) {
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing schema ${name} => ${error}`,
+    );
   }
-};
+}
 
-export const writeSchemas = async ({
-  schemaPath,
-  schemas,
-  target,
-  namingConvention,
-  fileExtension,
-  specKey,
-  isRootKey,
-  specsName,
-  header,
-  indexFiles,
-}: {
+interface WriteSchemasOptions {
   schemaPath: string;
   schemas: GeneratorSchema[];
   target: string;
   namingConvention: NamingConvention;
   fileExtension: string;
-  specKey: string;
-  isRootKey: boolean;
-  specsName: Record<string, string>;
   header: string;
   indexFiles: boolean;
-}) => {
+}
+
+export async function writeSchemas({
+  schemaPath,
+  schemas,
+  target,
+  namingConvention,
+  fileExtension,
+  header,
+  indexFiles,
+}: WriteSchemasOptions) {
   await Promise.all(
-    schemas.map((schema) =>
-      writeSchema({
+    schemas.map(async (schema) => {
+      await writeSchema({
         path: schemaPath,
         schema,
         target,
         namingConvention,
         fileExtension,
-        specKey,
-        isRootKey,
-        specsName,
         header,
-      }),
-    ),
+      });
+    }),
   );
 
   if (indexFiles) {
@@ -132,65 +124,49 @@ export const writeSchemas = async ({
     await fs.ensureFile(schemaFilePath);
 
     // Ensure separate files are used for parallel schema writing.
-    // Throw an exception, which list all duplicates, before attempting
-    // multiple writes on the same file.
-    const schemaNamesSet = new Set<string>();
+    // Throw an exception if duplicates are detected (using convention names)
+    const ext = fileExtension.endsWith('.ts')
+      ? fileExtension.slice(0, -3)
+      : fileExtension;
+    const conventionNamesSet = new Set<string>();
     const duplicateNamesMap = new Map<string, number>();
-    schemas.forEach((schema) => {
-      if (!schemaNamesSet.has(schema.name)) {
-        schemaNamesSet.add(schema.name);
-      } else {
+    for (const schema of schemas) {
+      const conventionNameValue = conventionName(schema.name, namingConvention);
+      if (conventionNamesSet.has(conventionNameValue)) {
         duplicateNamesMap.set(
-          schema.name,
-          (duplicateNamesMap.get(schema.name) || 1) + 1,
+          conventionNameValue,
+          (duplicateNamesMap.get(conventionNameValue) ?? 0) + 1,
         );
+      } else {
+        conventionNamesSet.add(conventionNameValue);
       }
-    });
-    if (duplicateNamesMap.size) {
+    }
+    if (duplicateNamesMap.size > 0) {
       throw new Error(
-        'Duplicate schema names detected:\n' +
-          Array.from(duplicateNamesMap)
-            .map((duplicate) => `  ${duplicate[1]}x ${duplicate[0]}`)
+        'Duplicate schema names detected (after naming convention):\n' +
+          [...duplicateNamesMap]
+            .map((duplicate) => `  ${duplicate[1] + 1}x ${duplicate[0]}`)
             .join('\n'),
       );
     }
 
     try {
-      const data = await fs.readFile(schemaFilePath);
+      // Create unique export statements from schemas (deduplicate by schema name)
+      const uniqueSchemaNames = [...conventionNamesSet];
 
-      const stringData = data.toString();
-
-      const ext = fileExtension.endsWith('.ts')
-        ? fileExtension.slice(0, -3)
-        : fileExtension;
-
-      const importStatements = schemas
-        .filter((schema) => {
-          const name = conventionName(schema.name, namingConvention);
-
-          return (
-            !stringData.includes(`export * from './${name}${ext}'`) &&
-            !stringData.includes(`export * from "./${name}${ext}"`)
-          );
-        })
-        .map(
-          (schema) =>
-            `export * from './${conventionName(schema.name, namingConvention)}${ext}';`,
-        );
-
-      const currentFileExports = (stringData
-        .match(/export \* from(.*)('|")/g)
-        ?.map((s) => s + ';') ?? []) as string[];
-
-      const exports = [...currentFileExports, ...importStatements]
-        .sort()
+      // Create export statements
+      const exports = uniqueSchemaNames
+        .map((schemaName) => `export * from './${schemaName}${ext}';`)
+        .toSorted((a, b) => a.localeCompare(b))
         .join('\n');
 
       const fileContent = `${header}\n${exports}`;
 
-      await fs.writeFile(schemaFilePath, fileContent);
-    } catch (e) {
-      throw `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${e}`;
+      await fs.writeFile(schemaFilePath, fileContent, { encoding: 'utf8' });
+    } catch (error) {
+      throw new Error(
+        `Oups... 🍻. An Error occurred while writing schema index file ${schemaFilePath} => ${error}`,
+      );
     }
   }
-};
+}

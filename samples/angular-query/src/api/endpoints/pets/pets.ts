@@ -6,7 +6,7 @@
  */
 import {
   injectMutation,
-  injectQuery
+  injectQuery,
 } from '@tanstack/angular-query-experimental';
 import type {
   CreateMutationOptions,
@@ -14,7 +14,7 @@ import type {
   CreateQueryOptions,
   CreateQueryResult,
   MutationFunction,
-  QueryFunction
+  QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
 import type {
@@ -23,7 +23,7 @@ import type {
   ListPetsParams,
   Pet,
   Pets,
-  SearchPetsParams
+  SearchPetsParams,
 } from '../../model';
 
 import searchPetsMutator from '../../mutator/custom-instance';
@@ -35,479 +35,625 @@ import uploadFileMutator from '../../mutator/custom-instance';
 import downloadFileMutator from '../../mutator/custom-instance';
 import paramsSerializerMutator from '../../mutator/custom-params-serializer';
 
-
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
-
-
 
 /**
  * @summary search by query params
  */
 export const searchPets = (
-    params: SearchPetsParams,
-    version: number = 1,
- options?: SecondParameter<typeof searchPetsMutator>,signal?: AbortSignal
+  params: SearchPetsParams,
+  version: number = 1,
+  options?: SecondParameter<typeof searchPetsMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return searchPetsMutator<Pets>(
-      {url: `/v${version}/search`, method: 'GET',
-        params, signal
-    },
-      options);
-    }
-  
+  return searchPetsMutator<Pets>(
+    { url: `/v${version}/search`, method: 'GET', params, signal },
+    options,
+  );
+};
 
-export const getSearchPetsQueryKey = (params?: SearchPetsParams,
-    version: number= 1,) => {
-    return [`/v${version}/search`, ...(params ? [params]: [])] as const;
-    }
-
-    
-export const getSearchPetsQueryOptions = <TData = Awaited<ReturnType<typeof searchPets>>, TError = Error>(params: SearchPetsParams,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>>, request?: SecondParameter<typeof searchPetsMutator>}
+export const getSearchPetsQueryKey = (
+  params?: SearchPetsParams,
+  version: number = 1,
 ) => {
+  return [`/v${version}/search`, ...(params ? [params] : [])] as const;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getSearchPetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof searchPets>>,
+  TError = Error,
+>(
+  params: SearchPetsParams,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof searchPetsMutator>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getSearchPetsQueryKey(params,version);
+  const queryKey =
+    queryOptions?.queryKey ?? getSearchPetsQueryKey(params, version);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPets>>> = ({
+    signal,
+  }) => searchPets(params, version, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPets>>> = ({ signal }) => searchPets(params,version, requestOptions, signal);
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof searchPets>>,
+    TError,
+    TData
+  >;
+};
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(version), ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData> 
-}
-
-export type SearchPetsQueryResult = NonNullable<Awaited<ReturnType<typeof searchPets>>>
-export type SearchPetsQueryError = Error
-
+export type SearchPetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof searchPets>>
+>;
+export type SearchPetsQueryError = Error;
 
 /**
  * @summary search by query params
  */
 
-export function injectSearchPets<TData = Awaited<ReturnType<typeof searchPets>>, TError = Error>(
- params: SearchPetsParams,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>>, request?: SecondParameter<typeof searchPetsMutator>}
-  
- ): CreateQueryResult<TData, TError> {
+export function injectSearchPets<
+  TData = Awaited<ReturnType<typeof searchPets>>,
+  TError = Error,
+>(
+  params: SearchPetsParams,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof searchPetsMutator>;
+  },
+): CreateQueryResult<TData, TError> {
+  const queryOptions = getSearchPetsQueryOptions(params, version, options);
 
-  const queryOptions = getSearchPetsQueryOptions(params,version,options)
-
-  const query = injectQuery(() => queryOptions) as CreateQueryResult<TData, TError>;
-
-  
+  const query = injectQuery(() => queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  >;
 
   return query;
 }
-
-
 
 /**
  * @summary List all pets
  */
 export const listPets = (
-    params?: ListPetsParams,
-    version: number = 1,
- options?: SecondParameter<typeof listPetsMutator>,signal?: AbortSignal
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: SecondParameter<typeof listPetsMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return listPetsMutator<Pets>(
-      {url: `/v${version}/pets`, method: 'GET',
-        params, signal
-    },
-      options);
-    }
-  
+  return listPetsMutator<Pets>(
+    { url: `/v${version}/pets`, method: 'GET', params, signal },
+    options,
+  );
+};
 
-export const getListPetsQueryKey = (params?: ListPetsParams,
-    version: number= 1,) => {
-    return [`/v${version}/pets`, ...(params ? [params]: [])] as const;
-    }
-
-    
-export const getListPetsQueryOptions = <TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(params?: ListPetsParams,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>>, request?: SecondParameter<typeof listPetsMutator>}
+export const getListPetsQueryKey = (
+  params?: ListPetsParams,
+  version: number = 1,
 ) => {
+  return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getListPetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof listPetsMutator>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getListPetsQueryKey(params,version);
+  const queryKey =
+    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
+    signal,
+  }) => listPets(params, version, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({ signal }) => listPets(params,version, requestOptions, signal);
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!version,
+    ...queryOptions,
+  } as CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
+};
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(version), ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData> 
-}
-
-export type ListPetsQueryResult = NonNullable<Awaited<ReturnType<typeof listPets>>>
-export type ListPetsQueryError = Error
-
+export type ListPetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+export type ListPetsQueryError = Error;
 
 /**
  * @summary List all pets
  */
 
-export function injectListPets<TData = Awaited<ReturnType<typeof listPets>>, TError = Error>(
- params?: ListPetsParams,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>>, request?: SecondParameter<typeof listPetsMutator>}
-  
- ): CreateQueryResult<TData, TError> {
+export function injectListPets<
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = Error,
+>(
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof listPetsMutator>;
+  },
+): CreateQueryResult<TData, TError> {
+  const queryOptions = getListPetsQueryOptions(params, version, options);
 
-  const queryOptions = getListPetsQueryOptions(params,version,options)
-
-  const query = injectQuery(() => queryOptions) as CreateQueryResult<TData, TError>;
-
-  
+  const query = injectQuery(() => queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  >;
 
   return query;
 }
-
-
 
 /**
  * @summary Create a pet
  */
 export const createPets = (
-    createPetsBody: CreatePetsBody,
-    version: number = 1,
- options?: SecondParameter<typeof createPetsMutator>,signal?: AbortSignal
+  createPetsBody: CreatePetsBody,
+  version: number = 1,
+  options?: SecondParameter<typeof createPetsMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return createPetsMutator<null>(
-      {url: `/v${version}/pets`, method: 'POST',
-      headers: {'Content-Type': 'application/json', },
-      data: createPetsBody, signal
+  return createPetsMutator<null>(
+    {
+      url: `/v${version}/pets`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createPetsBody,
+      signal,
     },
-      options);
-    }
-  
+    options,
+  );
+};
 
+export const getCreatePetsMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    { data: CreatePetsBody; version?: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof createPetsMutator>;
+}): CreateMutationOptions<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
+  const mutationKey = ['createPets'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-export const getCreatePetsMutationOptions = <TError = Error,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,{data: CreatePetsBody;version?: number}, TContext>, request?: SecondParameter<typeof createPetsMutator>}
-): CreateMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,{data: CreatePetsBody;version?: number}, TContext> => {
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createPets>>,
+    { data: CreatePetsBody; version?: number }
+  > = (props) => {
+    const { data, version } = props ?? {};
 
-const mutationKey = ['createPets'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+    return createPets(data, version, requestOptions);
+  };
 
-      
+  return { mutationFn, ...mutationOptions };
+};
 
+export type CreatePetsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createPets>>
+>;
+export type CreatePetsMutationBody = CreatePetsBody;
+export type CreatePetsMutationError = Error;
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createPets>>, {data: CreatePetsBody;version?: number}> = (props) => {
-          const {data,version} = props ?? {};
-
-          return  createPets(data,version,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type CreatePetsMutationResult = NonNullable<Awaited<ReturnType<typeof createPets>>>
-    export type CreatePetsMutationBody = CreatePetsBody
-    export type CreatePetsMutationError = Error
-
-    /**
+/**
  * @summary Create a pet
  */
-export const injectCreatePets = <TError = Error,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof createPets>>, TError,{data: CreatePetsBody;version?: number}, TContext>, request?: SecondParameter<typeof createPetsMutator>}
- ): CreateMutationResult<
-        Awaited<ReturnType<typeof createPets>>,
-        TError,
-        {data: CreatePetsBody;version?: number},
-        TContext
-      > => {
+export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof createPets>>,
+    TError,
+    { data: CreatePetsBody; version?: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof createPetsMutator>;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof createPets>>,
+  TError,
+  { data: CreatePetsBody; version?: number },
+  TContext
+> => {
+  const mutationOptions = getCreatePetsMutationOptions(options);
 
-      const mutationOptions = getCreatePetsMutationOptions(options);
-
-      return injectMutation(() => mutationOptions);
-    }
-    /**
+  return injectMutation(() => mutationOptions);
+};
+/**
  * @summary Info for a specific pet
  */
 export const showPetById = (
-    petId: string,
-    version: number = 1,
- options?: SecondParameter<typeof showPetByIdMutator>,signal?: AbortSignal
+  petId: string,
+  version: number = 1,
+  options?: SecondParameter<typeof showPetByIdMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return showPetByIdMutator<Pet>(
-      {url: `/v${version}/pets/${petId}`, method: 'GET', signal
-    },
-      options);
-    }
-  
+  return showPetByIdMutator<Pet>(
+    { url: `/v${version}/pets/${petId}`, method: 'GET', signal },
+    options,
+  );
+};
 
-export const getShowPetByIdQueryKey = (petId?: string,
-    version: number= 1,) => {
-    return [`/v${version}/pets/${petId}`] as const;
-    }
+export const getShowPetByIdQueryKey = (petId?: string, version: number = 1) => {
+  return [`/v${version}/pets/${petId}`] as const;
+};
 
-    
-export const getShowPetByIdQueryOptions = <TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(petId: string,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>>, request?: SecondParameter<typeof showPetByIdMutator>}
+export const getShowPetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof showPetByIdMutator>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
 
-  const queryKey =  queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId,version);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
+    signal,
+  }) => showPetById(petId, version, requestOptions, signal);
 
-  
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(version && petId),
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  >;
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({ signal }) => showPetById(petId,version, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData> 
-}
-
-export type ShowPetByIdQueryResult = NonNullable<Awaited<ReturnType<typeof showPetById>>>
-export type ShowPetByIdQueryError = Error
-
+export type ShowPetByIdQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetById>>
+>;
+export type ShowPetByIdQueryError = Error;
 
 /**
  * @summary Info for a specific pet
  */
 
-export function injectShowPetById<TData = Awaited<ReturnType<typeof showPetById>>, TError = Error>(
- petId: string,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>>, request?: SecondParameter<typeof showPetByIdMutator>}
-  
- ): CreateQueryResult<TData, TError> {
+export function injectShowPetById<
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof showPetByIdMutator>;
+  },
+): CreateQueryResult<TData, TError> {
+  const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
 
-  const queryOptions = getShowPetByIdQueryOptions(petId,version,options)
-
-  const query = injectQuery(() => queryOptions) as CreateQueryResult<TData, TError>;
-
-  
+  const query = injectQuery(() => queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  >;
 
   return query;
 }
-
-
 
 /**
  * @summary Info for a specific pet
  */
 export const showPetText = (
-    petId: string,
-    version: number = 1,
- options?: SecondParameter<typeof showPetTextMutator>,signal?: AbortSignal
+  petId: string,
+  version: number = 1,
+  options?: SecondParameter<typeof showPetTextMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return showPetTextMutator<string>(
-      {url: `/v${version}/pets/${petId}/text`, method: 'GET', signal
-    },
-      options);
-    }
-  
+  return showPetTextMutator<string>(
+    { url: `/v${version}/pets/${petId}/text`, method: 'GET', signal },
+    options,
+  );
+};
 
-export const getShowPetTextQueryKey = (petId?: string,
-    version: number= 1,) => {
-    return [`/v${version}/pets/${petId}/text`] as const;
-    }
+export const getShowPetTextQueryKey = (petId?: string, version: number = 1) => {
+  return [`/v${version}/pets/${petId}/text`] as const;
+};
 
-    
-export const getShowPetTextQueryOptions = <TData = Awaited<ReturnType<typeof showPetText>>, TError = Error>(petId: string,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>>, request?: SecondParameter<typeof showPetTextMutator>}
+export const getShowPetTextQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetText>>,
+  TError = Error,
+>(
+  petId: string,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof showPetTextMutator>;
+  },
 ) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+  const queryKey =
+    queryOptions?.queryKey ?? getShowPetTextQueryKey(petId, version);
 
-  const queryKey =  queryOptions?.queryKey ?? getShowPetTextQueryKey(petId,version);
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetText>>> = ({
+    signal,
+  }) => showPetText(petId, version, requestOptions, signal);
 
-  
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(version && petId),
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof showPetText>>,
+    TError,
+    TData
+  >;
+};
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetText>>> = ({ signal }) => showPetText(petId,version, requestOptions, signal);
-
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData> 
-}
-
-export type ShowPetTextQueryResult = NonNullable<Awaited<ReturnType<typeof showPetText>>>
-export type ShowPetTextQueryError = Error
-
+export type ShowPetTextQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetText>>
+>;
+export type ShowPetTextQueryError = Error;
 
 /**
  * @summary Info for a specific pet
  */
 
-export function injectShowPetText<TData = Awaited<ReturnType<typeof showPetText>>, TError = Error>(
- petId: string,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>>, request?: SecondParameter<typeof showPetTextMutator>}
-  
- ): CreateQueryResult<TData, TError> {
+export function injectShowPetText<
+  TData = Awaited<ReturnType<typeof showPetText>>,
+  TError = Error,
+>(
+  petId: string,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof showPetTextMutator>;
+  },
+): CreateQueryResult<TData, TError> {
+  const queryOptions = getShowPetTextQueryOptions(petId, version, options);
 
-  const queryOptions = getShowPetTextQueryOptions(petId,version,options)
-
-  const query = injectQuery(() => queryOptions) as CreateQueryResult<TData, TError>;
-
-  
+  const query = injectQuery(() => queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  >;
 
   return query;
 }
-
-
 
 /**
  * Upload image of the pet.
  * @summary Uploads an image.
  */
 export const uploadFile = (
-    petId: number,
-    uploadFileBody: Blob,
-    version: number = 1,
- options?: SecondParameter<typeof uploadFileMutator>,signal?: AbortSignal
+  petId: number,
+  uploadFileBody: Blob,
+  version: number = 1,
+  options?: SecondParameter<typeof uploadFileMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return uploadFileMutator<null>(
-      {url: `/v${version}/pet/${petId}/uploadImage`, method: 'POST',
-      headers: {'Content-Type': 'application/octet-stream', },
-      data: uploadFileBody, signal
+  return uploadFileMutator<null>(
+    {
+      url: `/v${version}/pet/${petId}/uploadImage`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      data: uploadFileBody,
+      signal,
     },
-      options);
-    }
-  
+    options,
+  );
+};
 
+export const getUploadFileMutationOptions = <
+  TError = null | null | Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof uploadFile>>,
+    TError,
+    { petId: number; data: Blob; version?: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof uploadFileMutator>;
+}): CreateMutationOptions<
+  Awaited<ReturnType<typeof uploadFile>>,
+  TError,
+  { petId: number; data: Blob; version?: number },
+  TContext
+> => {
+  const mutationKey = ['uploadFile'];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
 
-export const getUploadFileMutationOptions = <TError = null | null | Error,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof uploadFile>>, TError,{petId: number;data: Blob;version?: number}, TContext>, request?: SecondParameter<typeof uploadFileMutator>}
-): CreateMutationOptions<Awaited<ReturnType<typeof uploadFile>>, TError,{petId: number;data: Blob;version?: number}, TContext> => {
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadFile>>,
+    { petId: number; data: Blob; version?: number }
+  > = (props) => {
+    const { petId, data, version } = props ?? {};
 
-const mutationKey = ['uploadFile'];
-const {mutation: mutationOptions, request: requestOptions} = options ?
-      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
-      options
-      : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }, request: undefined};
+    return uploadFile(petId, data, version, requestOptions);
+  };
 
-      
+  return { mutationFn, ...mutationOptions };
+};
 
+export type UploadFileMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadFile>>
+>;
+export type UploadFileMutationBody = Blob;
+export type UploadFileMutationError = null | null | Error;
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof uploadFile>>, {petId: number;data: Blob;version?: number}> = (props) => {
-          const {petId,data,version} = props ?? {};
-
-          return  uploadFile(petId,data,version,requestOptions)
-        }
-
-        
-
-
-  return  { mutationFn, ...mutationOptions }}
-
-    export type UploadFileMutationResult = NonNullable<Awaited<ReturnType<typeof uploadFile>>>
-    export type UploadFileMutationBody = Blob
-    export type UploadFileMutationError = null | null | Error
-
-    /**
+/**
  * @summary Uploads an image.
  */
-export const injectUploadFile = <TError = null | null | Error,
-    TContext = unknown>(options?: { mutation?:CreateMutationOptions<Awaited<ReturnType<typeof uploadFile>>, TError,{petId: number;data: Blob;version?: number}, TContext>, request?: SecondParameter<typeof uploadFileMutator>}
- ): CreateMutationResult<
-        Awaited<ReturnType<typeof uploadFile>>,
-        TError,
-        {petId: number;data: Blob;version?: number},
-        TContext
-      > => {
+export const injectUploadFile = <
+  TError = null | null | Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof uploadFile>>,
+    TError,
+    { petId: number; data: Blob; version?: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof uploadFileMutator>;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof uploadFile>>,
+  TError,
+  { petId: number; data: Blob; version?: number },
+  TContext
+> => {
+  const mutationOptions = getUploadFileMutationOptions(options);
 
-      const mutationOptions = getUploadFileMutationOptions(options);
-
-      return injectMutation(() => mutationOptions);
-    }
-    /**
+  return injectMutation(() => mutationOptions);
+};
+/**
  * Download image of the pet.
  * @summary Download an image.
  */
 export const downloadFile = (
-    petId: number,
-    version: number = 1,
- options?: SecondParameter<typeof downloadFileMutator>,signal?: AbortSignal
+  petId: number,
+  version: number = 1,
+  options?: SecondParameter<typeof downloadFileMutator>,
+  signal?: AbortSignal,
 ) => {
-      
-      
-      return downloadFileMutator<Blob>(
-      {url: `/v${version}/pet/${petId}/downloadImage`, method: 'GET',
-        responseType: 'blob', signal
+  return downloadFileMutator<Blob>(
+    {
+      url: `/v${version}/pet/${petId}/downloadImage`,
+      method: 'GET',
+      responseType: 'blob',
+      signal,
     },
-      options);
-    }
-  
+    options,
+  );
+};
 
-export const getDownloadFileQueryKey = (petId?: number,
-    version: number= 1,) => {
-    return [`/v${version}/pet/${petId}/downloadImage`] as const;
-    }
-
-    
-export const getDownloadFileQueryOptions = <TData = Awaited<ReturnType<typeof downloadFile>>, TError = null | null | Error>(petId: number,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>>, request?: SecondParameter<typeof downloadFileMutator>}
+export const getDownloadFileQueryKey = (
+  petId?: number,
+  version: number = 1,
 ) => {
+  return [`/v${version}/pet/${petId}/downloadImage`] as const;
+};
 
-const {query: queryOptions, request: requestOptions} = options ?? {};
+export const getDownloadFileQueryOptions = <
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = null | null | Error,
+>(
+  petId: number,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<
+        Awaited<ReturnType<typeof downloadFile>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof downloadFileMutator>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getDownloadFileQueryKey(petId,version);
+  const queryKey =
+    queryOptions?.queryKey ?? getDownloadFileQueryKey(petId, version);
 
-  
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadFile>>> = ({
+    signal,
+  }) => downloadFile(petId, version, requestOptions, signal);
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadFile>>> = ({ signal }) => downloadFile(petId,version, requestOptions, signal);
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!(version && petId),
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof downloadFile>>,
+    TError,
+    TData
+  >;
+};
 
-      
-
-      
-
-   return  { queryKey, queryFn, enabled: !!(version && petId), ...queryOptions} as CreateQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData> 
-}
-
-export type DownloadFileQueryResult = NonNullable<Awaited<ReturnType<typeof downloadFile>>>
-export type DownloadFileQueryError = null | null | Error
-
+export type DownloadFileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof downloadFile>>
+>;
+export type DownloadFileQueryError = null | null | Error;
 
 /**
  * @summary Download an image.
  */
 
-export function injectDownloadFile<TData = Awaited<ReturnType<typeof downloadFile>>, TError = null | null | Error>(
- petId: number,
-    version: number = 1, options?: { query?:Partial<CreateQueryOptions<Awaited<ReturnType<typeof downloadFile>>, TError, TData>>, request?: SecondParameter<typeof downloadFileMutator>}
-  
- ): CreateQueryResult<TData, TError> {
+export function injectDownloadFile<
+  TData = Awaited<ReturnType<typeof downloadFile>>,
+  TError = null | null | Error,
+>(
+  petId: number,
+  version: number = 1,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<
+        Awaited<ReturnType<typeof downloadFile>>,
+        TError,
+        TData
+      >
+    >;
+    request?: SecondParameter<typeof downloadFileMutator>;
+  },
+): CreateQueryResult<TData, TError> {
+  const queryOptions = getDownloadFileQueryOptions(petId, version, options);
 
-  const queryOptions = getDownloadFileQueryOptions(petId,version,options)
-
-  const query = injectQuery(() => queryOptions) as CreateQueryResult<TData, TError>;
-
-  
+  const query = injectQuery(() => queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  >;
 
   return query;
 }
-
-
-

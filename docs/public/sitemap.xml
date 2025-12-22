@@ -6,142 +6,162 @@
       xmlns:xhtml="http://www.w3.org/1999/xhtml">
       
 	<url>
+		<loc>https://orval.dev/api/generate</loc>
+		<lastmod>2025-10-29</lastmod>
+	</url>
+
+	<url>
 		<loc>https://orval.dev/guides/angular</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/basics</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/client-with-zod</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/custom-axios</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/custom-client</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/enums</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/fetch-client</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/fetch</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/hono</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/mcp</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
+	</url>
+
+	<url>
+		<loc>https://orval.dev/guides/migration-v8</loc>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/msw</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/react-query</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/set-base-url</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/stream-ndjson</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/svelte-query</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/swr</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/vue-query</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/guides/zod</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
+	</url>
+
+	<url>
+		<loc>https://orval.dev/index</loc>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/installation</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/overview</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
+	</url>
+
+	<url>
+		<loc>https://orval.dev/playground</loc>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/quick-start</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/cli</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/configuration/full-example</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/configuration/hooks</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/configuration/input</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/configuration/output</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/configuration/overview</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 
 	<url>
 		<loc>https://orval.dev/reference/integration</loc>
-		<lastmod>2025-06-16</lastmod>
+		<lastmod>2025-10-29</lastmod>
 	</url>
 </urlset>

@@ -1,37 +1,38 @@
 import {
   camel,
-  ClientBuilder,
-  ClientDependenciesBuilder,
-  ClientHeaderBuilder,
+  type ClientBuilder,
+  type ClientDependenciesBuilder,
+  type ClientHeaderBuilder,
   compareVersions,
   generateMutator,
   generateVerbImports,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
   getRouteAsArray,
-  GetterParams,
-  GetterProp,
-  GetterProps,
+  type GetterParams,
+  type GetterProp,
+  type GetterProps,
   GetterPropType,
-  GetterQueryParam,
-  GetterResponse,
+  type GetterQueryParam,
+  type GetterResponse,
   isObject,
   jsDoc,
   mergeDeep,
-  NormalizedOutputOptions,
+  type NormalizedOutputOptions,
   OutputClient,
-  OutputClientFunc,
+  type OutputClientFunc,
   OutputHttpClient,
-  PackageJson,
+  type PackageJson,
   pascal,
-  QueryOptions,
+  type QueryOptions,
   stringify,
   toObjectString,
   Verbs,
 } from '@orval/core';
-import omitBy from 'lodash.omitby';
+import { omitBy } from 'remeda';
+
 import {
   AXIOS_DEPENDENCIES,
   generateQueryRequestFunction,
@@ -63,7 +64,7 @@ import {
 const getFrameworkPrefix = (
   hasSvelteQueryV4: boolean,
   isAngularClient: boolean,
-  capitalize: boolean = false,
+  capitalize = false,
 ): string => {
   let prefix: string;
 
@@ -121,6 +122,7 @@ const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryStoreResult' },
       { name: 'QueryKey' },
       { name: 'CreateMutationResult' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@sveltestack/svelte-query',
   },
@@ -145,6 +147,7 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'CreateMutationResult' },
       { name: 'DataTag' },
       { name: 'QueryClient' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@tanstack/svelte-query',
   },
@@ -161,6 +164,10 @@ const isSvelteQueryV3 = (packageJson: PackageJson | undefined) => {
     packageJson?.peerDependencies?.['@tanstack/svelte-query'];
 
   return !!hasSvelteQuery && !hasSvelteQueryV4;
+};
+
+const isSvelteQueryV6 = (packageJson: PackageJson | undefined) => {
+  return isQueryV6(packageJson, 'svelte-query');
 };
 
 export const getSvelteQueryDependencies: ClientDependenciesBuilder = (
@@ -188,6 +195,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'useQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
       { name: 'UseInfiniteQueryOptions' },
       { name: 'UseMutationOptions' },
@@ -198,6 +206,7 @@ const REACT_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'QueryKey' },
       { name: 'QueryClient' },
       { name: 'UseMutationResult' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: 'react-query',
   },
@@ -210,6 +219,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'useInfiniteQuery', values: true },
       { name: 'useSuspenseInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
       { name: 'DefinedInitialDataOptions' },
       { name: 'UndefinedInitialDataOptions' },
@@ -230,6 +240,7 @@ const REACT_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'InfiniteData' },
       { name: 'UseMutationResult' },
       { name: 'DataTag' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@tanstack/react-query',
   },
@@ -253,9 +264,9 @@ export const getReactQueryDependencies: ClientDependenciesBuilder = (
     packageJson?.peerDependencies?.['@tanstack/react-query'];
 
   const useReactQueryV3 =
-    override?.query.version !== undefined
-      ? override?.query.version <= 3
-      : hasReactQuery && !hasReactQueryV4;
+    override?.query.version === undefined
+      ? hasReactQuery && !hasReactQueryV4
+      : override?.query.version <= 3;
 
   return [
     ...(hasGlobalMutator || hasTagsMutator ? REACT_DEPENDENCIES : []),
@@ -289,6 +300,7 @@ const VUE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'UseInfiniteQueryResult' },
       { name: 'QueryKey' },
       { name: 'UseMutationReturnType' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: 'vue-query/types',
   },
@@ -323,6 +335,7 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'UseMutationReturnType' },
       { name: 'DataTag' },
       { name: 'QueryClient' },
+      { name: 'InvalidateOptions' },
     ],
     dependency: '@tanstack/vue-query',
   },
@@ -434,6 +447,21 @@ const isQueryV5 = (
   return compareVersions(withoutRc, '5.0.0');
 };
 
+const isQueryV6 = (
+  packageJson: PackageJson | undefined,
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+) => {
+  const version = getPackageByQueryClient(packageJson, queryClient);
+
+  if (!version) {
+    return false;
+  }
+
+  const withoutRc = version.split('-')[0];
+
+  return compareVersions(withoutRc, '6.0.0');
+};
+
 const isQueryV5WithDataTagError = (
   packageJson: PackageJson | undefined,
   queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
@@ -521,7 +549,10 @@ const QueryType = {
   SUSPENSE_INFINITE: 'suspenseInfiniteQuery' as QueryType,
 };
 
-const INFINITE_QUERY_PROPERTIES = ['getNextPageParam', 'getPreviousPageParam'];
+const INFINITE_QUERY_PROPERTIES = new Set([
+  'getNextPageParam',
+  'getPreviousPageParam',
+]);
 
 const generateQueryOptions = ({
   params,
@@ -545,12 +576,12 @@ const generateQueryOptions = ({
           (_, key) =>
             (type !== QueryType.INFINITE ||
               type !== QueryType.SUSPENSE_INFINITE) &&
-            INFINITE_QUERY_PROPERTIES.includes(key),
+            INFINITE_QUERY_PROPERTIES.has(key),
         ),
       )?.slice(1, -1)}`
     : '';
 
-  if (!params.length || isSuspenseQuery(type)) {
+  if (params.length === 0 || isSuspenseQuery(type)) {
     if (options) {
       return `${queryConfig} ...queryOptions`;
     }
@@ -697,7 +728,7 @@ const generateQueryArguments = ({
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}${
-      initialData !== 'defined' ? '?' : ''
+      initialData === 'defined' ? '' : '?'
     }: ${definition}`;
   }
 
@@ -838,10 +869,94 @@ const getQueryFnArguments = ({
   return '{ signal }';
 };
 
-const generateQueryImplementation = ({
-  queryOption: { name, queryParam, options, type },
+const generatePrefetch = ({
+  usePrefetch,
+  type,
+  useQuery,
+  useInfinite,
   operationName,
-  queryKeyFnName,
+  mutator,
+  doc,
+  queryProps,
+  dataType,
+  errorType,
+  queryArguments,
+  queryOptionsVarName,
+  queryOptionsFnName,
+  queryProperties,
+  isRequestOptions,
+  hasSvelteQueryV6,
+}: {
+  operationName: string;
+  mutator?: GeneratorMutator;
+  type: QueryType;
+  usePrefetch?: boolean;
+  useQuery?: boolean;
+  useInfinite?: boolean;
+  doc?: string;
+  queryProps: string;
+  dataType: string;
+  errorType: string;
+  queryArguments: string;
+  queryOptionsVarName: string;
+  queryOptionsFnName: string;
+  queryProperties: string;
+  isRequestOptions: boolean;
+  hasSvelteQueryV6: boolean;
+}) => {
+  const shouldGeneratePrefetch =
+    usePrefetch &&
+    (type === QueryType.QUERY ||
+      type === QueryType.INFINITE ||
+      (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
+      (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
+
+  if (!shouldGeneratePrefetch) {
+    return '';
+  }
+
+  const prefetchType =
+    type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
+      ? 'query'
+      : 'infinite-query';
+  const prefetchFnName = camel(`prefetch-${prefetchType}`);
+
+  if (mutator?.isHook) {
+    const prefetchVarName = camel(
+      `use-prefetch-${operationName}-${prefetchType}`,
+    );
+    return `${doc}export const ${prefetchVarName} = <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
+  const queryClient = useQueryClient();
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+    queryProperties ? ',' : ''
+  }${isRequestOptions ? 'options' : 'queryOptions'})
+  return useCallback(async (): Promise<QueryClient> => {
+    await queryClient.${prefetchFnName}(${queryOptionsVarName})
+    return queryClient;
+  },[queryClient, ${queryOptionsVarName}]);
+};\n`;
+  } else {
+    const prefetchVarName = camel(`prefetch-${operationName}-${prefetchType}`);
+    return `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+
+  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+    queryProperties ? ',' : ''
+  }${isRequestOptions ? 'options' : 'queryOptions'})
+
+  await queryClient.${prefetchFnName}(${
+    hasSvelteQueryV6
+      ? `() => ({ ...${queryOptionsVarName} })`
+      : queryOptionsVarName
+  });
+
+  return queryClient;
+}\n`;
+  }
+};
+
+const generateQueryImplementation = ({
+  queryOption: { name, queryParam, options, type, queryKeyFnName },
+  operationName,
   queryProperties,
   queryKeyProperties,
   queryParams,
@@ -859,6 +974,7 @@ const generateQueryImplementation = ({
   route,
   hasVueQueryV4,
   hasSvelteQueryV4,
+  hasSvelteQueryV6,
   hasQueryV5,
   hasQueryV5WithDataTagError,
   hasQueryV5WithInfiniteQueryOptionsError,
@@ -866,16 +982,17 @@ const generateQueryImplementation = ({
   usePrefetch,
   useQuery,
   useInfinite,
+  useInvalidate,
 }: {
   queryOption: {
     name: string;
     options?: object | boolean;
     type: QueryType;
     queryParam?: string;
+    queryKeyFnName: string;
   };
   isRequestOptions: boolean;
   operationName: string;
-  queryKeyFnName: string;
   queryProperties: string;
   queryKeyProperties: string;
   params: GetterParams;
@@ -892,6 +1009,7 @@ const generateQueryImplementation = ({
   route: string;
   hasVueQueryV4: boolean;
   hasSvelteQueryV4: boolean;
+  hasSvelteQueryV6: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithDataTagError: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
@@ -899,6 +1017,7 @@ const generateQueryImplementation = ({
   usePrefetch?: boolean;
   useQuery?: boolean;
   useInfinite?: boolean;
+  useInvalidate?: boolean;
 }) => {
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
@@ -1096,15 +1215,15 @@ const generateQueryImplementation = ({
 ${hookOptions}
 
   const queryKey =  ${
-    !queryKeyMutator
-      ? `${
-          !hasVueQueryV4 ? 'queryOptions?.queryKey ?? ' : ''
-        }${queryKeyFnName}(${queryKeyProperties});`
-      : `${queryKeyMutator.name}({ ${queryProperties} }${
+    queryKeyMutator
+      ? `${queryKeyMutator.name}({ ${queryProperties} }${
           queryKeyMutator.hasSecondArg
             ? `, { url: \`${route}\`, queryOptions }`
             : ''
         });`
+      : `${
+          hasVueQueryV4 ? '' : 'queryOptions?.queryKey ?? '
+        }${queryKeyFnName}(${queryKeyProperties});`
   }
 
   ${
@@ -1148,9 +1267,9 @@ ${hookOptions}
       }
 
    return  ${
-     !queryOptionsMutator
-       ? `{ queryKey, queryFn, ${queryOptionsImp}}`
-       : 'customOptions'
+     queryOptionsMutator
+       ? 'customOptions'
+       : `{ queryKey, queryFn, ${queryOptionsImp}}`
    } as ${queryOptionFnReturnType} ${
      isVue(outputClient) || isAngular(outputClient)
        ? ''
@@ -1171,18 +1290,32 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${d
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${undefinedInitialDataQueryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}
 export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryPropDefinitions} ${queryArguments} ${optionalQueryClientArgument}\n  ): ${returnType}`;
 
-  const shouldGeneratePrefetch =
-    usePrefetch &&
+  const prefetch = generatePrefetch({
+    usePrefetch,
+    type,
+    useQuery,
+    useInfinite,
+    operationName,
+    mutator,
+    queryProps,
+    dataType,
+    errorType,
+    hasSvelteQueryV6,
+    queryArguments,
+    queryOptionsVarName,
+    queryOptionsFnName,
+    queryProperties,
+    isRequestOptions,
+    doc,
+  });
+
+  const shouldGenerateInvalidate =
+    useInvalidate &&
     (type === QueryType.QUERY ||
       type === QueryType.INFINITE ||
       (type === QueryType.SUSPENSE_QUERY && !useQuery) ||
       (type === QueryType.SUSPENSE_INFINITE && !useInfinite));
-  const prefetchType =
-    type === QueryType.QUERY || type === QueryType.SUSPENSE_QUERY
-      ? 'query'
-      : 'infinite-query';
-  const prefetchVarName = camel(`prefetch-${operationName}-${prefetchType}`);
-  const prefetchFnName = camel(`prefetch-${prefetchType}`);
+  const invalidateFnName = camel(`invalidate-${name}`);
 
   return `
 ${queryOptionsFn}
@@ -1202,7 +1335,13 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   const ${queryResultVarName} = ${camel(
     `${operationPrefix}-${isAngular(outputClient) || hasSvelteQueryV4 ? getQueryTypeForFramework(type) : type}`,
-  )}(${isAngular(outputClient) ? '() => ' : ''}${queryOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}) as ${returnType};
+  )}(${
+    isAngular(outputClient)
+      ? `() => ${queryOptionsVarName}`
+      : hasSvelteQueryV6
+        ? `() => ({ ...${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+        : `${queryOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
+  }) as ${returnType};
 
   ${
     isAngular(outputClient)
@@ -1216,15 +1355,12 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   return ${queryResultVarName};
 }\n
+${prefetch}
 ${
-  shouldGeneratePrefetch
-    ? `${doc}export const ${prefetchVarName} = async <TData = Awaited<ReturnType<${dataType}>>, TError = ${errorType}>(\n queryClient: QueryClient, ${queryProps} ${queryArguments}\n  ): Promise<QueryClient> => {
+  shouldGenerateInvalidate
+    ? `${doc}export const ${invalidateFnName} = async (\n queryClient: QueryClient, ${queryProps} options?: InvalidateOptions\n  ): Promise<QueryClient> => {
 
-  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-    queryProperties ? ',' : ''
-  }${isRequestOptions ? 'options' : 'queryOptions'})
-
-  await queryClient.${prefetchFnName}(${queryOptionsVarName});
+  await queryClient.invalidateQueries({ queryKey: ${queryKeyFnName}(${queryKeyProperties}) }, options);
 
   return queryClient;
 }\n`
@@ -1268,6 +1404,9 @@ const generateQueryHook = async (
   const hasSvelteQueryV4 =
     OutputClient.SVELTE_QUERY === outputClient &&
     (!isSvelteQueryV3(context.output.packageJson) || queryVersion === 4);
+  const hasSvelteQueryV6 =
+    OutputClient.SVELTE_QUERY === outputClient &&
+    isSvelteQueryV6(context.output.packageJson);
 
   const hasQueryV5 =
     queryVersion === 5 ||
@@ -1306,7 +1445,7 @@ const generateQueryHook = async (
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
-  let mutators = undefined;
+  let mutators;
 
   // Allows operationQueryOptions (which is the Orval config override for the operationId)
   // to override non-GET verbs
@@ -1398,6 +1537,7 @@ const generateQueryHook = async (
               options: query?.options,
               type: QueryType.INFINITE,
               queryParam: query?.useInfiniteQueryParam,
+              queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
@@ -1407,6 +1547,7 @@ const generateQueryHook = async (
               name: operationName,
               options: query?.options,
               type: QueryType.QUERY,
+              queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
@@ -1416,6 +1557,7 @@ const generateQueryHook = async (
               name: camel(`${operationName}-suspense`),
               options: query?.options,
               type: QueryType.SUSPENSE_QUERY,
+              queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
@@ -1427,19 +1569,19 @@ const generateQueryHook = async (
               options: query?.options,
               type: QueryType.SUSPENSE_INFINITE,
               queryParam: query?.useInfiniteQueryParam,
+              queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
     ];
 
-    const queryKeyFnName = camel(`get-${operationName}-queryKey`);
     // Convert "param: Type" to "param?: Type" for queryKey functions
     // to enable cache invalidation without type assertion
     const makeParamsOptional = (params: string) => {
       if (!params) return '';
       // Handle parameters with default values: "param?: Type = value" -> "param: Type = value" (remove optional marker)
       // Handle regular parameters: "param: Type" -> "param?: Type"
-      return params.replace(
+      return params.replaceAll(
         /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
         (match, paramName, optionalMarker, type, defaultValue, suffix) => {
           // If parameter has a default value, don't add '?' (it's already effectively optional)
@@ -1452,36 +1594,75 @@ const generateQueryHook = async (
       );
     };
 
-    const queryKeyProps = makeParamsOptional(
-      toObjectString(
-        props.filter((prop) => prop.type !== GetterPropType.HEADER),
-        'implementation',
-      ),
+    const uniqueQueryOptionsByKeys = queries.filter(
+      (obj, index, self) =>
+        index ===
+        self.findIndex((t) => t.queryKeyFnName === obj.queryKeyFnName),
     );
 
-    const routeString =
-      isVue(outputClient) || override.query.shouldSplitQueryKey
-        ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
-        : `\`${route}\``;
+    implementation += `
+${
+  queryKeyMutator
+    ? ''
+    : uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
+        const queryKeyProps = makeParamsOptional(
+          toObjectString(
+            props.filter((prop) => prop.type !== GetterPropType.HEADER),
+            'implementation',
+          ),
+        );
 
-    // Note: do not unref() params in Vue - this will make key lose reactivity
-    const queryKeyFn = `${
-      override.query.shouldExportQueryKey ? 'export ' : ''
-    }const ${queryKeyFnName} = (${queryKeyProps}) => {
-    return [${routeString}${queryParams ? ', ...(params ? [params]: [])' : ''}${
-      body.implementation ? `, ${body.implementation}` : ''
-    }] as const;
-    }`;
+        const routeString =
+          isVue(outputClient) || override.query.shouldSplitQueryKey
+            ? getRouteAsArray(route) // Note: this is required for reactivity to work, we will lose it if route params are converted into string, only as array they will be tracked // TODO: add tests for this
+            : `\`${route}\``;
 
-    implementation += `${!queryKeyMutator ? queryKeyFn : ''}
+        // Use operation ID as query key if enabled, otherwise use route string
+        const queryKeyIdentifier = override.query.useOperationIdAsQueryKey
+          ? `"${operationName}"`
+          : routeString;
 
-    ${queries.reduce(
-      (acc, queryOption) =>
+        // Use all params in query key when useOperationIdAsQueryKey=true, otherwise use only query param
+        // All params sorted by required first
+        const queryKeyParams = props
+          .filter((p) =>
+            override.query.useOperationIdAsQueryKey
+              ? true
+              : p.type === GetterPropType.QUERY_PARAM,
+          )
+          .toSorted((a) => (a.required ? -1 : 1))
+          .map((p) => `...(${p.name} ? [${p.name}] : [])`)
+          .join(', ');
+
+        // Note: do not unref() params in Vue - this will make key lose reactivity
+        const queryKeyFn = `
+${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.queryKeyFnName} = (${queryKeyProps}) => {
+    return [
+    ${[
+      queryOption.type === QueryType.INFINITE ||
+      queryOption.type === QueryType.SUSPENSE_INFINITE
+        ? `'infinite'`
+        : '',
+      queryKeyIdentifier,
+      queryKeyParams,
+      body.implementation,
+    ]
+      .filter((x) => !!x)
+      .join(', ')}
+    ] as const;
+    }
+`;
+        return acc + queryKeyFn;
+      }, '')
+}`;
+
+    implementation += `
+    ${queries.reduce((acc, queryOption) => {
+      return (
         acc +
         generateQueryImplementation({
           queryOption,
           operationName,
-          queryKeyFnName,
           queryProperties,
           queryKeyProperties,
           params,
@@ -1502,6 +1683,7 @@ const generateQueryHook = async (
           route,
           hasVueQueryV4,
           hasSvelteQueryV4,
+          hasSvelteQueryV6,
           hasQueryV5,
           hasQueryV5WithDataTagError,
           hasQueryV5WithInfiniteQueryOptionsError,
@@ -1509,9 +1691,10 @@ const generateQueryHook = async (
           usePrefetch: query.usePrefetch,
           useQuery: query.useQuery,
           useInfinite: query.useInfinite,
-        }),
-      '',
-    )}
+          useInvalidate: query.useInvalidate,
+        })
+      );
+    }, '')}
 `;
 
     mutators =
@@ -1639,15 +1822,19 @@ ${hooksOptionImplementation}
 
 
   return  ${
-    !mutationOptionsMutator
-      ? '{ mutationFn, ...mutationOptions }'
-      : 'customOptions'
+    mutationOptionsMutator
+      ? 'customOptions'
+      : '{ mutationFn, ...mutationOptions }'
   }}`;
 
-    const operationPrefix = getFrameworkPrefix(hasSvelteQueryV4, isAngular(outputClient));
-    const optionalQueryClientArgument = hasQueryV5 && !isAngular(outputClient)
-      ? ', queryClient?: QueryClient'
-      : '';
+    const operationPrefix = getFrameworkPrefix(
+      hasSvelteQueryV4,
+      isAngular(outputClient),
+    );
+    const optionalQueryClientArgument =
+      hasQueryV5 && !isAngular(outputClient)
+        ? ', queryClient?: QueryClient'
+        : '';
 
     implementation += `
 ${mutationOptionsFn}
@@ -1681,10 +1868,12 @@ ${mutationOptionsFn}
         isRequestOptions ? 'options' : 'mutationOptions'
       });
 
-      return ${operationPrefix}Mutation(${isAngular(outputClient) ? '() => ' : ''}${mutationOptionsVarName}${
-        !isAngular(outputClient) && optionalQueryClientArgument
-          ? ', queryClient'
-          : ''
+      return ${operationPrefix}Mutation(${
+        isAngular(outputClient)
+          ? `() => ${mutationOptionsVarName}`
+          : hasSvelteQueryV6
+            ? `() => ({ ...${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+            : `${mutationOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
       });
     }
     `;
@@ -1702,10 +1891,10 @@ ${mutationOptionsFn}
 
 export const generateQueryHeader: ClientHeaderBuilder = (params) => {
   return `${
-    !params.hasAwaitedType
-      ? `type AwaitedInput<T> = PromiseLike<T> | T;\n
+    params.hasAwaitedType
+      ? ''
+      : `type AwaitedInput<T> = PromiseLike<T> | T;\n
       type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;\n\n`
-      : ''
   }
 ${
   params.isRequestOptions && params.isMutator

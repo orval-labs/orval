@@ -1,30 +1,32 @@
 import {
-  ClientMockGeneratorBuilder,
+  type ClientMockGeneratorBuilder,
   generateDependencyImports,
-  GenerateMockImports,
-  GeneratorDependency,
-  GeneratorImport,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GlobalMockOptions,
+  type GenerateMockImports,
+  type GeneratorDependency,
+  type GeneratorImport,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GlobalMockOptions,
   isFunction,
   isObject,
   pascal,
-  ResReqTypesValue,
+  type ResReqTypesValue,
 } from '@orval/core';
+
 import { getDelay } from '../delay';
 import { getRouteMSW, overrideVarName } from '../faker/getters';
 import { getMockDefinition, getMockOptionsDataOverride } from './mocks';
 
-const getMSWDependencies = (
+function getMSWDependencies(
   options?: GlobalMockOptions,
-): GeneratorDependency[] => {
+): GeneratorDependency[] {
   const hasDelay = options?.delay !== false;
   const locale = options?.locale;
 
   const exports = [
     { name: 'http', values: true },
     { name: 'HttpResponse', values: true },
+    { name: 'RequestHandlerOptions', values: false },
   ];
 
   if (hasDelay) {
@@ -32,10 +34,7 @@ const getMSWDependencies = (
   }
 
   return [
-    {
-      exports,
-      dependency: 'msw',
-    },
+    { exports, dependency: 'msw' },
     {
       exports: [{ name: 'faker', values: true }],
       dependency: locale
@@ -43,12 +42,12 @@ const getMSWDependencies = (
         : '@faker-js/faker',
     },
   ];
-};
+}
 
 export const generateMSWImports: GenerateMockImports = ({
   implementation,
   imports,
-  specsName,
+  projectName,
   hasSchemaDir,
   isAllowSyntheticDefaultImports,
   options,
@@ -56,13 +55,13 @@ export const generateMSWImports: GenerateMockImports = ({
   return generateDependencyImports(
     implementation,
     [...getMSWDependencies(options), ...imports],
-    specsName,
+    projectName,
     hasSchemaDir,
     isAllowSyntheticDefaultImports,
   );
 };
 
-const generateDefinition = (
+function generateDefinition(
   name: string,
   route: string,
   getResponseMockFunctionNameBase: string,
@@ -75,7 +74,7 @@ const generateDefinition = (
   responses: ResReqTypesValue[],
   contentTypes: string[],
   splitMockImplementations: string[],
-) => {
+) {
   const oldSplitMockImplementations = [...splitMockImplementations];
   const { definitions, definition, imports } = getMockDefinition({
     operationId,
@@ -85,7 +84,7 @@ const generateDefinition = (
     imports: responseImports,
     override,
     context,
-    mockOptions: !isFunction(mock) ? mock : undefined,
+    mockOptions: isFunction(mock) ? undefined : mock,
     splitMockImplementations,
   });
 
@@ -114,9 +113,10 @@ const generateDefinition = (
     oldSplitMockImplementations.length,
   );
   splitMockImplementations.push(...addedSplitMockImplementations);
-  const mockImplementations = addedSplitMockImplementations.length
-    ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
-    : '';
+  const mockImplementations =
+    addedSplitMockImplementations.length > 0
+      ? `${addedSplitMockImplementations.join('\n\n')}\n\n`
+      : '';
 
   const mockImplementation = isReturnHttpResponse
     ? `${mockImplementations}export const ${getResponseMockFunctionName} = (${
@@ -126,17 +126,17 @@ const generateDefinition = (
       })${mockData ? '' : `: ${returnType}`} => (${value})\n\n`
     : mockImplementations;
 
-  const delay = getDelay(override, !isFunction(mock) ? mock : undefined);
+  const delay = getDelay(override, isFunction(mock) ? undefined : mock);
   const infoParam = 'info';
   const overrideResponse = `overrideResponse !== undefined
     ? (typeof overrideResponse === "function" ? await overrideResponse(${infoParam}) : overrideResponse)
     : ${getResponseMockFunctionName}()`;
   const handlerImplementation = `
-export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType})) => {
+export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}: Parameters<Parameters<typeof http.${verb}>[1]>[0]) => Promise<${returnType}> | ${returnType}), options?: RequestHandlerOptions) => {
   return http.${verb}('${route}', async (${infoParam}) => {${
-    delay !== false
-      ? `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
-      : ''
+    delay === false
+      ? ''
+      : `await delay(${isFunction(delay) ? `(${delay})()` : delay});`
   }
   ${isReturnHttpResponse ? '' : `if (typeof overrideResponse === 'function') {await overrideResponse(info); }`}
     return new HttpResponse(${
@@ -153,11 +153,12 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
             : ''
         }
       })
-  })
+  }, options)
 }\n`;
 
-  const includeResponseImports = !isTextPlain
-    ? [
+  const includeResponseImports = isTextPlain
+    ? imports
+    : [
         ...imports,
         ...response.imports.filter((r) => {
           // Only include imports which are actually used in mock.
@@ -166,8 +167,7 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
             reg.test(handlerImplementation) || reg.test(mockImplementation)
           );
         }),
-      ]
-    : imports;
+      ];
 
   return {
     implementation: {
@@ -177,18 +177,18 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
     },
     imports: includeResponseImports,
   };
-};
+}
 
-export const generateMSW = (
+export function generateMSW(
   generatorVerbOptions: GeneratorVerbOptions,
   generatorOptions: GeneratorOptions,
-): ClientMockGeneratorBuilder => {
+): ClientMockGeneratorBuilder {
   const { pathRoute, override, mock } = generatorOptions;
   const { operationId, response } = generatorVerbOptions;
 
   const route = getRouteMSW(
     pathRoute,
-    override?.mock?.baseUrl ?? (!isFunction(mock) ? mock?.baseUrl : undefined),
+    override.mock?.baseUrl ?? (isFunction(mock) ? undefined : mock?.baseUrl),
   );
 
   const handlerName = `get${pascal(operationId)}MockHandler`;
@@ -220,27 +220,28 @@ export const generateMSW = (
     isObject(generatorOptions.mock) &&
     generatorOptions.mock.generateEachHttpStatus
   ) {
-    [...response.types.success, ...response.types.errors].forEach(
-      (statusResponse) => {
-        const definition = generateDefinition(
-          statusResponse.key,
-          route,
-          getResponseMockFunctionName,
-          handlerName,
-          generatorVerbOptions,
-          generatorOptions,
-          statusResponse.value,
-          statusResponse.key,
-          response.imports,
-          [statusResponse],
-          [statusResponse.contentType],
-          splitMockImplementations,
-        );
-        mockImplementations.push(definition.implementation.function);
-        handlerImplementations.push(definition.implementation.handler);
-        imports.push(...definition.imports);
-      },
-    );
+    for (const statusResponse of [
+      ...response.types.success,
+      ...response.types.errors,
+    ]) {
+      const definition = generateDefinition(
+        statusResponse.key,
+        route,
+        getResponseMockFunctionName,
+        handlerName,
+        generatorVerbOptions,
+        generatorOptions,
+        statusResponse.value,
+        statusResponse.key,
+        response.imports,
+        [statusResponse],
+        [statusResponse.contentType],
+        splitMockImplementations,
+      );
+      mockImplementations.push(definition.implementation.function);
+      handlerImplementations.push(definition.implementation.handler);
+      imports.push(...definition.imports);
+    }
   }
 
   return {
@@ -251,4 +252,4 @@ export const generateMSW = (
     },
     imports: imports,
   };
-};
+}

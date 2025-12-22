@@ -1,29 +1,34 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
-import { ContextSpecs, ScalarValue } from '../types';
-import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs } from '../resolvers';
+import { resolveObject } from '../resolvers/object';
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ScalarValue,
+} from '../types';
 import { compareVersions } from '../utils';
+
+interface GetArrayOptions {
+  schema: OpenApiSchemaObject;
+  name?: string;
+  context: ContextSpec;
+}
 
 /**
  * Return the output type from an array
  *
  * @param item item with type === "array"
  */
-export const getArray = ({
+export function getArray({
   schema,
   name,
   context,
-}: {
-  schema: SchemaObject;
-  name?: string;
-  context: ContextSpecs;
-}): ScalarValue => {
-  const schema31 = schema as SchemaObject31;
+}: GetArrayOptions): ScalarValue {
+  const schema31 = schema as OpenApiSchemaObject;
   if (schema31.prefixItems) {
     const resolvedObjects = schema31.prefixItems.map((item, index) =>
       resolveObject({
-        schema: item as SchemaObject | ReferenceObject,
+        schema: item as OpenApiSchemaObject | OpenApiReferenceObject,
         propName:
           name + context.output.override.components.schemas.itemSuffix + index,
         context,
@@ -31,7 +36,7 @@ export const getArray = ({
     );
     if (schema31.items) {
       const additional = resolveObject({
-        schema: schema31.items as SchemaObject | ReferenceObject,
+        schema: schema31.items as OpenApiSchemaObject | OpenApiReferenceObject,
         propName:
           name +
           context.output.override.components.schemas.itemSuffix +
@@ -50,6 +55,7 @@ export const getArray = ({
       value: `[${resolvedObjects.map((o) => o.value).join(', ')}]`,
       imports: resolvedObjects.flatMap((o) => o.imports),
       schemas: resolvedObjects.flatMap((o) => o.schemas),
+      dependencies: resolvedObjects.flatMap((o) => o.dependencies),
       hasReadonlyProps: resolvedObjects.some((o) => o.hasReadonlyProps),
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
@@ -74,6 +80,7 @@ export const getArray = ({
       }`,
       imports: resolvedObject.imports,
       schemas: resolvedObject.schemas,
+      dependencies: resolvedObject.dependencies,
       isEnum: false,
       type: 'array',
       isRef: false,
@@ -81,13 +88,12 @@ export const getArray = ({
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
     };
-  } else if (
-    compareVersions(context.specs[context.specKey].openapi, '3.1', '>=')
-  ) {
+  } else if (compareVersions(context.spec.openapi, '3.1', '>=')) {
     return {
       value: 'unknown[]',
       imports: [],
       schemas: [],
+      dependencies: [],
       isEnum: false,
       type: 'array',
       isRef: false,
@@ -98,4 +104,4 @@ export const getArray = ({
       `All arrays must have an \`items\` key defined (name=${name}, schema=${JSON.stringify(schema)})`,
     );
   }
-};
+}

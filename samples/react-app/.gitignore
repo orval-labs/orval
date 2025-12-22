@@ -21,3 +21,9 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# orval's output here isn't stable across platforms, see https://github.com/orval-labs/orval/pull/2468#issuecomment-3439030674
+# ignore generated js files so unstable output doesn't trigger a false positive in PR check
+docs-html/**/*.js
+docs-html-plugin/**/*.js
+docs-markdown/**/*.js

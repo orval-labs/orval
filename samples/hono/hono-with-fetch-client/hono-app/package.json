@@ -1,14 +1,16 @@
 {
   "name": "hono-app",
+  "private": true,
   "scripts": {
     "dev": "wrangler dev src/petstore.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts"
   },
   "dependencies": {
-    "hono": "^4.5.8"
+    "@hono/zod-validator": "^0.7.3",
+    "hono": "^4.10.2"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
-    "wrangler": "^3.57.2"
+    "@cloudflare/workers-types": "^4.20251117.0",
+    "wrangler": "^4.47.0"
   }
 }

@@ -7,7 +7,6 @@ export default defineConfig({
       target: 'src/gen/petstore.ts',
       schemas: 'src/gen/models',
       client: 'vue-query',
-      httpClient: 'fetch',
       baseUrl: 'http://localhost:8000',
       mock: true,
       prettier: true,

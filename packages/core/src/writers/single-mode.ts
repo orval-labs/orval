@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { WriteModeProps } from '../types';
+import type { WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -12,13 +13,13 @@ import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
 
-export const writeSingleMode = async ({
+export async function writeSingleMode({
   builder,
   output,
-  specsName,
+  projectName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   try {
     const { path, dirname } = getFileInfo(output.target, {
       backupFilename: conventionName(
@@ -46,8 +47,12 @@ export const writeSingleMode = async ({
     const schemasPath = output.schemas
       ? upath.relativeSafe(
           dirname,
-          getFileInfo(output.schemas, { extension: output.fileExtension })
-            .dirname,
+          getFileInfo(
+            typeof output.schemas === 'string'
+              ? output.schemas
+              : output.schemas.path,
+            { extension: output.fileExtension },
+          ).dirname,
         )
       : undefined;
 
@@ -69,12 +74,12 @@ export const writeSingleMode = async ({
       client: output.client,
       implementation,
       imports: importsForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
       hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag.mutator,
+        (tag) => !!tag?.mutator,
       ),
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
@@ -88,10 +93,10 @@ export const writeSingleMode = async ({
       data += builder.importsMock({
         implementation: implementationMock,
         imports: importsMockForBuilder,
-        specsName,
+        projectName,
         hasSchemaDir: !!output.schemas,
         isAllowSyntheticDefaultImports,
-        options: !isFunction(output.mock) ? output.mock : undefined,
+        options: isFunction(output.mock) ? undefined : output.mock,
       });
     }
 
@@ -143,7 +148,10 @@ export const writeSingleMode = async ({
     await fs.outputFile(path, data);
 
     return [path];
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while writing file => ${e}`;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'unknown error';
+    throw new Error(
+      `Oups... 🍻. An Error occurred while writing file => ${errorMsg}`,
+    );
   }
-};
+}

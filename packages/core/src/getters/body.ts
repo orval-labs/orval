@@ -1,21 +1,28 @@
-import { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 import { generalJSTypesWithArray } from '../constants';
 import { resolveRef } from '../resolvers';
-import { ContextSpecs, GetterBody, OverrideOutputContentType } from '../types';
+import type {
+  ContextSpec,
+  GetterBody,
+  OpenApiReferenceObject,
+  OpenApiRequestBodyObject,
+  OverrideOutputContentType,
+} from '../types';
 import { camel, isReference, sanitize } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
-export const getBody = ({
+interface GetBodyOptions {
+  requestBody: OpenApiReferenceObject | OpenApiRequestBodyObject;
+  operationName: string;
+  context: ContextSpec;
+  contentType?: OverrideOutputContentType;
+}
+
+export function getBody({
   requestBody,
   operationName,
   context,
   contentType,
-}: {
-  requestBody: ReferenceObject | RequestBodyObject;
-  operationName: string;
-  context: ContextSpecs;
-  contentType?: OverrideOutputContentType;
-}): GetterBody => {
+}: GetBodyOptions): GetterBody {
   const allBodyTypes = getResReqTypes(
     [[context.output.override.components.requestBodies.suffix, requestBody]],
     operationName,
@@ -64,7 +71,7 @@ export const getBody = ({
       es5IdentifierName: true,
     });
     if (isReference(requestBody)) {
-      const { schema: bodySchema } = resolveRef<RequestBodyObject>(
+      const { schema: bodySchema } = resolveRef<OpenApiRequestBodyObject>(
         requestBody,
         context,
       );
@@ -95,4 +102,4 @@ export const getBody = ({
           contentType: '',
         }),
   };
-};
+}

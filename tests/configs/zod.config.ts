@@ -211,4 +211,29 @@ export default defineConfig({
       target: '../specifications/enums.yaml',
     },
   },
+  'nullable-any-of-refs': {
+    output: {
+      target: '../generated/zod/nullable-any-of-refs.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/nullable-any-of-refs.yaml',
+    },
+  },
+  'nullable-oneof-enums': {
+    output: {
+      target: '../generated/zod/nullable-oneof-enums.ts',
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/nullable-oneof-enums.yaml',
+    },
+  },
+  'multiline-default': {
+    output: {
+      target: '../generated/zod/multiline-default.ts',
+      client: 'zod',
+    },
+    input: '../specifications/multiline-default.yaml',
+  },
 });

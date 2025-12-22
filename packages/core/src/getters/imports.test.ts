@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
+
+import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
 import {
   getAliasedImports,
   getImportAliasForRefOrValue,
   needCreateImportAlias,
 } from './imports';
-import { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
 
-const baseContext: Omit<ContextSpecs, 'output'> = {
-  specKey: 'spec',
+const baseContext: Omit<ContextSpec, 'output'> = {
   target: 'spec',
   workspace: '',
-  specs: {},
+  spec: {},
 };
 
 const contextWithSchemas = {
@@ -18,14 +18,14 @@ const contextWithSchemas = {
   output: {
     schemas: '/schemas',
   },
-} as ContextSpecs;
+} as ContextSpec;
 
-const contextWithouSchemas = {
+const contextWithoutSchemas = {
   ...baseContext,
   output: {
     schemas: undefined,
   },
-} as ContextSpecs;
+} as ContextSpec;
 
 const baseResolvedValue: ResolverValue = {
   isRef: false,
@@ -36,6 +36,7 @@ const baseResolvedValue: ResolverValue = {
   schemas: [],
   type: 'object',
   value: '',
+  dependencies: [],
 };
 
 describe('getAliasedImports getter', () => {
@@ -49,7 +50,6 @@ describe('getAliasedImports getter', () => {
     expect(
       getAliasedImports({
         context: contextWithSchemas,
-        existingImports: [],
         resolvedValue,
       }),
     ).toBe(resolvedValue.imports);
@@ -64,23 +64,19 @@ describe('getAliasedImports getter', () => {
 
     expect(
       getAliasedImports({
-        context: contextWithouSchemas,
-        existingImports: [],
+        context: contextWithoutSchemas,
         resolvedValue,
       }),
     ).toBe(resolvedValue.imports);
   });
 
   describe('with non empty context.output.schemas field and truthy resolvedValue.isRef field', () => {
-    const testCases: Array<
-      [
-        Omit<Parameters<typeof getAliasedImports>[0], 'context'>,
-        Array<string | undefined>,
-      ]
-    > = [
+    const testCases: [
+      Omit<Parameters<typeof getAliasedImports>[0], 'context'>,
+      (string | undefined)[],
+    ][] = [
       [
         {
-          existingImports: [],
           name: 'A',
           resolvedValue: {
             ...baseResolvedValue,
@@ -88,7 +84,6 @@ describe('getAliasedImports getter', () => {
             imports: [
               {
                 name: 'A',
-                specKey: 'spec',
               },
             ],
           },
@@ -97,7 +92,6 @@ describe('getAliasedImports getter', () => {
       ],
       [
         {
-          existingImports: [],
           name: 'A',
           resolvedValue: {
             ...baseResolvedValue,
@@ -105,7 +99,6 @@ describe('getAliasedImports getter', () => {
             imports: [
               {
                 name: 'B',
-                specKey: 'spec',
               },
             ],
           },
@@ -114,12 +107,6 @@ describe('getAliasedImports getter', () => {
       ],
       [
         {
-          existingImports: [
-            {
-              name: 'A',
-              specKey: 'spec',
-            },
-          ],
           name: undefined,
           resolvedValue: {
             ...baseResolvedValue,
@@ -127,29 +114,6 @@ describe('getAliasedImports getter', () => {
             imports: [
               {
                 name: 'A',
-                specKey: 'another_spec',
-              },
-            ],
-          },
-        },
-        ['AnotherSpec__A'],
-      ],
-      [
-        {
-          existingImports: [
-            {
-              name: 'A',
-              specKey: 'spec',
-            },
-          ],
-          name: undefined,
-          resolvedValue: {
-            ...baseResolvedValue,
-            isRef: true,
-            imports: [
-              {
-                name: 'A',
-                specKey: 'spec',
               },
             ],
           },
@@ -158,12 +122,6 @@ describe('getAliasedImports getter', () => {
       ],
       [
         {
-          existingImports: [
-            {
-              name: 'A',
-              specKey: 'spec',
-            },
-          ],
           name: undefined,
           resolvedValue: {
             ...baseResolvedValue,
@@ -171,12 +129,26 @@ describe('getAliasedImports getter', () => {
             imports: [
               {
                 name: 'A',
-                specKey: '45.yaml',
               },
             ],
           },
         },
-        ['__45__A'],
+        [undefined],
+      ],
+      [
+        {
+          name: undefined,
+          resolvedValue: {
+            ...baseResolvedValue,
+            isRef: true,
+            imports: [
+              {
+                name: 'A',
+              },
+            ],
+          },
+        },
+        [undefined],
       ],
     ];
 
@@ -198,63 +170,23 @@ describe('getAliasedImports getter', () => {
 
 describe('needCreateImportAlias', () => {
   it('should return false when import has alias', () => {
-    const existingImports: GeneratorImport[] = [
-      { name: 'A', specKey: 'spec1' },
-      { name: 'B', specKey: 'spec2' },
-    ];
-
     const imp: GeneratorImport = {
       alias: 'AliasForC',
       name: 'C',
-      specKey: 'spec3',
     };
 
-    expect(needCreateImportAlias({ existingImports, imp })).toBeFalsy();
-  });
-
-  it('should return false when existingImports is empty', () => {
-    const imp: GeneratorImport = { name: 'A', specKey: 'spec1' };
-
-    expect(needCreateImportAlias({ existingImports: [], imp })).toBeFalsy();
-  });
-
-  it('should return false when import has not alias and import existingImports has not item with eq name and different specKey', () => {
-    const existingImports: GeneratorImport[] = [
-      { name: 'A', specKey: 'spec1' },
-      { name: 'B', specKey: 'spec2' },
-    ];
-
-    const imp: GeneratorImport = { name: 'C', specKey: 'spec3' };
-
-    expect(needCreateImportAlias({ existingImports, imp })).toBeFalsy();
+    expect(needCreateImportAlias({ imp })).toBeFalsy();
   });
 
   it('should return true when name eq import name and import has not alias', () => {
-    const existingImports: GeneratorImport[] = [
-      { name: 'A', specKey: 'spec1' },
-      { name: 'B', specKey: 'spec2' },
-    ];
-
-    const imp: GeneratorImport = { name: 'C', specKey: 'spec3' };
+    const imp: GeneratorImport = { name: 'C' };
 
     expect(
       needCreateImportAlias({
-        existingImports,
         imp,
         name: 'C',
       }),
     ).toBeTruthy();
-  });
-
-  it('should return true when import has not alias and and existingImports has item with eq name and different specKey', () => {
-    const existingImports: GeneratorImport[] = [
-      { name: 'A', specKey: 'spec1' },
-      { name: 'B', specKey: 'spec2' },
-    ];
-
-    const imp: GeneratorImport = { name: 'A', specKey: 'spec3' };
-
-    expect(needCreateImportAlias({ existingImports, imp })).toBeTruthy();
   });
 });
 
@@ -291,7 +223,7 @@ describe('getImportAliasForRefOrValue getter', () => {
 
     expect(
       getImportAliasForRefOrValue({
-        context: contextWithouSchemas,
+        context: contextWithoutSchemas,
         resolvedValue,
         imports: [
           {
@@ -304,12 +236,10 @@ describe('getImportAliasForRefOrValue getter', () => {
   });
 
   describe('with non empty context.output.schemas field and truthy resolvedValue.isRef field', () => {
-    const testCases: Array<
-      [
-        Omit<Parameters<typeof getImportAliasForRefOrValue>[0], 'context'>,
-        string,
-      ]
-    > = [
+    const testCases: [
+      Omit<Parameters<typeof getImportAliasForRefOrValue>[0], 'context'>,
+      string,
+    ][] = [
       [
         {
           resolvedValue: {

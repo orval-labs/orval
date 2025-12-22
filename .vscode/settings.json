@@ -1,3 +1,34 @@
 {
-  "cSpell.words": ["listitem", "openapi", "Orval", "Petstore", "tanstack"]
+  "cSpell.words": [
+    "axios",
+    "Emptyish",
+    "hono",
+    "listitem",
+    "openapi",
+    "Orval",
+    "Petstore",
+    "tanstack",
+    "zods"
+  ],
+  "files.associations": {
+    "turbo.json": "jsonc"
+  },
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.defaultFormatter": "dbaeumer.vscode-eslint",
+  "debug.javascript.terminalOptions": {
+    "skipFiles": [
+      "**/node_modules/**",
+      "<node_internals>/**",
+      "**/node/corepack/**"
+    ]
+  },
+  "[mdx]": {
+    "editor.defaultFormatter": "unifiedjs.vscode-mdx"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  }
 }

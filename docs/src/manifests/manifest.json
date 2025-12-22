@@ -26,17 +26,22 @@
       "heading": true,
       "routes": [
         {
-          "title": "Use your own base url",
+          "title": "Migration Guide V8",
+          "path": "/guides/migration-v8",
+          "editUrl": "/guides/migration-v8.md"
+        },
+        {
+          "title": "Custom Base URL",
           "path": "/guides/set-base-url",
           "editUrl": "/guides/set-base-url.md"
         },
         {
-          "title": "Custom HTTP client",
+          "title": "Custom HTTP Client",
           "path": "/guides/custom-client",
           "editUrl": "/guides/custom-client.md"
         },
         {
-          "title": "Custom Axios instance",
+          "title": "Custom Axios Instance",
           "path": "/guides/custom-axios",
           "editUrl": "/guides/custom-axios.md"
         },
@@ -46,7 +51,7 @@
           "editUrl": "/guides/basics.md"
         },
         {
-          "title": "Fetch client",
+          "title": "Fetch Client",
           "path": "/guides/fetch-client",
           "editUrl": "/guides/fetch-client.md"
         },
@@ -56,17 +61,17 @@
           "editUrl": "/guides/fetch.md"
         },
         {
-          "title": "React query",
+          "title": "React Query",
           "path": "/guides/react-query",
           "editUrl": "/guides/react-query.md"
         },
         {
-          "title": "Svelte query",
+          "title": "Svelte Query",
           "path": "/guides/svelte-query",
           "editUrl": "/guides/svelte-query.md"
         },
         {
-          "title": "Vue query",
+          "title": "Vue Query",
           "path": "/guides/vue-query",
           "editUrl": "/guides/vue-query.md"
         },
@@ -101,12 +106,12 @@
           "editUrl": "/guides/hono.md"
         },
         {
-          "title": "Enum names",
+          "title": "Enum Names",
           "path": "/guides/enums",
           "editUrl": "/guides/enums.md"
         },
         {
-          "title": "MCP server",
+          "title": "MCP Server",
           "path": "/guides/mcp",
           "editUrl": "/guides/mcp.md"
         },
@@ -145,7 +150,7 @@
               "editUrl": "/reference/configuration/hooks.md"
             },
             {
-              "title": "Full example",
+              "title": "Full Example",
               "path": "/reference/configuration/full-example",
               "editUrl": "/reference/configuration/full-example.md"
             }

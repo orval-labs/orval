@@ -8,16 +8,14 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'angular',
-      mock: true,
+      mock: { indexMockFiles: true },
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
-        paramsSerializer: {
-          path: 'src/api/mutator/custom-params-serializer.ts',
-        },
+        paramsSerializer: 'src/orval/mutator/custom-params-serializer.ts',
         operations: {
           listPets: {
-            mutator: 'src/api/mutator/response-type.ts',
+            mutator: 'src/orval/mutator/response-type.ts',
             mock: {
               properties: () => {
                 return {
@@ -49,7 +47,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.js',
+        transformer: 'src/orval/transformer/add-version.ts',
       },
     },
   },

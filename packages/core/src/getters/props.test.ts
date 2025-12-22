@@ -1,17 +1,22 @@
 import { describe, expect, it } from 'vitest';
+
+import type {
+  ContextSpec,
+  GetterQueryParam,
+  OpenApiReferenceObject,
+  OpenApiRequestBodyObject,
+} from '../types';
 import { getProps } from './props';
-import { ContextSpecs, GetterQueryParam } from '../types';
-import { ReferenceObject, RequestBodyObject } from 'openapi3-ts/oas30';
 
 describe('getProps', () => {
   it('should generate DeepNonNullable props for query params type definition when client is angular', () => {
-    const context: ContextSpecs = {
+    const context: ContextSpec = {
       output: {
         client: 'angular',
         allParamsOptional: false,
         override: {},
       },
-    } as ContextSpecs;
+    } as ContextSpec;
 
     const queryParams: GetterQueryParam = {
       schema: {
@@ -29,7 +34,7 @@ describe('getProps', () => {
         implementation: '',
         definition: '',
         isOptional: true,
-        originalSchema: {} as ReferenceObject | RequestBodyObject,
+        originalSchema: {} as OpenApiReferenceObject | OpenApiRequestBodyObject,
         imports: [],
         schemas: [],
         contentType: '',

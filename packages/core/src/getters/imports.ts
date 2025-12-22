@@ -1,73 +1,58 @@
-import { ContextSpecs, GeneratorImport, ResolverValue } from '../types';
-import { pascal } from '../utils';
-import { getSpecName } from '../utils/path';
+import type { ContextSpec, GeneratorImport, ResolverValue } from '../types';
 
-export const getAliasedImports = ({
-  name,
-  resolvedValue,
-  existingImports,
-  context,
-}: {
+interface GetAliasedImportsOptions {
   name?: string;
   resolvedValue: ResolverValue;
-  existingImports: GeneratorImport[];
-  context: ContextSpecs;
-}): GeneratorImport[] =>
-  context.output.schemas && resolvedValue.isRef
+  context: ContextSpec;
+}
+
+export function getAliasedImports({
+  name,
+  resolvedValue,
+  context,
+}: GetAliasedImportsOptions): GeneratorImport[] {
+  return context.output.schemas && resolvedValue.isRef
     ? resolvedValue.imports.map((imp) => {
         if (
           !needCreateImportAlias({
             name,
             imp,
-            existingImports,
           })
         ) {
           return imp;
         }
 
-        const specName = pascal(
-          getSpecName(imp.specKey ?? '', context.specKey),
-        );
-
-        // for spec starts from digit
-        const normalizedSpecName = /^\d/.test(specName)
-          ? `__${specName}`
-          : specName;
-
         return {
           ...imp,
-          alias: `${normalizedSpecName}__${imp.name}`,
+          alias: `__${imp.name}`,
         };
       })
     : resolvedValue.imports;
+}
 
-export const needCreateImportAlias = ({
-  existingImports,
-  imp,
-  name,
-}: {
+interface NeedCreateImportAliasOptions {
   name?: string;
   imp: GeneratorImport;
-  existingImports: GeneratorImport[];
-}): boolean =>
-  !imp.alias &&
-  // !!imp.specKey &&
-  (imp.name === name ||
-    existingImports.some(
-      (existingImport) =>
-        imp.name === existingImport.name &&
-        imp.specKey !== existingImport.specKey,
-    ));
+}
 
-export const getImportAliasForRefOrValue = ({
+export function needCreateImportAlias({
+  imp,
+  name,
+}: NeedCreateImportAliasOptions): boolean {
+  return !imp.alias && imp.name === name;
+}
+
+interface GetImportAliasForRefOrValueOptions {
+  resolvedValue: ResolverValue;
+  imports: GeneratorImport[];
+  context: ContextSpec;
+}
+
+export function getImportAliasForRefOrValue({
   context,
   imports,
   resolvedValue,
-}: {
-  resolvedValue: ResolverValue;
-  imports: GeneratorImport[];
-  context: ContextSpecs;
-}): string => {
+}: GetImportAliasForRefOrValueOptions): string {
   if (!context.output.schemas || !resolvedValue.isRef) {
     return resolvedValue.value;
   }
@@ -75,4 +60,4 @@ export const getImportAliasForRefOrValue = ({
     (imp) => imp.name === resolvedValue.value,
   );
   return importWithSameName?.alias ?? resolvedValue.value;
-};
+}

@@ -1,23 +1,22 @@
 import {
-  ClientHeaderBuilder,
+  type ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GetterResponse,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GetterResponse,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
   pascal,
   toObjectString,
 } from '@orval/core';
-
 import {
-  generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 import {
@@ -49,11 +48,9 @@ export const generateQueryRequestFunction = (
   options: GeneratorOptions,
   isVue: boolean,
 ) => {
-  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
-    return generateAxiosRequestFunction(verbOptions, options, isVue);
-  } else {
-    return generateFetchRequestFunction(verbOptions, options);
-  }
+  return options.context.output.httpClient === OutputHttpClient.AXIOS
+    ? generateAxiosRequestFunction(verbOptions, options, isVue)
+    : generateFetchRequestFunction(verbOptions, options);
 };
 
 export const generateAxiosRequestFunction = (
@@ -86,7 +83,7 @@ export const generateAxiosRequestFunction = (
   }
 
   const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData.disabled === false;
+  const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
@@ -119,7 +116,7 @@ export const generateAxiosRequestFunction = (
       isVue,
     });
 
-    const bodyDefinition = body.definition.replace('[]', '\\[\\]');
+    const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
     const propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
@@ -225,7 +222,7 @@ export const generateAxiosRequestFunction = (
     ${isVue ? vueUnRefParams(props) : ''}
     ${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;
@@ -305,7 +302,7 @@ export const getQueryOptions = ({
   }
 
   if (hasSignal) {
-    return 'signal';
+    return httpClient === OutputHttpClient.AXIOS ? 'signal' : '{ signal }';
   }
 
   return '';
@@ -344,22 +341,37 @@ export const getHookOptions = ({
   return value;
 };
 
+// Helper to deduplicate union type string: "A | B | B" -> "A | B"
+const dedupeUnionTypes = (types: string): string => {
+  if (!types) return types;
+  // Split by '|', trim spaces, filter out empty, and dedupe using a Set
+  const unique = [
+    ...new Set(
+      types
+        .split('|')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return unique.join(' | ');
+};
+
 export const getQueryErrorType = (
   operationName: string,
   response: GetterResponse,
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
+  const errorsType = dedupeUnionTypes(response.definition.errors || 'unknown');
+
   if (mutator) {
     return mutator.hasErrorType
-      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
-          response.definition.errors || 'unknown'
-        }>`
-      : response.definition.errors || 'unknown';
+      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${errorsType}>`
+      : errorsType;
   } else {
     return httpClient === OutputHttpClient.AXIOS
-      ? `AxiosError<${response.definition.errors || 'unknown'}>`
-      : `${response.definition.errors || 'unknown'}`;
+      ? `AxiosError<${errorsType}>`
+      : errorsType;
   }
 };
 
@@ -377,16 +389,16 @@ export const getHooksOptionImplementation = (
   return isRequestOptions
     ? `const mutationKey = ['${operationName}'];
 const {mutation: mutationOptions${
-        !mutator
-          ? options
-          : mutator?.hasSecondArg
+        mutator
+          ? mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
+          : options
       }} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
       : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${!mutator ? (httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined') : ''}};`
+      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${mutator ? '' : httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined'}};`
     : '';
 };
 
@@ -399,11 +411,11 @@ export const getMutationRequestArgs = (
     httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
 
   return isRequestOptions
-    ? !mutator
-      ? options
-      : mutator?.hasSecondArg
+    ? mutator
+      ? mutator?.hasSecondArg
         ? 'requestOptions'
         : ''
+      : options
     : '';
 };
 

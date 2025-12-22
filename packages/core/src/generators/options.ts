@@ -1,19 +1,27 @@
 import {
-  GeneratorMutator,
-  GeneratorSchema,
-  GetterBody,
-  GetterQueryParam,
-  GetterResponse,
-  ParamsSerializerOptions,
+  type GeneratorMutator,
+  type GeneratorSchema,
+  type GetterBody,
+  type GetterQueryParam,
+  type GetterResponse,
+  type ParamsSerializerOptions,
   Verbs,
 } from '../types';
 import { getIsBodyVerb, isObject, stringify } from '../utils';
 
-export const generateBodyOptions = (
+interface GenerateFormDataAndUrlEncodedFunctionOptions {
+  body: GetterBody;
+  formData?: GeneratorMutator;
+  formUrlEncoded?: GeneratorMutator;
+  isFormData: boolean;
+  isFormUrlEncoded: boolean;
+}
+
+export function generateBodyOptions(
   body: GetterBody,
   isFormData: boolean,
   isFormUrlEncoded: boolean,
-) => {
+) {
   if (isFormData && body.formData) {
     return '\n      formData,';
   }
@@ -27,20 +35,9 @@ export const generateBodyOptions = (
   }
 
   return '';
-};
+}
 
-export const generateAxiosOptions = ({
-  response,
-  isExactOptionalPropertyTypes,
-  queryParams,
-  headers,
-  requestOptions,
-  hasSignal,
-  isVue,
-  isAngular,
-  paramsSerializer,
-  paramsSerializerOptions,
-}: {
+interface GenerateAxiosOptions {
   response: GetterResponse;
   isExactOptionalPropertyTypes: boolean;
   queryParams?: GeneratorSchema;
@@ -51,7 +48,20 @@ export const generateAxiosOptions = ({
   isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
-}) => {
+}
+
+export function generateAxiosOptions({
+  response,
+  isExactOptionalPropertyTypes,
+  queryParams,
+  headers,
+  requestOptions,
+  hasSignal,
+  isVue,
+  isAngular,
+  paramsSerializer,
+  paramsSerializerOptions,
+}: GenerateAxiosOptions) {
   const isRequestOptions = requestOptions !== false;
   if (
     !queryParams &&
@@ -63,9 +73,9 @@ export const generateAxiosOptions = ({
       return 'options';
     }
     if (hasSignal) {
-      return !isExactOptionalPropertyTypes
-        ? 'signal'
-        : '...(signal ? { signal } : {})';
+      return isExactOptionalPropertyTypes
+        ? '...(signal ? { signal } : {})'
+        : 'signal';
     }
     return '';
   }
@@ -82,9 +92,9 @@ export const generateAxiosOptions = ({
     }
 
     if (hasSignal) {
-      value += !isExactOptionalPropertyTypes
-        ? '\n        signal,'
-        : '\n        ...(signal ? { signal } : {}),';
+      value += isExactOptionalPropertyTypes
+        ? '\n        ...(signal ? { signal } : {}),'
+        : '\n        signal,';
     }
   }
 
@@ -94,7 +104,7 @@ export const generateAxiosOptions = ({
   ) {
     if (response.isBlob) {
       value += `\n        responseType: 'blob',`;
-    } else if (response.definition.success === 'string') {
+    } else if (response.contentTypes.at(0) === 'text/plain') {
       value += `\n        responseType: 'text',`;
     }
   }
@@ -126,35 +136,17 @@ export const generateAxiosOptions = ({
     queryParams &&
     (paramsSerializer || paramsSerializerOptions?.qs)
   ) {
-    if (paramsSerializer) {
-      value += `\n        paramsSerializer: ${paramsSerializer.name},`;
-    } else {
-      value += `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
-        paramsSerializerOptions!.qs,
-      )}),`;
-    }
+    value += paramsSerializer
+      ? `\n        paramsSerializer: ${paramsSerializer.name},`
+      : `\n        paramsSerializer: (params) => qs.stringify(params, ${JSON.stringify(
+          paramsSerializerOptions!.qs,
+        )}),`;
   }
 
   return value;
-};
+}
 
-export const generateOptions = ({
-  route,
-  body,
-  headers,
-  queryParams,
-  response,
-  verb,
-  requestOptions,
-  isFormData,
-  isFormUrlEncoded,
-  isAngular,
-  isExactOptionalPropertyTypes,
-  hasSignal,
-  isVue,
-  paramsSerializer,
-  paramsSerializerOptions,
-}: {
+interface GenerateOptionsOptions {
   route: string;
   body: GetterBody;
   headers?: GetterQueryParam;
@@ -170,7 +162,25 @@ export const generateOptions = ({
   isVue?: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
-}) => {
+}
+
+export function generateOptions({
+  route,
+  body,
+  headers,
+  queryParams,
+  response,
+  verb,
+  requestOptions,
+  isFormData,
+  isFormUrlEncoded,
+  isAngular,
+  isExactOptionalPropertyTypes,
+  hasSignal,
+  isVue,
+  paramsSerializer,
+  paramsSerializerOptions,
+}: GenerateOptionsOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyOptions(body, isFormData, isFormUrlEncoded)
     : '';
@@ -207,13 +217,13 @@ export const generateOptions = ({
   return `\n      \`${route}\`,${
     getIsBodyVerb(verb) ? bodyOptions || 'undefined,' : ''
   }${axiosOptions === 'options' ? axiosOptions : options}\n    `;
-};
+}
 
-export const generateBodyMutatorConfig = (
+export function generateBodyMutatorConfig(
   body: GetterBody,
   isFormData: boolean,
   isFormUrlEncoded: boolean,
-) => {
+) {
   if (isFormData && body.formData) {
     return ',\n       data: formData';
   }
@@ -227,13 +237,13 @@ export const generateBodyMutatorConfig = (
   }
 
   return '';
-};
+}
 
-export const generateQueryParamsAxiosConfig = (
+export function generateQueryParamsAxiosConfig(
   response: GetterResponse,
   isVue: boolean,
   queryParams?: GetterQueryParam,
-) => {
+) {
   if (!queryParams && !response.isBlob) {
     return '';
   }
@@ -241,11 +251,7 @@ export const generateQueryParamsAxiosConfig = (
   let value = '';
 
   if (queryParams) {
-    if (isVue) {
-      value += ',\n        params: unref(params)';
-    } else {
-      value += ',\n        params';
-    }
+    value += isVue ? ',\n        params: unref(params)' : ',\n        params';
   }
 
   if (response.isBlob) {
@@ -253,21 +259,9 @@ export const generateQueryParamsAxiosConfig = (
   }
 
   return value;
-};
+}
 
-export const generateMutatorConfig = ({
-  route,
-  body,
-  headers,
-  queryParams,
-  response,
-  verb,
-  isFormData,
-  isFormUrlEncoded,
-  hasSignal,
-  isExactOptionalPropertyTypes,
-  isVue,
-}: {
+interface GenerateMutatorConfigOptions {
   route: string;
   body: GetterBody;
   headers?: GetterQueryParam;
@@ -279,7 +273,21 @@ export const generateMutatorConfig = ({
   hasSignal: boolean;
   isExactOptionalPropertyTypes: boolean;
   isVue?: boolean;
-}) => {
+}
+
+export function generateMutatorConfig({
+  route,
+  body,
+  headers,
+  queryParams,
+  response,
+  verb,
+  isFormData,
+  isFormUrlEncoded,
+  hasSignal,
+  isExactOptionalPropertyTypes,
+  isVue,
+}: GenerateMutatorConfigOptions) {
   const bodyOptions = getIsBodyVerb(verb)
     ? generateBodyMutatorConfig(body, isFormData, isFormUrlEncoded)
     : '';
@@ -307,12 +315,12 @@ export const generateMutatorConfig = ({
         }`
       : ''
   }\n    }`;
-};
+}
 
-export const generateMutatorRequestOptions = (
+export function generateMutatorRequestOptions(
   requestOptions: boolean | object | undefined,
   hasSecondArgument: boolean,
-) => {
+) {
   if (!hasSecondArgument) {
     return isObject(requestOptions)
       ? `{${stringify(requestOptions)?.slice(1, -1)}}`
@@ -324,21 +332,15 @@ export const generateMutatorRequestOptions = (
   }
 
   return 'options';
-};
+}
 
-export const generateFormDataAndUrlEncodedFunction = ({
+export function generateFormDataAndUrlEncodedFunction({
   body,
   formData,
   formUrlEncoded,
   isFormData,
   isFormUrlEncoded,
-}: {
-  body: GetterBody;
-  formData?: GeneratorMutator;
-  formUrlEncoded?: GeneratorMutator;
-  isFormData: boolean;
-  isFormUrlEncoded: boolean;
-}) => {
+}: GenerateFormDataAndUrlEncodedFunctionOptions) {
   if (isFormData && body.formData) {
     if (formData) {
       return `const formData = ${formData.name}(${body.implementation})`;
@@ -356,4 +358,4 @@ export const generateFormDataAndUrlEncodedFunction = ({
   }
 
   return '';
-};
+}

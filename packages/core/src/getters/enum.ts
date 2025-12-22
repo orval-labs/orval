@@ -1,32 +1,38 @@
 import { keyword } from 'esutils';
-import { SchemaObject } from 'openapi3-ts/dist/model/openapi30';
-import { EnumGeneration, NamingConvention } from '../types';
+
+import {
+  EnumGeneration,
+  NamingConvention,
+  type OpenApiSchemaObject,
+} from '../types';
 import { conventionName, isNumeric, sanitize } from '../utils';
 
-export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
+export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
   return (
     schemaObject?.['x-enumNames'] ||
     schemaObject?.['x-enumnames'] ||
     schemaObject?.['x-enum-varnames']
   );
-};
+}
 
-export const getEnumDescriptions = (schemaObject: SchemaObject | undefined) => {
+export function getEnumDescriptions(
+  schemaObject: OpenApiSchemaObject | undefined,
+) {
   return (
     schemaObject?.['x-enumDescriptions'] ||
     schemaObject?.['x-enumdescriptions'] ||
     schemaObject?.['x-enum-descriptions']
   );
-};
+}
 
-export const getEnum = (
+export function getEnum(
   value: string,
   enumName: string,
   names: string[] | undefined,
   enumGenerationType: EnumGeneration,
   descriptions?: string[],
   enumNamingConvention?: NamingConvention,
-) => {
+) {
   if (enumGenerationType === EnumGeneration.CONST)
     return getTypeConstEnum(
       value,
@@ -40,7 +46,7 @@ export const getEnum = (
   if (enumGenerationType === EnumGeneration.UNION)
     return getUnion(value, enumName);
   throw new Error(`Invalid enumGenerationType: ${enumGenerationType}`);
-};
+}
 
 const getTypeConstEnum = (
   value: string,
@@ -74,12 +80,12 @@ const getTypeConstEnum = (
   return enumValue;
 };
 
-export const getEnumImplementation = (
+export function getEnumImplementation(
   value: string,
   names?: string[],
   descriptions?: string[],
   enumNamingConvention?: NamingConvention,
-) => {
+) {
   // empty enum or null-only enum
   if (value === '') return '';
 
@@ -123,7 +129,7 @@ export const getEnumImplementation = (
       `  ${keyword.isIdentifierNameES5(key) ? key : `'${key}'`}: ${val},\n`
     );
   }, '');
-};
+}
 
 const getNativeEnum = (
   value: string,
@@ -182,10 +188,10 @@ const getNativeEnumItems = (
 };
 
 const toNumberKey = (value: string) => {
-  if (value[0] === '-') {
+  if (value.startsWith('-')) {
     return `NUMBER_MINUS_${value.slice(1)}`;
   }
-  if (value[0] === '+') {
+  if (value.startsWith('+')) {
     return `NUMBER_PLUS_${value.slice(1)}`;
   }
   return `NUMBER_${value}`;

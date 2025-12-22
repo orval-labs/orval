@@ -1,124 +1,145 @@
 import {
-  ContextSpecs,
+  type ContextSpec,
   generalJSTypesWithArray,
-  GeneratorImport,
-  GlobalMockOptions,
+  type GeneratorImport,
+  type GlobalMockOptions,
   isFunction,
-  MockOptions,
-  NormalizedOverrideOutput,
+  type MockOptions,
+  type NormalizedOverrideOutput,
+  type OpenApiDocument,
+  type OpenApiSchemaObject,
   resolveRef,
-  ResReqTypesValue,
+  type ResReqTypesValue,
   stringify,
 } from '@orval/core';
-import { OpenAPIObject, SchemaObject } from 'openapi3-ts/oas30';
+
 import { getMockScalar } from '../faker/getters';
 
-const getMockPropertiesWithoutFunc = (properties: any, spec: OpenAPIObject) =>
-  Object.entries(isFunction(properties) ? properties(spec) : properties).reduce<
-    Record<string, string>
-  >((acc, [key, value]) => {
+function getMockPropertiesWithoutFunc(properties: any, spec: OpenApiDocument) {
+  return Object.entries(
+    isFunction(properties) ? properties(spec) : properties,
+  ).reduce<Record<string, string>>((acc, [key, value]) => {
     const implementation = isFunction(value)
       ? `(${value})()`
       : stringify(value as string)!;
 
-    acc[key] = implementation?.replace(
-      /import_faker.defaults|import_faker.faker/g,
+    acc[key] = implementation.replaceAll(
+      /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
       'faker',
     );
     return acc;
   }, {});
+}
 
-const getMockWithoutFunc = (
-  spec: OpenAPIObject,
+function getMockWithoutFunc(
+  spec: OpenApiDocument,
   override?: NormalizedOverrideOutput,
-): MockOptions => ({
-  arrayMin: override?.mock?.arrayMin,
-  arrayMax: override?.mock?.arrayMax,
-  stringMin: override?.mock?.stringMin,
-  stringMax: override?.mock?.stringMax,
-  numberMin: override?.mock?.numberMin,
-  numberMax: override?.mock?.numberMax,
-  required: override?.mock?.required,
-  fractionDigits: override?.mock?.fractionDigits,
-  ...(override?.mock?.properties
-    ? {
-        properties: getMockPropertiesWithoutFunc(
-          override.mock.properties,
-          spec,
-        ),
-      }
-    : {}),
-  ...(override?.mock?.format
-    ? {
-        format: getMockPropertiesWithoutFunc(override.mock.format, spec),
-      }
-    : {}),
-  ...(override?.operations
-    ? {
-        operations: Object.entries(override.operations).reduce<
-          Exclude<MockOptions['operations'], undefined>
-        >((acc, [key, value]) => {
-          if (value.mock?.properties) {
-            acc[key] = {
-              properties: getMockPropertiesWithoutFunc(
-                value.mock.properties,
-                spec,
-              ),
-            };
-          }
+): MockOptions {
+  return {
+    arrayMin: override?.mock?.arrayMin,
+    arrayMax: override?.mock?.arrayMax,
+    stringMin: override?.mock?.stringMin,
+    stringMax: override?.mock?.stringMax,
+    numberMin: override?.mock?.numberMin,
+    numberMax: override?.mock?.numberMax,
+    required: override?.mock?.required,
+    fractionDigits: override?.mock?.fractionDigits,
+    ...(override?.mock?.properties
+      ? {
+          properties: getMockPropertiesWithoutFunc(
+            override.mock.properties,
+            spec,
+          ),
+        }
+      : {}),
+    ...(override?.mock?.format
+      ? {
+          format: getMockPropertiesWithoutFunc(override.mock.format, spec),
+        }
+      : {}),
+    ...(override?.operations
+      ? {
+          operations: Object.entries(override.operations).reduce<
+            Exclude<MockOptions['operations'], undefined>
+          >((acc, [key, value]) => {
+            if (value?.mock?.properties) {
+              acc[key] = {
+                properties: getMockPropertiesWithoutFunc(
+                  value.mock.properties,
+                  spec,
+                ),
+              };
+            }
 
-          return acc;
-        }, {}),
-      }
-    : {}),
-  ...(override?.tags
-    ? {
-        tags: Object.entries(override.tags).reduce<
-          Exclude<MockOptions['tags'], undefined>
-        >((acc, [key, value]) => {
-          if (value.mock?.properties) {
-            acc[key] = {
-              properties: getMockPropertiesWithoutFunc(
-                value.mock.properties,
-                spec,
-              ),
-            };
-          }
+            return acc;
+          }, {}),
+        }
+      : {}),
+    ...(override?.tags
+      ? {
+          tags: Object.entries(override.tags).reduce<
+            Exclude<MockOptions['tags'], undefined>
+          >((acc, [key, value]) => {
+            if (value?.mock?.properties) {
+              acc[key] = {
+                properties: getMockPropertiesWithoutFunc(
+                  value.mock.properties,
+                  spec,
+                ),
+              };
+            }
 
-          return acc;
-        }, {}),
-      }
-    : {}),
-});
+            return acc;
+          }, {}),
+        }
+      : {}),
+  };
+}
 
-const getMockScalarJsTypes = (
+function getMockScalarJsTypes(
   definition: string,
-  mockOptionsWithoutFunc: { [key: string]: unknown },
-) => {
+  mockOptionsWithoutFunc: Record<string, unknown>,
+) {
   const isArray = definition.endsWith('[]');
   const type = isArray ? definition.slice(0, -2) : definition;
 
   switch (type) {
-    case 'number':
+    case 'number': {
       return isArray
         ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc.arrayMin}, ` +
             `max: ${mockOptionsWithoutFunc.arrayMax}}` +
             `)}, () => faker.number.int())`
         : 'faker.number.int()';
-    case 'string':
+    }
+    case 'string': {
       return isArray
         ? `Array.from({length: faker.number.int({` +
             `min: ${mockOptionsWithoutFunc?.arrayMin},` +
             `max: ${mockOptionsWithoutFunc?.arrayMax}}` +
             `)}, () => faker.word.sample())`
         : 'faker.word.sample()';
-    default:
+    }
+    default: {
       return 'undefined';
+    }
   }
-};
+}
 
-export const getResponsesMockDefinition = ({
+interface GetResponsesMockDefinitionOptions {
+  operationId: string;
+  tags: string[];
+  returnType: string;
+  responses: ResReqTypesValue[];
+  imports: GeneratorImport[];
+  mockOptionsWithoutFunc: Record<string, unknown>;
+  transformer?: (value: unknown, definition: string) => string;
+  context: ContextSpec;
+  mockOptions?: GlobalMockOptions;
+  splitMockImplementations: string[];
+}
+
+export function getResponsesMockDefinition({
   operationId,
   tags,
   returnType,
@@ -129,31 +150,20 @@ export const getResponsesMockDefinition = ({
   context,
   mockOptions,
   splitMockImplementations,
-}: {
-  operationId: string;
-  tags: string[];
-  returnType: string;
-  responses: ResReqTypesValue[];
-  imports: GeneratorImport[];
-  mockOptionsWithoutFunc: { [key: string]: unknown };
-  transformer?: (value: unknown, definition: string) => string;
-  context: ContextSpecs;
-  mockOptions?: GlobalMockOptions;
-  splitMockImplementations: string[];
-}) => {
+}: GetResponsesMockDefinitionOptions) {
   return responses.reduce(
     (
       acc,
       { value: definition, originalSchema, example, examples, imports, isRef },
     ) => {
       if (
-        context.output.override?.mock?.useExamples ||
+        context.output.override.mock?.useExamples ||
         mockOptions?.useExamples
       ) {
         let exampleValue =
-          example ||
-          originalSchema?.example ||
-          Object.values(examples || {})[0] ||
+          example ??
+          originalSchema?.example ??
+          Object.values(examples ?? {})[0] ??
           originalSchema?.examples?.[0];
         exampleValue = exampleValue?.value ?? exampleValue;
         if (exampleValue) {
@@ -175,11 +185,16 @@ export const getResponsesMockDefinition = ({
         return acc;
       }
 
-      if (!originalSchema) {
+      if (!originalSchema && definition === 'Blob') {
+        originalSchema = { type: 'string', format: 'binary' };
+      } else if (!originalSchema) {
         return acc;
       }
 
-      const resolvedRef = resolveRef<SchemaObject>(originalSchema, context);
+      const resolvedRef = resolveRef<OpenApiSchemaObject>(
+        originalSchema,
+        context,
+      );
 
       const scalar = getMockScalar({
         item: {
@@ -190,12 +205,7 @@ export const getResponsesMockDefinition = ({
         mockOptions: mockOptionsWithoutFunc,
         operationId,
         tags,
-        context: isRef
-          ? {
-              ...context,
-              specKey: responseImports[0]?.specKey ?? context.specKey,
-            }
-          : context,
+        context,
         existingReferencedProperties: [],
         splitMockImplementations,
         allowOverride: true,
@@ -203,9 +213,7 @@ export const getResponsesMockDefinition = ({
 
       acc.imports.push(...scalar.imports);
       acc.definitions.push(
-        transformer
-          ? transformer(scalar.value, returnType)
-          : scalar.value.toString(),
+        transformer ? transformer(scalar.value, returnType) : scalar.value,
       );
 
       return acc;
@@ -215,9 +223,22 @@ export const getResponsesMockDefinition = ({
       imports: [] as GeneratorImport[],
     },
   );
-};
+}
 
-export const getMockDefinition = ({
+interface GetMockDefinitionOptions {
+  operationId: string;
+  tags: string[];
+  returnType: string;
+  responses: ResReqTypesValue[];
+  imports: GeneratorImport[];
+  override: NormalizedOverrideOutput;
+  transformer?: (value: unknown, definition: string) => string;
+  context: ContextSpec;
+  mockOptions?: GlobalMockOptions;
+  splitMockImplementations: string[];
+}
+
+export function getMockDefinition({
   operationId,
   tags,
   returnType,
@@ -228,22 +249,8 @@ export const getMockDefinition = ({
   context,
   mockOptions,
   splitMockImplementations,
-}: {
-  operationId: string;
-  tags: string[];
-  returnType: string;
-  responses: ResReqTypesValue[];
-  imports: GeneratorImport[];
-  override: NormalizedOverrideOutput;
-  transformer?: (value: unknown, definition: string) => string;
-  context: ContextSpecs;
-  mockOptions?: GlobalMockOptions;
-  splitMockImplementations: string[];
-}) => {
-  const mockOptionsWithoutFunc = getMockWithoutFunc(
-    context.specs[context.specKey],
-    override,
-  );
+}: GetMockDefinitionOptions) {
+  const mockOptionsWithoutFunc = getMockWithoutFunc(context.spec, override);
 
   const { definitions, imports } = getResponsesMockDefinition({
     operationId,
@@ -263,24 +270,24 @@ export const getMockDefinition = ({
     definitions,
     imports,
   };
-};
+}
 
-export const getMockOptionsDataOverride = (
+export function getMockOptionsDataOverride(
   operationTags: string[],
   operationId: string,
   override: NormalizedOverrideOutput,
-) => {
+) {
   const responseOverride =
-    override?.operations?.[operationId]?.mock?.data ||
+    override.operations[operationId]?.mock?.data ??
     operationTags
-      .map((operationTag) => override?.tags?.[operationTag]?.mock?.data)
+      .map((operationTag) => override.tags[operationTag]?.mock?.data)
       .find((e) => e !== undefined);
   const implementation = isFunction(responseOverride)
     ? `(${responseOverride})()`
     : stringify(responseOverride);
 
-  return implementation?.replace(
-    /import_faker.defaults|import_faker.faker/g,
+  return implementation?.replaceAll(
+    /import_faker\.defaults|import_faker\.faker|_faker\.faker/g,
     'faker',
   );
-};
+}

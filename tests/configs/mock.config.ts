@@ -68,11 +68,10 @@ export default defineConfig({
       schemas: '../generated/mock/petstore-custom-mock-builder/model',
       client: 'axios',
       mock: (verbOptions, _) => {
-        const imports = [];
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
-          imports: imports,
+          imports: [],
           implementation: {
             function: '',
             handlerName: handlerName,

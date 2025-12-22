@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "streetsidesoftware.code-spell-checker",
+    "dbaeumer.vscode-eslint",
+    "vitest.explorer",
+    "unifiedjs.vscode-mdx"
+  ]
+}
