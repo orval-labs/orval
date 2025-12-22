@@ -202,12 +202,12 @@ export type SchemaGenerationType = 'typescript' | 'zod';
 
 export type SchemaOptions = {
   path: string;
-  type: SchemaGenerationType | SchemaGenerationType[];
+  type: SchemaGenerationType;
 };
 
 export type NormalizedSchemaOptions = {
   path: string;
-  type: SchemaGenerationType[];
+  type: SchemaGenerationType;
 };
 
 export type OutputOptions = {
@@ -629,7 +629,6 @@ export type NormalizedFetchOptions = {
   includeHttpResponseReturnType: boolean;
   forceSuccessResponse: boolean;
   jsonReviver?: Mutator;
-  useZodSchemaResponse: boolean;
   runtimeValidation: boolean;
 };
 
@@ -637,7 +636,6 @@ export type FetchOptions = {
   includeHttpResponseReturnType?: boolean;
   forceSuccessResponse?: boolean;
   jsonReviver?: Mutator;
-  useZodSchemaResponse?: boolean;
   runtimeValidation?: boolean;
 };
 

@@ -530,17 +530,4 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
-  'schemas-zod-and-typescript': {
-    output: {
-      target: '../generated/default/schemas-zod-and-typescript/endpoints.ts',
-      schemas: {
-        path: '../generated/default/schemas-zod-and-typescript/model',
-        type: ['typescript', 'zod'],
-      },
-      client: 'fetch',
-    },
-    input: {
-      target: '../specifications/petstore.yaml',
-    },
-  },
 });
