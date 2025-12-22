@@ -21,7 +21,9 @@ import type {
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
-import { lastValueFrom } from 'rxjs';
+import { fromEvent, lastValueFrom } from 'rxjs';
+
+import { takeUntil } from 'rxjs/operators';
 
 import type {
   CreatePetsBody,
@@ -39,15 +41,19 @@ export const searchPets = (
   http: HttpClient,
   params: SearchPetsParams,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const httpParams = params
     ? new HttpParams({ fromObject: params as Record<string, string> })
     : undefined;
   const url = `/v${version}/search`;
-  return lastValueFrom(http.get<Pets>(url, { params: httpParams }));
+  const request$ = http.get<Pets>(url, { params: httpParams });
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getSearchPetsQueryKey = (
@@ -131,15 +137,19 @@ export const listPets = (
   http: HttpClient,
   params?: ListPetsParams,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const httpParams = params
     ? new HttpParams({ fromObject: params as Record<string, string> })
     : undefined;
   const url = `/v${version}/pets`;
-  return lastValueFrom(http.get<Pets>(url, { params: httpParams }));
+  const request$ = http.get<Pets>(url, { params: httpParams });
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getListPetsQueryKey = (
@@ -219,12 +229,16 @@ export const createPets = (
   http: HttpClient,
   createPetsBody: CreatePetsBody,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<void> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const url = `/v${version}/pets`;
-  return lastValueFrom(http.post<void>(url, createPetsBody));
+  const request$ = http.post<void>(url, createPetsBody);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getCreatePetsMutationOptions = <
@@ -300,12 +314,16 @@ export const showPetById = (
   http: HttpClient,
   petId: string,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const url = `/v${version}/pets/${petId}`;
-  return lastValueFrom(http.get<Pet>(url));
+  const request$ = http.get<Pet>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getShowPetByIdQueryKey = (petId?: string, version: number = 1) => {
@@ -386,12 +404,16 @@ export const showPetText = (
   http: HttpClient,
   petId: string,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const url = `/v${version}/pets/${petId}/text`;
-  return lastValueFrom(http.get<string>(url));
+  const request$ = http.get<string>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getShowPetTextQueryKey = (petId?: string, version: number = 1) => {
@@ -474,12 +496,16 @@ export const uploadFile = (
   petId: number,
   uploadFileBody: Blob,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<void> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const url = `/v${version}/pet/${petId}/uploadImage`;
-  return lastValueFrom(http.post<void>(url, uploadFileBody));
+  const request$ = http.post<void>(url, uploadFileBody);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getUploadFileMutationOptions = <
@@ -559,12 +585,16 @@ export const downloadFile = (
   http: HttpClient,
   petId: number,
   version: number = 1,
-  options?: RequestInit,
+  options?: { signal?: AbortSignal | null },
 ): Promise<Blob> => {
-  // Note: options?.signal is not used as Angular HttpClient cancellation works differently
-
   const url = `/v${version}/pet/${petId}/downloadImage`;
-  return lastValueFrom(http.get<Blob>(url));
+  const request$ = http.get<Blob>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
 };
 
 export const getDownloadFileQueryKey = (

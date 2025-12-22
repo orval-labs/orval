@@ -55,8 +55,15 @@ export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
   },
   // Note: 'inject' from @angular/core is already in ANGULAR_QUERY_DEPENDENCIES
   {
-    exports: [{ name: 'lastValueFrom', values: true }],
+    exports: [
+      { name: 'lastValueFrom', values: true },
+      { name: 'fromEvent', values: true },
+    ],
     dependency: 'rxjs',
+  },
+  {
+    exports: [{ name: 'takeUntil', values: true }],
+    dependency: 'rxjs/operators',
   },
 ];
 
@@ -202,19 +209,25 @@ export const generateAngularHttpRequestFunction = (
     }
   }
 
-  // For Angular, we don't use AbortSignal directly since RxJS handles cancellation differently
-  // However, we accept an options parameter to maintain API compatibility with query framework
-  const optionsParam = hasSignal ? ', options?: RequestInit' : '';
+  // For Angular, we use takeUntil with fromEvent to handle AbortSignal cancellation
+  // This follows the pattern from TanStack Query Angular documentation
+  // Note: signal can be null (from RequestInit), so we accept null | undefined
+  const optionsParam = hasSignal
+    ? ', options?: { signal?: AbortSignal | null }'
+    : '';
 
   // Note: http parameter is passed from the inject* function which has injection context
   return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (
     http: HttpClient,
     ${queryProps}${optionsParam}
   ): Promise<${dataType}> => {
-    // Note: options?.signal is not used as Angular HttpClient cancellation works differently
     ${bodyForm}
     ${urlConstruction}
-    return lastValueFrom(${httpCall});
+    const request$ = ${httpCall};
+    if (options?.signal) {
+      return lastValueFrom(request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))));
+    }
+    return lastValueFrom(request$);
   }
 `;
 };
