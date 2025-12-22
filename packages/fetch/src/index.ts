@@ -45,14 +45,6 @@ const FETCH_DEPENDENCIES: GeneratorDependency[] = [
 
 export const getFetchDependencies = () => FETCH_DEPENDENCIES;
 
-const PRIMITIVE_TYPES = new Set([
-  'string',
-  'number',
-  'boolean',
-  'void',
-  'unknown',
-]);
-
 export const generateRequestFunction = (
   {
     queryParams,
@@ -169,7 +161,14 @@ ${
   );
 
   const responseType = response.definition.success;
-  const isPrimitiveType = PRIMITIVE_TYPES.has(responseType);
+
+  const isPrimitiveType = [
+    'string',
+    'number',
+    'boolean',
+    'void',
+    'unknown',
+  ].includes(responseType);
   const hasSchema = response.imports.some((imp) => imp.name === responseType);
 
   const isValidateResponse =
@@ -204,12 +203,7 @@ ${
     )
     .map((r) => {
       const name = `${responseTypeName}${pascal(r.key)}${'suffix' in r ? r.suffix : ''}`;
-
-      const hasValidZodSchema = r.value && !PRIMITIVE_TYPES.has(r.value);
-      const dataType =
-        override.fetch.useZodSchemaResponse && hasValidZodSchema
-          ? `zod.infer<typeof ${r.value}>`
-          : r.value || 'unknown';
+      const dataType = r.value || 'unknown';
 
       return {
         name,
@@ -413,57 +407,23 @@ export const fetchResponseTypeName = (
 export const generateClient: ClientBuilder = (
   verbOptions,
   options,
-  outputClient,
+  _outputClient,
   output,
 ) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  const isZodSchemaImportsRequired =
-    verbOptions.override.fetch.useZodSchemaResponse ||
-    verbOptions.override.fetch.runtimeValidation;
+  const isZodSchema =
+    isObject(output?.schemas) && output.schemas.type === 'zod';
 
-  const responseImports = isZodSchemaImportsRequired
-    ? [
-        ...verbOptions.response.types.success,
-        ...verbOptions.response.types.errors,
-      ].flatMap((response) =>
-        response.imports.map((imp) => ({
-          name: imp.name,
-          schemaName: imp.name,
-          isZodSchema: true,
-          values: true,
-        })),
-      )
-    : [];
-
-  const requestImports = isZodSchemaImportsRequired
-    ? [
-        ...verbOptions.body.imports,
-        ...(verbOptions.queryParams
-          ? [{ name: `${pascal(verbOptions.operationName)}QueryParams` }]
-          : []),
-        ...(verbOptions.headers
-          ? [{ name: `${pascal(verbOptions.operationName)}Header` }]
-          : []),
-      ].map((imp) => ({
-        name: imp.name,
-        schemaName: imp.name,
-        isZodSchema: true,
-        values: true,
-      }))
-    : [];
-
-  const zodSchemaImports = [...responseImports, ...requestImports];
-
-  const zodSchemaNames = new Set(zodSchemaImports.map((imp) => imp.name));
-  const filteredImports = imports.filter(
-    (imp) => !zodSchemaNames.has(imp.name),
-  );
+  const generateImports = imports.map((imp) => ({
+    ...imp,
+    isZodSchema: isZodSchema,
+  }));
 
   return {
     implementation: `${functionImplementation}\n`,
-    imports: [...filteredImports, ...zodSchemaImports],
+    imports: generateImports,
   };
 };
 

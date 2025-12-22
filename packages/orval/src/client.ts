@@ -246,7 +246,12 @@ export const generateOperations = (
         outputClient,
         output,
       );
-      const client = await generatorClient(verbOption, options, outputClient);
+      const client = await generatorClient(
+        verbOption,
+        options,
+        outputClient,
+        output,
+      );
 
       if (!client.implementation) {
         return acc;
