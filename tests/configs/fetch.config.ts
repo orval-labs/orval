@@ -299,12 +299,11 @@ export default defineConfig({
       target: '../generated/fetch/zod-schema-response-single/endpoints.ts',
       schemas: {
         path: '../generated/fetch/zod-schema-response-single/model',
-        type: ['typescript', 'zod'],
+        type: 'zod',
       },
       client: 'fetch',
       override: {
         fetch: {
-          useZodSchemaResponse: true,
           runtimeValidation: true,
         },
       },
@@ -318,14 +317,13 @@ export default defineConfig({
       target: '../generated/fetch/zod-schema-response-split/endpoints.ts',
       schemas: {
         path: '../generated/fetch/zod-schema-response-split/model',
-        type: ['typescript', 'zod'],
+        type: 'zod',
       },
       mode: 'split',
       indexFiles: false,
       client: 'fetch',
       override: {
         fetch: {
-          useZodSchemaResponse: true,
           runtimeValidation: true,
         },
       },
@@ -339,13 +337,12 @@ export default defineConfig({
       target: '../generated/fetch/zod-schema-response-tags/endpoints.ts',
       schemas: {
         path: '../generated/fetch/zod-schema-response-tags/model',
-        type: ['typescript', 'zod'],
+        type: 'zod',
       },
       mode: 'tags',
       client: 'fetch',
       override: {
         fetch: {
-          useZodSchemaResponse: true,
           runtimeValidation: true,
         },
       },
@@ -359,13 +356,12 @@ export default defineConfig({
       target: '../generated/fetch/zod-schema-response-tags-split/endpoints.ts',
       schemas: {
         path: '../generated/fetch/zod-schema-response-tags-split/model',
-        type: ['typescript', 'zod'],
+        type: 'zod',
       },
       mode: 'tags-split',
       client: 'fetch',
       override: {
         fetch: {
-          useZodSchemaResponse: true,
           runtimeValidation: true,
         },
       },
