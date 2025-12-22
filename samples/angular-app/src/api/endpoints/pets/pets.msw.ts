@@ -33,7 +33,7 @@ export const getSearchPetsResponseMock = (): Pets =>
       ]),
       undefined,
     ]),
-  }));
+  })) as Pets;
 
 export const getListPetsResponseMock = (): Pets =>
   Array.from(
@@ -57,19 +57,22 @@ export const getListPetsResponseMock = (): Pets =>
       ]),
       undefined,
     ]),
-  }));
+  })) as Pets;
 
 export const getShowPetByIdResponseMock = () =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
     tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
-  }))();
+  }))() as Pet;
 
-export const getShowPetTextResponseMock = (): string => faker.word.sample();
+export const getShowPetTextResponseMock = (): string =>
+  faker.word.sample() as string;
 
 export const getDownloadFileResponseMock = (): Blob =>
-  new Blob(faker.helpers.arrayElements(faker.word.words(10).split(' ')));
+  new Blob(
+    faker.helpers.arrayElements(faker.word.words(10).split(' ')),
+  ) as Blob;
 
 export const getSearchPetsMockHandler = (
   overrideResponse?:

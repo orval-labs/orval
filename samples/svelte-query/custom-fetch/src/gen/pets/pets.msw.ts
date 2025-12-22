@@ -92,7 +92,7 @@ export const getListPetsResponseMock = (): Pets =>
       ] as const),
       undefined,
     ]),
-  }));
+  })) as Pets;
 
 export const getCreatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
@@ -144,34 +144,35 @@ export const getCreatePetsResponseCatMock = (
   ...overrideResponse,
 });
 
-export const getCreatePetsResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getCreatePetsResponseDogMock() },
-    { ...getCreatePetsResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
+export const getCreatePetsResponseMock = (): Pet =>
+  ({
+    ...faker.helpers.arrayElement([
+      { ...getCreatePetsResponseDogMock() },
+      { ...getCreatePetsResponseCatMock() },
+    ]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    id: faker.number.int({ min: undefined, max: undefined }),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      undefined,
+    ]),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+      undefined,
+    ]),
+  }) as Pet;
 
 export const getUpdatePetsResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
@@ -223,34 +224,35 @@ export const getUpdatePetsResponseCatMock = (
   ...overrideResponse,
 });
 
-export const getUpdatePetsResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getUpdatePetsResponseDogMock() },
-    { ...getUpdatePetsResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
+export const getUpdatePetsResponseMock = (): Pet =>
+  ({
+    ...faker.helpers.arrayElement([
+      { ...getUpdatePetsResponseDogMock() },
+      { ...getUpdatePetsResponseCatMock() },
+    ]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    id: faker.number.int({ min: undefined, max: undefined }),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      undefined,
+    ]),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+      undefined,
+    ]),
+  }) as Pet;
 
 export const getShowPetByIdResponseLabradoodleMock = (
   overrideResponse: Partial<Labradoodle> = {},
@@ -302,34 +304,35 @@ export const getShowPetByIdResponseCatMock = (
   ...overrideResponse,
 });
 
-export const getShowPetByIdResponseMock = (): Pet => ({
-  ...faker.helpers.arrayElement([
-    { ...getShowPetByIdResponseDogMock() },
-    { ...getShowPetByIdResponseCatMock() },
-  ]),
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  callingCode: faker.helpers.arrayElement([
-    faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-    undefined,
-  ]),
-  country: faker.helpers.arrayElement([
-    faker.helpers.arrayElement([
-      "People's Republic of China",
-      'Uruguay',
-    ] as const),
-    undefined,
-  ]),
-});
+export const getShowPetByIdResponseMock = (): Pet =>
+  ({
+    ...faker.helpers.arrayElement([
+      { ...getShowPetByIdResponseDogMock() },
+      { ...getShowPetByIdResponseCatMock() },
+    ]),
+    '@id': faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    id: faker.number.int({ min: undefined, max: undefined }),
+    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
+    tag: faker.helpers.arrayElement([
+      faker.string.alpha({ length: { min: 10, max: 20 } }),
+      undefined,
+    ]),
+    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+    callingCode: faker.helpers.arrayElement([
+      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+      undefined,
+    ]),
+    country: faker.helpers.arrayElement([
+      faker.helpers.arrayElement([
+        "People's Republic of China",
+        'Uruguay',
+      ] as const),
+      undefined,
+    ]),
+  }) as Pet;
 
 export const getListPetsMockHandler = (
   overrideResponse?:
