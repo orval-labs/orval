@@ -20,7 +20,7 @@
   "dependencies": {
     "@faker-js/faker": "^10.1.0",
     "axios": "^1.13.2",
-    "msw": "^2.12.1"
+    "msw": "^2.12.4"
   },
   "dependenciesMeta": {
     "msw": {
