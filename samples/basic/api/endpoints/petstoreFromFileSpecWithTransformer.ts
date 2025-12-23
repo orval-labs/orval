@@ -101,48 +101,47 @@ export const getListPetsResponseMock = (): PetsArray =>
       ] as const),
       undefined,
     ]),
-  })) as PetsArray;
+  }));
 
 export const getListPetsNestedArrayResponseMock = (
   overrideResponse: Partial<PetsNestedArray> = {},
-): PetsNestedArray =>
-  ({
-    data: faker.helpers.arrayElement([
-      Array.from(
-        { length: faker.number.int({ min: 1, max: 10 }) },
-        (_, i) => i + 1,
-      ).map(() => ({
-        id: faker.number.int({ min: undefined, max: undefined }),
-        name: 'jon',
-        age: faker.helpers.arrayElement([
-          faker.number.int({ min: 0, max: 30 }),
-          undefined,
-        ]),
-        tag: faker.helpers.arrayElement(['jon', null]),
-        email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-        callingCode: faker.helpers.arrayElement([
-          faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-          undefined,
-        ]),
-        country: faker.helpers.arrayElement([
-          faker.helpers.arrayElement([
-            "People's Republic of China",
-            'Uruguay',
-          ] as const),
-          undefined,
-        ]),
-      })),
-      undefined,
-    ]),
-    ...overrideResponse,
-  }) as PetsNestedArray;
+): PetsNestedArray => ({
+  data: faker.helpers.arrayElement([
+    Array.from(
+      { length: faker.number.int({ min: 1, max: 10 }) },
+      (_, i) => i + 1,
+    ).map(() => ({
+      id: faker.number.int({ min: undefined, max: undefined }),
+      name: 'jon',
+      age: faker.helpers.arrayElement([
+        faker.number.int({ min: 0, max: 30 }),
+        undefined,
+      ]),
+      tag: faker.helpers.arrayElement(['jon', null]),
+      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
+      callingCode: faker.helpers.arrayElement([
+        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
+        undefined,
+      ]),
+      country: faker.helpers.arrayElement([
+        faker.helpers.arrayElement([
+          "People's Republic of China",
+          'Uruguay',
+        ] as const),
+        undefined,
+      ]),
+    })),
+    undefined,
+  ]),
+  ...overrideResponse,
+});
 
 export const getShowPetByIdResponseMock = () =>
   (() => ({
     id: faker.number.int({ min: 1, max: 99 }),
     name: faker.person.firstName(),
     tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
-  }))() as Pet;
+  }))();
 
 export const getListPetsMockHandler = (
   overrideResponse?:
