@@ -156,18 +156,14 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
   }, options)
 }\n`;
 
-  const includeResponseImports = isTextPlain
-    ? imports
-    : [
-        ...imports,
-        ...response.imports.filter((r) => {
-          // Only include imports which are actually used in mock.
-          const reg = new RegExp(String.raw`\b${r.name}\b`);
-          return (
-            reg.test(handlerImplementation) || reg.test(mockImplementation)
-          );
-        }),
-      ];
+  const includeResponseImports = [
+    ...imports,
+    ...response.imports.filter((r) => {
+      // Only include imports which are actually used in mock.
+      const reg = new RegExp(String.raw`\b${r.name}\b`);
+      return reg.test(handlerImplementation) || reg.test(mockImplementation);
+    }),
+  ];
 
   return {
     implementation: {
