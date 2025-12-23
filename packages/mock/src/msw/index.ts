@@ -162,7 +162,7 @@ export const ${handlerName} = (overrideResponse?: ${returnType} | ((${infoParam}
         ...imports,
         ...response.imports.filter((r) => {
           // Only include imports which are actually used in mock.
-          const reg = new RegExp(`\\b${r.name}\\b`);
+          const reg = new RegExp(String.raw`\b${r.name}\b`);
           return (
             reg.test(handlerImplementation) || reg.test(mockImplementation)
           );

@@ -905,7 +905,7 @@ const generateQueryImplementation = ({
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
     props.map((prop) => {
-      const regex = new RegExp(`^${prop.name}\\s*\\?:`);
+      const regex = new RegExp(String.raw`^${prop.name}\s*\?:`);
 
       if (!regex.test(prop.definition)) {
         return prop;
@@ -1252,7 +1252,7 @@ const generateQueryHook = async (
     summary,
     deprecated,
   }: GeneratorVerbOptions,
-  { route, override: { operations = {} }, context, output }: GeneratorOptions,
+  { route, override: { operations }, context, output }: GeneratorOptions,
   outputClient: OutputClient | OutputClientFunc,
 ) => {
   let props = _props;

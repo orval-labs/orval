@@ -17,7 +17,7 @@ export function stringify(
   }
 
   if (isString(data)) {
-    return `'${data.replaceAll("'", "\\'")}'`;
+    return `'${data.replaceAll("'", String.raw`\'`)}'`;
   }
 
   if (isNumber(data) || isBoolean(data) || isFunction(data)) {

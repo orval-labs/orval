@@ -15,20 +15,11 @@ import type {
   OpenApiSchemaObject,
   OpenApiSchemasObject,
 } from '../types';
-import {
-  conventionName,
-  isString,
-  jsDoc,
-  pascal,
-  sanitize,
-  upath,
-} from '../utils';
+import { conventionName, isString, jsDoc, pascal, sanitize } from '../utils';
 import { generateInterface } from './interface';
 
 /**
  * Extract all types from #/components/schemas
- *
- * @param schemas
  */
 export function generateSchemasDefinition(
   schemas: OpenApiSchemasObject = {},

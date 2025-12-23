@@ -119,7 +119,7 @@ interface GetQueryParamsOptions {
 }
 
 export function getQueryParams({
-  queryParams = [],
+  queryParams,
   operationName,
   context,
   suffix = 'params',

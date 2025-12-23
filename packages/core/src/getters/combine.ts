@@ -145,7 +145,7 @@ export function combineSchemas({
     (acc, subSchema) => {
       // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
       // v8 default: propName stays undefined so combined types are inlined directly
-      let propName: string | undefined = undefined;
+      let propName: string | undefined;
       if (context.output.override.aliasCombinedTypes) {
         propName = name ? name + pascal(separator) : undefined;
         if (propName && acc.schemas.length > 0) {

@@ -66,7 +66,7 @@ export async function importSpecs(
 
 /**
  * The plugins from `@scalar/json-magic` does not dereference $ref.
- * Instead if fetches them and puts them under x-ext, and changes the $ref to point to #x-ext/<name>.
+ * Instead it fetches them and puts them under x-ext, and changes the $ref to point to #x-ext/<name>.
  * This function dereferences those x-ext $ref's.
  */
 export function dereferenceExternalRef(data: object): object {
