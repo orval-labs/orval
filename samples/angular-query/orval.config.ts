@@ -13,6 +13,9 @@ export default defineConfig({
       tsconfig: './tsconfig.app.json',
       clean: true,
       override: {
+        query: {
+          useInvalidate: true,
+        },
         operations: {
           listPets: {
             mock: {
