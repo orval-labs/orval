@@ -254,8 +254,8 @@ export const generateZodValidationSchemaDefinition = (
       ),
     );
 
-    // Handle allOf with additional properties - merge additional properties into the last schema
-    if (schema.allOf && schema.properties) {
+    // Handle allOf/oneOf/anyOf with additional properties
+    if (schema.properties && Object.keys(schema.properties).length > 0) {
       const additionalPropertiesSchema = {
         properties: schema.properties,
         required: schema.required,
@@ -277,10 +277,24 @@ export const generateZodValidationSchemaDefinition = (
           },
         );
 
-      baseSchemas.push(additionalPropertiesDefinition);
+      // For oneOf/anyOf, use allOf to combine union with common properties
+      // This generates: zod.union([...]).and(commonProperties)
+      if (schema.oneOf || schema.anyOf) {
+        functions.push([
+          'allOf',
+          [
+            { functions: [[separator, baseSchemas]], consts: [] },
+            additionalPropertiesDefinition,
+          ],
+        ]);
+      } else {
+        // For allOf, just add to the list
+        baseSchemas.push(additionalPropertiesDefinition);
+        functions.push([separator, baseSchemas]);
+      }
+    } else {
+      functions.push([separator, baseSchemas]);
     }
-
-    functions.push([separator, baseSchemas]);
     skipSwitchStatement = true;
   }
 
