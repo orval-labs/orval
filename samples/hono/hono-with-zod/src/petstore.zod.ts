@@ -16,28 +16,53 @@ export const ListPetsQueryParams = zod.object({
 
 export const ListPetsResponseItem = zod.preprocess(
   stripNill,
-  zod.union([
-    zod.union([
+  zod
+    .union([
+      zod
+        .union([
+          zod
+            .object({
+              cuteness: zod.number(),
+              breed: zod.enum(['Labradoodle']),
+            })
+            .strict(),
+          zod
+            .object({
+              length: zod.number(),
+              breed: zod.enum(['Dachshund']),
+            })
+            .strict(),
+        ])
+        .and(
+          zod
+            .object({
+              barksPerMinute: zod.number().optional(),
+              type: zod.enum(['dog']),
+            })
+            .strict(),
+        ),
       zod
         .object({
-          cuteness: zod.number(),
-          breed: zod.enum(['Labradoodle']),
+          petsRequested: zod.number().optional(),
+          type: zod.enum(['cat']),
         })
         .strict(),
+    ])
+    .and(
       zod
         .object({
-          length: zod.number(),
-          breed: zod.enum(['Dachshund']),
+          '@id': zod.string().optional(),
+          id: zod.number(),
+          name: zod.string(),
+          tag: zod.string().optional(),
+          email: zod.string().email().optional(),
+          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          country: zod
+            .enum(["People's Republic of China", 'Uruguay'])
+            .optional(),
         })
         .strict(),
-    ]),
-    zod
-      .object({
-        petsRequested: zod.number().optional(),
-        type: zod.enum(['cat']),
-      })
-      .strict(),
-  ]),
+    ),
 );
 export const ListPetsResponse = zod.array(ListPetsResponseItem);
 
@@ -49,71 +74,140 @@ export const CreatePetsBody = zod.array(CreatePetsBodyItem);
 
 export const CreatePetsResponse = zod.preprocess(
   stripNill,
-  zod.union([
-    zod.union([
+  zod
+    .union([
+      zod
+        .union([
+          zod
+            .object({
+              cuteness: zod.number(),
+              breed: zod.enum(['Labradoodle']),
+            })
+            .strict(),
+          zod
+            .object({
+              length: zod.number(),
+              breed: zod.enum(['Dachshund']),
+            })
+            .strict(),
+        ])
+        .and(
+          zod
+            .object({
+              barksPerMinute: zod.number().optional(),
+              type: zod.enum(['dog']),
+            })
+            .strict(),
+        ),
       zod
         .object({
-          cuteness: zod.number(),
-          breed: zod.enum(['Labradoodle']),
+          petsRequested: zod.number().optional(),
+          type: zod.enum(['cat']),
         })
         .strict(),
+    ])
+    .and(
       zod
         .object({
-          length: zod.number(),
-          breed: zod.enum(['Dachshund']),
+          '@id': zod.string().optional(),
+          id: zod.number(),
+          name: zod.string(),
+          tag: zod.string().optional(),
+          email: zod.string().email().optional(),
+          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          country: zod
+            .enum(["People's Republic of China", 'Uruguay'])
+            .optional(),
         })
         .strict(),
-    ]),
-    zod
-      .object({
-        petsRequested: zod.number().optional(),
-        type: zod.enum(['cat']),
-      })
-      .strict(),
-  ]),
+    ),
 );
 
-export const UpdatePetsBody = zod.union([
-  zod.union([
+export const UpdatePetsBody = zod
+  .union([
+    zod
+      .union([
+        zod.object({
+          cuteness: zod.number(),
+          breed: zod.enum(['Labradoodle']),
+        }),
+        zod.object({
+          length: zod.number(),
+          breed: zod.enum(['Dachshund']),
+        }),
+      ])
+      .and(
+        zod.object({
+          barksPerMinute: zod.number().optional(),
+          type: zod.enum(['dog']),
+        }),
+      ),
     zod.object({
-      cuteness: zod.number(),
-      breed: zod.enum(['Labradoodle']),
+      petsRequested: zod.number().optional(),
+      type: zod.enum(['cat']),
     }),
+  ])
+  .and(
     zod.object({
-      length: zod.number(),
-      breed: zod.enum(['Dachshund']),
+      '@id': zod.string().optional(),
+      id: zod.number(),
+      name: zod.string(),
+      tag: zod.string().optional(),
+      email: zod.string().email().optional(),
+      callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+      country: zod.enum(["People's Republic of China", 'Uruguay']).optional(),
     }),
-  ]),
-  zod.object({
-    petsRequested: zod.number().optional(),
-    type: zod.enum(['cat']),
-  }),
-]);
+  );
 
 export const UpdatePetsResponse = zod.preprocess(
   stripNill,
-  zod.union([
-    zod.union([
+  zod
+    .union([
+      zod
+        .union([
+          zod
+            .object({
+              cuteness: zod.number(),
+              breed: zod.enum(['Labradoodle']),
+            })
+            .strict(),
+          zod
+            .object({
+              length: zod.number(),
+              breed: zod.enum(['Dachshund']),
+            })
+            .strict(),
+        ])
+        .and(
+          zod
+            .object({
+              barksPerMinute: zod.number().optional(),
+              type: zod.enum(['dog']),
+            })
+            .strict(),
+        ),
       zod
         .object({
-          cuteness: zod.number(),
-          breed: zod.enum(['Labradoodle']),
+          petsRequested: zod.number().optional(),
+          type: zod.enum(['cat']),
         })
         .strict(),
+    ])
+    .and(
       zod
         .object({
-          length: zod.number(),
-          breed: zod.enum(['Dachshund']),
+          '@id': zod.string().optional(),
+          id: zod.number(),
+          name: zod.string(),
+          tag: zod.string().optional(),
+          email: zod.string().email().optional(),
+          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          country: zod
+            .enum(["People's Republic of China", 'Uruguay'])
+            .optional(),
         })
         .strict(),
-    ]),
-    zod
-      .object({
-        petsRequested: zod.number().optional(),
-        type: zod.enum(['cat']),
-      })
-      .strict(),
-  ]),
+    ),
 );
 
 export const ShowPetByIdParams = zod.object({
@@ -123,26 +217,51 @@ export const ShowPetByIdParams = zod.object({
 
 export const ShowPetByIdResponse = zod.preprocess(
   stripNill,
-  zod.union([
-    zod.union([
+  zod
+    .union([
+      zod
+        .union([
+          zod
+            .object({
+              cuteness: zod.number(),
+              breed: zod.enum(['Labradoodle']),
+            })
+            .strict(),
+          zod
+            .object({
+              length: zod.number(),
+              breed: zod.enum(['Dachshund']),
+            })
+            .strict(),
+        ])
+        .and(
+          zod
+            .object({
+              barksPerMinute: zod.number().optional(),
+              type: zod.enum(['dog']),
+            })
+            .strict(),
+        ),
       zod
         .object({
-          cuteness: zod.number(),
-          breed: zod.enum(['Labradoodle']),
+          petsRequested: zod.number().optional(),
+          type: zod.enum(['cat']),
         })
         .strict(),
+    ])
+    .and(
       zod
         .object({
-          length: zod.number(),
-          breed: zod.enum(['Dachshund']),
+          '@id': zod.string().optional(),
+          id: zod.number(),
+          name: zod.string(),
+          tag: zod.string().optional(),
+          email: zod.string().email().optional(),
+          callingCode: zod.enum(['+33', '+420', '+33']).optional(),
+          country: zod
+            .enum(["People's Republic of China", 'Uruguay'])
+            .optional(),
         })
         .strict(),
-    ]),
-    zod
-      .object({
-        petsRequested: zod.number().optional(),
-        type: zod.enum(['cat']),
-      })
-      .strict(),
-  ]),
+    ),
 );
