@@ -254,8 +254,8 @@ export const generateZodValidationSchemaDefinition = (
       ),
     );
 
-    // Handle allOf/oneOf/anyOf with additional properties
-    if (schema.properties && Object.keys(schema.properties).length > 0) {
+    // Handle allOf/oneOf/anyOf with additional properties - merge additional properties into the schema
+    if ((schema.allOf || schema.oneOf || schema.anyOf) && schema.properties) {
       const additionalPropertiesSchema = {
         properties: schema.properties,
         required: schema.required,
