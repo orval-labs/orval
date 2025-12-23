@@ -17,7 +17,9 @@ import type {
   CreateMutationResult,
   CreateQueryOptions,
   CreateQueryResult,
+  InvalidateOptions,
   MutationFunction,
+  QueryClient,
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
@@ -131,6 +133,23 @@ export function injectSearchPets<
 }
 
 /**
+ * @summary search by query params
+ */
+export const invalidateSearchPets = async (
+  queryClient: QueryClient,
+  params: SearchPetsParams,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getSearchPetsQueryKey(params, version) },
+    options,
+  );
+
+  return queryClient;
+};
+
+/**
  * @summary List all pets
  */
 export const listPets = (
@@ -221,6 +240,23 @@ export function injectListPets<
 
   return query;
 }
+
+/**
+ * @summary List all pets
+ */
+export const invalidateListPets = async (
+  queryClient: QueryClient,
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getListPetsQueryKey(params, version) },
+    options,
+  );
+
+  return queryClient;
+};
 
 /**
  * @summary Create a pet
@@ -400,6 +436,23 @@ export function injectShowPetById<
 /**
  * @summary Info for a specific pet
  */
+export const invalidateShowPetById = async (
+  queryClient: QueryClient,
+  petId: string,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getShowPetByIdQueryKey(petId, version) },
+    options,
+  );
+
+  return queryClient;
+};
+
+/**
+ * @summary Info for a specific pet
+ */
 export const showPetText = (
   http: HttpClient,
   petId: string,
@@ -486,6 +539,23 @@ export function injectShowPetText<
 
   return query;
 }
+
+/**
+ * @summary Info for a specific pet
+ */
+export const invalidateShowPetText = async (
+  queryClient: QueryClient,
+  petId: string,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getShowPetTextQueryKey(petId, version) },
+    options,
+  );
+
+  return queryClient;
+};
 
 /**
  * Upload image of the pet.
@@ -678,3 +748,20 @@ export function injectDownloadFile<
 
   return query;
 }
+
+/**
+ * @summary Download an image.
+ */
+export const invalidateDownloadFile = async (
+  queryClient: QueryClient,
+  petId: number,
+  version: number = 1,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getDownloadFileQueryKey(petId, version) },
+    options,
+  );
+
+  return queryClient;
+};
