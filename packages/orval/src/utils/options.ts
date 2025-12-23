@@ -197,7 +197,12 @@ export async function normalizeOptions(
       workspace: outputOptions.workspace ? outputWorkspace : undefined,
       client: outputOptions.client ?? client ?? OutputClient.AXIOS_FUNCTIONS,
       httpClient:
-        outputOptions.httpClient ?? httpClient ?? OutputHttpClient.FETCH,
+        outputOptions.httpClient ??
+        httpClient ??
+        // Auto-detect: use Angular HttpClient for angular-query by default
+        ((outputOptions.client ?? client) === OutputClient.ANGULAR_QUERY
+          ? OutputHttpClient.ANGULAR
+          : OutputHttpClient.FETCH),
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,

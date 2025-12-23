@@ -81,6 +81,11 @@
           "editUrl": "/guides/angular.md"
         },
         {
+          "title": "Angular Query",
+          "path": "/guides/angular-query",
+          "editUrl": "/guides/angular-query.md"
+        },
+        {
           "title": "SWR",
           "path": "/guides/swr",
           "editUrl": "/guides/swr.md"

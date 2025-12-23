@@ -1,0 +1,159 @@
+---
+id: angular-query
+title: Angular Query
+---
+
+Start by providing an OpenAPI specification and an Orval config file. To use Angular Query, define the `client` in the Orval config to be `angular-query`.
+
+## Example with Angular Query
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
+      client: 'angular-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.
+
+The Angular Query mode will generate an implementation file with one injectable query function per path in the OpenAPI Specification. By default, Orval uses Angular's native `HttpClient` via `inject(HttpClient)` for HTTP requests.
+
+For example, <a href="https://github.com/orval-labs/orval/blob/master/samples/angular-query/petstore.yaml" target="_blank">this Swagger specification</a> will generate the following:
+
+```ts
+export const showPetById = (
+  http: HttpClient,
+  petId: string,
+  options?: { signal?: AbortSignal },
+): Promise<Pet> => {
+  const request$ = http.get<Pet>(`/pets/${petId}`);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const getShowPetByIdQueryOptions = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = unknown,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    fetch?: { signal?: AbortSignal };
+  },
+) => {
+  const { query: queryOptions, fetch: fetchOptions } = options ?? {};
+  const http = inject(HttpClient);
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
+    signal,
+  }) => showPetById(http, petId, { signal, ...fetchOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!petId,
+    ...queryOptions,
+  } as CreateQueryOptions<
+    Awaited<ReturnType<typeof showPetById>>,
+    TError,
+    TData
+  >;
+};
+
+export const injectShowPetById = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = unknown,
+>(
+  petId: string,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    fetch?: { signal?: AbortSignal };
+  },
+) => {
+  const queryOptions = getShowPetByIdQueryOptions(petId, options);
+
+  const query = injectQuery(() => queryOptions) as CreateQueryResult<
+    TData,
+    TError
+  >;
+
+  return query;
+};
+```
+
+## How to Use Other Queries
+
+Given the following configuration, Orval will generate query and infinite query functions with a `nextId` query parameter. It is also possible to override the config for every query with the `options` field.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      ...
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    ...
+  },
+});
+```
+
+If needed, it is also possible to override the `query` options for a single operation or tag:
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      ...
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              ...
+            },
+          }
+        },
+      },
+    }
+    ...
+  },
+});
+```
+
+Go <a href="https://github.com/orval-labs/orval/tree/master/samples/angular-query" target="_blank">here</a> for a full example

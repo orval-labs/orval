@@ -258,6 +258,7 @@ export type InputOptions = {
 
 export const OutputClient = {
   ANGULAR: 'angular',
+  ANGULAR_QUERY: 'angular-query',
   AXIOS: 'axios',
   AXIOS_FUNCTIONS: 'axios-functions',
   REACT_QUERY: 'react-query',
@@ -275,6 +276,7 @@ export type OutputClient = (typeof OutputClient)[keyof typeof OutputClient];
 export const OutputHttpClient = {
   AXIOS: 'axios',
   FETCH: 'fetch',
+  ANGULAR: 'angular',
 } as const;
 
 export type OutputHttpClient =

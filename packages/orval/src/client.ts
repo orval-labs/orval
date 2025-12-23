@@ -39,6 +39,7 @@ const getGeneratorClient = (
     axios: axios({ type: 'axios' })(),
     'axios-functions': axios({ type: 'axios-functions' })(),
     angular: angular()(),
+    'angular-query': query({ output, type: 'angular-query' })(),
     'react-query': query({ output, type: 'react-query' })(),
     'svelte-query': query({ output, type: 'svelte-query' })(),
     'vue-query': query({ output, type: 'vue-query' })(),

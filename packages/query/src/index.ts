@@ -34,6 +34,7 @@ import {
 import { omitBy } from 'remeda';
 
 import {
+  ANGULAR_HTTP_DEPENDENCIES,
   AXIOS_DEPENDENCIES,
   generateQueryRequestFunction,
   getHookOptions,
@@ -47,11 +48,37 @@ import {
 } from './client';
 import {
   getHasSignal,
+  getQueryTypeForFramework,
+  isAngular,
   isVue,
   normalizeQueryOptions,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
 } from './utils';
+/**
+ * Get framework-aware prefix for hook names and type definitions
+ * @param hasSvelteQueryV4 - Whether using Svelte Query v4
+ * @param isAngularClient - Whether using Angular client
+ * @param capitalize - Whether to capitalize the prefix (for type definitions)
+ * @returns The appropriate prefix string
+ */
+const getFrameworkPrefix = (
+  hasSvelteQueryV4: boolean,
+  isAngularClient: boolean,
+  capitalize = false,
+): string => {
+  let prefix: string;
+
+  if (hasSvelteQueryV4) {
+    prefix = 'create';
+  } else if (isAngularClient) {
+    prefix = 'inject';
+  } else {
+    prefix = 'use';
+  }
+
+  return capitalize ? prefix.charAt(0).toUpperCase() + prefix.slice(1) : prefix;
+};
 
 const REACT_DEPENDENCIES: GeneratorDependency[] = [
   {
@@ -323,6 +350,39 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'injectQuery', values: true },
+      { name: 'injectInfiniteQuery', values: true },
+      { name: 'injectMutation', values: true },
+      { name: 'InjectQueryOptions' },
+      { name: 'InjectMutationOptions' },
+      { name: 'CreateQueryOptions' },
+      { name: 'CreateInfiniteQueryOptions' },
+      { name: 'CreateMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'QueryKey' },
+      { name: 'CreateQueryResult' },
+      { name: 'CreateInfiniteQueryResult' },
+      { name: 'InfiniteData' },
+      { name: 'CreateMutationResult' },
+      { name: 'DataTag' },
+      { name: 'QueryClient' },
+    ],
+    dependency: '@tanstack/angular-query-experimental',
+  },
+  {
+    exports: [
+      { name: 'inject', values: true },
+      { name: 'Signal' },
+      { name: 'computed', values: true },
+    ],
+    dependency: '@angular/core',
+  },
+];
+
 const isVueQueryV3 = (packageJson: PackageJson | undefined) => {
   const hasVueQuery =
     packageJson?.dependencies?.['vue-query'] ??
@@ -353,10 +413,34 @@ export const getVueQueryDependencies: ClientDependenciesBuilder = (
   ];
 };
 
+export const getAngularQueryDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+  hasParamsSerializerOptions: boolean,
+  packageJson,
+  httpClient?: OutputHttpClient,
+) => {
+  // Use Angular HTTP dependencies by default for angular-query, or when explicitly set
+  const useAngularHttp =
+    !hasGlobalMutator && httpClient === OutputHttpClient.ANGULAR;
+  const useAxios = !hasGlobalMutator && httpClient === OutputHttpClient.AXIOS;
+
+  return [
+    ...(useAngularHttp ? ANGULAR_HTTP_DEPENDENCIES : []),
+    ...(useAxios ? AXIOS_DEPENDENCIES : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+    ...ANGULAR_QUERY_DEPENDENCIES,
+  ];
+};
+
 const isQueryV5 = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
 ) => {
+  // Angular Query is v5 only
+  if (queryClient === 'angular-query') {
+    return true;
+  }
+
   const version = getPackageByQueryClient(packageJson, queryClient);
 
   if (!version) {
@@ -385,8 +469,13 @@ const isQueryV6 = (
 
 const isQueryV5WithDataTagError = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
 ) => {
+  // Angular Query is v5 only and supports DataTag
+  if (queryClient === 'angular-query') {
+    return true;
+  }
+
   const version = getPackageByQueryClient(packageJson, queryClient);
 
   if (!version) {
@@ -400,8 +489,13 @@ const isQueryV5WithDataTagError = (
 
 const isQueryV5WithInfiniteQueryOptionsError = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
 ) => {
+  // Angular Query is v5 only and supports infinite query options
+  if (queryClient === 'angular-query') {
+    return true;
+  }
+
   const version = getPackageByQueryClient(packageJson, queryClient);
 
   if (!version) {
@@ -415,7 +509,7 @@ const isQueryV5WithInfiniteQueryOptionsError = (
 
 const getPackageByQueryClient = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
 ) => {
   switch (queryClient) {
     case 'react-query': {
@@ -437,6 +531,15 @@ const getPackageByQueryClient = (
         packageJson?.dependencies?.['@tanstack/vue-query'] ??
         packageJson?.devDependencies?.['@tanstack/vue-query'] ??
         packageJson?.peerDependencies?.['@tanstack/vue-query']
+      );
+    }
+    case 'angular-query': {
+      return (
+        packageJson?.dependencies?.['@tanstack/angular-query-experimental'] ??
+        packageJson?.devDependencies?.[
+          '@tanstack/angular-query-experimental'
+        ] ??
+        packageJson?.peerDependencies?.['@tanstack/angular-query-experimental']
       );
     }
   }
@@ -518,6 +621,7 @@ const getQueryOptionsDefinition = ({
   queryParam,
   isReturnType,
   initialData,
+  isAngularClient,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
@@ -530,9 +634,10 @@ const getQueryOptionsDefinition = ({
   queryParam?: string;
   isReturnType: boolean;
   initialData?: 'defined' | 'undefined';
+  isAngularClient: boolean;
 }) => {
   const isMutatorHook = mutator?.isHook;
-  const prefix = hasSvelteQueryV4 ? 'Create' : 'Use';
+  const prefix = !hasSvelteQueryV4 && !isAngularClient ? 'Use' : 'Create';
   const partialOptions = !isReturnType && hasQueryV5;
 
   if (type) {
@@ -595,6 +700,7 @@ const generateQueryArguments = ({
   queryParam,
   initialData,
   httpClient,
+  isAngularClient,
 }: {
   operationName: string;
   definitions: string;
@@ -608,6 +714,7 @@ const generateQueryArguments = ({
   queryParam?: string;
   initialData?: 'defined' | 'undefined';
   httpClient: OutputHttpClient;
+  isAngularClient: boolean;
 }) => {
   const definition = getQueryOptionsDefinition({
     operationName,
@@ -621,6 +728,7 @@ const generateQueryArguments = ({
     queryParam,
     isReturnType: false,
     initialData,
+    isAngularClient,
   });
 
   if (!isRequestOptions) {
@@ -659,6 +767,12 @@ const generateQueryReturnType = ({
   isInitialDataDefined?: boolean;
 }) => {
   switch (outputClient) {
+    case OutputClient.ANGULAR_QUERY: {
+      if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
+        return `CreateQueryResult<TData, TError>`;
+      }
+      return `CreateInfiniteQueryResult<TData, TError>`;
+    }
     case OutputClient.SVELTE_QUERY: {
       if (!hasSvelteQueryV4) {
         return `Use${pascal(type)}StoreResult<Awaited<ReturnType<${
@@ -703,6 +817,14 @@ const generateMutatorReturnType = ({
   dataType: unknown;
   variableType: unknown;
 }) => {
+  if (outputClient === OutputClient.ANGULAR_QUERY) {
+    return `: CreateMutationResult<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
   if (outputClient === OutputClient.REACT_QUERY) {
     return `: UseMutationResult<
         Awaited<ReturnType<${dataType}>>,
@@ -926,7 +1048,10 @@ const generateQueryImplementation = ({
 
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
-  const httpFunctionProps = queryParam
+  const isAngularHttp =
+    isAngular(outputClient) || httpClient === OutputHttpClient.ANGULAR;
+
+  let httpFunctionProps = queryParam
     ? props
         .map((param) => {
           if (
@@ -949,7 +1074,15 @@ const generateQueryImplementation = ({
         isVue(outputClient),
         httpClient,
         queryProperties,
+        isAngularHttp,
       );
+
+  // For Angular with infinite queries, we need to prefix with http
+  if (queryParam && isAngularHttp) {
+    httpFunctionProps = httpFunctionProps
+      ? `http, ${httpFunctionProps}`
+      : 'http';
+  }
 
   const definedInitialDataReturnType = generateQueryReturnType({
     outputClient,
@@ -997,6 +1130,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'defined',
     httpClient,
+    isAngularClient: isAngular(outputClient),
   });
   const undefinedInitialDataQueryArguments = generateQueryArguments({
     operationName,
@@ -1011,6 +1145,7 @@ const generateQueryImplementation = ({
     queryParam,
     initialData: 'undefined',
     httpClient,
+    isAngularClient: isAngular(outputClient),
   });
   const queryArguments = generateQueryArguments({
     operationName,
@@ -1024,6 +1159,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     httpClient,
+    isAngularClient: isAngular(outputClient),
   });
 
   const queryOptions = getQueryOptions({
@@ -1057,6 +1193,7 @@ const generateQueryImplementation = ({
     queryParams,
     queryParam,
     isReturnType: true,
+    isAngularClient: isAngular(outputClient),
   });
 
   const queryOptionsImp = generateQueryOptions({
@@ -1092,6 +1229,7 @@ const generateQueryImplementation = ({
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
 
 ${hookOptions}
+${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
 
   const queryKey =  ${
     queryKeyMutator
@@ -1150,16 +1288,17 @@ ${hookOptions}
        ? 'customOptions'
        : `{ queryKey, queryFn, ${queryOptionsImp}}`
    } as ${queryOptionFnReturnType} ${
-     isVue(outputClient)
+     isVue(outputClient) || isAngular(outputClient)
        ? ''
        : `& { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`
    }
 }`;
-
-  const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
-  const optionalQueryClientArgument = hasQueryV5
-    ? ', queryClient?: QueryClient'
-    : '';
+  const operationPrefix = getFrameworkPrefix(
+    hasSvelteQueryV4,
+    isAngular(outputClient),
+  );
+  const optionalQueryClientArgument =
+    hasQueryV5 && !isAngular(outputClient) ? ', queryClient?: QueryClient' : '';
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
@@ -1211,15 +1350,25 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  const ${queryResultVarName} = ${camel(`${operationPrefix}-${type}`)}(${
-    hasSvelteQueryV6
-      ? `() => ({ ...${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
-      : `${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`
+  const ${queryResultVarName} = ${camel(
+    `${operationPrefix}-${isAngular(outputClient) || hasSvelteQueryV4 ? getQueryTypeForFramework(type) : type}`,
+  )}(${
+    isAngular(outputClient)
+      ? `() => ${queryOptionsVarName}`
+      : hasSvelteQueryV6
+        ? `() => ({ ...${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+        : `${queryOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
   }) as ${returnType};
 
-  ${queryResultVarName}.queryKey = ${
-    isVue(outputClient) ? `unref(${queryOptionsVarName})` : queryOptionsVarName
-  }.queryKey ${isVue(outputClient) ? `as ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'}` : ''};
+  ${
+    isAngular(outputClient)
+      ? ``
+      : `${queryResultVarName}.queryKey = ${
+          isVue(outputClient)
+            ? `unref(${queryOptionsVarName})`
+            : queryOptionsVarName
+        }.queryKey ${isVue(outputClient) ? `as ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'}` : ''};`
+  }
 
   return ${queryResultVarName};
 }\n
@@ -1280,24 +1429,38 @@ const generateQueryHook = async (
     queryVersion === 5 ||
     isQueryV5(
       context.output.packageJson,
-      outputClient as 'react-query' | 'vue-query' | 'svelte-query',
+      outputClient as
+        | 'react-query'
+        | 'vue-query'
+        | 'svelte-query'
+        | 'angular-query',
     );
 
   const hasQueryV5WithDataTagError =
     queryVersion === 5 ||
     isQueryV5WithDataTagError(
       context.output.packageJson,
-      outputClient as 'react-query' | 'vue-query' | 'svelte-query',
+      outputClient as
+        | 'react-query'
+        | 'vue-query'
+        | 'svelte-query'
+        | 'angular-query',
     );
 
   const hasQueryV5WithInfiniteQueryOptionsError =
     queryVersion === 5 ||
     isQueryV5WithInfiniteQueryOptionsError(
       context.output.packageJson,
-      outputClient as 'react-query' | 'vue-query' | 'svelte-query',
+      outputClient as
+        | 'react-query'
+        | 'vue-query'
+        | 'svelte-query'
+        | 'angular-query',
     );
 
   const httpClient = context.output.httpClient;
+  const isAngularHttp =
+    isAngular(outputClient) || httpClient === OutputHttpClient.ANGULAR;
   const doc = jsDoc({ summary, deprecated });
 
   let implementation = '';
@@ -1606,6 +1769,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       hasQueryV5,
       hasQueryV5WithInfiniteQueryOptionsError,
       isReturnType: true,
+      isAngularClient: isAngular(outputClient),
     });
 
     const mutationArguments = generateQueryArguments({
@@ -1617,6 +1781,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
       hasQueryV5,
       hasQueryV5WithInfiniteQueryOptionsError,
       httpClient,
+      isAngularClient: isAngular(outputClient),
     });
 
     const mutationOptionsFnName = camel(
@@ -1640,6 +1805,7 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
+${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
 
       ${
         mutator?.isHook
@@ -1653,7 +1819,7 @@ ${hooksOptionImplementation}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${properties}${
+          return  ${operationName}(${isAngularHttp ? 'http, ' : ''}${properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
@@ -1681,10 +1847,14 @@ ${hooksOptionImplementation}
       : '{ mutationFn, ...mutationOptions }'
   }}`;
 
-    const operationPrefix = hasSvelteQueryV4 ? 'create' : 'use';
-    const optionalQueryClientArgument = hasQueryV5
-      ? ', queryClient?: QueryClient'
-      : '';
+    const operationPrefix = getFrameworkPrefix(
+      hasSvelteQueryV4,
+      isAngular(outputClient),
+    );
+    const optionalQueryClientArgument =
+      hasQueryV5 && !isAngular(outputClient)
+        ? ', queryClient?: QueryClient'
+        : '';
 
     implementation += `
 ${mutationOptionsFn}
@@ -1719,9 +1889,11 @@ ${mutationOptionsFn}
       });
 
       return ${operationPrefix}Mutation(${
-        hasSvelteQueryV6
-          ? `() => ({ ...${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
-          : `${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''}`
+        isAngular(outputClient)
+          ? `() => ${mutationOptionsVarName}`
+          : hasSvelteQueryV6
+            ? `() => ({ ...${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+            : `${mutationOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
       });
     }
     `;
@@ -1775,12 +1947,13 @@ export const generateQuery: ClientBuilder = async (
 };
 
 const dependenciesBuilder: Record<
-  'react-query' | 'vue-query' | 'svelte-query',
+  'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
   ClientDependenciesBuilder
 > = {
   'react-query': getReactQueryDependencies,
   'vue-query': getVueQueryDependencies,
   'svelte-query': getSvelteQueryDependencies,
+  'angular-query': getAngularQueryDependencies,
 };
 
 export const builder =
@@ -1789,7 +1962,7 @@ export const builder =
     options: queryOptions,
     output,
   }: {
-    type?: 'react-query' | 'vue-query' | 'svelte-query';
+    type?: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query';
     options?: QueryOptions;
     output?: NormalizedOutputOptions;
   } = {}) =>

@@ -134,6 +134,21 @@ export const makeRouteSafe = (route: string): string =>
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;
 
+export const isAngular = (client: OutputClient | OutputClientFunc) =>
+  OutputClient.ANGULAR_QUERY === client;
+
+export const getQueryTypeForFramework = (type: string): string => {
+  // Angular Query and Svelte Query don't have suspense variants, map them to regular queries
+  switch (type) {
+    case 'suspenseQuery':
+      return 'query';
+    case 'suspenseInfiniteQuery':
+      return 'infiniteQuery';
+    default:
+      return type;
+  }
+};
+
 export const getHasSignal = ({
   overrideQuerySignal = false,
   verb,
