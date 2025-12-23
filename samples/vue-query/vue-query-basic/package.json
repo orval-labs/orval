@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "8.0.0-rc.4",
+  "version": "8.0.0-rc.5",
   "type": "module",
   "private": true,
   "scripts": {
