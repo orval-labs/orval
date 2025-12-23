@@ -10,6 +10,18 @@ export default defineConfig({
       client: 'hono',
     },
   },
+  zodSchemaResponse: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/hono/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/hono/zod-schema-response/schemas',
+      },
+      mode: 'single',
+      client: 'hono',
+    },
+  },
   petstoreSingle: {
     input: '../specifications/petstore.yaml',
     output: {

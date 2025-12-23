@@ -22,6 +22,20 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/svelte-query/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/svelte-query/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'svelte-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/svelte-query/petstore-tags-split/endpoints.ts',

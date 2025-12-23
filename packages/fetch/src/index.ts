@@ -404,27 +404,13 @@ export const fetchResponseTypeName = (
     : definitionSuccessResponse;
 };
 
-export const generateClient: ClientBuilder = (
-  verbOptions,
-  options,
-  _outputClient,
-  output,
-) => {
+export const generateClient: ClientBuilder = (verbOptions, options) => {
   const imports = generateVerbImports(verbOptions);
   const functionImplementation = generateRequestFunction(verbOptions, options);
 
-  const isZodSchema =
-    isObject(output?.schemas) && output.schemas.type === 'zod';
-
-  const generateImports = imports.map((imp) => ({
-    ...imp,
-    isZodSchema: isZodSchema,
-    values: isZodSchema ? true : imp.values,
-  }));
-
   return {
     implementation: `${functionImplementation}\n`,
-    imports: generateImports,
+    imports,
   };
 };
 

@@ -23,6 +23,21 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/vue-query/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/vue-query/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'vue-query',
+      httpClient: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/vue-query/petstore-tags-split/endpoints.ts',

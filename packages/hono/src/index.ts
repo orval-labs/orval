@@ -13,6 +13,7 @@ import {
   getFileInfo,
   getOrvalGeneratedTypes,
   getParamsInPath,
+  isObject,
   jsDoc,
   kebab,
   type NormalizedMutator,
@@ -817,9 +818,18 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   const { path, pathWithoutExtension } = getFileInfo(output.target);
   const validator = generateZvalidator(output, context);
   let schemaModule: string;
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
 
   if (output.schemas != undefined) {
-    schemaModule = getFileInfo(output.schemas).dirname;
+    const schemasPath = isObject(output.schemas)
+      ? output.schemas.path
+      : output.schemas;
+    const basePath = getFileInfo(schemasPath).dirname;
+    schemaModule =
+      isZodSchemaOutput && output.indexFiles
+        ? upath.joinSafe(basePath, 'index.zod')
+        : basePath;
   } else if (output.mode === 'single') {
     schemaModule = path;
   } else {

@@ -13,6 +13,20 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/react-query/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   noContentWithDefault: {
     output: {
       target: '../generated/react-query/no-content-with-default/endpoints.ts',

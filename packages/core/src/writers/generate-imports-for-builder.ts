@@ -1,41 +1,36 @@
 import { uniqueBy } from 'remeda';
 
 import type { GeneratorImport, NormalizedOutputOptions } from '../types';
-import { conventionName, upath } from '../utils';
+import { conventionName, isObject, upath } from '../utils';
 
 export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
   relativeSchemasPath: string,
 ) {
-  if (output.indexFiles) {
-    const typeScriptTypeImports = imports.filter((i) => !i.isZodSchema);
-    const typeScriptTypeImportGroup =
-      typeScriptTypeImports.length > 0
-        ? [{ exports: typeScriptTypeImports, dependency: relativeSchemasPath }]
-        : [];
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
 
-    const zodSchemaImports = imports.filter((i) => i.isZodSchema);
-    const zodSchemaImportGroup =
-      zodSchemaImports.length > 0
-        ? [
-            {
-              exports: zodSchemaImports,
-              dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
-            },
-          ]
-        : [];
-
-    return [...typeScriptTypeImportGroup, ...zodSchemaImportGroup];
-  } else {
+  if (!output.indexFiles) {
     return uniqueBy(imports, (x) => x.name).map((i) => {
-      const baseName = i.isZodSchema && i.schemaName ? i.schemaName : i.name;
+      const baseName = i.schemaName || i.name;
       const name = conventionName(baseName, output.namingConvention);
-      const suffix = i.isZodSchema ? '.zod' : '';
+      const suffix = isZodSchemaOutput ? '.zod' : '';
       return {
-        exports: [i],
+        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
         dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}`),
       };
     });
+  } else {
+    if (isZodSchemaOutput) {
+      return [
+        {
+          exports: imports.map((i) => ({ ...i, values: true })),
+          dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
+        },
+      ];
+    } else {
+      return [{ exports: imports, dependency: relativeSchemasPath }];
+    }
   }
 }

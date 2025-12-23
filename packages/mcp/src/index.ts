@@ -9,6 +9,7 @@ import {
   type GeneratorVerbOptions,
   getFileInfo,
   getFullRoute,
+  isObject,
   jsDoc,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
@@ -33,10 +34,21 @@ const getHeader = (
 
 export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
-  const schemaInfo = getFileInfo(output.schemas);
+  const schemasPath = isObject(output.schemas)
+    ? output.schemas.path
+    : output.schemas;
+  const schemaInfo = schemasPath ? getFileInfo(schemasPath) : undefined;
 
-  const relativeSchemaImportPath = output.schemas
-    ? upath.relativeSafe(targetInfo.dirname, schemaInfo.dirname)
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+  const basePath = schemaInfo?.dirname;
+  const relativeSchemaImportPath = basePath
+    ? isZodSchemaOutput && output.indexFiles
+      ? upath.relativeSafe(
+          targetInfo.dirname,
+          upath.joinSafe(basePath, 'index.zod'),
+        )
+      : upath.relativeSafe(targetInfo.dirname, basePath)
     : './' + targetInfo.filename + '.schemas';
 
   const importSchemaNames = new Set(
@@ -349,8 +361,16 @@ const generateHttpClientFiles = async (
     .map((client) => client.implementation)
     .join('\n');
 
-  const relativeSchemasPath = output.schemas
-    ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+  const schemasPath = isObject(output.schemas)
+    ? output.schemas.path
+    : output.schemas;
+  const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
+  const relativeSchemasPath = basePath
+    ? isZodSchemaOutput && output.indexFiles
+      ? upath.relativeSafe(dirname, upath.joinSafe(basePath, 'index.zod'))
+      : upath.relativeSafe(dirname, basePath)
     : './' + filename + '.schemas';
 
   const importNames = clients

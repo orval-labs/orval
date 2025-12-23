@@ -165,4 +165,18 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/mock/zod-schema-response/endpoints.ts',
+      schemas: {
+        path: '../generated/mock/zod-schema-response/model',
+        type: 'zod',
+      },
+      client: 'axios',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

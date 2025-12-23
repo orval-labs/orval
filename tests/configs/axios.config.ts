@@ -15,6 +15,20 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/axios/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/axios/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   mutator: {
     output: {
       target: '../generated/axios/mutator/endpoints.ts',
