@@ -337,6 +337,69 @@ export function isBinaryContentType(contentType: string): boolean {
 }
 
 /**
+ * Response type categories for HTTP client response parsing.
+ * Maps to Angular HttpClient's responseType, Axios responseType, and Fetch response methods.
+ */
+export type ResponseTypeCategory = 'json' | 'text' | 'blob' | 'arraybuffer';
+
+/**
+ * Determine the response type category for a given content type.
+ * Used to set the correct responseType option in HTTP clients.
+ *
+ * @param contentType - The MIME content type (e.g., 'application/json', 'text/plain')
+ * @returns The response type category to use for parsing
+ */
+export function getResponseTypeCategory(
+  contentType: string,
+): ResponseTypeCategory {
+  // Binary types → blob
+  if (isBinaryContentType(contentType)) {
+    return 'blob';
+  }
+
+  // JSON types
+  if (
+    contentType === 'application/json' ||
+    contentType.includes('+json') ||
+    contentType.includes('-json')
+  ) {
+    return 'json';
+  }
+
+  // Everything else is text (text/*, application/xml, etc.)
+  return 'text';
+}
+
+/**
+ * Get the default content type from a list of content types.
+ * Priority: application/json > any JSON-like type > first in list
+ *
+ * @param contentTypes - Array of content types from OpenAPI spec
+ * @returns The default content type to use
+ */
+export function getDefaultContentType(contentTypes: string[]): string {
+  if (contentTypes.length === 0) {
+    return 'application/json';
+  }
+
+  // Prefer application/json
+  if (contentTypes.includes('application/json')) {
+    return 'application/json';
+  }
+
+  // Prefer any JSON-like type
+  const jsonType = contentTypes.find(
+    (ct) => ct.includes('+json') || ct.includes('-json'),
+  );
+  if (jsonType) {
+    return jsonType;
+  }
+
+  // Default to first
+  return contentTypes[0];
+}
+
+/**
  * Determine if a form-data root field should be treated as binary or text file
  * based on encoding.contentType or contentMediaType.
  *
