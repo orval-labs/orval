@@ -47,8 +47,8 @@ type Hook<
   T,
   E extends Env,
   P extends string,
-  Target extends
-    keyof ValidationTargetsWithResponse = keyof ValidationTargetsWithResponse,
+  Target extends keyof ValidationTargetsWithResponse =
+    keyof ValidationTargetsWithResponse,
   O = {},
   Schema extends ZodSchema = any,
 > = (
