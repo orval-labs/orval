@@ -1,6 +1,6 @@
 import {
-  conventionName,
   type ContextSpec,
+  conventionName,
   type GeneratorVerbOptions,
   type NamingConvention,
   type NormalizedOutputOptions,
@@ -36,17 +36,17 @@ async function writeZodSchemaIndex(
   header: string,
   schemaNames: string[],
   namingConvention: NamingConvention,
-  shouldMergeExisting: boolean = false,
+  shouldMergeExisting = false,
 ) {
   const importFileExtension = fileExtension.replace(/\.ts$/, '');
   const indexPath = upath.join(schemasPath, `index${fileExtension}`);
 
   let existingExports = '';
   if (shouldMergeExisting && (await fs.pathExists(indexPath))) {
-    const existingContent = await fs.readFile(indexPath, 'utf-8');
-    const headerMatch = existingContent.match(/^(\/\*\*[\s\S]*?\*\/\n)?/);
+    const existingContent = await fs.readFile(indexPath, 'utf8');
+    const headerMatch = /^(\/\*\*[\s\S]*?\*\/\n)?/.exec(existingContent);
     const headerPart = headerMatch ? headerMatch[0] : '';
-    existingExports = existingContent.substring(headerPart.length).trim();
+    existingExports = existingContent.slice(headerPart.length).trim();
   }
 
   const newExports = schemaNames

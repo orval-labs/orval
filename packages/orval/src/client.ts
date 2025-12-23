@@ -61,7 +61,7 @@ const getGeneratorClient = (
 };
 
 export const generateClientImports: GeneratorClientImports = ({
-  client = DEFAULT_CLIENT,
+  client,
   implementation,
   imports,
   projectName,
@@ -129,7 +129,7 @@ export const generateClientHeader: GeneratorClientHeader = ({
 };
 
 export const generateClientFooter: GeneratorClientFooter = ({
-  outputClient = DEFAULT_CLIENT,
+  outputClient,
   operationNames,
   hasMutator,
   hasAwaitedType,

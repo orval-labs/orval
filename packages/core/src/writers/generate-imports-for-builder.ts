@@ -8,17 +8,7 @@ export function generateImportsForBuilder(
   imports: GeneratorImport[],
   relativeSchemasPath: string,
 ) {
-  if (!output.indexFiles) {
-    return uniqueBy(imports, (x) => x.name).map((i) => {
-      const baseName = i.isZodSchema && i.schemaName ? i.schemaName : i.name;
-      const name = conventionName(baseName, output.namingConvention);
-      const suffix = i.isZodSchema ? '.zod' : '';
-      return {
-        exports: [i],
-        dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}`),
-      };
-    });
-  } else {
+  if (output.indexFiles) {
     const typeScriptTypeImports = imports.filter((i) => !i.isZodSchema);
     const typeScriptTypeImportGroup =
       typeScriptTypeImports.length > 0
@@ -37,5 +27,15 @@ export function generateImportsForBuilder(
         : [];
 
     return [...typeScriptTypeImportGroup, ...zodSchemaImportGroup];
+  } else {
+    return uniqueBy(imports, (x) => x.name).map((i) => {
+      const baseName = i.isZodSchema && i.schemaName ? i.schemaName : i.name;
+      const name = conventionName(baseName, output.namingConvention);
+      const suffix = i.isZodSchema ? '.zod' : '';
+      return {
+        exports: [i],
+        dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}`),
+      };
+    });
   }
 }

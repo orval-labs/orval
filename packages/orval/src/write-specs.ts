@@ -2,12 +2,12 @@ import {
   createSuccessMessage,
   getFileInfo,
   getMockFileExtensionByTypeName,
+  isString,
   jsDoc,
   log,
   type NormalizedOptions,
   type OpenApiInfoObject,
   OutputMode,
-  type SchemaGenerationType,
   upath,
   writeSchemas,
   writeSingleMode,
@@ -15,7 +15,6 @@ import {
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
-  isString,
 } from '@orval/core';
 import chalk from 'chalk';
 import { execa, ExecaError } from 'execa';
@@ -44,7 +43,7 @@ export async function writeSpecs(
   options: NormalizedOptions,
   projectName?: string,
 ) {
-  const { info = { title: '', version: 0 }, schemas, target } = builder;
+  const { info, schemas, target } = builder;
   const { output } = options;
   const projectTitle = projectName ?? info.title;
 

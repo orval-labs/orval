@@ -120,7 +120,7 @@ export const generateAxiosRequestFunction = (
     const propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
+            new RegExp(String.raw`(\w*):\s?${bodyDefinition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');

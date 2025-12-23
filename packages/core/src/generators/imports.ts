@@ -16,7 +16,7 @@ interface GenerateImportsOptions {
 }
 
 export function generateImports({
-  imports = [],
+  imports,
   namingConvention = NamingConvention.CAMEL_CASE,
 }: GenerateImportsOptions) {
   if (imports.length === 0) {
@@ -187,7 +187,7 @@ export function addDependency({
 }: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
     const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
-    const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
+    const pattern = new RegExp(String.raw`\b(${searchWords})\b`, 'g');
 
     return implementation.match(pattern);
   });

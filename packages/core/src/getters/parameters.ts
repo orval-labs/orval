@@ -13,7 +13,7 @@ interface GetParametersOptions {
 }
 
 export function getParameters({
-  parameters = [],
+  parameters,
   context,
 }: GetParametersOptions): GetterParameters {
   return parameters.reduce<GetterParameters>(

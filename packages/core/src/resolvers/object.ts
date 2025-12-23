@@ -35,7 +35,7 @@ function resolveObjectOriginal({
     !resolvedValue.isEnum &&
     resolvedValue?.type === 'object' &&
     new RegExp(
-      context.output.override.aliasCombinedTypes ? '{|&|\\|' : '{',
+      context.output.override.aliasCombinedTypes ? String.raw`{|&|\|` : '{',
     ).test(resolvedValue.value)
   ) {
     let model = '';
