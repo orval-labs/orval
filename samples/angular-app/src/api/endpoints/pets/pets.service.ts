@@ -124,27 +124,49 @@ export class PetsService {
   /**
    * @summary Info for a specific pet
    */
-  showPetById<TData = Pet>(
+  showPetById(
     petId: string,
+    accept: 'text/plain',
     version?: number,
-    options?: HttpClientOptions & { observe?: 'body' },
-  ): Observable<TData>;
-  showPetById<TData = Pet>(
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  showPetById(
     petId: string,
+    accept: 'application/xml',
     version?: number,
-    options?: HttpClientOptions & { observe: 'events' },
-  ): Observable<HttpEvent<TData>>;
-  showPetById<TData = Pet>(
+    options?: HttpClientOptions,
+  ): Observable<Pet>;
+  showPetById(
     petId: string,
+    accept?: string,
     version?: number,
-    options?: HttpClientOptions & { observe: 'response' },
-  ): Observable<AngularHttpResponse<TData>>;
-  showPetById<TData = Pet>(
+    options?: HttpClientOptions,
+  ): Observable<string>;
+  showPetById(
     petId: string,
+    accept: string = 'text/plain',
     version: number = 1,
-    options?: HttpClientOptions & { observe?: any },
+    options?: HttpClientOptions,
   ): Observable<any> {
-    return this.http.get<TData>(`/v${version}/pets/${petId}`, options);
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.get<any>(`/v${version}/pets/${petId}`, {
+        ...options,
+        responseType: 'json',
+        headers: { Accept: accept, ...options?.headers },
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.get(`/v${version}/pets/${petId}`, {
+        ...options,
+        responseType: 'text',
+        headers: { Accept: accept, ...options?.headers },
+      }) as any;
+    } else {
+      return this.http.get(`/v${version}/pets/${petId}`, {
+        ...options,
+        responseType: 'blob',
+        headers: { Accept: accept, ...options?.headers },
+      }) as any;
+    }
   }
   /**
    * @summary Info for a specific pet
@@ -242,7 +264,7 @@ export class PetsService {
 export type SearchPetsClientResult = NonNullable<Pets>;
 export type ListPetsClientResult = NonNullable<Pets>;
 export type CreatePetsClientResult = NonNullable<void>;
-export type ShowPetByIdClientResult = NonNullable<Pet>;
+export type ShowPetByIdClientResult = NonNullable<string | Pet>;
 export type ShowPetTextClientResult = NonNullable<string>;
 export type UploadFileClientResult = NonNullable<void>;
 export type DownloadFileClientResult = NonNullable<Blob>;

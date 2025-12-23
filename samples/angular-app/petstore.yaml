@@ -135,6 +135,9 @@ paths:
         '200':
           description: Expected response to a valid request
           content:
+            text/plain:
+              schema:
+                type: string
             application/xml:
               schema:
                 $ref: '#/components/schemas/Pet'

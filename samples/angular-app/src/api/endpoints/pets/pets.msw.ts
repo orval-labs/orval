@@ -145,24 +145,23 @@ export const getCreatePetsMockHandler = (
 
 export const getShowPetByIdMockHandler = (
   overrideResponse?:
+    | string
     | Pet
     | ((
         info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
+      ) => Promise<string | Pet> | string | Pet),
   options?: RequestHandlerOptions,
 ) => {
   return http.get(
     '*/v:version/pets/:petId',
     async (info) => {
       return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getShowPetByIdResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock(),
+        { status: 200, headers: { 'Content-Type': 'text/plain' } },
       );
     },
     options,

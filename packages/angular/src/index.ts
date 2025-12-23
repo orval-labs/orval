@@ -13,6 +13,7 @@ import {
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
+  getDefaultContentType,
   isBoolean,
   pascal,
   sanitize,
@@ -227,15 +228,114 @@ const generateImplementation = (
   });
 
   const propsDefinition = toObjectString(props, 'definition');
+
+  // Check for multiple content types in success responses
+  const successTypes = response.types.success;
+  const uniqueContentTypes = [
+    ...new Set(successTypes.map((t) => t.contentType).filter(Boolean)),
+  ];
+  const hasMultipleContentTypes = uniqueContentTypes.length > 1;
+
+  // For multiple content types, determine the default
+  const defaultContentType = hasMultipleContentTypes
+    ? getDefaultContentType(uniqueContentTypes)
+    : (uniqueContentTypes[0] ?? 'application/json');
+  const defaultType = hasMultipleContentTypes
+    ? successTypes.find((t) => t.contentType === defaultContentType)
+    : undefined;
+  const defaultReturnType = defaultType?.value ?? dataType;
+
   const isModelType = dataType !== 'Blob' && dataType !== 'string';
   let functionName = operationName;
-  if (isModelType) functionName += `<TData = ${dataType}>`;
+  if (isModelType && !hasMultipleContentTypes) {
+    functionName += `<TData = ${dataType}>`;
+  }
 
-  const overloads = isRequestOptions
-    ? `${functionName}(${propsDefinition} options?: HttpClientOptions & { observe?: 'body' }): Observable<${isModelType ? 'TData' : dataType}>;
+  let contentTypeOverloads = '';
+  if (hasMultipleContentTypes && isRequestOptions) {
+    const requiredProps = props.filter((p) => p.required && !p.default);
+    const optionalProps = props.filter((p) => !p.required || p.default);
+
+    contentTypeOverloads = successTypes
+      .filter((t) => t.contentType)
+      .map(({ contentType, value }) => {
+        const requiredPart = requiredProps
+          .map((p) => p.definition)
+          .join(',\n    ');
+        const acceptPart = `accept: '${contentType}'`;
+        const optionalPart = optionalProps
+          .map((p) => p.definition)
+          .join(',\n    ');
+
+        const allParams = [requiredPart, acceptPart, optionalPart]
+          .filter(Boolean)
+          .join(',\n    ');
+        return `${operationName}(${allParams}, options?: HttpClientOptions): Observable<${value}>;`;
+      })
+      .join('\n  ');
+
+    const requiredPart = requiredProps.map((p) => p.definition).join(',\n    ');
+    const optionalPart = optionalProps.map((p) => p.definition).join(',\n    ');
+    const allParams = [requiredPart, 'accept?: string', optionalPart]
+      .filter(Boolean)
+      .join(',\n    ');
+    contentTypeOverloads += `\n  ${operationName}(${allParams}, options?: HttpClientOptions): Observable<${defaultReturnType}>;`;
+  }
+
+  const observeOverloads =
+    isRequestOptions && !hasMultipleContentTypes
+      ? `${functionName}(${propsDefinition} options?: HttpClientOptions & { observe?: 'body' }): Observable<${isModelType ? 'TData' : dataType}>;
  ${functionName}(${propsDefinition} options?: HttpClientOptions & { observe: 'events' }): Observable<HttpEvent<${isModelType ? 'TData' : dataType}>>;
  ${functionName}(${propsDefinition} options?: HttpClientOptions & { observe: 'response' }): Observable<AngularHttpResponse<${isModelType ? 'TData' : dataType}>>;`
-    : '';
+      : '';
+
+  const overloads = contentTypeOverloads || observeOverloads;
+
+  if (hasMultipleContentTypes) {
+    const requiredProps = props.filter((p) => p.required && !p.default);
+    const optionalProps = props.filter((p) => !p.required || p.default);
+
+    const requiredPart = requiredProps
+      .map((p) => p.implementation)
+      .join(',\n    ');
+    const optionalPart = optionalProps
+      .map((p) => p.implementation)
+      .join(',\n    ');
+    const allParams = [
+      requiredPart,
+      `accept: string = '${defaultContentType}'`,
+      optionalPart,
+    ]
+      .filter(Boolean)
+      .join(',\n    ');
+
+    return ` ${overloads}
+  ${operationName}(
+    ${allParams},
+    ${isRequestOptions ? 'options?: HttpClientOptions' : ''}
+  ): Observable<any> {${bodyForm}
+    if (accept.includes('json') || accept.includes('+json')) {
+      return this.http.${verb}<any>(\`${route}\`, {
+        ...options,
+        responseType: 'json',
+        headers: { Accept: accept, ...options?.headers },
+      });
+    } else if (accept.startsWith('text/') || accept.includes('xml')) {
+      return this.http.${verb}(\`${route}\`, {
+        ...options,
+        responseType: 'text',
+        headers: { Accept: accept, ...options?.headers },
+      }) as any;
+    } else {
+      return this.http.${verb}(\`${route}\`, {
+        ...options,
+        responseType: 'blob',
+        headers: { Accept: accept, ...options?.headers },
+      }) as any;
+    }
+  }
+`;
+  }
 
   return ` ${overloads}
   ${functionName}(
