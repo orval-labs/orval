@@ -4,14 +4,8 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./out-tsc/app",
-    "types": [],
-    "skipLibCheck": true
+    "types": []
   },
   "include": ["src/**/*.ts"],
-  "exclude": [
-    "src/**/*.spec.ts",
-    "src/**/*.msw.ts",
-    "src/api/browser.ts",
-    "src/api/node.ts"
-  ]
+  "exclude": ["src/**/*.spec.ts"]
 }
