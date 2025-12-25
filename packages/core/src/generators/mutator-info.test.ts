@@ -250,4 +250,13 @@ describe('getMutatorInfo', () => {
       expect(result).toEqual({ numberOfParams: 0, returnNumberOfParams: 2 });
     });
   });
+
+  describe('external module', () => {
+    it('should work even if there are imports that cannot be resolved in external modules', async () => {
+      const result = await getMutatorInfo(
+        path.join(basePath, 'external-module-tests', 'mutation.ts'),
+      );
+      expect(result).toEqual({ numberOfParams: 0 });
+    });
+  });
 });
