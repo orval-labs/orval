@@ -62,6 +62,7 @@ async function bundleFile(
     treeShaking: false,
     keepNames: false,
     alias,
+    external: ['*'],
   } satisfies BuildOptions);
   const { text } = result.outputFiles[0];
 
