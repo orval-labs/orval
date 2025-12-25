@@ -118,6 +118,8 @@ export const generateMcp: ClientBuilder = (verbOptions) => {
     handlerArgsTypes.push(`  bodyParams: ${verbOptions.body.definition};`);
   }
 
+  handlerArgsTypes.push(`  options?: RequestInit;`);
+
   const handlerArgsName = `${verbOptions.operationName}Args`;
   const handlerArgsImplementation =
     handlerArgsTypes.length > 0
@@ -142,6 +144,8 @@ ${handlerArgsTypes.join('\n')}
   }
   if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
   if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
+
+  fetchParams.push(`args.options`);
 
   const handlerName = `${verbOptions.operationName}Handler`;
   const handlerImplementation = `
