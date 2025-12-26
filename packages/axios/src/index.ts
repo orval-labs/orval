@@ -28,6 +28,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
         values: true,
         syntheticDefaultImport: true,
       },
+      { name: 'AxiosInstance' },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
     ],
@@ -199,7 +200,7 @@ ${
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${noFunction ? '' : `export const ${title} = () => {\n`}`;
+  ${noFunction ? '' : `export const ${title} = (axios: AxiosInstance = axios.create()) => {\n`}`;
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
