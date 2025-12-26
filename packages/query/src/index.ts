@@ -1363,15 +1363,17 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
 
   ${
     isAngular(outputClient)
-      ? ``
-      : `${queryResultVarName}.queryKey = ${
-          isVue(outputClient)
-            ? `unref(${queryOptionsVarName})`
-            : queryOptionsVarName
-        }.queryKey ${isVue(outputClient) ? `as ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'}` : ''};`
-  }
+      ? `return ${queryResultVarName};`
+      : isVue(outputClient)
+        ? `${queryResultVarName}.queryKey = unref(${queryOptionsVarName}).queryKey as ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'};
 
-  return ${queryResultVarName};
+  return ${queryResultVarName};`
+        : hasSvelteQueryV4 || hasSvelteQueryV6
+          ? `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey;
+
+  return ${queryResultVarName};`
+          : `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`
+  }
 }\n
 ${prefetch}
 ${
