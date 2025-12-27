@@ -264,9 +264,7 @@ export function useListPets<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -651,7 +649,5 @@ export function useShowPetById<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }

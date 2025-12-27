@@ -275,9 +275,7 @@ export function useListPetsInfinite<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -420,9 +418,7 @@ export function useListPets<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -572,9 +568,7 @@ export function useListPetsSuspense<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 export const getListPetsSuspenseInfiniteQueryOptions = <
@@ -751,9 +745,7 @@ export function useListPetsSuspenseInfinite<
     queryKey: DataTag<QueryKey, TData, TError>;
   };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -1015,9 +1007,7 @@ export function useListPetsNestedArray<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -1164,7 +1154,5 @@ export function useShowPetById<
     TError
   > & { queryKey: DataTag<QueryKey, TData, TError> };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }

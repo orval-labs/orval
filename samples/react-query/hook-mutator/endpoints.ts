@@ -108,9 +108,7 @@ export function useListPets<
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -283,9 +281,7 @@ export function useListPetsNestedArray<
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
 
 /**
@@ -369,7 +365,5 @@ export function useShowPetById<
     queryKey: QueryKey;
   };
 
-  query.queryKey = queryOptions.queryKey;
-
-  return query;
+  return { ...query, queryKey: queryOptions.queryKey };
 }
