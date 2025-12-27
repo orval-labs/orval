@@ -15,6 +15,21 @@ export default defineConfig({
       override: {
         query: {
           useInvalidate: true,
+          /**
+           * mutationInvalidates: Auto-invalidate queries when mutations succeed
+           *
+           * - Simple array: `createPets: ['listPets']`
+           * - Multiple targets: `updatePetById: ['listPets', 'showPetById']`
+           *
+           * After each mutation succeeds, the specified queries are automatically
+           * invalidated via queryClient.invalidateQueries(), triggering a refetch.
+           */
+          mutationInvalidates: {
+            // After creating a pet, invalidate the pets list so it refetches
+            createPets: ['listPets'],
+            // After uploading a file, invalidate multiple queries
+            uploadFile: ['listPets', 'showPetById'],
+          },
         },
         operations: {
           listPets: {
