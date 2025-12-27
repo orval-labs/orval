@@ -960,6 +960,45 @@ const generatePrefetch = ({
   }
 };
 
+const getQueryReturnStatement = ({
+  outputClient,
+  hasSvelteQueryV4,
+  hasSvelteQueryV6,
+  hasQueryV5,
+  hasQueryV5WithDataTagError,
+  queryResultVarName,
+  queryOptionsVarName,
+}: {
+  outputClient: OutputClient | OutputClientFunc;
+  hasSvelteQueryV4: boolean;
+  hasSvelteQueryV6: boolean;
+  hasQueryV5: boolean;
+  hasQueryV5WithDataTagError: boolean;
+  queryResultVarName: string;
+  queryOptionsVarName: string;
+}): string => {
+  if (isAngular(outputClient)) {
+    return `return ${queryResultVarName};`;
+  }
+
+  if (isVue(outputClient)) {
+    const queryKeyType = hasQueryV5
+      ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>`
+      : 'QueryKey';
+    return `${queryResultVarName}.queryKey = unref(${queryOptionsVarName}).queryKey as ${queryKeyType};
+
+  return ${queryResultVarName};`;
+  }
+
+  if (hasSvelteQueryV4 || hasSvelteQueryV6) {
+    return `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey;
+
+  return ${queryResultVarName};`;
+  }
+
+  return `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`;
+};
+
 const generateQueryImplementation = ({
   queryOption: { name, queryParam, options, type, queryKeyFnName },
   operationName,
@@ -1361,19 +1400,15 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
         : `${queryOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
   }) as ${returnType};
 
-  ${
-    isAngular(outputClient)
-      ? `return ${queryResultVarName};`
-      : isVue(outputClient)
-        ? `${queryResultVarName}.queryKey = unref(${queryOptionsVarName}).queryKey as ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'};
-
-  return ${queryResultVarName};`
-        : hasSvelteQueryV4 || hasSvelteQueryV6
-          ? `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey;
-
-  return ${queryResultVarName};`
-          : `return { ...${queryResultVarName}, queryKey: ${queryOptionsVarName}.queryKey };`
-  }
+  ${getQueryReturnStatement({
+    outputClient,
+    hasSvelteQueryV4,
+    hasSvelteQueryV6,
+    hasQueryV5,
+    hasQueryV5WithDataTagError,
+    queryResultVarName,
+    queryOptionsVarName,
+  })}
 }\n
 ${prefetch}
 ${
