@@ -11,7 +11,7 @@ export const PlaygroundPage = () => {
     <>
       <Seo
         title="orval"
-        description="orval is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in yaml or json formats. 🍺"
+        description="orval generates type-safe JS clients (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in yaml or json formats. 🍺"
       />
       <Head>
         <title>orval - Restful client generator</title>

@@ -11,7 +11,7 @@ To download and install Orval, [follow the instructions here](../installation).
 
 ### Basic Usage
 
-The `orval` command is used to generate client with appropriate type-signatures. By default search for an `orval.config.js` file.
+The `orval` command is used to generate type-safe JS clients (TypeScript). By default search for an `orval.config.js` file.
 
 ```bash
 $ orval

@@ -19,7 +19,7 @@ cli.version(pkg.version);
 cli
   .command(
     '[config]',
-    'generate client with appropriate type-signatures from OpenAPI specs',
+    'Instantly generate TypeScript clients from your OpenAPI specification',
     {
       ignoreOptionDefaultValue: true,
     },
