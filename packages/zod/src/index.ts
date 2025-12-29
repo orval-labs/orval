@@ -616,11 +616,14 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (minAndMaxTypes.has(type)) {
+  if (minAndMaxTypes.has(type) && !schema.enum) {
     // Handle minimum constraints: exclusiveMinimum (>.gt()) takes priority over minimum (.min())
     // Check if exclusive flag was set (boolean format in OpenAPI 3.0) or a different value (OpenAPI 3.1)
-    const shouldUseExclusiveMin = exclusiveMinRaw !== undefined;
-    const shouldUseExclusiveMax = exclusiveMaxRaw !== undefined;
+    // Only use .gt()/.lt() for numbers since these methods don't exist on ZodString/ZodArray
+    const shouldUseExclusiveMin =
+      exclusiveMinRaw !== undefined && type === 'number';
+    const shouldUseExclusiveMax =
+      exclusiveMaxRaw !== undefined && type === 'number';
 
     if (shouldUseExclusiveMin && exclusiveMin !== undefined) {
       consts.push(
@@ -649,7 +652,7 @@ export const generateZodValidationSchemaDefinition = (
       functions.push(['max', `${name}Max${constsCounterValue}`]);
     }
 
-    if (multipleOf !== undefined) {
+    if (multipleOf !== undefined && type === 'number') {
       consts.push(
         `export const ${name}MultipleOf${constsCounterValue} = ${multipleOf.toString()};`,
       );
@@ -666,7 +669,7 @@ export const generateZodValidationSchemaDefinition = (
     }
   }
 
-  if (matches) {
+  if (matches && type === 'string' && !schema.enum) {
     const isStartWithSlash = matches.startsWith('/');
     const isEndWithSlash = matches.endsWith('/');
 
