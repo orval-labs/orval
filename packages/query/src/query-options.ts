@@ -48,8 +48,8 @@ export const generateQueryOptions = ({
         omitBy(
           options,
           (_, key) =>
-            (type !== QueryType.INFINITE ||
-              type !== QueryType.SUSPENSE_INFINITE) &&
+            type !== QueryType.INFINITE &&
+            type !== QueryType.SUSPENSE_INFINITE &&
             INFINITE_QUERY_PROPERTIES.has(key),
         ),
       )?.slice(1, -1)}`
