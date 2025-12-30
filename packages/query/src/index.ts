@@ -369,8 +369,9 @@ const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'InfiniteData' },
       { name: 'CreateMutationResult' },
       { name: 'DataTag' },
-      { name: 'QueryClient' },
+      { name: 'QueryClient', values: true },
       { name: 'InvalidateOptions' },
+      { name: 'MutationFunctionContext' },
     ],
     dependency: '@tanstack/angular-query-experimental',
   },
@@ -1844,6 +1845,14 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
 
 ${hooksOptionImplementation}
 ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
+${(() => {
+  // Check if mutationInvalidates is configured for this operation
+  const invalidatesConfig = query.mutationInvalidates?.[operationName];
+  if (invalidatesConfig && isAngular(outputClient)) {
+    return '  const queryClient = inject(QueryClient);';
+  }
+  return '';
+})()}
 
       ${
         mutator?.isHook
@@ -1861,6 +1870,29 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
+
+${(() => {
+  // Generate onSuccess callback if mutationInvalidates is configured
+  const invalidatesConfig = query.mutationInvalidates?.[operationName];
+  if (!invalidatesConfig) return '';
+
+  const invalidateTargets = invalidatesConfig;
+
+  if (!invalidateTargets?.length) return '';
+
+  const invalidateCalls = invalidateTargets
+    .map(
+      (target: string) =>
+        `    queryClient.invalidateQueries({ queryKey: ${camel(`get-${target}-query-key`)}() });`,
+    )
+    .join('\n');
+
+  // onSuccess signature matches TanStack Query's MutationOptions.onSuccess
+  return `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+${invalidateCalls}
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };`;
+})()}
 
         ${
           mutationOptionsMutator
@@ -1882,7 +1914,13 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   return  ${
     mutationOptionsMutator
       ? 'customOptions'
-      : '{ mutationFn, ...mutationOptions }'
+      : (() => {
+          const invalidatesConfig = query.mutationInvalidates?.[operationName];
+          if (invalidatesConfig?.length) {
+            return '{ mutationFn, onSuccess, ...mutationOptions }';
+          }
+          return '{ mutationFn, ...mutationOptions }';
+        })()
   }}`;
 
     const operationPrefix = getFrameworkPrefix(
