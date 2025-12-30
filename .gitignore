@@ -101,6 +101,6 @@ typings/
 /.idea
 
 package-lock.json
-tests/generated/**
+tests/generated
 .turbo
 .next

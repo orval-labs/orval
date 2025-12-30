@@ -1,19 +1,36 @@
-import uniqBy from 'lodash.uniqby';
-import { GeneratorImport, NormalizedOutputOptions } from '../types';
-import { conventionName, upath } from '../utils';
+import { uniqueBy } from 'remeda';
 
-export const generateImportsForBuilder = (
+import type { GeneratorImport, NormalizedOutputOptions } from '../types';
+import { conventionName, isObject, upath } from '../utils';
+
+export function generateImportsForBuilder(
   output: NormalizedOutputOptions,
   imports: GeneratorImport[],
   relativeSchemasPath: string,
-) => {
-  return output.schemas && !output.indexFiles
-    ? uniqBy(imports, 'name').map((i) => {
-        const name = conventionName(i.name, output.namingConvention);
-        return {
-          exports: [i],
-          dependency: upath.joinSafe(relativeSchemasPath, name),
-        };
-      })
-    : [{ exports: imports, dependency: relativeSchemasPath }];
-};
+) {
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+
+  if (!output.indexFiles) {
+    return uniqueBy(imports, (x) => x.name).map((i) => {
+      const baseName = i.schemaName || i.name;
+      const name = conventionName(baseName, output.namingConvention);
+      const suffix = isZodSchemaOutput ? '.zod' : '';
+      return {
+        exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
+        dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}`),
+      };
+    });
+  } else {
+    if (isZodSchemaOutput) {
+      return [
+        {
+          exports: imports.map((i) => ({ ...i, values: true })),
+          dependency: upath.joinSafe(relativeSchemasPath, 'index.zod'),
+        },
+      ];
+    } else {
+      return [{ exports: imports, dependency: relativeSchemasPath }];
+    }
+  }
+}

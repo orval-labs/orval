@@ -68,11 +68,10 @@ export default defineConfig({
       schemas: '../generated/mock/petstore-custom-mock-builder/model',
       client: 'axios',
       mock: (verbOptions, _) => {
-        const imports = [];
         const handlerName = `${verbOptions.operationId}MockHandler`;
 
         return {
-          imports: imports,
+          imports: [],
           implementation: {
             function: '',
             handlerName: handlerName,
@@ -164,6 +163,20 @@ export default defineConfig({
           fractionDigits: 1,
         },
       },
+    },
+  },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/mock/zod-schema-response/endpoints.ts',
+      schemas: {
+        path: '../generated/mock/zod-schema-response/model',
+        type: 'zod',
+      },
+      client: 'axios',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
 });

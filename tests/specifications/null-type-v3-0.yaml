@@ -107,5 +107,3 @@ components:
       nullable: true
       enum:
         - null
-    EmptyEnum:
-      enum: []

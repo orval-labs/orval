@@ -1,8 +1,10 @@
+import readline from 'node:readline';
+
 import chalk from 'chalk';
-import readline from 'readline';
+
 export const log = console.log;
 
-export const startMessage = ({
+export function startMessage({
   name,
   version,
   description,
@@ -10,27 +12,38 @@ export const startMessage = ({
   name: string;
   version: string;
   description: string;
-}) =>
-  log(
-    `🍻 Start ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
-      description ? ` - ${description}` : ''
-    }`,
-  );
+}): string {
+  return `🍻 ${chalk.cyan.bold(name)} ${chalk.green(`v${version}`)}${
+    description ? ` - ${description}` : ''
+  }`;
+}
 
-export const logError = (err: unknown, tag?: string) =>
+export function logError(err: unknown, tag?: string) {
+  let message = '';
+
+  if (err instanceof Error) {
+    message = (err.message || err.stack) ?? 'Unknown error';
+    if (err.cause) {
+      const causeMsg =
+        err.cause instanceof Error
+          ? err.cause.message
+          : typeof err.cause === 'string'
+            ? err.cause
+            : JSON.stringify(err.cause, undefined, 2);
+      message += `\n  Cause: ${causeMsg}`;
+    }
+  } else {
+    message = String(err);
+  }
+
   log(
     chalk.red(
-      [
-        '🛑',
-        tag ? `${tag} -` : undefined,
-        err instanceof Error ? err.stack : err,
-      ]
-        .filter(Boolean)
-        .join(' '),
+      ['🛑', tag ? `${tag} -` : undefined, message].filter(Boolean).join(' '),
     ),
   );
+}
 
-export const mismatchArgsMessage = (mismatchArgs: string[]) =>
+export function mismatchArgsMessage(mismatchArgs: string[]) {
   log(
     chalk.yellow(
       `${mismatchArgs.join(', ')} ${
@@ -38,39 +51,15 @@ export const mismatchArgsMessage = (mismatchArgs: string[]) =>
       } not defined in your configuration!`,
     ),
   );
+}
 
-export const createSuccessMessage = (backend?: string) =>
+export function createSuccessMessage(backend?: string) {
   log(
     `🎉 ${
       backend ? `${chalk.green(backend)} - ` : ''
     }Your OpenAPI spec has been converted into ready to use orval!`,
   );
-
-export const ibmOpenapiValidatorWarnings = (
-  warnings: {
-    path: string[];
-    message: string;
-  }[],
-) => {
-  log(chalk.yellow('(!) Warnings'));
-
-  warnings.forEach((i) =>
-    log(chalk.yellow(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`)),
-  );
-};
-
-export const ibmOpenapiValidatorErrors = (
-  errors: {
-    path: string[];
-    message: string;
-  }[],
-) => {
-  log(chalk.red('(!) Errors'));
-
-  errors.forEach((i) =>
-    log(chalk.red(`Message : ${i.message}\nPath    : ${i.path.join(', ')}`)),
-  );
-};
+}
 
 export type LogType = 'error' | 'warn' | 'info';
 export type LogLevel = LogType | 'silent';

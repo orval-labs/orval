@@ -8,3 +8,6 @@
 *.ico binary
 *.png binary
 *.jpg binary
+
+**/turbo.json linguist-language=jsonc
+**/tsconfig*.json linguist-language=jsonc

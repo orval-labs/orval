@@ -14,35 +14,39 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
-        node-version: [20.x]
+        node-version: [22.x]
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: ${{ matrix.node-version }}
+          # disable setup-node@v5's caching to be able to setup yarn
+          # https://github.com/actions/setup-node/issues/1357
+          package-manager-cache: false
       - name: Enable corepack
         run: corepack enable
-      # until setup-node have better support for corepack
-      # we have to enable caching in 2 steps
+      # until setup-node have better support for corepack we have to setup yarn in 2 steps
       # https://github.com/actions/setup-node/issues/531
-      - uses: actions/setup-node@v4
-        with:
-          cache: 'yarn'
+      - uses: actions/setup-node@v6
       - name: install
         run: yarn
       - name: build
         run: yarn build
+      - name: lint
+        # not all packages pass linting yet - ongoing work
+        run: |
+          yarn workspace @orval/angular lint
+          yarn workspace @orval/axios lint
+          yarn workspace @orval/fetch lint
+          yarn workspace @orval/hono lint
+          yarn workspace @orval/mcp lint
+          yarn workspace @orval/swr lint
+      - name: samples up to date
+        uses: nickcharlton/diff-check@v1.0.0
+        with:
+          command: yarn update-samples
       - name: formatting
         run: yarn format:check
       - name: unit tests
         run: yarn test:ci
-      - name: tests install
-        working-directory: ./tests
-        run: yarn
-      - name: tests generate
-        working-directory: ./tests
-        run: yarn generate
-      - name: tests build
-        working-directory: ./tests
-        run: yarn build

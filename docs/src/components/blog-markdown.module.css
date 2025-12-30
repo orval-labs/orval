@@ -1,4 +1,6 @@
 /* purgecss start ignore */
+@reference "../styles/index.css";
+
 .markdown {
   @apply leading-relaxed text-gray-800 text-base;
 }

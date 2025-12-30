@@ -1,23 +1,39 @@
 {
   "name": "@orval/hono",
-  "version": "7.11.2",
+  "version": "8.0.0-rc.5",
   "license": "MIT",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    "import": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
   ],
   "scripts": {
-    "build": "tsup --dts",
-    "dev": "tsup --watch src",
-    "lint": "eslint src/**/*.ts"
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
+    "lint": "tsc --noEmit src/zValidator.ts && eslint .",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
-    "@orval/core": "7.11.2",
-    "@orval/zod": "7.11.2",
-    "lodash.uniq": "^4.5.0"
+    "@orval/core": "workspace:*",
+    "@orval/zod": "workspace:*",
+    "fs-extra": "^11.3.2",
+    "remeda": "^2.32.0"
   },
   "devDependencies": {
-    "@types/lodash.uniq": "^4.5.7"
-  }
+    "@hono/zod-validator": "^0.7.4",
+    "@types/fs-extra": "^11.0.4",
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

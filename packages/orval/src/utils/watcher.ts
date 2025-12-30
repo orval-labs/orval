@@ -1,23 +1,33 @@
 import { log, logError } from '@orval/core';
 
-export const startWatcher = async (
-  watchOptions: boolean | string | (string | boolean)[],
-  watchFn: () => Promise<any>,
+/**
+ * Start a file watcher and invoke an async callback on file changes.
+ *
+ * If `watchOptions` is falsy the watcher is not started. Supported shapes:
+ *  - boolean: when true the `defaultTarget` is watched
+ *  - string: a single path to watch
+ *  - string[]: an array of paths to watch
+ *
+ * @param watchOptions - false to disable watching, or a path/paths to watch
+ * @param watchFn - async callback executed on change events
+ * @param defaultTarget - path(s) to watch when `watchOptions` is `true` (default: '.')
+ * @returns Resolves once the watcher has been started (or immediately if disabled)
+ *
+ * @example
+ * await startWatcher(true, async () => { await buildProject(); }, 'src');
+ */
+export async function startWatcher(
+  watchOptions: boolean | string | string[],
+  watchFn: () => Promise<void>,
   defaultTarget: string | string[] = '.',
-) => {
+) {
   if (!watchOptions) return;
   const { watch } = await import('chokidar');
 
   const ignored = ['**/{.git,node_modules}/**'];
 
   const watchPaths =
-    typeof watchOptions === 'boolean'
-      ? defaultTarget
-      : Array.isArray(watchOptions)
-        ? watchOptions.filter(
-            (path): path is string => typeof path === 'string',
-          )
-        : watchOptions;
+    typeof watchOptions === 'boolean' ? defaultTarget : watchOptions;
 
   log(
     `Watching for changes in ${
@@ -31,13 +41,11 @@ export const startWatcher = async (
     ignorePermissionErrors: true,
     ignored,
   });
-  watcher.on('all', async (type, file) => {
+  watcher.on('all', (type, file) => {
     log(`Change detected: ${type} ${file}`);
 
-    try {
-      await watchFn();
-    } catch (e) {
-      logError(e);
-    }
+    watchFn().catch((error: unknown) => {
+      logError(error);
+    });
   });
-};
+}

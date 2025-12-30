@@ -1,0 +1,160 @@
+openapi: 3.0.1
+info:
+  title: Nullable AnyOf Refs
+  version: v1.0
+paths:
+  /pets:
+    get:
+      operationId: get-pets
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Pets'
+                type: array
+          description: OK
+  /animals:
+    get:
+      operationId: get-animals
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Animals'
+                type: array
+          description: OK
+  /nested-animals:
+    get:
+      operationId: get-nested-animals
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/NestedAnimals'
+                type: array
+          description: OK
+  /mixed-nullable:
+    get:
+      operationId: get-mixed-nullable
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MixedNullable'
+                type: array
+          description: OK
+  /mixed-types:
+    get:
+      operationId: get-mixed-types
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MixedTypes'
+                type: array
+          description: OK
+components:
+  schemas:
+    Pets:
+      properties:
+        petId:
+          anyOf:
+            - $ref: '#/components/schemas/DogId'
+            - $ref: '#/components/schemas/CatId'
+          nullable: true
+    Animals:
+      properties:
+        animalId:
+          anyOf:
+            - $ref: '#/components/schemas/DogId'
+            - $ref: '#/components/schemas/CatId'
+            - $ref: '#/components/schemas/BirdId'
+          nullable: true
+        secondaryId:
+          anyOf:
+            - $ref: '#/components/schemas/DogId'
+            - $ref: '#/components/schemas/CatId'
+          nullable: true
+    NestedAnimals:
+      type: object
+      properties:
+        nested:
+          type: object
+          properties:
+            animalId:
+              anyOf:
+                - $ref: '#/components/schemas/DogId'
+                - $ref: '#/components/schemas/CatId'
+                - $ref: '#/components/schemas/BirdId'
+              nullable: true
+            petId:
+              anyOf:
+                - $ref: '#/components/schemas/DogId'
+                - $ref: '#/components/schemas/CatId'
+              nullable: true
+    MixedNullable:
+      type: object
+      properties:
+        mixedId:
+          anyOf:
+            - $ref: '#/components/schemas/DogId'
+            - $ref: '#/components/schemas/CatId'
+            - $ref: '#/components/schemas/BirdIdNotNull'
+          nullable: true
+    DogId:
+      nullable: true
+      type: string
+    CatId:
+      nullable: true
+      type: string
+    BirdId:
+      nullable: true
+      type: string
+      format: uuid
+    BirdIdNotNull:
+      type: string
+      format: uuid
+    FishIdNotNull:
+      type: string
+    NumberId:
+      nullable: true
+      type: number
+      format: double
+    IntegerId:
+      nullable: true
+      type: integer
+      format: int64
+    BooleanFlag:
+      nullable: true
+      type: boolean
+    NumberIdNotNull:
+      type: number
+    IntegerIdNotNull:
+      type: integer
+      format: int32
+    MixedTypes:
+      type: object
+      properties:
+        mixedAnyOf:
+          anyOf:
+            - $ref: '#/components/schemas/DogId'
+            - $ref: '#/components/schemas/NumberId'
+            - $ref: '#/components/schemas/IntegerId'
+            - $ref: '#/components/schemas/BooleanFlag'
+          nullable: true
+        mixedTypesNotNull:
+          anyOf:
+            - $ref: '#/components/schemas/NumberIdNotNull'
+            - $ref: '#/components/schemas/IntegerIdNotNull'
+            - $ref: '#/components/schemas/BirdIdNotNull'
+          nullable: true

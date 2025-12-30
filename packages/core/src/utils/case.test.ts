@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { camel, pascal } from './case';
 import { kebab } from './case';
 
@@ -29,7 +30,7 @@ describe('pascal case testing', () => {
 
   it('should handle empty values', () => {
     expect(pascal('')).toBe('');
-    expect(pascal(undefined)).toBe('');
+    expect(pascal()).toBe('');
   });
 
   it('should handle nordic characters', () => {
@@ -48,7 +49,7 @@ describe('pascal case testing', () => {
 describe('camel case testing', () => {
   it('should handle empty values', () => {
     expect(camel('')).toBe('');
-    expect(camel(undefined)).toBe('');
+    expect(camel()).toBe('');
   });
 });
 
@@ -57,16 +58,16 @@ describe('kebab-case a few examples', () => {
   //on a string **repeatedly**.
   //Do some basic kebab case checks
   //Additionally, test that the kebab routine is Idempotent
-  [
+  for (const [input, expected] of [
     ['Pet', 'pet'],
     ['pet', 'pet'],
     ['PetTag', 'pet-tag'],
     ['pet-tag', 'pet-tag'],
     ['PetTagWithFourWords', 'pet-tag-with-four-words'],
     ['pet-tag-with-four-words', 'pet-tag-with-four-words'],
-  ].forEach(([input, expected]) => {
+  ]) {
     it(`should process ${input} to ${expected}`, () => {
       expect(kebab(input)).toBe(expected);
     });
-  });
+  }
 });

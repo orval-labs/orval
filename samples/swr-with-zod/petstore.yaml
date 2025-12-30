@@ -171,12 +171,16 @@ components:
       properties:
         cuteness:
           type: integer
+        breed:
+          type: string
     Dachshund:
       type: object
       required: ['length']
       properties:
         length:
           type: integer
+        breed:
+          type: string
     Cat:
       type: object
       required: ['type']

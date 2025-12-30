@@ -7,34 +7,34 @@ import {
   ShowPetByIdContext,
 } from './pets.context';
 import {
-  listPetsQueryParams,
-  listPetsResponse,
-  createPetsBody,
-  createPetsResponse,
-  updatePetsBody,
-  updatePetsResponse,
-  showPetByIdParams,
-  showPetByIdResponse,
+  ListPetsQueryParams,
+  ListPetsResponse,
+  CreatePetsBody,
+  CreatePetsResponse,
+  UpdatePetsBody,
+  UpdatePetsResponse,
+  ShowPetByIdParams,
+  ShowPetByIdResponse,
 } from './pets.zod';
 
 const factory = createFactory();
 export const listPetsHandlers = factory.createHandlers(
-  zValidator('query', listPetsQueryParams),
-  zValidator('response', listPetsResponse),
+  zValidator('query', ListPetsQueryParams),
+  zValidator('response', ListPetsResponse),
   async (c: ListPetsContext) => {},
 );
 export const createPetsHandlers = factory.createHandlers(
-  zValidator('json', createPetsBody),
-  zValidator('response', createPetsResponse),
+  zValidator('json', CreatePetsBody),
+  zValidator('response', CreatePetsResponse),
   async (c: CreatePetsContext) => {},
 );
 export const updatePetsHandlers = factory.createHandlers(
-  zValidator('json', updatePetsBody),
-  zValidator('response', updatePetsResponse),
+  zValidator('json', UpdatePetsBody),
+  zValidator('response', UpdatePetsResponse),
   async (c: UpdatePetsContext) => {},
 );
 export const showPetByIdHandlers = factory.createHandlers(
-  zValidator('param', showPetByIdParams),
-  zValidator('response', showPetByIdResponse),
+  zValidator('param', ShowPetByIdParams),
+  zValidator('response', ShowPetByIdResponse),
   async (c: ShowPetByIdContext) => {},
 );

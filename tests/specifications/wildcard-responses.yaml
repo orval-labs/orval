@@ -1,0 +1,127 @@
+openapi: 3.0.0
+info:
+  title: Wildcard Responses Test API
+  version: 1.0.0
+paths:
+  /api/users/me:
+    get:
+      operationId: getLoggedInUser
+      summary: Fetch the current logged in user
+      responses:
+        '2XX':
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserDto'
+        '4XX':
+          description: Client errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+        '5XX':
+          description: Server errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+  /api/items:
+    get:
+      operationId: listItems
+      summary: List all items
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ItemDto'
+        '3XX':
+          description: Redirect
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RedirectDto'
+        '4XX':
+          description: Client errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+  /api/mixed:
+    get:
+      operationId: getMixedResponses
+      summary: Endpoint with both specific and wildcard codes
+      responses:
+        '200':
+          description: Specific success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessDto'
+        '2XX':
+          description: Other success codes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericSuccessDto'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestDto'
+        '4XX':
+          description: Other client errors
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorDto'
+components:
+  schemas:
+    UserDto:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    ErrorDto:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+    ItemDto:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+    RedirectDto:
+      type: object
+      properties:
+        location:
+          type: string
+    SuccessDto:
+      type: object
+      properties:
+        result:
+          type: string
+    GenericSuccessDto:
+      type: object
+      properties:
+        ok:
+          type: boolean
+    BadRequestDto:
+      type: object
+      properties:
+        field:
+          type: string
+        error:
+          type: string

@@ -1,5 +1,4 @@
-export * from './executeHook';
-export * from './github';
+export * from './execute-hook';
 export * from './options';
 export * from './package-json';
 export * from './request';

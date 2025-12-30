@@ -1,23 +1,31 @@
 {
   "name": "basic",
-  "version": "1.0.0",
+  "version": "8.0.0-rc.5",
   "description": "",
+  "private": true,
+  "type": "module",
   "main": "index.html",
   "scripts": {
-    "generate-api": "node ../../packages/orval/dist/bin/orval.js",
+    "generate-api": "orval",
     "example": "run-p 'example:*'",
-    "example:basic": "node ../../packages/orval/dist/bin/orval.js --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
-    "example:config": "node ../../packages/orval/dist/bin/orval.js"
+    "example:basic": "orval --input ./petstore.yaml --output ./api/endpoints/petstoreFromFileSpec.ts",
+    "example:config": "orval"
   },
   "author": "Victor Bury",
   "license": "ISC",
   "devDependencies": {
     "npm-run-all": "^4.1.5",
-    "orval": "link:../../packages/orval/dist"
+    "orval": "workspace:*"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.8.0",
-    "axios": "^1.8.2",
-    "msw": "^2.0.2"
-  }
+    "@faker-js/faker": "^10.1.0",
+    "axios": "^1.13.2",
+    "msw": "^2.12.4"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

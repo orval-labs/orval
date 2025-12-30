@@ -26,6 +26,11 @@
       "heading": true,
       "routes": [
         {
+          "title": "Migration Guide V8",
+          "path": "/guides/migration-v8",
+          "editUrl": "/guides/migration-v8.md"
+        },
+        {
           "title": "Custom Base URL",
           "path": "/guides/set-base-url",
           "editUrl": "/guides/set-base-url.md"
@@ -74,6 +79,11 @@
           "title": "Angular",
           "path": "/guides/angular",
           "editUrl": "/guides/angular.md"
+        },
+        {
+          "title": "Angular Query",
+          "path": "/guides/angular-query",
+          "editUrl": "/guides/angular-query.md"
         },
         {
           "title": "SWR",

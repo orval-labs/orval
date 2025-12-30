@@ -1,6 +1,7 @@
 import fs from 'fs-extra';
+
 import { generateModelsInline, generateMutatorImports } from '../generators';
-import { OutputClient, WriteModeProps } from '../types';
+import { OutputClient, type WriteModeProps } from '../types';
 import {
   conventionName,
   getFileInfo,
@@ -8,18 +9,18 @@ import {
   isSyntheticDefaultImportsAllow,
   upath,
 } from '../utils';
+import { getMockFileExtensionByTypeName } from '../utils/file-extensions';
+import { generateImportsForBuilder } from './generate-imports-for-builder';
 import { generateTarget } from './target';
 import { getOrvalGeneratedTypes, getTypedResponse } from './types';
-import { getMockFileExtensionByTypeName } from '../utils/fileExtensions';
-import { generateImportsForBuilder } from './generate-imports-for-builder';
 
-export const writeSplitMode = async ({
+export async function writeSplitMode({
   builder,
   output,
-  specsName,
+  projectName,
   header,
   needSchema,
-}: WriteModeProps): Promise<string[]> => {
+}: WriteModeProps): Promise<string[]> {
   try {
     const { filename, dirname, extension } = getFileInfo(output.target, {
       backupFilename: conventionName(
@@ -48,8 +49,12 @@ export const writeSplitMode = async ({
     const relativeSchemasPath = output.schemas
       ? upath.relativeSafe(
           dirname,
-          getFileInfo(output.schemas, { extension: output.fileExtension })
-            .dirname,
+          getFileInfo(
+            typeof output.schemas === 'string'
+              ? output.schemas
+              : output.schemas.path,
+            { extension: output.fileExtension },
+          ).dirname,
         )
       : './' + filename + '.schemas';
 
@@ -67,12 +72,12 @@ export const writeSplitMode = async ({
       client: output.client,
       implementation,
       imports: importsForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
       hasGlobalMutator: !!output.override.mutator,
       hasTagsMutator: Object.values(output.override.tags).some(
-        (tag) => !!tag.mutator,
+        (tag) => !!tag?.mutator,
       ),
       hasParamsSerializerOptions: !!output.override.paramsSerializerOptions,
       packageJson: output.packageJson,
@@ -88,15 +93,15 @@ export const writeSplitMode = async ({
     mockData += builder.importsMock({
       implementation: implementationMock,
       imports: importsMockForBuilder,
-      specsName,
+      projectName,
       hasSchemaDir: !!output.schemas,
       isAllowSyntheticDefaultImports,
-      options: !isFunction(output.mock) ? output.mock : undefined,
+      options: isFunction(output.mock) ? undefined : output.mock,
     });
 
-    const schemasPath = !output.schemas
-      ? upath.join(dirname, filename + '.schemas' + extension)
-      : undefined;
+    const schemasPath = output.schemas
+      ? undefined
+      : upath.join(dirname, filename + '.schemas' + extension);
 
     if (schemasPath && needSchema) {
       const schemasData = header + generateModelsInline(builder.schemas);
@@ -185,7 +190,9 @@ export const writeSplitMode = async ({
       ...(schemasPath ? [schemasPath] : []),
       ...(mockPath ? [mockPath] : []),
     ];
-  } catch (e) {
-    throw `Oups... 🍻. An Error occurred while splitting => ${e}`;
+  } catch (error) {
+    throw new Error(
+      `Oups... 🍻. An Error occurred while splitting => ${error}`,
+    );
   }
-};
+}

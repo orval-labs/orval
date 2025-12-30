@@ -15,6 +15,20 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/angular/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/angular/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'angular',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   tagsSplit: {
     output: {
       target: '../generated/angular/tags-split/endpoints.ts',

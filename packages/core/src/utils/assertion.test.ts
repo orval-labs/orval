@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+
 import { isUrl } from './assertion';
 
 describe('assertion testing', () => {

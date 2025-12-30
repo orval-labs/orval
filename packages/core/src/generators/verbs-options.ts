@@ -1,10 +1,3 @@
-import type {
-  ComponentsObject,
-  OperationObject,
-  ParameterObject,
-  PathItemObject,
-  ReferenceObject,
-} from 'openapi3-ts/oas30';
 import {
   getBody,
   getOperationId,
@@ -15,21 +8,22 @@ import {
   getResponse,
 } from '../getters';
 import type {
-  ContextSpecs,
+  ContextSpec,
   GeneratorVerbOptions,
   GeneratorVerbsOptions,
   NormalizedInputOptions,
   NormalizedMutator,
   NormalizedOperationOptions,
   NormalizedOutputOptions,
-  NormalizedOverrideOutput,
+  OpenApiComponentsObject,
+  OpenApiOperationObject,
+  OpenApiPathItemObject,
   Verbs,
 } from '../types';
 import {
   asyncReduce,
   camel,
   dynamicImport,
-  isBoolean,
   isObject,
   isString,
   isVerb,
@@ -39,7 +33,18 @@ import {
 } from '../utils';
 import { generateMutator } from './mutator';
 
-const generateVerbOptions = async ({
+export interface GenerateVerbOptionsParams {
+  verb: Verbs;
+  output: NormalizedOutputOptions;
+  operation: OpenApiOperationObject;
+  route: string;
+  pathRoute: string;
+  verbParameters?: OpenApiPathItemObject['parameters'];
+  components?: OpenApiComponentsObject;
+  context: ContextSpec;
+}
+
+export async function generateVerbOptions({
   verb,
   output,
   operation,
@@ -47,16 +52,7 @@ const generateVerbOptions = async ({
   pathRoute,
   verbParameters = [],
   context,
-}: {
-  verb: Verbs;
-  output: NormalizedOutputOptions;
-  operation: OperationObject;
-  route: string;
-  pathRoute: string;
-  verbParameters?: Array<ReferenceObject | ParameterObject>;
-  components?: ComponentsObject;
-  context: ContextSpecs;
-}): Promise<GeneratorVerbOptions> => {
+}: GenerateVerbOptionsParams): Promise<GeneratorVerbOptions> {
   const {
     responses,
     requestBody,
@@ -68,10 +64,12 @@ const generateVerbOptions = async ({
   } = operation;
   const operationId = getOperationId(operation, route, verb);
   const overrideOperation = output.override.operations[operation.operationId!];
-  const overrideTag = Object.entries(output.override.tags).reduce(
+  const overrideTag = Object.entries(
+    output.override.tags,
+  ).reduce<NormalizedOperationOptions>(
     (acc, [tag, options]) =>
-      tags.includes(tag) ? mergeDeep(acc, options) : acc,
-    {} as NormalizedOperationOptions,
+      tags.includes(tag) && options ? mergeDeep(acc, options) : acc,
+    {},
   );
 
   const override = mergeDeep(
@@ -80,7 +78,7 @@ const generateVerbOptions = async ({
   );
 
   const overrideOperationName =
-    overrideOperation?.operationName || output.override?.operationName;
+    overrideOperation?.operationName ?? output.override.operationName;
   const operationName = overrideOperationName
     ? overrideOperationName(operation, route, verb)
     : sanitize(camel(operationId), { es5keyword: true });
@@ -111,7 +109,7 @@ const generateVerbOptions = async ({
   });
 
   const headers = output.headers
-    ? await getQueryParams({
+    ? getQueryParams({
         queryParams: parameters.header,
         operationName,
         context,
@@ -139,7 +137,7 @@ const generateVerbOptions = async ({
   const mutator = await generateMutator({
     output: output.target,
     name: operationName,
-    mutator: override?.mutator,
+    mutator: override.mutator,
     workspace: context.workspace,
     tsconfig: context.output.tsconfig,
   });
@@ -156,7 +154,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const formUrlEncoded =
-    isString(override?.formUrlEncoded) || isObject(override?.formUrlEncoded)
+    isString(override.formUrlEncoded) || isObject(override.formUrlEncoded)
       ? await generateMutator({
           output: output.target,
           name: operationName,
@@ -167,7 +165,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const paramsSerializer =
-    isString(override?.paramsSerializer) || isObject(override?.paramsSerializer)
+    isString(override.paramsSerializer) || isObject(override.paramsSerializer)
       ? await generateMutator({
           output: output.target,
           name: 'paramsSerializer',
@@ -178,8 +176,7 @@ const generateVerbOptions = async ({
       : undefined;
 
   const fetchReviver =
-    isString(override?.fetch.jsonReviver) ||
-    isObject(override?.fetch.jsonReviver)
+    isString(override.fetch.jsonReviver) || isObject(override.fetch.jsonReviver)
       ? await generateMutator({
           output: output.target,
           name: 'fetchReviver',
@@ -196,7 +193,7 @@ const generateVerbOptions = async ({
     route,
     pathRoute,
     summary: operation.summary,
-    operationId: operationId!,
+    operationId,
     operationName,
     response,
     body,
@@ -216,31 +213,33 @@ const generateVerbOptions = async ({
   };
 
   const transformer = await dynamicImport(
-    override?.transformer,
+    override.transformer,
     context.workspace,
   );
 
   return transformer ? transformer(verbOption) : verbOption;
-};
+}
 
-export const generateVerbsOptions = ({
+export interface GenerateVerbsOptionsParams {
+  verbs: OpenApiPathItemObject;
+  input: NormalizedInputOptions;
+  output: NormalizedOutputOptions;
+  route: string;
+  pathRoute: string;
+  context: ContextSpec;
+}
+
+export function generateVerbsOptions({
   verbs,
   input,
   output,
   route,
   pathRoute,
   context,
-}: {
-  verbs: PathItemObject;
-  input: NormalizedInputOptions;
-  output: NormalizedOutputOptions;
-  route: string;
-  pathRoute: string;
-  context: ContextSpecs;
-}): Promise<GeneratorVerbsOptions> =>
-  asyncReduce(
+}: GenerateVerbsOptionsParams): Promise<GeneratorVerbsOptions> {
+  return asyncReduce(
     _filteredVerbs(verbs, input.filters),
-    async (acc, [verb, operation]: [string, OperationObject]) => {
+    async (acc, [verb, operation]: [string, OpenApiOperationObject]) => {
       if (isVerb(verb)) {
         const verbOptions = await generateVerbOptions({
           verb,
@@ -259,21 +258,22 @@ export const generateVerbsOptions = ({
     },
     [] as GeneratorVerbsOptions,
   );
+}
 
-export const _filteredVerbs = (
-  verbs: PathItemObject,
+export function _filteredVerbs(
+  verbs: OpenApiPathItemObject,
   filters: NormalizedInputOptions['filters'],
-) => {
-  if (filters === undefined || filters.tags === undefined) {
+) {
+  if (filters?.tags === undefined) {
     return Object.entries(verbs);
   }
 
   const filterTags = filters.tags || [];
-  const filterMode = filters.mode || 'include';
+  const filterMode = filters.mode ?? 'include';
 
   return Object.entries(verbs).filter(
-    ([_verb, operation]: [string, OperationObject]) => {
-      const operationTags = operation.tags || [];
+    ([, operation]: [string, OpenApiOperationObject]) => {
+      const operationTags = operation.tags ?? [];
 
       const isMatch = operationTags.some((tag) =>
         filterTags.some((filterTag) =>
@@ -284,4 +284,4 @@ export const _filteredVerbs = (
       return filterMode === 'exclude' ? !isMatch : isMatch;
     },
   );
-};
+}

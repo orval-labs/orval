@@ -6,6 +6,7 @@ export default defineConfig({
       target: '../generated/vue-query/petstore/endpoints.ts',
       schemas: '../generated/vue-query/petstore/model',
       client: 'vue-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         query: {
@@ -22,10 +23,26 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/vue-query/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/vue-query/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'vue-query',
+      httpClient: 'axios',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/vue-query/petstore-tags-split/endpoints.ts',
       schemas: '../generated/vue-query/petstore-tags-split/model',
+      httpClient: 'axios',
       mock: true,
       mode: 'tags-split',
       client: 'vue-query',
@@ -38,6 +55,7 @@ export default defineConfig({
     output: {
       target: '../generated/vue-query/split/endpoints.ts',
       schemas: '../generated/vue-query/split/model',
+      httpClient: 'axios',
       mock: true,
       mode: 'split',
       client: 'vue-query',
@@ -50,6 +68,7 @@ export default defineConfig({
     output: {
       target: '../generated/vue-query/tags/endpoints.ts',
       schemas: '../generated/vue-query/tags/model',
+      httpClient: 'axios',
       mock: true,
       mode: 'tags',
       client: 'vue-query',
@@ -64,7 +83,6 @@ export default defineConfig({
       schemas: '../generated/vue-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'vue-query',
-      httpClient: 'fetch',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -78,7 +96,6 @@ export default defineConfig({
         '../generated/vue-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'vue-query',
-      httpClient: 'fetch',
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -94,6 +111,7 @@ export default defineConfig({
       target: '../generated/vue-query/mutator/endpoints.ts',
       schemas: '../generated/vue-query/mutator/model',
       client: 'vue-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -121,7 +139,6 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-custom-fetch/model',
       client: 'vue-query',
-      httpClient: 'fetch',
       mock: true,
       override: {
         mutator: {
@@ -179,7 +196,6 @@ export default defineConfig({
       schemas:
         '../generated/vue-query/http-client-fetch-with-multi-query-params/model',
       client: 'vue-query',
-      httpClient: 'fetch',
     },
     input: {
       target: '../specifications/multi-query-params.yaml',

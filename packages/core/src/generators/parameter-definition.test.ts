@@ -1,21 +1,19 @@
-import { ComponentsObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
-import { ContextSpecs } from '../types';
+
+import type { ContextSpec, OpenApiComponentsObject } from '../types';
 import { generateParameterDefinition } from './parameter-definition';
 
 describe('generateParameterDefinition', () => {
-  const context: ContextSpecs = {
-    specKey: 'testSpec',
+  const context: ContextSpec = {
     output: {
       override: {
-        useNativeEnums: false,
         components: {
           schemas: { itemSuffix: 'Parameter' },
         },
       },
     },
     target: 'typescript',
-    specs: {},
+    spec: {},
   };
 
   it('should return an empty array if parameters are empty', () => {
@@ -24,7 +22,7 @@ describe('generateParameterDefinition', () => {
   });
 
   it('should generate parameter definitions for query parameters', () => {
-    const parameters: ComponentsObject['parameters'] = {
+    const parameters: OpenApiComponentsObject['parameters'] = {
       PetNames: {
         name: 'names',
         in: 'query',
@@ -47,7 +45,7 @@ describe('generateParameterDefinition', () => {
   });
 
   it('should generate parameter definitions for header parameters', () => {
-    const parameters: ComponentsObject['parameters'] = {
+    const parameters: OpenApiComponentsObject['parameters'] = {
       XUserId: {
         name: 'X-User-Id',
         in: 'header',
@@ -67,7 +65,7 @@ describe('generateParameterDefinition', () => {
   });
 
   it('should generate parameter definitions for header parameters', () => {
-    const parameters: ComponentsObject['parameters'] = {
+    const parameters: OpenApiComponentsObject['parameters'] = {
       XUserId: {
         name: 'X-User-Id',
         in: 'header',

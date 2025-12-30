@@ -8,6 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       prettier: true,
       override: {
@@ -28,6 +29,7 @@ export default defineConfig({
               useSuspenseInfiniteQuery: true,
               useInfinite: true,
               useInfiniteQueryParam: 'limit',
+              useInvalidate: true,
             },
           },
           showPetById: {

@@ -1,37 +1,30 @@
-import {
-  ExampleObject,
-  ParameterObject,
-  ReferenceObject,
-  RequestBodyObject,
-  ResponseObject,
-  SchemaObject,
-} from 'openapi3-ts/oas30';
-import { RefInfo, getRefInfo } from '../getters/ref';
-import { ContextSpecs, GeneratorImport } from '../types';
-import { isReference } from '../utils';
-import { OpenAPIObject } from 'openapi3-ts/oas30';
+import { isDereferenced } from '@scalar/openapi-types/helpers';
+import { prop } from 'remeda';
 
-type ComponentObject =
-  | SchemaObject
-  | ResponseObject
-  | ParameterObject
-  | RequestBodyObject
-  | ReferenceObject;
-export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
-  schema: ComponentObject,
-  context: ContextSpecs,
+import { getRefInfo, type RefInfo } from '../getters/ref';
+import type {
+  ContextSpec,
+  GeneratorImport,
+  OpenApiComponentsObject,
+  OpenApiExampleObject,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+} from '../types';
+import { isReference } from '../utils';
+
+export function resolveRef<
+  TSchema extends OpenApiComponentsObject = OpenApiComponentsObject,
+>(
+  schema: OpenApiComponentsObject,
+  context: ContextSpec,
   imports: GeneratorImport[] = [],
 ): {
-  schema: Schema;
+  schema: TSchema;
   imports: GeneratorImport[];
-} => {
+} {
   // the schema is referring to another object
-  if ((schema as any)?.schema?.$ref) {
-    const resolvedRef = resolveRef<Schema>(
-      (schema as any)?.schema,
-      context,
-      imports,
-    );
+  if ('schema' in schema && schema.schema?.$ref) {
+    const resolvedRef = resolveRef<TSchema>(schema.schema, context, imports);
     if ('examples' in schema) {
       schema.examples = resolveExampleRefs(schema.examples, context);
     }
@@ -45,98 +38,100 @@ export const resolveRef = <Schema extends ComponentObject = ComponentObject>(
       schema: {
         ...schema,
         schema: resolvedRef.schema,
-      } as Schema,
+      } as TSchema,
       imports,
     };
   }
 
-  if (!isReference(schema)) {
+  if (isDereferenced(schema)) {
     if ('examples' in schema) {
       schema.examples = resolveExampleRefs(schema.examples, context);
     }
-    return { schema: schema as Schema, imports };
+    return { schema: schema as TSchema, imports };
   }
 
   const {
     currentSchema,
-    refInfo: { specKey, name, originalName },
+    refInfo: { name, originalName },
   } = getSchema(schema, context);
 
   if (!currentSchema) {
-    throw `Oops... 🍻. Ref not found: ${schema.$ref}`;
+    throw new Error(`Oops... 🍻. Ref not found: ${schema.$ref}`);
   }
 
-  return resolveRef<Schema>(
-    currentSchema,
-    { ...context, specKey: specKey || context.specKey },
-    [...imports, { name, specKey, schemaName: originalName }],
-  );
-};
+  return resolveRef<TSchema>(currentSchema, { ...context }, [
+    ...imports,
+    { name, schemaName: originalName },
+  ]);
+}
 
-function getSchema<Schema extends ComponentObject = ComponentObject>(
-  schema: ReferenceObject,
-  context: ContextSpecs,
+function getSchema<
+  TSchema extends OpenApiComponentsObject = OpenApiComponentsObject,
+>(
+  schema: OpenApiReferenceObject,
+  context: ContextSpec,
 ): {
   refInfo: RefInfo;
-  currentSchema: Schema | undefined;
+  currentSchema: TSchema | undefined;
 } {
   const refInfo = getRefInfo(schema.$ref, context);
 
-  const { specKey, refPaths } = refInfo;
+  const { refPaths } = refInfo;
 
-  let schemaByRefPaths: Schema | undefined =
-    refPaths && Array.isArray(refPaths)
-      ? refPaths.reduce(
-          (obj: any, key: string) => (obj && key in obj ? obj[key] : undefined),
-          context.specs[specKey || context.specKey],
-        )
-      : undefined;
+  let schemaByRefPaths = Array.isArray(refPaths)
+    ? (prop(
+        context.spec,
+        // @ts-expect-error: [ts2556] refPaths are not guaranteed to be valid keys of the spec
+        ...refPaths,
+      ) as OpenApiSchemaObject | OpenApiReferenceObject)
+    : undefined;
 
   if (!schemaByRefPaths) {
-    schemaByRefPaths = context.specs?.[
-      specKey || context.specKey
-    ] as unknown as Schema;
+    schemaByRefPaths = context.spec;
   }
 
   if (isReference(schemaByRefPaths)) {
     return getSchema(schemaByRefPaths, context);
   }
-  const currentSchema = schemaByRefPaths
-    ? schemaByRefPaths
-    : (context.specs[specKey || context.specKey] as unknown as Schema);
+
+  let currentSchema = schemaByRefPaths ? schemaByRefPaths : context.spec;
+
+  if ('nullable' in schema) {
+    currentSchema = { ...currentSchema, nullable: schema.nullable };
+  }
+
   return {
     currentSchema,
     refInfo,
   };
 }
 
-type Example = ExampleObject | ReferenceObject;
+type Example = OpenApiExampleObject | OpenApiReferenceObject;
 type Examples = Example[] | Record<string, Example> | undefined;
-export const resolveExampleRefs = (
+export function resolveExampleRefs(
   examples: Examples,
-  context: ContextSpecs,
-): Examples => {
+  context: ContextSpec,
+): Examples {
   if (!examples) {
     return undefined;
   }
-  if (Array.isArray(examples)) {
-    return examples.map((example) => {
-      if (isReference(example)) {
-        const { schema } = resolveRef<ExampleObject>(example, context);
-        return schema.value;
-      }
-      return example;
-    });
-  } else {
-    return Object.entries(examples).reduce((acc, [key, example]) => {
-      let schema = example;
-      if (isReference(example)) {
-        schema = resolveRef<ExampleObject>(example, context).schema.value;
-      }
-      return {
-        ...acc,
-        [key]: schema,
-      };
-    }, {});
-  }
-};
+  return Array.isArray(examples)
+    ? examples.map((example) => {
+        if (isReference(example)) {
+          const { schema } = resolveRef<OpenApiExampleObject>(example, context);
+          return schema.value;
+        }
+        return example;
+      })
+    : Object.entries(examples).reduce((acc, [key, example]) => {
+        let schema = example;
+        if (isReference(example)) {
+          schema = resolveRef<OpenApiExampleObject>(example, context).schema
+            .value;
+        }
+        return {
+          ...acc,
+          [key]: schema,
+        };
+      }, {});
+}

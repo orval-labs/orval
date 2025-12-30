@@ -1,33 +1,27 @@
 import {
-  generateVerbImports,
-  ClientBuilder,
-  ClientExtraFilesBuilder,
-  ClientGeneratorsBuilder,
-  ClientHeaderBuilder,
-  ContextSpecs,
-  generateMutatorImports,
-  GeneratorMutator,
-  GeneratorVerbOptions,
-  getFileInfo,
-  jsDoc,
-  NormalizedOutputOptions,
-  upath,
   camel,
-  pascal,
+  type ClientBuilder,
+  type ClientExtraFilesBuilder,
+  type ClientGeneratorsBuilder,
+  type ClientHeaderBuilder,
+  type ContextSpec,
+  generateMutatorImports,
+  type GeneratorVerbOptions,
+  getFileInfo,
   getFullRoute,
+  isObject,
+  jsDoc,
+  type NormalizedOutputOptions,
+  type OpenApiInfoObject,
+  pascal,
+  upath,
 } from '@orval/core';
+import { generateClient, generateFetchHeader } from '@orval/fetch';
 import { generateZod } from '@orval/zod';
-import {
-  generateRequestFunction as generateFetchRequestFunction,
-  generateClient,
-  generateFetchHeader,
-} from '@orval/fetch';
-
-import { InfoObject } from 'openapi3-ts/oas30';
 
 const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
 ): string => {
   if (!option) {
     return '';
@@ -38,20 +32,27 @@ const getHeader = (
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 };
 
-export const getMcpHeader: ClientHeaderBuilder = ({
-  verbOptions,
-  output,
-  clientImplementation,
-}) => {
+export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
   const targetInfo = getFileInfo(output.target);
-  const schemaInfo = getFileInfo(output.schemas);
+  const schemasPath = isObject(output.schemas)
+    ? output.schemas.path
+    : output.schemas;
+  const schemaInfo = schemasPath ? getFileInfo(schemasPath) : undefined;
 
-  const relativeSchemaImportPath = output.schemas
-    ? upath.relativeSafe(targetInfo.dirname, schemaInfo.dirname)
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+  const basePath = schemaInfo?.dirname;
+  const relativeSchemaImportPath = basePath
+    ? isZodSchemaOutput && output.indexFiles
+      ? upath.relativeSafe(
+          targetInfo.dirname,
+          upath.joinSafe(basePath, 'index.zod'),
+        )
+      : upath.relativeSafe(targetInfo.dirname, basePath)
     : './' + targetInfo.filename + '.schemas';
 
-  const importSchemaNames = Object.values(verbOptions)
-    .flatMap((verbOption) => {
+  const importSchemaNames = new Set(
+    Object.values(verbOptions).flatMap((verbOption) => {
       const imports = [];
       const pascalOperationName = pascal(verbOption.operationName);
 
@@ -64,13 +65,10 @@ export const getMcpHeader: ClientHeaderBuilder = ({
       }
 
       return imports;
-    })
-    .reduce((acc, name) => {
-      if (!acc.find((i) => i === name)) {
-        acc.push(name);
-      }
-      return acc;
-    }, [] as string[]);
+    }),
+  )
+    .values()
+    .toArray();
 
   const importSchemasImplementation = `import {\n  ${importSchemaNames.join(
     ',\n  ',
@@ -78,15 +76,13 @@ export const getMcpHeader: ClientHeaderBuilder = ({
 `;
 
   const relativeFetchClientPath = './http-client';
-  const importFetchClientNames = Object.values(verbOptions)
-    .flatMap((verbOption) => verbOption.operationName)
-    .reduce((acc, name) => {
-      if (!acc.find((i) => i === name)) {
-        acc.push(name);
-      }
-
-      return acc;
-    }, [] as string[]);
+  const importFetchClientNames = new Set(
+    Object.values(verbOptions).flatMap(
+      (verbOption) => verbOption.operationName,
+    ),
+  )
+    .values()
+    .toArray();
 
   const importFetchClientImplementation = `import {\n  ${importFetchClientNames.join(
     ',\n  ',
@@ -101,7 +97,7 @@ export const getMcpHeader: ClientHeaderBuilder = ({
   return content + '\n';
 };
 
-export const generateMcp: ClientBuilder = async (verbOptions, options) => {
+export const generateMcp: ClientBuilder = (verbOptions) => {
   const handlerArgsTypes = [];
   const pathParamsType = verbOptions.params
     .map((param) => {
@@ -123,16 +119,17 @@ export const generateMcp: ClientBuilder = async (verbOptions, options) => {
   }
 
   const handlerArgsName = `${verbOptions.operationName}Args`;
-  const handlerArgsImplementation = handlerArgsTypes.length
-    ? `
+  const handlerArgsImplementation =
+    handlerArgsTypes.length > 0
+      ? `
 export type ${handlerArgsName} = {
 ${handlerArgsTypes.join('\n')}
 }
 `
-    : '';
+      : '';
 
   const fetchParams = [];
-  if (verbOptions.params.length) {
+  if (verbOptions.params.length > 0) {
     const pathParamsArgs = verbOptions.params
       .map((param) => {
         const paramName = param.name.split(': ')[0];
@@ -141,14 +138,14 @@ ${handlerArgsTypes.join('\n')}
       })
       .join(', ');
 
-    fetchParams.push(`${pathParamsArgs}`);
+    fetchParams.push(pathParamsArgs);
   }
   if (verbOptions.body.definition) fetchParams.push(`args.bodyParams`);
   if (verbOptions.queryParams) fetchParams.push(`args.queryParams`);
 
   const handlerName = `${verbOptions.operationName}Handler`;
   const handlerImplementation = `
-export const ${handlerName} = async (${handlerArgsTypes.length ? `args: ${handlerArgsName}` : ''}) => {
+export const ${handlerName} = async (${handlerArgsTypes.length > 0 ? `args: ${handlerArgsName}` : ''}) => {
   const res = await ${verbOptions.operationName}(${fetchParams.join(', ')});
 
   return {
@@ -172,40 +169,40 @@ export const ${handlerName} = async (${handlerArgsTypes.length ? `args: ${handle
   };
 };
 
-export const generateServer = async (
+export const generateServer = (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
-  const info = context.specs[context.specKey].info;
+  const info = context.spec.info;
   const { extension, dirname } = getFileInfo(output.target);
   const serverPath = upath.join(dirname, `server${extension}`);
   const header = getHeader(output.override.header, info);
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
-      const imputSchemaTypes = [];
-      if (verbOption.params.length)
-        imputSchemaTypes.push(
-          `  pathParams: ${verbOption.operationName}Params`,
-        );
+      const pascalOperationName = pascal(verbOption.operationName);
+      const inputSchemaTypes = [];
+      if (verbOption.params.length > 0)
+        inputSchemaTypes.push(`  pathParams: ${pascalOperationName}Params`);
       if (verbOption.queryParams)
-        imputSchemaTypes.push(
-          `  queryParams: ${verbOption.operationName}QueryParams`,
+        inputSchemaTypes.push(
+          `  queryParams: ${pascalOperationName}QueryParams`,
         );
       if (verbOption.body.definition)
-        imputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
+        inputSchemaTypes.push(`  bodyParams: ${pascalOperationName}Body`);
 
-      const imputSchemaImplementation = imputSchemaTypes.length
-        ? `  {
-  ${imputSchemaTypes.join(',\n  ')}
+      const inputSchemaImplementation =
+        inputSchemaTypes.length > 0
+          ? `  {
+  ${inputSchemaTypes.join(',\n  ')}
   },`
-        : '';
+          : '';
 
       const toolImplementation = `
 server.tool(
   '${verbOption.operationName}',
-  '${verbOption.summary}',${imputSchemaImplementation ? `\n${imputSchemaImplementation}` : ''}
+  '${verbOption.summary}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
   ${verbOption.operationName}Handler
 );`;
 
@@ -217,14 +214,15 @@ server.tool(
     .flatMap((verbOption) => {
       const imports = [];
 
-      if (verbOption.headers)
-        imports.push(`  ${verbOption.operationName}Header`);
-      if (verbOption.params.length)
-        imports.push(`  ${verbOption.operationName}Params`);
+      const pascalOperationName = pascal(verbOption.operationName);
+
+      if (verbOption.headers) imports.push(`  ${pascalOperationName}Header`);
+      if (verbOption.params.length > 0)
+        imports.push(`  ${pascalOperationName}Params`);
       if (verbOption.queryParams)
-        imports.push(`  ${verbOption.operationName}QueryParams`);
+        imports.push(`  ${pascalOperationName}QueryParams`);
       if (verbOption.body.definition)
-        imports.push(`  ${verbOption.operationName}Body`);
+        imports.push(`  ${pascalOperationName}Body`);
 
       return imports;
     })
@@ -282,17 +280,14 @@ server.connect(transport).then(() => {
 const generateZodFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
-  const { extension, dirname, filename } = getFileInfo(output.target);
+  const { extension, dirname } = getFileInfo(output.target);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   const zods = await Promise.all(
-    Object.values(verbOptions).map((verbOption) =>
+    Object.values(verbOptions).map(async (verbOption) =>
       generateZod(
         verbOption,
         {
@@ -301,25 +296,21 @@ const generateZodFiles = async (
           override: output.override,
           context,
           mock: output.mock,
-          output: output.target!,
+          output: output.target,
         },
         output.client,
       ),
     ),
   );
 
-  const allMutators = zods.reduce(
-    (acc, z) => {
-      (z.mutators ?? []).forEach((mutator) => {
-        acc[mutator.name] = mutator;
-      });
-      return acc;
-    },
-    {} as Record<string, GeneratorMutator>,
-  );
+  const allMutators = new Map(
+    zods.flatMap((z) => z.mutators ?? []).map((m) => [m.name, m]),
+  )
+    .values()
+    .toArray();
 
   const mutatorsImports = generateMutatorImports({
-    mutators: Object.values(allMutators),
+    mutators: allMutators,
   });
 
   let content = `${header}import { z as zod } from 'zod';\n${mutatorsImports}\n`;
@@ -336,23 +327,20 @@ const generateZodFiles = async (
   ];
 };
 
-const generateHttpClinetFiles = async (
+const generateHttpClientFiles = async (
   verbOptions: Record<string, GeneratorVerbOptions>,
   output: NormalizedOutputOptions,
-  context: ContextSpecs,
+  context: ContextSpec,
 ) => {
   const { extension, dirname, filename } = getFileInfo(output.target);
 
-  const header = getHeader(
-    output.override.header,
-    context.specs[context.specKey].info,
-  );
+  const header = getHeader(output.override.header, context.spec.info);
 
   const clients = await Promise.all(
-    Object.values(verbOptions).map((verbOption) => {
+    Object.values(verbOptions).map(async (verbOption) => {
       const fullRoute = getFullRoute(
         verbOption.route,
-        context.specs[context.specKey].servers,
+        context.spec.servers,
         output.baseUrl,
       );
 
@@ -362,7 +350,7 @@ const generateHttpClinetFiles = async (
         override: output.override,
         context,
         mock: output.mock,
-        output: output.target!,
+        output: output.target,
       };
 
       return generateClient(verbOption, options, output.client, output);
@@ -373,19 +361,24 @@ const generateHttpClinetFiles = async (
     .map((client) => client.implementation)
     .join('\n');
 
-  const relativeSchemasPath = output.schemas
-    ? upath.relativeSafe(dirname, getFileInfo(output.schemas).dirname)
+  const isZodSchemaOutput =
+    isObject(output.schemas) && output.schemas.type === 'zod';
+  const schemasPath = isObject(output.schemas)
+    ? output.schemas.path
+    : output.schemas;
+  const basePath = schemasPath ? getFileInfo(schemasPath).dirname : undefined;
+  const relativeSchemasPath = basePath
+    ? isZodSchemaOutput && output.indexFiles
+      ? upath.relativeSafe(dirname, upath.joinSafe(basePath, 'index.zod'))
+      : upath.relativeSafe(dirname, basePath)
     : './' + filename + '.schemas';
+
   const importNames = clients
     .flatMap((client) => client.imports)
-    .reduce((acc, imp) => {
-      if (!acc.find((i) => i === imp.name)) {
-        acc.push(imp.name);
-      }
+    .map((imp) => imp.name);
+  const uniqueImportNames = new Set(importNames).values().toArray();
 
-      return acc;
-    }, [] as string[]);
-  const importImplementation = `import { ${importNames.join(
+  const importImplementation = `import { ${uniqueImportNames.join(
     ',\n',
   )} } from '${relativeSchemasPath}';`;
 
@@ -423,10 +416,10 @@ export const generateExtraFiles: ClientExtraFilesBuilder = async (
   output,
   context,
 ) => {
-  const [server, zods, httpClients] = await Promise.all([
-    generateServer(verbOptions, output, context),
+  const server = generateServer(verbOptions, output, context);
+  const [zods, httpClients] = await Promise.all([
     generateZodFiles(verbOptions, output, context),
-    generateHttpClinetFiles(verbOptions, output, context),
+    generateHttpClientFiles(verbOptions, output, context),
   ]);
 
   return [...server, ...zods, ...httpClients];

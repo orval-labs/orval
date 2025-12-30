@@ -15,6 +15,20 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/swr/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/swr/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'swr',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/swr/petstore-tags-split/endpoints.ts',
@@ -57,7 +71,11 @@ export default defineConfig({
       schemas: '../generated/swr/http-client-fetch/model',
       mode: 'tags-split',
       client: 'swr',
-      httpClient: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -71,7 +89,6 @@ export default defineConfig({
         '../generated/swr/http-client-fetch-with-include-http_status_return-type/model',
       mode: 'tags-split',
       client: 'swr',
-      httpClient: 'fetch',
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -87,6 +104,7 @@ export default defineConfig({
       target: '../generated/swr/mutator/endpoints.ts',
       schemas: '../generated/swr/mutator/model',
       client: 'swr',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -107,6 +125,7 @@ export default defineConfig({
       target: '../generated/swr/custom-client/endpoints.ts',
       schemas: '../generated/swr/custom-client/model',
       client: 'swr',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -128,7 +147,6 @@ export default defineConfig({
         '../generated/swr/http-client-fetch-with-custom-fetch/endpoints.ts',
       schemas: '../generated/swr/http-client-fetch-with-custom-fetch/model',
       client: 'swr',
-      httpClient: 'fetch',
       mock: true,
       override: {
         mutator: {
@@ -167,7 +185,7 @@ export default defineConfig({
           useInfinite: true,
           useSWRMutationForGet: true,
           swrOptions: {
-            dedupingInterval: 10000,
+            dedupingInterval: 10_000,
           },
           swrMutationOptions: {
             revalidate: true,
@@ -175,6 +193,22 @@ export default defineConfig({
           swrInfiniteOptions: {
             initialSize: 10,
           },
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  petstoreWithHeaders: {
+    output: {
+      target: '../generated/swr/petstore-with-headers/endpoints.ts',
+      schemas: '../generated/swr/petstore-with-headers/model',
+      client: 'swr',
+      headers: true,
+      override: {
+        swr: {
+          useInfinite: true,
         },
       },
     },
@@ -303,6 +337,21 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/url-paths.yaml',
+    },
+  },
+  swrInfinitePagination: {
+    output: {
+      target: '../generated/swr/swr-infinite-pagination/endpoints.ts',
+      schemas: '../generated/swr/swr-infinite-pagination/model',
+      client: 'swr',
+      override: {
+        swr: {
+          useInfinite: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/swr-infinite-pagination.yaml',
     },
   },
 });

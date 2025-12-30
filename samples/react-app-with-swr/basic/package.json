@@ -1,28 +1,37 @@
 {
   "name": "swr-basic",
-  "version": "0.1.0",
+  "version": "8.0.0-rc.5",
   "private": true,
+  "type": "module",
   "dependencies": {
-    "@faker-js/faker": "^9.8.0",
-    "@types/node": "^14.14.13",
-    "@types/react": "^17.0.0",
-    "@types/react-dom": "^17.0.0",
-    "axios": "^1.8.2",
-    "msw": "^2.0.2",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
+    "@faker-js/faker": "^10.1.0",
+    "@types/node": "^22.18.12",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "axios": "^1.13.2",
+    "msw": "^2.12.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-scripts": "^5.0.1",
-    "swr": "^1.2.2",
-    "typescript": "^5.2.2"
+    "swr": "^2.3.6",
+    "typescript": "~5.8.3"
   },
   "devDependencies": {
-    "orval": "link:../../../packages/orval/dist"
+    "orval": "workspace:*"
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
+  "msw": {
+    "workerDirectory": "public"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "eject": "react-scripts eject",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
+    "generate-api": "orval"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -38,5 +47,6 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

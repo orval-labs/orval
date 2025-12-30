@@ -1,9 +1,9 @@
 // tailwind.config.js
 
-const defaultTheme = require('tailwindcss/defaultTheme');
+import defaultTheme from 'tailwindcss/defaultTheme';
 
-module.exports = {
-  content: ['./src/**/*.js', './src/**/*.jsx'],
+export default {
+  content: ['./src/**/*.ts', './src/**/*.tsx'],
   theme: {
     extend: {
       colors: {
@@ -47,5 +47,4 @@ module.exports = {
       },
     }),
   },
-  plugins: [require('@tailwindcss/forms')],
 };

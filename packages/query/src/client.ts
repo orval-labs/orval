@@ -1,23 +1,22 @@
 import {
-  ClientHeaderBuilder,
+  type ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GetterResponse,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GetterResponse,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
   pascal,
   toObjectString,
 } from '@orval/core';
-
 import {
-  generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 import {
@@ -44,16 +43,193 @@ export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+export const ANGULAR_HTTP_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'HttpClient', values: true },
+      { name: 'HttpHeaders', values: true },
+      { name: 'HttpParams', values: true },
+      { name: 'HttpContext' },
+    ],
+    dependency: '@angular/common/http',
+  },
+  // Note: 'inject' from @angular/core is already in ANGULAR_QUERY_DEPENDENCIES
+  {
+    exports: [
+      { name: 'lastValueFrom', values: true },
+      { name: 'fromEvent', values: true },
+    ],
+    dependency: 'rxjs',
+  },
+  {
+    exports: [{ name: 'takeUntil', values: true }],
+    dependency: 'rxjs/operators',
+  },
+];
+
 export const generateQueryRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
   isVue: boolean,
+  isAngularClient = false,
 ) => {
-  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
-    return generateAxiosRequestFunction(verbOptions, options, isVue);
-  } else {
-    return generateFetchRequestFunction(verbOptions, options);
+  if (
+    isAngularClient ||
+    options.context.output.httpClient === OutputHttpClient.ANGULAR
+  ) {
+    return generateAngularHttpRequestFunction(verbOptions, options);
   }
+  return options.context.output.httpClient === OutputHttpClient.AXIOS
+    ? generateAxiosRequestFunction(verbOptions, options, isVue)
+    : generateFetchRequestFunction(verbOptions, options);
+};
+
+export const generateAngularHttpRequestFunction = (
+  {
+    headers,
+    queryParams,
+    operationName,
+    response,
+    mutator,
+    body,
+    props,
+    verb,
+    formData,
+    formUrlEncoded,
+    override,
+  }: GeneratorVerbOptions,
+  { route, context }: GeneratorOptions,
+) => {
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
+  const hasSignal = getHasSignal({
+    overrideQuerySignal: override.query.signal,
+    verb,
+  });
+
+  const bodyForm = generateFormDataAndUrlEncodedFunction({
+    formData,
+    formUrlEncoded,
+    body,
+    isFormData,
+    isFormUrlEncoded,
+  });
+
+  // Handle mutator case
+  if (mutator) {
+    const isExactOptionalPropertyTypes =
+      !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
+
+    const mutatorConfig = generateMutatorConfig({
+      route,
+      body,
+      headers,
+      queryParams,
+      response,
+      verb,
+      isFormData,
+      isFormUrlEncoded,
+      hasSignal,
+      isExactOptionalPropertyTypes,
+      isVue: false,
+    });
+
+    const requestOptions = isRequestOptions
+      ? generateMutatorRequestOptions(
+          override.requestOptions,
+          mutator.hasSecondArg,
+        )
+      : '';
+
+    const propsImplementation = toObjectString(props, 'implementation');
+
+    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\\n    ${propsImplementation}\\n ${
+      isRequestOptions && mutator.hasSecondArg
+        ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
+        : ''
+    }${hasSignal ? String.raw`signal?: AbortSignal\n` : ''}) => {
+      ${bodyForm}
+      return ${mutator.name}<${response.definition.success || 'unknown'}>(
+      ${mutatorConfig},
+      ${requestOptions});
+    }
+  `;
+  }
+
+  // Generate native Angular HttpClient implementation
+  const queryProps = toObjectString(props, 'implementation').replace(
+    /,\s*$/,
+    '',
+  );
+  const dataType = response.definition.success || 'unknown';
+
+  // Build URL with query params - use httpParams to avoid shadowing the 'params' variable
+  const hasQueryParams = queryParams?.schema.name;
+  // The queryParams variable from function props is always named 'params'
+  const urlConstruction = hasQueryParams
+    ? `const httpParams = params ? new HttpParams({ fromObject: params as Record<string, string> }) : undefined;
+    const url = \`${route}\`;`
+    : `const url = \`${route}\`;`;
+
+  // Build request options
+  const httpOptions: string[] = [];
+  if (hasQueryParams) {
+    httpOptions.push('params: httpParams');
+  }
+  if (headers) {
+    httpOptions.push('headers: new HttpHeaders(headers)');
+  }
+
+  const optionsStr =
+    httpOptions.length > 0 ? `, { ${httpOptions.join(', ')} }` : '';
+
+  // Build the HTTP method call
+  let httpCall: string;
+  const bodyArg = body.definition
+    ? toObjectString([body], 'implementation').replace(/,\s*$/, '')
+    : '';
+
+  switch (verb) {
+    case 'get':
+    case 'head': {
+      httpCall = `http.${verb}<${dataType}>(url${optionsStr})`;
+      break;
+    }
+    case 'delete': {
+      httpCall = bodyArg
+        ? `http.${verb}<${dataType}>(url, { ${httpOptions.length > 0 ? httpOptions.join(', ') + ', ' : ''}body: ${bodyArg} })`
+        : `http.${verb}<${dataType}>(url${optionsStr})`;
+      break;
+    }
+    default: {
+      // post, put, patch
+      httpCall = `http.${verb}<${dataType}>(url, ${bodyArg || 'undefined'}${optionsStr})`;
+      break;
+    }
+  }
+
+  // For Angular, we use takeUntil with fromEvent to handle AbortSignal cancellation
+  // This follows the pattern from TanStack Query Angular documentation
+  // Note: signal can be null (from RequestInit), so we accept null | undefined
+  const optionsParam = hasSignal
+    ? ', options?: { signal?: AbortSignal | null }'
+    : '';
+
+  // Note: http parameter is passed from the inject* function which has injection context
+  return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (
+    http: HttpClient,
+    ${queryProps}${optionsParam}
+  ): Promise<${dataType}> => {
+    ${bodyForm}
+    ${urlConstruction}
+    const request$ = ${httpCall};
+    if (options?.signal) {
+      return lastValueFrom(request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))));
+    }
+    return lastValueFrom(request$);
+  }
+`;
 };
 
 export const generateAxiosRequestFunction = (
@@ -86,7 +262,7 @@ export const generateAxiosRequestFunction = (
   }
 
   const isRequestOptions = override.requestOptions !== false;
-  const isFormData = override.formData.disabled === false;
+  const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
@@ -119,11 +295,11 @@ export const generateAxiosRequestFunction = (
       isVue,
     });
 
-    const bodyDefinition = body.definition.replace('[]', '\\[\\]');
+    const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
     const propsImplementation =
       mutator?.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${bodyDefinition}`),
+            new RegExp(String.raw`(\w*):\s?${bodyDefinition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
@@ -225,7 +401,7 @@ export const generateAxiosRequestFunction = (
     ${isVue ? vueUnRefParams(props) : ''}
     ${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;
@@ -305,7 +481,7 @@ export const getQueryOptions = ({
   }
 
   if (hasSignal) {
-    return 'signal';
+    return httpClient === OutputHttpClient.AXIOS ? 'signal' : '{ signal }';
   }
 
   return '';
@@ -344,22 +520,37 @@ export const getHookOptions = ({
   return value;
 };
 
+// Helper to deduplicate union type string: "A | B | B" -> "A | B"
+const dedupeUnionTypes = (types: string): string => {
+  if (!types) return types;
+  // Split by '|', trim spaces, filter out empty, and dedupe using a Set
+  const unique = [
+    ...new Set(
+      types
+        .split('|')
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ),
+  ];
+  return unique.join(' | ');
+};
+
 export const getQueryErrorType = (
   operationName: string,
   response: GetterResponse,
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
 ) => {
+  const errorsType = dedupeUnionTypes(response.definition.errors || 'unknown');
+
   if (mutator) {
     return mutator.hasErrorType
-      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${
-          response.definition.errors || 'unknown'
-        }>`
-      : response.definition.errors || 'unknown';
+      ? `${mutator.default ? pascal(operationName) : ''}ErrorType<${errorsType}>`
+      : errorsType;
   } else {
     return httpClient === OutputHttpClient.AXIOS
-      ? `AxiosError<${response.definition.errors || 'unknown'}>`
-      : `${response.definition.errors || 'unknown'}`;
+      ? `AxiosError<${errorsType}>`
+      : errorsType;
   }
 };
 
@@ -377,16 +568,16 @@ export const getHooksOptionImplementation = (
   return isRequestOptions
     ? `const mutationKey = ['${operationName}'];
 const {mutation: mutationOptions${
-        !mutator
-          ? options
-          : mutator?.hasSecondArg
+        mutator
+          ? mutator?.hasSecondArg
             ? ', request: requestOptions'
             : ''
+          : options
       }} = options ?
       options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
       options
       : {...options, mutation: {...options.mutation, mutationKey}}
-      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${!mutator ? (httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined') : ''}};`
+      : {mutation: { mutationKey, }${mutator?.hasSecondArg ? ', request: undefined' : ''}${mutator ? '' : httpClient === OutputHttpClient.AXIOS ? ', axios: undefined' : ', fetch: undefined'}};`
     : '';
 };
 
@@ -399,11 +590,11 @@ export const getMutationRequestArgs = (
     httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
 
   return isRequestOptions
-    ? !mutator
-      ? options
-      : mutator?.hasSecondArg
+    ? mutator
+      ? mutator?.hasSecondArg
         ? 'requestOptions'
         : ''
+      : options
     : '';
 };
 
@@ -411,15 +602,23 @@ export const getHttpFunctionQueryProps = (
   isVue: boolean,
   httpClient: OutputHttpClient,
   queryProperties: string,
+  isAngular = false,
 ) => {
-  if (isVue && httpClient === OutputHttpClient.FETCH && queryProperties) {
-    return queryProperties
-      .split(',')
-      .map((prop) => `unref(${prop})`)
-      .join(',');
+  let result: string;
+  result =
+    isVue && httpClient === OutputHttpClient.FETCH && queryProperties
+      ? queryProperties
+          .split(',')
+          .map((prop) => `unref(${prop})`)
+          .join(',')
+      : queryProperties;
+
+  // For Angular, prefix with http since request functions take HttpClient as first param
+  if (isAngular || httpClient === OutputHttpClient.ANGULAR) {
+    return result ? `http, ${result}` : 'http';
   }
 
-  return queryProperties;
+  return result;
 };
 
 export const getQueryHeader: ClientHeaderBuilder = (params) => {

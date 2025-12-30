@@ -1,31 +1,33 @@
-import { SchemaObject } from 'openapi3-ts/oas30';
+import { unique } from 'remeda';
+
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
-  ContextSpecs,
-  GeneratorImport,
-  GeneratorSchema,
-  ScalarValue,
+  type ContextSpec,
+  type GeneratorImport,
+  type GeneratorSchema,
+  type OpenApiSchemaObject,
+  type ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, pascal, isSchema } from '../utils';
+import { getNumberWord, isSchema, pascal } from '../utils';
 import {
   getEnumDescriptions,
   getEnumImplementation,
   getEnumNames,
 } from './enum';
-import { getScalar } from './scalar';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
-import uniq from 'lodash.uniq';
+import { getScalar } from './scalar';
 
 type CombinedData = {
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema: (SchemaObject | undefined)[];
+  originalSchema: (OpenApiSchemaObject | undefined)[];
   values: string[];
   isRef: boolean[];
   isEnum: boolean[];
   types: string[];
   hasReadonlyProps: boolean;
+  dependencies: string[];
   /**
    * List of all properties in all subschemas
    * - used to add missing properties in subschemas to avoid TS error described in @see https://github.com/orval-labs/orval/issues/935
@@ -36,18 +38,20 @@ type CombinedData = {
 
 type Separator = 'allOf' | 'anyOf' | 'oneOf';
 
-const combineValues = ({
+interface CombineValuesOptions {
+  resolvedData: CombinedData;
+  resolvedValue?: ScalarValue;
+  separator: Separator;
+  context: ContextSpec;
+}
+
+function combineValues({
   resolvedData,
   resolvedValue,
   separator,
   context,
-}: {
-  resolvedData: CombinedData;
-  resolvedValue?: ScalarValue;
-  separator: Separator;
-  context: ContextSpecs;
-}) => {
-  const isAllEnums = resolvedData.isEnum.every((v) => v);
+}: CombineValuesOptions) {
+  const isAllEnums = resolvedData.isEnum.every(Boolean);
 
   if (isAllEnums) {
     return `${resolvedData.values.join(` | `)}${
@@ -62,7 +66,7 @@ const combineValues = ({
         (s) =>
           s?.discriminator &&
           resolvedValue.value.includes(` ${s.discriminator.propertyName}:`),
-      ) as SchemaObject[];
+      ) as OpenApiSchemaObject[];
       if (discriminatedPropertySchemas.length > 0) {
         resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
       }
@@ -78,12 +82,10 @@ const combineValues = ({
       (prop) =>
         !resolvedData.originalSchema.some(
           (schema) =>
-            schema &&
-            schema.properties?.[prop] &&
-            schema.required?.includes(prop),
+            schema?.properties?.[prop] && schema.required?.includes(prop),
         ),
     );
-    if (overrideRequiredProperties.length) {
+    if (overrideRequiredProperties.length > 0) {
       return `${joined} & Required<Pick<${joined}, '${overrideRequiredProperties.join("' | '")}'>>`;
     }
     return joined;
@@ -100,14 +102,14 @@ const combineValues = ({
         continue;
       }
 
-      const missingProperties = uniq(
+      const missingProperties = unique(
         resolvedData.allProperties.filter(
           (p) => !Object.keys(subSchema.properties!).includes(p),
         ),
       );
       values.push(
         `${resolvedData.values[i]}${
-          missingProperties.length
+          missingProperties.length > 0
             ? ` & {${missingProperties.map((p) => `${p}?: never`).join('; ')}}`
             : ''
         }`,
@@ -122,9 +124,9 @@ const combineValues = ({
   }
 
   return values.join(' | ');
-};
+}
 
-export const combineSchemas = ({
+export function combineSchemas({
   name,
   schema,
   separator,
@@ -132,18 +134,23 @@ export const combineSchemas = ({
   nullable,
 }: {
   name?: string;
-  schema: SchemaObject;
+  schema: OpenApiSchemaObject;
   separator: Separator;
-  context: ContextSpecs;
+  context: ContextSpec;
   nullable: string;
-}): ScalarValue => {
+}): ScalarValue {
   const items = schema[separator] ?? [];
 
   const resolvedData = items.reduce<CombinedData>(
     (acc, subSchema) => {
-      let propName = name ? name + pascal(separator) : undefined;
-      if (propName && acc.schemas.length) {
-        propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
+      // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
+      // v8 default: propName stays undefined so combined types are inlined directly
+      let propName: string | undefined;
+      if (context.output.override.aliasCombinedTypes) {
+        propName = name ? name + pascal(separator) : undefined;
+        if (propName && acc.schemas.length > 0) {
+          propName = propName + pascal(getNumberWord(acc.schemas.length + 1));
+        }
       }
 
       if (separator === 'allOf' && isSchema(subSchema) && subSchema.required) {
@@ -161,7 +168,6 @@ export const combineSchemas = ({
         context,
         name,
         resolvedValue,
-        existingImports: acc.imports,
       });
 
       const value = getImportAliasForRefOrValue({
@@ -173,6 +179,7 @@ export const combineSchemas = ({
       acc.values.push(value);
       acc.imports.push(...aliasedImports);
       acc.schemas.push(...resolvedValue.schemas);
+      acc.dependencies.push(...resolvedValue.dependencies);
       acc.isEnum.push(resolvedValue.isEnum);
       acc.types.push(resolvedValue.type);
       acc.isRef.push(resolvedValue.isRef);
@@ -197,6 +204,7 @@ export const combineSchemas = ({
       isEnum: [], // check if only enums
       isRef: [],
       types: [],
+      dependencies: [],
       originalSchema: [],
       allProperties: [],
       hasReadonlyProps: false,
@@ -206,9 +214,11 @@ export const combineSchemas = ({
     } as CombinedData,
   );
 
-  const isAllEnums = resolvedData.isEnum.every((v) => v);
+  const isAllEnums = resolvedData.isEnum.every(Boolean);
 
-  if (isAllEnums && name && items.length > 1) {
+  // For oneOf, we should generate union types instead of const objects
+  // even when all subschemas are enums
+  if (isAllEnums && name && items.length > 1 && separator !== 'oneOf') {
     const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
       name,
     )} = ${getCombineEnumValue(resolvedData)}`;
@@ -223,12 +233,10 @@ export const combineSchemas = ({
       schemas: [
         ...resolvedData.schemas,
         {
-          imports: [
-            ...resolvedData.imports.map<GeneratorImport>((toImport) => ({
-              ...toImport,
-              values: true,
-            })),
-          ],
+          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
+            ...toImport,
+            values: true,
+          })),
           model: newEnum,
           name: name,
         },
@@ -237,6 +245,7 @@ export const combineSchemas = ({
       type: 'object' as SchemaType,
       isRef: false,
       hasReadonlyProps: resolvedData.hasReadonlyProps,
+      dependencies: resolvedData.dependencies,
       example: schema.example,
       examples: resolveExampleRefs(schema.examples, context),
     };
@@ -269,6 +278,9 @@ export const combineSchemas = ({
     schemas: resolvedValue
       ? [...resolvedData.schemas, ...resolvedValue.schemas]
       : resolvedData.schemas,
+    dependencies: resolvedValue
+      ? [...resolvedData.dependencies, ...resolvedValue.dependencies]
+      : resolvedData.dependencies,
     isEnum: false,
     type: 'object' as SchemaType,
     isRef: false,
@@ -279,7 +291,7 @@ export const combineSchemas = ({
     example: schema.example,
     examples: resolveExampleRefs(schema.examples, context),
   };
-};
+}
 
 const getCombineEnumValue = ({
   values,

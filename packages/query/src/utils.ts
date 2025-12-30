@@ -1,16 +1,15 @@
 import {
-  createLogger,
   getIsBodyVerb,
-  GetterProps,
+  type GetterProps,
   GetterPropType,
   isObject,
   isString,
-  Mutator,
-  NormalizedMutator,
-  NormalizedQueryOptions,
+  type Mutator,
+  type NormalizedMutator,
+  type NormalizedQueryOptions,
   OutputClient,
-  OutputClientFunc,
-  QueryOptions,
+  type OutputClientFunc,
+  type QueryOptions,
   TEMPLATE_TAG_REGEX,
   upath,
   Verbs,
@@ -23,6 +22,7 @@ export const normalizeQueryOptions = (
 ): NormalizedQueryOptions => {
   return {
     ...(queryOptions.usePrefetch ? { usePrefetch: true } : {}),
+    ...(queryOptions.useInvalidate ? { useInvalidate: true } : {}),
     ...(queryOptions.useQuery ? { useQuery: true } : {}),
     ...(queryOptions.useInfinite ? { useInfinite: true } : {}),
     ...(queryOptions.useInfiniteQueryParam
@@ -61,6 +61,9 @@ export const normalizeQueryOptions = (
       ? { shouldExportHttpClient: true }
       : {}),
     ...(queryOptions.shouldSplitQueryKey ? { shouldSplitQueryKey: true } : {}),
+    ...(queryOptions.useOperationIdAsQueryKey
+      ? { useOperationIdAsQueryKey: true }
+      : {}),
   };
 };
 
@@ -71,8 +74,7 @@ const normalizeMutator = (
 ): NormalizedMutator | undefined => {
   if (isObject(mutator)) {
     if (!mutator.path) {
-      createLogger().error(chalk.red(`Mutator need a path`));
-      process.exit(1);
+      throw new Error(chalk.red(`Mutator need a path`));
     }
 
     return {
@@ -97,9 +99,7 @@ export function vueWrapTypeWithMaybeRef(props: GetterProps): GetterProps {
     const [paramName, paramType] = prop.implementation.split(':');
     if (!paramType) return prop;
     const name =
-      prop.type === GetterPropType.NAMED_PATH_PARAMS
-        ? prop.name
-        : `${paramName}`;
+      prop.type === GetterPropType.NAMED_PATH_PARAMS ? prop.name : paramName;
 
     const [type, defaultValue] = paramType.split('=');
     return {
@@ -133,6 +133,21 @@ export const makeRouteSafe = (route: string): string =>
 
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;
+
+export const isAngular = (client: OutputClient | OutputClientFunc) =>
+  OutputClient.ANGULAR_QUERY === client;
+
+export const getQueryTypeForFramework = (type: string): string => {
+  // Angular Query and Svelte Query don't have suspense variants, map them to regular queries
+  switch (type) {
+    case 'suspenseQuery':
+      return 'query';
+    case 'suspenseInfiniteQuery':
+      return 'infiniteQuery';
+    default:
+      return type;
+  }
+};
 
 export const getHasSignal = ({
   overrideQuerySignal = false,

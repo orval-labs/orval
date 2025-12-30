@@ -1,19 +1,21 @@
 {
   "name": "@hono/composite-routes-with-tags-split",
-  "packageManager": "yarn@4.2.2",
-  "version": "0.1.0",
+  "version": "8.0.0-rc.5",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "wrangler dev src/app.ts --ip 0.0.0.0",
     "deploy": "wrangler deploy --minify src/index.ts",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js"
+    "generate-api": "orval"
   },
   "dependencies": {
-    "hono": "^4.5.8"
+    "@hono/zod-validator": "^0.7.3",
+    "hono": "^4.10.2"
   },
   "devDependencies": {
-    "@cloudflare/workers-types": "^4.20240529.0",
-    "orval": "link:../../../packages/orval/dist",
-    "wrangler": "^3.57.2"
-  }
+    "@cloudflare/workers-types": "^4.20251117.0",
+    "orval": "workspace:*",
+    "wrangler": "^4.47.0"
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

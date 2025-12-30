@@ -1,5 +1,9 @@
-import { ReferenceObject, SchemaObject } from 'openapi3-ts/oas30';
-import { SchemaType, Verbs } from '../types';
+import {
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
+  SchemaType,
+  Verbs,
+} from '../types';
 import { extname } from './path';
 
 /**
@@ -7,13 +11,13 @@ import { extname } from './path';
  *
  * @param property
  */
-export const isReference = (property: any): property is ReferenceObject => {
-  return Boolean(property?.$ref);
-};
+export function isReference(obj: object): obj is OpenApiReferenceObject {
+  return Object.hasOwn(obj, '$ref');
+}
 
-export const isDirectory = (path: string) => {
+export function isDirectory(path: string) {
   return !extname(path);
-};
+}
 
 export function isObject(x: any): x is Record<string, unknown> {
   return Object.prototype.toString.call(x) === '[object Object]';
@@ -44,14 +48,14 @@ export function isFunction(x: any): x is Function {
 }
 
 export function isUndefined(x: any): x is undefined {
-  return typeof x === 'undefined';
+  return x === undefined;
 }
 
 export function isNull(x: any): x is null {
   return x === null;
 }
 
-export function isSchema(x: any): x is SchemaObject {
+export function isSchema(x: unknown): x is OpenApiSchemaObject {
   if (!isObject(x)) {
     return false;
   }
@@ -72,19 +76,16 @@ export function isSchema(x: any): x is SchemaObject {
   return false;
 }
 
-export const isVerb = (verb: string): verb is Verbs =>
-  Object.values(Verbs).includes(verb as Verbs);
+export function isVerb(verb: string): verb is Verbs {
+  return Object.values(Verbs).includes(verb as Verbs);
+}
 
-export const isRootKey = (specKey: string, target: string) => {
-  return specKey === target;
-};
-
-export const isUrl = (str: string) => {
+export function isUrl(str: string) {
   let givenURL;
   try {
     givenURL = new URL(str);
-  } catch (error) {
+  } catch {
     return false;
   }
   return givenURL.protocol === 'http:' || givenURL.protocol === 'https:';
-};
+}

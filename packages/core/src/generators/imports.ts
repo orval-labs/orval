@@ -1,75 +1,55 @@
-import uniq from 'lodash.uniq';
-import uniqWith from 'lodash.uniqwith';
+import { unique, uniqueWith } from 'remeda';
+
 import {
-  GeneratorImport,
-  GeneratorMutator,
-  GeneratorVerbOptions,
+  type GeneratorImport,
+  type GeneratorMutator,
+  type GeneratorVerbOptions,
   GetterPropType,
   NamingConvention,
 } from '../types';
-import { upath, conventionName } from '../utils';
+import { conventionName } from '../utils';
 
-export const generateImports = ({
-  imports = [],
-  target,
-  isRootKey,
-  specsName,
-  specKey: currentSpecKey,
-  namingConvention = NamingConvention.CAMEL_CASE,
-}: {
+interface GenerateImportsOptions {
   imports: GeneratorImport[];
   target: string;
-  isRootKey: boolean;
-  specsName: Record<string, string>;
-  specKey: string;
   namingConvention?: NamingConvention;
-}) => {
-  if (!imports.length) {
+}
+
+export function generateImports({
+  imports,
+  namingConvention = NamingConvention.CAMEL_CASE,
+}: GenerateImportsOptions) {
+  if (imports.length === 0) {
     return '';
   }
 
-  return uniqWith(
+  return uniqueWith(
     imports,
-    (a, b) =>
-      a.name === b.name && a.default === b.default && a.specKey === b.specKey,
+    (a, b) => a.name === b.name && a.default === b.default,
   )
-    .sort()
-    .map(({ specKey, name, values, alias, isConstant }) => {
-      const isSameSpecKey = currentSpecKey === specKey;
-
+    .toSorted()
+    .map(({ name, values, alias, isConstant }) => {
       const fileName = conventionName(name, namingConvention);
-
-      if (specKey && !isSameSpecKey) {
-        const path = specKey !== target ? specsName[specKey] : '';
-
-        if (!isRootKey && specKey) {
-          return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
-            alias ? ` as ${alias}` : ''
-          } } from \'../${upath.join(path, fileName)}\';`;
-        }
-
-        return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
-          alias ? ` as ${alias}` : ''
-        } } from \'./${upath.join(path, fileName)}\';`;
-      }
 
       return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from \'./${fileName}\';`;
+      } } from './${fileName}';`;
     })
     .join('\n');
-};
+}
 
-export const generateMutatorImports = ({
-  mutators,
-  implementation,
-  oneMore,
-}: {
+interface GenerateMutatorImportsOptions {
   mutators: GeneratorMutator[];
   implementation?: string;
   oneMore?: boolean;
-}) => {
-  const imports = uniqWith(
+}
+
+export function generateMutatorImports({
+  mutators,
+  implementation,
+  oneMore,
+}: GenerateMutatorImportsOptions) {
+  const imports = uniqueWith(
     mutators,
     (a, b) => a.name === b.name && a.default === b.default,
   ).reduce((acc, mutator) => {
@@ -118,92 +98,108 @@ export const generateMutatorImports = ({
   }, '');
 
   return imports;
-};
+}
 
-const generateDependency = ({
-  deps,
-  isAllowSyntheticDefaultImports,
-  dependency,
-  specsName,
-  key,
-  onlyTypes,
-}: {
+interface GenerateDependencyOptions {
   key: string;
   deps: GeneratorImport[];
   dependency: string;
-  specsName: Record<string, string>;
+  projectName?: string;
   isAllowSyntheticDefaultImports: boolean;
   onlyTypes: boolean;
-}) => {
+}
+
+function generateDependency({
+  deps,
+  isAllowSyntheticDefaultImports,
+  dependency,
+  projectName,
+  key,
+  onlyTypes,
+}: GenerateDependencyOptions) {
+  // find default import if dependency either is not a synthetic import or synthetic imports are allowed
   const defaultDep = deps.find(
     (e) =>
       e.default &&
       (isAllowSyntheticDefaultImports || !e.syntheticDefaultImport),
   );
-  const syntheticDefaultImportDep = !isAllowSyntheticDefaultImports
-    ? deps.find((e) => e.syntheticDefaultImport)
-    : undefined;
 
-  const depsString = uniq(
+  // if default dependency could not be created, check for namespace import or a synthetic import that is not allowed
+  const namespaceImportDep = defaultDep
+    ? undefined
+    : deps.find(
+        (e) =>
+          !!e.namespaceImport ||
+          (!isAllowSyntheticDefaultImports && e.syntheticDefaultImport),
+      );
+
+  // find all named imports
+  const depsString = unique(
     deps
-      .filter((e) => !e.default && !e.syntheticDefaultImport)
+      .filter(
+        (e) => !e.default && !e.syntheticDefaultImport && !e.namespaceImport,
+      )
       .map(({ name, alias }) => (alias ? `${name} as ${alias}` : name)),
   )
-    .sort()
+    .toSorted()
     .join(',\n  ');
 
   let importString = '';
 
-  const syntheticDefaultImport = syntheticDefaultImportDep
-    ? `import * as ${syntheticDefaultImportDep.name} from '${dependency}';`
+  // generate namespace import string
+  const namespaceImportString = namespaceImportDep
+    ? `import * as ${namespaceImportDep.name} from '${dependency}';`
     : '';
 
-  if (syntheticDefaultImport) {
+  if (namespaceImportString) {
     if (deps.length === 1) {
-      return syntheticDefaultImport;
+      // only namespace import, return it directly
+      return namespaceImportString;
     }
-    importString += `${syntheticDefaultImport}\n`;
+    importString += `${namespaceImportString}\n`;
   }
 
   importString += `import ${onlyTypes ? 'type ' : ''}${
     defaultDep ? `${defaultDep.name}${depsString ? ',' : ''}` : ''
   }${depsString ? `{\n  ${depsString}\n}` : ''} from '${dependency}${
-    key !== 'default' && specsName[key] ? `/${specsName[key]}` : ''
+    key !== 'default' && projectName ? `/${projectName}` : ''
   }';`;
 
   return importString;
-};
+}
 
-export const addDependency = ({
-  implementation,
-  exports,
-  dependency,
-  specsName,
-  hasSchemaDir,
-  isAllowSyntheticDefaultImports,
-}: {
+interface AddDependencyOptions {
   implementation: string;
   exports: GeneratorImport[];
   dependency: string;
-  specsName: Record<string, string>;
+  projectName?: string;
   hasSchemaDir: boolean;
   isAllowSyntheticDefaultImports: boolean;
-}) => {
+}
+
+export function addDependency({
+  implementation,
+  exports,
+  dependency,
+  projectName,
+  hasSchemaDir,
+  isAllowSyntheticDefaultImports,
+}: AddDependencyOptions) {
   const toAdds = exports.filter((e) => {
     const searchWords = [e.alias, e.name].filter((p) => p?.length).join('|');
-    const pattern = new RegExp(`\\b(${searchWords})\\b`, 'g');
+    const pattern = new RegExp(String.raw`\b(${searchWords})\b`, 'g');
 
     return implementation.match(pattern);
   });
 
-  if (!toAdds.length) {
-    return undefined;
+  if (toAdds.length === 0) {
+    return;
   }
 
   const groupedBySpecKey = toAdds.reduce<
     Record<string, { types: GeneratorImport[]; values: GeneratorImport[] }>
   >((acc, dep) => {
-    const key = hasSchemaDir && dep.specKey ? dep.specKey : 'default';
+    const key = 'default';
 
     if (
       dep.values &&
@@ -235,7 +231,7 @@ export const addDependency = ({
             deps: values,
             isAllowSyntheticDefaultImports,
             dependency,
-            specsName,
+            projectName,
             key,
             onlyTypes: false,
           });
@@ -253,7 +249,7 @@ export const addDependency = ({
             deps: uniqueTypes,
             isAllowSyntheticDefaultImports,
             dependency,
-            specsName,
+            projectName,
             key,
             onlyTypes: true,
           });
@@ -263,29 +259,29 @@ export const addDependency = ({
       })
       .join('\n') + '\n'
   );
-};
+}
 
-const getLibName = (code: string) => {
+function getLibName(code: string) {
   const splitString = code.split(' from ');
   return splitString[splitString.length - 1].split(';')[0].trim();
-};
+}
 
-export const generateDependencyImports = (
+export function generateDependencyImports(
   implementation: string,
   imports: {
     exports: GeneratorImport[];
     dependency: string;
   }[],
-  specsName: Record<string, string>,
+  projectName: string | undefined,
   hasSchemaDir: boolean,
   isAllowSyntheticDefaultImports: boolean,
-): string => {
+): string {
   const dependencies = imports
     .map((dep) =>
       addDependency({
         ...dep,
         implementation,
-        specsName,
+        projectName,
         hasSchemaDir,
         isAllowSyntheticDefaultImports,
       }),
@@ -307,24 +303,26 @@ export const generateDependencyImports = (
     .join('\n');
 
   return dependencies ? dependencies + '\n' : '';
-};
+}
 
-export const generateVerbImports = ({
+export function generateVerbImports({
   response,
   body,
   queryParams,
   props,
   headers,
   params,
-}: GeneratorVerbOptions): GeneratorImport[] => [
-  ...response.imports,
-  ...body.imports,
-  ...props.flatMap((prop) =>
-    prop.type === GetterPropType.NAMED_PATH_PARAMS
-      ? [{ name: prop.schema.name }]
-      : [],
-  ),
-  ...(queryParams ? [{ name: queryParams.schema.name }] : []),
-  ...(headers ? [{ name: headers.schema.name }] : []),
-  ...params.flatMap<GeneratorImport>(({ imports }) => imports),
-];
+}: GeneratorVerbOptions): GeneratorImport[] {
+  return [
+    ...response.imports,
+    ...body.imports,
+    ...props.flatMap((prop) =>
+      prop.type === GetterPropType.NAMED_PATH_PARAMS
+        ? [{ name: prop.schema.name }]
+        : [],
+    ),
+    ...(queryParams ? [{ name: queryParams.schema.name }] : []),
+    ...(headers ? [{ name: headers.schema.name }] : []),
+    ...params.flatMap<GeneratorImport>(({ imports }) => imports),
+  ];
+}

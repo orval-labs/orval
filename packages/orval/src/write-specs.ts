@@ -2,91 +2,110 @@ import {
   createSuccessMessage,
   getFileInfo,
   getMockFileExtensionByTypeName,
-  isRootKey,
+  isString,
   jsDoc,
   log,
-  NormalizedOptions,
+  type NormalizedOptions,
+  type OpenApiInfoObject,
   OutputMode,
   upath,
   writeSchemas,
   writeSingleMode,
-  WriteSpecsBuilder,
+  type WriteSpecBuilder,
   writeSplitMode,
   writeSplitTagsMode,
   writeTagsMode,
 } from '@orval/core';
 import chalk from 'chalk';
-import execa from 'execa';
+import { execa, ExecaError } from 'execa';
 import fs from 'fs-extra';
-import uniq from 'lodash.uniq';
-import { InfoObject } from 'openapi3-ts/oas30';
-import { TypeDocOptions } from 'typedoc';
-import { executeHook } from './utils';
+import { unique } from 'remeda';
+import type { TypeDocOptions } from 'typedoc';
 
-const getHeader = (
-  option: false | ((info: InfoObject) => string | string[]),
-  info: InfoObject,
-): string => {
+import { executeHook } from './utils';
+import { writeZodSchemas, writeZodSchemasFromVerbs } from './write-zod-specs';
+
+function getHeader(
+  option: false | ((info: OpenApiInfoObject) => string | string[]),
+  info: OpenApiInfoObject,
+): string {
   if (!option) {
     return '';
   }
 
   const header = option(info);
-
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
-};
+}
 
-export const writeSpecs = async (
-  builder: WriteSpecsBuilder,
+export async function writeSpecs(
+  builder: WriteSpecBuilder,
   workspace: string,
   options: NormalizedOptions,
   projectName?: string,
-) => {
-  const { info = { title: '', version: 0 }, schemas, target } = builder;
+) {
+  const { info, schemas, target } = builder;
   const { output } = options;
-  const projectTitle = projectName || info.title;
+  const projectTitle = projectName ?? info.title;
 
-  const specsName = Object.keys(schemas).reduce(
-    (acc, specKey) => {
-      const basePath = upath.getSpecName(specKey, target);
-      const name = basePath.slice(1).split('/').join('-');
-
-      acc[specKey] = name;
-
-      return acc;
-    },
-    {} as Record<keyof typeof schemas, string>,
-  );
-
-  const header = getHeader(output.override.header, info as InfoObject);
+  const header = getHeader(output.override.header, info);
 
   if (output.schemas) {
-    const rootSchemaPath = output.schemas;
+    if (isString(output.schemas)) {
+      const fileExtension = output.fileExtension || '.ts';
+      const schemaPath = output.schemas;
 
-    const fileExtension = ['tags', 'tags-split', 'split'].includes(output.mode)
-      ? '.ts'
-      : (output.fileExtension ?? '.ts');
+      await writeSchemas({
+        schemaPath,
+        schemas,
+        target,
+        namingConvention: output.namingConvention,
+        fileExtension,
+        header,
+        indexFiles: output.indexFiles,
+      });
+    } else {
+      const schemaType = output.schemas.type;
 
-    await Promise.all(
-      Object.entries(schemas).map(([specKey, schemas]) => {
-        const schemaPath = !isRootKey(specKey, target)
-          ? upath.join(rootSchemaPath, specsName[specKey])
-          : rootSchemaPath;
+      if (schemaType === 'typescript') {
+        const fileExtension = output.fileExtension || '.ts';
 
-        return writeSchemas({
-          schemaPath,
+        await writeSchemas({
+          schemaPath: output.schemas.path,
           schemas,
           target,
           namingConvention: output.namingConvention,
           fileExtension,
-          specsName,
-          specKey,
-          isRootKey: isRootKey(specKey, target),
           header,
           indexFiles: output.indexFiles,
         });
-      }),
-    );
+      } else if (schemaType === 'zod') {
+        const fileExtension = '.zod.ts';
+
+        await writeZodSchemas(
+          builder,
+          output.schemas.path,
+          fileExtension,
+          header,
+          output,
+        );
+
+        if (builder.verbOptions) {
+          await writeZodSchemasFromVerbs(
+            builder.verbOptions,
+            output.schemas.path,
+            fileExtension,
+            header,
+            output,
+            {
+              spec: builder.spec,
+              target: builder.target,
+              workspace,
+              output,
+            },
+          );
+        }
+      }
+    }
   }
 
   let implementationPaths: string[] = [];
@@ -97,7 +116,7 @@ export const writeSpecs = async (
       builder,
       workspace,
       output,
-      specsName,
+      projectName,
       header,
       needSchema: !output.schemas && output.client !== 'zod',
     });
@@ -119,8 +138,12 @@ export const writeSpecs = async (
       );
 
     if (output.schemas) {
+      const schemasPath =
+        typeof output.schemas === 'string'
+          ? output.schemas
+          : output.schemas.path;
       imports.push(
-        upath.relativeSafe(workspacePath, getFileInfo(output.schemas).dirname),
+        upath.relativeSafe(workspacePath, getFileInfo(schemasPath).dirname),
       );
     }
 
@@ -132,14 +155,14 @@ export const writeSpecs = async (
         const importsNotDeclared = imports.filter((imp) => !data.includes(imp));
         await fs.appendFile(
           indexFile,
-          uniq(importsNotDeclared)
+          unique(importsNotDeclared)
             .map((imp) => `export * from '${imp}';\n`)
             .join(''),
         );
       } else {
         await fs.outputFile(
           indexFile,
-          uniq(imports)
+          unique(imports)
             .map((imp) => `export * from '${imp}';`)
             .join('\n') + '\n',
         );
@@ -149,7 +172,7 @@ export const writeSpecs = async (
     }
   }
 
-  if (builder.extraFiles.length) {
+  if (builder.extraFiles.length > 0) {
     await Promise.all(
       builder.extraFiles.map(async (file) =>
         fs.outputFile(file.path, file.content),
@@ -163,7 +186,15 @@ export const writeSpecs = async (
   }
 
   const paths = [
-    ...(output.schemas ? [getFileInfo(output.schemas).dirname] : []),
+    ...(output.schemas
+      ? [
+          getFileInfo(
+            typeof output.schemas === 'string'
+              ? output.schemas
+              : output.schemas.path,
+          ).dirname,
+        ]
+      : []),
     ...implementationPaths,
   ];
 
@@ -190,11 +221,10 @@ export const writeSpecs = async (
   if (output.biome) {
     try {
       await execa('biome', ['check', '--write', ...paths]);
-    } catch (e: any) {
-      const message =
-        e.exitCode === 1
-          ? e.stdout + e.stderr
-          : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
+    } catch (error) {
+      let message = `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}biome not found`;
+      if (error instanceof ExecaError && error.exitCode === 1)
+        message = error.message;
 
       log(chalk.yellow(message));
     }
@@ -235,12 +265,12 @@ export const writeSpecs = async (
       if (project) {
         await app.generateDocs(project, app.options.getValue('out') as string);
       } else {
-        throw new Error('TypeDoc not initialised');
+        throw new Error('TypeDoc not initialized');
       }
-    } catch (e: any) {
+    } catch (error) {
       const message =
-        e.exitCode === 1
-          ? e.stdout + e.stderr
+        error instanceof Error
+          ? error.message
           : `⚠️  ${projectTitle ? `${projectTitle} - ` : ''}Unable to generate docs`;
 
       log(chalk.yellow(message));
@@ -248,18 +278,22 @@ export const writeSpecs = async (
   }
 
   createSuccessMessage(projectTitle);
-};
+}
 
-const getWriteMode = (mode: OutputMode) => {
+function getWriteMode(mode: OutputMode) {
   switch (mode) {
-    case OutputMode.SPLIT:
+    case OutputMode.SPLIT: {
       return writeSplitMode;
-    case OutputMode.TAGS:
+    }
+    case OutputMode.TAGS: {
       return writeTagsMode;
-    case OutputMode.TAGS_SPLIT:
+    }
+    case OutputMode.TAGS_SPLIT: {
       return writeSplitTagsMode;
+    }
     case OutputMode.SINGLE:
-    default:
+    default: {
       return writeSingleMode;
+    }
   }
-};
+}

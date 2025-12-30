@@ -1,15 +1,34 @@
 import {
-  ContextSpecs,
-  GeneratorImport,
+  type ContextSpec,
+  type GeneratorImport,
   isReference,
   isSchema,
-  MockOptions,
+  type MockOptions,
   pascal,
 } from '@orval/core';
-import { MockDefinition, MockSchemaObject } from '../../types';
+
+import type { MockDefinition, MockSchemaObject } from '../../types';
 import { resolveMockValue } from '../resolvers';
 
-export const combineSchemasMock = ({
+interface CombineSchemasMockOptions {
+  item: MockSchemaObject;
+  separator: 'allOf' | 'oneOf' | 'anyOf';
+  operationId: string;
+  mockOptions?: MockOptions;
+  tags: string[];
+  combine?: {
+    separator: 'allOf' | 'oneOf' | 'anyOf';
+    includedProperties: string[];
+  };
+  context: ContextSpec;
+  imports: GeneratorImport[];
+  // This is used to prevent recursion when combining schemas
+  // When an element is added to the array, it means on this iteration, we've already seen this property
+  existingReferencedProperties: string[];
+  splitMockImplementations: string[];
+}
+
+export function combineSchemasMock({
   item,
   separator,
   mockOptions,
@@ -20,27 +39,9 @@ export const combineSchemasMock = ({
   imports,
   existingReferencedProperties,
   splitMockImplementations,
-}: {
-  item: MockSchemaObject;
-  separator: 'allOf' | 'oneOf' | 'anyOf';
-  operationId: string;
-  mockOptions?: MockOptions;
-  tags: string[];
-  combine?: {
-    separator: 'allOf' | 'oneOf' | 'anyOf';
-    includedProperties: string[];
-  };
-  context: ContextSpecs;
-  imports: GeneratorImport[];
-  // This is used to prevent recursion when combining schemas
-  // When an element is added to the array, it means on this iteration, we've already seen this property
-  existingReferencedProperties: string[];
-  splitMockImplementations: string[];
-}): MockDefinition => {
+}: CombineSchemasMockOptions): MockDefinition {
   const combineImports: GeneratorImport[] = [];
-  const includedProperties: string[] = (
-    combine?.includedProperties ?? []
-  ).slice(0);
+  const includedProperties: string[] = [...(combine?.includedProperties ?? [])];
 
   const isRefAndNotExisting =
     isReference(item) && !existingReferencedProperties.includes(item.name);
@@ -74,7 +75,7 @@ export const combineSchemasMock = ({
       if (
         '$ref' in val &&
         existingReferencedProperties.includes(
-          pascal(val.$ref.split('/').pop()!),
+          pascal(val.$ref.split('/').pop() ?? ''),
         )
       ) {
         if (arr.length === 1) {
@@ -87,25 +88,24 @@ export const combineSchemasMock = ({
       // the required fields in this schema need to be considered
       // in the sub schema under the allOf key
       if (separator === 'allOf' && item.required) {
-        if (isSchema(val) && val.required) {
-          val = { ...val, required: [...item.required, ...val.required] };
-        } else {
-          val = { ...val, required: item.required };
-        }
+        val =
+          isSchema(val) && val.required
+            ? { ...val, required: [...item.required, ...val.required] }
+            : { ...val, required: item.required };
       }
 
       const resolvedValue = resolveMockValue({
         schema: {
           ...val,
           name: item.name,
-          path: item.path ? item.path : '#',
+          path: item.path ?? '#',
         },
         combine: {
           separator,
           includedProperties:
-            separator !== 'oneOf'
-              ? includedProperties
-              : (itemResolvedValue?.includedProperties ?? []),
+            separator === 'oneOf'
+              ? (itemResolvedValue?.includedProperties ?? [])
+              : includedProperties,
         },
         mockOptions,
         operationId,
@@ -129,30 +129,29 @@ export const combineSchemasMock = ({
           return `${acc}...${resolvedValue.value},`;
         } else if (resolvedValue.type === 'object') {
           containsOnlyPrimitiveValues = false;
-          if (resolvedValue.value.startsWith('faker')) {
-            return `${acc}...${resolvedValue.value},`;
-          } else {
-            return `${acc}...{${resolvedValue.value}},`;
-          }
+          return resolvedValue.value.startsWith('faker')
+            ? `${acc}...${resolvedValue.value},`
+            : `${acc}...{${resolvedValue.value}},`;
         }
       }
       return `${acc}${resolvedValue.value},`;
     },
-    `${separator === 'allOf' ? '' : 'faker.helpers.arrayElement(['}`,
+    separator === 'allOf' ? '' : 'faker.helpers.arrayElement([',
   );
   let finalValue =
     value === 'undefined'
       ? value
-      : `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
+      : // containsOnlyPrimitiveValues isn't just true, it's being set to false inside the above reduce and the type system doesn't detect it
+
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        `${separator === 'allOf' && !containsOnlyPrimitiveValues ? '{' : ''}${value}${separator === 'allOf' ? (containsOnlyPrimitiveValues ? '' : '}') : '])'}`;
   if (itemResolvedValue) {
-    if (finalValue.startsWith('...')) {
-      finalValue = `...{${finalValue}, ${itemResolvedValue.value}}`;
-    } else {
-      finalValue = `{...${finalValue}, ${itemResolvedValue.value}}`;
-    }
+    finalValue = finalValue.startsWith('...')
+      ? `...{${finalValue}, ${itemResolvedValue.value}}`
+      : `{...${finalValue}, ${itemResolvedValue.value}}`;
   }
   if (finalValue.endsWith(',')) {
-    finalValue = finalValue.substring(0, finalValue.length - 1);
+    finalValue = finalValue.slice(0, Math.max(0, finalValue.length - 1));
   }
 
   return {
@@ -161,4 +160,4 @@ export const combineSchemasMock = ({
     name: item.name,
     includedProperties,
   };
-};
+}

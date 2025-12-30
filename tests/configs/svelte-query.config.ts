@@ -22,6 +22,20 @@ export default defineConfig({
       },
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/svelte-query/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/svelte-query/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'svelte-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   petstoreTagsSplit: {
     output: {
       target: '../generated/svelte-query/petstore-tags-split/endpoints.ts',
@@ -64,7 +78,6 @@ export default defineConfig({
       schemas: '../generated/svelte-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'svelte-query',
-      httpClient: 'fetch',
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -78,7 +91,6 @@ export default defineConfig({
         '../generated/svelte-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'svelte-query',
-      httpClient: 'fetch',
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -94,6 +106,7 @@ export default defineConfig({
       target: '../generated/svelte-query/mutator/endpoints.ts',
       schemas: '../generated/svelte-query/mutator/model',
       client: 'svelte-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -121,7 +134,6 @@ export default defineConfig({
       schemas:
         '../generated/svelte-query/http-client-fetch-with-custom-fetch/model',
       client: 'svelte-query',
-      httpClient: 'fetch',
       mock: true,
       override: {
         mutator: {

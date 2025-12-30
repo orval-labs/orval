@@ -1,4 +1,5 @@
 /* purgecss start ignore */
+@reference "../styles/index.css";
 
 .contents__list {
   overflow: overlay;

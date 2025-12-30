@@ -1,5 +1,4 @@
 import { defineConfig } from 'orval';
-import transformer from '../transformers/add-version.js';
 
 export default defineConfig({
   petstore: {
@@ -36,7 +35,7 @@ export default defineConfig({
     input: {
       target: '../specifications/petstore.yaml',
       override: {
-        transformer,
+        transformer: '../transformers/add-version.js',
       },
     },
   },
@@ -202,6 +201,26 @@ export default defineConfig({
       schemas: '../generated/default/all-of-ref/model',
       target: '../generated/default/all-of-ref/endpoints.ts',
       mock: true,
+    },
+  },
+  'all-of-strict': {
+    input: '../specifications/all-of-strict.yaml',
+    output: {
+      schemas: '../generated/default/all-of-strict/model',
+      target: '../generated/default/all-of-strict/endpoints.ts',
+      mock: true,
+      client: 'zod',
+      override: {
+        zod: {
+          strict: {
+            body: true,
+            param: false,
+            query: false,
+            header: false,
+            response: false,
+          },
+        },
+      },
     },
   },
   'deeply-nested-refs': {
@@ -418,7 +437,7 @@ export default defineConfig({
       override: {
         jsDoc: {
           filter: (schema) => {
-            const allowlist = [
+            const allowlist = new Set([
               'type',
               'format',
               'maxLength',
@@ -431,9 +450,9 @@ export default defineConfig({
               'pattern',
               'nullable',
               'enum',
-            ];
+            ]);
             return Object.entries(schema || {})
-              .filter(([key]) => allowlist.includes(key))
+              .filter(([key]) => allowlist.has(key))
               .map(([key, value]) => {
                 return {
                   key,
@@ -458,5 +477,57 @@ export default defineConfig({
       schemas: '../generated/default/multi-files-with-same-import-names/model',
     },
     input: '../specifications/multi-files-with-same-import-names/api.yaml',
+  },
+  'external-ref': {
+    input: {
+      target: '../specifications/external-ref.yaml',
+    },
+    output: '../generated/default/external-ref/endpoints.ts',
+  },
+  'nullable-any-of-refs': {
+    input: {
+      target: '../specifications/nullable-any-of-refs.yaml',
+    },
+    output: {
+      target: '../generated/default/nullable-any-of-refs/endpoints.ts',
+      schemas: '../generated/default/nullable-any-of-refs/model',
+      mock: true,
+    },
+  },
+  'nullable-oneof-enums': {
+    input: {
+      target: '../specifications/nullable-oneof-enums.yaml',
+    },
+    output: {
+      target: '../generated/default/nullable-oneof-enums/endpoints.ts',
+      schemas: '../generated/default/nullable-oneof-enums/model',
+      mock: true,
+    },
+  },
+  'schemas-typescript-only': {
+    output: {
+      target: '../generated/default/schemas-typescript-only/endpoints.ts',
+      schemas: {
+        path: '../generated/default/schemas-typescript-only/model',
+        type: 'typescript',
+      },
+      client: 'fetch',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  'schemas-zod-only': {
+    output: {
+      target: '../generated/default/schemas-zod-only/endpoints.ts',
+      schemas: {
+        path: '../generated/default/schemas-zod-only/model',
+        type: 'zod',
+      },
+      client: 'zod',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
   },
 });

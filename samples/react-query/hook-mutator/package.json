@@ -1,18 +1,20 @@
 {
   "name": "react-query-hook-mutator",
-  "version": "0.1.0",
+  "version": "8.0.0-rc.5",
   "private": true,
-  "devDependencies": {
-    "orval": "link:../../../packages/orval/dist"
-  },
+  "type": "module",
   "scripts": {
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "generate-api": "orval",
     "test": "tsc --noEmit endpoints.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.8.0",
-    "axios": "^1.8.2",
-    "react": "^18.2.0",
-    "react-query": "^3.34.19"
-  }
+    "@faker-js/faker": "^10.1.0",
+    "axios": "^1.13.2",
+    "react": "^18.3.1",
+    "react-query": "^3.39.3"
+  },
+  "devDependencies": {
+    "orval": "workspace:*"
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

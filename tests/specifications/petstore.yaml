@@ -195,6 +195,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /pets/{petId}/owner:
+    get:
+      summary: combinate nullable and $ref
+      operationId: showPetWithOwner
+      tags:
+        - pets
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          description: The id of the pet
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Pet with owner information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetWithTag'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     Pet:
@@ -280,3 +306,14 @@ components:
           format: int32
         message:
           type: string
+    PetWithTag:
+      type: object
+      required:
+        - tag
+        - pet
+      properties:
+        tag:
+          type: string
+        pet:
+          $ref: '#/components/schemas/Pet'
+          nullable: true

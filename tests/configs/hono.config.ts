@@ -1,21 +1,32 @@
 import { defineConfig } from 'orval';
 
 export default defineConfig({
-  petstoreTagsSplit: {
-    input: '../specifications/petstore.yaml',
+  endpointParameters: {
+    input: '../specifications/parameters.yaml',
     output: {
-      target: '../generated/hono/tags-split/endpoints.ts',
-      schemas: '../generated/hono/tags-split/schemas',
-      mode: 'tags-split',
+      target: '../generated/hono/endpoint-parameters/endpoints.ts',
+      schemas: '../generated/hono/endpoint-parameters/schemas',
+      mode: 'split',
       client: 'hono',
     },
   },
-  petstoreTags: {
+  zodSchemaResponse: {
     input: '../specifications/petstore.yaml',
     output: {
-      target: '../generated/hono/tags/endpoints.ts',
-      schemas: '../generated/hono/tags/schemas',
-      mode: 'tags',
+      target: '../generated/hono/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/hono/zod-schema-response/schemas',
+      },
+      mode: 'single',
+      client: 'hono',
+    },
+  },
+  petstoreSingle: {
+    input: '../specifications/petstore.yaml',
+    output: {
+      target: '../generated/hono/petstore-single/endpoints.ts',
+      mode: 'single',
       client: 'hono',
     },
   },
@@ -23,59 +34,24 @@ export default defineConfig({
     input: '../specifications/petstore.yaml',
     output: {
       target: '../generated/hono/petstore-split/endpoints.ts',
-      schemas: '../generated/hono/petstore-split/schemas',
       mode: 'split',
       client: 'hono',
     },
   },
-  petstoreSplitHandlers: {
+  petstoreTags: {
     input: '../specifications/petstore.yaml',
     output: {
-      target: '../generated/hono/petstore-split-handlers/endpoints.ts',
-      schemas: '../generated/hono/petstore-split-handlers/handlers/schemas',
-      mode: 'split',
+      target: '../generated/hono/petstore-tags/endpoints.ts',
+      mode: 'tags',
       client: 'hono',
-      override: {
-        hono: {
-          handlers: '../generated/hono/petstore-split-handlers/handlers',
-        },
-      },
     },
   },
-  petstoreSplitValidatorOutputPath: {
+  petstoreTagsSplit: {
     input: '../specifications/petstore.yaml',
     output: {
-      target:
-        '../generated/hono/petstore-split-validator-output-path/endpoints.ts',
-      schemas:
-        '../generated/hono/petstore-split-validator-output-path/handlers/schemas',
-      mode: 'split',
-      client: 'hono',
-      override: {
-        hono: {
-          handlers:
-            '../generated/hono/petstore-split-validator-output-path/handlers',
-          validatorOutputPath:
-            '../generated/hono/petstore-split-validator-output-path/handlers/validator.ts',
-        },
-      },
-    },
-  },
-  petstoreTagsSplitCompositeRoute: {
-    input: '../specifications/petstore.yaml',
-    output: {
-      target: '../generated/hono/petstore-tags-split-composite-route/endpoints',
-      schemas: '../generated/hono/petstore-tags-split-composite-route/schemas',
+      target: '../generated/hono/petstore-tags-split/endpoints.ts',
       mode: 'tags-split',
       client: 'hono',
-      override: {
-        hono: {
-          validatorOutputPath:
-            '../generated/hono/petstore-tags-split-composite-route/endpoints/validator.ts',
-          compositeRoute:
-            'generated/hono/petstore-tags-split-composite-route/routes.ts',
-        },
-      },
     },
   },
 });

@@ -1,24 +1,26 @@
 {
   "name": "vue-query-custom-fetch",
   "private": true,
-  "version": "0.0.0",
+  "version": "8.0.0-rc.5",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
-    "build": "vue-tsc -b && vite build",
-    "preview": "vite preview",
-    "generate-api": "node ../../../packages/orval/dist/bin/orval.js",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "generate-api": "orval",
     "test": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/vue-query": "^5.51.1",
-    "vue": "^3.4.29"
+    "@tanstack/vue-query": "^5.90.6",
+    "vue": "^3.5.22"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.0.5",
-    "orval": "link:../../../packages/orval/dist",
-    "typescript": "^5.2.2",
-    "vite": "^5.3.1",
-    "vue-tsc": "^2.0.21"
-  }
+    "@faker-js/faker": "^10.1.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "orval": "workspace:*",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.2",
+    "vue-tsc": "^3.1.4"
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

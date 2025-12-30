@@ -1,11 +1,11 @@
-import { ParameterObject } from 'openapi3-ts/oas30';
 import { describe, expect, it } from 'vitest';
-import { ContextSpecs } from '../types';
+
+import type { ContextSpec, OpenApiParameterObject } from '../types';
 import { getQueryParams } from './query-params';
 
 // Mock context for getQueryParams
-const context: ContextSpecs = {
-  specs: {},
+const context: ContextSpec = {
+  spec: {},
   output: {
     // @ts-expect-error
     override: {
@@ -15,7 +15,7 @@ const context: ContextSpecs = {
 };
 
 const queryParams: {
-  parameter: ParameterObject;
+  parameter: OpenApiParameterObject;
   optional: boolean;
 }[] = [
   {
@@ -100,10 +100,8 @@ const queryParams: {
 ];
 
 describe('getQueryParams getter', () => {
-  queryParams.forEach(({ parameter, optional }) => {
-    it(`${parameter.name} should${
-      !optional ? ' NOT ' : ' '
-    }be optional`, () => {
+  for (const { parameter, optional } of queryParams) {
+    it(`${parameter.name} should${optional ? ' ' : ' NOT '}be optional`, () => {
       const result = getQueryParams({
         queryParams: [
           {
@@ -121,7 +119,7 @@ describe('getQueryParams getter', () => {
         }: string;\n};`,
       );
     });
-  });
+  }
 
   it('queryParamWithDescription should be documented', () => {
     const result = getQueryParams({

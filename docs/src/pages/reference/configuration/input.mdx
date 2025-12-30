@@ -1,0 +1,192 @@
+---
+id: configuration-input
+title: Input
+---
+
+## target
+
+Type: `String`.
+
+Valid values: path or link to the specification.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## override
+
+Type: `Object`.
+
+Allows overriding the specification
+
+### transformer
+
+Type: `String | Function`.
+
+Valid values: path or implementation of a transformer function.
+
+This function is executed when Orval generates clients. The function should accept an argument of the type <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12" target="_blank">OpenAPIObject</a>, and should return a transformed <a href="https://github.com/metadevpro/openapi3-ts/blob/master/src/model/openapi30.ts#L12" target="_blank">OpenAPIObject</a>.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  input: {
+    override: {
+      transformer: 'src/api/transformer/add-version.js',
+    },
+  },
+});
+```
+
+An example of a transformer function can be found <a href="https://github.com/orval-labs/orval/blob/master/samples/basic/api/transformer/add-version.js" target="_blank">here</a>
+
+## filters
+
+Type: `Object`.
+
+Default value: `{}`.
+
+If specified, Orval only generates the endpoints after applying the filter.
+
+### mode
+
+Type: `String`.
+
+Valid values: `include`, `exclude`.
+
+Default value: `include`.
+
+This settings determines whether the provided `tags` or `schemas` are excluded or included from the specification.
+For instance, the example below generates endpoints that do not contain the tag `pets`.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        mode: 'exclude',
+        tags: ['pets'],
+      },
+    },
+  },
+});
+```
+
+### tags
+
+Type: `(String | RegExp)[]`.
+
+Default Value: `[]`.
+
+This option allows filtering on `tags`. For instance ,the example below only generates the endpoints that contain the tag `pets` or matches the regular expression `/health/`.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        tags: ['pets', /health/],
+      },
+    },
+  },
+});
+```
+
+### schemas
+
+Type: `(String | RegExp)[]`.
+
+Only schema names that match the specified `String` or `RegExp` will be automatically generated.
+For instance, the example below only generates the schema object that matches string `Error` or regular expression `/Cat/`.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      filters: {
+        schemas: ['Error', /Cat/],
+      },
+    },
+  },
+});
+```
+
+## parserOptions
+
+Type: `Object`.
+
+Optional configuration for the OpenAPI spec parser, particularly useful for fetching specs from protected URLs.
+
+### headers
+
+Type: `Array<{ domains: string[]; headers: Record<string, string> }>`.
+
+Domain-specific headers to send when fetching the OpenAPI specification from remote URLs. Headers are matched based on the domain of the URL being fetched. This is useful for authentication or other custom headers required by the spec server.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: 'https://api.example.com/openapi.json',
+      parserOptions: {
+        headers: [
+          {
+            domains: ['api.example.com'],
+            headers: {
+              'Authorization': 'Bearer YOUR_TOKEN',
+              'X-API-Key': 'your-api-key',
+            },
+          },
+        ],
+      },
+    },
+  },
+});
+```
+
+You can configure different headers for different domains:
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: 'https://api.example.com/openapi.json',
+      parserOptions: {
+        headers: [
+          {
+            domains: ['api.example.com', 'api.prod.example.com'],
+            headers: {
+              'Authorization': 'Bearer PROD_TOKEN',
+            },
+          },
+          {
+            domains: ['api.dev.example.com'],
+            headers: {
+              'Authorization': 'Bearer DEV_TOKEN',
+            },
+          },
+        ],
+      },
+    },
+  },
+});
+```

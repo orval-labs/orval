@@ -1,23 +1,22 @@
 import {
-  ClientHeaderBuilder,
+  type ClientHeaderBuilder,
   generateFormDataAndUrlEncodedFunction,
   generateMutatorConfig,
   generateMutatorRequestOptions,
   generateOptions,
-  GeneratorDependency,
-  GeneratorMutator,
-  GeneratorOptions,
-  GeneratorVerbOptions,
-  GetterResponse,
+  type GeneratorDependency,
+  type GeneratorMutator,
+  type GeneratorOptions,
+  type GeneratorVerbOptions,
+  type GetterResponse,
   isSyntheticDefaultImportsAllow,
   OutputHttpClient,
   toObjectString,
 } from '@orval/core';
-
 import {
   fetchResponseTypeName,
-  generateRequestFunction as generateFetchRequestFunction,
   generateFetchHeader,
+  generateRequestFunction as generateFetchRequestFunction,
 } from '@orval/fetch';
 
 export const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
@@ -41,11 +40,9 @@ export const generateSwrRequestFunction = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
 ) => {
-  if (options.context.output.httpClient === OutputHttpClient.AXIOS) {
-    return generateAxiosRequestFunction(verbOptions, options);
-  } else {
-    return generateFetchRequestFunction(verbOptions, options);
-  }
+  return options.context.output.httpClient === OutputHttpClient.AXIOS
+    ? generateAxiosRequestFunction(verbOptions, options)
+    : generateFetchRequestFunction(verbOptions, options);
 };
 
 const generateAxiosRequestFunction = (
@@ -65,9 +62,9 @@ const generateAxiosRequestFunction = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override?.requestOptions !== false;
-  const isFormData = override?.formData.disabled === false;
-  const isFormUrlEncoded = override?.formUrlEncoded !== false;
+  const isRequestOptions = override.requestOptions !== false;
+  const isFormData = !override.formData.disabled;
+  const isFormUrlEncoded = override.formUrlEncoded !== false;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
@@ -97,16 +94,16 @@ const generateAxiosRequestFunction = (
     });
 
     const propsImplementation =
-      mutator?.bodyTypeName && body.definition
+      mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
-            new RegExp(`(\\w*):\\s?${body.definition}`),
+            new RegExp(String.raw`(\w*):\s?${body.definition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
           )
         : toObjectString(props, 'implementation');
 
     const requestOptions = isRequestOptions
       ? generateMutatorRequestOptions(
-          override?.requestOptions,
+          override.requestOptions,
           mutator.hasSecondArg,
         )
       : '';
@@ -132,11 +129,11 @@ const generateAxiosRequestFunction = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal: false,
   });
@@ -150,7 +147,7 @@ const generateAxiosRequestFunction = (
     response.definition.success || 'unknown'
   }>> => {${bodyForm}
     return axios${
-      !isSyntheticDefaultImportsAllowed ? '.default' : ''
+      isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
 `;
@@ -164,7 +161,7 @@ export const getSwrRequestOptions = (
     return httpClient === OutputHttpClient.AXIOS
       ? 'axios?: AxiosRequestConfig'
       : 'fetch?: RequestInit';
-  } else if (mutator?.hasSecondArg) {
+  } else if (mutator.hasSecondArg) {
     return `request?: SecondParameter<typeof ${mutator.name}>`;
   } else {
     return '';
@@ -196,7 +193,7 @@ export const getSwrRequestSecondArg = (
     return httpClient === OutputHttpClient.AXIOS
       ? 'axios: axiosOptions'
       : 'fetch: fetchOptions';
-  } else if (mutator?.hasSecondArg) {
+  } else if (mutator.hasSecondArg) {
     return 'request: requestOptions';
   } else {
     return '';
@@ -211,7 +208,7 @@ export const getHttpRequestSecondArg = (
     return httpClient === OutputHttpClient.AXIOS
       ? `axiosOptions`
       : `fetchOptions`;
-  } else if (mutator?.hasSecondArg) {
+  } else if (mutator.hasSecondArg) {
     return 'requestOptions';
   } else {
     return '';

@@ -1,11 +1,17 @@
-import { compare, CompareOperator } from 'compare-versions';
+import { compare, type CompareOperator } from 'compare-versions';
 
-export const compareVersions = (
+export function compareVersions(
   firstVersion: string,
   secondVersions: string,
   operator: CompareOperator = '>=',
-) => {
+) {
   if (firstVersion === 'latest' || firstVersion === '*') {
+    return true;
+  }
+
+  // Handle workspace catalog references (pnpm/bun)
+  // catalog: or catalog:name format - assume latest version
+  if (firstVersion.startsWith('catalog:')) {
     return true;
   }
 
@@ -14,4 +20,4 @@ export const compareVersions = (
     secondVersions,
     operator,
   );
-};
+}

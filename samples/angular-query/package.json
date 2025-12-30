@@ -1,0 +1,48 @@
+{
+  "name": "angular-query",
+  "version": "8.0.0-rc.5",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "CI=true ng test --no-watch",
+    "lint": "ng lint",
+    "generate-api": "node ../../packages/orval/dist/bin/orval.mjs"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^20.3.0",
+    "@angular/common": "catalog:angular",
+    "@angular/compiler": "^20.3.15",
+    "@angular/core": "catalog:angular",
+    "@angular/forms": "^20.3.0",
+    "@angular/platform-browser": "^20.3.0",
+    "@angular/router": "^20.3.9",
+    "@tanstack/angular-query-experimental": "^5.62.7",
+    "rxjs": "~7.8.2",
+    "tslib": "^2.8.1"
+  },
+  "devDependencies": {
+    "@angular/build": "^20.3.1",
+    "@angular/cli": "^20.3.1",
+    "@angular/compiler-cli": "^20.3.2",
+    "@faker-js/faker": "^10.1.0",
+    "@testing-library/angular": "16.0.0",
+    "msw": "^2.12.4",
+    "orval": "link:../../packages/orval/dist",
+    "typescript": "~5.8.3",
+    "vitest": "^4.0.16"
+  },
+  "msw": {
+    "workerDirectory": [
+      "public"
+    ]
+  },
+  "dependenciesMeta": {
+    "msw": {
+      "built": true
+    }
+  },
+  "stableVersion": "0.0.0"
+}

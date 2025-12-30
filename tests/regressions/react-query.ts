@@ -1,4 +1,5 @@
 import { keepPreviousData } from '@tanstack/react-query';
+
 import {
   useListPets,
   useListPetsInfinite,
@@ -17,7 +18,7 @@ export const useInfiniteQueryTest = () => {
     },
   );
 
-  const pages = data?.pages.map((page) => page.map((pet) => pet.name)).flat();
+  const pages = data?.pages.flatMap((page) => page.map((pet) => pet.name));
 
   return pages;
 };

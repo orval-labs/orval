@@ -13,6 +13,20 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  zodSchemaResponse: {
+    output: {
+      target: '../generated/react-query/zod-schema-response/endpoints.ts',
+      schemas: {
+        type: 'zod',
+        path: '../generated/react-query/zod-schema-response/model',
+      },
+      mock: true,
+      client: 'react-query',
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   noContentWithDefault: {
     output: {
       target: '../generated/react-query/no-content-with-default/endpoints.ts',
@@ -105,7 +119,11 @@ export default defineConfig({
       schemas: '../generated/react-query/http-client-fetch/model',
       mode: 'tags-split',
       client: 'react-query',
-      httpClient: 'fetch',
+      override: {
+        fetch: {
+          forceSuccessResponse: true,
+        },
+      },
     },
     input: {
       target: '../specifications/petstore.yaml',
@@ -119,7 +137,6 @@ export default defineConfig({
         '../generated/react-query/http-client-fetch-with-include-http-response-return-type/model',
       mode: 'tags-split',
       client: 'react-query',
-      httpClient: 'fetch',
       override: {
         fetch: {
           includeHttpResponseReturnType: false,
@@ -135,6 +152,7 @@ export default defineConfig({
       target: '../generated/react-query/mutator/endpoints.ts',
       schemas: '../generated/react-query/mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -161,6 +179,7 @@ export default defineConfig({
       target: '../generated/react-query/mutator-client/endpoints.ts',
       schemas: '../generated/react-query/mutator-client/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       headers: true,
       override: {
@@ -189,7 +208,6 @@ export default defineConfig({
       schemas:
         '../generated/react-query/http-client-fetch-with-custom-fetch/model',
       client: 'react-query',
-      httpClient: 'fetch',
       mock: true,
       override: {
         mutator: {
@@ -207,6 +225,7 @@ export default defineConfig({
       target: '../generated/react-query/mutator-multi-arguments/endpoints.ts',
       schemas: '../generated/react-query/mutator-multi-arguments/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -232,6 +251,7 @@ export default defineConfig({
       target: '../generated/react-query/error-type/endpoints.ts',
       schemas: '../generated/react-query/error-type/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -257,6 +277,7 @@ export default defineConfig({
       target: '../generated/react-query/hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance.ts',
@@ -273,6 +294,7 @@ export default defineConfig({
       target: '../generated/react-query/hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance.ts',
@@ -292,6 +314,7 @@ export default defineConfig({
       schemas:
         '../generated/react-query/hook-mutator-with-second-parameter/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         mutator: {
           path: '../mutators/use-custom-instance-with-second-parameter.ts',
@@ -308,6 +331,7 @@ export default defineConfig({
       target: '../generated/react-query/tag-hook-mutator/endpoints.ts',
       schemas: '../generated/react-query/tag-hook-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       override: {
         tags: {
           pets: {
@@ -328,6 +352,7 @@ export default defineConfig({
       target: '../generated/react-query/form-data/endpoints.ts',
       schemas: '../generated/react-query/form-data/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -345,6 +370,7 @@ export default defineConfig({
       target: '../generated/react-query/form-data-with-hook/endpoints.ts',
       schemas: '../generated/react-query/form-data-with-hook/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -362,6 +388,7 @@ export default defineConfig({
       target: '../generated/react-query/form-data-with-mutator/endpoints.ts',
       schemas: '../generated/react-query/form-data-with-mutator/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -383,6 +410,7 @@ export default defineConfig({
       target: '../generated/react-query/form-url-encoded/endpoints.ts',
       schemas: '../generated/react-query/form-url-encoded/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -400,6 +428,7 @@ export default defineConfig({
       target: '../generated/react-query/formUrlEncoded/endpoints.ts',
       schemas: '../generated/react-query/formUrlEncoded/model',
       client: 'react-query',
+      httpClient: 'axios',
       mock: true,
       override: {
         mutator: {
@@ -506,6 +535,58 @@ export default defineConfig({
     },
     input: {
       target: '../specifications/models-with-special-char.yaml',
+    },
+  },
+  usePrefetchWithFunctionMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-prefetch-with-function/endpoints.ts',
+      schemas: '../generated/react-query/use-prefetch-with-function/model',
+      client: 'react-query',
+      override: {
+        query: {
+          usePrefetch: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  usePrefetchWithHookMutator: {
+    output: {
+      target:
+        '../generated/react-query/use-prefetch-with-hook-mutator/endpoints.ts',
+      schemas: '../generated/react-query/use-prefetch-with-hook-mutator/model',
+      client: 'react-query',
+      httpClient: 'axios',
+      override: {
+        mutator: {
+          path: '../mutators/use-custom-instance.ts',
+          name: 'useCustomInstance',
+        },
+        query: {
+          usePrefetch: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
+  useInvalidate: {
+    output: {
+      target: '../generated/react-query/use-invalidate/endpoints.ts',
+      schemas: '../generated/react-query/use-invalidate/model',
+      client: 'react-query',
+      override: {
+        query: {
+          useInvalidate: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
     },
   },
 });

@@ -1,28 +1,26 @@
-import { describe, it, expect } from 'vitest';
-import { ResponsesObject } from 'openapi3-ts/oas30';
+import { describe, expect, it } from 'vitest';
+
+import type { ContextSpec, OpenApiResponsesObject } from '../types';
 import { getResponse } from './response';
 
-const context = {
+const context: ContextSpec = {
   output: {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
     },
   },
-  specKey: 'spec',
   target: 'spec',
   workspace: '',
-  specs: {
-    spec: {
-      components: { schemas: {} },
-    },
+  spec: {
+    components: { schemas: {} },
   },
 };
 
 describe('getResponse', () => {
   describe('multiple status codes with same schema', () => {
     it('should generate separate types for each status code when using custom uniqueKey function', () => {
-      const responses: ResponsesObject = {
+      const responses: OpenApiResponsesObject = {
         '200': {
           description: 'Existing subscription',
           content: {

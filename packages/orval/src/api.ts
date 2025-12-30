@@ -1,21 +1,21 @@
 import {
   asyncReduce,
-  ContextSpecs,
+  type ContextSpec,
   generateVerbsOptions,
-  GeneratorApiBuilder,
-  GeneratorApiOperations,
-  GeneratorSchema,
+  type GeneratorApiBuilder,
+  type GeneratorApiOperations,
+  type GeneratorSchema,
   getFullRoute,
   getRoute,
   GetterPropType,
   isReference,
-  logError,
-  NormalizedInputOptions,
-  NormalizedOutputOptions,
+  type NormalizedInputOptions,
+  type NormalizedOutputOptions,
+  type OpenApiPathItemObject,
   resolveRef,
 } from '@orval/core';
 import { generateMockImports } from '@orval/mock';
-import { PathItemObject } from 'openapi3-ts/oas30';
+
 import {
   generateClientFooter,
   generateClientHeader,
@@ -25,36 +25,29 @@ import {
   generateOperations,
 } from './client';
 
-export const getApiBuilder = async ({
+export async function getApiBuilder({
   input,
   output,
   context,
 }: {
   input: NormalizedInputOptions;
   output: NormalizedOutputOptions;
-  context: ContextSpecs;
-}): Promise<GeneratorApiBuilder> => {
+  context: ContextSpec;
+}): Promise<GeneratorApiBuilder> {
   const api = await asyncReduce(
-    Object.entries(context.specs[context.specKey].paths ?? {}),
-    async (acc, [pathRoute, verbs]: [string, PathItemObject]) => {
+    Object.entries(context.spec.paths ?? {}),
+    async (acc, [pathRoute, verbs]) => {
       const route = getRoute(pathRoute);
 
       let resolvedVerbs = verbs;
-      let resolvedContext = context;
 
       if (isReference(verbs)) {
-        const { schema, imports } = resolveRef<PathItemObject>(verbs, context);
+        const { schema, imports } = resolveRef<OpenApiPathItemObject>(
+          verbs,
+          context,
+        );
 
         resolvedVerbs = schema;
-
-        resolvedContext = {
-          ...context,
-          ...(imports.length
-            ? {
-                specKey: imports[0].specKey,
-              }
-            : {}),
-        };
       }
 
       let verbsOptions = await generateVerbsOptions({
@@ -63,7 +56,7 @@ export const getApiBuilder = async ({
         output,
         route,
         pathRoute,
-        context: resolvedContext,
+        context,
       });
 
       // GitHub #564 check if we want to exclude deprecated operations
@@ -73,7 +66,7 @@ export const getApiBuilder = async ({
         });
       }
 
-      const schemas = verbsOptions.reduce(
+      const schemas = verbsOptions.reduce<GeneratorSchema[]>(
         (acc, { queryParams, headers, body, response, props }) => {
           if (props) {
             acc.push(
@@ -91,22 +84,20 @@ export const getApiBuilder = async ({
             acc.push(headers.schema, ...headers.deps);
           }
 
-          acc.push(...body.schemas);
-          acc.push(...response.schemas);
+          acc.push(...body.schemas, ...response.schemas);
 
           return acc;
         },
-        [] as GeneratorSchema[],
+        [],
       );
 
       const fullRoute = getFullRoute(
         route,
-        verbs.servers ?? context.specs[context.specKey].servers,
+        verbs.servers ?? context.spec.servers,
         output.baseUrl,
       );
       if (!output.target) {
-        logError('Output does not have a target');
-        process.exit(1);
+        throw new Error('Output does not have a target');
       }
       const pathOperations = await generateOperations(
         output.client,
@@ -115,16 +106,16 @@ export const getApiBuilder = async ({
           route: fullRoute,
           pathRoute,
           override: output.override,
-          context: resolvedContext,
+          context,
           mock: output.mock,
           output: output.target,
         },
         output,
       );
 
-      verbsOptions.forEach((verbOption) => {
+      for (const verbOption of verbsOptions) {
         acc.verbOptions[verbOption.operationId] = verbOption;
-      });
+      }
       acc.schemas.push(...schemas);
       acc.operations = { ...acc.operations, ...pathOperations };
 
@@ -155,4 +146,4 @@ export const getApiBuilder = async ({
     importsMock: generateMockImports,
     extraFiles,
   };
-};
+}

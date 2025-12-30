@@ -1,16 +1,16 @@
 import {
-  type ContextSpecs,
+  type ContextSpec,
   EnumGeneration,
   escape,
   type GeneratorImport,
-  isReference,
-  isRootKey,
   mergeDeep,
   type MockOptions,
+  type OpenApiSchemaObject,
   pascal,
 } from '@orval/core';
-import type { SchemaObject as SchemaObject31 } from 'openapi3-ts/oas31';
+
 import type { MockDefinition, MockSchemaObject } from '../../types';
+import { isFakerVersionV9 } from '../compatible-v9';
 import { DEFAULT_FORMAT_MOCK } from '../constants';
 import {
   getNullable,
@@ -18,20 +18,8 @@ import {
   resolveMockValue,
 } from '../resolvers';
 import { getMockObject } from './object';
-import { isFakerVersionV9 } from '../compatibleV9';
 
-export const getMockScalar = ({
-  item,
-  imports,
-  mockOptions,
-  operationId,
-  tags,
-  combine,
-  context,
-  existingReferencedProperties,
-  splitMockImplementations,
-  allowOverride = false,
-}: {
+interface GetMockScalarOptions {
   item: MockSchemaObject;
   imports: GeneratorImport[];
   mockOptions?: MockOptions;
@@ -42,14 +30,27 @@ export const getMockScalar = ({
     separator: 'allOf' | 'oneOf' | 'anyOf';
     includedProperties: string[];
   };
-  context: ContextSpecs;
+  context: ContextSpec;
   // This is used to prevent recursion when combining schemas
   // When an element is added to the array, it means on this iteration, we've already seen this property
   existingReferencedProperties: string[];
   splitMockImplementations: string[];
   // This is used to add the overrideResponse to the object
   allowOverride?: boolean;
-}): MockDefinition => {
+}
+
+export function getMockScalar({
+  item,
+  imports,
+  mockOptions,
+  operationId,
+  tags,
+  combine,
+  context,
+  existingReferencedProperties,
+  splitMockImplementations,
+  allowOverride = false,
+}: GetMockScalarOptions): MockDefinition {
   // Add the property to the existing properties to validate on object recursion
   if (item.isRef) {
     existingReferencedProperties = [...existingReferencedProperties, item.name];
@@ -65,7 +66,7 @@ export const getMockScalar = ({
   }
 
   const overrideTag = Object.entries(mockOptions?.tags ?? {})
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       return a[0].localeCompare(b[0]);
     })
     .reduce(
@@ -74,7 +75,7 @@ export const getMockScalar = ({
       {} as { properties: Record<string, unknown> },
     );
 
-  const tagProperty = resolveMockOverride(overrideTag?.properties, item);
+  const tagProperty = resolveMockOverride(overrideTag.properties, item);
 
   if (tagProperty) {
     return tagProperty;
@@ -87,7 +88,7 @@ export const getMockScalar = ({
   }
 
   if (
-    (context.output.override?.mock?.useExamples || mockOptions?.useExamples) &&
+    (context.output.override.mock?.useExamples || mockOptions?.useExamples) &&
     item.example !== undefined
   ) {
     return {
@@ -100,9 +101,10 @@ export const getMockScalar = ({
 
   const ALL_FORMAT = {
     ...DEFAULT_FORMAT_MOCK,
-    ...(mockOptions?.format ?? {}),
+    ...mockOptions?.format,
   };
 
+  const isNullable = Array.isArray(item.type) && item.type.includes('null');
   if (item.format && ALL_FORMAT[item.format]) {
     let value = ALL_FORMAT[item.format] as string;
 
@@ -112,7 +114,7 @@ export const getMockScalar = ({
     }
 
     return {
-      value: getNullable(value, item.nullable),
+      value: getNullable(value, isNullable),
       imports: [],
       name: item.name,
       overrided: false,
@@ -133,13 +135,13 @@ export const getMockScalar = ({
           ? 'bigInt'
           : 'int';
       let value = getNullable(
-        `faker.number.${intFunction}({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
-        item.nullable,
+        `faker.number.${intFunction}({min: ${item.exclusiveMinimum ?? item.minimum ?? mockOptions?.numberMin}, max: ${item.exclusiveMaximum ?? item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : ''}})`,
+        isNullable,
       );
       if (type === 'number') {
         value = getNullable(
-          `faker.number.float({min: ${item.minimum ?? mockOptions?.numberMin}, max: ${item.maximum ?? mockOptions?.numberMax}, ${item.multipleOf ? `multipleOf: ${item.multipleOf}` : `fractionDigits: ${mockOptions?.fractionDigits}`}})`,
-          item.nullable,
+          `faker.number.float({min: ${item.exclusiveMinimum ?? item.minimum ?? mockOptions?.numberMin}, max: ${item.exclusiveMaximum ?? item.maximum ?? mockOptions?.numberMax}${isFakerV9 && item.multipleOf !== undefined ? `, multipleOf: ${item.multipleOf}` : `, fractionDigits: ${mockOptions?.fractionDigits}`}})`,
+          isNullable,
         );
       }
       const numberImports: GeneratorImport[] = [];
@@ -152,8 +154,8 @@ export const getMockScalar = ({
           existingReferencedProperties,
           'number',
         );
-      } else if ('const' in item) {
-        value = '' + (item as SchemaObject31).const;
+      } else if ('const' in item && typeof item.const === 'string') {
+        value = item.const;
       }
 
       return {
@@ -166,8 +168,8 @@ export const getMockScalar = ({
 
     case 'boolean': {
       let value = 'faker.datatype.boolean()';
-      if ('const' in item) {
-        value = '' + (item as SchemaObject31).const;
+      if ('const' in item && typeof item.const === 'string') {
+        value = item.const;
       }
       return {
         value,
@@ -184,7 +186,7 @@ export const getMockScalar = ({
       if (
         '$ref' in item.items &&
         existingReferencedProperties.includes(
-          pascal(item.items.$ref.split('/').pop()!),
+          pascal(item.items.$ref.split('/').pop() ?? ''),
         )
       ) {
         return { value: '[]', imports: [], name: item.name };
@@ -256,23 +258,24 @@ export const getMockScalar = ({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
       } else if ('const' in item) {
-        value = `'${(item as SchemaObject31).const}'`;
+        value = `'${(item as OpenApiSchemaObject).const}'`;
       }
 
       return {
-        value: getNullable(value, item.nullable),
+        value: getNullable(value, isNullable),
         enums: item.enum,
         name: item.name,
         imports: stringImports,
       };
     }
 
-    case 'null':
+    case 'null': {
       return {
         value: 'null',
         imports: [],
         name: item.name,
       };
+    }
 
     default: {
       if (item.enum) {
@@ -282,7 +285,6 @@ export const getMockScalar = ({
           enumImports,
           context,
           existingReferencedProperties,
-          undefined,
         );
 
         return {
@@ -312,30 +314,38 @@ export const getMockScalar = ({
       });
     }
   }
-};
+}
 
 function getItemType(item: MockSchemaObject) {
+  if (Array.isArray(item.type) && item.type.includes('null')) {
+    const typesWithoutNull = item.type.filter((x) => x !== 'null');
+    const itemType =
+      typesWithoutNull.length === 1 ? typesWithoutNull[0] : typesWithoutNull;
+
+    return itemType;
+  }
+
   if (item.type) return item.type;
   if (!item.enum) return;
 
   const uniqTypes = new Set(item.enum.map((value) => typeof value));
   if (uniqTypes.size > 1) return;
 
-  const type = Array.from(uniqTypes.values()).at(0);
+  const type = [...uniqTypes.values()].at(0);
   if (!type) return;
   return ['string', 'number'].includes(type) ? type : undefined;
 }
 
-const getEnum = (
+function getEnum(
   item: MockSchemaObject,
   imports: GeneratorImport[],
-  context: ContextSpecs,
+  context: ContextSpec,
   existingReferencedProperties: string[],
-  type: 'string' | 'number' | undefined,
-) => {
+  type?: 'string' | 'number',
+) {
   if (!item.enum) return '';
-  const joindEnumValues = item.enum
-    .filter((e) => e !== null)
+  const joinedEnumValues = item.enum
+    .filter((e) => e !== null) // TODO fix type, e can absolutely be null
     .map((e) =>
       type === 'string' || (type === undefined && typeof e === 'string')
         ? `'${escape(e)}'`
@@ -343,16 +353,11 @@ const getEnum = (
     )
     .join(',');
 
-  let enumValue = `[${joindEnumValues}]`;
+  let enumValue = `[${joinedEnumValues}]`;
   if (context.output.override.enumGenerationType === EnumGeneration.ENUM) {
     if (item.isRef || existingReferencedProperties.length === 0) {
       enumValue += ` as ${item.name}${item.name.endsWith('[]') ? '' : '[]'}`;
-      imports.push({
-        name: item.name,
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
-      });
+      imports.push({ name: item.name });
     } else {
       enumValue += ` as ${existingReferencedProperties[existingReferencedProperties.length - 1]}['${item.name}']`;
       if (!item.path?.endsWith('[]')) enumValue += '[]';
@@ -360,9 +365,6 @@ const getEnum = (
         name: existingReferencedProperties[
           existingReferencedProperties.length - 1
         ],
-        ...(!isRootKey(context.specKey, context.target)
-          ? { specKey: context.specKey }
-          : {}),
       });
     }
   } else {
@@ -375,13 +377,10 @@ const getEnum = (
     imports.push({
       name: item.name,
       values: true,
-      ...(!isRootKey(context.specKey, context.target)
-        ? { specKey: context.specKey }
-        : {}),
     });
   }
 
   return item.path?.endsWith('[]')
     ? `faker.helpers.arrayElements(${enumValue})`
     : `faker.helpers.arrayElement(${enumValue})`;
-};
+}

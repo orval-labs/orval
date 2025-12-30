@@ -10,13 +10,15 @@ jobs:
     name: Push to Vercel
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Use Node.js 20
-        uses: actions/setup-node@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22
+          # https://github.com/actions/setup-node/issues/1357
+          package-manager-cache: false
       - name: Install Vercel CLI
         run: |
           npm install -g vercel

@@ -1,23 +1,36 @@
 {
   "name": "@orval/mock",
-  "version": "7.11.2",
+  "version": "8.0.0-rc.5",
   "license": "MIT",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "type": "module",
+  "exports": {
+    "import": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
   "files": [
-    "dist"
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
   ],
   "scripts": {
-    "build": "tsup --dts",
-    "dev": "tsup --watch src",
-    "lint": "eslint src/**/*.ts",
-    "test": "vitest"
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
+    "lint": "eslint .",
+    "test": "vitest",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
   },
   "dependencies": {
-    "@orval/core": "7.11.2",
-    "openapi3-ts": "^4.2.2"
+    "@orval/core": "workspace:*"
   },
   "devDependencies": {
-    "vitest": "^3.2.4"
-  }
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "stableVersion": "8.0.0-rc.4"
 }

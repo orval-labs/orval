@@ -1,0 +1,36 @@
+openapi: 3.1.0
+info:
+  title: AllOf Strict Mode Test
+  version: 1.0.0
+paths:
+  /fish:
+    post:
+      operationId: postFish
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              allOf:
+                - type: object
+                  required:
+                    - name
+                  properties:
+                    name:
+                      type: string
+                - type: object
+                  required:
+                    - swimming
+                  properties:
+                    swimming:
+                      type: boolean
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean

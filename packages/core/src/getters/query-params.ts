@@ -1,11 +1,12 @@
-import { ContentObject, SchemaObject } from 'openapi3-ts/oas30';
 import { resolveValue } from '../resolvers';
-import {
-  ContextSpecs,
+import type {
+  ContextSpec,
   GeneratorImport,
   GeneratorSchema,
   GetterParameters,
   GetterQueryParam,
+  OpenApiParameterObject,
+  OpenApiSchemaObject,
 } from '../types';
 import { jsDoc, pascal, sanitize } from '../utils';
 import { getEnum, getEnumDescriptions, getEnumNames } from './enum';
@@ -15,14 +16,14 @@ type QueryParamsType = {
   definition: string;
   imports: GeneratorImport[];
   schemas: GeneratorSchema[];
-  originalSchema: SchemaObject;
+  originalSchema: OpenApiSchemaObject;
 };
 
-const getQueryParamsTypes = (
+function getQueryParamsTypes(
   queryParams: GetterParameters['query'],
   operationName: string,
-  context: ContextSpecs,
-): QueryParamsType[] => {
+  context: ContextSpec,
+): QueryParamsType[] {
   return queryParams.map(({ parameter, imports: parameterImports }) => {
     const {
       name,
@@ -32,8 +33,8 @@ const getQueryParamsTypes = (
     } = parameter as {
       name: string;
       required: boolean;
-      schema: SchemaObject;
-      content: ContentObject;
+      schema: OpenApiSchemaObject;
+      content: OpenApiParameterObject['content'];
     };
 
     const queryName = sanitize(`${pascal(operationName)}${pascal(name)}`, {
@@ -62,7 +63,7 @@ const getQueryParamsTypes = (
       context,
     );
 
-    if (parameterImports.length) {
+    if (parameterImports.length > 0) {
       return {
         definition: `${doc}${key}${!required || schema.default ? '?' : ''}: ${
           parameterImports[0].name
@@ -108,20 +109,22 @@ const getQueryParamsTypes = (
       originalSchema: resolvedValue.originalSchema,
     };
   });
-};
+}
 
-export const getQueryParams = ({
-  queryParams = [],
+interface GetQueryParamsOptions {
+  queryParams: GetterParameters['query'];
+  operationName: string;
+  context: ContextSpec;
+  suffix?: string;
+}
+
+export function getQueryParams({
+  queryParams,
   operationName,
   context,
   suffix = 'params',
-}: {
-  queryParams: GetterParameters['query'];
-  operationName: string;
-  context: ContextSpecs;
-  suffix?: string;
-}): GetterQueryParam | undefined => {
-  if (!queryParams.length) {
+}: GetQueryParamsOptions): GetterQueryParam | undefined {
+  if (queryParams.length === 0) {
     return;
   }
   const types = getQueryParamsTypes(queryParams, operationName, context);
@@ -143,4 +146,4 @@ export const getQueryParams = ({
     deps: schemas,
     isOptional: allOptional,
   };
-};
+}

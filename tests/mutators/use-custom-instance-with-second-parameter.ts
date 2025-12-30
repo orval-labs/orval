@@ -10,17 +10,10 @@ export const useCustomInstance = <T>() => {
   queryClient.isFetching();
 
   return (config: AxiosRequestConfig, headers?: { token: string }) => {
-    const source = Axios.CancelToken.source();
     const promise = AXIOS_INSTANCE({
       ...config,
-      cancelToken: source.token,
       headers: headers,
     }).then(({ data }) => data);
-
-    // @ts-ignore
-    promise.cancel = () => {
-      source.cancel('Query was cancelled by React Query');
-    };
 
     return promise;
   };

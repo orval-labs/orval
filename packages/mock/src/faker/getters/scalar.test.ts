@@ -1,12 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import type { ContextSpec, OpenApiSchemaObjectType } from '@orval/core';
+import { describe, expect, it } from 'vitest';
+
 import { getMockScalar } from './scalar';
-import type { ContextSpecs } from '@orval/core';
-import type { SchemaObjectType } from 'openapi3-ts/oas30';
 
 describe('getMockScalar (int64 format handling)', () => {
   const baseArg = {
     item: {
-      type: 'integer' as SchemaObjectType,
+      type: 'integer' as OpenApiSchemaObjectType,
       format: 'int64',
       minimum: 1,
       maximum: 100,
@@ -22,7 +22,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return faker.number.bigInt() when format is int64, useBigInt is true, and mockOptions.format.int64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: true } } } as ContextSpecs,
+      context: { output: { override: { useBigInt: true } } } as ContextSpec,
     });
 
     expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
@@ -31,7 +31,7 @@ describe('getMockScalar (int64 format handling)', () => {
   it('should return faker.number.int() when format is int64, useBigInt is false, and mockOptions.format.int64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: false } } } as ContextSpecs,
+      context: { output: { override: { useBigInt: false } } } as ContextSpec,
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
@@ -47,7 +47,7 @@ describe('getMockScalar (int64 format handling)', () => {
           int64: specified,
         },
       },
-      context: { output: { override: { useBigInt: true } } } as ContextSpecs,
+      context: { output: { override: { useBigInt: true } } } as ContextSpec,
     });
 
     expect(result.value).toBe(specified);
@@ -73,7 +73,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return faker.number.bigInt() when format is uint64, useBigInt is true, and mockOptions.format.uint64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: true } } } as ContextSpecs,
+      context: { output: { override: { useBigInt: true } } } as ContextSpec,
     });
 
     expect(result.value).toBe('faker.number.bigInt({min: 1, max: 100})');
@@ -82,7 +82,7 @@ describe('getMockScalar (uint64 format handling)', () => {
   it('should return faker.number.int() when format is uint64, useBigInt is false, and mockOptions.format.uint64 is NOT specified', () => {
     const result = getMockScalar({
       ...baseArg,
-      context: { output: { override: { useBigInt: false } } } as ContextSpecs,
+      context: { output: { override: { useBigInt: false } } } as ContextSpec,
     });
 
     expect(result.value).toBe('faker.number.int({min: 1, max: 100})');
@@ -98,7 +98,7 @@ describe('getMockScalar (uint64 format handling)', () => {
           uint64: specified,
         },
       },
-      context: { output: { override: { useBigInt: true } } } as ContextSpecs,
+      context: { output: { override: { useBigInt: true } } } as ContextSpec,
     });
 
     expect(result.value).toBe(specified);
@@ -118,7 +118,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
     existingReferencedProperties: [],
     splitMockImplementations: [],
     mockOptions: { useExamples: true },
-    context: { output: {} } as ContextSpecs,
+    context: { output: { override: {} } } as ContextSpec, // TODO this should be: satisfies ContextSpec
   };
 
   it('should return the example value when it is a false value', () => {
@@ -152,7 +152,7 @@ describe('getMockScalar (example handling with falsy values)', () => {
 describe('getMockScalar (multipleOf handling)', () => {
   const createContext = (
     packageJsonDeps?: Record<string, string>,
-  ): ContextSpecs => {
+  ): ContextSpec => {
     const context = {
       output: {
         override: {},
@@ -160,7 +160,7 @@ describe('getMockScalar (multipleOf handling)', () => {
           packageJson: { dependencies: packageJsonDeps },
         }),
       },
-    } as ContextSpecs;
+    } as ContextSpec;
     return context;
   };
 
@@ -225,7 +225,7 @@ describe('getMockScalar (multipleOf handling)', () => {
     expect(result.value).toBe('faker.number.int({min: 0, max: 100})');
   });
 
-  it('should handle multipleOf for number (float) type', () => {
+  it('should include multipleOf for number type with Faker v9', () => {
     const numberType: SchemaObjectType = 'number';
     const result = getMockScalar({
       ...baseArg,
@@ -236,11 +236,51 @@ describe('getMockScalar (multipleOf handling)', () => {
         multipleOf: 0.5,
         name: 'test-item',
       },
-      context: createContext(),
+      context: createContext({ '@faker-js/faker': '^9.0.0' }),
     });
 
     expect(result.value).toBe(
       'faker.number.float({min: 0, max: 100, multipleOf: 0.5})',
+    );
+  });
+
+  it('should not include multipleOf when undefined for number type with Faker v9', () => {
+    const numberType: SchemaObjectType = 'number';
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: numberType,
+        minimum: 0,
+        maximum: 100,
+        multipleOf: undefined,
+        name: 'test-item',
+      },
+      mockOptions: { fractionDigits: 2 },
+      context: createContext({ '@faker-js/faker': '^9.0.0' }),
+    });
+
+    expect(result.value).toBe(
+      'faker.number.float({min: 0, max: 100, fractionDigits: 2})',
+    );
+  });
+
+  it('should not include multipleOf for number type with Faker v8', () => {
+    const numberType: SchemaObjectType = 'number';
+    const result = getMockScalar({
+      ...baseArg,
+      item: {
+        type: numberType,
+        minimum: 0,
+        maximum: 100,
+        multipleOf: 0.5,
+        name: 'test-item',
+      },
+      mockOptions: { fractionDigits: 2 },
+      context: createContext({ '@faker-js/faker': '^8.0.0' }),
+    });
+
+    expect(result.value).toBe(
+      'faker.number.float({min: 0, max: 100, fractionDigits: 2})',
     );
   });
 
@@ -280,7 +320,7 @@ describe('getMockScalar (nested arrays handling)', () => {
       tags: [],
       existingReferencedProperties: [],
       splitMockImplementations: [],
-      context: { output: { override: {} } } as ContextSpecs,
+      context: { output: { override: {} } } as ContextSpec,
       combine: { separator: 'anyOf' as const, includedProperties: [] },
     });
     console.dir(result.value, { depth: null });

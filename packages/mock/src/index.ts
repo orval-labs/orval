@@ -1,9 +1,10 @@
-import {
+import type {
   GenerateMockImports,
   GeneratorOptions,
   GeneratorVerbOptions,
   GlobalMockOptions,
 } from '@orval/core';
+
 import { generateMSW, generateMSWImports } from './msw';
 
 export const DEFAULT_MOCK_OPTIONS: GlobalMockOptions = {
@@ -13,19 +14,23 @@ export const DEFAULT_MOCK_OPTIONS: GlobalMockOptions = {
 
 export const generateMockImports: GenerateMockImports = (importOptions) => {
   switch (importOptions.options?.type) {
-    default: // case 'msw':
+    default: {
+      // case 'msw':
       return generateMSWImports(importOptions);
+    }
   }
 };
 
-export const generateMock = (
+export function generateMock(
   generatorVerbOptions: GeneratorVerbOptions,
   generatorOptions: Omit<GeneratorOptions, 'mock'> & {
     mock: GlobalMockOptions;
   },
-) => {
+) {
   switch (generatorOptions.mock.type) {
-    default: // case 'msw':
+    default: {
+      // case 'msw':
       return generateMSW(generatorVerbOptions, generatorOptions);
+    }
   }
-};
+}

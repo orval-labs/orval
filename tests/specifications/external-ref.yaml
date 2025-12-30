@@ -1,0 +1,21 @@
+openapi: 3.0.0
+info:
+  title: Sample API
+  version: 0.0.0
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+paths:
+  /points:
+    get:
+      operationId: 'get-points'
+      responses:
+        '200':
+          description: A JSON array of GeoJSON points
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: 'https://geojson.org/schema/Point.json'

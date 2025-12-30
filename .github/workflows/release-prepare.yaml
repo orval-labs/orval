@@ -1,0 +1,72 @@
+name: Prepare Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.2.3)'
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Cache Yarn dependencies
+        uses: actions/cache@v5
+        with:
+          path: .yarn/cache
+          key: yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            yarn-
+
+      - name: Install dependencies
+        run: yarn install --immutable
+
+      # 🔧 New step to remove stableVersion recursively
+      - name: Remove all stableVersion fields
+        run: |
+          echo "Removing all stableVersion fields from package.json files..."
+          find . -type f -name package.json -print0 | while IFS= read -r -d '' file; do
+            if jq 'has("stableVersion")' "$file" | grep -q true; then
+              echo "Cleaning $file"
+              tmpfile=$(mktemp)
+              jq 'del(.stableVersion)' "$file" > "$tmpfile" && mv "$tmpfile" "$file"
+            fi
+          done
+          echo "All stableVersion fields removed."
+
+      - name: Update versions and samples
+        run: |
+          echo "Updating all workspace versions to ${{ github.event.inputs.version }}"
+          yarn workspaces foreach -Av version "${{ github.event.inputs.version }}"
+          yarn update-samples
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore(release): bump version to v${{ github.event.inputs.version }}'
+          branch: release/v${{ github.event.inputs.version }}
+          base: master
+          title: 'Release v${{ github.event.inputs.version }}'
+          body: |
+            This PR prepares the release of version v${{ github.event.inputs.version }}.
+            Once merged into master, the publish workflow will trigger.

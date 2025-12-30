@@ -1,0 +1,110 @@
+openapi: '3.0.0'
+info:
+  version: 1.0.0
+  title: SWR Infinite Pagination Test
+  description: Test various response types for useSWRInfinite pagination termination
+  license:
+    name: MIT
+servers:
+  - url: http://localhost:3000/v1
+paths:
+  /pets-array:
+    get:
+      summary: List all pets as direct array
+      operationId: listPetsArray
+      tags:
+        - pets
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: A direct array of pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Pet'
+  /pets-wrapped:
+    get:
+      summary: List all pets wrapped in data property
+      operationId: listPetsWrapped
+      tags:
+        - pets
+      parameters:
+        - name: limit
+          in: query
+          description: How many items to return at one time
+          required: false
+          schema:
+            type: integer
+            format: int32
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          schema:
+            type: integer
+            format: int32
+      responses:
+        '200':
+          description: Wrapped response with data array
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PetsWrappedResponse'
+  /pet-single:
+    get:
+      summary: Get a single pet object
+      operationId: getPetSingle
+      tags:
+        - pets
+      responses:
+        '200':
+          description: A single pet object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pet'
+components:
+  schemas:
+    Pet:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        tag:
+          type: string
+    PetsWrappedResponse:
+      type: object
+      required:
+        - data
+        - status
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Pet'
+        status:
+          type: integer
+        total:
+          type: integer

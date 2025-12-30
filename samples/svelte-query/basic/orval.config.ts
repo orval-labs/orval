@@ -8,6 +8,7 @@ export default defineConfig({
       target: 'src/api/endpoints/petstoreFromFileSpecWithTransformer.ts',
       schemas: 'src/api/model',
       client: 'svelte-query',
+      httpClient: 'axios',
       mock: true,
       prettier: true,
       override: {
@@ -48,7 +49,7 @@ export default defineConfig({
     input: {
       target: './petstore.yaml',
       override: {
-        transformer: 'src/api/transformer/add-version.cjs',
+        transformer: 'src/api/transformer/add-version.mjs',
       },
     },
   },

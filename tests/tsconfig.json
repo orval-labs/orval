@@ -1,10 +1,9 @@
 {
   "exclude": ["node_modules", "dist", "__tests__", "**/*.test*", "**/*.spec*"],
-  "include": ["generated/**/*", "regressions/**/*"],
   "compilerOptions": {
     "skipLibCheck": true,
     "target": "es6",
-    "module": "commonjs",
+    "module": "preserve",
     "lib": ["es2019", "dom", "es2016.array.include", "es2017.object"],
     "declaration": true,
     "declarationMap": true,
@@ -14,7 +13,7 @@
     "noUnusedParameters": false,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "moduleResolution": "node10",
+    "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "inlineSourceMap": true,

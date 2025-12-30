@@ -1,0 +1,213 @@
+openapi: 3.0.1
+info:
+  title: Nullable OneOf Enums
+  description: Test case for issue #2511 - duplicate schema names with nullable oneOf enums
+  version: 1.0.0
+paths:
+  /items:
+    get:
+      operationId: get-items
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Item1'
+                type: array
+          description: OK
+  /items-with-multiple-props:
+    get:
+      operationId: get-items-with-multiple-props
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/Item3'
+                type: array
+          description: OK
+  /nested-items:
+    get:
+      operationId: get-nested-items
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/NestedItem'
+                type: array
+          description: OK
+  /mixed-enum-items:
+    get:
+      operationId: get-mixed-enum-items
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MixedEnumItem'
+                type: array
+          description: OK
+  /mixed-type-enums:
+    get:
+      operationId: get-mixed-type-enums
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                items:
+                  $ref: '#/components/schemas/MixedTypeEnums'
+                type: array
+          description: OK
+components:
+  schemas:
+    HelloEnum:
+      type: string
+      enum:
+        - HI
+        - OHA
+    BlankEnum:
+      type: string
+      enum:
+        - ''
+    NullEnum:
+      enum:
+        - null
+    NumberEnum:
+      type: integer
+      enum:
+        - 1
+        - 2
+        - 3
+    BooleanEnum:
+      type: boolean
+      enum:
+        - true
+        - false
+    Item1:
+      type: object
+      properties:
+        hello:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/HelloEnum'
+            - $ref: '#/components/schemas/BlankEnum'
+            - $ref: '#/components/schemas/NullEnum'
+    Item2:
+      type: object
+      properties:
+        hello:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/HelloEnum'
+            - $ref: '#/components/schemas/BlankEnum'
+            - $ref: '#/components/schemas/NullEnum'
+    Item3:
+      type: object
+      properties:
+        hello:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/HelloEnum'
+            - $ref: '#/components/schemas/BlankEnum'
+            - $ref: '#/components/schemas/NullEnum'
+        world:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/NumberEnum'
+            - $ref: '#/components/schemas/BooleanEnum'
+        optional:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/HelloEnum'
+            - $ref: '#/components/schemas/BlankEnum'
+    NestedItem:
+      type: object
+      properties:
+        nested:
+          type: object
+          properties:
+            hello:
+              nullable: true
+              oneOf:
+                - $ref: '#/components/schemas/HelloEnum'
+                - $ref: '#/components/schemas/BlankEnum'
+                - $ref: '#/components/schemas/NullEnum'
+            world:
+              nullable: true
+              oneOf:
+                - $ref: '#/components/schemas/NumberEnum'
+                - $ref: '#/components/schemas/BooleanEnum'
+    MixedEnumItem:
+      type: object
+      properties:
+        mixed:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/HelloEnum'
+            - $ref: '#/components/schemas/BlankEnum'
+            - $ref: '#/components/schemas/NotNullEnum'
+    NotNullEnum:
+      type: string
+      enum:
+        - ALWAYS
+        - NEVER
+    NumberEnumNullable:
+      nullable: true
+      type: number
+      enum:
+        - 1.5
+        - 2.5
+        - 3.5
+    IntegerEnumNullable:
+      nullable: true
+      type: integer
+      enum:
+        - 10
+        - 20
+        - 30
+    BooleanEnumNullable:
+      nullable: true
+      type: boolean
+      enum:
+        - true
+        - false
+    NumberEnumNotNull:
+      type: number
+      enum:
+        - 100.1
+        - 200.2
+    IntegerEnumNotNull:
+      type: integer
+      enum:
+        - 1000
+        - 2000
+    MixedTypeEnums:
+      type: object
+      properties:
+        stringEnum:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/HelloEnum'
+            - $ref: '#/components/schemas/BlankEnum'
+        numberEnum:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/NumberEnumNullable'
+            - $ref: '#/components/schemas/NumberEnumNotNull'
+        integerEnum:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/IntegerEnumNullable'
+            - $ref: '#/components/schemas/IntegerEnumNotNull'
+        booleanEnum:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/BooleanEnumNullable'
+            - type: boolean
+              enum: [true]
