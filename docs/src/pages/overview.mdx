@@ -3,7 +3,7 @@ id: overview
 title: Overview
 ---
 
-Orval is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, in either YAML or JSON format.
+Orval generates type-safe JS clients (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in yaml or json formats.
 
 ## Motivation
 

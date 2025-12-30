@@ -25,7 +25,9 @@ const orvalMessage = startMessage({
 });
 const cli = program
   .name('orval')
-  .description(orvalMessage)
+  .description(
+    'Instantly generate TypeScript clients from your OpenAPI specification',
+  )
   .version(pkg.version);
 
 cli

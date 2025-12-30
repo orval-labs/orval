@@ -9,14 +9,14 @@
   <img src="./logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
 </p>
 <h1 align="center">
-  Visit <a href="https://orval.dev" target="_blank">orval.dev</a> for docs, guides, API and beer!
+  Generate Typescript clients from OpenAPI specification!
 </h1>
 
 ⚠️ Actively searching for contributors, if you want to help, please contact me on [discord](https://discord.gg/6fC2sjDU7w) ⚠️
 
 ### Code Generation
 
-`orval` is able to generate client with appropriate type-signatures (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
+`orval` generates type-safe JS clients (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
 
 ### Supported clients
 
