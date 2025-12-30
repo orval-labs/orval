@@ -591,7 +591,11 @@ ${
 };
 
 export const generateQueryHook = async (
-  {
+  verbOptions: GeneratorVerbOptions,
+  options: GeneratorOptions,
+  outputClient: OutputClient | OutputClientFunc,
+) => {
+  const {
     queryParams,
     operationName,
     body,
@@ -604,10 +608,13 @@ export const generateQueryHook = async (
     operationId,
     summary,
     deprecated,
-  }: GeneratorVerbOptions,
-  { route, override: { operations }, context, output }: GeneratorOptions,
-  outputClient: OutputClient | OutputClientFunc,
-) => {
+  } = verbOptions;
+  const {
+    route,
+    override: { operations },
+    context,
+    output,
+  } = options;
   let props = _props;
   if (isVue(outputClient)) {
     props = vueWrapTypeWithMaybeRef(_props);
@@ -937,21 +944,8 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
 
   if (isMutation) {
     const mutationResult = await generateMutationHook({
-      verbOptions: {
-        queryParams,
-        operationName,
-        body,
-        props,
-        verb,
-        params,
-        override,
-        mutator,
-        response,
-        operationId,
-        summary,
-        deprecated,
-      },
-      options: { route, override: { operations }, context, output },
+      verbOptions: { ...verbOptions, props },
+      options,
       outputClient,
       hasQueryV5,
       hasQueryV5WithInfiniteQueryOptionsError,
