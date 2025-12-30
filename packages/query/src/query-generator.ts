@@ -39,7 +39,6 @@ import {
   generateQueryArguments,
   generateQueryOptions,
   getQueryOptionsDefinition,
-  isSuspenseQuery,
   QueryType,
 } from './query-options';
 import {
@@ -425,7 +424,7 @@ const generateQueryImplementation = ({
 
   const infiniteParam =
     queryParams && queryParam
-      ? `, ${queryParams?.schema.name}['${queryParam}']`
+      ? `, ${queryParams.schema.name}['${queryParam}']`
       : '';
   const TData =
     hasQueryV5 &&
@@ -462,7 +461,7 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
         : `typeof ${operationName}`
     }>>${
       hasQueryV5 && hasInfiniteQueryParam
-        ? `, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+        ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
         : ''
     }> = (${queryFnArguments}) => ${operationName}(${httpFunctionProps}${
       httpFunctionProps ? ', ' : ''
@@ -613,12 +612,12 @@ export const generateQueryHook = async (
   if (isVue(outputClient)) {
     props = vueWrapTypeWithMaybeRef(_props);
   }
-  const query = override?.query;
-  const isRequestOptions = override?.requestOptions !== false;
+  const query = override.query;
+  const isRequestOptions = override.requestOptions !== false;
   const operationQueryOptions = operations[operationId]?.query;
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
-  const queryVersion = override.query.version ?? query?.version;
+  const queryVersion = query.version;
 
   const hasVueQueryV4 =
     OutputClient.VUE_QUERY === outputClient &&
@@ -673,20 +672,21 @@ export const generateQueryHook = async (
 
   // Allows operationQueryOptions (which is the Orval config override for the operationId)
   // to override non-GET verbs
-  const hasOperationQueryOption = !!(
-    operationQueryOptions &&
-    (operationQueryOptions.useQuery ||
-      operationQueryOptions.useSuspenseQuery ||
-      operationQueryOptions.useInfinite ||
-      operationQueryOptions.useSuspenseInfiniteQuery)
-  );
+  const hasOperationQueryOption = [
+    operationQueryOptions?.useQuery,
+    operationQueryOptions?.useSuspenseQuery,
+    operationQueryOptions?.useInfinite,
+    operationQueryOptions?.useSuspenseInfiniteQuery,
+  ].some(Boolean);
 
   let isQuery =
     (Verbs.GET === verb &&
-      (override.query.useQuery ||
-        override.query.useSuspenseQuery ||
-        override.query.useInfinite ||
-        override.query.useSuspenseInfiniteQuery)) ||
+      [
+        override.query.useQuery,
+        override.query.useSuspenseQuery,
+        override.query.useInfinite,
+        override.query.useSuspenseInfiniteQuery,
+      ].some(Boolean)) ||
     hasOperationQueryOption;
 
   let isMutation = override.query.useMutation && verb !== Verbs.GET;
@@ -754,45 +754,45 @@ export const generateQueryHook = async (
       .join(',');
 
     const queries = [
-      ...(query?.useInfinite || operationQueryOptions?.useInfinite
+      ...(query.useInfinite || operationQueryOptions?.useInfinite
         ? [
             {
               name: camel(`${operationName}-infinite`),
-              options: query?.options,
+              options: query.options,
               type: QueryType.INFINITE,
-              queryParam: query?.useInfiniteQueryParam,
+              queryParam: query.useInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
         : []),
-      ...(query?.useQuery || operationQueryOptions?.useQuery
+      ...(query.useQuery || operationQueryOptions?.useQuery
         ? [
             {
               name: operationName,
-              options: query?.options,
+              options: query.options,
               type: QueryType.QUERY,
               queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
-      ...(query?.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
+      ...(query.useSuspenseQuery || operationQueryOptions?.useSuspenseQuery
         ? [
             {
               name: camel(`${operationName}-suspense`),
-              options: query?.options,
+              options: query.options,
               type: QueryType.SUSPENSE_QUERY,
               queryKeyFnName: camel(`get-${operationName}-query-key`),
             },
           ]
         : []),
-      ...(query?.useSuspenseInfiniteQuery ||
+      ...(query.useSuspenseInfiniteQuery ||
       operationQueryOptions?.useSuspenseInfiniteQuery
         ? [
             {
               name: camel(`${operationName}-suspense-infinite`),
-              options: query?.options,
+              options: query.options,
               type: QueryType.SUSPENSE_INFINITE,
-              queryParam: query?.useInfiniteQueryParam,
+              queryParam: query.useInfiniteQueryParam,
               queryKeyFnName: camel(`get-${operationName}-infinite-query-key`),
             },
           ]
@@ -807,12 +807,17 @@ export const generateQueryHook = async (
       // Handle regular parameters: "param: Type" -> "param?: Type"
       return params.replaceAll(
         /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
-        (match, paramName, optionalMarker, type, defaultValue, suffix) => {
-          // If parameter has a default value, don't add '?' (it's already effectively optional)
+        (
+          _match: string,
+          paramName: string,
+          _optionalMarker: string | undefined,
+          type: string,
+          defaultValue: string | undefined,
+          suffix: string,
+        ) => {
           if (defaultValue) {
             return `${paramName}: ${type.trim()}${defaultValue}${suffix}`;
           }
-          // Otherwise, make it optional
           return `${paramName}?: ${type.trim()}${suffix}`;
         },
       );

@@ -29,24 +29,24 @@ export const normalizeQueryOptions = (
       ? { useInfiniteQueryParam: queryOptions.useInfiniteQueryParam }
       : {}),
     ...(queryOptions.options ? { options: queryOptions.options } : {}),
-    ...(queryOptions?.queryKey
+    ...(queryOptions.queryKey
       ? {
-          queryKey: normalizeMutator(outputWorkspace, queryOptions?.queryKey),
+          queryKey: normalizeMutator(outputWorkspace, queryOptions.queryKey),
         }
       : {}),
-    ...(queryOptions?.queryOptions
+    ...(queryOptions.queryOptions
       ? {
           queryOptions: normalizeMutator(
             outputWorkspace,
-            queryOptions?.queryOptions,
+            queryOptions.queryOptions,
           ),
         }
       : {}),
-    ...(queryOptions?.mutationOptions
+    ...(queryOptions.mutationOptions
       ? {
           mutationOptions: normalizeMutator(
             outputWorkspace,
-            queryOptions?.mutationOptions,
+            queryOptions.mutationOptions,
           ),
         }
       : {}),
@@ -80,7 +80,7 @@ const normalizeMutator = (
     return {
       ...mutator,
       path: upath.resolve(workspace, mutator.path),
-      default: (mutator.default || !mutator.name) ?? false,
+      default: mutator.default ?? !mutator.name,
     };
   }
 
@@ -140,12 +140,15 @@ export const isAngular = (client: OutputClient | OutputClientFunc) =>
 export const getQueryTypeForFramework = (type: string): string => {
   // Angular Query and Svelte Query don't have suspense variants, map them to regular queries
   switch (type) {
-    case 'suspenseQuery':
+    case 'suspenseQuery': {
       return 'query';
-    case 'suspenseInfiniteQuery':
+    }
+    case 'suspenseInfiniteQuery': {
       return 'infiniteQuery';
-    default:
+    }
+    default: {
       return type;
+    }
   }
 };
 

@@ -64,7 +64,7 @@ export const generateQueryOptions = ({
   }
 
   return `${
-    !isObject(options) || !options.hasOwnProperty('enabled')
+    !isObject(options) || !Object.hasOwn(options, 'enabled')
       ? isVue(outputClient)
         ? `enabled: computed(() => !!(${params
             .map(({ name }) => `unref(${name})`)
@@ -140,8 +140,8 @@ export const getQueryOptionsDefinition = ({
       queryParam &&
       queryParams
         ? hasQueryV5WithInfiniteQueryOptionsError
-          ? `, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
-          : `, ${funcReturnType}, QueryKey, ${queryParams?.schema.name}['${queryParam}']`
+          ? `, QueryKey, ${queryParams.schema.name}['${queryParam}']`
+          : `, ${funcReturnType}, QueryKey, ${queryParams.schema.name}['${queryParam}']`
         : ''
     }>`;
     return `${partialOptions ? 'Partial<' : ''}${optionType}${

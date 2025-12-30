@@ -5,8 +5,6 @@ import {
   generateVerbImports,
   mergeDeep,
   type NormalizedOutputOptions,
-  OutputClient,
-  type OutputClientFunc,
   type QueryOptions,
 } from '@orval/core';
 

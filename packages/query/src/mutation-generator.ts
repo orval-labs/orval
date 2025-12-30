@@ -16,11 +16,11 @@ import {
   getMutationRequestArgs,
   getQueryErrorType,
 } from './client';
+import { getFrameworkPrefix } from './query-generator';
 import {
   generateQueryArguments,
   getQueryOptionsDefinition,
 } from './query-options';
-import { getFrameworkPrefix } from './query-generator';
 import { generateMutatorReturnType } from './return-types';
 import { isAngular } from './utils';
 
@@ -64,7 +64,7 @@ export const generateMutationHook = async ({
     override,
   } = verbOptions;
   const { route, context, output } = options;
-  const query = override?.query;
+  const query = override.query;
 
   const mutationOptionsMutator = query.mutationOptions
     ? await generateMutator({

@@ -1,6 +1,6 @@
 import { OutputClient, type OutputClientFunc, pascal } from '@orval/core';
 
-import { QueryType, isSuspenseQuery } from './query-options';
+import { isSuspenseQuery, QueryType } from './query-options';
 import { isAngular, isVue } from './utils';
 
 export const generateQueryReturnType = ({
@@ -57,7 +57,6 @@ export const generateQueryReturnType = ({
 
       return `UseInfiniteQueryReturnType<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
     }
-    case OutputClient.REACT_QUERY:
     default: {
       return ` ${
         isInitialDataDefined && !isSuspenseQuery(type) ? 'Defined' : ''
@@ -72,8 +71,8 @@ export const generateMutatorReturnType = ({
   variableType,
 }: {
   outputClient: OutputClient | OutputClientFunc;
-  dataType: unknown;
-  variableType: unknown;
+  dataType: string;
+  variableType: string;
 }) => {
   if (outputClient === OutputClient.ANGULAR_QUERY) {
     return `: CreateMutationResult<
