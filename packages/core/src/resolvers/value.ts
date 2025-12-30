@@ -30,14 +30,15 @@ export function resolveValue({
 
     let hasReadonlyProps = false;
 
-    // Avoid infinite loop
-    if (!name || !context.parents?.includes(name)) {
+    // Avoid infinite loop - use resolvedImport.name for tracking since name may be undefined
+    const refName = resolvedImport.name;
+    if (!context.parents?.includes(refName)) {
       const scalar = getScalar({
         item: schemaObject,
-        name: resolvedImport.name,
+        name: refName,
         context: {
           ...context,
-          ...(name ? { parents: [...(context.parents ?? []), name] } : {}),
+          parents: [...(context.parents ?? []), refName],
         },
       });
 
