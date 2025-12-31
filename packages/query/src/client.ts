@@ -144,7 +144,7 @@ export const generateAngularHttpRequestFunction = (
 
     const propsImplementation = toObjectString(props, 'implementation');
 
-    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\\n    ${propsImplementation}\\n ${
+    return String.raw`${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
@@ -257,7 +257,7 @@ export const generateAxiosRequestFunction = (
     props = vueWrapTypeWithMaybeRef(_props);
   }
 
-  if (context.output?.urlEncodeParameters) {
+  if (context.output.urlEncodeParameters) {
     route = makeRouteSafe(route);
   }
 
@@ -297,7 +297,7 @@ export const generateAxiosRequestFunction = (
 
     const bodyDefinition = body.definition.replace('[]', String.raw`\[\]`);
     const propsImplementation =
-      mutator?.bodyTypeName && body.definition
+      mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
             new RegExp(String.raw`(\w*):\s?${bodyDefinition}`),
             `$1: ${mutator.bodyTypeName}<${body.definition}>`,
@@ -378,11 +378,11 @@ export const generateAxiosRequestFunction = (
     queryParams,
     response,
     verb,
-    requestOptions: override?.requestOptions,
+    requestOptions: override.requestOptions,
     isFormData,
     isFormUrlEncoded,
     paramsSerializer,
-    paramsSerializerOptions: override?.paramsSerializerOptions,
+    paramsSerializerOptions: override.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
     isVue: isVue,
@@ -569,7 +569,7 @@ export const getHooksOptionImplementation = (
     ? `const mutationKey = ['${operationName}'];
 const {mutation: mutationOptions${
         mutator
-          ? mutator?.hasSecondArg
+          ? mutator.hasSecondArg
             ? ', request: requestOptions'
             : ''
           : options
@@ -591,7 +591,7 @@ export const getMutationRequestArgs = (
 
   return isRequestOptions
     ? mutator
-      ? mutator?.hasSecondArg
+      ? mutator.hasSecondArg
         ? 'requestOptions'
         : ''
       : options
@@ -604,8 +604,7 @@ export const getHttpFunctionQueryProps = (
   queryProperties: string,
   isAngular = false,
 ) => {
-  let result: string;
-  result =
+  const result =
     isVue && httpClient === OutputHttpClient.FETCH && queryProperties
       ? queryProperties
           .split(',')

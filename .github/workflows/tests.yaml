@@ -41,6 +41,7 @@ jobs:
           yarn workspace @orval/fetch lint
           yarn workspace @orval/hono lint
           yarn workspace @orval/mcp lint
+          yarn workspace @orval/query lint
           yarn workspace @orval/swr lint
       - name: samples up to date
         uses: nickcharlton/diff-check@v1.0.0
