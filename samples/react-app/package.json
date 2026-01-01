@@ -37,7 +37,7 @@
     "typescript": "~5.8.3"
   },
   "devDependencies": {
-    "msw": "^2.12.4",
+    "msw": "^2.12.7",
     "orval": "workspace:*"
   },
   "dependenciesMeta": {

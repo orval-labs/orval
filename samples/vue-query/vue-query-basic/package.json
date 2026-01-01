@@ -21,7 +21,7 @@
     "@vitejs/plugin-vue": "^6.0.1",
     "@vue/compiler-sfc": "^3.5.26",
     "jsdom": "^27.1.0",
-    "msw": "^2.12.4",
+    "msw": "^2.12.7",
     "orval": "workspace:*",
     "tsd": "^0.33.0",
     "typescript": "~5.9.3",
