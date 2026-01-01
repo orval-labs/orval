@@ -29,7 +29,7 @@
     "@angular/compiler-cli": "^20.3.2",
     "@faker-js/faker": "^10.1.0",
     "@testing-library/angular": "16.0.0",
-    "msw": "^2.12.4",
+    "msw": "^2.12.7",
     "orval": "link:../../packages/orval/dist",
     "typescript": "~5.8.3",
     "vitest": "^4.0.16"

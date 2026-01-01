@@ -8751,7 +8751,7 @@ __metadata:
     "@angular/platform-browser": "npm:^20.3.0"
     "@angular/router": "npm:^20.3.9"
     "@faker-js/faker": "npm:^10.1.0"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "workspace:*"
     rimraf: "npm:^6.1.2"
     rxjs: "npm:~7.8.2"
@@ -8781,7 +8781,7 @@ __metadata:
     "@faker-js/faker": "npm:^10.1.0"
     "@tanstack/angular-query-experimental": "npm:^5.62.7"
     "@testing-library/angular": "npm:16.0.0"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "link:../../packages/orval/dist"
     rxjs: "npm:~7.8.2"
     tslib: "npm:^2.8.1"
@@ -9437,7 +9437,7 @@ __metadata:
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
     axios: "npm:^1.13.2"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     npm-run-all: "npm:^4.1.5"
     orval: "workspace:*"
   dependenciesMeta:
@@ -17329,9 +17329,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"msw@npm:^2.12.4":
-  version: 2.12.4
-  resolution: "msw@npm:2.12.4"
+"msw@npm:^2.12.7":
+  version: 2.12.7
+  resolution: "msw@npm:2.12.7"
   dependencies:
     "@inquirer/confirm": "npm:^5.0.0"
     "@mswjs/interceptors": "npm:^0.40.0"
@@ -17358,7 +17358,7 @@ __metadata:
       optional: true
   bin:
     msw: cli/index.js
-  checksum: 10c0/3156cff6852234111b8c0e93e811495e7539c34384e240c70872c132d0bfdd6a79c4b70e5691f250df8ad332763d976e3b28771fedc0556f09a5847568ff2364
+  checksum: 10c0/e9100fe87dce5411d29392bba88ed1813acc6278991a3068c328ec671e5eb52d1e8ee451ee401c554eab08e04b78b84fcdf2c78f761287c6b43e844e91ce18dd
   languageName: node
   linkType: hard
 
@@ -17485,7 +17485,7 @@ __metadata:
     "@types/react-dom": "npm:^18.3.7"
     eslint: "npm:^9.39.2"
     eslint-config-next: "npm:14.2.32"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     next: "npm:14.2.32"
     orval: "workspace:*"
     postcss: "npm:8.5.6"
@@ -18212,7 +18212,7 @@ __metadata:
     "@types/react": "npm:18.3.24"
     axios: "npm:^1.13.2"
     hono: "npm:^4.10.2"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     npm-run-all: "npm:^4.1.5"
     openapi3-ts: "npm:^4.5.0"
     orval: "workspace:*"
@@ -19984,7 +19984,7 @@ __metadata:
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     axios: "npm:^1.13.2"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
@@ -20080,7 +20080,7 @@ __metadata:
     "@types/react-dom": "npm:^18.3.7"
     ajv: "npm:^8.17.1"
     axios: "npm:^1.13.2"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
@@ -22612,7 +22612,7 @@ __metadata:
     axios: "npm:^1.13.2"
     eslint: "npm:^9.39.2"
     eslint-plugin-svelte3: "npm:^4.0.0"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "workspace:*"
     svelte: "npm:^5.43.8"
     svelte-check: "npm:^3.8.6"
@@ -22721,7 +22721,7 @@ __metadata:
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     axios: "npm:^1.13.2"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "workspace:*"
     react: "npm:^18.3.1"
     react-dom: "npm:^18.3.1"
@@ -24427,7 +24427,7 @@ __metadata:
     "@vue/compiler-sfc": "npm:^3.5.25"
     axios: "npm:^1.13.2"
     jsdom: "npm:^27.1.0"
-    msw: "npm:^2.12.4"
+    msw: "npm:^2.12.7"
     orval: "workspace:*"
     tsd: "npm:^0.33.0"
     typescript: "npm:~5.9.3"
