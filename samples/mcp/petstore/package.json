@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.24.0",
-    "zod": "^3.25.76"
+    "zod": "^4.3.4"
   },
   "devDependencies": {
     "@types/node": "^22.18.12",
