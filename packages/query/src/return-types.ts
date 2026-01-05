@@ -161,7 +161,10 @@ export const getQueryReturnStatement = ({
   return ${queryResultVarName};`;
   }
 
-  if (hasSvelteQueryV4 || hasSvelteQueryV6) {
+  if (hasSvelteQueryV6) {
+    return `return ${queryResultVarName}`;
+  }
+  if (hasSvelteQueryV4) {
     return `${queryResultVarName}.queryKey = ${queryOptionsVarName}.queryKey;
 
   return ${queryResultVarName};`;
