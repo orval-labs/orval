@@ -327,9 +327,7 @@ export const useCreatePets = <TError = Error, TContext = unknown>(
   { data: CreatePetsBody; version?: number | undefined | null },
   TContext
 > => {
-  const mutationOptions = getCreatePetsMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
+  return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
 
 /**
@@ -589,7 +587,8 @@ export const usePostApiV1UserLogout = <TError = unknown, TContext = unknown>(
   void,
   TContext
 > => {
-  const mutationOptions = getPostApiV1UserLogoutMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
+  return useMutation(
+    getPostApiV1UserLogoutMutationOptions(options),
+    queryClient,
+  );
 };

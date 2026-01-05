@@ -503,8 +503,11 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
     hasSvelteQueryV4,
     isAngular(outputClient),
   );
-  const optionalQueryClientArgument =
-    hasQueryV5 && !isAngular(outputClient) ? ', queryClient?: QueryClient' : '';
+  const optionalQueryClientArgument = hasSvelteQueryV6
+    ? `, queryClient?: () => QueryClient`
+    : hasQueryV5 && !isAngular(outputClient)
+      ? ', queryClient?: QueryClient'
+      : '';
 
   const queryHookName = camel(`${operationPrefix}-${name}`);
 
@@ -520,7 +523,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     useInfinite,
     operationName,
     mutator,
-    queryProps,
+    queryProps: hasSvelteQueryV6
+      ? queryProps.replace(':', ': () => ')
+      : queryProps,
     dataType,
     errorType,
     hasSvelteQueryV6,
@@ -550,11 +555,25 @@ export type ${pascal(name)}QueryError = ${errorType}
 
 ${hasQueryV5 && OutputClient.REACT_QUERY === outputClient ? overrideTypes : ''}
 ${doc}
-export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${queryProps} ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
+export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${
+    hasSvelteQueryV6
+      ? toObjectString(
+          props.map((p) => ({
+            ...p,
+            definition: p.definition.replace(':', ': () => '),
+          })),
+          'definition',
+        )
+      : queryProps
+  } ${hasSvelteQueryV6 ? queryArguments.replace(':', ': () => (') + ')' : queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
-  const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-    queryProperties ? ',' : ''
-  }${isRequestOptions ? 'options' : 'queryOptions'})
+  ${
+    hasSvelteQueryV6
+      ? ''
+      : `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+          queryProperties ? ',' : ''
+        }${isRequestOptions ? 'options' : 'queryOptions'})`
+  }
 
   const ${queryResultVarName} = ${camel(
     `${operationPrefix}-${isAngular(outputClient) || hasSvelteQueryV4 ? getQueryTypeForFramework(type) : type}`,
@@ -562,9 +581,15 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     isAngular(outputClient)
       ? `() => ${queryOptionsVarName}`
       : hasSvelteQueryV6
-        ? `() => ({ ...${queryOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+        ? `() => ${queryOptionsFnName}(${toObjectString(
+            props.map((p) => ({
+              ...p,
+              name: p.default || !p.required ? `${p.name}?.()` : `${p.name}()`,
+            })),
+            'name',
+          )}${isRequestOptions ? 'options?.()' : 'queryOptions?.()'})`
         : `${queryOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
-  }) as ${returnType};
+  }${hasSvelteQueryV6 ? `, queryClient` : ''}) as ${returnType};
 
   ${getQueryReturnStatement({
     outputClient,

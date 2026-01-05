@@ -130,10 +130,6 @@ export const generateMutationHook = async ({
       : `get-${operationName}-mutationOptions`,
   );
 
-  const mutationOptionsVarName = isRequestOptions
-    ? 'mutationOptions'
-    : 'options';
-
   const hooksOptionImplementation = getHooksOptionImplementation(
     isRequestOptions,
     httpClient,
@@ -194,6 +190,9 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   const optionalQueryClientArgument =
     hasQueryV5 && !isAngular(outputClient) ? ', queryClient?: QueryClient' : '';
 
+  const mutationImplementation = `${mutationOptionsFnName}(${
+    isRequestOptions ? 'options' : 'mutationOptions'
+  })`;
   const implementation = `
 ${mutationOptionsFn}
 
@@ -222,16 +221,12 @@ ${mutationOptionsFn}
       },
     )} => {
 
-      const ${mutationOptionsVarName} = ${mutationOptionsFnName}(${
-        isRequestOptions ? 'options' : 'mutationOptions'
-      });
-
       return ${operationPrefix}Mutation(${
         isAngular(outputClient)
-          ? `() => ${mutationOptionsVarName}`
+          ? `() => ${mutationImplementation}`
           : hasSvelteQueryV6
-            ? `() => ({ ...${mutationOptionsVarName}${optionalQueryClientArgument ? ', queryClient' : ''} })`
-            : `${mutationOptionsVarName}${!isAngular(outputClient) && optionalQueryClientArgument ? ', queryClient' : ''}`
+            ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+            : `${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''}`
       });
     }
     `;

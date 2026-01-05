@@ -305,9 +305,7 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   { data: CreatePetsBodyItem[] },
   TContext
 > => {
-  const mutationOptions = getCreatePetsMutationOptions(options);
-
-  return createMutation(mutationOptions);
+  return createMutation(getCreatePetsMutationOptions(options));
 };
 /**
  * @summary Update a pet
@@ -410,9 +408,7 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(options?: {
   { data: NonReadonly<Pet> },
   TContext
 > => {
-  const mutationOptions = getUpdatePetsMutationOptions(options);
-
-  return createMutation(mutationOptions);
+  return createMutation(getUpdatePetsMutationOptions(options));
 };
 /**
  * @summary Info for a specific pet
