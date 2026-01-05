@@ -827,9 +827,7 @@ export const useCreatePets = <TError = ErrorType<Error>, TContext = unknown>(
   { data: CreatePetsBody; version?: number },
   TContext
 > => {
-  const mutationOptions = getCreatePetsMutationOptions(options);
-
-  return useMutation(mutationOptions, queryClient);
+  return useMutation(getCreatePetsMutationOptions(options), queryClient);
 };
 
 /**

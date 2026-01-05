@@ -339,9 +339,7 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   { data: CreatePetsBody; version?: number },
   TContext
 > => {
-  const mutationOptions = getCreatePetsMutationOptions(options);
-
-  return injectMutation(() => mutationOptions);
+  return injectMutation(() => getCreatePetsMutationOptions(options));
 };
 /**
  * @summary Info for a specific pet
@@ -643,9 +641,7 @@ export const injectUploadFile = <
   { petId: number; data: Blob; version?: number },
   TContext
 > => {
-  const mutationOptions = getUploadFileMutationOptions(options);
-
-  return injectMutation(() => mutationOptions);
+  return injectMutation(() => getUploadFileMutationOptions(options));
 };
 /**
  * Download image of the pet.
