@@ -1,9 +1,10 @@
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
-import type {
-  ContextSpec,
-  OpenApiReferenceObject,
-  OpenApiSchemaObject,
-  ResolverValue,
+import {
+  type ContextSpec,
+  EnumGeneration,
+  type OpenApiReferenceObject,
+  type OpenApiSchemaObject,
+  type ResolverValue,
 } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
@@ -71,18 +72,23 @@ function resolveObjectOriginal({
   }
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
+    const enumGenerationType = context.output.override.enumGenerationType;
+    const needsValueImport =
+      enumGenerationType === EnumGeneration.CONST ||
+      enumGenerationType === EnumGeneration.ENUM;
+
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
       getEnumNames(resolvedValue.originalSchema),
-      context.output.override.enumGenerationType,
+      enumGenerationType,
       getEnumDescriptions(resolvedValue.originalSchema),
       context.output.override.namingConvention?.enum,
     );
 
     return {
       value: propName,
-      imports: [{ name: propName }],
+      imports: [{ name: propName, isConstant: needsValueImport }],
       schemas: [
         ...resolvedValue.schemas,
         {
