@@ -1,9 +1,9 @@
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
-import {
-  type ContextSpec,
-  type OpenApiReferenceObject,
-  type OpenApiSchemaObject,
-  type ResolverValue,
+import type {
+  ContextSpec,
+  OpenApiReferenceObject,
+  OpenApiSchemaObject,
+  ResolverValue,
 } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
