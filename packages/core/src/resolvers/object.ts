@@ -71,11 +71,12 @@ function resolveObjectOriginal({
   }
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
+    const enumGenerationType = context.output.override.enumGenerationType;
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
       getEnumNames(resolvedValue.originalSchema),
-      context.output.override.enumGenerationType,
+      enumGenerationType,
       getEnumDescriptions(resolvedValue.originalSchema),
       context.output.override.namingConvention?.enum,
     );
@@ -97,7 +98,7 @@ function resolveObjectOriginal({
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
-      dependencies: resolvedValue.dependencies,
+      dependencies: [...resolvedValue.dependencies, propName],
     };
   }
 

@@ -5,6 +5,8 @@ import type {
   GeneratorSchema,
   OpenApiSchemaObject,
 } from '../types';
+import { EnumGeneration, NamingConvention } from '../types';
+import { generateImports } from './imports';
 import { generateInterface } from './interface';
 
 describe('generateInterface', () => {
@@ -15,6 +17,32 @@ describe('generateInterface', () => {
     target: 'typescript',
     spec: {},
   };
+
+  const withContext = ({
+    output,
+    override,
+  }: {
+    output?: Partial<ContextSpec['output']>;
+    override?: Partial<ContextSpec['output']['override']>;
+  } = {}): ContextSpec => ({
+    ...context,
+    output: {
+      ...context.output,
+      ...output,
+      override: {
+        ...context.output.override,
+        ...override,
+      },
+    },
+  });
+
+  const constEnumGenerationContext = withContext({
+    override: { enumGenerationType: EnumGeneration.CONST },
+  });
+
+  const aliasCombinedTypesContext = withContext({
+    override: { aliasCombinedTypes: true },
+  });
 
   it('should return const object with typeof', () => {
     const schema: OpenApiSchemaObject = {
@@ -57,6 +85,143 @@ export type TestSchema = typeof TestSchemaValue;
       },
     ];
     expect(got).toEqual(want);
+  });
+
+  // With enumGenerationType: const - mimic default enum output
+  it('should inline const literal when enum + const are both present', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        kind: {
+          type: 'string',
+          enum: ['A', 'B'],
+          const: 'A',
+        },
+      },
+      required: ['kind'],
+    };
+
+    const got = generateInterface({
+      name: 'ConstEnum',
+      context: constEnumGenerationContext,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+    const want: GeneratorSchema[] = [
+      {
+        name: 'ConstEnumKind',
+        model:
+          "export type ConstEnumKind = typeof ConstEnumKind[keyof typeof ConstEnumKind];\n\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ConstEnumKind = {\n  A: 'A',\n} as const;\n",
+        imports: [],
+        dependencies: [],
+      },
+      {
+        name: 'ConstEnum',
+        model: `export const ConstEnumValue = {
+  kind: ConstEnumKind,
+} as const;
+export type ConstEnum = typeof ConstEnumValue;
+`,
+        imports: [{ name: 'ConstEnumKind', isConstant: true }],
+        dependencies: ['ConstEnumKind'],
+        schema,
+      },
+    ];
+
+    expect(got).toEqual(want);
+  });
+
+  // With enumGenerationType: const - keep referenced enums type-only
+  it('should use type-only imports for referenced schemas in interfaces', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        status: {
+          $ref: '#/components/schemas/OrderStatus',
+        },
+      },
+    };
+
+    const got = generateInterface({
+      name: 'Order',
+      context: constEnumGenerationContext,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+
+    expect(got).toEqual([
+      {
+        name: 'Order',
+        model: `export interface Order {\n  status?: OrderStatus;\n}\n`,
+        imports: [{ name: 'OrderStatus', schemaName: 'OrderStatus' }],
+        dependencies: ['OrderStatus'],
+        schema,
+      },
+    ]);
+
+    const importsString = generateImports({
+      imports: got[0].imports,
+      namingConvention: NamingConvention.CAMEL_CASE,
+    });
+
+    expect(importsString).toBe(
+      "import type { OrderStatus } from './orderStatus';",
+    );
+  });
+
+  // With enumGenerationType: const - keep inline enums type-only in interfaces
+  it('should use type-only imports for inline enums in interfaces even with const enum generation', () => {
+    const schema: OpenApiSchemaObject = {
+      type: 'object',
+      properties: {
+        status: {
+          type: 'string',
+          enum: ['pending', 'done'],
+        },
+      },
+    };
+
+    const got = generateInterface({
+      name: 'OrderWithInlineEnum',
+      context: constEnumGenerationContext,
+      schema: schema as unknown as OpenApiSchemaObject,
+    });
+
+    expect(got).toEqual([
+      {
+        name: 'OrderWithInlineEnumStatus',
+        model:
+          "export type OrderWithInlineEnumStatus = typeof OrderWithInlineEnumStatus[keyof typeof OrderWithInlineEnumStatus];\n\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const OrderWithInlineEnumStatus = {\n  pending: 'pending',\n  done: 'done',\n} as const;\n",
+        imports: [],
+        dependencies: [],
+      },
+      {
+        name: 'OrderWithInlineEnum',
+        model:
+          'export interface OrderWithInlineEnum {\n  status?: OrderWithInlineEnumStatus;\n}\n',
+        imports: [{ name: 'OrderWithInlineEnumStatus' }],
+        dependencies: ['OrderWithInlineEnumStatus'],
+        schema,
+      },
+    ]);
+
+    const importsString = generateImports({
+      imports: got[1].imports,
+      namingConvention: NamingConvention.CAMEL_CASE,
+    });
+
+    expect(importsString).toBe(
+      "import type { OrderWithInlineEnumStatus } from './orderWithInlineEnumStatus';",
+    );
+  });
+
+  it('should emit value imports when a symbol is marked constant (value space)', () => {
+    const importsString = generateImports({
+      imports: [{ name: 'OrderWithInlineEnumStatus', isConstant: true }],
+      namingConvention: NamingConvention.CAMEL_CASE,
+    });
+
+    expect(importsString).toBe(
+      "import { OrderWithInlineEnumStatus } from './orderWithInlineEnumStatus';",
+    );
   });
 
   it('should return type', () => {
@@ -244,19 +409,9 @@ export type TestSchema = typeof TestSchemaValue;
       };
 
       // With aliasCombinedTypes: true - creates named type alias
-      const aliasContext: ContextSpec = {
-        ...context,
-        output: {
-          ...context.output,
-          override: {
-            ...context.output.override,
-            aliasCombinedTypes: true,
-          },
-        },
-      };
       const aliasResult = generateInterface({
         name: `Alias${combinerName}`,
-        context: aliasContext,
+        context: aliasCombinedTypesContext,
         schema: schema as unknown as OpenApiSchemaObject,
       });
       expect(aliasResult).toHaveLength(2);
@@ -297,19 +452,9 @@ export type TestSchema = typeof TestSchemaValue;
     };
 
     // With aliasCombinedTypes: true - creates intermediate types with OneOf/OneOfTwo
-    const aliasContext: ContextSpec = {
-      ...context,
-      output: {
-        ...context.output,
-        override: {
-          ...context.output.override,
-          aliasCombinedTypes: true,
-        },
-      },
-    };
     const aliasResult = generateInterface({
       name: 'AliasObject',
-      context: aliasContext,
+      context: aliasCombinedTypesContext,
       schema: schema as unknown as OpenApiSchemaObject,
     });
     expect(aliasResult).toHaveLength(4);
