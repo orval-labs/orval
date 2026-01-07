@@ -1,7 +1,6 @@
 import { getEnum, getEnumDescriptions, getEnumNames } from '../getters/enum';
 import {
   type ContextSpec,
-  EnumGeneration,
   type OpenApiReferenceObject,
   type OpenApiSchemaObject,
   type ResolverValue,
@@ -73,10 +72,6 @@ function resolveObjectOriginal({
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
     const enumGenerationType = context.output.override.enumGenerationType;
-    const needsValueImport =
-      enumGenerationType === EnumGeneration.CONST ||
-      enumGenerationType === EnumGeneration.ENUM;
-
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
@@ -88,7 +83,7 @@ function resolveObjectOriginal({
 
     return {
       value: propName,
-      imports: [{ name: propName, isConstant: needsValueImport }],
+      imports: [{ name: propName }],
       schemas: [
         ...resolvedValue.schemas,
         {
@@ -103,7 +98,7 @@ function resolveObjectOriginal({
       originalSchema: resolvedValue.originalSchema,
       isRef: resolvedValue.isRef,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
-      dependencies: resolvedValue.dependencies,
+      dependencies: [...resolvedValue.dependencies, propName],
     };
   }
 
