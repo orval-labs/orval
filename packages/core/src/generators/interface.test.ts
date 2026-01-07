@@ -87,6 +87,7 @@ export type TestSchema = typeof TestSchemaValue;
     expect(got).toEqual(want);
   });
 
+  // With enumGenerationType: const - mimic default enum output
   it('should inline const literal when enum + const are both present', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -129,6 +130,7 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(got).toEqual(want);
   });
 
+  // With enumGenerationType: const - keep referenced enums type-only
   it('should use type-only imports for referenced schemas in interfaces', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
@@ -165,6 +167,7 @@ export type ConstEnum = typeof ConstEnumValue;
     );
   });
 
+  // With enumGenerationType: const - keep inline enums type-only in interfaces
   it('should use type-only imports for inline enums in interfaces even with const enum generation', () => {
     const schema: OpenApiSchemaObject = {
       type: 'object',
