@@ -3377,6 +3377,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@hono/node-server@npm:^1.19.7":
+  version: 1.19.7
+  resolution: "@hono/node-server@npm:1.19.7"
+  peerDependencies:
+    hono: ^4
+  checksum: 10c0/293818e02a9100122a9319fba7032a3bae86d5f98f55d1a0ff4843c2b729eb6b471978ea15e29f4fb680c6a0be23a6e5a2132f3790ab31e88fb0b6b6fcc6829e
+  languageName: node
+  linkType: hard
+
 "@hono/zod-validator@npm:^0.7.3":
   version: 0.7.3
   resolution: "@hono/zod-validator@npm:0.7.3"
@@ -4554,10 +4563,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.24.0":
-  version: 1.24.0
-  resolution: "@modelcontextprotocol/sdk@npm:1.24.0"
+"@modelcontextprotocol/sdk@npm:1.25.2":
+  version: 1.25.2
+  resolution: "@modelcontextprotocol/sdk@npm:1.25.2"
   dependencies:
+    "@hono/node-server": "npm:^1.19.7"
     ajv: "npm:^8.17.1"
     ajv-formats: "npm:^3.0.1"
     content-type: "npm:^1.0.5"
@@ -4568,6 +4578,7 @@ __metadata:
     express: "npm:^5.0.1"
     express-rate-limit: "npm:^7.5.0"
     jose: "npm:^6.1.1"
+    json-schema-typed: "npm:^8.0.2"
     pkce-challenge: "npm:^5.0.0"
     raw-body: "npm:^3.0.0"
     zod: "npm:^3.25 || ^4.0"
@@ -4580,7 +4591,7 @@ __metadata:
       optional: true
     zod:
       optional: false
-  checksum: 10c0/c5c03ee716a79d0a91db6a9f9aa372bec5bc925e9ad1f0c254a587f3e7253b76e4b83b09b0a509595273e11d8ffeebe4c53d4aafac290498bffa8823f8edba75
+  checksum: 10c0/ffc024398e1b7841fb1ff2dc540e2e84f4b97a2a4058ef48e58836ce6077321c536a3858e9155472b7933c4773975b375167815bd4d721c3ca1e92db62e9488c
   languageName: node
   linkType: hard
 
@@ -16076,6 +16087,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"json-schema-typed@npm:^8.0.2":
+  version: 8.0.2
+  resolution: "json-schema-typed@npm:8.0.2"
+  checksum: 10c0/89f5e2fb1495483b705c027203c07277ee6bf2665165ad25a9cb55de5af7f72570326d13d32565180781e4083ad5c9688102f222baed7b353c2f39c1e02b0428
+  languageName: node
+  linkType: hard
+
 "json-schema@npm:^0.4.0":
   version: 0.4.0
   resolution: "json-schema@npm:0.4.0"
@@ -16806,7 +16824,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "mcp-petstore@workspace:samples/mcp/petstore"
   dependencies:
-    "@modelcontextprotocol/sdk": "npm:1.24.0"
+    "@modelcontextprotocol/sdk": "npm:1.25.2"
     "@types/node": "npm:^22.18.12"
     orval: "workspace:*"
     ts-node: "npm:^10.9.2"
@@ -18212,7 +18230,7 @@ __metadata:
     "@angular/core": "catalog:angular"
     "@faker-js/faker": "npm:^10.1.0"
     "@hono/zod-validator": "npm:^0.7.4"
-    "@modelcontextprotocol/sdk": "npm:1.24.0"
+    "@modelcontextprotocol/sdk": "npm:1.25.2"
     "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tanstack/vue-query": "npm:^5.90.6"
