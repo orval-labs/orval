@@ -4,6 +4,9 @@
   "author": "Jared Palmer <jared@palmer.net>",
   "license": "MIT",
   "type": "module",
+  "resolutions": {
+    "get-intrinsic": "1.2.7"
+  },
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack && yarn sitemap",
