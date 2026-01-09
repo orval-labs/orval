@@ -5,6 +5,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  type InvalidateTarget,
   OutputClient,
   type OutputClientFunc,
   OutputHttpClient,
@@ -23,6 +24,40 @@ import {
 } from './query-options';
 import { generateMutatorReturnType } from './return-types';
 import { isAngular, isSolid } from './utils';
+
+type NormalizedTarget = {
+  query: string;
+  params?: string[] | Record<string, string>;
+};
+
+const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
+  typeof target === 'string' ? { query: target } : target;
+
+const serializeTarget = (target: NormalizedTarget): string =>
+  JSON.stringify({ query: target.query, params: target.params ?? [] });
+
+const generateVariableRef = (varName: string): string => {
+  const parts = varName.split('.');
+  if (parts.length === 1) {
+    return `variables.${varName}`;
+  }
+  return `variables.${parts[0]}?.${parts.slice(1).join('?.')}`;
+};
+
+const generateParamArgs = (
+  params: string[] | Record<string, string>,
+): string => {
+  if (Array.isArray(params)) {
+    return params.map(generateVariableRef).join(', ');
+  }
+  return Object.values(params).map(generateVariableRef).join(', ');
+};
+
+const generateInvalidateCall = (target: NormalizedTarget): string => {
+  const queryKeyFn = camel(`get-${target.query}-query-key`);
+  const args = target.params ? generateParamArgs(target.params) : '';
+  return `    queryClient.invalidateQueries({ queryKey: ${queryKeyFn}(${args}) });`;
+};
 
 export interface MutationHookContext {
   verbOptions: GeneratorVerbOptions;
@@ -141,8 +176,15 @@ export const generateMutationHook = async ({
 
   const invalidatesConfig = (query.mutationInvalidates ?? [])
     .filter((rule) => rule.onMutations.includes(operationName))
-    .flatMap((rule) => rule.invalidates);
-  const uniqueInvalidates = [...new Set(invalidatesConfig)];
+    .flatMap((rule) => rule.invalidates)
+    .map(normalizeTarget);
+  const seenTargets = new Set<string>();
+  const uniqueInvalidates = invalidatesConfig.filter((target) => {
+    const key = serializeTarget(target);
+    if (seenTargets.has(key)) return false;
+    seenTargets.add(key);
+    return true;
+  });
   const hasInvalidation = uniqueInvalidates.length > 0 && isAngularClient;
 
   const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
@@ -172,7 +214,7 @@ ${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 ${
   hasInvalidation
     ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map((target: string) => `    queryClient.invalidateQueries({ queryKey: ${camel(`get-${target}-query-key`)}() });`).join('\n')}
+${uniqueInvalidates.map(generateInvalidateCall).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`
     : ''
