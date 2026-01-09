@@ -1,0 +1,34 @@
+{
+  "name": "@orval/solid-start",
+  "version": "8.0.0-rc.5",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "import": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "files": [
+    "dist",
+    "!dist/**/*.d.ts.map",
+    "!dist/**/*.d.mts.map"
+  ],
+  "scripts": {
+    "build": "tsdown --config-loader unrun",
+    "dev": "tsdown --config-loader unrun --watch src",
+    "lint": "eslint .",
+    "clean": "rimraf .turbo dist",
+    "nuke": "rimraf .turbo dist node_modules"
+  },
+  "dependencies": {
+    "@orval/core": "workspace:*"
+  },
+  "devDependencies": {
+    "eslint": "catalog:",
+    "rimraf": "catalog:",
+    "tsdown": "catalog:",
+    "typescript": "catalog:"
+  },
+  "stableVersion": "8.0.0-rc.4"
+}
