@@ -1,0 +1,280 @@
+---
+id: solid-start
+title: SolidStart
+---
+
+Start by providing an OpenAPI specification and an Orval config file. To use SolidStart, define the `client` in the Orval config to be `solid-start`.
+
+## Example with SolidStart
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
+      client: 'solid-start',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+Navigate to the [Orval config reference](../reference/configuration/full-example) to see all available options.
+
+The SolidStart mode will generate an implementation file using native SolidStart primitives from `@solidjs/router`.
+
+For example, <a href="https://github.com/orval-labs/orval/blob/master/samples/react-query/basic/petstore.yaml" target="_blank">this Swagger specification</a> will generate the following code:
+
+```ts
+import { query, action, revalidate } from '@solidjs/router';
+
+export const SwaggerPetstore = {
+  listPets: query(async (params: ListPetsParams) => {
+    const queryString = new URLSearchParams(params as any).toString();
+    const url = queryString ? `/pets?${queryString}` : `/pets`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json() as Promise<Pets>;
+  }, "listPets"),
+
+  createPets: action(async (createPetsBody: CreatePetsBody) => {
+    const response = await fetch('/pets', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(createPetsBody)
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json() as Promise<Pet>;
+  }, "createPets"),
+
+  showPetById: query(async (petId: string) => {
+    const response = await fetch(`/pets/${petId}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json() as Promise<Pet>;
+  }, "showPetById"),
+};
+```
+
+## Using the Generated Code
+
+### Basic Usage
+
+```tsx
+import { createAsync } from '@solidjs/router';
+import { Suspense } from 'solid-js';
+import { SwaggerPetstore } from './petstore';
+
+function PetDetails(props: { petId: string }) {
+  // Use createAsync to consume the query - automatically caches based on petId
+  const pet = createAsync(() => SwaggerPetstore.showPetById(props.petId));
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <div>
+        <h1>{pet()?.name}</h1>
+        <p>ID: {pet()?.id}</p>
+      </div>
+    </Suspense>
+  );
+}
+```
+
+### Cache Invalidation
+
+SolidStart's `query()` function automatically generates cache keys from the function name and arguments, enabling granular cache invalidation:
+
+```tsx
+import { revalidate } from '@solidjs/router';
+import { SwaggerPetstore } from './petstore';
+
+// Invalidate a specific pet by ID
+revalidate(SwaggerPetstore.showPetById.keyFor("pet-123"));
+
+// Invalidate all pets
+revalidate(SwaggerPetstore.listPets.key);
+
+// Invalidate multiple specific queries
+revalidate([
+  SwaggerPetstore.showPetById.keyFor("pet-123"),
+  SwaggerPetstore.showPetById.keyFor("pet-456"),
+  SwaggerPetstore.listPets.key,
+]);
+```
+
+#### Practical Example: Refresh Button
+
+```tsx
+import { createAsync } from '@solidjs/router';
+import { revalidate } from '@solidjs/router';
+import { Suspense } from 'solid-js';
+import { SwaggerPetstore } from './petstore';
+
+function PetDetails(props: { petId: string }) {
+  const pet = createAsync(() => SwaggerPetstore.showPetById(props.petId));
+
+  const handleRefresh = () => {
+    // Invalidate this specific pet's cache to trigger a refetch
+    revalidate(SwaggerPetstore.showPetById.keyFor(props.petId));
+  };
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <div>
+        <h1>{pet()?.name}</h1>
+        <p>ID: {pet()?.id}</p>
+        <button onClick={handleRefresh}>
+          Refresh Pet Data
+        </button>
+      </div>
+    </Suspense>
+  );
+}
+```
+
+### Using Actions
+
+Actions are used for mutations (POST, PUT, PATCH, DELETE). You can use them directly with forms or programmatically with `useAction()`:
+
+#### With Forms
+
+```tsx
+import { SwaggerPetstore } from './petstore';
+
+function CreatePetForm() {
+  return (
+    <form action={SwaggerPetstore.createPets} method="post">
+      <input name="name" required />
+      <input name="tag" />
+      <button type="submit">Create Pet</button>
+    </form>
+  );
+}
+```
+
+Note: When using actions with forms, you may need to adapt the generated actions to accept `FormData` instead of typed parameters.
+
+#### Programmatically with useAction
+
+```tsx
+import { useAction } from '@solidjs/router';
+import { SwaggerPetstore } from './petstore';
+
+function DeletePetButton(props: { petId: string }) {
+  const deletePet = useAction(SwaggerPetstore.deletePetById);
+
+  const handleDelete = async () => {
+    await deletePet(props.petId);
+    // Actions automatically revalidate all active queries on the page
+  };
+
+  return (
+    <button onClick={handleDelete}>
+      Delete Pet
+    </button>
+  );
+}
+```
+
+## Key Features
+
+### Native Fetch API
+
+SolidStart client uses the native Fetch API without any HTTP client dependencies:
+
+- Automatic query parameter serialization via `URLSearchParams`
+- JSON request/response handling
+- Proper error handling with `response.ok` checks
+- Full TypeScript type safety
+
+### Automatic Cache Management
+
+- **Queries** (`query()`) are automatically cached based on the function name and arguments
+- **Actions** (`action()`) are not cached and always execute fresh
+- Use `.key` to get the base cache key for all calls to a query
+- Use `.keyFor(...args)` to get the cache key for a specific set of arguments
+
+### SolidStart Primitives
+
+- `query()` - For GET requests, automatically cached and reactive
+- `action()` - For mutations (POST, PUT, PATCH, DELETE)
+- `cache()` - Advanced caching (available via import)
+- `revalidate()` - Manual cache invalidation
+
+## Custom HTTP Client (Mutator)
+
+You can use a custom HTTP client with the `mutator` configuration:
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+      client: 'solid-start',
+      override: {
+        mutator: {
+          path: './custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+This will generate code that uses your custom instance:
+
+```ts
+export const SwaggerPetstore = {
+  showPetById: query(async (petId: string) => {
+    return customInstance<Pet>(
+      { url: `/pets/${petId}`, method: 'GET' },
+      fetch,
+    );
+  }, "showPetById"),
+};
+```
+
+## Differences from Solid Query
+
+**SolidStart** is a meta-framework for SolidJS with strong opinions about application architecture. It uses **Solid Router** under the hood, which provides built-in data primitives for queries and actions.
+
+**If you are using SolidStart, it's highly recommended to use its built-in primitives** (`query()` and `action()` from `@solidjs/router`) instead of Solid Query. These primitives are designed to work seamlessly with SolidStart's server-side rendering, routing, and caching systems.
+
+| Feature | Solid Query | SolidStart |
+|---------|------------|-----------|
+| Package | `@tanstack/solid-query` | `@solidjs/router` (via SolidStart) |
+| Use Case | Standalone Solid apps | SolidStart applications |
+| Query Hook | `createQuery` | `query()` |
+| Mutation Hook | `createMutation` | `action()` |
+| Cache Keys | Manual query key functions | Automatic via `.key` and `.keyFor()` |
+| HTTP Client | Configurable (axios, fetch, etc.) | Native fetch API |
+| Query Options | Full TanStack Query options | Simpler, opinionated options |
+| SSR Integration | Manual configuration | Built-in and automatic |
+
+Choose **SolidStart client** when building a SolidStart application. Choose **Solid Query client** only if you're building a standalone SolidJS app without the SolidStart framework and need advanced TanStack Query features like optimistic updates, background refetching, and complex caching strategies.
+
+Go <a href="https://github.com/orval-labs/orval/tree/master/samples/solid-start" target="_blank">here</a> for a full example (coming soon)

@@ -216,6 +216,12 @@ my-app
                   <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
                     <Check />
                   </span>
+                  SolidStart
+                </a>
+                <a className="mb-2">
+                  <span className="bg-coral-light text-gray-800 w-4 h-4 mr-2 rounded-full inline-flex items-center justify-center">
+                    <Check />
+                  </span>
                   Custom overrides
                 </a>
                 <a className="mb-2">
