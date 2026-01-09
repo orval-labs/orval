@@ -101,6 +101,8 @@ export const generateMutationHook = async ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
+  const isAngularClient = isAngular(outputClient);
+
   const mutationOptionFnReturnType = getQueryOptionsDefinition({
     operationName,
     mutator,
@@ -109,7 +111,7 @@ export const generateMutationHook = async ({
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     isReturnType: true,
-    isAngularClient: isAngular(outputClient),
+    isAngularClient,
   });
 
   const mutationArguments = generateQueryArguments({
@@ -121,7 +123,7 @@ export const generateMutationHook = async ({
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     httpClient,
-    isAngularClient: isAngular(outputClient),
+    isAngularClient,
   });
 
   const mutationOptionsFnName = camel(
@@ -137,8 +139,11 @@ export const generateMutationHook = async ({
     mutator,
   );
 
-  const invalidatesConfig = query.mutationInvalidates?.[operationName];
-  const hasInvalidation = invalidatesConfig?.length && isAngular(outputClient);
+  const invalidatesConfig = (query.mutationInvalidates ?? [])
+    .filter((rule) => rule.onMutations.includes(operationName))
+    .flatMap((rule) => rule.invalidates);
+  const uniqueInvalidates = [...new Set(invalidatesConfig)];
+  const hasInvalidation = uniqueInvalidates.length > 0 && isAngularClient;
 
   const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
@@ -167,7 +172,7 @@ ${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 ${
   hasInvalidation
     ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${invalidatesConfig.map((target: string) => `    queryClient.invalidateQueries({ queryKey: ${camel(`get-${target}-query-key`)}() });`).join('\n')}
+${uniqueInvalidates.map((target: string) => `    queryClient.invalidateQueries({ queryKey: ${camel(`get-${target}-query-key`)}() });`).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`
     : ''
