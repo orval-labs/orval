@@ -9,6 +9,18 @@ import {
   isUndefined,
 } from './assertion';
 
+/**
+ * Converts data to a string representation suitable for code generation.
+ * Handles strings, numbers, booleans, functions, arrays, and objects.
+ *
+ * @param data - The data to stringify. Can be a string, array, object, number, boolean, function, null, or undefined.
+ * @returns A string representation of the data, or undefined if data is null or undefined.
+ * @example
+ * stringify('hello') // returns "'hello'"
+ * stringify(42) // returns "42"
+ * stringify([1, 2, 3]) // returns "[1, 2, 3]"
+ * stringify({ a: 1, b: 'test' }) // returns "{ a: 1, b: 'test', }"
+ */
 export function stringify(
   data?: string | any[] | Record<string, any>,
 ): string | undefined {
@@ -46,6 +58,25 @@ export function stringify(
   }, '');
 }
 
+/**
+ * Sanitizes a string value by removing or replacing special characters and ensuring
+ * it conforms to JavaScript identifier naming rules if needed.
+ *
+ * @param value - The string value to sanitize.
+ * @param options - Configuration options for sanitization:
+ *   - `whitespace` - Replacement string for whitespace characters, or `true` to keep them.
+ *   - `underscore` - Replacement string for underscores, or `true` to keep them.
+ *   - `dot` - Replacement string for dots, or `true` to keep them.
+ *   - `dash` - Replacement string for dashes, or `true` to keep them.
+ *   - `es5keyword` - If true, prefixes the value with underscore if it's an ES5 keyword.
+ *   - `es5IdentifierName` - If true, ensures the value is a valid ES5 identifier name.
+ *   - `special` - If true, preserves special characters that would otherwise be removed.
+ * @returns The sanitized string value.
+ * @example
+ * sanitize('hello-world', { dash: '_' }) // returns "hello_world"
+ * sanitize('class', { es5keyword: true }) // returns "_class"
+ * sanitize('123abc', { es5IdentifierName: true }) // returns "N123abc"
+ */
 export function sanitize(
   value: string,
   options?: {
@@ -109,6 +140,19 @@ export function sanitize(
   return newValue;
 }
 
+/**
+ * Converts an array of objects to a comma-separated string representation.
+ * Optionally extracts a nested property from each object using a dot-notation path.
+ *
+ * @param props - Array of objects to convert to string.
+ * @param path - Optional dot-notation path to extract a property from each object (e.g., "user.name").
+ * @returns A comma-separated string of values, with each value on a new line indented.
+ * @example
+ * toObjectString([{ name: 'John' }, { name: 'Jane' }], 'name')
+ * // returns "John,\n    Jane,"
+ * toObjectString(['a', 'b', 'c'])
+ * // returns "a,\n    b,\n    c,"
+ */
 export function toObjectString<T>(props: T[], path?: keyof T) {
   if (props.length === 0) {
     return '';
@@ -143,11 +187,30 @@ const NUMBERS = {
   '9': 'nine',
 };
 
+/**
+ * Converts a number to its word representation by translating each digit to its word form.
+ *
+ * @param num - The number to convert to words.
+ * @returns A string containing the word representation of each digit concatenated together.
+ * @example
+ * getNumberWord(123) // returns "onetwothree"
+ * getNumberWord(42) // returns "fourtwo"
+ */
 export function getNumberWord(num: number) {
   const arrayOfNumber = num.toString().split('') as (keyof typeof NUMBERS)[];
   return arrayOfNumber.reduce((acc, n) => acc + NUMBERS[n], '');
 }
 
+/**
+ * Escapes a specific character in a string by prefixing it with a backslash.
+ *
+ * @param str - The string to escape, or null.
+ * @param char - The character to escape. Defaults to single quote (').
+ * @returns The escaped string, or null if the input is null.
+ * @example
+ * escape("don't") // returns "don\'t"
+ * escape('say "hello"', '"') // returns 'say \\"hello\\"'
+ */
 export function escape(str: string | null, char = "'") {
   return str?.replace(char, `\\${char}`);
 }
