@@ -18,7 +18,6 @@ Some useful links:
  */
 export type OrderStatus = (typeof OrderStatus)[keyof typeof OrderStatus];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const OrderStatus = {
   placed: 'placed',
   approved: 'approved',

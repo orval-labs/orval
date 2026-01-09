@@ -73,8 +73,6 @@ const getTypeConstEnum = (
 
   enumValue += '\n\n';
 
-  enumValue += '// eslint-disable-next-line @typescript-eslint/no-redeclare\n';
-
   enumValue += `export const ${enumName} = {\n${implementation}} as const;\n`;
 
   return enumValue;
