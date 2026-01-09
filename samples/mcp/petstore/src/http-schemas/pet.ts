@@ -13,8 +13,8 @@ Some useful links:
  * OpenAPI spec version: 1.0.27-SNAPSHOT
  */
 import type { Category } from './category';
-import type { Tag } from './tag';
 import type { PetStatus } from './petStatus';
+import type { Tag } from './tag';
 
 export interface Pet {
   id?: number;

@@ -790,6 +790,7 @@ export type GeneratorImport = {
   values?: boolean;
   syntheticDefaultImport?: boolean;
   namespaceImport?: boolean;
+  importPath?: string;
 };
 
 export type GeneratorDependency = {

@@ -1,4 +1,4 @@
-import { unique, uniqueWith } from 'remeda';
+import { groupBy, unique, uniqueWith } from 'remeda';
 
 import {
   type GeneratorImport,
@@ -23,17 +23,58 @@ export function generateImports({
     return '';
   }
 
-  return uniqueWith(
+  const normalized = uniqueWith(
     imports,
     (a, b) => a.name === b.name && a.default === b.default,
-  )
-    .toSorted()
-    .map(({ name, values, alias, isConstant }) => {
-      const fileName = conventionName(name, namingConvention);
+  ).map((imp) => ({
+    ...imp,
+    importPath:
+      imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
+  }));
 
+  const grouped = groupBy(normalized, (imp) =>
+    !imp.default &&
+    !imp.namespaceImport &&
+    !imp.syntheticDefaultImport &&
+    !imp.values &&
+    !imp.isConstant
+      ? `aggregate|${imp.importPath}`
+      : `single|${imp.importPath}|${imp.name}|${imp.alias ?? ''}|${String(
+          imp.default,
+        )}|${String(imp.namespaceImport)}|${String(imp.syntheticDefaultImport)}|${String(
+          imp.values,
+        )}|${String(imp.isConstant)}`,
+  );
+
+  return Object.entries(grouped)
+    .toSorted(([a], [b]) => a.localeCompare(b))
+    .map(([, group]) => {
+      const sample = group[0];
+      const canAggregate =
+        !sample.default &&
+        !sample.namespaceImport &&
+        !sample.syntheticDefaultImport &&
+        !sample.values &&
+        !sample.isConstant;
+
+      if (canAggregate) {
+        const names = [
+          ...new Set(
+            group.map(
+              ({ name, alias }) => `${name}${alias ? ` as ${alias}` : ''}`,
+            ),
+          ),
+        ]
+          .toSorted()
+          .join(', ');
+
+        return `import type { ${names} } from '${sample.importPath}';`;
+      }
+
+      const { name, values, alias, isConstant, importPath } = sample;
       return `import ${!values && !isConstant ? 'type ' : ''}{ ${name}${
         alias ? ` as ${alias}` : ''
-      } } from './${fileName}';`;
+      } } from '${importPath}';`;
     })
     .join('\n');
 }
