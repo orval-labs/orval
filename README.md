@@ -27,6 +27,8 @@
 - [React with swr](https://swr.vercel.app/)
 - [Vue Query](https://tanstack.com/query/latest/docs/framework/vue/overview)
 - [Svelte Query](https://tanstack.com/query/latest/docs/framework/svelte/overview)
+- [Solid Query](https://tanstack.com/query/latest/docs/framework/solid/overview)
+- [SolidStart](https://start.solidjs.com/)
 - [Angular](https://angular.dev/)
 - [Angular Query](https://tanstack.com/query/latest/docs/framework/angular/overview)
 - [Hono](https://hono.dev/)
