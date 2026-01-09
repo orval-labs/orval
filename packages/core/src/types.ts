@@ -566,9 +566,16 @@ export type NormalizedZodOptions = {
   timeOptions: ZodTimeOptions;
 };
 
+export type InvalidateTarget =
+  | string
+  | {
+      query: string;
+      params: string[] | Record<string, string>;
+    };
+
 export type MutationInvalidatesRule = {
   onMutations: string[];
-  invalidates: string[];
+  invalidates: InvalidateTarget[];
 };
 
 export type MutationInvalidatesConfig = MutationInvalidatesRule[];
