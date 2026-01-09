@@ -5,9 +5,7 @@
  * OpenAPI spec version: 1.0.0
  */
 
-export type ListPetsParams = {
-  /**
-   * How many items to return at one time (max 100)
-   */
-  limit?: string;
+export type PatchPetBody = {
+  name?: string;
+  tag?: string;
 };

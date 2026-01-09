@@ -8,6 +8,7 @@
 export * from './createPetsBody';
 export * from './error';
 export * from './listPetsParams';
+export * from './patchPetBody';
 export * from './pet';
 export * from './pets';
 export * from './searchPetsParams';
