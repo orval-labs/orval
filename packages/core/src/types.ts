@@ -114,6 +114,7 @@ export type NormalizedMutator = {
   name?: string;
   default: boolean;
   alias?: Record<string, string>;
+  external?: string[];
   extension?: string;
 };
 
@@ -373,6 +374,7 @@ export type MutatorObject = {
   name?: string;
   default?: boolean;
   alias?: Record<string, string>;
+  external?: string[];
   extension?: string;
 };
 

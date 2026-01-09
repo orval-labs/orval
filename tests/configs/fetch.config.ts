@@ -380,4 +380,21 @@ export default defineConfig({
       target: '../specifications/wildcard-responses.yaml',
     },
   },
+  mutatorWithExternal: {
+    output: {
+      target: '../generated/fetch/mutator-external/endpoints.ts',
+      schemas: '../generated/fetch/mutator-external/model',
+      client: 'fetch',
+      override: {
+        mutator: {
+          path: '../mutators/with-scss-import.ts',
+          name: 'customFetchWithScss',
+          external: ['*.scss'],
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
