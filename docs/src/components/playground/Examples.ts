@@ -8,7 +8,7 @@ const SCHEMA = dedent(/* YAML */ `
     license:
       name: MIT
   servers:
-    - url: http://petstore.swagger.io/v1
+    - url: https://petstore3.swagger.io/api/v3/openapi.json
   paths:
     /pets:
       get:

@@ -50,6 +50,7 @@ import {
   getHasSignal,
   getQueryTypeForFramework,
   isAngular,
+  isSolid,
   isVue,
   vueUnRefParams,
   vueWrapTypeWithMaybeRef,
@@ -59,17 +60,19 @@ import {
  * Get framework-aware prefix for hook names and type definitions
  * @param hasSvelteQueryV4 - Whether using Svelte Query v4
  * @param isAngularClient - Whether using Angular client
+ * @param isSolidClient - Whether using Solid Query client
  * @param capitalize - Whether to capitalize the prefix (for type definitions)
  * @returns The appropriate prefix string
  */
 export const getFrameworkPrefix = (
   hasSvelteQueryV4: boolean,
   isAngularClient: boolean,
+  isSolidClient: boolean,
   capitalize = false,
 ): string => {
   let prefix: string;
 
-  if (hasSvelteQueryV4) {
+  if (hasSvelteQueryV4 || isSolidClient) {
     prefix = 'create';
   } else if (isAngularClient) {
     prefix = 'inject';
@@ -502,6 +505,7 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   const operationPrefix = getFrameworkPrefix(
     hasSvelteQueryV4,
     isAngular(outputClient),
+    isSolid(outputClient),
   );
   const optionalQueryClientArgument = hasSvelteQueryV6
     ? `, queryClient?: () => QueryClient`

@@ -12,6 +12,7 @@ import { generateQueryRequestFunction, getQueryHeader } from './client';
 import {
   getAngularQueryDependencies,
   getReactQueryDependencies,
+  getSolidQueryDependencies,
   getSvelteQueryDependencies,
   getVueQueryDependencies,
 } from './dependencies';
@@ -21,6 +22,7 @@ import { isVue, normalizeQueryOptions } from './utils';
 export {
   getAngularQueryDependencies,
   getReactQueryDependencies,
+  getSolidQueryDependencies,
   getSvelteQueryDependencies,
   getVueQueryDependencies,
 } from './dependencies';
@@ -63,13 +65,18 @@ export const generateQuery: ClientBuilder = async (
 };
 
 const dependenciesBuilder: Record<
-  'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
+  | 'react-query'
+  | 'vue-query'
+  | 'svelte-query'
+  | 'angular-query'
+  | 'solid-query',
   ClientDependenciesBuilder
 > = {
   'react-query': getReactQueryDependencies,
   'vue-query': getVueQueryDependencies,
   'svelte-query': getSvelteQueryDependencies,
   'angular-query': getAngularQueryDependencies,
+  'solid-query': getSolidQueryDependencies,
 };
 
 export const builder =
@@ -78,7 +85,12 @@ export const builder =
     options: queryOptions,
     output,
   }: {
-    type?: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query';
+    type?:
+      | 'react-query'
+      | 'vue-query'
+      | 'svelte-query'
+      | 'angular-query'
+      | 'solid-query';
     options?: QueryOptions;
     output?: NormalizedOutputOptions;
   } = {}) =>

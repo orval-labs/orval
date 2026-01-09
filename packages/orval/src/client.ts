@@ -26,6 +26,7 @@ import hono from '@orval/hono';
 import mcp from '@orval/mcp';
 import * as mock from '@orval/mock';
 import query from '@orval/query';
+import solidStart from '@orval/solid-start';
 import swr from '@orval/swr';
 import zod from '@orval/zod';
 
@@ -41,6 +42,8 @@ const getGeneratorClient = (
     angular: angular()(),
     'angular-query': query({ output, type: 'angular-query' })(),
     'react-query': query({ output, type: 'react-query' })(),
+    'solid-start': solidStart()(),
+    'solid-query': query({ output, type: 'solid-query' })(),
     'svelte-query': query({ output, type: 'svelte-query' })(),
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),

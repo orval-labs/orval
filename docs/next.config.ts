@@ -1,23 +1,24 @@
 import type { NextConfig } from 'next';
-import rehypeSlug from 'rehype-slug';
-import rehypeAutolinkHeadings, {
-  Options as AutolinkOptions,
-} from 'rehype-autolink-headings';
-import remarkEmoji from 'remark-emoji';
-import remarkGfm from 'remark-gfm';
-import remarkImages from 'remark-images';
-import rehypeUnwrapImages from 'rehype-unwrap-images';
-import remarkToc, { Options as TocOptions } from 'remark-toc';
-import remarkFrontmatter from 'remark-frontmatter';
-import remarkMdxFrontmatter, {
-  RemarkMdxFrontmatterOptions,
-} from 'remark-mdx-frontmatter';
 import createMDX from '@next/mdx';
 import recmaNextjsStaticProps from 'recma-nextjs-static-props';
+import rehypeAutolinkHeadings, {
+  type Options as AutolinkOptions,
+} from 'rehype-autolink-headings';
+import rehypeSlug from 'rehype-slug';
+import rehypeUnwrapImages from 'rehype-unwrap-images';
+import remarkEmoji from 'remark-emoji';
+import remarkFrontmatter from 'remark-frontmatter';
+import remarkGfm from 'remark-gfm';
+import remarkImages from 'remark-images';
+import remarkMdxFrontmatter, {
+  type RemarkMdxFrontmatterOptions,
+} from 'remark-mdx-frontmatter';
+import remarkToc, { type Options as TocOptions } from 'remark-toc';
 
 const nextConfig: NextConfig = {
   // Support MDX files as pages:
   pageExtensions: ['md', 'mdx', 'tsx', 'ts', 'jsx', 'js'],
+  outputFileTracingRoot: __dirname,
   rewrites: async () => [
     {
       source: '/docs{/}?',

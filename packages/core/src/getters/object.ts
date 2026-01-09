@@ -8,7 +8,7 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { isBoolean, isReference, jsDoc, pascal } from '../utils';
+import { escape, isBoolean, isReference, jsDoc, pascal } from '../utils';
 import { combineSchemas } from './combine';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getKey } from './keys';
@@ -167,19 +167,38 @@ export function getObject({
 
         acc.hasReadonlyProps ||= isReadOnly || false;
 
-        const aliasedImports = getAliasedImports({
-          name,
-          context,
-          resolvedValue,
-        });
+        const constValue = 'const' in schema ? schema.const : undefined;
+        const hasConst = constValue !== undefined;
+        let constLiteral: string | undefined;
 
-        acc.imports.push(...aliasedImports);
+        if (!hasConst) {
+          constLiteral = undefined;
+        } else if (typeof constValue === 'string') {
+          constLiteral = `'${escape(constValue)}'`;
+        } else {
+          constLiteral = JSON.stringify(constValue);
+        }
 
-        const propValue = getImportAliasForRefOrValue({
+        const needsValueImport =
+          hasConst && (resolvedValue.isEnum || resolvedValue.type === 'enum');
+
+        const aliasedImports: GeneratorImport[] = needsValueImport
+          ? resolvedValue.imports.map((imp) => ({ ...imp, isConstant: true }))
+          : hasConst
+            ? []
+            : getAliasedImports({ name, context, resolvedValue });
+
+        if (aliasedImports.length > 0) {
+          acc.imports.push(...aliasedImports);
+        }
+
+        const alias = getImportAliasForRefOrValue({
           context,
           resolvedValue,
           imports: aliasedImports,
         });
+
+        const propValue = needsValueImport ? alias : (constLiteral ?? alias);
 
         acc.value += `\n  ${doc ? `${doc}  ` : ''}${
           isReadOnly && !context.output.override.suppressReadonlyModifier

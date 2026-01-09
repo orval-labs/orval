@@ -71,6 +71,16 @@
           "editUrl": "/guides/svelte-query.md"
         },
         {
+          "title": "Solid Query",
+          "path": "/guides/solid-query",
+          "editUrl": "/guides/solid-query.md"
+        },
+        {
+          "title": "SolidStart",
+          "path": "/guides/solid-start",
+          "editUrl": "/guides/solid-start.md"
+        },
+        {
           "title": "Vue Query",
           "path": "/guides/vue-query",
           "editUrl": "/guides/vue-query.md"
