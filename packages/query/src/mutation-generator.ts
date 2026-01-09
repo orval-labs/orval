@@ -48,9 +48,11 @@ const generateParamArgs = (
   params: string[] | Record<string, string>,
 ): string => {
   if (Array.isArray(params)) {
-    return params.map(generateVariableRef).join(', ');
+    return params.map((v) => generateVariableRef(v)).join(', ');
   }
-  return Object.values(params).map(generateVariableRef).join(', ');
+  return Object.values(params)
+    .map((v) => generateVariableRef(v))
+    .join(', ');
 };
 
 const generateInvalidateCall = (target: NormalizedTarget): string => {
@@ -177,7 +179,7 @@ export const generateMutationHook = async ({
   const invalidatesConfig = (query.mutationInvalidates ?? [])
     .filter((rule) => rule.onMutations.includes(operationName))
     .flatMap((rule) => rule.invalidates)
-    .map(normalizeTarget);
+    .map((t) => normalizeTarget(t));
   const seenTargets = new Set<string>();
   const uniqueInvalidates = invalidatesConfig.filter((target) => {
     const key = serializeTarget(target);
@@ -214,7 +216,7 @@ ${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 ${
   hasInvalidation
     ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
-${uniqueInvalidates.map(generateInvalidateCall).join('\n')}
+${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
     mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
   };`
     : ''
