@@ -1,6 +1,13 @@
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { injectListPets, injectCreatePets } from '../api/endpoints/pets/pets';
+import {
+  injectListPets,
+  injectCreatePets,
+  injectShowPetById,
+  injectDeletePet,
+  injectUpdatePet,
+  injectPatchPet,
+} from '../api/endpoints/pets/pets';
 
 @Component({
   selector: 'app-root',
@@ -16,8 +23,8 @@ import { injectListPets, injectCreatePets } from '../api/endpoints/pets/pets';
         <div class="add-pet-form">
           <h2>Add a New Pet</h2>
           <p class="notice">
-            <strong>Note:</strong> MSW mocks the API, so new pets won't persist.
-            Watch the pet list reload after clicking "Add" - that's
+            <strong>Note:</strong> MSW mocks the API, so changes won't persist.
+            Watch the pet list reload after mutations - that's
             mutationInvalidates working!
           </p>
           <input
@@ -36,6 +43,42 @@ import { injectListPets, injectCreatePets } from '../api/endpoints/pets/pets';
           }
         </div>
 
+        <h2>Pet Details (ID: 1)</h2>
+        @if (pet.isPending()) {
+          <p>Loading pet...</p>
+        }
+        @if (pet.data(); as petData) {
+          <div class="pet-details">
+            <p><strong>Name:</strong> {{ petData.name }}</p>
+            <p><strong>Tag:</strong> {{ petData.tag || 'None' }}</p>
+            <div class="pet-actions">
+              <button
+                (click)="updatePetDetails()"
+                [disabled]="updatePetMutation.isPending()"
+              >
+                {{
+                  updatePetMutation.isPending() ? 'Updating...' : 'Update Pet'
+                }}
+              </button>
+              <button
+                (click)="patchPetTag()"
+                [disabled]="patchPetMutation.isPending()"
+              >
+                {{ patchPetMutation.isPending() ? 'Patching...' : 'Patch Tag' }}
+              </button>
+              <button
+                (click)="deletePetById()"
+                [disabled]="deletePetMutation.isPending()"
+                class="delete-btn"
+              >
+                {{
+                  deletePetMutation.isPending() ? 'Deleting...' : 'Delete Pet'
+                }}
+              </button>
+            </div>
+          </div>
+        }
+
         <h2>Pets List</h2>
         @if (pets.isPending()) {
           <p>Loading pets...</p>
@@ -52,8 +95,12 @@ import { injectListPets, injectCreatePets } from '../api/endpoints/pets/pets';
 })
 export class App {
   protected readonly pets = injectListPets({ limit: '10' });
+  protected readonly pet = injectShowPetById('1');
 
   protected readonly createPetMutation = injectCreatePets();
+  protected readonly deletePetMutation = injectDeletePet();
+  protected readonly updatePetMutation = injectUpdatePet();
+  protected readonly patchPetMutation = injectPatchPet();
 
   protected readonly title = signal('angular-app');
   protected readonly newPetName = signal('');
@@ -70,5 +117,29 @@ export class App {
         },
       },
     );
+  }
+
+  deletePetById() {
+    this.deletePetMutation.mutate({ petId: '1' });
+  }
+
+  updatePetDetails() {
+    const currentPet = this.pet.data();
+    if (!currentPet) return;
+
+    this.updatePetMutation.mutate({
+      petId: '1',
+      data: {
+        ...currentPet,
+        name: currentPet.name + ' (updated)',
+      },
+    });
+  }
+
+  patchPetTag() {
+    this.patchPetMutation.mutate({
+      petId: '1',
+      data: { tag: 'patched-tag' },
+    });
   }
 }
