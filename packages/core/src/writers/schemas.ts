@@ -1,12 +1,132 @@
 import fs from 'fs-extra';
+import { groupBy } from 'remeda';
 
 import { generateImports } from '../generators';
 import {
-  type ContextSpec,
+  type GeneratorImport,
   type GeneratorSchema,
   NamingConvention,
 } from '../types';
 import { conventionName, upath } from '../utils';
+
+type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
+
+function getSchemaKey(
+  schemaPath: string,
+  schemaName: string,
+  namingConvention: NamingConvention,
+  fileExtension: string,
+) {
+  return getPath(
+    schemaPath,
+    conventionName(schemaName, namingConvention),
+    fileExtension,
+  )
+    .toLowerCase()
+    .replaceAll('\\', '/');
+}
+
+function getSchemaGroups(
+  schemaPath: string,
+  schemas: GeneratorSchema[],
+  namingConvention: NamingConvention,
+  fileExtension: string,
+) {
+  return groupBy(schemas, (schema) =>
+    getSchemaKey(schemaPath, schema.name, namingConvention, fileExtension),
+  );
+}
+
+function getCanonicalMap(
+  schemaGroups: Record<string, GeneratorSchema[]>,
+  schemaPath: string,
+  namingConvention: NamingConvention,
+  fileExtension: string,
+) {
+  const canonicalPathMap = new Map<string, CanonicalInfo>();
+  for (const [key, groupSchemas] of Object.entries(schemaGroups)) {
+    const canonicalPath = getPath(
+      schemaPath,
+      conventionName(groupSchemas[0].name, namingConvention),
+      fileExtension,
+    );
+
+    canonicalPathMap.set(key, {
+      importPath: canonicalPath,
+      name: groupSchemas[0].name,
+    });
+  }
+  return canonicalPathMap;
+}
+
+function normalizeCanonicalImportPaths(
+  schemas: GeneratorSchema[],
+  canonicalPathMap: Map<string, CanonicalInfo>,
+  schemaPath: string,
+  namingConvention: NamingConvention,
+  fileExtension: string,
+) {
+  for (const schema of schemas) {
+    schema.imports = schema.imports.map((imp) => {
+      const resolvedImportKey = resolveImportKey(
+        schemaPath,
+        imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
+        fileExtension,
+      );
+      const canonical = canonicalPathMap.get(resolvedImportKey);
+      if (!canonical?.importPath) return imp;
+
+      const importPath = removeFileExtension(
+        upath.relativeSafe(
+          schemaPath,
+          canonical.importPath.replaceAll('\\', '/'),
+        ),
+        fileExtension,
+      );
+
+      return { ...imp, importPath };
+    });
+  }
+}
+
+function mergeSchemaGroup(schemas: GeneratorSchema[]): GeneratorSchema {
+  const baseSchemaName = schemas[0].name;
+  const baseSchema = schemas[0].schema;
+  const mergedImports = [
+    ...new Map(
+      schemas
+        .flatMap((schema) => schema.imports)
+        .map((imp) => [JSON.stringify(imp), imp]),
+    ).values(),
+  ];
+  const mergedDependencies = [
+    ...new Set(schemas.flatMap((schema) => schema.dependencies ?? [])),
+  ];
+  return {
+    name: baseSchemaName,
+    schema: baseSchema,
+    model: schemas.map((schema) => schema.model).join('\n'),
+    imports: mergedImports,
+    dependencies: mergedDependencies,
+  };
+}
+
+function resolveImportKey(
+  schemaPath: string,
+  importPath: string,
+  fileExtension: string,
+) {
+  return upath
+    .join(schemaPath, `${importPath}${fileExtension}`)
+    .toLowerCase()
+    .replaceAll('\\', '/');
+}
+
+function removeFileExtension(path: string, fileExtension: string) {
+  return path.endsWith(fileExtension)
+    ? path.slice(0, path.length - fileExtension.length)
+    : path;
+}
 
 interface GetSchemaOptions {
   schema: GeneratorSchema;
@@ -36,8 +156,9 @@ function getSchema({
   return file;
 }
 
-const getPath = (path: string, name: string, fileExtension: string): string =>
-  upath.join(path, `/${name}${fileExtension}`);
+function getPath(path: string, name: string, fileExtension: string): string {
+  return upath.join(path, `/${name}${fileExtension}`);
+}
 
 export function writeModelInline(acc: string, model: string): string {
   return acc + `${model}\n`;
@@ -106,18 +227,52 @@ export async function writeSchemas({
   header,
   indexFiles,
 }: WriteSchemasOptions) {
-  await Promise.all(
-    schemas.map(async (schema) => {
+  const schemaGroups = getSchemaGroups(
+    schemaPath,
+    schemas,
+    namingConvention,
+    fileExtension,
+  );
+
+  const canonicalPathByKey = getCanonicalMap(
+    schemaGroups,
+    schemaPath,
+    namingConvention,
+    fileExtension,
+  );
+
+  normalizeCanonicalImportPaths(
+    schemas,
+    canonicalPathByKey,
+    schemaPath,
+    namingConvention,
+    fileExtension,
+  );
+
+  for (const groupSchemas of Object.values(schemaGroups)) {
+    if (groupSchemas.length === 1) {
       await writeSchema({
         path: schemaPath,
-        schema,
+        schema: groupSchemas[0],
         target,
         namingConvention,
         fileExtension,
         header,
       });
-    }),
-  );
+      continue;
+    }
+
+    const mergedSchema = mergeSchemaGroup(groupSchemas);
+
+    await writeSchema({
+      path: schemaPath,
+      schema: mergedSchema,
+      target,
+      namingConvention,
+      fileExtension,
+      header,
+    });
+  }
 
   if (indexFiles) {
     const schemaFilePath = upath.join(schemaPath, `/index${fileExtension}`);
@@ -128,27 +283,11 @@ export async function writeSchemas({
     const ext = fileExtension.endsWith('.ts')
       ? fileExtension.slice(0, -3)
       : fileExtension;
-    const conventionNamesSet = new Set<string>();
-    const duplicateNamesMap = new Map<string, number>();
-    for (const schema of schemas) {
-      const conventionNameValue = conventionName(schema.name, namingConvention);
-      if (conventionNamesSet.has(conventionNameValue)) {
-        duplicateNamesMap.set(
-          conventionNameValue,
-          (duplicateNamesMap.get(conventionNameValue) ?? 0) + 1,
-        );
-      } else {
-        conventionNamesSet.add(conventionNameValue);
-      }
-    }
-    if (duplicateNamesMap.size > 0) {
-      throw new Error(
-        'Duplicate schema names detected (after naming convention):\n' +
-          [...duplicateNamesMap]
-            .map((duplicate) => `  ${duplicate[1] + 1}x ${duplicate[0]}`)
-            .join('\n'),
-      );
-    }
+    const conventionNamesSet = new Set(
+      Object.values(schemaGroups).map((group) =>
+        conventionName(group[0].name, namingConvention),
+      ),
+    );
 
     try {
       // Create unique export statements from schemas (deduplicate by schema name)
