@@ -219,9 +219,7 @@ export function combineSchemas({
   // For oneOf, we should generate union types instead of const objects
   // even when all subschemas are enums
   if (isAllEnums && name && items.length > 1 && separator !== 'oneOf') {
-    const newEnum = `// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ${pascal(
-      name,
-    )} = ${getCombineEnumValue(resolvedData)}`;
+    const newEnum = `export const ${pascal(name)} = ${getCombineEnumValue(resolvedData)}`;
 
     return {
       value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,

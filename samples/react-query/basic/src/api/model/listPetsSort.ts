@@ -7,7 +7,6 @@
 
 export type ListPetsSort = (typeof ListPetsSort)[keyof typeof ListPetsSort];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const ListPetsSort = {
   name: 'name',
   '-name': '-name',

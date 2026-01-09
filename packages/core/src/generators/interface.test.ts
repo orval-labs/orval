@@ -110,7 +110,7 @@ export type TestSchema = typeof TestSchemaValue;
       {
         name: 'ConstEnumKind',
         model:
-          "export type ConstEnumKind = typeof ConstEnumKind[keyof typeof ConstEnumKind];\n\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const ConstEnumKind = {\n  A: 'A',\n} as const;\n",
+          "export type ConstEnumKind = typeof ConstEnumKind[keyof typeof ConstEnumKind];\n\n\nexport const ConstEnumKind = {\n  A: 'A',\n} as const;\n",
         imports: [],
         dependencies: [],
       },
@@ -189,7 +189,7 @@ export type ConstEnum = typeof ConstEnumValue;
       {
         name: 'OrderWithInlineEnumStatus',
         model:
-          "export type OrderWithInlineEnumStatus = typeof OrderWithInlineEnumStatus[keyof typeof OrderWithInlineEnumStatus];\n\n\n// eslint-disable-next-line @typescript-eslint/no-redeclare\nexport const OrderWithInlineEnumStatus = {\n  pending: 'pending',\n  done: 'done',\n} as const;\n",
+          "export type OrderWithInlineEnumStatus = typeof OrderWithInlineEnumStatus[keyof typeof OrderWithInlineEnumStatus];\n\n\nexport const OrderWithInlineEnumStatus = {\n  pending: 'pending',\n  done: 'done',\n} as const;\n",
         imports: [],
         dependencies: [],
       },

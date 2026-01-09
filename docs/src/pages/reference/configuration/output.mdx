@@ -2909,7 +2909,6 @@ Result when `enumGenerationType` is `const`:
 ```ts
 export type Example = (typeof Example)[keyof typeof Example];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const Example = {
   foo: 'foo',
   bar: 'bar',

@@ -7,7 +7,6 @@
 
 export type PetCountry = (typeof PetCountry)[keyof typeof PetCountry];
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 export const PetCountry = {
   "People's_Republic_of_China": "People's Republic of China",
   Uruguay: 'Uruguay',
