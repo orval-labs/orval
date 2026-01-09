@@ -15,6 +15,10 @@ export default defineConfig({
       override: {
         query: {
           useInvalidate: true,
+          mutationInvalidates: {
+            createPets: ['listPets'],
+            uploadFile: ['listPets', 'showPetById'],
+          },
         },
         operations: {
           listPets: {

@@ -566,6 +566,8 @@ export type NormalizedZodOptions = {
   timeOptions: ZodTimeOptions;
 };
 
+export type MutationInvalidatesConfig = Record<string, string[]>;
+
 export type HonoOptions = {
   handlers?: string;
   compositeRoute?: string;
@@ -593,6 +595,7 @@ export type NormalizedQueryOptions = {
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
+  mutationInvalidates?: MutationInvalidatesConfig;
 };
 
 export type QueryOptions = {
@@ -615,6 +618,7 @@ export type QueryOptions = {
   useOperationIdAsQueryKey?: boolean;
   signal?: boolean;
   version?: 3 | 4 | 5;
+  mutationInvalidates?: MutationInvalidatesConfig;
 };
 
 export type AngularOptions = {

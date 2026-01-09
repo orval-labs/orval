@@ -9,6 +9,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 
 import {
+  QueryClient,
   injectMutation,
   injectQuery,
 } from '@tanstack/angular-query-experimental';
@@ -19,7 +20,7 @@ import type {
   CreateQueryResult,
   InvalidateOptions,
   MutationFunction,
-  QueryClient,
+  MutationFunctionContext,
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
@@ -303,6 +304,7 @@ export const getCreatePetsMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
@@ -313,7 +315,17 @@ export const getCreatePetsMutationOptions = <
     return createPets(http, data, version, fetchOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof createPets>>,
+    variables: { data: CreatePetsBody; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -339,7 +351,9 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   { data: CreatePetsBody; version?: number },
   TContext
 > => {
-  return injectMutation(() => getCreatePetsMutationOptions(options));
+  const createPetsMutationOptions = getCreatePetsMutationOptions(options);
+
+  return injectMutation(() => createPetsMutationOptions);
 };
 /**
  * @summary Info for a specific pet
@@ -602,6 +616,7 @@ export const getUploadFileMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
@@ -612,7 +627,18 @@ export const getUploadFileMutationOptions = <
     return uploadFile(http, petId, data, version, fetchOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof uploadFile>>,
+    variables: { petId: number; data: Blob; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getShowPetByIdQueryKey() });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
 };
 
 export type UploadFileMutationResult = NonNullable<
@@ -641,7 +667,9 @@ export const injectUploadFile = <
   { petId: number; data: Blob; version?: number },
   TContext
 > => {
-  return injectMutation(() => getUploadFileMutationOptions(options));
+  const uploadFileMutationOptions = getUploadFileMutationOptions(options);
+
+  return injectMutation(() => uploadFileMutationOptions);
 };
 /**
  * Download image of the pet.

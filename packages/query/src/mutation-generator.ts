@@ -137,11 +137,15 @@ export const generateMutationHook = async ({
     mutator,
   );
 
+  const invalidatesConfig = query.mutationInvalidates?.[operationName];
+  const hasInvalidation = invalidatesConfig?.length && isAngular(outputClient);
+
   const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
 ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
+${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 
       ${
         mutator?.isHook
@@ -159,6 +163,15 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
+
+${
+  hasInvalidation
+    ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+${invalidatesConfig.map((target: string) => `    queryClient.invalidateQueries({ queryKey: ${camel(`get-${target}-query-key`)}() });`).join('\n')}
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };`
+    : ''
+}
 
         ${
           mutationOptionsMutator
@@ -180,7 +193,9 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   return  ${
     mutationOptionsMutator
       ? 'customOptions'
-      : '{ mutationFn, ...mutationOptions }'
+      : hasInvalidation
+        ? '{ mutationFn, onSuccess, ...mutationOptions }'
+        : '{ mutationFn, ...mutationOptions }'
   }}`;
 
   const operationPrefix = getFrameworkPrefix(
@@ -194,6 +209,9 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   const mutationImplementation = `${mutationOptionsFnName}(${
     isRequestOptions ? 'options' : 'mutationOptions'
   })`;
+
+  const mutationOptionsVarName = camel(`${operationName}-mutation-options`);
+
   const implementation = `
 ${mutationOptionsFn}
 
@@ -221,14 +239,17 @@ ${mutationOptionsFn}
         variableType: definitions ? `{${definitions}}` : 'void',
       },
     )} => {
+${
+  isAngular(outputClient)
+    ? `      const ${mutationOptionsVarName} = ${mutationImplementation};
 
-      return ${operationPrefix}Mutation(${
-        isAngular(outputClient)
-          ? `() => ${mutationImplementation}`
-          : hasSvelteQueryV6
-            ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''} })`
-            : `${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''}`
-      });
+      return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
+    : `      return ${operationPrefix}Mutation(${
+        hasSvelteQueryV6
+          ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+          : `${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''}`
+      });`
+}
     }
     `;
 
