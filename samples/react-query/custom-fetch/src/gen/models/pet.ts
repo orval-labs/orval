@@ -4,8 +4,8 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import type { Dog } from './dog';
 import type { Cat } from './cat';
+import type { Dog } from './dog';
 import type { PetCallingCode } from './petCallingCode';
 import type { PetCountry } from './petCountry';
 
