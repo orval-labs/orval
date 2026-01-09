@@ -56,7 +56,7 @@ export const PetstoreApi = {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return response.json() as Promise<Pet[]>;
-  }, "getPets"),
+  }, 'getPets'),
 };
 ```
 
@@ -74,7 +74,7 @@ export const PetstoreApi = {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return response.json() as Promise<Pet>;
-  }, "createPet"),
+  }, 'createPet'),
 };
 ```
 
@@ -86,7 +86,7 @@ import { PetstoreApi } from './api/endpoints';
 // In a component
 function Pets() {
   const pets = createAsync(() => PetstoreApi.getPets(10));
-  
+
   return (
     <div>
       <For each={pets()}>
@@ -99,11 +99,11 @@ function Pets() {
 // For mutations
 function CreatePet() {
   const createPet = useAction(PetstoreApi.createPet);
-  
+
   const handleSubmit = async (formData: FormData) => {
     await createPet({ name: formData.get('name') as string });
   };
-  
+
   return <form action={handleSubmit}>...</form>;
 }
 ```
