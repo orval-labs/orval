@@ -134,6 +134,9 @@ export const makeRouteSafe = (route: string): string =>
 export const isVue = (client: OutputClient | OutputClientFunc) =>
   OutputClient.VUE_QUERY === client;
 
+export const isSolid = (client: OutputClient | OutputClientFunc) =>
+  OutputClient.SOLID_QUERY === client;
+
 export const isAngular = (client: OutputClient | OutputClientFunc) =>
   OutputClient.ANGULAR_QUERY === client;
 

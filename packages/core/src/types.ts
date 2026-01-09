@@ -262,6 +262,8 @@ export const OutputClient = {
   AXIOS: 'axios',
   AXIOS_FUNCTIONS: 'axios-functions',
   REACT_QUERY: 'react-query',
+  SOLID_START: 'solid-start',
+  SOLID_QUERY: 'solid-query',
   SVELTE_QUERY: 'svelte-query',
   VUE_QUERY: 'vue-query',
   SWR: 'swr',

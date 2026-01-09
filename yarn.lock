@@ -5304,6 +5304,18 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@orval/solid-start@workspace:packages/solid-start":
+  version: 0.0.0-use.local
+  resolution: "@orval/solid-start@workspace:packages/solid-start"
+  dependencies:
+    "@orval/core": "workspace:*"
+    eslint: "catalog:"
+    rimraf: "catalog:"
+    tsdown: "catalog:"
+    typescript: "catalog:"
+  languageName: unknown
+  linkType: soft
+
 "@orval/swr@workspace:*, @orval/swr@workspace:packages/swr":
   version: 0.0.0-use.local
   resolution: "@orval/swr@workspace:packages/swr"

@@ -31,6 +31,12 @@ export const generateQueryReturnType = ({
       }
       return `CreateInfiniteQueryResult<TData, TError>`;
     }
+    case OutputClient.SOLID_QUERY: {
+      if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
+        return `CreateQueryResult<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
+      }
+      return `CreateInfiniteQueryResult<TData, TError> & { queryKey: ${hasQueryV5 ? `DataTag<QueryKey, TData${hasQueryV5WithDataTagError ? ', TError' : ''}>` : 'QueryKey'} }`;
+    }
     case OutputClient.SVELTE_QUERY: {
       if (!hasSvelteQueryV4) {
         return `Use${pascal(type)}StoreResult<Awaited<ReturnType<${
@@ -84,6 +90,14 @@ export const generateMutatorReturnType = ({
   }
   if (outputClient === OutputClient.REACT_QUERY) {
     return `: UseMutationResult<
+        Awaited<ReturnType<${dataType}>>,
+        TError,
+        ${variableType},
+        TContext
+      >`;
+  }
+  if (outputClient === OutputClient.SOLID_QUERY) {
+    return `: CreateMutationResult<
         Awaited<ReturnType<${dataType}>>,
         TError,
         ${variableType},
