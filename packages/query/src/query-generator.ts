@@ -941,7 +941,6 @@ ${override.query.shouldExportQueryKey ? 'export ' : ''}const ${queryOption.query
           isExactOptionalPropertyTypes,
           hasSignal: getHasSignal({
             overrideQuerySignal: override.query.signal,
-            verb,
           }),
           queryOptionsMutator,
           queryKeyMutator,
