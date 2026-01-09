@@ -278,6 +278,30 @@ const VUE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
+const SOLID_QUERY_DEPENDENCIES: GeneratorDependency[] = [
+  {
+    exports: [
+      { name: 'createQuery', values: true },
+      { name: 'createInfiniteQuery', values: true },
+      { name: 'createMutation', values: true },
+      { name: 'CreateQueryOptions' },
+      { name: 'CreateInfiniteQueryOptions' },
+      { name: 'CreateMutationOptions' },
+      { name: 'QueryFunction' },
+      { name: 'MutationFunction' },
+      { name: 'CreateQueryResult' },
+      { name: 'CreateInfiniteQueryResult' },
+      { name: 'QueryKey' },
+      { name: 'InfiniteData' },
+      { name: 'CreateMutationResult' },
+      { name: 'DataTag' },
+      { name: 'QueryClient' },
+      { name: 'InvalidateOptions' },
+    ],
+    dependency: '@tanstack/solid-query',
+  },
+];
+
 const ANGULAR_QUERY_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -342,6 +366,21 @@ export const getVueQueryDependencies: ClientDependenciesBuilder = (
   ];
 };
 
+export const getSolidQueryDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator: boolean,
+  hasParamsSerializerOptions: boolean,
+  packageJson,
+  httpClient?: OutputHttpClient,
+) => {
+  return [
+    ...(!hasGlobalMutator && httpClient === OutputHttpClient.AXIOS
+      ? AXIOS_DEPENDENCIES
+      : []),
+    ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+    ...SOLID_QUERY_DEPENDENCIES,
+  ];
+};
+
 export const getAngularQueryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator: boolean,
   hasParamsSerializerOptions: boolean,
@@ -363,7 +402,12 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
 
 export const isQueryV5 = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
 ) => {
   // Angular Query is v5 only
   if (queryClient === 'angular-query') {
@@ -383,7 +427,7 @@ export const isQueryV5 = (
 
 const isQueryV6 = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query',
+  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'solid-query',
 ) => {
   const version = getPackageByQueryClient(packageJson, queryClient);
 
@@ -398,7 +442,12 @@ const isQueryV6 = (
 
 export const isQueryV5WithDataTagError = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
 ) => {
   // Angular Query is v5 only and supports DataTag
   if (queryClient === 'angular-query') {
@@ -418,7 +467,12 @@ export const isQueryV5WithDataTagError = (
 
 export const isQueryV5WithInfiniteQueryOptionsError = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
 ) => {
   // Angular Query is v5 only and supports infinite query options
   if (queryClient === 'angular-query') {
@@ -438,7 +492,12 @@ export const isQueryV5WithInfiniteQueryOptionsError = (
 
 const getPackageByQueryClient = (
   packageJson: PackageJson | undefined,
-  queryClient: 'react-query' | 'vue-query' | 'svelte-query' | 'angular-query',
+  queryClient:
+    | 'react-query'
+    | 'vue-query'
+    | 'svelte-query'
+    | 'angular-query'
+    | 'solid-query',
 ) => {
   switch (queryClient) {
     case 'react-query': {
@@ -469,6 +528,13 @@ const getPackageByQueryClient = (
           '@tanstack/angular-query-experimental'
         ] ??
         packageJson?.peerDependencies?.['@tanstack/angular-query-experimental']
+      );
+    }
+    case 'solid-query': {
+      return (
+        packageJson?.dependencies?.['@tanstack/solid-query'] ??
+        packageJson?.devDependencies?.['@tanstack/solid-query'] ??
+        packageJson?.peerDependencies?.['@tanstack/solid-query']
       );
     }
   }

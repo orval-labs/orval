@@ -41,6 +41,7 @@ const getGeneratorClient = (
     angular: angular()(),
     'angular-query': query({ output, type: 'angular-query' })(),
     'react-query': query({ output, type: 'react-query' })(),
+    'solid-query': query({ output, type: 'solid-query' })(),
     'svelte-query': query({ output, type: 'svelte-query' })(),
     'vue-query': query({ output, type: 'vue-query' })(),
     swr: swr()(),

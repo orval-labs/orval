@@ -22,7 +22,7 @@ import {
   getQueryOptionsDefinition,
 } from './query-options';
 import { generateMutatorReturnType } from './return-types';
-import { isAngular } from './utils';
+import { isAngular, isSolid } from './utils';
 
 export interface MutationHookContext {
   verbOptions: GeneratorVerbOptions;
@@ -186,6 +186,7 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   const operationPrefix = getFrameworkPrefix(
     hasSvelteQueryV4,
     isAngular(outputClient),
+    isSolid(outputClient),
   );
   const optionalQueryClientArgument =
     hasQueryV5 && !isAngular(outputClient) ? ', queryClient?: QueryClient' : '';
