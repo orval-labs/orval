@@ -70,6 +70,21 @@ ${
     : ''
 }
 
+/**
+ * Cache Invalidation:
+ *
+ * Each query provides .key and .keyFor() for cache invalidation.
+ *
+ * Examples:
+ *   // Invalidate all calls to a query
+ *   revalidate(${title}.listPets.key);
+ *
+ *   // Invalidate a specific call with arguments
+ *   revalidate(${title}.showPetById.keyFor("pet-123", 1));
+ *
+ *   // Invalidate multiple queries
+ *   revalidate([${title}.listPets.key, ${title}.showPetById.keyFor("pet-123", 1)]);
+ */
 export const ${title} = {
 `;
 
