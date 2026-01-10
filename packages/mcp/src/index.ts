@@ -11,6 +11,7 @@ import {
   getFullRoute,
   isObject,
   jsDoc,
+  jsStringEscape,
   type NormalizedOutputOptions,
   type OpenApiInfoObject,
   pascal,
@@ -201,9 +202,9 @@ export const generateServer = (
 
       const toolImplementation = `
 server.tool(
-  '${verbOption.operationName}',
-  '${verbOption.summary}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
-  ${verbOption.operationName}Handler
+  '${jsStringEscape(verbOption.operationName)}',
+  '${jsStringEscape(verbOption.summary)}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
+  ${jsStringEscape(verbOption.operationName)}Handler
 );`;
 
       return toolImplementation;
