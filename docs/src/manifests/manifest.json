@@ -186,18 +186,6 @@
           "title": "v8",
           "path": "/versions/v8",
           "editUrl": "/versions/v8.md"
-        },
-        {
-          "title": "next",
-          "href": "https://next.orval.dev/"
-        },
-        {
-          "title": "v5",
-          "href": "https://v5.orval.dev/"
-        },
-        {
-          "title": "v4",
-          "href": "https://v4.orval.dev/"
         }
       ]
     }
