@@ -1,6 +1,6 @@
 {
   "name": "@orval/fetch",
-  "version": "7.17.2",
+  "version": "7.18.0",
   "license": "MIT",
   "exports": {
     ".": {

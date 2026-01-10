@@ -1,6 +1,6 @@
 {
   "name": "react-app",
-  "version": "7.17.2",
+  "version": "7.18.0",
   "private": true,
   "scripts": {
     "start": "react-scripts start",
