@@ -1,5 +1,4 @@
 import {
-  getIsBodyVerb,
   type GetterProps,
   GetterPropType,
   isObject,
@@ -12,7 +11,6 @@ import {
   type QueryOptions,
   TEMPLATE_TAG_REGEX,
   upath,
-  Verbs,
 } from '@orval/core';
 import chalk from 'chalk';
 
@@ -157,8 +155,6 @@ export const getQueryTypeForFramework = (type: string): string => {
 
 export const getHasSignal = ({
   overrideQuerySignal = false,
-  verb,
 }: {
-  verb: Verbs;
   overrideQuerySignal?: boolean;
-}) => overrideQuerySignal && (!getIsBodyVerb(verb) || verb === Verbs.POST);
+}) => overrideQuerySignal;

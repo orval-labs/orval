@@ -5,6 +5,7 @@ import {
   type GeneratorOptions,
   type GeneratorVerbOptions,
   GetterPropType,
+  type InvalidateTarget,
   OutputClient,
   type OutputClientFunc,
   OutputHttpClient,
@@ -23,6 +24,42 @@ import {
 } from './query-options';
 import { generateMutatorReturnType } from './return-types';
 import { isAngular, isSolid } from './utils';
+
+type NormalizedTarget = {
+  query: string;
+  params?: string[] | Record<string, string>;
+};
+
+const normalizeTarget = (target: InvalidateTarget): NormalizedTarget =>
+  typeof target === 'string' ? { query: target } : target;
+
+const serializeTarget = (target: NormalizedTarget): string =>
+  JSON.stringify({ query: target.query, params: target.params ?? [] });
+
+const generateVariableRef = (varName: string): string => {
+  const parts = varName.split('.');
+  if (parts.length === 1) {
+    return `variables.${varName}`;
+  }
+  return `variables.${parts[0]}?.${parts.slice(1).join('?.')}`;
+};
+
+const generateParamArgs = (
+  params: string[] | Record<string, string>,
+): string => {
+  if (Array.isArray(params)) {
+    return params.map((v) => generateVariableRef(v)).join(', ');
+  }
+  return Object.values(params)
+    .map((v) => generateVariableRef(v))
+    .join(', ');
+};
+
+const generateInvalidateCall = (target: NormalizedTarget): string => {
+  const queryKeyFn = camel(`get-${target.query}-query-key`);
+  const args = target.params ? generateParamArgs(target.params) : '';
+  return `    queryClient.invalidateQueries({ queryKey: ${queryKeyFn}(${args}) });`;
+};
 
 export interface MutationHookContext {
   verbOptions: GeneratorVerbOptions;
@@ -101,6 +138,8 @@ export const generateMutationHook = async ({
     ? `ReturnType<typeof use${pascal(operationName)}Hook>`
     : `typeof ${operationName}`;
 
+  const isAngularClient = isAngular(outputClient);
+
   const mutationOptionFnReturnType = getQueryOptionsDefinition({
     operationName,
     mutator,
@@ -109,7 +148,7 @@ export const generateMutationHook = async ({
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     isReturnType: true,
-    isAngularClient: isAngular(outputClient),
+    isAngularClient,
   });
 
   const mutationArguments = generateQueryArguments({
@@ -121,7 +160,7 @@ export const generateMutationHook = async ({
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     httpClient,
-    isAngularClient: isAngular(outputClient),
+    isAngularClient,
   });
 
   const mutationOptionsFnName = camel(
@@ -137,11 +176,25 @@ export const generateMutationHook = async ({
     mutator,
   );
 
+  const invalidatesConfig = (query.mutationInvalidates ?? [])
+    .filter((rule) => rule.onMutations.includes(operationName))
+    .flatMap((rule) => rule.invalidates)
+    .map((t) => normalizeTarget(t));
+  const seenTargets = new Set<string>();
+  const uniqueInvalidates = invalidatesConfig.filter((target) => {
+    const key = serializeTarget(target);
+    if (seenTargets.has(key)) return false;
+    seenTargets.add(key);
+    return true;
+  });
+  const hasInvalidation = uniqueInvalidates.length > 0 && isAngularClient;
+
   const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
 ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
+${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 
       ${
         mutator?.isHook
@@ -159,6 +212,15 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
+
+${
+  hasInvalidation
+    ? `  const onSuccess = (data: Awaited<ReturnType<typeof ${operationName}>>, variables: ${definitions ? `{${definitions}}` : 'void'}, onMutateResult: TContext, context: MutationFunctionContext) => {
+${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };`
+    : ''
+}
 
         ${
           mutationOptionsMutator
@@ -180,7 +242,9 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   return  ${
     mutationOptionsMutator
       ? 'customOptions'
-      : '{ mutationFn, ...mutationOptions }'
+      : hasInvalidation
+        ? '{ mutationFn, onSuccess, ...mutationOptions }'
+        : '{ mutationFn, ...mutationOptions }'
   }}`;
 
   const operationPrefix = getFrameworkPrefix(
@@ -194,6 +258,9 @@ ${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
   const mutationImplementation = `${mutationOptionsFnName}(${
     isRequestOptions ? 'options' : 'mutationOptions'
   })`;
+
+  const mutationOptionsVarName = camel(`${operationName}-mutation-options`);
+
   const implementation = `
 ${mutationOptionsFn}
 
@@ -221,14 +288,17 @@ ${mutationOptionsFn}
         variableType: definitions ? `{${definitions}}` : 'void',
       },
     )} => {
+${
+  isAngular(outputClient)
+    ? `      const ${mutationOptionsVarName} = ${mutationImplementation};
 
-      return ${operationPrefix}Mutation(${
-        isAngular(outputClient)
-          ? `() => ${mutationImplementation}`
-          : hasSvelteQueryV6
-            ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''} })`
-            : `${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''}`
-      });
+      return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
+    : `      return ${operationPrefix}Mutation(${
+        hasSvelteQueryV6
+          ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''} })`
+          : `${mutationImplementation}${optionalQueryClientArgument ? ', queryClient' : ''}`
+      });`
+}
     }
     `;
 

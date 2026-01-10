@@ -105,7 +105,6 @@ export const generateAngularHttpRequestFunction = (
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
-    verb,
   });
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
@@ -266,7 +265,6 @@ export const generateAxiosRequestFunction = (
   const isFormUrlEncoded = override.formUrlEncoded !== false;
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
-    verb,
   });
 
   const isExactOptionalPropertyTypes =

@@ -9,6 +9,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 
 import {
+  QueryClient,
   injectMutation,
   injectQuery,
 } from '@tanstack/angular-query-experimental';
@@ -19,7 +20,7 @@ import type {
   CreateQueryResult,
   InvalidateOptions,
   MutationFunction,
-  QueryClient,
+  MutationFunctionContext,
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
@@ -31,6 +32,7 @@ import type {
   CreatePetsBody,
   Error,
   ListPetsParams,
+  PatchPetBody,
   Pet,
   Pets,
   SearchPetsParams,
@@ -303,6 +305,7 @@ export const getCreatePetsMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
@@ -313,7 +316,17 @@ export const getCreatePetsMutationOptions = <
     return createPets(http, data, version, fetchOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof createPets>>,
+    variables: { data: CreatePetsBody; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -339,7 +352,9 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   { data: CreatePetsBody; version?: number },
   TContext
 > => {
-  return injectMutation(() => getCreatePetsMutationOptions(options));
+  const createPetsMutationOptions = getCreatePetsMutationOptions(options);
+
+  return injectMutation(() => createPetsMutationOptions);
 };
 /**
  * @summary Info for a specific pet
@@ -448,6 +463,305 @@ export const invalidateShowPetById = async (
   return queryClient;
 };
 
+/**
+ * @summary Delete a pet
+ */
+export const deletePet = (
+  http: HttpClient,
+  petId: string,
+  version: number = 1,
+  options?: { signal?: AbortSignal | null },
+): Promise<void> => {
+  const url = `/v${version}/pets/${petId}`;
+  const request$ = http.delete<void>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+export const getDeletePetMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof deletePet>>,
+    TError,
+    { petId: string; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationOptions<
+  Awaited<ReturnType<typeof deletePet>>,
+  TError,
+  { petId: string; version?: number },
+  TContext
+> => {
+  const mutationKey = ['deletePet'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+  const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deletePet>>,
+    { petId: string; version?: number }
+  > = (props) => {
+    const { petId, version } = props ?? {};
+
+    return deletePet(http, petId, version, fetchOptions);
+  };
+
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof deletePet>>,
+    variables: { petId: string; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    queryClient.invalidateQueries({
+      queryKey: getShowPetByIdQueryKey(variables.petId),
+    });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
+};
+
+export type DeletePetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deletePet>>
+>;
+
+export type DeletePetMutationError = Error;
+
+/**
+ * @summary Delete a pet
+ */
+export const injectDeletePet = <TError = Error, TContext = unknown>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof deletePet>>,
+    TError,
+    { petId: string; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof deletePet>>,
+  TError,
+  { petId: string; version?: number },
+  TContext
+> => {
+  const deletePetMutationOptions = getDeletePetMutationOptions(options);
+
+  return injectMutation(() => deletePetMutationOptions);
+};
+/**
+ * @summary Update a pet
+ */
+export const updatePet = (
+  http: HttpClient,
+  petId: string,
+  pet: Pet,
+  version: number = 1,
+  options?: { signal?: AbortSignal | null },
+): Promise<Pet> => {
+  const url = `/v${version}/pets/${petId}`;
+  const request$ = http.put<Pet>(url, pet);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+export const getUpdatePetMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof updatePet>>,
+    TError,
+    { petId: string; data: Pet; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationOptions<
+  Awaited<ReturnType<typeof updatePet>>,
+  TError,
+  { petId: string; data: Pet; version?: number },
+  TContext
+> => {
+  const mutationKey = ['updatePet'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+  const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updatePet>>,
+    { petId: string; data: Pet; version?: number }
+  > = (props) => {
+    const { petId, data, version } = props ?? {};
+
+    return updatePet(http, petId, data, version, fetchOptions);
+  };
+
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof updatePet>>,
+    variables: { petId: string; data: Pet; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    queryClient.invalidateQueries({
+      queryKey: getShowPetByIdQueryKey(variables.petId),
+    });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
+};
+
+export type UpdatePetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updatePet>>
+>;
+export type UpdatePetMutationBody = Pet;
+export type UpdatePetMutationError = Error;
+
+/**
+ * @summary Update a pet
+ */
+export const injectUpdatePet = <TError = Error, TContext = unknown>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof updatePet>>,
+    TError,
+    { petId: string; data: Pet; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof updatePet>>,
+  TError,
+  { petId: string; data: Pet; version?: number },
+  TContext
+> => {
+  const updatePetMutationOptions = getUpdatePetMutationOptions(options);
+
+  return injectMutation(() => updatePetMutationOptions);
+};
+/**
+ * @summary Partially update a pet
+ */
+export const patchPet = (
+  http: HttpClient,
+  petId: string,
+  patchPetBody: PatchPetBody,
+  version: number = 1,
+  options?: { signal?: AbortSignal | null },
+): Promise<Pet> => {
+  const url = `/v${version}/pets/${petId}`;
+  const request$ = http.patch<Pet>(url, patchPetBody);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+export const getPatchPetMutationOptions = <
+  TError = Error,
+  TContext = unknown,
+>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof patchPet>>,
+    TError,
+    { petId: string; data: PatchPetBody; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationOptions<
+  Awaited<ReturnType<typeof patchPet>>,
+  TError,
+  { petId: string; data: PatchPetBody; version?: number },
+  TContext
+> => {
+  const mutationKey = ['patchPet'];
+  const { mutation: mutationOptions, fetch: fetchOptions } = options
+    ? options.mutation &&
+      'mutationKey' in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, fetch: undefined };
+  const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof patchPet>>,
+    { petId: string; data: PatchPetBody; version?: number }
+  > = (props) => {
+    const { petId, data, version } = props ?? {};
+
+    return patchPet(http, petId, data, version, fetchOptions);
+  };
+
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof patchPet>>,
+    variables: { petId: string; data: PatchPetBody; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    queryClient.invalidateQueries({
+      queryKey: getShowPetByIdQueryKey(variables.petId),
+    });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
+};
+
+export type PatchPetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof patchPet>>
+>;
+export type PatchPetMutationBody = PatchPetBody;
+export type PatchPetMutationError = Error;
+
+/**
+ * @summary Partially update a pet
+ */
+export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
+  mutation?: CreateMutationOptions<
+    Awaited<ReturnType<typeof patchPet>>,
+    TError,
+    { petId: string; data: PatchPetBody; version?: number },
+    TContext
+  >;
+  fetch?: RequestInit;
+}): CreateMutationResult<
+  Awaited<ReturnType<typeof patchPet>>,
+  TError,
+  { petId: string; data: PatchPetBody; version?: number },
+  TContext
+> => {
+  const patchPetMutationOptions = getPatchPetMutationOptions(options);
+
+  return injectMutation(() => patchPetMutationOptions);
+};
 /**
  * @summary Info for a specific pet
  */
@@ -602,6 +916,7 @@ export const getUploadFileMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
@@ -612,7 +927,17 @@ export const getUploadFileMutationOptions = <
     return uploadFile(http, petId, data, version, fetchOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof uploadFile>>,
+    variables: { petId: number; data: Blob; version?: number },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
 };
 
 export type UploadFileMutationResult = NonNullable<
@@ -641,7 +966,9 @@ export const injectUploadFile = <
   { petId: number; data: Blob; version?: number },
   TContext
 > => {
-  return injectMutation(() => getUploadFileMutationOptions(options));
+  const uploadFileMutationOptions = getUploadFileMutationOptions(options);
+
+  return injectMutation(() => uploadFileMutationOptions);
 };
 /**
  * Download image of the pet.

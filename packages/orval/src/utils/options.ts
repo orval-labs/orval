@@ -779,6 +779,9 @@ function normalizeQueryOptions(
     ...(isUndefined(queryOptions.version)
       ? {}
       : { version: queryOptions.version }),
+    ...(queryOptions.mutationInvalidates
+      ? { mutationInvalidates: queryOptions.mutationInvalidates }
+      : {}),
   };
 }
 
