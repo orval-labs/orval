@@ -26,11 +26,6 @@
       "heading": true,
       "routes": [
         {
-          "title": "Migration Guide V8",
-          "path": "/guides/migration-v8",
-          "editUrl": "/guides/migration-v8.md"
-        },
-        {
           "title": "Custom Base URL",
           "path": "/guides/set-base-url",
           "editUrl": "/guides/set-base-url.md"
@@ -188,16 +183,9 @@
       "heading": true,
       "routes": [
         {
-          "title": "next",
-          "href": "https://next.orval.dev/"
-        },
-        {
-          "title": "v5",
-          "href": "https://v5.orval.dev/"
-        },
-        {
-          "title": "v4",
-          "href": "https://v4.orval.dev/"
+          "title": "v8",
+          "path": "/versions/v8",
+          "editUrl": "/versions/v8.md"
         }
       ]
     }
