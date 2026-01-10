@@ -12,6 +12,7 @@ import {
   getFileInfo,
   getFullRoute,
   jsDoc,
+  jsStringEscape,
   NormalizedOutputOptions,
   pascal,
   upath,
@@ -184,30 +185,30 @@ export const generateServer = async (
 
   const toolImplementations = Object.values(verbOptions)
     .map((verbOption) => {
-      const imputSchemaTypes = [];
+      const inputSchemaTypes = [];
       if (verbOption.params.length > 0)
-        imputSchemaTypes.push(
+        inputSchemaTypes.push(
           `  pathParams: ${verbOption.operationName}Params`,
         );
       if (verbOption.queryParams)
-        imputSchemaTypes.push(
+        inputSchemaTypes.push(
           `  queryParams: ${verbOption.operationName}QueryParams`,
         );
       if (verbOption.body.definition)
-        imputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
+        inputSchemaTypes.push(`  bodyParams: ${verbOption.operationName}Body`);
 
-      const imputSchemaImplementation =
-        imputSchemaTypes.length > 0
+      const inputSchemaImplementation =
+        inputSchemaTypes.length > 0
           ? `  {
-  ${imputSchemaTypes.join(',\n  ')}
+  ${inputSchemaTypes.join(',\n  ')}
   },`
           : '';
 
       const toolImplementation = `
 server.tool(
-  '${verbOption.operationName}',
-  '${verbOption.summary}',${imputSchemaImplementation ? `\n${imputSchemaImplementation}` : ''}
-  ${verbOption.operationName}Handler
+  '${jsStringEscape(verbOption.operationName)}',
+  '${jsStringEscape(verbOption.summary)}',${inputSchemaImplementation ? `\n${inputSchemaImplementation}` : ''}
+  ${jsStringEscape(verbOption.operationName)}Handler
 );`;
 
       return toolImplementation;
