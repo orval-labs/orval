@@ -201,6 +201,7 @@ export const EXAMPLES = {
       tags: [],
       config: dedent(/* JSON */ `{
           "output": {
+            "httpClient": "fetch",
             "client": "react-query",
             "target": "./src/generated/endpoints.ts",
             "mock": true

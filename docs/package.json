@@ -33,7 +33,7 @@
     "dedent": "^1.7.0",
     "docsearch.js": "^2.6.3",
     "next": "^16.0.10",
-    "orval": "^7.15.0",
+    "orval": "^8.0.0-rc.5",
     "prettier": "3.6.2",
     "prism-react-renderer": "^2.4.1",
     "prismjs": "^1.30.0",
