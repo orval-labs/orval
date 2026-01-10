@@ -167,7 +167,7 @@ export function getObject({
 
         acc.hasReadonlyProps ||= isReadOnly || false;
 
-        const constValue = 'const' in schema ? schema.const : undefined;
+        const constValue = typeof schema === 'object' && schema !== null && 'const' in schema ? schema.const : undefined;
         const hasConst = constValue !== undefined;
         let constLiteral: string | undefined;
 

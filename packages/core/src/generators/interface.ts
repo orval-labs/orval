@@ -44,7 +44,7 @@ export function generateInterface({
       scalar.type === 'object' &&
       schema.properties &&
       Object.values(schema.properties).length > 0 &&
-      Object.values(schema.properties).every((item) => 'const' in item)
+      Object.values(schema.properties).every((item) => typeof item === 'object' && item !== null && 'const' in item)
     ) {
       const mappedScalarValue = scalar.value
         .replaceAll(';', ',')

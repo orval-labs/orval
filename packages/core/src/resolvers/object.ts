@@ -39,9 +39,9 @@ function resolveObjectOriginal({
     ).test(resolvedValue.value)
   ) {
     let model = '';
-    const isConstant = 'const' in schema;
+    const isConstant = typeof schema === 'object' && schema !== null && 'const' in schema;
     const constantIsString =
-      'type' in schema &&
+      typeof schema === 'object' && schema !== null && 'type' in schema &&
       (schema.type === 'string' ||
         (Array.isArray(schema.type) && schema.type.includes('string')));
 

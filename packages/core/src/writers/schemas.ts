@@ -68,9 +68,11 @@ function normalizeCanonicalImportPaths(
 ) {
   for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
+      // Always use the schema name (imp.name) to look up the canonical path,
+      // not imp.importPath which might be incorrect for external file references
       const resolvedImportKey = resolveImportKey(
         schemaPath,
-        imp.importPath ?? `./${conventionName(imp.name, namingConvention)}`,
+        `./${conventionName(imp.name, namingConvention)}`,
         fileExtension,
       );
       const canonical = canonicalPathMap.get(resolvedImportKey);
