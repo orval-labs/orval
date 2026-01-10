@@ -26,11 +26,6 @@
       "heading": true,
       "routes": [
         {
-          "title": "Migration Guide V8",
-          "path": "/guides/migration-v8",
-          "editUrl": "/guides/migration-v8.md"
-        },
-        {
           "title": "Custom Base URL",
           "path": "/guides/set-base-url",
           "editUrl": "/guides/set-base-url.md"
