@@ -1,6 +1,6 @@
 {
   "name": "next-app-with-fetch",
-  "version": "7.17.2",
+  "version": "7.18.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

@@ -1,6 +1,6 @@
 {
   "name": "react-query-hook-mutator",
-  "version": "7.17.2",
+  "version": "7.18.0",
   "private": true,
   "scripts": {
     "generate-api": "orval",

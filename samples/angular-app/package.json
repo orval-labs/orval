@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "7.17.2",
+  "version": "7.18.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
