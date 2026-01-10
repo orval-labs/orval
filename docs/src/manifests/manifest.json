@@ -188,6 +188,11 @@
       "heading": true,
       "routes": [
         {
+          "title": "v8",
+          "path": "/versions/v8",
+          "editUrl": "/versions/v8.md"
+        },
+        {
           "title": "next",
           "href": "https://next.orval.dev/"
         },
