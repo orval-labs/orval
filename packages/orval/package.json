@@ -79,6 +79,7 @@
     "@orval/mcp": "workspace:*",
     "@orval/mock": "workspace:*",
     "@orval/query": "workspace:*",
+    "@orval/solid-start": "workspace:*",
     "@orval/swr": "workspace:*",
     "@orval/zod": "workspace:*",
     "@scalar/json-magic": "^0.8.8",
