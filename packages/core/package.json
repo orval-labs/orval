@@ -46,7 +46,7 @@
     "fs-extra": "^11.3.2",
     "globby": "16.1.0",
     "remeda": "^2.32.0",
-    "typedoc": "^0.28.14"
+    "typedoc": "^0.28.15"
   },
   "stableVersion": "8.0.0-rc.4"
 }
