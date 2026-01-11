@@ -354,4 +354,19 @@ export default defineConfig({
       target: '../specifications/swr-infinite-pagination.yaml',
     },
   },
+  swrSuspense: {
+    output: {
+      target: '../generated/swr/swr-suspense/endpoints.ts',
+      schemas: '../generated/swr/swr-suspense/model',
+      client: 'swr',
+      override: {
+        swr: {
+          useSuspense: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
