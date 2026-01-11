@@ -6611,10 +6611,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.90.6":
-  version: 5.90.6
-  resolution: "@tanstack/query-core@npm:5.90.6"
-  checksum: 10c0/2523cd4d9bc4d9fc1a828b15923c44046004fb1c4322f8c211ff4c153914bc776a356a476f499127cfee3fc89b101ac64f93b352aa761bd349c3a8e0de33d792
+"@tanstack/query-core@npm:5.90.16":
+  version: 5.90.16
+  resolution: "@tanstack/query-core@npm:5.90.16"
+  checksum: 10c0/f6a4827feeed2b4118323056bbda8d5099823202d1f29b538204ae2591be4e80f2946f3311eed30fefe866643f431c04b560457f03415d40caf2f353ba1efac0
   languageName: node
   linkType: hard
 
@@ -6647,12 +6647,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/vue-query@npm:^5.90.6":
-  version: 5.90.6
-  resolution: "@tanstack/vue-query@npm:5.90.6"
+"@tanstack/vue-query@npm:^5.92.5":
+  version: 5.92.5
+  resolution: "@tanstack/vue-query@npm:5.92.5"
   dependencies:
     "@tanstack/match-sorter-utils": "npm:^8.19.4"
-    "@tanstack/query-core": "npm:5.90.6"
+    "@tanstack/query-core": "npm:5.90.16"
     "@vue/devtools-api": "npm:^6.6.3"
     vue-demi: "npm:^0.14.10"
   peerDependencies:
@@ -6661,7 +6661,7 @@ __metadata:
   peerDependenciesMeta:
     "@vue/composition-api":
       optional: true
-  checksum: 10c0/c6d2ecbf231a32b7426c1ad6ca5303a42d27e8de9a92afe17814b085b93b73571ee1259035d68149cf21f9e70ade94afa797052c8b7eaff0fc8b9618a8e058be
+  checksum: 10c0/a43077235dd371b6dac73456271d15ab436e73270329c77d82cb4f8c1d0085226771f84dc3d01c42c8d6963398f54e2948a370c0443973c44e791eda48060f07
   languageName: node
   linkType: hard
 
@@ -18247,7 +18247,7 @@ __metadata:
     "@modelcontextprotocol/sdk": "npm:1.25.2"
     "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
-    "@tanstack/vue-query": "npm:^5.90.6"
+    "@tanstack/vue-query": "npm:^5.92.5"
     "@types/react": "npm:18.3.24"
     axios: "npm:^1.13.2"
     hono: "npm:^4.11.3"
@@ -24485,7 +24485,7 @@ __metadata:
   resolution: "vue-query-basic@workspace:samples/vue-query/vue-query-basic"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    "@tanstack/vue-query": "npm:^5.90.6"
+    "@tanstack/vue-query": "npm:^5.92.5"
     "@testing-library/vue": "npm:^8.1.0"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     "@vue/compiler-sfc": "npm:^3.5.26"
@@ -24510,7 +24510,7 @@ __metadata:
   resolution: "vue-query-custom-fetch@workspace:samples/vue-query/custom-fetch"
   dependencies:
     "@faker-js/faker": "npm:^10.1.0"
-    "@tanstack/vue-query": "npm:^5.90.6"
+    "@tanstack/vue-query": "npm:^5.92.5"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     orval: "workspace:*"
     typescript: "npm:~5.9.3"
