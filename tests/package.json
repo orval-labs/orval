@@ -29,7 +29,7 @@
   "devDependencies": {
     "@angular/common": "catalog:angular",
     "@angular/core": "catalog:angular",
-    "@faker-js/faker": "^10.1.0",
+    "@faker-js/faker": "^10.2.0",
     "@hono/zod-validator": "^0.7.4",
     "@modelcontextprotocol/sdk": "1.25.2",
     "@tanstack/react-query": "~5.62.16",

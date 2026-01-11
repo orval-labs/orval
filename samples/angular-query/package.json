@@ -27,7 +27,7 @@
     "@angular/build": "catalog:angular",
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
-    "@faker-js/faker": "^10.1.0",
+    "@faker-js/faker": "^10.2.0",
     "@testing-library/angular": "16.0.0",
     "msw": "^2.12.7",
     "orval": "link:../../packages/orval/dist",
