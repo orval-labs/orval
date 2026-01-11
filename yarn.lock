@@ -3356,10 +3356,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "@faker-js/faker@npm:10.1.0"
-  checksum: 10c0/3dc277245ec1bef8b839a9dc45b4ccb1688d21b8bde6531a849c1773193de30047e40e085b7e900c42c940911ecf1645b582ad3c85093df5bfdbddeb44a2b554
+"@faker-js/faker@npm:^10.2.0":
+  version: 10.2.0
+  resolution: "@faker-js/faker@npm:10.2.0"
+  checksum: 10c0/72b5048ff32e90b2876560015e177f91b0625dafaaa43631302e413329105be331a1c126c8f7b0f95817cacd51c9222b58e62b6f09f5485522302e6103f19f09
   languageName: node
   linkType: hard
 
@@ -5196,7 +5196,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@scalar/openapi-types": "catalog:"
     "@types/debug": "npm:^4.1.12"
     "@types/esutils": "npm:^2.0.2"
@@ -8912,7 +8912,7 @@ __metadata:
     "@angular/forms": "catalog:angular"
     "@angular/platform-browser": "catalog:angular"
     "@angular/router": "catalog:angular"
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     msw: "npm:^2.12.7"
     orval: "workspace:*"
     rimraf: "npm:^6.1.2"
@@ -8940,7 +8940,7 @@ __metadata:
     "@angular/forms": "catalog:angular"
     "@angular/platform-browser": "catalog:angular"
     "@angular/router": "catalog:angular"
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/angular-query-experimental": "npm:^5.62.7"
     "@testing-library/angular": "npm:16.0.0"
     msw: "npm:^2.12.7"
@@ -9590,7 +9590,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "basic@workspace:samples/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     msw: "npm:^2.12.7"
     npm-run-all: "npm:^4.1.5"
@@ -17655,7 +17655,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "next-app-with-fetch@workspace:samples/next-app-with-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -17679,7 +17679,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "next-app@workspace:samples/hono/hono-with-fetch-client/next-app"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -18379,7 +18379,7 @@ __metadata:
   dependencies:
     "@angular/common": "catalog:angular"
     "@angular/core": "catalog:angular"
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@hono/zod-validator": "npm:^0.7.4"
     "@modelcontextprotocol/sdk": "npm:1.25.2"
     "@tanstack/react-query": "npm:~5.62.16"
@@ -20156,7 +20156,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-app@workspace:samples/react-app"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -20250,7 +20250,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-basic@workspace:samples/react-query/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/react-query": "npm:~5.62.16"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
@@ -20273,7 +20273,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-custom-fetch@workspace:samples/react-query/custom-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/react-query": "npm:~5.62.16"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -20295,7 +20295,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-data-mutator@workspace:samples/react-query/form-data-mutator"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20307,7 +20307,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-data@workspace:samples/react-query/form-data"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20319,7 +20319,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-url-encoded-mutator@workspace:samples/react-query/form-url-encoded-mutator"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20331,7 +20331,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-url-encoded@workspace:samples/react-query/form-url-encoded"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20343,7 +20343,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-hook-mutator@workspace:samples/react-query/hook-mutator"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -22804,7 +22804,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "svelte-query-basic@workspace:samples/svelte-query/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@sveltejs/adapter-auto": "npm:^2.1.1"
     "@sveltejs/kit": "npm:^1.30.4"
     "@tanstack/svelte-query": "npm:^4.41.0"
@@ -22830,7 +22830,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "svelte-query-custom-fetch@workspace:samples/svelte-query/custom-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
     "@sveltestack/svelte-query": "npm:^1.6.0"
     "@tanstack/svelte-query": "npm:^4.41.0"
@@ -22917,7 +22917,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swr-basic@workspace:samples/react-app-with-swr/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -22939,7 +22939,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swr-with-fetch-client@workspace:samples/react-app-with-swr/fetch-client"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
@@ -22961,7 +22961,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swr-with-zod@workspace:samples/swr-with-zod"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
     "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
@@ -24630,7 +24630,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "vue-query-basic@workspace:samples/vue-query/vue-query-basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/vue-query": "npm:^5.92.5"
     "@testing-library/vue": "npm:^8.1.0"
     "@vitejs/plugin-vue": "npm:^6.0.1"
@@ -24655,7 +24655,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "vue-query-custom-fetch@workspace:samples/vue-query/custom-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/vue-query": "npm:^5.92.5"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     orval: "workspace:*"
