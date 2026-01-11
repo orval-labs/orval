@@ -15,6 +15,9 @@ export default defineConfig({
           path: './src/api/mutator/custom-instance.ts',
           name: 'customInstance',
         },
+        swr: {
+          useSuspense: true,
+        },
         operations: {
           listPets: {
             mock: {

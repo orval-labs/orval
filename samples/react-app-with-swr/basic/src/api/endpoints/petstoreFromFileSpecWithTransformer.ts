@@ -155,6 +155,45 @@ export const useListPets = <TError = Error>(
   };
 };
 
+export type ListPetsSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listPets>>
+>;
+export type ListPetsSuspenseQueryError = Error;
+
+/**
+ * @summary List all pets
+ */
+export const useListPetsSuspense = <TError = Error>(
+  params?: ListPetsParams,
+  version: number = 1,
+  options?: {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof listPets>>, TError> & {
+      swrKey?: Key;
+      enabled?: boolean;
+    };
+  },
+) => {
+  const { swr: swrOptions } = options ?? {};
+
+  const isEnabled = swrOptions?.enabled !== false && !!version;
+  const swrKey =
+    swrOptions?.swrKey ??
+    (() => (isEnabled ? getListPetsKey(params, version) : null));
+  const swrFn = () => listPets(params, version);
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
+    swrKey,
+    swrFn,
+    { suspense: true, ...swrOptions },
+  );
+
+  return {
+    swrKey,
+    ...query,
+    data: query.data as NonNullable<typeof query.data>,
+  };
+};
+
 /**
  * @summary Create a pet
  */
@@ -317,5 +356,44 @@ export const useShowPetById = <TError = Error>(
   return {
     swrKey,
     ...query,
+  };
+};
+
+export type ShowPetByIdSuspenseQueryResult = NonNullable<
+  Awaited<ReturnType<typeof showPetById>>
+>;
+export type ShowPetByIdSuspenseQueryError = Error;
+
+/**
+ * @summary Info for a specific pet
+ */
+export const useShowPetByIdSuspense = <TError = Error>(
+  petId: string,
+  version: number = 1,
+  options?: {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof showPetById>>, TError> & {
+      swrKey?: Key;
+      enabled?: boolean;
+    };
+  },
+) => {
+  const { swr: swrOptions } = options ?? {};
+
+  const isEnabled = swrOptions?.enabled !== false && !!(version && petId);
+  const swrKey =
+    swrOptions?.swrKey ??
+    (() => (isEnabled ? getShowPetByIdKey(petId, version) : null));
+  const swrFn = () => showPetById(petId, version);
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(
+    swrKey,
+    swrFn,
+    { suspense: true, ...swrOptions },
+  );
+
+  return {
+    swrKey,
+    ...query,
+    data: query.data as NonNullable<typeof query.data>,
   };
 };
