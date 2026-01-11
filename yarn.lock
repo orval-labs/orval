@@ -381,12 +381,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/compiler@npm:^20.3.15":
-  version: 20.3.15
-  resolution: "@angular/compiler@npm:20.3.15"
+"@angular/compiler@npm:^20.3.16":
+  version: 20.3.16
+  resolution: "@angular/compiler@npm:20.3.16"
   dependencies:
     tslib: "npm:^2.3.0"
-  checksum: 10c0/55950ca55514a04ec32158da747aa29c29390b984548da30b14963c8f251cd7a488e735876b2c0d43ff1ea4f79c4793a39485c3bee7ecf4fd9e844fa62988635
+  checksum: 10c0/fbace33d4dd98f3b59e332ccae052b606f62af9dfefaab611ed20408c8a25eb98757d5dc652043ac6e2983107f57b8111c026c67b5a4568999c4e6440f8d8730
   languageName: node
   linkType: hard
 
@@ -8767,7 +8767,7 @@ __metadata:
     "@angular/build": "npm:^20.3.1"
     "@angular/cli": "npm:^20.3.1"
     "@angular/common": "catalog:angular"
-    "@angular/compiler": "npm:^20.3.15"
+    "@angular/compiler": "npm:^20.3.16"
     "@angular/compiler-cli": "npm:^20.3.2"
     "@angular/core": "catalog:angular"
     "@angular/forms": "npm:^20.3.0"
@@ -8795,7 +8795,7 @@ __metadata:
     "@angular/build": "npm:^20.3.1"
     "@angular/cli": "npm:^20.3.1"
     "@angular/common": "catalog:angular"
-    "@angular/compiler": "npm:^20.3.15"
+    "@angular/compiler": "npm:^20.3.16"
     "@angular/compiler-cli": "npm:^20.3.2"
     "@angular/core": "catalog:angular"
     "@angular/forms": "npm:^20.3.0"
