@@ -120,7 +120,6 @@ export const getListPetsKey = (params?: ListPetsParams, version: number = 1) =>
 export type ListPetsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPets>>
 >;
-export type ListPetsQueryError = Error;
 
 /**
  * @summary List all pets
@@ -158,7 +157,6 @@ export const useListPets = <TError = Error>(
 export type ListPetsSuspenseQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPets>>
 >;
-export type ListPetsSuspenseQueryError = Error;
 
 /**
  * @summary List all pets
@@ -246,7 +244,6 @@ export const getCreatePetsMutationKey = (version: number = 1) =>
 export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsMutationError = Error;
 
 /**
  * @summary Create a pet
@@ -324,7 +321,6 @@ export const getShowPetByIdKey = (petId: string, version: number = 1) =>
 export type ShowPetByIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof showPetById>>
 >;
-export type ShowPetByIdQueryError = Error;
 
 /**
  * @summary Info for a specific pet
@@ -362,7 +358,6 @@ export const useShowPetById = <TError = Error>(
 export type ShowPetByIdSuspenseQueryResult = NonNullable<
   Awaited<ReturnType<typeof showPetById>>
 >;
-export type ShowPetByIdSuspenseQueryError = Error;
 
 /**
  * @summary Info for a specific pet
