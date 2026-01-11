@@ -186,6 +186,9 @@ __metadata:
 "@angular-devkit/architect@npm:0.2003.14":
   version: 0.2003.14
   resolution: "@angular-devkit/architect@npm:0.2003.14"
+"@angular-devkit/architect@npm:0.2003.14":
+  version: 0.2003.14
+  resolution: "@angular-devkit/architect@npm:0.2003.14"
   dependencies:
     "@angular-devkit/core": "npm:20.3.14"
     rxjs: "npm:7.8.2"
@@ -222,6 +225,7 @@ __metadata:
     ora: "npm:8.2.0"
     rxjs: "npm:7.8.2"
   checksum: 10c0/f05bc442f69e4c6106a093d11263cf24373fa3b06ba00bfd4d92ed299886c662969ff3c516da4d35fe98b92c3846ea4e21aa1a8c49cbde54c83bef015e64a920
+  checksum: 10c0/f05bc442f69e4c6106a093d11263cf24373fa3b06ba00bfd4d92ed299886c662969ff3c516da4d35fe98b92c3846ea4e21aa1a8c49cbde54c83bef015e64a920
   languageName: node
   linkType: hard
 
@@ -231,6 +235,8 @@ __metadata:
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
+    "@angular/core": 20.3.16
+  checksum: 10c0/bfcab05aa0a817bc305cc6b7dc1eb90a80eb50411b3b00b7717bd347d5cecb6636389ffe32c31c5c8595508fb0ed8fd84b503c32b32757dc3ccd8b96d32ab93f
     "@angular/core": 20.3.16
   checksum: 10c0/bfcab05aa0a817bc305cc6b7dc1eb90a80eb50411b3b00b7717bd347d5cecb6636389ffe32c31c5c8595508fb0ed8fd84b503c32b32757dc3ccd8b96d32ab93f
   languageName: node
@@ -312,6 +318,7 @@ __metadata:
       optional: true
     vitest:
       optional: true
+  checksum: 10c0/61dec0ebc8d99e7887385581aa66bed3a6107d220465b54ba15875889b87a164bfd4885dc886ac0fee25f55751911d4af41e1bfc34d32a7bb47ae8b48790623e
   checksum: 10c0/61dec0ebc8d99e7887385581aa66bed3a6107d220465b54ba15875889b87a164bfd4885dc886ac0fee25f55751911d4af41e1bfc34d32a7bb47ae8b48790623e
   languageName: node
   linkType: hard
@@ -417,7 +424,11 @@ __metadata:
     "@angular/common": 20.3.16
     "@angular/core": 20.3.16
     "@angular/platform-browser": 20.3.16
+    "@angular/common": 20.3.16
+    "@angular/core": 20.3.16
+    "@angular/platform-browser": 20.3.16
     rxjs: ^6.5.3 || ^7.4.0
+  checksum: 10c0/ec175ac6fc8ebbf016c32fd760e6b8c80c4e4c0cc571abf8c2548a027583fc040fb69a1227934f9007fb24eb5a3c62198e58d5cb416bb56c2a60337911d041be
   checksum: 10c0/ec175ac6fc8ebbf016c32fd760e6b8c80c4e4c0cc571abf8c2548a027583fc040fb69a1227934f9007fb24eb5a3c62198e58d5cb416bb56c2a60337911d041be
   languageName: node
   linkType: hard
@@ -428,6 +439,9 @@ __metadata:
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
+    "@angular/animations": 20.3.16
+    "@angular/common": 20.3.16
+    "@angular/core": 20.3.16
     "@angular/animations": 20.3.16
     "@angular/common": 20.3.16
     "@angular/core": 20.3.16
@@ -13858,10 +13872,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"globals@npm:^16.4.0, globals@npm:^16.5.0":
+"globals@npm:^16.4.0":
   version: 16.5.0
   resolution: "globals@npm:16.5.0"
   checksum: 10c0/615241dae7851c8012f5aa0223005b1ed6607713d6813de0741768bd4ddc39353117648f1a7086b4b0fa45eae733f1c0a0fe369aa4e543bb63f8de8990178ea9
+  languageName: node
+  linkType: hard
+
+"globals@npm:^17.0.0":
+  version: 17.0.0
+  resolution: "globals@npm:17.0.0"
+  checksum: 10c0/e3c169fdcb0fc6755707b697afb367bea483eb29992cfc0de1637382eb893146e17f8f96db6d7453e3696b478a7863ae2000e6c71cd2f4061410285106d3847a
   languageName: node
   linkType: hard
 
@@ -18274,7 +18295,7 @@ __metadata:
     eslint-plugin-prettier: "npm:^5.5.4"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
     eslint-plugin-unicorn: "npm:^62.0.0"
-    globals: "npm:^16.5.0"
+    globals: "npm:^17.0.0"
     husky: "npm:^9.1.7"
     lint-staged: "npm:^16.2.6"
     prettier: "catalog:"
