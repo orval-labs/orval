@@ -225,7 +225,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/animations@npm:^20.3.16":
+"@angular/animations@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/animations@npm:20.3.16"
   dependencies:
@@ -236,7 +236,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/build@npm:^20.3.14":
+"@angular/build@npm:20.3.14":
   version: 20.3.14
   resolution: "@angular/build@npm:20.3.14"
   dependencies:
@@ -316,7 +316,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/cli@npm:^20.3.14":
+"@angular/cli@npm:20.3.14":
   version: 20.3.14
   resolution: "@angular/cli@npm:20.3.14"
   dependencies:
@@ -344,19 +344,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/common@npm:^20.3.0":
-  version: 20.3.15
-  resolution: "@angular/common@npm:20.3.15"
+"@angular/common@npm:20.3.16":
+  version: 20.3.16
+  resolution: "@angular/common@npm:20.3.16"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
-    "@angular/core": 20.3.15
+    "@angular/core": 20.3.16
     rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/d8582bda3db80a11735f173197bd1ae1054cce973112eac245bff92bec09b15ea7ba845a83060029027aa25e95ad4fce36a1fbd5208e86775905c80d1875019d
+  checksum: 10c0/95e0d173e35a88de0cd6532ea5c92789d93841c650fd549e9f4654a6f737611193a23cbbc4000371545cec8d3a9c7e75abf418f39f4df3b7d794491376b7075c
   languageName: node
   linkType: hard
 
-"@angular/compiler-cli@npm:^20.3.16":
+"@angular/compiler-cli@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/compiler-cli@npm:20.3.16"
   dependencies:
@@ -381,7 +381,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/compiler@npm:^20.3.16":
+"@angular/compiler@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/compiler@npm:20.3.16"
   dependencies:
@@ -390,7 +390,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/core@npm:^20.3.0":
+"@angular/core@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/core@npm:20.3.16"
   dependencies:
@@ -408,7 +408,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/forms@npm:^20.3.16":
+"@angular/forms@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/forms@npm:20.3.16"
   dependencies:
@@ -422,7 +422,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/platform-browser@npm:^20.3.16":
+"@angular/platform-browser@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/platform-browser@npm:20.3.16"
   dependencies:
@@ -438,7 +438,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/router@npm:^20.3.16":
+"@angular/router@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/router@npm:20.3.16"
   dependencies:
@@ -449,20 +449,6 @@ __metadata:
     "@angular/platform-browser": 20.3.16
     rxjs: ^6.5.3 || ^7.4.0
   checksum: 10c0/d081337d843ba87e16980fae0fa123b38c55caf2ce7523e98a386a5ead81c55ab762fb17415eedf5316639613e6c0466e452f83a11bb65e05e0307db0f71e94a
-  languageName: node
-  linkType: hard
-
-"@angular/router@npm:^20.3.9":
-  version: 20.3.9
-  resolution: "@angular/router@npm:20.3.9"
-  dependencies:
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@angular/common": 20.3.9
-    "@angular/core": 20.3.9
-    "@angular/platform-browser": 20.3.9
-    rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/36f3e01b52528cd1b80e5ca74b9c5fd3ec2b83b488872da7b891c711bcd27ff34eb9d12e835e61396d62a55159c1dda724d3220f21f03aa9399d1fb6beea02ec
   languageName: node
   linkType: hard
 
@@ -8780,15 +8766,15 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "angular-app@workspace:samples/angular-app"
   dependencies:
-    "@angular/build": "npm:^20.3.14"
-    "@angular/cli": "npm:^20.3.14"
+    "@angular/build": "catalog:angular"
+    "@angular/cli": "catalog:angular"
     "@angular/common": "catalog:angular"
-    "@angular/compiler": "npm:^20.3.16"
-    "@angular/compiler-cli": "npm:^20.3.16"
+    "@angular/compiler": "catalog:angular"
+    "@angular/compiler-cli": "catalog:angular"
     "@angular/core": "catalog:angular"
-    "@angular/forms": "npm:^20.3.16"
-    "@angular/platform-browser": "npm:^20.3.16"
-    "@angular/router": "npm:^20.3.16"
+    "@angular/forms": "catalog:angular"
+    "@angular/platform-browser": "catalog:angular"
+    "@angular/router": "catalog:angular"
     "@faker-js/faker": "npm:^10.1.0"
     msw: "npm:^2.12.7"
     orval: "workspace:*"
@@ -8807,16 +8793,16 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "angular-query@workspace:samples/angular-query"
   dependencies:
-    "@angular/animations": "npm:^20.3.16"
-    "@angular/build": "npm:^20.3.14"
-    "@angular/cli": "npm:^20.3.14"
+    "@angular/animations": "catalog:angular"
+    "@angular/build": "catalog:angular"
+    "@angular/cli": "catalog:angular"
     "@angular/common": "catalog:angular"
-    "@angular/compiler": "npm:^20.3.16"
-    "@angular/compiler-cli": "npm:^20.3.16"
+    "@angular/compiler": "catalog:angular"
+    "@angular/compiler-cli": "catalog:angular"
     "@angular/core": "catalog:angular"
-    "@angular/forms": "npm:^20.3.16"
-    "@angular/platform-browser": "npm:^20.3.16"
-    "@angular/router": "npm:^20.3.9"
+    "@angular/forms": "catalog:angular"
+    "@angular/platform-browser": "catalog:angular"
+    "@angular/router": "catalog:angular"
     "@faker-js/faker": "npm:^10.1.0"
     "@tanstack/angular-query-experimental": "npm:^5.62.7"
     "@testing-library/angular": "npm:16.0.0"
