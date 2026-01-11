@@ -18286,7 +18286,7 @@ __metadata:
     lint-staged: "npm:^16.2.6"
     prettier: "catalog:"
     rimraf: "catalog:"
-    turbo: "npm:^2.7.1"
+    turbo: "npm:^2.7.3"
     typescript: "catalog:"
     typescript-eslint: "npm:^8.50.1"
     vitest: "catalog:"
@@ -23438,58 +23438,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-darwin-64@npm:2.7.1"
+"turbo-darwin-64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-darwin-64@npm:2.7.3"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-darwin-arm64@npm:2.7.1"
+"turbo-darwin-arm64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-darwin-arm64@npm:2.7.3"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-linux-64@npm:2.7.1"
+"turbo-linux-64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-linux-64@npm:2.7.3"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-linux-arm64@npm:2.7.1"
+"turbo-linux-arm64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-linux-arm64@npm:2.7.3"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-windows-64@npm:2.7.1"
+"turbo-windows-64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-windows-64@npm:2.7.3"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-windows-arm64@npm:2.7.1"
+"turbo-windows-arm64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-windows-arm64@npm:2.7.3"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:^2.7.1":
-  version: 2.7.1
-  resolution: "turbo@npm:2.7.1"
+"turbo@npm:^2.7.3":
+  version: 2.7.3
+  resolution: "turbo@npm:2.7.3"
   dependencies:
-    turbo-darwin-64: "npm:2.7.1"
-    turbo-darwin-arm64: "npm:2.7.1"
-    turbo-linux-64: "npm:2.7.1"
-    turbo-linux-arm64: "npm:2.7.1"
-    turbo-windows-64: "npm:2.7.1"
-    turbo-windows-arm64: "npm:2.7.1"
+    turbo-darwin-64: "npm:2.7.3"
+    turbo-darwin-arm64: "npm:2.7.3"
+    turbo-linux-64: "npm:2.7.3"
+    turbo-linux-arm64: "npm:2.7.3"
+    turbo-windows-64: "npm:2.7.3"
+    turbo-windows-arm64: "npm:2.7.3"
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -23505,7 +23505,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: 10c0/a658bceebf60bb00350808958b9b454a6547683ed3c43f0fed205c0f8730affb0b63b25d99b894575141ac98cf9c385acb2aa2954c4c6c3e8bda2c8071c4049a
+  checksum: 10c0/a13016829b6088f404f938b6cc809d52956d129ba4607af965562c1f8ae06db642c804fdd86a576ae81589300d980513866320cac2ff91aa0397943028996d05
   languageName: node
   linkType: hard
 
