@@ -61,8 +61,9 @@ export const getMcpHeader: ClientHeaderBuilder = ({ verbOptions, output }) => {
         imports.push(`${pascalOperationName}Params`);
       }
 
-      if (verbOption.body.definition) {
-        imports.push(`${pascalOperationName}Body`);
+      const bodyImport = verbOption.body.imports[0]?.name || null;
+      if (bodyImport) {
+        imports.push(bodyImport);
       }
 
       return imports;
