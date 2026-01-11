@@ -640,6 +640,7 @@ export type AngularOptions = {
 export type SwrOptions = {
   useInfinite?: boolean;
   useSWRMutationForGet?: boolean;
+  useSuspense?: boolean;
   swrOptions?: unknown;
   swrMutationOptions?: unknown;
   swrInfiniteOptions?: unknown;
