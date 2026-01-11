@@ -360,6 +360,7 @@ export async function normalizeOptions(
           timeOptions: outputOptions.override?.zod?.timeOptions ?? {},
         },
         swr: {
+          generateErrorTypes: false,
           ...outputOptions.override?.swr,
         },
         angular: {

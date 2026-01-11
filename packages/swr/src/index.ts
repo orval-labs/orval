@@ -206,13 +206,16 @@ const generateSwrImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
+  const errorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}InfiniteError = ${errorType}\n`
+    : '';
+
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
 export type ${pascal(
         operationName,
       )}InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}InfiniteError = ${errorType}
-
+${errorTypeExport}
 ${doc}export const ${camel(
         `use-${operationName}-infinite`,
       )} = <TError = ${errorType}>(
@@ -253,12 +256,15 @@ ${doc}export const ${camel(
 }\n`
     : '';
 
+  const queryErrorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}QueryError = ${errorType}\n`
+    : '';
+
   const useSwrImplementation = `
 export type ${pascal(
     operationName,
   )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}QueryError = ${errorType}
-
+${queryErrorTypeExport}
 ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrArguments({
     operationName,
@@ -295,6 +301,100 @@ ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
 }\n`;
 
   return useSWRInfiniteImplementation + useSwrImplementation;
+};
+
+const generateSwrSuspenseImplementation = ({
+  operationName,
+  swrKeyFnName,
+  swrKeyProperties,
+  params,
+  mutator,
+  isRequestOptions,
+  response,
+  swrOptions,
+  props,
+  doc,
+  httpClient,
+  httpFunctionProps,
+}: {
+  isRequestOptions: boolean;
+  operationName: string;
+  swrKeyFnName: string;
+  swrKeyProperties: string;
+  params: GetterParams;
+  props: GetterProps;
+  response: GetterResponse;
+  mutator?: GeneratorMutator;
+  swrOptions: SwrOptions;
+  doc?: string;
+  httpClient: OutputHttpClient;
+  httpFunctionProps: string;
+}) => {
+  const swrProps = toObjectString(props, 'implementation');
+
+  const hasParamReservedWord = props.some(
+    (prop: GetterProp) => prop.name === 'query',
+  );
+  const queryResultVarName = hasParamReservedWord ? '_query' : 'query';
+
+  const enabledImplementation = `const isEnabled = swrOptions?.enabled !== false${
+    params.length > 0
+      ? ` && !!(${params.map(({ name }) => name).join(' && ')})`
+      : ''
+  }`;
+  const swrKeyImplementation = `const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? ${swrKeyFnName}(${swrKeyProperties}) : null);`;
+
+  const errorType = getSwrErrorType(response, httpClient, mutator);
+  const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
+  const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
+
+  const suspenseErrorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}SuspenseQueryError = ${errorType}\n`
+    : '';
+
+  const useSwrSuspenseImplementation = `
+export type ${pascal(
+    operationName,
+  )}SuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
+${suspenseErrorTypeExport}
+${doc}export const ${camel(`use-${operationName}-suspense`)} = <TError = ${errorType}>(
+  ${swrProps} ${generateSwrArguments({
+    operationName,
+    mutator,
+    isRequestOptions,
+    isInfinite: false,
+    httpClient,
+  })}) => {
+  ${
+    isRequestOptions
+      ? `const {swr: swrOptions${swrRequestSecondArg ? `, ${swrRequestSecondArg}` : ''}} = options ?? {}`
+      : ''
+  }
+
+  ${enabledImplementation}
+  ${swrKeyImplementation}
+  const swrFn = () => ${operationName}(${httpFunctionProps}${
+    httpFunctionProps && httpRequestSecondArg ? ', ' : ''
+  }${httpRequestSecondArg})
+
+  const ${queryResultVarName} = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, ${
+    swrOptions.swrOptions
+      ? `{
+    ${stringify(swrOptions.swrOptions)?.slice(1, -1)}
+    suspense: true,
+    ...swrOptions
+  }`
+      : '{ suspense: true, ...swrOptions }'
+  })
+
+  return {
+    swrKey,
+    ...${queryResultVarName},
+    data: ${queryResultVarName}.data as NonNullable<typeof ${queryResultVarName}.data>,
+  }
+}\n`;
+
+  return useSwrSuspenseImplementation;
 };
 
 const generateSwrMutationImplementation = ({
@@ -341,12 +441,15 @@ const generateSwrMutationImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
+  const mutationErrorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}MutationError = ${errorType}\n`
+    : '';
+
   const useSwrImplementation = `
 export type ${pascal(
     operationName,
   )}MutationResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}MutationError = ${errorType}
-
+${mutationErrorTypeExport}
 ${doc}export const ${camel(`use-${operationName}${verb === Verbs.GET ? '-mutation' : ''}`)} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrMutationArguments({
     operationName,
@@ -565,8 +668,27 @@ export const ${swrKeyFnName} = (${queryKeyProps}) => [\`${route}\`${
       queryParamType,
     });
 
+    const swrSuspenseImplementation = override.swr.useSuspense
+      ? generateSwrSuspenseImplementation({
+          operationName,
+          swrKeyFnName,
+          swrKeyProperties,
+          params,
+          props,
+          mutator,
+          isRequestOptions,
+          response,
+          swrOptions: override.swr,
+          doc,
+          httpClient,
+          httpFunctionProps: swrProperties,
+        })
+      : '';
+
     if (!override.swr.useSWRMutationForGet) {
-      return swrKeyFn + swrKeyLoader + swrImplementation;
+      return (
+        swrKeyFn + swrKeyLoader + swrImplementation + swrSuspenseImplementation
+      );
     }
 
     // For OutputClient.SWR_GET_MUTATION, generate both useSWR and useSWRMutation
@@ -642,6 +764,7 @@ export const ${swrMutationFetcherName} = (${queryKeyProps} ${swrMutationFetcherO
       swrKeyFn +
       swrKeyLoader +
       swrImplementation +
+      swrSuspenseImplementation +
       swrMutationFetcherFn +
       swrMutationImplementation
     );
