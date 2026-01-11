@@ -9,6 +9,13 @@ updates:
     directory: '/'
     schedule:
       interval: 'monthly'
+    groups:
+      angular:
+        patterns:
+          - '@angular/*'
+        update-types:
+          - 'minor'
+          - 'patch'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
