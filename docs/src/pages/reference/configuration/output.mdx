@@ -1571,6 +1571,34 @@ export default defineConfig({
 });
 ```
 
+#### useSuspense
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Use to generate Suspense-compatible custom hooks (e.g., `useXxxSuspense`). These hooks automatically set `suspense: true` in SWR options and provide type-safe `data` that is guaranteed to be defined (not `undefined`).
+
+When using Suspense hooks, wrap your components with React's `<Suspense>` boundary to handle loading states.
+
+Example:
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          useSuspense: true,
+        },
+      },
+    },
+  },
+});
+```
+
 #### swrOptions
 
 Type: `Object`.
