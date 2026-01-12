@@ -112,7 +112,8 @@ export function SearchProvider({
               },
             }}
             transformItems={(items) => {
-              return items.map((item) => {
+              return items
+                .map((item) => {
                   if (parentCategoryUrls.includes(item.url)) {
                     return null;
                   }
