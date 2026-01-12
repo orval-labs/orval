@@ -225,7 +225,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/animations@npm:^20.3.16":
+"@angular/animations@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/animations@npm:20.3.16"
   dependencies:
@@ -236,7 +236,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/build@npm:^20.3.14":
+"@angular/build@npm:20.3.14":
   version: 20.3.14
   resolution: "@angular/build@npm:20.3.14"
   dependencies:
@@ -316,7 +316,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/cli@npm:^20.3.14":
+"@angular/cli@npm:20.3.14":
   version: 20.3.14
   resolution: "@angular/cli@npm:20.3.14"
   dependencies:
@@ -344,19 +344,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/common@npm:^20.3.0":
-  version: 20.3.15
-  resolution: "@angular/common@npm:20.3.15"
+"@angular/common@npm:20.3.16":
+  version: 20.3.16
+  resolution: "@angular/common@npm:20.3.16"
   dependencies:
     tslib: "npm:^2.3.0"
   peerDependencies:
-    "@angular/core": 20.3.15
+    "@angular/core": 20.3.16
     rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/d8582bda3db80a11735f173197bd1ae1054cce973112eac245bff92bec09b15ea7ba845a83060029027aa25e95ad4fce36a1fbd5208e86775905c80d1875019d
+  checksum: 10c0/95e0d173e35a88de0cd6532ea5c92789d93841c650fd549e9f4654a6f737611193a23cbbc4000371545cec8d3a9c7e75abf418f39f4df3b7d794491376b7075c
   languageName: node
   linkType: hard
 
-"@angular/compiler-cli@npm:^20.3.16":
+"@angular/compiler-cli@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/compiler-cli@npm:20.3.16"
   dependencies:
@@ -381,7 +381,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/compiler@npm:^20.3.16":
+"@angular/compiler@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/compiler@npm:20.3.16"
   dependencies:
@@ -390,7 +390,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/core@npm:^20.3.0":
+"@angular/core@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/core@npm:20.3.16"
   dependencies:
@@ -408,7 +408,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/forms@npm:^20.3.16":
+"@angular/forms@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/forms@npm:20.3.16"
   dependencies:
@@ -422,7 +422,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/platform-browser@npm:^20.3.16":
+"@angular/platform-browser@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/platform-browser@npm:20.3.16"
   dependencies:
@@ -438,7 +438,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@angular/router@npm:^20.3.16":
+"@angular/router@npm:20.3.16":
   version: 20.3.16
   resolution: "@angular/router@npm:20.3.16"
   dependencies:
@@ -449,20 +449,6 @@ __metadata:
     "@angular/platform-browser": 20.3.16
     rxjs: ^6.5.3 || ^7.4.0
   checksum: 10c0/d081337d843ba87e16980fae0fa123b38c55caf2ce7523e98a386a5ead81c55ab762fb17415eedf5316639613e6c0466e452f83a11bb65e05e0307db0f71e94a
-  languageName: node
-  linkType: hard
-
-"@angular/router@npm:^20.3.9":
-  version: 20.3.9
-  resolution: "@angular/router@npm:20.3.9"
-  dependencies:
-    tslib: "npm:^2.3.0"
-  peerDependencies:
-    "@angular/common": 20.3.9
-    "@angular/core": 20.3.9
-    "@angular/platform-browser": 20.3.9
-    rxjs: ^6.5.3 || ^7.4.0
-  checksum: 10c0/36f3e01b52528cd1b80e5ca74b9c5fd3ec2b83b488872da7b891c711bcd27ff34eb9d12e835e61396d62a55159c1dda724d3220f21f03aa9399d1fb6beea02ec
   languageName: node
   linkType: hard
 
@@ -3251,10 +3237,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@eslint-community/eslint-utils@npm:^4.9.1":
+  version: 4.9.1
+  resolution: "@eslint-community/eslint-utils@npm:4.9.1"
+  dependencies:
+    eslint-visitor-keys: "npm:^3.4.3"
+  peerDependencies:
+    eslint: ^6.0.0 || ^7.0.0 || >=8.0.0
+  checksum: 10c0/dc4ab5e3e364ef27e33666b11f4b86e1a6c1d7cbf16f0c6ff87b1619b3562335e9201a3d6ce806221887ff780ec9d828962a290bb910759fd40a674686503f02
+  languageName: node
+  linkType: hard
+
 "@eslint-community/regexpp@npm:^4.10.0, @eslint-community/regexpp@npm:^4.12.1, @eslint-community/regexpp@npm:^4.4.0, @eslint-community/regexpp@npm:^4.6.1":
   version: 4.12.1
   resolution: "@eslint-community/regexpp@npm:4.12.1"
   checksum: 10c0/a03d98c246bcb9109aec2c08e4d10c8d010256538dcb3f56610191607214523d4fb1b00aa81df830b6dffb74c5fa0be03642513a289c567949d3e550ca11cdf6
+  languageName: node
+  linkType: hard
+
+"@eslint-community/regexpp@npm:^4.12.2":
+  version: 4.12.2
+  resolution: "@eslint-community/regexpp@npm:4.12.2"
+  checksum: 10c0/fddcbc66851b308478d04e302a4d771d6917a0b3740dc351513c0da9ca2eab8a1adf99f5e0aa7ab8b13fa0df005c81adeee7e63a92f3effd7d367a163b721c2d
   languageName: node
   linkType: hard
 
@@ -3352,10 +3356,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@faker-js/faker@npm:^10.1.0":
-  version: 10.1.0
-  resolution: "@faker-js/faker@npm:10.1.0"
-  checksum: 10c0/3dc277245ec1bef8b839a9dc45b4ccb1688d21b8bde6531a849c1773193de30047e40e085b7e900c42c940911ecf1645b582ad3c85093df5bfdbddeb44a2b554
+"@faker-js/faker@npm:^10.2.0":
+  version: 10.2.0
+  resolution: "@faker-js/faker@npm:10.2.0"
+  checksum: 10c0/72b5048ff32e90b2876560015e177f91b0625dafaaa43631302e413329105be331a1c126c8f7b0f95817cacd51c9222b58e62b6f09f5485522302e6103f19f09
   languageName: node
   linkType: hard
 
@@ -3366,16 +3370,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@gerrit0/mini-shiki@npm:^3.12.0":
-  version: 3.12.2
-  resolution: "@gerrit0/mini-shiki@npm:3.12.2"
+"@gerrit0/mini-shiki@npm:^3.17.0":
+  version: 3.21.0
+  resolution: "@gerrit0/mini-shiki@npm:3.21.0"
   dependencies:
-    "@shikijs/engine-oniguruma": "npm:^3.12.2"
-    "@shikijs/langs": "npm:^3.12.2"
-    "@shikijs/themes": "npm:^3.12.2"
-    "@shikijs/types": "npm:^3.12.2"
+    "@shikijs/engine-oniguruma": "npm:^3.21.0"
+    "@shikijs/langs": "npm:^3.21.0"
+    "@shikijs/themes": "npm:^3.21.0"
+    "@shikijs/types": "npm:^3.21.0"
     "@shikijs/vscode-textmate": "npm:^10.0.2"
-  checksum: 10c0/01d2318b326f3fbd847cfb214d4afe3ac31587edaa4e7332fd8c6c87b130cb2ec2fa2a4cfc5660b092c928d5e971f9e6c66b613cf4f9f6735131fa309c1a0400
+  checksum: 10c0/4045d19854abfa4515381a04af07096c1de07471b029ee090375652d0199ed3fed6165a22bd9f8e8250c609124d8c05f5d4604eb6de87cf13513aa89cfb8d14e
   languageName: node
   linkType: hard
 
@@ -5192,7 +5196,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@orval/core@workspace:packages/core"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@scalar/openapi-types": "catalog:"
     "@types/debug": "npm:^4.1.12"
     "@types/esutils": "npm:^2.0.2"
@@ -5209,7 +5213,7 @@ __metadata:
     remeda: "npm:^2.32.0"
     rimraf: "catalog:"
     tsdown: "catalog:"
-    typedoc: "npm:^0.28.14"
+    typedoc: "npm:^0.28.15"
     typescript: "catalog:"
     vitest: "catalog:"
   languageName: unknown
@@ -6127,41 +6131,41 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@shikijs/engine-oniguruma@npm:^3.12.2":
-  version: 3.12.2
-  resolution: "@shikijs/engine-oniguruma@npm:3.12.2"
+"@shikijs/engine-oniguruma@npm:^3.21.0":
+  version: 3.21.0
+  resolution: "@shikijs/engine-oniguruma@npm:3.21.0"
   dependencies:
-    "@shikijs/types": "npm:3.12.2"
+    "@shikijs/types": "npm:3.21.0"
     "@shikijs/vscode-textmate": "npm:^10.0.2"
-  checksum: 10c0/89887dda52949f82537388000b13f9060ae1fcdd87f4b305282b97bdbb1afde0bc4abb8f4f046896164fd8b9c251923f2a4d780fac933fa214ba90fb957a9873
+  checksum: 10c0/cb17c034b04e1333f90f267081b7fac0b53e56031f7d067723363a72cdbdf79e567dea216bbcae38a6d4b910570c2dd60a953ca941f4834768c0bb721131af5f
   languageName: node
   linkType: hard
 
-"@shikijs/langs@npm:^3.12.2":
-  version: 3.12.2
-  resolution: "@shikijs/langs@npm:3.12.2"
+"@shikijs/langs@npm:^3.21.0":
+  version: 3.21.0
+  resolution: "@shikijs/langs@npm:3.21.0"
   dependencies:
-    "@shikijs/types": "npm:3.12.2"
-  checksum: 10c0/1e72b8efedb5d3959ac4d4fea5a2d5eb7855eea5cddc35e21b5090bf903d40c058214be8c1d63355ad2cffc022be8ec0297bdc6695eddc91c02324dcc417814d
+    "@shikijs/types": "npm:3.21.0"
+  checksum: 10c0/79cfc2b8ac1f5c938bfb18db6233f86ca96948970068c2cc94559e30abac2036c35a2ae52015d07f72b6decfd6b2ae86321f9547ae0f994b6131e362781fbf1f
   languageName: node
   linkType: hard
 
-"@shikijs/themes@npm:^3.12.2":
-  version: 3.12.2
-  resolution: "@shikijs/themes@npm:3.12.2"
+"@shikijs/themes@npm:^3.21.0":
+  version: 3.21.0
+  resolution: "@shikijs/themes@npm:3.21.0"
   dependencies:
-    "@shikijs/types": "npm:3.12.2"
-  checksum: 10c0/728b89554a166dca87aa3a4b53d0aa2c0b2c560252036275b3e8d3b4c790cf8fc980b5e06574e4fbad223627149eff150af12db5acd599fffd71e6ff6391af18
+    "@shikijs/types": "npm:3.21.0"
+  checksum: 10c0/f128a874231d84d93e16f347557e844c2b6493b41196b52e36a79874598abe2dbf3ee981dfe52dd09f8d7e21ed4ff41ab03c28de7a21313d9a0b691fbd3690c0
   languageName: node
   linkType: hard
 
-"@shikijs/types@npm:3.12.2, @shikijs/types@npm:^3.12.2":
-  version: 3.12.2
-  resolution: "@shikijs/types@npm:3.12.2"
+"@shikijs/types@npm:3.21.0, @shikijs/types@npm:^3.21.0":
+  version: 3.21.0
+  resolution: "@shikijs/types@npm:3.21.0"
   dependencies:
     "@shikijs/vscode-textmate": "npm:^10.0.2"
     "@types/hast": "npm:^3.0.4"
-  checksum: 10c0/74622ac69a84f0d7b66f6f9253bdaa0fee69b7bc97d5f85e12b2a70a9d77d2b04fdbccf65fcd9460449340a214594cb945fee8b3d2c091175e58e8cdf2cb2920
+  checksum: 10c0/a86038c7ad10bb8104ea07cfa0dddf1e0646cf3b70a382978939c6144b21e5891395f5e705b7393476320f6196d86c6d8cd7ad6b3e1b356eb6a7e40c298c98f3
   languageName: node
   linkType: hard
 
@@ -6625,10 +6629,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/query-core@npm:5.90.6":
-  version: 5.90.6
-  resolution: "@tanstack/query-core@npm:5.90.6"
-  checksum: 10c0/2523cd4d9bc4d9fc1a828b15923c44046004fb1c4322f8c211ff4c153914bc776a356a476f499127cfee3fc89b101ac64f93b352aa761bd349c3a8e0de33d792
+"@tanstack/query-core@npm:5.90.16":
+  version: 5.90.16
+  resolution: "@tanstack/query-core@npm:5.90.16"
+  checksum: 10c0/f6a4827feeed2b4118323056bbda8d5099823202d1f29b538204ae2591be4e80f2946f3311eed30fefe866643f431c04b560457f03415d40caf2f353ba1efac0
   languageName: node
   linkType: hard
 
@@ -6661,12 +6665,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/vue-query@npm:^5.90.6":
-  version: 5.90.6
-  resolution: "@tanstack/vue-query@npm:5.90.6"
+"@tanstack/vue-query@npm:^5.92.5":
+  version: 5.92.5
+  resolution: "@tanstack/vue-query@npm:5.92.5"
   dependencies:
     "@tanstack/match-sorter-utils": "npm:^8.19.4"
-    "@tanstack/query-core": "npm:5.90.6"
+    "@tanstack/query-core": "npm:5.90.16"
     "@vue/devtools-api": "npm:^6.6.3"
     vue-demi: "npm:^0.14.10"
   peerDependencies:
@@ -6675,7 +6679,7 @@ __metadata:
   peerDependenciesMeta:
     "@vue/composition-api":
       optional: true
-  checksum: 10c0/c6d2ecbf231a32b7426c1ad6ca5303a42d27e8de9a92afe17814b085b93b73571ee1259035d68149cf21f9e70ade94afa797052c8b7eaff0fc8b9618a8e058be
+  checksum: 10c0/a43077235dd371b6dac73456271d15ab436e73270329c77d82cb4f8c1d0085226771f84dc3d01c42c8d6963398f54e2948a370c0443973c44e791eda48060f07
   languageName: node
   linkType: hard
 
@@ -7413,7 +7417,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@typescript-eslint/eslint-plugin@npm:8.50.1, @typescript-eslint/eslint-plugin@npm:^8.50.1":
+"@typescript-eslint/eslint-plugin@npm:8.50.1":
   version: 8.50.1
   resolution: "@typescript-eslint/eslint-plugin@npm:8.50.1"
   dependencies:
@@ -7475,6 +7479,26 @@ __metadata:
     typescript:
       optional: true
   checksum: 10c0/3f40cb6bab5a2833c3544e4621b9fdacd8ea53420cadc1c63fac3b89cdf5c62be1e6b7bcf56976dede5db4c43830de298ced3db60b5494a3b961ca1b4bff9f2a
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/eslint-plugin@npm:^8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/eslint-plugin@npm:8.52.0"
+  dependencies:
+    "@eslint-community/regexpp": "npm:^4.12.2"
+    "@typescript-eslint/scope-manager": "npm:8.52.0"
+    "@typescript-eslint/type-utils": "npm:8.52.0"
+    "@typescript-eslint/utils": "npm:8.52.0"
+    "@typescript-eslint/visitor-keys": "npm:8.52.0"
+    ignore: "npm:^7.0.5"
+    natural-compare: "npm:^1.4.0"
+    ts-api-utils: "npm:^2.4.0"
+  peerDependencies:
+    "@typescript-eslint/parser": ^8.52.0
+    eslint: ^8.57.0 || ^9.0.0
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/853e929bf1077f59c47c2a112ca8837ccc53b1c80f0b39a9505806ee8002e5599b85323c5ccaa9ee4d6a6dafcdc99461c5296b5f24d8ab131346bec5bda36c85
   languageName: node
   linkType: hard
 
@@ -7564,6 +7588,19 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/project-service@npm:8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/project-service@npm:8.52.0"
+  dependencies:
+    "@typescript-eslint/tsconfig-utils": "npm:^8.52.0"
+    "@typescript-eslint/types": "npm:^8.52.0"
+    debug: "npm:^4.4.3"
+  peerDependencies:
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/2dc7379572b4b1340daff5923fbf7987ebd2de5a4203ece0ec9e8a9e85cf182cd4cd24c25bd7df62b981fb633c91dd35f27fed1341719c2f8a48eb80682b4658
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/scope-manager@npm:5.62.0":
   version: 5.62.0
   resolution: "@typescript-eslint/scope-manager@npm:5.62.0"
@@ -7594,6 +7631,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/scope-manager@npm:8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/scope-manager@npm:8.52.0"
+  dependencies:
+    "@typescript-eslint/types": "npm:8.52.0"
+    "@typescript-eslint/visitor-keys": "npm:8.52.0"
+  checksum: 10c0/385105ad1bb63eddcfc65039a7c13ec339aef4823c3021110cffe72c545b27c6b197e40ec55000b5b1bf278946a3e1a77eba19203f461c1a77ba3fe82d007f3e
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/tsconfig-utils@npm:8.43.0, @typescript-eslint/tsconfig-utils@npm:^8.43.0":
   version: 8.43.0
   resolution: "@typescript-eslint/tsconfig-utils@npm:8.43.0"
@@ -7609,6 +7656,15 @@ __metadata:
   peerDependencies:
     typescript: ">=4.8.4 <6.0.0"
   checksum: 10c0/6a1ffb0cd2d9e820ed0c7555a43ebb21438ca80f26c9632e0753bd09e764d9b8e9a352215e4ae60f6d570ab1e77751c9460a00515648b9a2f13f56c56a068a94
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/tsconfig-utils@npm:8.52.0, @typescript-eslint/tsconfig-utils@npm:^8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/tsconfig-utils@npm:8.52.0"
+  peerDependencies:
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/a45f6c1453031c149b2dedaa4e8ace53aa71c751a5702b028cbd9a899928d46141cc4343d8de6260e3e27024f6645b12669d8759f66ebde4cbae2f703b859747
   languageName: node
   linkType: hard
 
@@ -7661,6 +7717,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/type-utils@npm:8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/type-utils@npm:8.52.0"
+  dependencies:
+    "@typescript-eslint/types": "npm:8.52.0"
+    "@typescript-eslint/typescript-estree": "npm:8.52.0"
+    "@typescript-eslint/utils": "npm:8.52.0"
+    debug: "npm:^4.4.3"
+    ts-api-utils: "npm:^2.4.0"
+  peerDependencies:
+    eslint: ^8.57.0 || ^9.0.0
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/c859ffd10d0a986047af139d3e3a1fa3cb42155a8da13838680ff61bb2880798ecff346c50f9d6214ae742507ca0db39228a2d68b1f099473daba98be037aef3
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/types@npm:5.62.0":
   version: 5.62.0
   resolution: "@typescript-eslint/types@npm:5.62.0"
@@ -7679,6 +7751,13 @@ __metadata:
   version: 8.50.1
   resolution: "@typescript-eslint/types@npm:8.50.1"
   checksum: 10c0/04e3c296d81293e370578762be6736fccd1581476f9d534938d42fe93968571fcaf26d7d8c3de52ed63a5af2c0b2da922b8ee2011fa5fb9fb401fc7f0916367a
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/types@npm:8.52.0, @typescript-eslint/types@npm:^8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/types@npm:8.52.0"
+  checksum: 10c0/ad93803aa92570a96cc9f9a201735e68fecee9056a37563c9e5b70c16436927ac823ec38d9712881910d89dd7314b0a40100ef41ef1aca0d42674d3312d5ec8e
   languageName: node
   linkType: hard
 
@@ -7739,6 +7818,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/typescript-estree@npm:8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/typescript-estree@npm:8.52.0"
+  dependencies:
+    "@typescript-eslint/project-service": "npm:8.52.0"
+    "@typescript-eslint/tsconfig-utils": "npm:8.52.0"
+    "@typescript-eslint/types": "npm:8.52.0"
+    "@typescript-eslint/visitor-keys": "npm:8.52.0"
+    debug: "npm:^4.4.3"
+    minimatch: "npm:^9.0.5"
+    semver: "npm:^7.7.3"
+    tinyglobby: "npm:^0.2.15"
+    ts-api-utils: "npm:^2.4.0"
+  peerDependencies:
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/e4158a6364d3f009eac780947504ac1dad2ee3f1fdd4dfd99e4a7b48719ce0d342a769dc05fa5d4bc5de9de28175aa8e9ba612385f6b6f215039ff41e91f2de5
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/utils@npm:5.62.0, @typescript-eslint/utils@npm:^5.58.0":
   version: 5.62.0
   resolution: "@typescript-eslint/utils@npm:5.62.0"
@@ -7787,6 +7885,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@typescript-eslint/utils@npm:8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/utils@npm:8.52.0"
+  dependencies:
+    "@eslint-community/eslint-utils": "npm:^4.9.1"
+    "@typescript-eslint/scope-manager": "npm:8.52.0"
+    "@typescript-eslint/types": "npm:8.52.0"
+    "@typescript-eslint/typescript-estree": "npm:8.52.0"
+  peerDependencies:
+    eslint: ^8.57.0 || ^9.0.0
+    typescript: ">=4.8.4 <6.0.0"
+  checksum: 10c0/67e501e8ef4c4a5510237e3bfcfee37512137075a18c24f615924559bcca64ce9903118e7e4288cd4f58361979243f457d43684cdafa6c193fa8963a7431d0f3
+  languageName: node
+  linkType: hard
+
 "@typescript-eslint/visitor-keys@npm:5.62.0":
   version: 5.62.0
   resolution: "@typescript-eslint/visitor-keys@npm:5.62.0"
@@ -7814,6 +7927,16 @@ __metadata:
     "@typescript-eslint/types": "npm:8.50.1"
     eslint-visitor-keys: "npm:^4.2.1"
   checksum: 10c0/b23839d04b2e5e7964a4006317d75cdc3cf76e56f4c5fde1e0bcd23f3bb78dca910e3dcadca80606f76a09ff9e44b3363ee1e1d6394e3f7479da74a641a8870f
+  languageName: node
+  linkType: hard
+
+"@typescript-eslint/visitor-keys@npm:8.52.0":
+  version: 8.52.0
+  resolution: "@typescript-eslint/visitor-keys@npm:8.52.0"
+  dependencies:
+    "@typescript-eslint/types": "npm:8.52.0"
+    eslint-visitor-keys: "npm:^4.2.1"
+  checksum: 10c0/7163735d872df0930301ecccd454602d241a65223b84ff3ef78ede02f27941c0cbb95d0c8b4fe51637d1fbd981e6558d454fc485a2488d7190e264e12a8a355f
   languageName: node
   linkType: hard
 
@@ -8780,16 +8903,16 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "angular-app@workspace:samples/angular-app"
   dependencies:
-    "@angular/build": "npm:^20.3.14"
-    "@angular/cli": "npm:^20.3.14"
+    "@angular/build": "catalog:angular"
+    "@angular/cli": "catalog:angular"
     "@angular/common": "catalog:angular"
-    "@angular/compiler": "npm:^20.3.16"
-    "@angular/compiler-cli": "npm:^20.3.16"
+    "@angular/compiler": "catalog:angular"
+    "@angular/compiler-cli": "catalog:angular"
     "@angular/core": "catalog:angular"
-    "@angular/forms": "npm:^20.3.16"
-    "@angular/platform-browser": "npm:^20.3.16"
-    "@angular/router": "npm:^20.3.16"
-    "@faker-js/faker": "npm:^10.1.0"
+    "@angular/forms": "catalog:angular"
+    "@angular/platform-browser": "catalog:angular"
+    "@angular/router": "catalog:angular"
+    "@faker-js/faker": "npm:^10.2.0"
     msw: "npm:^2.12.7"
     orval: "workspace:*"
     rimraf: "npm:^6.1.2"
@@ -8807,17 +8930,17 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "angular-query@workspace:samples/angular-query"
   dependencies:
-    "@angular/animations": "npm:^20.3.16"
-    "@angular/build": "npm:^20.3.14"
-    "@angular/cli": "npm:^20.3.14"
+    "@angular/animations": "catalog:angular"
+    "@angular/build": "catalog:angular"
+    "@angular/cli": "catalog:angular"
     "@angular/common": "catalog:angular"
-    "@angular/compiler": "npm:^20.3.16"
-    "@angular/compiler-cli": "npm:^20.3.16"
+    "@angular/compiler": "catalog:angular"
+    "@angular/compiler-cli": "catalog:angular"
     "@angular/core": "catalog:angular"
-    "@angular/forms": "npm:^20.3.16"
-    "@angular/platform-browser": "npm:^20.3.16"
-    "@angular/router": "npm:^20.3.9"
-    "@faker-js/faker": "npm:^10.1.0"
+    "@angular/forms": "catalog:angular"
+    "@angular/platform-browser": "catalog:angular"
+    "@angular/router": "catalog:angular"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/angular-query-experimental": "npm:^5.62.7"
     "@testing-library/angular": "npm:16.0.0"
     msw: "npm:^2.12.7"
@@ -9467,7 +9590,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "basic@workspace:samples/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     msw: "npm:^2.12.7"
     npm-run-all: "npm:^4.1.5"
@@ -17532,7 +17655,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "next-app-with-fetch@workspace:samples/next-app-with-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -17556,7 +17679,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "next-app@workspace:samples/hono/hono-with-fetch-client/next-app"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -18256,12 +18379,12 @@ __metadata:
   dependencies:
     "@angular/common": "catalog:angular"
     "@angular/core": "catalog:angular"
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@hono/zod-validator": "npm:^0.7.4"
     "@modelcontextprotocol/sdk": "npm:1.25.2"
     "@tanstack/react-query": "npm:~5.62.16"
     "@tanstack/svelte-query": "npm:^4.41.0"
-    "@tanstack/vue-query": "npm:^5.90.6"
+    "@tanstack/vue-query": "npm:^5.92.5"
     "@types/react": "npm:18.3.24"
     axios: "npm:^1.13.2"
     hono: "npm:^4.11.3"
@@ -18300,7 +18423,7 @@ __metadata:
     lint-staged: "npm:^16.2.6"
     prettier: "catalog:"
     rimraf: "catalog:"
-    turbo: "npm:^2.7.1"
+    turbo: "npm:^2.7.3"
     typescript: "catalog:"
     typescript-eslint: "npm:^8.50.1"
     vitest: "catalog:"
@@ -18349,7 +18472,7 @@ __metadata:
     string-argv: "npm:^0.3.2"
     tsconfck: "npm:^3.1.6"
     tsdown: "catalog:"
-    typedoc: "npm:^0.28.14"
+    typedoc: "npm:^0.28.15"
     typedoc-plugin-coverage: "npm:^4.0.2"
     typedoc-plugin-markdown: "npm:^4.9.0"
     typescript: "catalog:"
@@ -20033,7 +20156,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-app@workspace:samples/react-app"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -20127,7 +20250,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-basic@workspace:samples/react-query/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/react-query": "npm:~5.62.16"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
@@ -20150,11 +20273,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-custom-fetch@workspace:samples/react-query/custom-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@tanstack/react-query": "npm:~5.62.16"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
-    "@typescript-eslint/eslint-plugin": "npm:^8.50.1"
+    "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     "@vitejs/plugin-react": "npm:^5.1.0"
     eslint: "npm:^9.39.2"
@@ -20172,7 +20295,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-data-mutator@workspace:samples/react-query/form-data-mutator"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20184,7 +20307,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-data@workspace:samples/react-query/form-data"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20196,7 +20319,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-url-encoded-mutator@workspace:samples/react-query/form-url-encoded-mutator"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20208,7 +20331,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-form-url-encoded@workspace:samples/react-query/form-url-encoded"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -20220,7 +20343,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "react-query-hook-mutator@workspace:samples/react-query/hook-mutator"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     axios: "npm:^1.13.2"
     orval: "workspace:*"
     react: "npm:^18.3.1"
@@ -22681,11 +22804,11 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "svelte-query-basic@workspace:samples/svelte-query/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@sveltejs/adapter-auto": "npm:^2.1.1"
     "@sveltejs/kit": "npm:^1.30.4"
     "@tanstack/svelte-query": "npm:^4.41.0"
-    "@typescript-eslint/eslint-plugin": "npm:^8.50.1"
+    "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     axios: "npm:^1.13.2"
     eslint: "npm:^9.39.2"
@@ -22707,7 +22830,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "svelte-query-custom-fetch@workspace:samples/svelte-query/custom-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
     "@sveltestack/svelte-query": "npm:^1.6.0"
     "@tanstack/svelte-query": "npm:^4.41.0"
@@ -22794,7 +22917,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swr-basic@workspace:samples/react-app-with-swr/basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/node": "npm:^22.18.12"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
@@ -22816,10 +22939,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swr-with-fetch-client@workspace:samples/react-app-with-swr/fetch-client"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
-    "@typescript-eslint/eslint-plugin": "npm:^8.50.1"
+    "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     "@vitejs/plugin-react": "npm:^5.1.0"
     eslint: "npm:^9.39.2"
@@ -22838,10 +22961,10 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "swr-with-zod@workspace:samples/swr-with-zod"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
+    "@faker-js/faker": "npm:^10.2.0"
     "@types/react": "npm:^18.3.24"
     "@types/react-dom": "npm:^18.3.7"
-    "@typescript-eslint/eslint-plugin": "npm:^8.50.1"
+    "@typescript-eslint/eslint-plugin": "npm:^8.52.0"
     "@typescript-eslint/parser": "npm:^8.50.1"
     "@vitejs/plugin-react": "npm:^5.1.0"
     eslint: "npm:^9.39.2"
@@ -23282,6 +23405,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ts-api-utils@npm:^2.4.0":
+  version: 2.4.0
+  resolution: "ts-api-utils@npm:2.4.0"
+  peerDependencies:
+    typescript: ">=4.8.4"
+  checksum: 10c0/ed185861aef4e7124366a3f6561113557a57504267d4d452a51e0ba516a9b6e713b56b4aeaab9fa13de9db9ab755c65c8c13a777dba9133c214632cb7b65c083
+  languageName: node
+  linkType: hard
+
 "ts-interface-checker@npm:^0.1.9":
   version: 0.1.13
   resolution: "ts-interface-checker@npm:0.1.13"
@@ -23452,58 +23584,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"turbo-darwin-64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-darwin-64@npm:2.7.1"
+"turbo-darwin-64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-darwin-64@npm:2.7.3"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-darwin-arm64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-darwin-arm64@npm:2.7.1"
+"turbo-darwin-arm64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-darwin-arm64@npm:2.7.3"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-linux-64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-linux-64@npm:2.7.1"
+"turbo-linux-64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-linux-64@npm:2.7.3"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-linux-arm64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-linux-arm64@npm:2.7.1"
+"turbo-linux-arm64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-linux-arm64@npm:2.7.3"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo-windows-64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-windows-64@npm:2.7.1"
+"turbo-windows-64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-windows-64@npm:2.7.3"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"turbo-windows-arm64@npm:2.7.1":
-  version: 2.7.1
-  resolution: "turbo-windows-arm64@npm:2.7.1"
+"turbo-windows-arm64@npm:2.7.3":
+  version: 2.7.3
+  resolution: "turbo-windows-arm64@npm:2.7.3"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"turbo@npm:^2.7.1":
-  version: 2.7.1
-  resolution: "turbo@npm:2.7.1"
+"turbo@npm:^2.7.3":
+  version: 2.7.3
+  resolution: "turbo@npm:2.7.3"
   dependencies:
-    turbo-darwin-64: "npm:2.7.1"
-    turbo-darwin-arm64: "npm:2.7.1"
-    turbo-linux-64: "npm:2.7.1"
-    turbo-linux-arm64: "npm:2.7.1"
-    turbo-windows-64: "npm:2.7.1"
-    turbo-windows-arm64: "npm:2.7.1"
+    turbo-darwin-64: "npm:2.7.3"
+    turbo-darwin-arm64: "npm:2.7.3"
+    turbo-linux-64: "npm:2.7.3"
+    turbo-linux-arm64: "npm:2.7.3"
+    turbo-windows-64: "npm:2.7.3"
+    turbo-windows-arm64: "npm:2.7.3"
   dependenciesMeta:
     turbo-darwin-64:
       optional: true
@@ -23519,7 +23651,7 @@ __metadata:
       optional: true
   bin:
     turbo: bin/turbo
-  checksum: 10c0/a658bceebf60bb00350808958b9b454a6547683ed3c43f0fed205c0f8730affb0b63b25d99b894575141ac98cf9c385acb2aa2954c4c6c3e8bda2c8071c4049a
+  checksum: 10c0/a13016829b6088f404f938b6cc809d52956d129ba4607af965562c1f8ae06db642c804fdd86a576ae81589300d980513866320cac2ff91aa0397943028996d05
   languageName: node
   linkType: hard
 
@@ -23707,11 +23839,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"typedoc@npm:^0.28.14":
-  version: 0.28.14
-  resolution: "typedoc@npm:0.28.14"
+"typedoc@npm:^0.28.15":
+  version: 0.28.15
+  resolution: "typedoc@npm:0.28.15"
   dependencies:
-    "@gerrit0/mini-shiki": "npm:^3.12.0"
+    "@gerrit0/mini-shiki": "npm:^3.17.0"
     lunr: "npm:^2.3.9"
     markdown-it: "npm:^14.1.0"
     minimatch: "npm:^9.0.5"
@@ -23720,7 +23852,7 @@ __metadata:
     typescript: 5.0.x || 5.1.x || 5.2.x || 5.3.x || 5.4.x || 5.5.x || 5.6.x || 5.7.x || 5.8.x || 5.9.x
   bin:
     typedoc: bin/typedoc
-  checksum: 10c0/a8727134991ba3f9a982e9f6ceecfbcf0fac531e4865e4865cdee68ea6fe1a594228b8654011d38ffa2332b7e84e4eaa3d0dac04a8bdf36a0686d1c3f327e80b
+  checksum: 10c0/b5988ebebb367fed44f110bbd37baee85fe95fe10c8d5a511c33d787eb1e924e66ba54cb0763d63ed2c406adbd32fcb87bcbc3fd61b0bc8ab6f3a6c06f2de978
   languageName: node
   linkType: hard
 
@@ -24498,8 +24630,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "vue-query-basic@workspace:samples/vue-query/vue-query-basic"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
-    "@tanstack/vue-query": "npm:^5.90.6"
+    "@faker-js/faker": "npm:^10.2.0"
+    "@tanstack/vue-query": "npm:^5.92.5"
     "@testing-library/vue": "npm:^8.1.0"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     "@vue/compiler-sfc": "npm:^3.5.26"
@@ -24523,8 +24655,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "vue-query-custom-fetch@workspace:samples/vue-query/custom-fetch"
   dependencies:
-    "@faker-js/faker": "npm:^10.1.0"
-    "@tanstack/vue-query": "npm:^5.90.6"
+    "@faker-js/faker": "npm:^10.2.0"
+    "@tanstack/vue-query": "npm:^5.92.5"
     "@vitejs/plugin-vue": "npm:^6.0.1"
     orval: "workspace:*"
     typescript: "npm:~5.9.3"

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@faker-js/faker": "^10.1.0",
+    "@faker-js/faker": "^10.2.0",
     "@tanstack/react-query": "~5.62.16",
     "@types/node": "^22.18.12",
     "@types/react": "^18.3.24",

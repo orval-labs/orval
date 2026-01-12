@@ -9,6 +9,25 @@ updates:
     directory: '/'
     schedule:
       interval: 'monthly'
+    groups:
+      angular-runtime:
+        patterns:
+          - '@angular/animations'
+          - '@angular/common'
+          - '@angular/compiler'
+          - '@angular/compiler-cli'
+          - '@angular/core'
+          - '@angular/forms'
+          - '@angular/platform-browser'
+          - '@angular/router'
+        update-types:
+          - 'minor'
+          - 'patch'
+      angular-major:
+        patterns:
+          - '@angular/*'
+        update-types:
+          - 'major'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:

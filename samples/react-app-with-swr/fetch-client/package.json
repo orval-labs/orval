@@ -16,10 +16,10 @@
     "swr": "^2.3.6"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.1.0",
+    "@faker-js/faker": "^10.2.0",
     "@types/react": "^18.3.24",
     "@types/react-dom": "^18.3.7",
-    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.50.1",
     "@vitejs/plugin-react": "^5.1.0",
     "eslint": "^9.39.2",
