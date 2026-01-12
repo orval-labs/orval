@@ -99,7 +99,6 @@ const generatePrefetch = ({
   queryOptionsFnName,
   queryProperties,
   isRequestOptions,
-  hasSvelteQueryV6,
 }: {
   operationName: string;
   mutator?: GeneratorMutator;
@@ -116,7 +115,6 @@ const generatePrefetch = ({
   queryOptionsFnName: string;
   queryProperties: string;
   isRequestOptions: boolean;
-  hasSvelteQueryV6: boolean;
 }) => {
   const shouldGeneratePrefetch =
     usePrefetch &&
@@ -157,11 +155,7 @@ const generatePrefetch = ({
     queryProperties ? ',' : ''
   }${isRequestOptions ? 'options' : 'queryOptions'})
 
-  await queryClient.${prefetchFnName}(${
-    hasSvelteQueryV6
-      ? `() => ({ ...${queryOptionsVarName} })`
-      : queryOptionsVarName
-  });
+  await queryClient.${prefetchFnName}(${queryOptionsVarName});
 
   return queryClient;
 }\n`;
@@ -527,12 +521,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     useInfinite,
     operationName,
     mutator,
-    queryProps: hasSvelteQueryV6
-      ? queryProps.replace(':', ': () => ')
-      : queryProps,
+    queryProps,
     dataType,
     errorType,
-    hasSvelteQueryV6,
     queryArguments,
     queryOptionsVarName,
     queryOptionsFnName,
