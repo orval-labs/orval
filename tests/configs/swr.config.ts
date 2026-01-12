@@ -369,4 +369,19 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  swrWithErrorTypes: {
+    output: {
+      target: '../generated/swr/swr-with-error-types/endpoints.ts',
+      schemas: '../generated/swr/swr-with-error-types/model',
+      client: 'swr',
+      override: {
+        swr: {
+          generateErrorTypes: true,
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });
