@@ -58,7 +58,6 @@ export const getListPetsKey = (params?: ListPetsParams) =>
 export type ListPetsQueryResult = NonNullable<
   Awaited<ReturnType<typeof listPets>>
 >;
-export type ListPetsQueryError = Promise<Error>;
 
 /**
  * @summary List all pets
@@ -127,7 +126,6 @@ export const getCreatePetsMutationKey = () =>
 export type CreatePetsMutationResult = NonNullable<
   Awaited<ReturnType<typeof createPets>>
 >;
-export type CreatePetsMutationError = Promise<Error>;
 
 /**
  * @summary Create a pet
@@ -183,7 +181,6 @@ export const getShowPetByIdKey = (petId: string) =>
 export type ShowPetByIdQueryResult = NonNullable<
   Awaited<ReturnType<typeof showPetById>>
 >;
-export type ShowPetByIdQueryError = Promise<Error>;
 
 /**
  * @summary Info for a specific pet

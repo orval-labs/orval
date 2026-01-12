@@ -206,13 +206,16 @@ const generateSwrImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
+  const errorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}InfiniteError = ${errorType}\n`
+    : '';
+
   const useSWRInfiniteImplementation = swrOptions.useInfinite
     ? `
 export type ${pascal(
         operationName,
       )}InfiniteQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}InfiniteError = ${errorType}
-
+${errorTypeExport}
 ${doc}export const ${camel(
         `use-${operationName}-infinite`,
       )} = <TError = ${errorType}>(
@@ -253,12 +256,15 @@ ${doc}export const ${camel(
 }\n`
     : '';
 
+  const queryErrorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}QueryError = ${errorType}\n`
+    : '';
+
   const useSwrImplementation = `
 export type ${pascal(
     operationName,
   )}QueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}QueryError = ${errorType}
-
+${queryErrorTypeExport}
 ${doc}export const ${camel(`use-${operationName}`)} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrArguments({
     operationName,
@@ -342,12 +348,15 @@ const generateSwrSuspenseImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
+  const suspenseErrorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}SuspenseQueryError = ${errorType}\n`
+    : '';
+
   const useSwrSuspenseImplementation = `
 export type ${pascal(
     operationName,
   )}SuspenseQueryResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}SuspenseQueryError = ${errorType}
-
+${suspenseErrorTypeExport}
 ${doc}export const ${camel(`use-${operationName}-suspense`)} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrArguments({
     operationName,
@@ -432,12 +441,15 @@ const generateSwrMutationImplementation = ({
   const swrRequestSecondArg = getSwrRequestSecondArg(httpClient, mutator);
   const httpRequestSecondArg = getHttpRequestSecondArg(httpClient, mutator);
 
+  const mutationErrorTypeExport = swrOptions.generateErrorTypes
+    ? `export type ${pascal(operationName)}MutationError = ${errorType}\n`
+    : '';
+
   const useSwrImplementation = `
 export type ${pascal(
     operationName,
   )}MutationResult = NonNullable<Awaited<ReturnType<typeof ${operationName}>>>
-export type ${pascal(operationName)}MutationError = ${errorType}
-
+${mutationErrorTypeExport}
 ${doc}export const ${camel(`use-${operationName}${verb === Verbs.GET ? '-mutation' : ''}`)} = <TError = ${errorType}>(
   ${swrProps} ${generateSwrMutationArguments({
     operationName,
