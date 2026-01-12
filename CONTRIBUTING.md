@@ -28,6 +28,12 @@ then, clone it to your local machine:
 gh repo clone <your-github-name>/orval
 ```
 
+Install dependencies and set up Git hooks. Because `enableScripts` is disabled in `.yarnrc.yml`, lifecycle scripts won't run automatically, so run the following manually after cloning:
+
+```bash
+yarn install && yarn prepare
+```
+
 ### Implement your changes
 
 When making commits, make sure to follow the [conventional commit](https://www.conventionalcommits.org/en/v1.0.0/) guidelines, i.e. prepending the message with `feat:`, `fix:`, `chore:`, `docs:`, etc... You can use `git status` to double check which files have not yet been staged for commit:
