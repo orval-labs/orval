@@ -17,22 +17,17 @@ const SearchContext = React.createContext<
 let DocSearchModal: any = null;
 
 function collectParentCategoryUrls(routes: any[]): string[] {
-  const urls: string[] = [];
-
-  for (const route of routes) {
-    if (route.routes && !route.path && !route.href) {
-      // Get parent category URL by inferring from first child's path
-      const firstChild = route.routes.find((r: any) => r.path);
-      if (firstChild) {
-        const categoryPath = removeFromLast(firstChild.path, '/');
-        urls.push(categoryPath);
-      }
-      // Recursively explore child routes
-      urls.push(...collectParentCategoryUrls(route.routes));
+  return routes.flatMap((route) => {
+    if (!(route.routes && !route.path && !route.href)) {
+      return [];
     }
-  }
 
-  return urls;
+    const firstChild = route.routes.find((r: any) => r.path);
+    const parentUrl = firstChild ? removeFromLast(firstChild.path, '/') : null;
+    const childUrls = collectParentCategoryUrls(route.routes);
+
+    return parentUrl ? [parentUrl, ...childUrls] : childUrls;
+  });
 }
 
 const parentCategoryUrls = (() => {
