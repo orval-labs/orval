@@ -1,10 +1,11 @@
 import { useDocSearchKeyboardEvents } from '@docsearch/react';
 import Head from 'next/head';
-import Link from 'next/link';
 import Router from 'next/router';
 import React, { ComponentPropsWithoutRef } from 'react';
 import { createPortal } from 'react-dom';
 import { siteConfig } from '@/siteConfig';
+import { getManifest } from '@/manifests/getManifest';
+import { removeFromLast } from '@/lib/docs/utils';
 
 const SearchContext = React.createContext<
   | {
@@ -14,6 +15,30 @@ const SearchContext = React.createContext<
   | undefined
 >(undefined);
 let DocSearchModal: any = null;
+
+function collectParentCategoryUrls(routes: any[]): string[] {
+  const urls: string[] = [];
+
+  for (const route of routes) {
+    if (route.routes && !route.path && !route.href) {
+      // Get parent category URL by inferring from first child's path
+      const firstChild = route.routes.find((r: any) => r.path);
+      if (firstChild) {
+        const categoryPath = removeFromLast(firstChild.path, '/');
+        urls.push(categoryPath);
+      }
+      // Recursively explore child routes
+      urls.push(...collectParentCategoryUrls(route.routes));
+    }
+  }
+
+  return urls;
+}
+
+const parentCategoryUrls = (() => {
+  const manifest = getManifest(undefined);
+  return collectParentCategoryUrls(manifest.routes);
+})();
 
 export const useSearch = () =>
   React.useContext(SearchContext) as unknown as {
@@ -87,40 +112,23 @@ export function SearchProvider({
             searchParameters={searchParameters}
             onClose={onClose}
             navigator={{
-              navigate({ suggestionUrl }) {
-                Router.push(suggestionUrl);
+              navigate({ itemUrl }) {
+                Router.push(itemUrl);
               },
             }}
             transformItems={(items) => {
               return items.map((item) => {
-                const url = new URL(item.url);
-                return {
-                  ...item,
-                  url: item.url
-                    .replace(url.origin, '')
-                    .replace('#__next', '')
-                    .replace('/docs/#', '/docs/overview#')
-                    .replace(/#([^/]+)$/, '/$1'),
-                };
-              });
+                  if (parentCategoryUrls.includes(item.url)) {
+                    return null;
+                  }
+
+                  return item;
+                })
+                .filter((item) => item !== null);
             }}
-            hitComponent={Hit}
           />,
           document.body,
         )}
     </>
-  );
-}
-
-interface HitProps {
-  hit: any;
-  children: React.ReactElement;
-}
-
-function Hit({ hit, children }: HitProps) {
-  return (
-    <Link href={hit.url.replace()} legacyBehavior>
-      {children}
-    </Link>
   );
 }
