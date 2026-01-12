@@ -118,7 +118,15 @@ export function SearchProvider({
                     return null;
                   }
 
-                  return item;
+                  const url = new URL(item.url);
+                  return {
+                    ...item,
+                    url: item.url
+                      .replace(url.origin, '')
+                      .replace('#__next', '')
+                      .replace('/docs/#', '/docs/overview#')
+                      .replace(/#([^/]+)$/, '/$1'),
+                  };
                 })
                 .filter((item) => item !== null);
             }}
