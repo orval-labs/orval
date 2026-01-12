@@ -1599,6 +1599,32 @@ export default defineConfig({
 });
 ```
 
+#### generateErrorTypes
+
+Type: `Boolean`.
+
+Default Value: `false`.
+
+Use to generate custom error type aliases for each hook (e.g., `ListPetsQueryError`, `CreatePetsMutationError`).
+
+Example:
+
+```ts
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          generateErrorTypes: true,
+        },
+      },
+    },
+  },
+});
+```
+
 #### swrOptions
 
 Type: `Object`.
