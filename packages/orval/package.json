@@ -1,7 +1,7 @@
 {
   "name": "orval",
   "description": "A swagger client generator for typescript",
-  "version": "8.0.0-rc.5",
+  "version": "8.0.0-rc.6",
   "license": "MIT",
   "type": "module",
   "files": [
@@ -101,5 +101,5 @@
     "typedoc-plugin-coverage": "^4.0.2",
     "typedoc-plugin-markdown": "^4.9.0"
   },
-  "stableVersion": "8.0.0-rc.4"
+  "stableVersion": "8.0.0-rc.5"
 }

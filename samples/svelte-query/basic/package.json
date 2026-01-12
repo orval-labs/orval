@@ -1,6 +1,6 @@
 {
   "name": "svelte-query-basic",
-  "version": "8.0.0-rc.5",
+  "version": "8.0.0-rc.6",
   "private": true,
   "type": "module",
   "scripts": {
@@ -45,5 +45,5 @@
   "msw": {
     "workerDirectory": "static"
   },
-  "stableVersion": "8.0.0-rc.4"
+  "stableVersion": "8.0.0-rc.5"
 }

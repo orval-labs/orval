@@ -1,7 +1,7 @@
 {
   "name": "svelte-query-custom-fetch",
   "private": true,
-  "version": "8.0.0-rc.5",
+  "version": "8.0.0-rc.6",
   "type": "module",
   "scripts": {
     "dev": "vite  --host",
@@ -26,5 +26,5 @@
     "@sveltestack/svelte-query": "^1.6.0",
     "@tanstack/svelte-query": "^4.41.0"
   },
-  "stableVersion": "8.0.0-rc.4"
+  "stableVersion": "8.0.0-rc.5"
 }
