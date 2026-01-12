@@ -1,6 +1,6 @@
 {
   "name": "orval-tests",
-  "version": "8.0.0-rc.5",
+  "version": "8.0.0-rc.6",
   "description": "",
   "author": "Victor Bury",
   "license": "ISC",
@@ -51,5 +51,5 @@
     "vue": "^3.5.22",
     "zod": "^3.25.76"
   },
-  "stableVersion": "8.0.0-rc.4"
+  "stableVersion": "8.0.0-rc.5"
 }

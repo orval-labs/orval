@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "8.0.0-rc.5",
+  "version": "8.0.0-rc.6",
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -45,5 +45,5 @@
       "public"
     ]
   },
-  "stableVersion": "8.0.0-rc.4"
+  "stableVersion": "8.0.0-rc.5"
 }
