@@ -16,6 +16,7 @@ export async function getMutatorInfo(
     root?: string;
     namedExport?: string;
     alias?: Record<string, string>;
+    external?: string[];
     tsconfig?: Tsconfig;
   },
 ): Promise<GeneratorMutatorParsingInfo | undefined> {
@@ -23,6 +24,7 @@ export async function getMutatorInfo(
     root = process.cwd(),
     namedExport = 'default',
     alias,
+    external,
     tsconfig,
   } = options ?? {};
 
@@ -30,6 +32,7 @@ export async function getMutatorInfo(
     root,
     path.resolve(filePath),
     alias,
+    external,
     tsconfig?.compilerOptions,
   );
 
@@ -44,6 +47,7 @@ async function bundleFile(
   root: string,
   fileName: string,
   alias?: Record<string, string>,
+  external?: string[],
   compilerOptions?: Tsconfig['compilerOptions'],
 ): Promise<string> {
   const result = await build({
@@ -62,7 +66,7 @@ async function bundleFile(
     treeShaking: false,
     keepNames: false,
     alias,
-    external: ['*'],
+    external: external || ['*'],
   } satisfies BuildOptions);
   const { text } = result.outputFiles[0];
 

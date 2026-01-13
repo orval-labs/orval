@@ -71,6 +71,7 @@ export async function generateMutator({
     root: path.resolve(workspace),
     namedExport: mutatorInfoName,
     alias: mutator.alias,
+    external: mutator.external,
     tsconfig,
   });
 
