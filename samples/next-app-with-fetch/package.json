@@ -1,6 +1,6 @@
 {
   "name": "next-app-with-fetch",
-  "version": "8.0.0-rc.6",
+  "version": "8.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -33,6 +33,5 @@
     "msw": {
       "built": true
     }
-  },
-  "stableVersion": "8.0.0-rc.5"
+  }
 }
