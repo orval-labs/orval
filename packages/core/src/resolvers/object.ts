@@ -4,6 +4,7 @@ import type {
   OpenApiReferenceObject,
   OpenApiSchemaObject,
   ResolverValue,
+  ScalarValue,
 } from '../types';
 import { jsDoc } from '../utils';
 import { resolveValue } from './value';
@@ -13,6 +14,71 @@ interface ResolveOptions {
   propName?: string;
   combined?: boolean;
   context: ContextSpec;
+}
+
+interface CreateTypeAliasOptions {
+  resolvedValue: ResolverValue;
+  propName: string | undefined;
+  context: ContextSpec;
+}
+
+/**
+ * Wraps inline object type in a type alias.
+ * E.g. `{ foo: string }` → value becomes `FooBody`, schema gets `export type FooBody = { foo: string };`
+ */
+export function createTypeAliasIfNeeded({
+  resolvedValue,
+  propName,
+  context,
+}: CreateTypeAliasOptions): ScalarValue | undefined {
+  if (!propName) {
+    return undefined;
+  }
+
+  if (resolvedValue.isEnum || resolvedValue.type !== 'object') {
+    return undefined;
+  }
+
+  // aliasCombinedTypes (v7 compat): match '|' and '&' so 'string | number' creates named type
+  // v8 default: only match '{' so combined primitives are inlined
+  const aliasPattern = context.output.override.aliasCombinedTypes
+    ? '{|&|\\|'
+    : '{';
+  if (!new RegExp(aliasPattern).test(resolvedValue.value)) {
+    return undefined;
+  }
+
+  const { originalSchema } = resolvedValue;
+  const doc = jsDoc(originalSchema);
+  const isConstant = 'const' in originalSchema;
+  const constantIsString =
+    'type' in originalSchema &&
+    (originalSchema.type === 'string' ||
+      (Array.isArray(originalSchema.type) &&
+        originalSchema.type.includes('string')));
+
+  const model = isConstant
+    ? `${doc}export const ${propName} = ${constantIsString ? `'${originalSchema.const}'` : originalSchema.const} as const;\n`
+    : `${doc}export type ${propName} = ${resolvedValue.value};\n`;
+
+  return {
+    value: propName,
+    imports: [{ name: propName, isConstant }],
+    schemas: [
+      ...resolvedValue.schemas,
+      {
+        name: propName,
+        model,
+        imports: resolvedValue.imports,
+        dependencies: resolvedValue.dependencies,
+      },
+    ],
+    isEnum: false,
+    type: 'object',
+    isRef: resolvedValue.isRef,
+    hasReadonlyProps: resolvedValue.hasReadonlyProps,
+    dependencies: resolvedValue.dependencies,
+  };
 }
 
 function resolveObjectOriginal({
@@ -26,57 +92,27 @@ function resolveObjectOriginal({
     name: propName,
     context,
   });
-  const doc = jsDoc(resolvedValue.originalSchema ?? {});
 
-  // aliasCombinedTypes (v7 compat): match '|' and '&' so 'string | number' creates named type
-  // v8 default: only match '{' so combined primitives are inlined
-  if (
-    propName &&
-    !resolvedValue.isEnum &&
-    resolvedValue?.type === 'object' &&
-    new RegExp(
-      context.output.override.aliasCombinedTypes ? String.raw`{|&|\|` : '{',
-    ).test(resolvedValue.value)
-  ) {
-    let model = '';
-    const isConstant = 'const' in schema;
-    const constantIsString =
-      'type' in schema &&
-      (schema.type === 'string' ||
-        (Array.isArray(schema.type) && schema.type.includes('string')));
-
-    model += isConstant
-      ? `${doc}export const ${propName} = ${constantIsString ? `'${schema.const}'` : schema.const} as const;\n`
-      : `${doc}export type ${propName} = ${resolvedValue.value};\n`;
-
+  // Try to create a type alias for object types
+  const aliased = createTypeAliasIfNeeded({
+    resolvedValue,
+    propName,
+    context,
+  });
+  if (aliased) {
     return {
-      value: propName,
-      imports: [{ name: propName, isConstant }],
-      schemas: [
-        ...resolvedValue.schemas,
-        {
-          name: propName,
-          model,
-          imports: resolvedValue.imports,
-          dependencies: resolvedValue.dependencies,
-        },
-      ],
-      isEnum: false,
-      type: 'object',
+      ...aliased,
       originalSchema: resolvedValue.originalSchema,
-      isRef: resolvedValue.isRef,
-      hasReadonlyProps: resolvedValue.hasReadonlyProps,
-      dependencies: resolvedValue.dependencies,
     };
   }
 
   if (propName && resolvedValue.isEnum && !combined && !resolvedValue.isRef) {
-    const enumGenerationType = context.output.override.enumGenerationType;
+    const doc = jsDoc(resolvedValue.originalSchema ?? {});
     const enumValue = getEnum(
       resolvedValue.value,
       propName,
       getEnumNames(resolvedValue.originalSchema),
-      enumGenerationType,
+      context.output.override.enumGenerationType,
       getEnumDescriptions(resolvedValue.originalSchema),
       context.output.override.namingConvention?.enum,
     );

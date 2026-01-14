@@ -244,21 +244,29 @@ describe('getResReqTypes (content type handling)', () => {
     it('generates correct types and FormData for all content type combinations', () => {
       const result = getResReqTypes(reqBody, 'Body', context)[0];
 
+      // The value should be the type alias name (not inline type)
+      // This ensures consistent behavior with resolveObject
+      expect(result.value).toBe('BodyRequestBody');
+
+      // The schema should contain the type definition with the inline type
       // encBinary/cmtBinary/formatBinary/wildcardFile: Blob (binary)
       // encText/cmtText/encOverride: Blob | string (text file)
       // base64Field: string (contentEncoding means not a file)
       // metadata: object (named type)
-      expect(result.value).toBe(`{
-  encBinary: Blob;
-  encText: Blob | string;
-  cmtBinary: Blob;
-  cmtText: Blob | string;
-  encOverride: Blob | string;
-  formatBinary: Blob;
-  base64Field: string;
-  metadata: BodyRequestBodyMetadata;
-  wildcardFile: Blob;
-}`);
+      const bodySchema = result.schemas.find(
+        (s) => s.name === 'BodyRequestBody',
+      );
+      expect(bodySchema).toBeDefined();
+      expect(bodySchema?.model).toContain('export type BodyRequestBody = {');
+      expect(bodySchema?.model).toContain('encBinary: Blob;');
+      expect(bodySchema?.model).toContain('encText: Blob | string;');
+      expect(bodySchema?.model).toContain('cmtBinary: Blob;');
+      expect(bodySchema?.model).toContain('cmtText: Blob | string;');
+      expect(bodySchema?.model).toContain('encOverride: Blob | string;');
+      expect(bodySchema?.model).toContain('formatBinary: Blob;');
+      expect(bodySchema?.model).toContain('base64Field: string;');
+      expect(bodySchema?.model).toContain('metadata: BodyRequestBodyMetadata;');
+      expect(bodySchema?.model).toContain('wildcardFile: Blob;');
 
       expect(result.formData).toBe(`const formData = new FormData();
 formData.append(\`encBinary\`, bodyRequestBody.encBinary);
