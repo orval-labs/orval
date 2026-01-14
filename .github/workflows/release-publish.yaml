@@ -47,7 +47,7 @@ jobs:
           yarn config set npmAuthToken ${{ secrets.NPM_TOKEN }}
 
       - name: Publish workspaces to npm
-        run: yarn workspaces foreach --all --no-private -v npm publish --access public --tolerate-republish --tag rc
+        run: yarn workspaces foreach --all --no-private -v npm publish --access public --tolerate-republish
 
       - name: Extract version
         id: version
