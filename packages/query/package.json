@@ -1,6 +1,6 @@
 {
   "name": "@orval/query",
-  "version": "8.0.0-rc.6",
+  "version": "8.0.0",
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -33,6 +33,5 @@
     "rimraf": "catalog:",
     "tsdown": "catalog:",
     "vitest": "catalog:"
-  },
-  "stableVersion": "8.0.0-rc.5"
+  }
 }

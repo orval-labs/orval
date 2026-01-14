@@ -1,6 +1,6 @@
 {
   "name": "@orval/core",
-  "version": "8.0.0-rc.6",
+  "version": "8.0.0",
   "license": "MIT",
   "type": "module",
   "main": "./dist/index.mjs",
@@ -47,6 +47,5 @@
     "globby": "16.1.0",
     "remeda": "^2.32.0",
     "typedoc": "^0.28.15"
-  },
-  "stableVersion": "8.0.0-rc.5"
+  }
 }

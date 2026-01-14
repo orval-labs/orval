@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "8.0.0-rc.6",
+  "version": "8.0.0",
   "type": "module",
   "private": true,
   "scripts": {
@@ -36,6 +36,5 @@
   },
   "msw": {
     "workerDirectory": "public"
-  },
-  "stableVersion": "8.0.0-rc.5"
+  }
 }
