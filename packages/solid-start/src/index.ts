@@ -43,9 +43,7 @@ export const generateSolidStartTitle: ClientTitleBuilder = (title) => {
   return `${pascal(sanTitle)}`;
 };
 
-export const generateSolidStartHeader: ClientHeaderBuilder = ({
-  title,
-}) => `
+export const generateSolidStartHeader: ClientHeaderBuilder = ({ title }) => `
 /**
  * Cache Invalidation:
  *
