@@ -1,7 +1,7 @@
 import { keyword } from 'esutils';
 import { uniqueBy } from 'remeda';
 
-import { resolveObject } from '../resolvers/object';
+import { createTypeAliasIfNeeded, resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
   type ContextSpec,
@@ -486,13 +486,23 @@ function resolveFormDataRootObject({
     return undefined;
   }
 
-  return getObject({
+  const result = getObject({
     item: schema,
     name: propName,
     context,
     nullable: '', // multipart/form-data has no native null representation
     propertyOverrides,
   });
+
+  // Wrap in type alias if needed (same contract as resolveObject)
+  const resolverValue = { ...result, originalSchema: schema };
+  return (
+    createTypeAliasIfNeeded({
+      resolvedValue: resolverValue,
+      propName,
+      context,
+    }) ?? result
+  );
 }
 
 interface GetFormDataAdditionalImportsOptions {
