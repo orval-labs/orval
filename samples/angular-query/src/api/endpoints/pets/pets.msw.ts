@@ -117,6 +117,8 @@ export const getShowPetTextResponseMock = (): string => faker.word.sample();
 export const getDownloadFileResponseMock = (): Blob =>
   new Blob(faker.helpers.arrayElements(faker.word.words(10).split(' ')));
 
+export const getHealthCheckResponseMock = (): string => faker.word.sample();
+
 export const getSearchPetsMockHandler = (
   overrideResponse?:
     | Pets
@@ -356,6 +358,30 @@ export const getDownloadFileMockHandler = (
     options,
   );
 };
+
+export const getHealthCheckMockHandler = (
+  overrideResponse?:
+    | string
+    | ((
+        info: Parameters<Parameters<typeof http.get>[1]>[0],
+      ) => Promise<string> | string),
+  options?: RequestHandlerOptions,
+) => {
+  return http.get(
+    '*/v:version/health',
+    async (info) => {
+      return new HttpResponse(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getHealthCheckResponseMock(),
+        { status: 200, headers: { 'Content-Type': 'text/plain' } },
+      );
+    },
+    options,
+  );
+};
 export const getPetsMock = () => [
   getSearchPetsMockHandler(),
   getListPetsMockHandler(),
@@ -367,4 +393,5 @@ export const getPetsMock = () => [
   getShowPetTextMockHandler(),
   getUploadFileMockHandler(),
   getDownloadFileMockHandler(),
+  getHealthCheckMockHandler(),
 ];

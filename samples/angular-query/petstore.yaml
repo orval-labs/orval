@@ -322,6 +322,25 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /health:
+    get:
+      summary: Health check
+      operationId: healthCheck
+      tags:
+        - pets
+      responses:
+        '200':
+          description: Health status
+          content:
+            text/plain:
+              schema:
+                type: string
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 components:
   schemas:
     Pet:

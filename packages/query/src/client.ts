@@ -212,13 +212,17 @@ export const generateAngularHttpRequestFunction = (
   // This follows the pattern from TanStack Query Angular documentation
   // Note: signal can be null (from RequestInit), so we accept null | undefined
   const optionsParam = hasSignal
-    ? ', options?: { signal?: AbortSignal | null }'
+    ? 'options?: { signal?: AbortSignal | null }'
     : '';
+
+  // Build additional params after http, handling empty queryProps properly
+  const additionalParams = [queryProps, optionsParam]
+    .filter(Boolean)
+    .join(', ');
 
   // Note: http parameter is passed from the inject* function which has injection context
   return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (
-    http: HttpClient,
-    ${queryProps}${optionsParam}
+    http: HttpClient${additionalParams ? `,\n    ${additionalParams}` : ''}
   ): Promise<${dataType}> => {
     ${bodyForm}
     ${urlConstruction}
