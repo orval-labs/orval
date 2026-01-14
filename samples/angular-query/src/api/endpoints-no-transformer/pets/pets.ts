@@ -9,7 +9,6 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 
 import {
-  QueryClient,
   injectMutation,
   injectQuery,
 } from '@tanstack/angular-query-experimental';
@@ -18,9 +17,7 @@ import type {
   CreateMutationResult,
   CreateQueryOptions,
   CreateQueryResult,
-  InvalidateOptions,
   MutationFunction,
-  MutationFunctionContext,
   QueryFunction,
 } from '@tanstack/angular-query-experimental';
 
@@ -36,7 +33,7 @@ import type {
   Pet,
   Pets,
   SearchPetsParams,
-} from '../../model';
+} from '../../model-no-transformer';
 
 /**
  * @summary search by query params
@@ -44,13 +41,12 @@ import type {
 export const searchPets = (
   http: HttpClient,
   params: SearchPetsParams,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
     ? new HttpParams({ fromObject: params as Record<string, string> })
     : undefined;
-  const url = `/v${version}/search`;
+  const url = `/search`;
   const request$ = http.get<Pets>(url, { params: httpParams });
   if (options?.signal) {
     return lastValueFrom(
@@ -60,11 +56,8 @@ export const searchPets = (
   return lastValueFrom(request$);
 };
 
-export const getSearchPetsQueryKey = (
-  params?: SearchPetsParams,
-  version: number = 1,
-) => {
-  return [`/v${version}/search`, ...(params ? [params] : [])] as const;
+export const getSearchPetsQueryKey = (params?: SearchPetsParams) => {
+  return [`/search`, ...(params ? [params] : [])] as const;
 };
 
 export const getSearchPetsQueryOptions = <
@@ -72,7 +65,6 @@ export const getSearchPetsQueryOptions = <
   TError = Error,
 >(
   params: SearchPetsParams,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
@@ -83,19 +75,13 @@ export const getSearchPetsQueryOptions = <
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
   const http = inject(HttpClient);
 
-  const queryKey =
-    queryOptions?.queryKey ?? getSearchPetsQueryKey(params, version);
+  const queryKey = queryOptions?.queryKey ?? getSearchPetsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPets>>> = ({
     signal,
-  }) => searchPets(http, params, version, { signal, ...fetchOptions });
+  }) => searchPets(http, params, { signal, ...fetchOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as CreateQueryOptions<
+  return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
     Awaited<ReturnType<typeof searchPets>>,
     TError,
     TData
@@ -116,7 +102,6 @@ export function injectSearchPets<
   TError = Error,
 >(
   params: SearchPetsParams,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
@@ -124,7 +109,7 @@ export function injectSearchPets<
     fetch?: RequestInit;
   },
 ): CreateQueryResult<TData, TError> {
-  const queryOptions = getSearchPetsQueryOptions(params, version, options);
+  const queryOptions = getSearchPetsQueryOptions(params, options);
 
   const query = injectQuery(() => queryOptions) as CreateQueryResult<
     TData,
@@ -135,35 +120,17 @@ export function injectSearchPets<
 }
 
 /**
- * @summary search by query params
- */
-export const invalidateSearchPets = async (
-  queryClient: QueryClient,
-  params: SearchPetsParams,
-  version: number = 1,
-  options?: InvalidateOptions,
-): Promise<QueryClient> => {
-  await queryClient.invalidateQueries(
-    { queryKey: getSearchPetsQueryKey(params, version) },
-    options,
-  );
-
-  return queryClient;
-};
-
-/**
  * @summary List all pets
  */
 export const listPets = (
   http: HttpClient,
   params?: ListPetsParams,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<Pets> => {
   const httpParams = params
     ? new HttpParams({ fromObject: params as Record<string, string> })
     : undefined;
-  const url = `/v${version}/pets`;
+  const url = `/pets`;
   const request$ = http.get<Pets>(url, { params: httpParams });
   if (options?.signal) {
     return lastValueFrom(
@@ -173,11 +140,8 @@ export const listPets = (
   return lastValueFrom(request$);
 };
 
-export const getListPetsQueryKey = (
-  params?: ListPetsParams,
-  version: number = 1,
-) => {
-  return [`/v${version}/pets`, ...(params ? [params] : [])] as const;
+export const getListPetsQueryKey = (params?: ListPetsParams) => {
+  return [`/pets`, ...(params ? [params] : [])] as const;
 };
 
 export const getListPetsQueryOptions = <
@@ -185,7 +149,6 @@ export const getListPetsQueryOptions = <
   TError = Error,
 >(
   params?: ListPetsParams,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -196,19 +159,17 @@ export const getListPetsQueryOptions = <
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
   const http = inject(HttpClient);
 
-  const queryKey =
-    queryOptions?.queryKey ?? getListPetsQueryKey(params, version);
+  const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(http, params, version, { signal, ...fetchOptions });
+  }) => listPets(http, params, { signal, ...fetchOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>;
+  return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
+    Awaited<ReturnType<typeof listPets>>,
+    TError,
+    TData
+  >;
 };
 
 export type ListPetsQueryResult = NonNullable<
@@ -225,7 +186,6 @@ export function injectListPets<
   TError = Error,
 >(
   params?: ListPetsParams,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
@@ -233,7 +193,7 @@ export function injectListPets<
     fetch?: RequestInit;
   },
 ): CreateQueryResult<TData, TError> {
-  const queryOptions = getListPetsQueryOptions(params, version, options);
+  const queryOptions = getListPetsQueryOptions(params, options);
 
   const query = injectQuery(() => queryOptions) as CreateQueryResult<
     TData,
@@ -244,32 +204,14 @@ export function injectListPets<
 }
 
 /**
- * @summary List all pets
- */
-export const invalidateListPets = async (
-  queryClient: QueryClient,
-  params?: ListPetsParams,
-  version: number = 1,
-  options?: InvalidateOptions,
-): Promise<QueryClient> => {
-  await queryClient.invalidateQueries(
-    { queryKey: getListPetsQueryKey(params, version) },
-    options,
-  );
-
-  return queryClient;
-};
-
-/**
  * @summary Create a pet
  */
 export const createPets = (
   http: HttpClient,
   createPetsBody: CreatePetsBody,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<void> => {
-  const url = `/v${version}/pets`;
+  const url = `/pets`;
   const request$ = http.post<void>(url, createPetsBody);
   if (options?.signal) {
     return lastValueFrom(
@@ -286,14 +228,14 @@ export const getCreatePetsMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; version?: number },
+    { data: CreatePetsBody },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; version?: number },
+  { data: CreatePetsBody },
   TContext
 > => {
   const mutationKey = ['createPets'];
@@ -305,28 +247,17 @@ export const getCreatePetsMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
-  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
-    { data: CreatePetsBody; version?: number }
+    { data: CreatePetsBody }
   > = (props) => {
-    const { data, version } = props ?? {};
+    const { data } = props ?? {};
 
-    return createPets(http, data, version, fetchOptions);
+    return createPets(http, data, fetchOptions);
   };
 
-  const onSuccess = (
-    data: Awaited<ReturnType<typeof createPets>>,
-    variables: { data: CreatePetsBody; version?: number },
-    onMutateResult: TContext,
-    context: MutationFunctionContext,
-  ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };
-
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { mutationFn, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -342,14 +273,14 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof createPets>>,
     TError,
-    { data: CreatePetsBody; version?: number },
+    { data: CreatePetsBody },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
-  { data: CreatePetsBody; version?: number },
+  { data: CreatePetsBody },
   TContext
 > => {
   const createPetsMutationOptions = getCreatePetsMutationOptions(options);
@@ -362,10 +293,9 @@ export const injectCreatePets = <TError = Error, TContext = unknown>(options?: {
 export const showPetById = (
   http: HttpClient,
   petId: string,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
-  const url = `/v${version}/pets/${petId}`;
+  const url = `/pets/${petId}`;
   const request$ = http.get<Pet>(url);
   if (options?.signal) {
     return lastValueFrom(
@@ -375,8 +305,8 @@ export const showPetById = (
   return lastValueFrom(request$);
 };
 
-export const getShowPetByIdQueryKey = (petId?: string, version: number = 1) => {
-  return [`/v${version}/pets/${petId}`] as const;
+export const getShowPetByIdQueryKey = (petId?: string) => {
+  return [`/pets/${petId}`] as const;
 };
 
 export const getShowPetByIdQueryOptions = <
@@ -384,7 +314,6 @@ export const getShowPetByIdQueryOptions = <
   TError = Error,
 >(
   petId: string,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -395,17 +324,16 @@ export const getShowPetByIdQueryOptions = <
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
   const http = inject(HttpClient);
 
-  const queryKey =
-    queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId, version);
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(http, petId, version, { signal, ...fetchOptions });
+  }) => showPetById(http, petId, { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: !!petId,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetById>>,
@@ -428,7 +356,6 @@ export function injectShowPetById<
   TError = Error,
 >(
   petId: string,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
@@ -436,7 +363,7 @@ export function injectShowPetById<
     fetch?: RequestInit;
   },
 ): CreateQueryResult<TData, TError> {
-  const queryOptions = getShowPetByIdQueryOptions(petId, version, options);
+  const queryOptions = getShowPetByIdQueryOptions(petId, options);
 
   const query = injectQuery(() => queryOptions) as CreateQueryResult<
     TData,
@@ -447,32 +374,14 @@ export function injectShowPetById<
 }
 
 /**
- * @summary Info for a specific pet
- */
-export const invalidateShowPetById = async (
-  queryClient: QueryClient,
-  petId: string,
-  version: number = 1,
-  options?: InvalidateOptions,
-): Promise<QueryClient> => {
-  await queryClient.invalidateQueries(
-    { queryKey: getShowPetByIdQueryKey(petId, version) },
-    options,
-  );
-
-  return queryClient;
-};
-
-/**
  * @summary Delete a pet
  */
 export const deletePet = (
   http: HttpClient,
   petId: string,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<void> => {
-  const url = `/v${version}/pets/${petId}`;
+  const url = `/pets/${petId}`;
   const request$ = http.delete<void>(url);
   if (options?.signal) {
     return lastValueFrom(
@@ -489,14 +398,14 @@ export const getDeletePetMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePet>>,
     TError,
-    { petId: string; version?: number },
+    { petId: string },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePet>>,
   TError,
-  { petId: string; version?: number },
+  { petId: string },
   TContext
 > => {
   const mutationKey = ['deletePet'];
@@ -508,31 +417,17 @@ export const getDeletePetMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
-  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePet>>,
-    { petId: string; version?: number }
+    { petId: string }
   > = (props) => {
-    const { petId, version } = props ?? {};
+    const { petId } = props ?? {};
 
-    return deletePet(http, petId, version, fetchOptions);
+    return deletePet(http, petId, fetchOptions);
   };
 
-  const onSuccess = (
-    data: Awaited<ReturnType<typeof deletePet>>,
-    variables: { petId: string; version?: number },
-    onMutateResult: TContext,
-    context: MutationFunctionContext,
-  ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };
-
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { mutationFn, ...mutationOptions };
 };
 
 export type DeletePetMutationResult = NonNullable<
@@ -548,14 +443,14 @@ export const injectDeletePet = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof deletePet>>,
     TError,
-    { petId: string; version?: number },
+    { petId: string },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePet>>,
   TError,
-  { petId: string; version?: number },
+  { petId: string },
   TContext
 > => {
   const deletePetMutationOptions = getDeletePetMutationOptions(options);
@@ -569,10 +464,9 @@ export const updatePet = (
   http: HttpClient,
   petId: string,
   pet: Pet,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
-  const url = `/v${version}/pets/${petId}`;
+  const url = `/pets/${petId}`;
   const request$ = http.put<Pet>(url, pet);
   if (options?.signal) {
     return lastValueFrom(
@@ -589,14 +483,14 @@ export const getUpdatePetMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof updatePet>>,
     TError,
-    { petId: string; data: Pet; version?: number },
+    { petId: string; data: Pet },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof updatePet>>,
   TError,
-  { petId: string; data: Pet; version?: number },
+  { petId: string; data: Pet },
   TContext
 > => {
   const mutationKey = ['updatePet'];
@@ -608,31 +502,17 @@ export const getUpdatePetMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
-  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePet>>,
-    { petId: string; data: Pet; version?: number }
+    { petId: string; data: Pet }
   > = (props) => {
-    const { petId, data, version } = props ?? {};
+    const { petId, data } = props ?? {};
 
-    return updatePet(http, petId, data, version, fetchOptions);
+    return updatePet(http, petId, data, fetchOptions);
   };
 
-  const onSuccess = (
-    data: Awaited<ReturnType<typeof updatePet>>,
-    variables: { petId: string; data: Pet; version?: number },
-    onMutateResult: TContext,
-    context: MutationFunctionContext,
-  ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };
-
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { mutationFn, ...mutationOptions };
 };
 
 export type UpdatePetMutationResult = NonNullable<
@@ -648,14 +528,14 @@ export const injectUpdatePet = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof updatePet>>,
     TError,
-    { petId: string; data: Pet; version?: number },
+    { petId: string; data: Pet },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof updatePet>>,
   TError,
-  { petId: string; data: Pet; version?: number },
+  { petId: string; data: Pet },
   TContext
 > => {
   const updatePetMutationOptions = getUpdatePetMutationOptions(options);
@@ -669,10 +549,9 @@ export const patchPet = (
   http: HttpClient,
   petId: string,
   patchPetBody: PatchPetBody,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
-  const url = `/v${version}/pets/${petId}`;
+  const url = `/pets/${petId}`;
   const request$ = http.patch<Pet>(url, patchPetBody);
   if (options?.signal) {
     return lastValueFrom(
@@ -689,14 +568,14 @@ export const getPatchPetMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof patchPet>>,
     TError,
-    { petId: string; data: PatchPetBody; version?: number },
+    { petId: string; data: PatchPetBody },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof patchPet>>,
   TError,
-  { petId: string; data: PatchPetBody; version?: number },
+  { petId: string; data: PatchPetBody },
   TContext
 > => {
   const mutationKey = ['patchPet'];
@@ -708,31 +587,17 @@ export const getPatchPetMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
-  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof patchPet>>,
-    { petId: string; data: PatchPetBody; version?: number }
+    { petId: string; data: PatchPetBody }
   > = (props) => {
-    const { petId, data, version } = props ?? {};
+    const { petId, data } = props ?? {};
 
-    return patchPet(http, petId, data, version, fetchOptions);
+    return patchPet(http, petId, data, fetchOptions);
   };
 
-  const onSuccess = (
-    data: Awaited<ReturnType<typeof patchPet>>,
-    variables: { petId: string; data: PatchPetBody; version?: number },
-    onMutateResult: TContext,
-    context: MutationFunctionContext,
-  ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    queryClient.invalidateQueries({
-      queryKey: getShowPetByIdQueryKey(variables.petId),
-    });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };
-
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { mutationFn, ...mutationOptions };
 };
 
 export type PatchPetMutationResult = NonNullable<
@@ -748,14 +613,14 @@ export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof patchPet>>,
     TError,
-    { petId: string; data: PatchPetBody; version?: number },
+    { petId: string; data: PatchPetBody },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof patchPet>>,
   TError,
-  { petId: string; data: PatchPetBody; version?: number },
+  { petId: string; data: PatchPetBody },
   TContext
 > => {
   const patchPetMutationOptions = getPatchPetMutationOptions(options);
@@ -768,10 +633,9 @@ export const injectPatchPet = <TError = Error, TContext = unknown>(options?: {
 export const showPetText = (
   http: HttpClient,
   petId: string,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
-  const url = `/v${version}/pets/${petId}/text`;
+  const url = `/pets/${petId}/text`;
   const request$ = http.get<string>(url);
   if (options?.signal) {
     return lastValueFrom(
@@ -781,8 +645,8 @@ export const showPetText = (
   return lastValueFrom(request$);
 };
 
-export const getShowPetTextQueryKey = (petId?: string, version: number = 1) => {
-  return [`/v${version}/pets/${petId}/text`] as const;
+export const getShowPetTextQueryKey = (petId?: string) => {
+  return [`/pets/${petId}/text`] as const;
 };
 
 export const getShowPetTextQueryOptions = <
@@ -790,7 +654,6 @@ export const getShowPetTextQueryOptions = <
   TError = Error,
 >(
   petId: string,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
@@ -801,17 +664,16 @@ export const getShowPetTextQueryOptions = <
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
   const http = inject(HttpClient);
 
-  const queryKey =
-    queryOptions?.queryKey ?? getShowPetTextQueryKey(petId, version);
+  const queryKey = queryOptions?.queryKey ?? getShowPetTextQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetText>>> = ({
     signal,
-  }) => showPetText(http, petId, version, { signal, ...fetchOptions });
+  }) => showPetText(http, petId, { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: !!petId,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof showPetText>>,
@@ -834,7 +696,6 @@ export function injectShowPetText<
   TError = Error,
 >(
   petId: string,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
@@ -842,7 +703,7 @@ export function injectShowPetText<
     fetch?: RequestInit;
   },
 ): CreateQueryResult<TData, TError> {
-  const queryOptions = getShowPetTextQueryOptions(petId, version, options);
+  const queryOptions = getShowPetTextQueryOptions(petId, options);
 
   const query = injectQuery(() => queryOptions) as CreateQueryResult<
     TData,
@@ -853,23 +714,6 @@ export function injectShowPetText<
 }
 
 /**
- * @summary Info for a specific pet
- */
-export const invalidateShowPetText = async (
-  queryClient: QueryClient,
-  petId: string,
-  version: number = 1,
-  options?: InvalidateOptions,
-): Promise<QueryClient> => {
-  await queryClient.invalidateQueries(
-    { queryKey: getShowPetTextQueryKey(petId, version) },
-    options,
-  );
-
-  return queryClient;
-};
-
-/**
  * Upload image of the pet.
  * @summary Uploads an image.
  */
@@ -877,10 +721,9 @@ export const uploadFile = (
   http: HttpClient,
   petId: number,
   uploadFileBody: Blob,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<void> => {
-  const url = `/v${version}/pet/${petId}/uploadImage`;
+  const url = `/pet/${petId}/uploadImage`;
   const request$ = http.post<void>(url, uploadFileBody);
   if (options?.signal) {
     return lastValueFrom(
@@ -897,14 +740,14 @@ export const getUploadFileMutationOptions = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof uploadFile>>,
     TError,
-    { petId: number; data: Blob; version?: number },
+    { petId: number; data: Blob },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data: Blob; version?: number },
+  { petId: number; data: Blob },
   TContext
 > => {
   const mutationKey = ['uploadFile'];
@@ -916,28 +759,17 @@ export const getUploadFileMutationOptions = <
       : { ...options, mutation: { ...options.mutation, mutationKey } }
     : { mutation: { mutationKey }, fetch: undefined };
   const http = inject(HttpClient);
-  const queryClient = inject(QueryClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
-    { petId: number; data: Blob; version?: number }
+    { petId: number; data: Blob }
   > = (props) => {
-    const { petId, data, version } = props ?? {};
+    const { petId, data } = props ?? {};
 
-    return uploadFile(http, petId, data, version, fetchOptions);
+    return uploadFile(http, petId, data, fetchOptions);
   };
 
-  const onSuccess = (
-    data: Awaited<ReturnType<typeof uploadFile>>,
-    variables: { petId: number; data: Blob; version?: number },
-    onMutateResult: TContext,
-    context: MutationFunctionContext,
-  ) => {
-    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
-    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
-  };
-
-  return { mutationFn, onSuccess, ...mutationOptions };
+  return { mutationFn, ...mutationOptions };
 };
 
 export type UploadFileMutationResult = NonNullable<
@@ -956,14 +788,14 @@ export const injectUploadFile = <
   mutation?: CreateMutationOptions<
     Awaited<ReturnType<typeof uploadFile>>,
     TError,
-    { petId: number; data: Blob; version?: number },
+    { petId: number; data: Blob },
     TContext
   >;
   fetch?: RequestInit;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
-  { petId: number; data: Blob; version?: number },
+  { petId: number; data: Blob },
   TContext
 > => {
   const uploadFileMutationOptions = getUploadFileMutationOptions(options);
@@ -977,10 +809,9 @@ export const injectUploadFile = <
 export const downloadFile = (
   http: HttpClient,
   petId: number,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<Blob> => {
-  const url = `/v${version}/pet/${petId}/downloadImage`;
+  const url = `/pet/${petId}/downloadImage`;
   const request$ = http.get<Blob>(url);
   if (options?.signal) {
     return lastValueFrom(
@@ -990,11 +821,8 @@ export const downloadFile = (
   return lastValueFrom(request$);
 };
 
-export const getDownloadFileQueryKey = (
-  petId?: number,
-  version: number = 1,
-) => {
-  return [`/v${version}/pet/${petId}/downloadImage`] as const;
+export const getDownloadFileQueryKey = (petId?: number) => {
+  return [`/pet/${petId}/downloadImage`] as const;
 };
 
 export const getDownloadFileQueryOptions = <
@@ -1002,7 +830,6 @@ export const getDownloadFileQueryOptions = <
   TError = void | Error,
 >(
   petId: number,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<
@@ -1017,17 +844,16 @@ export const getDownloadFileQueryOptions = <
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
   const http = inject(HttpClient);
 
-  const queryKey =
-    queryOptions?.queryKey ?? getDownloadFileQueryKey(petId, version);
+  const queryKey = queryOptions?.queryKey ?? getDownloadFileQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadFile>>> = ({
     signal,
-  }) => downloadFile(http, petId, version, { signal, ...fetchOptions });
+  }) => downloadFile(http, petId, { signal, ...fetchOptions });
 
   return {
     queryKey,
     queryFn,
-    enabled: !!(version && petId),
+    enabled: !!petId,
     ...queryOptions,
   } as CreateQueryOptions<
     Awaited<ReturnType<typeof downloadFile>>,
@@ -1050,7 +876,6 @@ export function injectDownloadFile<
   TError = void | Error,
 >(
   petId: number,
-  version: number = 1,
   options?: {
     query?: Partial<
       CreateQueryOptions<
@@ -1062,7 +887,7 @@ export function injectDownloadFile<
     fetch?: RequestInit;
   },
 ): CreateQueryResult<TData, TError> {
-  const queryOptions = getDownloadFileQueryOptions(petId, version, options);
+  const queryOptions = getDownloadFileQueryOptions(petId, options);
 
   const query = injectQuery(() => queryOptions) as CreateQueryResult<
     TData,
@@ -1073,31 +898,13 @@ export function injectDownloadFile<
 }
 
 /**
- * @summary Download an image.
- */
-export const invalidateDownloadFile = async (
-  queryClient: QueryClient,
-  petId: number,
-  version: number = 1,
-  options?: InvalidateOptions,
-): Promise<QueryClient> => {
-  await queryClient.invalidateQueries(
-    { queryKey: getDownloadFileQueryKey(petId, version) },
-    options,
-  );
-
-  return queryClient;
-};
-
-/**
  * @summary Health check
  */
 export const healthCheck = (
   http: HttpClient,
-  version: number = 1,
   options?: { signal?: AbortSignal | null },
 ): Promise<string> => {
-  const url = `/v${version}/health`;
+  const url = `/health`;
   const request$ = http.get<string>(url);
   if (options?.signal) {
     return lastValueFrom(
@@ -1107,37 +914,29 @@ export const healthCheck = (
   return lastValueFrom(request$);
 };
 
-export const getHealthCheckQueryKey = (version: number = 1) => {
-  return [`/v${version}/health`] as const;
+export const getHealthCheckQueryKey = () => {
+  return [`/health`] as const;
 };
 
 export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
->(
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-    >;
-    fetch?: RequestInit;
-  },
-) => {
+>(options?: {
+  query?: Partial<
+    CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+  >;
+  fetch?: RequestInit;
+}) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
   const http = inject(HttpClient);
 
-  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey(version);
+  const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
     signal,
-  }) => healthCheck(http, version, { signal, ...fetchOptions });
+  }) => healthCheck(http, { signal, ...fetchOptions });
 
-  return {
-    queryKey,
-    queryFn,
-    enabled: !!version,
-    ...queryOptions,
-  } as CreateQueryOptions<
+  return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
     TData
@@ -1156,16 +955,13 @@ export type HealthCheckQueryError = Error;
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = Error,
->(
-  version: number = 1,
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-    >;
-    fetch?: RequestInit;
-  },
-): CreateQueryResult<TData, TError> {
-  const queryOptions = getHealthCheckQueryOptions(version, options);
+>(options?: {
+  query?: Partial<
+    CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
+  >;
+  fetch?: RequestInit;
+}): CreateQueryResult<TData, TError> {
+  const queryOptions = getHealthCheckQueryOptions(options);
 
   const query = injectQuery(() => queryOptions) as CreateQueryResult<
     TData,
@@ -1174,19 +970,3 @@ export function injectHealthCheck<
 
   return query;
 }
-
-/**
- * @summary Health check
- */
-export const invalidateHealthCheck = async (
-  queryClient: QueryClient,
-  version: number = 1,
-  options?: InvalidateOptions,
-): Promise<QueryClient> => {
-  await queryClient.invalidateQueries(
-    { queryKey: getHealthCheckQueryKey(version) },
-    options,
-  );
-
-  return queryClient;
-};

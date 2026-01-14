@@ -2,6 +2,24 @@ import { faker } from '@faker-js/faker';
 import { defineConfig } from 'orval';
 
 export default defineConfig({
+  petstoreNoTransformer: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-no-transformer',
+      schemas: 'src/api/model-no-transformer',
+      client: 'angular-query',
+      httpClient: 'angular',
+      clean: true,
+      override: {
+        query: {
+          signal: true,
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
   petstore: {
     output: {
       mode: 'tags-split',
