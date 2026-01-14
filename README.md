@@ -17,7 +17,7 @@
 `orval` generates type-safe JS clients (TypeScript) from any valid OpenAPI v3 or Swagger v2 specification, either in `yaml` or `json` formats.
 
 > [!IMPORTANT]  
-> Version [8.0.0+](https://orval.dev/versions/v8) comes with a lot of improvements and changes please see he [Migration Guide](https://orval.dev/versions/v8)
+> Version [8.0.0+](https://orval.dev/versions/v8) comes with a lot of improvements and changes please see the [Migration Guide](https://orval.dev/versions/v8)
 
 ### Supported clients
 
