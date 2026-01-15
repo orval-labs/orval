@@ -374,6 +374,7 @@ describe('combineSchemasMock', () => {
 
     const item: MockSchemaObject = {
       name: 'Cat',
+      isRef: true,
       allOf: [
         { $ref: '#/components/schemas/Base' },
         {
