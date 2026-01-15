@@ -172,8 +172,10 @@ cli
         }
       }
 
-      if (hasErrors)
+      if (hasErrors) {
         logError('One or more project failed, see above for details');
+        process.exit(1);
+      }
     }
   });
 
