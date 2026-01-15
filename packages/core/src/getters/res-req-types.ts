@@ -275,6 +275,31 @@ export function getResReqTypes(
           .filter(Boolean)
           .map((x) => ({ ...x, key })) as ResReqTypesValue[];
       }
+      const swaggerSchema =
+        'schema' in res
+          ? (
+              res as {
+                schema?: OpenApiSchemaObject | OpenApiReferenceObject;
+              }
+            ).schema
+          : undefined;
+
+      if (swaggerSchema) {
+        const propName = key ? pascal(name) + pascal(key) : undefined;
+        const resolvedValue = resolveObject({
+          schema: swaggerSchema,
+          propName,
+          context,
+        });
+
+        return [
+          {
+            ...resolvedValue,
+            contentType: 'application/json',
+            key,
+          },
+        ] as ResReqTypesValue[];
+      }
 
       return [
         {

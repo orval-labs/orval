@@ -7,6 +7,7 @@ import {
   type ImportOpenApi,
   type InputOptions,
   type NormalizedOutputOptions,
+  type OpenApiComponentsObject,
   type OpenApiDocument,
   type OverrideInput,
   type WriteSpecBuilder,
@@ -118,6 +119,14 @@ function getApiSchemas({
     output.override.components.responses.suffix,
   );
 
+  const swaggerResponseDefinition = generateComponentDefinition(
+    'responses' in spec
+      ? (spec as { responses?: OpenApiComponentsObject['responses'] }).responses
+      : undefined,
+    context,
+    '',
+  );
+
   const bodyDefinition = generateComponentDefinition(
     spec.components?.requestBodies,
     context,
@@ -133,6 +142,7 @@ function getApiSchemas({
   const schemas = [
     ...schemaDefinition,
     ...responseDefinition,
+    ...swaggerResponseDefinition,
     ...bodyDefinition,
     ...parameters,
   ];
