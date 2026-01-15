@@ -11,7 +11,7 @@ export function generateImportsForBuilder(
   const isZodSchemaOutput =
     isObject(output.schemas) && output.schemas.type === 'zod';
 
-  if (!output.indexFiles) {
+  if (!output.indexFiles && !output.schemas) {
     return uniqueBy(imports, (x) => x.name).map((i) => {
       const baseName = i.schemaName || i.name;
       const name = conventionName(baseName, output.namingConvention);
