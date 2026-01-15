@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -24,6 +24,8 @@ import {
   getListPetsQueryKey as getListPetsQueryKeyCustom,
   ListPetsQueryError,
 } from '../api/endpoints-custom-instance/pets/pets';
+
+// Note: responseType mutator is used by custom-instance, it receives http from generated code
 
 describe('Angular Query Generation - No Transformer (Native HttpClient)', () => {
   let queryClient: QueryClient;
@@ -64,6 +66,7 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
   });
 
   it('getListPetsQueryOptions should return options with queryKey and queryFn', () => {
+    // getListPetsQueryOptions now injects http internally, no need to pass it
     const options = TestBed.runInInjectionContext(() =>
       getListPetsQueryOptions({ limit: '10' }),
     );
@@ -91,10 +94,12 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideTanStackQuery(queryClient),
+        // No need for CustomHttpService - http is injected in queryOptionsFn
       ],
     });
 
     httpCtrl = TestBed.inject(HttpTestingController);
+    // No need for initCustomAngularInstance - http is now injected internally
   });
 
   afterEach(() => {
@@ -147,9 +152,11 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
 
   it('listPetsCustom should accept params and signal and return a Promise', async () => {
     const abortController = new AbortController();
-    const resultPromise = TestBed.runInInjectionContext(() =>
-      listPetsCustom({ limit: '10' }, abortController.signal),
-    );
+    // listPetsCustom signature: (params?, options?, signal?) where options is HttpClient
+    const resultPromise = TestBed.runInInjectionContext(() => {
+      const http = TestBed.inject(HttpClient);
+      return listPetsCustom({ limit: '10' }, http, abortController.signal);
+    });
 
     expect(resultPromise).toBeInstanceOf(Promise);
 

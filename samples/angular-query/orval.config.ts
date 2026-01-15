@@ -34,7 +34,7 @@ export default defineConfig({
         },
         mutator: {
           path: 'src/api/mutator/custom-client-with-error.ts',
-          name: 'customAngularInstance',
+          name: 'responseType',
         },
       },
     },

@@ -144,7 +144,12 @@ describe('mutationInvalidates feature', () => {
       const options = TestBed.runInInjectionContext(() =>
         getDeletePetMutationOptions({
           mutation: {
-            onSuccess: (_data, variables, _onMutateResult, _context) => {
+            onSuccess: (
+              _data: void,
+              variables: { petId: string },
+              _onMutateResult: unknown,
+              _context: unknown,
+            ) => {
               userCallbackCalled = true;
               receivedVariables = variables;
             },
@@ -309,7 +314,12 @@ describe('mutationInvalidates feature', () => {
       const options = TestBed.runInInjectionContext(() =>
         getCreatePetsMutationOptions({
           mutation: {
-            onSuccess: (data, variables, _onMutateResult, _context) => {
+            onSuccess: (
+              data: void,
+              variables: { data: { name: string; tag: string } },
+              _onMutateResult: unknown,
+              _context: unknown,
+            ) => {
               userCallbackCalled = true;
               receivedData = data;
               receivedVariables = variables;

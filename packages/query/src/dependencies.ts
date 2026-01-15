@@ -388,9 +388,9 @@ export const getAngularQueryDependencies: ClientDependenciesBuilder = (
   packageJson,
   httpClient?: OutputHttpClient,
 ) => {
-  // Use Angular HTTP dependencies by default for angular-query, or when explicitly set
-  const useAngularHttp =
-    !hasGlobalMutator && httpClient === OutputHttpClient.ANGULAR;
+  // Always use Angular HTTP dependencies for Angular httpClient
+  // Previously skipped for mutators, but we now inject http everywhere
+  const useAngularHttp = httpClient === OutputHttpClient.ANGULAR;
   const useAxios = !hasGlobalMutator && httpClient === OutputHttpClient.AXIOS;
 
   return [

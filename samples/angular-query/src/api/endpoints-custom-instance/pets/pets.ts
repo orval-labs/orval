@@ -4,6 +4,10 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
+import { HttpClient } from '@angular/common/http';
+
+import { inject } from '@angular/core';
+
 import {
   injectMutation,
   injectQuery,
@@ -27,19 +31,23 @@ import type {
   SearchPetsParams,
 } from '../../model-custom-instance';
 
-import { customAngularInstance } from '../../mutator/custom-client-with-error';
+import { responseType } from '../../mutator/custom-client-with-error';
 import type { ErrorType } from '../../mutator/custom-client-with-error';
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 /**
  * @summary search by query params
  */
-export const searchPets = (params: SearchPetsParams, signal?: AbortSignal) => {
-  return customAngularInstance<Pets>({
-    url: `/search`,
-    method: 'GET',
-    params,
-    signal,
-  });
+export const searchPets = (
+  params: SearchPetsParams,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<Pets>(
+    { url: `/search`, method: 'GET', params, signal },
+    options,
+  );
 };
 
 export const getSearchPetsQueryKey = (params?: SearchPetsParams) => {
@@ -55,15 +63,17 @@ export const getSearchPetsQueryOptions = <
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ) => {
-  const { query: queryOptions } = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getSearchPetsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPets>>> = ({
     signal,
-  }) => searchPets(params, signal);
+  }) => searchPets(params, http, signal);
 
   return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
     Awaited<ReturnType<typeof searchPets>>,
@@ -90,6 +100,7 @@ export function injectSearchPets<
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ): CreateQueryResult<TData, TError> {
   const queryOptions = getSearchPetsQueryOptions(params, options);
@@ -105,13 +116,15 @@ export function injectSearchPets<
 /**
  * @summary List all pets
  */
-export const listPets = (params?: ListPetsParams, signal?: AbortSignal) => {
-  return customAngularInstance<Pets>({
-    url: `/pets`,
-    method: 'GET',
-    params,
-    signal,
-  });
+export const listPets = (
+  params?: ListPetsParams,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<Pets>(
+    { url: `/pets`, method: 'GET', params, signal },
+    options,
+  );
 };
 
 export const getListPetsQueryKey = (params?: ListPetsParams) => {
@@ -127,15 +140,17 @@ export const getListPetsQueryOptions = <
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ) => {
-  const { query: queryOptions } = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getListPetsQueryKey(params);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listPets>>> = ({
     signal,
-  }) => listPets(params, signal);
+  }) => listPets(params, http, signal);
 
   return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
     Awaited<ReturnType<typeof listPets>>,
@@ -162,6 +177,7 @@ export function injectListPets<
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ): CreateQueryResult<TData, TError> {
   const queryOptions = getListPetsQueryOptions(params, options);
@@ -179,15 +195,19 @@ export function injectListPets<
  */
 export const createPets = (
   createPetsBody: CreatePetsBody,
+  options?: SecondParameter<typeof responseType>,
   signal?: AbortSignal,
 ) => {
-  return customAngularInstance<void>({
-    url: `/pets`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    data: createPetsBody,
-    signal,
-  });
+  return responseType<void>(
+    {
+      url: `/pets`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      data: createPetsBody,
+      signal,
+    },
+    options,
+  );
 };
 
 export const getCreatePetsMutationOptions = <
@@ -200,6 +220,7 @@ export const getCreatePetsMutationOptions = <
     { data: CreatePetsBody },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
@@ -207,13 +228,14 @@ export const getCreatePetsMutationOptions = <
   TContext
 > => {
   const mutationKey = ['createPets'];
-  const { mutation: mutationOptions } = options
+  const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
       options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
+  const http = inject(HttpClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof createPets>>,
@@ -221,7 +243,7 @@ export const getCreatePetsMutationOptions = <
   > = (props) => {
     const { data } = props ?? {};
 
-    return createPets(data);
+    return createPets(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -246,6 +268,7 @@ export const injectCreatePets = <
     { data: CreatePetsBody },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
@@ -259,12 +282,15 @@ export const injectCreatePets = <
 /**
  * @summary Info for a specific pet
  */
-export const showPetById = (petId: string, signal?: AbortSignal) => {
-  return customAngularInstance<Pet>({
-    url: `/pets/${petId}`,
-    method: 'GET',
-    signal,
-  });
+export const showPetById = (
+  petId: string,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<Pet>(
+    { url: `/pets/${petId}`, method: 'GET', signal },
+    options,
+  );
 };
 
 export const getShowPetByIdQueryKey = (petId?: string) => {
@@ -280,15 +306,17 @@ export const getShowPetByIdQueryOptions = <
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ) => {
-  const { query: queryOptions } = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetById>>> = ({
     signal,
-  }) => showPetById(petId, signal);
+  }) => showPetById(petId, http, signal);
 
   return {
     queryKey,
@@ -320,6 +348,7 @@ export function injectShowPetById<
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ): CreateQueryResult<TData, TError> {
   const queryOptions = getShowPetByIdQueryOptions(petId, options);
@@ -335,12 +364,15 @@ export function injectShowPetById<
 /**
  * @summary Delete a pet
  */
-export const deletePet = (petId: string, signal?: AbortSignal) => {
-  return customAngularInstance<void>({
-    url: `/pets/${petId}`,
-    method: 'DELETE',
-    signal,
-  });
+export const deletePet = (
+  petId: string,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<void>(
+    { url: `/pets/${petId}`, method: 'DELETE', signal },
+    options,
+  );
 };
 
 export const getDeletePetMutationOptions = <
@@ -353,6 +385,7 @@ export const getDeletePetMutationOptions = <
     { petId: string },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof deletePet>>,
   TError,
@@ -360,13 +393,14 @@ export const getDeletePetMutationOptions = <
   TContext
 > => {
   const mutationKey = ['deletePet'];
-  const { mutation: mutationOptions } = options
+  const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
       options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
+  const http = inject(HttpClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof deletePet>>,
@@ -374,7 +408,7 @@ export const getDeletePetMutationOptions = <
   > = (props) => {
     const { petId } = props ?? {};
 
-    return deletePet(petId);
+    return deletePet(petId, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -399,6 +433,7 @@ export const injectDeletePet = <
     { petId: string },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof deletePet>>,
   TError,
@@ -412,14 +447,22 @@ export const injectDeletePet = <
 /**
  * @summary Update a pet
  */
-export const updatePet = (petId: string, pet: Pet, signal?: AbortSignal) => {
-  return customAngularInstance<Pet>({
-    url: `/pets/${petId}`,
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    data: pet,
-    signal,
-  });
+export const updatePet = (
+  petId: string,
+  pet: Pet,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<Pet>(
+    {
+      url: `/pets/${petId}`,
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      data: pet,
+      signal,
+    },
+    options,
+  );
 };
 
 export const getUpdatePetMutationOptions = <
@@ -432,6 +475,7 @@ export const getUpdatePetMutationOptions = <
     { petId: string; data: Pet },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof updatePet>>,
   TError,
@@ -439,13 +483,14 @@ export const getUpdatePetMutationOptions = <
   TContext
 > => {
   const mutationKey = ['updatePet'];
-  const { mutation: mutationOptions } = options
+  const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
       options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
+  const http = inject(HttpClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof updatePet>>,
@@ -453,7 +498,7 @@ export const getUpdatePetMutationOptions = <
   > = (props) => {
     const { petId, data } = props ?? {};
 
-    return updatePet(petId, data);
+    return updatePet(petId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -478,6 +523,7 @@ export const injectUpdatePet = <
     { petId: string; data: Pet },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof updatePet>>,
   TError,
@@ -494,15 +540,19 @@ export const injectUpdatePet = <
 export const patchPet = (
   petId: string,
   patchPetBody: PatchPetBody,
+  options?: SecondParameter<typeof responseType>,
   signal?: AbortSignal,
 ) => {
-  return customAngularInstance<Pet>({
-    url: `/pets/${petId}`,
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    data: patchPetBody,
-    signal,
-  });
+  return responseType<Pet>(
+    {
+      url: `/pets/${petId}`,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      data: patchPetBody,
+      signal,
+    },
+    options,
+  );
 };
 
 export const getPatchPetMutationOptions = <
@@ -515,6 +565,7 @@ export const getPatchPetMutationOptions = <
     { petId: string; data: PatchPetBody },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof patchPet>>,
   TError,
@@ -522,13 +573,14 @@ export const getPatchPetMutationOptions = <
   TContext
 > => {
   const mutationKey = ['patchPet'];
-  const { mutation: mutationOptions } = options
+  const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
       options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
+  const http = inject(HttpClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof patchPet>>,
@@ -536,7 +588,7 @@ export const getPatchPetMutationOptions = <
   > = (props) => {
     const { petId, data } = props ?? {};
 
-    return patchPet(petId, data);
+    return patchPet(petId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -561,6 +613,7 @@ export const injectPatchPet = <
     { petId: string; data: PatchPetBody },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof patchPet>>,
   TError,
@@ -574,12 +627,15 @@ export const injectPatchPet = <
 /**
  * @summary Info for a specific pet
  */
-export const showPetText = (petId: string, signal?: AbortSignal) => {
-  return customAngularInstance<string>({
-    url: `/pets/${petId}/text`,
-    method: 'GET',
-    signal,
-  });
+export const showPetText = (
+  petId: string,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<string>(
+    { url: `/pets/${petId}/text`, method: 'GET', signal },
+    options,
+  );
 };
 
 export const getShowPetTextQueryKey = (petId?: string) => {
@@ -595,15 +651,17 @@ export const getShowPetTextQueryOptions = <
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ) => {
-  const { query: queryOptions } = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getShowPetTextQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof showPetText>>> = ({
     signal,
-  }) => showPetText(petId, signal);
+  }) => showPetText(petId, http, signal);
 
   return {
     queryKey,
@@ -635,6 +693,7 @@ export function injectShowPetText<
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ): CreateQueryResult<TData, TError> {
   const queryOptions = getShowPetTextQueryOptions(petId, options);
@@ -654,15 +713,19 @@ export function injectShowPetText<
 export const uploadFile = (
   petId: number,
   uploadFileBody: Blob,
+  options?: SecondParameter<typeof responseType>,
   signal?: AbortSignal,
 ) => {
-  return customAngularInstance<void>({
-    url: `/pet/${petId}/uploadImage`,
-    method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
-    data: uploadFileBody,
-    signal,
-  });
+  return responseType<void>(
+    {
+      url: `/pet/${petId}/uploadImage`,
+      method: 'POST',
+      headers: { 'Content-Type': 'application/octet-stream' },
+      data: uploadFileBody,
+      signal,
+    },
+    options,
+  );
 };
 
 export const getUploadFileMutationOptions = <
@@ -675,6 +738,7 @@ export const getUploadFileMutationOptions = <
     { petId: number; data: Blob },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationOptions<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
@@ -682,13 +746,14 @@ export const getUploadFileMutationOptions = <
   TContext
 > => {
   const mutationKey = ['uploadFile'];
-  const { mutation: mutationOptions } = options
+  const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       'mutationKey' in options.mutation &&
       options.mutation.mutationKey
       ? options
       : { ...options, mutation: { ...options.mutation, mutationKey } }
-    : { mutation: { mutationKey } };
+    : { mutation: { mutationKey }, request: undefined };
+  const http = inject(HttpClient);
 
   const mutationFn: MutationFunction<
     Awaited<ReturnType<typeof uploadFile>>,
@@ -696,7 +761,7 @@ export const getUploadFileMutationOptions = <
   > = (props) => {
     const { petId, data } = props ?? {};
 
-    return uploadFile(petId, data);
+    return uploadFile(petId, data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
@@ -721,6 +786,7 @@ export const injectUploadFile = <
     { petId: number; data: Blob },
     TContext
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateMutationResult<
   Awaited<ReturnType<typeof uploadFile>>,
   TError,
@@ -735,13 +801,20 @@ export const injectUploadFile = <
  * Download image of the pet.
  * @summary Download an image.
  */
-export const downloadFile = (petId: number, signal?: AbortSignal) => {
-  return customAngularInstance<Blob>({
-    url: `/pet/${petId}/downloadImage`,
-    method: 'GET',
-    responseType: 'blob',
-    signal,
-  });
+export const downloadFile = (
+  petId: number,
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<Blob>(
+    {
+      url: `/pet/${petId}/downloadImage`,
+      method: 'GET',
+      responseType: 'blob',
+      signal,
+    },
+    options,
+  );
 };
 
 export const getDownloadFileQueryKey = (petId?: number) => {
@@ -761,15 +834,17 @@ export const getDownloadFileQueryOptions = <
         TData
       >
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ) => {
-  const { query: queryOptions } = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getDownloadFileQueryKey(petId);
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof downloadFile>>> = ({
     signal,
-  }) => downloadFile(petId, signal);
+  }) => downloadFile(petId, http, signal);
 
   return {
     queryKey,
@@ -805,6 +880,7 @@ export function injectDownloadFile<
         TData
       >
     >;
+    request?: SecondParameter<typeof responseType>;
   },
 ): CreateQueryResult<TData, TError> {
   const queryOptions = getDownloadFileQueryOptions(petId, options);
@@ -820,12 +896,14 @@ export function injectDownloadFile<
 /**
  * @summary Health check
  */
-export const healthCheck = (signal?: AbortSignal) => {
-  return customAngularInstance<string>({
-    url: `/health`,
-    method: 'GET',
-    signal,
-  });
+export const healthCheck = (
+  options?: SecondParameter<typeof responseType>,
+  signal?: AbortSignal,
+) => {
+  return responseType<string>(
+    { url: `/health`, method: 'GET', signal },
+    options,
+  );
 };
 
 export const getHealthCheckQueryKey = () => {
@@ -839,14 +917,16 @@ export const getHealthCheckQueryOptions = <
   query?: Partial<
     CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
   >;
+  request?: SecondParameter<typeof responseType>;
 }) => {
-  const { query: queryOptions } = options ?? {};
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getHealthCheckQueryKey();
 
   const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
     signal,
-  }) => healthCheck(signal);
+  }) => healthCheck(http, signal);
 
   return { queryKey, queryFn, ...queryOptions } as CreateQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
@@ -871,6 +951,7 @@ export function injectHealthCheck<
   query?: Partial<
     CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
   >;
+  request?: SecondParameter<typeof responseType>;
 }): CreateQueryResult<TData, TError> {
   const queryOptions = getHealthCheckQueryOptions(options);
 

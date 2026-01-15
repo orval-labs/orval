@@ -434,7 +434,7 @@ const generateQueryImplementation = ({
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
 
 ${hookOptions}
-${isAngularHttp && !mutator ? '  const http = inject(HttpClient);' : ''}
+${isAngularHttp && (!mutator || mutator.hasSecondArg) ? '  const http = inject(HttpClient);' : ''}
 
   const queryKey =  ${
     queryKeyMutator
