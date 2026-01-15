@@ -2,6 +2,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideZonelessChangeDetection } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import {
+  HttpTestingController,
+  provideHttpClientTesting,
+} from '@angular/common/http/testing';
+import {
   provideTanStackQuery,
   QueryClient,
 } from '@tanstack/angular-query-experimental';
@@ -72,6 +76,7 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
 
 describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
   let queryClient: QueryClient;
+  let httpCtrl: HttpTestingController;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -84,13 +89,17 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
       providers: [
         provideZonelessChangeDetection(),
         provideHttpClient(),
+        provideHttpClientTesting(),
         provideTanStackQuery(queryClient),
       ],
     });
+
+    httpCtrl = TestBed.inject(HttpTestingController);
   });
 
   afterEach(() => {
     queryClient.clear();
+    httpCtrl.verify();
   });
 
   it('should export listPets function with custom mutator', () => {
@@ -136,19 +145,24 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
     expect(typeof options.queryFn).toBe('function');
   });
 
-  it('listPets function should only take params and signal (no http parameter)', () => {
-    expect(listPetsCustom.length).toBeLessThanOrEqual(2);
-  });
-
-  it('listPetsCustom should accept params and signal and return a Promise', () => {
+  it('listPetsCustom should accept params and signal and return a Promise', async () => {
     const abortController = new AbortController();
-    const result = TestBed.runInInjectionContext(() =>
+    const resultPromise = TestBed.runInInjectionContext(() =>
       listPetsCustom({ limit: '10' }, abortController.signal),
     );
-    expect(result).toBeInstanceOf(Promise);
+
+    expect(resultPromise).toBeInstanceOf(Promise);
+
+    const mockPets = [{ id: 1, name: 'Fluffy' }];
+    const req = httpCtrl.expectOne('/pets?limit=10');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockPets);
+
+    const result = await resultPromise;
+    expect(result).toEqual(mockPets);
   });
 
-  it('queryFn should accept signal and call listPets with it', () => {
+  it('queryFn should accept signal and call listPets with it', async () => {
     const options = TestBed.runInInjectionContext(() =>
       getListPetsQueryOptionsCustom({ limit: '5' }),
     );
@@ -164,10 +178,19 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
     expect(typeof options.queryFn).toBe('function');
 
     const queryFn = options.queryFn as Function;
-    const result = TestBed.runInInjectionContext(() =>
+    const resultPromise = TestBed.runInInjectionContext(() =>
       queryFn(mockQueryFnContext),
     );
-    expect(result).toBeInstanceOf(Promise);
+
+    expect(resultPromise).toBeInstanceOf(Promise);
+
+    const mockPets = [{ id: 2, name: 'Buddy' }];
+    const req = httpCtrl.expectOne('/pets?limit=5');
+    expect(req.request.method).toBe('GET');
+    req.flush(mockPets);
+
+    const result = await resultPromise;
+    expect(result).toEqual(mockPets);
   });
 
   it('queryKey shape should match native generation', () => {

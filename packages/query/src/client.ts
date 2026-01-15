@@ -477,17 +477,26 @@ export const getQueryOptions = ({
       return 'requestOptions';
     }
 
-    // For mutator case, signal is always a separate argument (axios pattern)
-    // not wrapped in options object (fetch pattern)
-    return 'requestOptions, signal';
+    // Axios and Angular mutators: signal is a separate argument
+    // Fetch mutators: signal is wrapped in options object
+    return httpClient === OutputHttpClient.AXIOS ||
+      httpClient === OutputHttpClient.ANGULAR
+      ? 'requestOptions, signal'
+      : '{ signal, ...requestOptions }';
   }
 
   if (hasSignal) {
-    // For mutator case, signal is a separate argument
-    // For non-mutator fetch/angular, signal is wrapped in options object
-    return httpClient === OutputHttpClient.AXIOS || mutator
-      ? 'signal'
-      : '{ signal }';
+    // Axios: signal is always separate
+    // Angular with mutator: signal is separate (mutator pattern)
+    // Angular without mutator: signal is wrapped (native pattern)
+    // Fetch/other: signal is wrapped
+    if (httpClient === OutputHttpClient.AXIOS) {
+      return 'signal';
+    }
+    if (httpClient === OutputHttpClient.ANGULAR && mutator) {
+      return 'signal';
+    }
+    return '{ signal }';
   }
 
   return '';

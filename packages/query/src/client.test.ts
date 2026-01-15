@@ -194,7 +194,7 @@ describe('getQueryOptions', () => {
   });
 
   describe('signal handling with mutator vs without', () => {
-    it('should return signal as separate arg for mutator case', () => {
+    it('should return signal as separate arg for Angular mutator case', () => {
       const mutatorNoSecondArg = { ...mockMutator, hasSecondArg: false };
       const result = getQueryOptions({
         isRequestOptions: false,
@@ -215,6 +215,29 @@ describe('getQueryOptions', () => {
         httpClient: OutputHttpClient.ANGULAR,
       });
       expect(result).toBe('{ signal }');
+    });
+
+    it('should return signal wrapped in object for fetch mutator case', () => {
+      const mutatorNoSecondArg = { ...mockMutator, hasSecondArg: false };
+      const result = getQueryOptions({
+        isRequestOptions: false,
+        mutator: mutatorNoSecondArg,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+      });
+      expect(result).toBe('{ signal }');
+    });
+
+    it('should wrap signal in options for fetch mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+      });
+      expect(result).toBe('{ signal, ...requestOptions }');
     });
   });
 });
