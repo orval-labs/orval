@@ -20,6 +20,28 @@ export default defineConfig({
       target: './petstore.yaml',
     },
   },
+  petstoreCustomInstance: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/endpoints-custom-instance',
+      schemas: 'src/api/model-custom-instance',
+      client: 'angular-query',
+      httpClient: 'angular',
+      clean: true,
+      override: {
+        query: {
+          signal: true,
+        },
+        mutator: {
+          path: 'src/api/mutator/custom-client-with-error.ts',
+          name: 'customAngularInstance',
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
   petstore: {
     output: {
       mode: 'tags-split',

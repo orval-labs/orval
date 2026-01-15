@@ -143,11 +143,11 @@ export const generateAngularHttpRequestFunction = (
 
     const propsImplementation = toObjectString(props, 'implementation');
 
-    return String.raw`${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
+    return `${override.query.shouldExportHttpClient ? 'export ' : ''}const ${operationName} = (\n    ${propsImplementation}\n ${
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${hasSignal ? String.raw`signal?: AbortSignal\n` : ''}) => {
+    }${hasSignal ? ' signal?: AbortSignal\n' : ''}) => {
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
@@ -477,13 +477,26 @@ export const getQueryOptions = ({
       return 'requestOptions';
     }
 
-    return httpClient === OutputHttpClient.AXIOS
+    // Axios and Angular mutators: signal is a separate argument
+    // Fetch mutators: signal is wrapped in options object
+    return httpClient === OutputHttpClient.AXIOS ||
+      httpClient === OutputHttpClient.ANGULAR
       ? 'requestOptions, signal'
       : '{ signal, ...requestOptions }';
   }
 
   if (hasSignal) {
-    return httpClient === OutputHttpClient.AXIOS ? 'signal' : '{ signal }';
+    // Axios: signal is always separate
+    // Angular with mutator: signal is separate (mutator pattern)
+    // Angular without mutator: signal is wrapped (native pattern)
+    // Fetch/other: signal is wrapped
+    if (httpClient === OutputHttpClient.AXIOS) {
+      return 'signal';
+    }
+    if (httpClient === OutputHttpClient.ANGULAR && mutator) {
+      return 'signal';
+    }
+    return '{ signal }';
   }
 
   return '';
@@ -605,6 +618,7 @@ export const getHttpFunctionQueryProps = (
   httpClient: OutputHttpClient,
   queryProperties: string,
   isAngular = false,
+  hasMutator = false,
 ) => {
   const result =
     isVue && httpClient === OutputHttpClient.FETCH && queryProperties
@@ -615,7 +629,8 @@ export const getHttpFunctionQueryProps = (
       : queryProperties;
 
   // For Angular, prefix with http since request functions take HttpClient as first param
-  if (isAngular || httpClient === OutputHttpClient.ANGULAR) {
+  // Skip when custom mutator is used - mutator handles HTTP client internally
+  if ((isAngular || httpClient === OutputHttpClient.ANGULAR) && !hasMutator) {
     return result ? `http, ${result}` : 'http';
   }
 

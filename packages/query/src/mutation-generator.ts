@@ -193,7 +193,7 @@ export const generateMutationHook = async ({
     TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
-${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
+${isAngularHttp && !mutator ? '  const http = inject(HttpClient);' : ''}
 ${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 
       ${
@@ -208,7 +208,7 @@ ${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
       }> = (${properties ? 'props' : ''}) => {
           ${properties ? `const {${properties}} = props ?? {};` : ''}
 
-          return  ${operationName}(${isAngularHttp ? 'http, ' : ''}${properties}${
+          return  ${operationName}(${isAngularHttp && !mutator ? 'http, ' : ''}${properties}${
             properties ? ',' : ''
           }${getMutationRequestArgs(isRequestOptions, httpClient, mutator)})
         }
