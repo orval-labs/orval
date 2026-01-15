@@ -349,4 +349,77 @@ describe('combineSchemasMock', () => {
     expect(result).toBeDefined();
     expect(result.value).not.toBe('undefined');
   });
+
+  it('should resolve allOf base schema even when base was seen in different branch', () => {
+    const contextWithSchemas: ContextSpec = {
+      ...createMockContext(),
+      spec: {
+        openapi: '3.1.0',
+        info: { title: 'Test', version: '1.0.0' },
+        paths: {},
+        components: {
+          schemas: {
+            Base: {
+              type: 'object',
+              required: ['id', 'name'],
+              properties: {
+                id: { type: 'integer' },
+                name: { type: 'string' },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    const item: MockSchemaObject = {
+      name: 'Cat',
+      allOf: [
+        { $ref: '#/components/schemas/Base' },
+        {
+          type: 'object',
+          properties: { meow: { type: 'boolean' } },
+          required: ['meow'],
+        },
+      ],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'allOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: contextWithSchemas,
+      imports: [],
+      existingReferencedProperties: ['Response', 'Dog', 'Base', 'Shelter'],
+      splitMockImplementations: [],
+    });
+
+    expect(result).toBeDefined();
+    expect(result.value).not.toBe('undefined');
+    expect(result.value).toContain('id:');
+    expect(result.value).toContain('name:');
+    expect(result.value).toContain('meow:');
+  });
+
+  it('should still skip references in oneOf when they exist in existingReferencedProperties', () => {
+    const item: MockSchemaObject = {
+      name: 'Pet',
+      oneOf: [{ $ref: '#/components/schemas/Cat' }],
+    };
+
+    const result = combineSchemasMock({
+      item,
+      separator: 'oneOf',
+      operationId: 'testOp',
+      tags: ['test'],
+      context: createMockContext(),
+      imports: [],
+      existingReferencedProperties: ['Cat'],
+      splitMockImplementations: [],
+    });
+
+    expect(result).toBeDefined();
+    expect(result.value).toBe('undefined');
+  });
 });

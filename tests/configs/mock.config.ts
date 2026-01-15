@@ -179,4 +179,14 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  allofSharedBase: {
+    output: {
+      target: '../generated/mock/allof-shared-base/endpoints.ts',
+      schemas: '../generated/mock/allof-shared-base/model',
+      mock: true,
+    },
+    input: {
+      target: '../specifications/allof-shared-base.yaml',
+    },
+  },
 });

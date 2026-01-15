@@ -72,12 +72,13 @@ export function combineSchemasMock({
 
   const value = (item[separator] ?? []).reduce(
     (acc, val, _, arr) => {
-      if (
-        '$ref' in val &&
-        existingReferencedProperties.includes(
-          pascal(val.$ref.split('/').pop() ?? ''),
-        )
-      ) {
+      const refName =
+        '$ref' in val ? pascal(val.$ref.split('/').pop() ?? '') : '';
+      const shouldSkipRef =
+        separator === 'allOf'
+          ? refName && refName === item.name
+          : refName && existingReferencedProperties.includes(refName);
+      if (shouldSkipRef) {
         if (arr.length === 1) {
           return 'undefined';
         }
