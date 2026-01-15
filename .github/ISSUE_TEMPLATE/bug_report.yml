@@ -1,0 +1,75 @@
+name: "Bug report"
+description: "Report a problem so we can reproduce and fix it"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues before filing a new one.
+
+        Reproduction is required. If we cannot reproduce the issue, we will close it as needs-repro.
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "Explain the issue and impact."
+      placeholder: "e.g. orval fails to generate when using tags-split with OpenAPI 3.1"
+    validations:
+      required: true
+  - type: textarea
+    id: config_file
+    attributes:
+      label: "Configuration (orval.config)"
+      description: "Paste your full orval.config file here."
+      value: |
+        ```ts
+        // paste your orval.config file here
+        ```
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "npx envinfo --system --npmPackages orval,zod,axios,msw,swr,@tanstack/react-query,@tanstack/vue-query,@tanstack/solid-query,@tanstack/angular-query-experimental,react,vue,solid-js,@solidjs/router,@angular/core,@angular/common"
+      value: |
+        Run the command above and paste the output here.
+    validations:
+      required: true
+  - type: textarea
+    id: expected_behavior
+    attributes:
+      label: "Expected behavior"
+      description: "What should happen?"
+    validations:
+      required: false
+  - type: textarea
+    id: actual_behavior
+    attributes:
+      label: "Actual behavior"
+      description: "What actually happens?"
+    validations:
+      required: false
+  - type: textarea
+    id: openapi_document
+    attributes:
+      label: "OpenAPI document (minimal, if applicable)"
+      description: |
+        If OpenAPI-related, provide the smallest possible OpenAPI document that reproduces the issue.
+        Validate at https://editor.swagger.io, then paste the spec here (YAML/JSON) or link to a public repo/file.
+      value: |
+        ```yaml
+        openapi: 3.0.3
+        info:
+          title: Demo
+          version: 0.0.0
+        paths: {}
+        ```
+    validations:
+      required: false
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: "Additional context"
+      description: "Anything else that helps us reproduce or understand the issue."
+    validations:
+      required: false

@@ -1,0 +1,36 @@
+name: "Feature request"
+description: "Suggest an idea"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please search existing issues before filing a new suggestion.
+  - type: textarea
+    id: search_terms
+    attributes:
+      label: "Description"
+      description: "Describe the request briefly."
+      placeholder: "e.g. generate useQueries hooks for grouped endpoints"
+    validations:
+      required: true
+  - type: textarea
+    id: current_behavior
+    attributes:
+      label: "Current behavior"
+      description: "Describe the current behavior or pain point."
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_behavior
+    attributes:
+      label: "Proposed behavior"
+      description: "What should the behavior be?"
+    validations:
+      required: true
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: "Proposed solution"
+      description: "What would you like to see added or changed?"
+    validations:
+      required: true

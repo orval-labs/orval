@@ -27,3 +27,4 @@ packages/hono/src/zValidator.ts
 # Prettier supports MDX 1, but MDX 2 and 3 are not officially supported yet. Recommend against formatting MDX files with Prettier.
 # https://marketplace.visualstudio.com/items?itemName=unifiedjs.vscode-mdx#prettier
 *.mdx
+.github/ISSUE_TEMPLATE
