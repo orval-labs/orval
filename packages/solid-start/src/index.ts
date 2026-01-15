@@ -5,14 +5,14 @@ import {
   type ClientGeneratorsBuilder,
   type ClientHeaderBuilder,
   type ClientTitleBuilder,
+  generateBodyOptions,
   generateFormDataAndUrlEncodedFunction,
-  generateMutatorConfig,
-  generateMutatorRequestOptions,
   generateVerbImports,
   type GeneratorDependency,
   type GeneratorOptions,
   type GeneratorVerbOptions,
   getIsBodyVerb,
+  isObject,
   pascal,
   sanitize,
   toObjectString,
@@ -43,33 +43,7 @@ export const generateSolidStartTitle: ClientTitleBuilder = (title) => {
   return `${pascal(sanTitle)}`;
 };
 
-export const generateSolidStartHeader: ClientHeaderBuilder = ({
-  title,
-  isRequestOptions,
-  isMutator,
-  isGlobalMutator,
-}) => `
-${
-  isRequestOptions && !isGlobalMutator
-    ? `interface RequestOptions {
-  headers?: Record<string, string>;
-  signal?: AbortSignal;
-}`
-    : ''
-}
-
-${
-  isRequestOptions && isMutator
-    ? `type ThirdParameter<T extends (...args: any) => any> = T extends (
-  config: any,
-  httpClient: any,
-  args: infer P,
-) => any
-  ? P
-  : never;`
-    : ''
-}
-
+export const generateSolidStartHeader: ClientHeaderBuilder = ({ title }) => `
 /**
  * Cache Invalidation:
  *
@@ -109,11 +83,8 @@ const generateImplementation = (
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
 ) => {
-  const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
   const isFormUrlEncoded = override.formUrlEncoded !== false;
-  const isExactOptionalPropertyTypes =
-    !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
     formUrlEncoded,
@@ -127,26 +98,6 @@ const generateImplementation = (
   const isBodyVerb = getIsBodyVerb(verb);
 
   if (mutator) {
-    const mutatorConfig = generateMutatorConfig({
-      route,
-      body,
-      headers,
-      queryParams,
-      response,
-      verb,
-      isFormData,
-      isFormUrlEncoded,
-      hasSignal: false,
-      isExactOptionalPropertyTypes,
-    });
-
-    const requestOptions = isRequestOptions
-      ? generateMutatorRequestOptions(
-          override.requestOptions,
-          mutator.hasThirdArg,
-        )
-      : '';
-
     const propsImplementation =
       mutator.bodyTypeName && body.definition
         ? toObjectString(props, 'implementation').replace(
@@ -155,22 +106,70 @@ const generateImplementation = (
           )
         : toObjectString(props, 'implementation');
 
+    // Build query params string
+    const queryParamsCode = queryParams
+      ? `const queryString = new URLSearchParams(params as any).toString();
+    const url = queryString ? \`${route}?\${queryString}\` : \`${route}\`;`
+      : `const url = \`${route}\`;`;
+
+    // Build fetch options using Fetch API signature
+    const fetchMethodOption = `method: '${verb.toUpperCase()}'`;
+    const ignoreContentTypes = ['multipart/form-data'];
+    const overrideHeaders =
+      isObject(override.requestOptions) && override.requestOptions.headers
+        ? Object.entries(override.requestOptions.headers).map(
+            ([key, value]) => `'${key}': \`${value}\``,
+          )
+        : [];
+
+    const headersToAdd: string[] = [
+      ...(body.contentType && !ignoreContentTypes.includes(body.contentType)
+        ? [`'Content-Type': '${body.contentType}'`]
+        : []),
+      ...overrideHeaders,
+      ...(headers ? ['...headers'] : []),
+    ];
+
+    const fetchHeadersOption =
+      headersToAdd.length > 0 ? `headers: { ${headersToAdd.join(',')} }` : '';
+
+    const requestBodyParams = generateBodyOptions(
+      body,
+      isFormData,
+      isFormUrlEncoded,
+    );
+    const fetchBodyOption = requestBodyParams
+      ? (isFormData && body.formData) ||
+        (isFormUrlEncoded && body.formUrlEncoded) ||
+        body.contentType === 'text/plain'
+        ? `body: ${requestBodyParams}`
+        : `body: JSON.stringify(${requestBodyParams})`
+      : '';
+
+    const fetchOptions = `{
+      ${fetchMethodOption}${fetchHeadersOption ? ',' : ''}
+      ${fetchHeadersOption}${fetchBodyOption ? ',' : ''}
+      ${fetchBodyOption}
+    }`;
+
     if (isGetVerb) {
       // Use query for GET requests
       return `  ${operationName}: query(async (${propsImplementation}) => {${bodyForm}
+    ${queryParamsCode}
     return ${mutator.name}<${dataType}>(
-      ${mutatorConfig},
-      fetch,
-      ${requestOptions});
+      url,
+      ${fetchOptions}
+    );
   }, "${operationName}"),
 `;
     } else {
       // Use action for mutations
       return `  ${operationName}: action(async (${propsImplementation}) => {${bodyForm}
+    ${queryParamsCode}
     return ${mutator.name}<${dataType}>(
-      ${mutatorConfig},
-      fetch,
-      ${requestOptions});
+      url,
+      ${fetchOptions}
+    );
   }, "${operationName}"),
 `;
     }

@@ -9,6 +9,8 @@ SolidStart client for Orval - generates type-safe API client code using SolidSta
 - ✅ Type-safe API calls
 - ✅ Full TypeScript support
 - ✅ Works with SolidStart's server-side execution model
+- ✅ Uses native Fetch API by default
+- ✅ Supports custom mutators with Fetch API signature
 
 ## Installation
 

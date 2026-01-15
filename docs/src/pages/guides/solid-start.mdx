@@ -245,16 +245,38 @@ export default defineConfig({
 });
 ```
 
-This will generate code that uses your custom instance:
+This will generate code that uses your custom instance with the Fetch API signature:
 
 ```ts
 export const SwaggerPetstore = {
   showPetById: query(async (petId: string) => {
+    const url = `/pets/${petId}`;
     return customInstance<Pet>(
-      { url: `/pets/${petId}`, method: 'GET' },
-      fetch,
+      url,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      }
     );
   }, "showPetById"),
+};
+```
+
+Your custom instance should follow the Fetch API signature:
+
+```ts
+// custom-instance.ts
+export const customInstance = async <T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> => {
+  const response = await fetch(url, options);
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  return response.json();
 };
 ```
 
