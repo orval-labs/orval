@@ -278,10 +278,12 @@ const generateQueryImplementation = ({
         httpClient,
         queryProperties,
         isAngularHttp,
+        !!mutator,
       );
 
   // For Angular with infinite queries, we need to prefix with http
-  if (queryParam && isAngularHttp) {
+  // Skip when custom mutator is used - mutator handles HTTP client internally
+  if (queryParam && isAngularHttp && !mutator) {
     httpFunctionProps = httpFunctionProps
       ? `http, ${httpFunctionProps}`
       : 'http';
@@ -432,7 +434,7 @@ const generateQueryImplementation = ({
   const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
 
 ${hookOptions}
-${isAngularHttp ? '  const http = inject(HttpClient);' : ''}
+${isAngularHttp && !mutator ? '  const http = inject(HttpClient);' : ''}
 
   const queryKey =  ${
     queryKeyMutator
