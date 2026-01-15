@@ -1,0 +1,9 @@
+---
+blank_issues_enabled: false 
+contact_links:
+  - name: "Questions (Discord)"
+    url: "https://discord.com/invite/6fC2sjDU7w"
+    about: "For questions, please use Discord."
+  - name: "Official website"
+    url: "https://orval.dev"
+    about: "Official documentation and guides."
