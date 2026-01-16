@@ -12504,15 +12504,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-config-turbo@npm:^2.7.1":
-  version: 2.7.1
-  resolution: "eslint-config-turbo@npm:2.7.1"
+"eslint-config-turbo@npm:^2.7.4":
+  version: 2.7.4
+  resolution: "eslint-config-turbo@npm:2.7.4"
   dependencies:
-    eslint-plugin-turbo: "npm:2.7.1"
+    eslint-plugin-turbo: "npm:2.7.4"
   peerDependencies:
     eslint: ">6.6.0"
     turbo: ">2.0.0"
-  checksum: 10c0/ee4fd602492eb3ab6b0b76b99f2d11876ae981792005832a2e1475f9a07406613ec0d8437bca00b2b179d5c0773ff0604aff44e2c4c748263acbd196c5cb030b
+  checksum: 10c0/88b84a9b085c1acab3fc0b3b3e2a560b491a6094903569b5ba5cc5de3eb9d43985b5f4b59034e0e7ad3b6c79317aa995c93d71cc20d52f79e662490bba40d6ce
   languageName: node
   linkType: hard
 
@@ -12769,15 +12769,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"eslint-plugin-turbo@npm:2.7.1":
-  version: 2.7.1
-  resolution: "eslint-plugin-turbo@npm:2.7.1"
+"eslint-plugin-turbo@npm:2.7.4":
+  version: 2.7.4
+  resolution: "eslint-plugin-turbo@npm:2.7.4"
   dependencies:
     dotenv: "npm:16.0.3"
   peerDependencies:
     eslint: ">6.6.0"
     turbo: ">2.0.0"
-  checksum: 10c0/4b16469f68784cac9194166600f51c879c9b1560dd8b7cae125bb5e9c3659453fa4145b531b7b6d2d2f68edded509d1737ce05352ef4f27268f5a92ebbb7ab17
+  checksum: 10c0/b9d509b3f33325ccb5eda3254f4052c4c2c7de51803b08c66e67dcaaba365975ce8121ec8b6181632e365507610d112ce2c2610fb702bcee839fc5e60af73142
   languageName: node
   linkType: hard
 
@@ -18453,7 +18453,7 @@ __metadata:
     esbuild-plugin-alias: "npm:^0.2.1"
     eslint: "catalog:"
     eslint-config-prettier: "npm:^10.1.8"
-    eslint-config-turbo: "npm:^2.7.1"
+    eslint-config-turbo: "npm:^2.7.4"
     eslint-plugin-prettier: "npm:^5.5.4"
     eslint-plugin-simple-import-sort: "npm:^12.1.1"
     eslint-plugin-unicorn: "npm:^62.0.0"
