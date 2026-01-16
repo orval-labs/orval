@@ -1262,6 +1262,48 @@ export const invalidateShowPetById = async (
 }
 ```
 
+#### mutationInvalidates
+
+Type: `Array<{ onMutations: string[], invalidates: (string | { query: string, params: string[] })[] }>`.
+
+**Angular Query only.** Declaratively invalidate queries when mutations succeed. Requires `useInvalidate: true`.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+##### Param-based invalidation
+
+With `{ query: 'showPetById', params: ['petId'] }`, the mutation's variables are used to determine which specific query to invalidate. When `deletePet({ petId: '123' })` succeeds, only `showPetById('123')` is invalidated—not all `showPetById` queries.
+
+See the [Angular Query guide](../../guides/angular-query#automatic-mutation-invalidation-angular-query-only) for more details.
+
 #### useInfiniteQueryParam
 
 Type: `String`.
