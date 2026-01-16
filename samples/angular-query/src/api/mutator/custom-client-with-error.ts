@@ -1,5 +1,4 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
 import { lastValueFrom } from 'rxjs';
 
 export interface ExtendedServerErrorResponse<Error> extends HttpErrorResponse {
@@ -9,12 +8,17 @@ export interface ExtendedServerErrorResponse<Error> extends HttpErrorResponse {
 export type ErrorType<Error> = ExtendedServerErrorResponse<Error>;
 
 /**
- * Custom Angular mutator that can receive HttpClient as optional second parameter.
- * If not provided, it will inject HttpClient from the current injection context.
+ * Custom Angular mutator for Orval.
  *
- * This pattern works because:
- * 1. When called from inject* hooks, we're in injection context (inject works)
- * 2. When http is passed explicitly, we use that
+ * Orval detects `hasSecondArg: true` from the function signature and generates
+ * code that injects HttpClient and passes it as the second parameter.
+ *
+ * Note: http is typed as optional because the generated operation functions
+ * (e.g., listPets) are exported with optional params. The inject* functions
+ * and get*QueryOptions/get*MutationOptions always provide http.
+ *
+ * The ErrorType export is automatically picked up by Orval and used as the
+ * error type for all generated query/mutation functions.
  */
 export const responseType = <Result>(
   {
@@ -35,11 +39,13 @@ export const responseType = <Result>(
   },
   http?: HttpClient,
 ): Promise<Result> => {
-  // Use provided http or inject it from current context
-  const httpClient = http ?? inject(HttpClient);
-
+  if (!http) {
+    throw new Error(
+      'HttpClient is required. Use inject* functions or pass HttpClient explicitly.',
+    );
+  }
   return lastValueFrom(
-    httpClient.request<Result>(method, url, {
+    http.request<Result>(method, url, {
       params,
       body: data,
       responseType: (responseType ?? 'json') as 'json',
