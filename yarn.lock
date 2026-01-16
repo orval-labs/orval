@@ -13315,9 +13315,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"execa@npm:^9.6.0":
-  version: 9.6.0
-  resolution: "execa@npm:9.6.0"
+"execa@npm:^9.6.1":
+  version: 9.6.1
+  resolution: "execa@npm:9.6.1"
   dependencies:
     "@sindresorhus/merge-streams": "npm:^4.0.0"
     cross-spawn: "npm:^7.0.6"
@@ -13331,7 +13331,7 @@ __metadata:
     signal-exit: "npm:^4.1.0"
     strip-final-newline: "npm:^4.0.0"
     yoctocolors: "npm:^2.1.1"
-  checksum: 10c0/2c44a33142f77d3a6a590a3b769b49b27029a76768593bac1f26fed4dd1330e9c189ee61eba6a8c990fb77e37286c68c7445472ebf24c22b31e9ff320e73d7ac
+  checksum: 10c0/636b36585306a3c8bc3a9d7b25d2d915fb06d8c9b9b02a804280d62562de3b34535affc1b7702b039320e0953daa6545a073f3c4b63fe974c1fe11336c56b467
   languageName: node
   linkType: hard
 
@@ -18655,7 +18655,7 @@ __metadata:
     commander: "npm:^14.0.2"
     enquirer: "npm:^2.4.1"
     eslint: "catalog:"
-    execa: "npm:^9.6.0"
+    execa: "npm:^9.6.1"
     find-up: "npm:8.0.0"
     fs-extra: "npm:^11.3.2"
     jiti: "npm:^2.6.1"
