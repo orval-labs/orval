@@ -18,10 +18,14 @@ type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 const OPERATION_TYPE_PATTERNS = [
   /Params$/i, // GetUserParams, ListUsersParams
   /Body$/i, // CreateUserBody, UpdatePostBody
+  /Body(One|Two|Three|Four|Five|Item)$/i, // BodyOne, BodyTwo (union body types)
   /Parameter$/i, // PageParameter, LimitParameter
   /Query$/i, // GetUserQuery
   /Header$/i, // AuthHeader
   /Response\d*$/i, // GetUser200Response, NotFoundResponse
+  /^\d+$/i, // 200, 201, 404 (status code types)
+  /\d{3}(One|Two|Three|Four|Five|Item)$/i, // 200One, 200Two (union response types)
+  /^(get|post|put|patch|delete|head|options)[A-Z].*\d{3}/i, // operation types with status codes (get...200, post...404)
 ];
 
 /**
@@ -68,6 +72,33 @@ export function fixCrossDirectoryImports(
   for (const schema of operationSchemas) {
     schema.imports = schema.imports.map((imp) => {
       if (regularSchemaNames.has(imp.name)) {
+        const fileName = conventionName(imp.name, namingConvention);
+        return {
+          ...imp,
+          importPath: upath.join(relativePath, fileName),
+        };
+      }
+      return imp;
+    });
+  }
+}
+
+/**
+ * Fix cross-directory imports in regular schemas that reference operation schemas.
+ * When schemas are split into different directories, imports need adjusted relative paths.
+ */
+export function fixRegularSchemaImports(
+  regularSchemas: GeneratorSchema[],
+  operationSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  const relativePath = upath.relativeSafe(schemaPath, operationSchemaPath);
+
+  for (const schema of regularSchemas) {
+    schema.imports = schema.imports.map((imp) => {
+      if (operationSchemaNames.has(imp.name)) {
         const fileName = conventionName(imp.name, namingConvention);
         return {
           ...imp,

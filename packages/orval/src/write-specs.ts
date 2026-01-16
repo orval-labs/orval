@@ -1,6 +1,7 @@
 import {
   createSuccessMessage,
   fixCrossDirectoryImports,
+  fixRegularSchemaImports,
   getFileInfo,
   getMockFileExtensionByTypeName,
   isString,
@@ -61,11 +62,19 @@ export async function writeSpecs(
         const { regularSchemas, operationSchemas: opSchemas } =
           splitSchemasByType(schemas);
 
-        // Fix cross-directory imports before writing
+        // Fix cross-directory imports before writing (both directions)
         const regularSchemaNames = new Set(regularSchemas.map((s) => s.name));
+        const operationSchemaNames = new Set(opSchemas.map((s) => s.name));
         fixCrossDirectoryImports(
           opSchemas,
           regularSchemaNames,
+          schemaPath,
+          output.operationSchemas,
+          output.namingConvention,
+        );
+        fixRegularSchemaImports(
+          regularSchemas,
+          operationSchemaNames,
           schemaPath,
           output.operationSchemas,
           output.namingConvention,
@@ -95,6 +104,22 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
           });
+
+          // Add re-export from operations in the main schemas index
+          if (output.indexFiles) {
+            const relativePath = upath.relativeSafe(
+              schemaPath,
+              output.operationSchemas,
+            );
+            const schemaIndexPath = upath.join(
+              schemaPath,
+              `/index${fileExtension}`,
+            );
+            await fs.appendFile(
+              schemaIndexPath,
+              `export * from '${relativePath}';\n`,
+            );
+          }
         }
       } else {
         await writeSchemas({
@@ -118,11 +143,19 @@ export async function writeSpecs(
           const { regularSchemas, operationSchemas: opSchemas } =
             splitSchemasByType(schemas);
 
-          // Fix cross-directory imports before writing
+          // Fix cross-directory imports before writing (both directions)
           const regularSchemaNames = new Set(regularSchemas.map((s) => s.name));
+          const operationSchemaNames = new Set(opSchemas.map((s) => s.name));
           fixCrossDirectoryImports(
             opSchemas,
             regularSchemaNames,
+            output.schemas.path,
+            output.operationSchemas,
+            output.namingConvention,
+          );
+          fixRegularSchemaImports(
+            regularSchemas,
+            operationSchemaNames,
             output.schemas.path,
             output.operationSchemas,
             output.namingConvention,
@@ -150,6 +183,22 @@ export async function writeSpecs(
               header,
               indexFiles: output.indexFiles,
             });
+
+            // Add re-export from operations in the main schemas index
+            if (output.indexFiles) {
+              const relativePath = upath.relativeSafe(
+                output.schemas.path,
+                output.operationSchemas,
+              );
+              const schemaIndexPath = upath.join(
+                output.schemas.path,
+                `/index${fileExtension}`,
+              );
+              await fs.appendFile(
+                schemaIndexPath,
+                `export * from '${relativePath}';\n`,
+              );
+            }
           }
         } else {
           await writeSchemas({
