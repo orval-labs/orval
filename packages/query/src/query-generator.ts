@@ -255,8 +255,13 @@ const generateQueryImplementation = ({
     props.map((prop) => {
       // Add getter alternative: T becomes T | (() => T)
       const getterType = prop.definition.replace(
-        /^(\w+)(\??):\s*(.+)$/,
-        (_, name, optional, type) =>
+        /^(\w+)(\??): (.+)$/,
+        (
+          _match: string,
+          name: string,
+          optional: string,
+          type: string,
+        ): string =>
           `${name}${optional}: ${type} | (() => ${type.replace(' | undefined', '')}${optional ? ' | undefined' : ''})`,
       );
       return { ...prop, definition: getterType };

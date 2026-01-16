@@ -123,6 +123,35 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
           }
         </section>
 
+        <!-- SECTION: Reactive Options Demo -->
+        <section class="section">
+          <h2>🎛️ Reactive Options Demo</h2>
+          <p class="subtitle">
+            Signal-based options - changing enabled triggers query
+            enable/disable!
+          </p>
+
+          <div class="reactivity-controls">
+            <p><strong>Query Enabled:</strong> {{ queryEnabled() }}</p>
+            <button (click)="toggleQueryEnabled()">
+              {{ queryEnabled() ? 'Disable Query' : 'Enable Query' }}
+            </button>
+          </div>
+
+          <h3>Reactive Options Query</h3>
+          @if (!queryEnabled()) {
+            <p class="notice">⏸️ Query is disabled - click button to enable</p>
+          }
+          @if (queryEnabled() && petsReactiveOptions.isPending()) {
+            <p>Loading (query enabled)...</p>
+          }
+          @if (petsReactiveOptions.data(); as data) {
+            <p class="success">
+              ✅ Loaded {{ data.length }} pets (reactive options work!)
+            </p>
+          }
+        </section>
+
         <!-- SECTION: No-Transformer Endpoint (native HttpClient) -->
         <section class="section">
           <h2>🔧 No-Transformer Endpoint</h2>
@@ -253,6 +282,25 @@ export class App {
   incrementLimit() {
     const current = parseInt(this.petsLimit());
     this.petsLimit.set(String(current + 5));
+  }
+
+  // ============================================
+  // REACTIVE OPTIONS DEMO: Signal-based options
+  // ============================================
+
+  // Signal to control query enabled state
+  protected readonly queryEnabled = signal(false);
+
+  // Reactive options with getter - enabled state changes trigger query behavior!
+  protected readonly petsReactiveOptions = injectListPets(
+    { limit: '3' },
+    undefined,
+    () => ({ query: { enabled: this.queryEnabled() } }),
+  );
+
+  // Demo: Toggle enabled - query will enable/disable reactively
+  toggleQueryEnabled() {
+    this.queryEnabled.update((v) => !v);
   }
   // ============================================
 
