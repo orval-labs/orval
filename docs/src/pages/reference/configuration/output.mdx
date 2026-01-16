@@ -86,6 +86,43 @@ export default defineConfig({
 });
 ```
 
+## operationSchemas
+
+Type: `String`.
+
+Valid values: path to the folder where operation-derived types (params, bodies, responses) are written.
+
+Default Value: `undefined` (all schemas written to `schemas` path).
+
+When set, types matching operation patterns (`*Params`, `*Body`, `*Parameter`, `*Query`, `*Header`, `*Response`) are written to this path instead of the main `schemas` path. This helps organize large API clients by separating auto-generated operation types from core domain models.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: './api/model',
+      operationSchemas: './api/model/params',
+    },
+  },
+});
+```
+
+Result:
+
+```
+api/model/
+├── user.ts           # Domain models
+├── pet.ts
+├── index.ts
+└── params/
+    ├── getUserParams.ts    # Operation types
+    ├── createPetBody.ts
+    ├── listPets200Response.ts
+    └── index.ts
+```
+
 ## fileExtension
 
 Type: `String`.

@@ -11,6 +11,74 @@ import { conventionName, upath } from '../utils';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 
+/**
+ * Patterns to detect operation-derived types (params, bodies, responses).
+ * These types are auto-generated from OpenAPI operations, not from component schemas.
+ */
+const OPERATION_TYPE_PATTERNS = [
+  /Params$/i, // GetUserParams, ListUsersParams
+  /Body$/i, // CreateUserBody, UpdatePostBody
+  /Parameter$/i, // PageParameter, LimitParameter
+  /Query$/i, // GetUserQuery
+  /Header$/i, // AuthHeader
+  /Response\d*$/i, // GetUser200Response, NotFoundResponse
+];
+
+/**
+ * Check if a schema name matches operation type patterns.
+ */
+function isOperationType(schemaName: string): boolean {
+  return OPERATION_TYPE_PATTERNS.some((pattern) => pattern.test(schemaName));
+}
+
+/**
+ * Split schemas into regular and operation types.
+ */
+export function splitSchemasByType(schemas: GeneratorSchema[]): {
+  regularSchemas: GeneratorSchema[];
+  operationSchemas: GeneratorSchema[];
+} {
+  const regularSchemas: GeneratorSchema[] = [];
+  const operationSchemas: GeneratorSchema[] = [];
+
+  for (const schema of schemas) {
+    if (isOperationType(schema.name)) {
+      operationSchemas.push(schema);
+    } else {
+      regularSchemas.push(schema);
+    }
+  }
+
+  return { regularSchemas, operationSchemas };
+}
+
+/**
+ * Fix cross-directory imports in operation schemas that reference regular schemas.
+ * When schemas are split into different directories, imports need adjusted relative paths.
+ */
+export function fixCrossDirectoryImports(
+  operationSchemas: GeneratorSchema[],
+  regularSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  const relativePath = upath.relativeSafe(operationSchemaPath, schemaPath);
+
+  for (const schema of operationSchemas) {
+    schema.imports = schema.imports.map((imp) => {
+      if (regularSchemaNames.has(imp.name)) {
+        const fileName = conventionName(imp.name, namingConvention);
+        return {
+          ...imp,
+          importPath: upath.join(relativePath, fileName),
+        };
+      }
+      return imp;
+    });
+  }
+}
+
 function getSchemaKey(
   schemaPath: string,
   schemaName: string,
