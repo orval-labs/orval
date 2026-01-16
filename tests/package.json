@@ -34,7 +34,7 @@
     "@modelcontextprotocol/sdk": "1.25.2",
     "@tanstack/react-query": "~5.62.16",
     "@tanstack/svelte-query": "^4.41.0",
-    "@tanstack/vue-query": "^5.92.5",
+    "@tanstack/vue-query": "^5.92.7",
     "@types/react": "18.3.24",
     "axios": "^1.13.2",
     "hono": "^4.11.4",
