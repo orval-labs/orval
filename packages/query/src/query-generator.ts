@@ -381,6 +381,7 @@ const generateQueryImplementation = ({
     queryParam,
     httpClient,
     isAngularClient: isAngular(outputClient),
+    forAngularInject: isAngular(outputClient),
   });
 
   // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
@@ -628,7 +629,9 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${
     ${props.map((p) => `const _${p.name} = typeof ${p.name} === 'function' ? ${p.name}() : ${p.name};`).join('\n    ')}`
             : ''
         }
-    return ${queryOptionsFnName}(${!mutator || mutator.hasSecondArg ? 'http' : ''}${props.length > 0 ? `${!mutator || mutator.hasSecondArg ? ', ' : ''}${props.map((p) => `_${p.name}`).join(', ')}` : ''}${isRequestOptions ? ', options' : ', queryOptions'});
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof ${isRequestOptions ? 'options' : 'queryOptions'} === 'function' ? ${isRequestOptions ? 'options' : 'queryOptions'}() : ${isRequestOptions ? 'options' : 'queryOptions'};
+    return ${queryOptionsFnName}(${!mutator || mutator.hasSecondArg ? 'http' : ''}${props.length > 0 ? `${!mutator || mutator.hasSecondArg ? ', ' : ''}${props.map((p) => `_${p.name}`).join(', ')}` : ''}, _options);
   }`
       : hasSvelteQueryV6
         ? `() => ${queryOptionsFnName}(${toObjectString(

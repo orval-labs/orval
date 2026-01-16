@@ -96,19 +96,36 @@ export function injectSearchPets<
   TError = ErrorType<Error>,
 >(
   params: SearchPetsParams | (() => SearchPetsParams),
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof searchPets>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof responseType>;
-  },
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof searchPets>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof searchPets>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }),
 ): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
     // Resolve params if getter function (for signal reactivity)
     const _params = typeof params === 'function' ? params() : params;
-    return getSearchPetsQueryOptions(http, _params, options);
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof options === 'function' ? options() : options;
+    return getSearchPetsQueryOptions(http, _params, _options);
   }) as CreateQueryResult<TData, TError>;
 
   return query;
@@ -174,19 +191,36 @@ export function injectListPets<
   TError = ErrorType<Error>,
 >(
   params?: ListPetsParams | (() => ListPetsParams | undefined),
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof responseType>;
-  },
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof listPets>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof listPets>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }),
 ): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
     // Resolve params if getter function (for signal reactivity)
     const _params = typeof params === 'function' ? params() : params;
-    return getListPetsQueryOptions(http, _params, options);
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof options === 'function' ? options() : options;
+    return getListPetsQueryOptions(http, _params, _options);
   }) as CreateQueryResult<TData, TError>;
 
   return query;
@@ -349,19 +383,36 @@ export function injectShowPetById<
   TError = ErrorType<Error>,
 >(
   petId: string | (() => string),
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof responseType>;
-  },
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof showPetById>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof showPetById>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }),
 ): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
     // Resolve params if getter function (for signal reactivity)
     const _petId = typeof petId === 'function' ? petId() : petId;
-    return getShowPetByIdQueryOptions(http, _petId, options);
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof options === 'function' ? options() : options;
+    return getShowPetByIdQueryOptions(http, _petId, _options);
   }) as CreateQueryResult<TData, TError>;
 
   return query;
@@ -704,19 +755,36 @@ export function injectShowPetText<
   TError = ErrorType<Error>,
 >(
   petId: string | (() => string),
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof showPetText>>, TError, TData>
-    >;
-    request?: SecondParameter<typeof responseType>;
-  },
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof showPetText>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof showPetText>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }),
 ): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
     // Resolve params if getter function (for signal reactivity)
     const _petId = typeof petId === 'function' ? petId() : petId;
-    return getShowPetTextQueryOptions(http, _petId, options);
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof options === 'function' ? options() : options;
+    return getShowPetTextQueryOptions(http, _petId, _options);
   }) as CreateQueryResult<TData, TError>;
 
   return query;
@@ -891,23 +959,36 @@ export function injectDownloadFile<
   TError = ErrorType<void | Error>,
 >(
   petId: number | (() => number),
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<
-        Awaited<ReturnType<typeof downloadFile>>,
-        TError,
-        TData
-      >
-    >;
-    request?: SecondParameter<typeof responseType>;
-  },
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof downloadFile>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof downloadFile>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }),
 ): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
     // Resolve params if getter function (for signal reactivity)
     const _petId = typeof petId === 'function' ? petId() : petId;
-    return getDownloadFileQueryOptions(http, _petId, options);
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof options === 'function' ? options() : options;
+    return getDownloadFileQueryOptions(http, _petId, _options);
   }) as CreateQueryResult<TData, TError>;
 
   return query;
@@ -969,16 +1050,35 @@ export type HealthCheckQueryError = ErrorType<Error>;
 export function injectHealthCheck<
   TData = Awaited<ReturnType<typeof healthCheck>>,
   TError = ErrorType<Error>,
->(options?: {
-  query?: Partial<
-    CreateQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>
-  >;
-  request?: SecondParameter<typeof responseType>;
-}): CreateQueryResult<TData, TError> {
+>(
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof healthCheck>>,
+            TError,
+            TData
+          >
+        >;
+        request?: SecondParameter<typeof responseType>;
+      }),
+): CreateQueryResult<TData, TError> {
   const http = inject(HttpClient);
 
   const query = injectQuery(() => {
-    return getHealthCheckQueryOptions(http, options);
+    // Resolve options if getter function (for signal reactivity)
+    const _options = typeof options === 'function' ? options() : options;
+    return getHealthCheckQueryOptions(http, _options);
   }) as CreateQueryResult<TData, TError>;
 
   return query;

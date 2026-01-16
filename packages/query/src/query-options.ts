@@ -171,6 +171,7 @@ export const generateQueryArguments = ({
   httpClient,
   isAngularClient,
   forQueryOptions = false,
+  forAngularInject = false,
 }: {
   operationName: string;
   definitions: string;
@@ -188,6 +189,8 @@ export const generateQueryArguments = ({
   /** When true, include http: HttpClient parameter (for getQueryOptions/getMutationOptions).
    *  When false, don't include it (for inject* functions which inject internally). */
   forQueryOptions?: boolean;
+  /** When true, wrap options type in getter alternative for Angular reactive support. */
+  forAngularInject?: boolean;
 }) => {
   const definition = getQueryOptionsDefinition({
     operationName,
@@ -217,7 +220,14 @@ export const generateQueryArguments = ({
   const requestType = getQueryArgumentsRequestType(httpClient, mutator);
 
   const isQueryRequired = initialData === 'defined';
-  return `options${isQueryRequired ? '' : '?'}: { ${
+  const optionsType = `{ ${
     type ? 'query' : 'mutation'
-  }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}\n`;
+  }${isQueryRequired ? '' : '?'}:${definition}, ${requestType}}`;
+
+  // For Angular inject* functions, allow options to be a getter for reactivity
+  if (forAngularInject) {
+    return `options${isQueryRequired ? '' : '?'}: ${optionsType} | (() => ${optionsType})\n`;
+  }
+
+  return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
 };
