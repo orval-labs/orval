@@ -472,6 +472,15 @@ export const getQueryOptions = ({
     }, ...${options} }`;
   }
 
+  // For Angular mutators with hasSecondArg, pass http through options parameter
+  // http is injected in the queryOptionsFn and passed here as the second arg to the mutator
+  if (mutator?.hasSecondArg && httpClient === OutputHttpClient.ANGULAR) {
+    if (!hasSignal) {
+      return 'http';
+    }
+    return 'http, signal';
+  }
+
   if (mutator?.hasSecondArg && isRequestOptions) {
     if (!hasSignal) {
       return 'requestOptions';
