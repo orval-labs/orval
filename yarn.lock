@@ -14227,7 +14227,7 @@ __metadata:
     hono: "npm:^4.11.4"
     orval: "workspace:*"
     wrangler: "npm:^4.47.0"
-    zod: "npm:^3.25.76"
+    zod: "npm:^4.3.5"
   languageName: unknown
   linkType: soft
 
@@ -16980,7 +16980,7 @@ __metadata:
     orval: "workspace:*"
     ts-node: "npm:^10.9.2"
     typescript: "npm:~5.8.3"
-    zod: "npm:^3.25.76"
+    zod: "npm:^4.3.5"
   languageName: unknown
   linkType: soft
 
@@ -18399,7 +18399,7 @@ __metadata:
     swr: "npm:^2.3.6"
     typescript: "catalog:"
     vue: "npm:^3.5.22"
-    zod: "npm:^3.25.76"
+    zod: "npm:^4.3.5"
   languageName: unknown
   linkType: soft
 
@@ -22976,7 +22976,7 @@ __metadata:
     swr: "npm:^2.3.6"
     typescript: "npm:~5.8.3"
     vite: "npm:^7.2.2"
-    zod: "npm:^3.25.76"
+    zod: "npm:^4.3.5"
   languageName: unknown
   linkType: soft
 
@@ -25714,16 +25714,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:^3.25.76":
-  version: 3.25.76
-  resolution: "zod@npm:3.25.76"
-  checksum: 10c0/5718ec35e3c40b600316c5b4c5e4976f7fee68151bc8f8d90ec18a469be9571f072e1bbaace10f1e85cf8892ea12d90821b200e980ab46916a6166a4260a983c
-  languageName: node
-  linkType: hard
-
 "zod@npm:^4.1.11":
   version: 4.2.1
   resolution: "zod@npm:4.2.1"
   checksum: 10c0/ecb5219bddf76a42d092a843fb98ad4cb78f1e1077082772b03ef032ee5cbc80790a4051836b962d26fb4af854323bc784d628bd1b8d9898149eba7af21c5560
+  languageName: node
+  linkType: hard
+
+"zod@npm:^4.3.5":
+  version: 4.3.5
+  resolution: "zod@npm:4.3.5"
+  checksum: 10c0/5a2db7e59177a3d7e202543f5136cb87b97b047b77c8a3d824098d3fa8b80d3aa40a0a5f296965c3b82dfdccdd05dbbfacce91347f16a39c675680fd7b1ab109
   languageName: node
   linkType: hard
