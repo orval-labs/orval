@@ -300,5 +300,41 @@ describe('getQueryOptions', () => {
         '{ ...(querySignal ? { signal: querySignal } : {}), ...axiosOptions }',
       );
     });
+
+    it('should use querySignal for Angular mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.ANGULAR,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('http, querySignal');
+    });
+
+    it('should use querySignal for Axios mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.AXIOS,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('requestOptions, querySignal');
+    });
+
+    it('should use querySignal wrapped for Fetch mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('{ signal: querySignal, ...requestOptions }');
+    });
   });
 });
