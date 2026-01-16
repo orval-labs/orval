@@ -41,9 +41,13 @@ describe('App', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
-    waitFor(
+
+    // Wait for async content to render
+    await waitFor(
       () => {
-        expect(compiled.querySelectorAll('p').length).toBeGreaterThanOrEqual(1);
+        // Check for any rendered content (pets, loading states, or section headers)
+        const content = compiled.querySelector('.section');
+        expect(content).toBeTruthy();
       },
       { timeout: 3000 },
     );

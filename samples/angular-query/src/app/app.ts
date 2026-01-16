@@ -9,6 +9,7 @@ import {
   injectDeletePet,
   injectUpdatePet,
   injectPatchPet,
+  getUpdatePetMutationOptions,
 } from '../api/endpoints/pets/pets';
 
 // No-transformer endpoint (native Angular HttpClient, no custom mutator)
@@ -53,7 +54,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
             }
           </div>
 
-          <h3>Pet Details (ID: 1)</h3>
+          <h3>Pet Details (ID: {{ petId() }})</h3>
           @if (pet.isPending()) {
             <p>Loading pet...</p>
           }
@@ -62,6 +63,7 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
               <p><strong>Name:</strong> {{ petData.name }}</p>
               <p><strong>Tag:</strong> {{ petData.tag || 'None' }}</p>
               <div class="pet-actions">
+                <button (click)="changePetId()">Change Pet ID</button>
                 <button
                   (click)="updatePetDetails()"
                   [disabled]="updatePetMutation.isPending()"
@@ -94,6 +96,30 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
           }
           @if (pets.data()?.length === 0) {
             <p>No pets yet. Add one above!</p>
+          }
+        </section>
+
+        <!-- SECTION: Reactivity Demo -->
+        <section class="section">
+          <h2>⚡ Reactivity Demo</h2>
+          <p class="subtitle">
+            Signal-based params - changing limit triggers automatic re-fetch!
+          </p>
+
+          <div class="reactivity-controls">
+            <p><strong>Current Limit:</strong> {{ petsLimit() }}</p>
+            <button (click)="incrementLimit()">Increase Limit (+5)</button>
+          </div>
+
+          <h3>Reactive Pets List (limit={{ petsLimit() }})</h3>
+          @if (petsReactive.isPending() || petsReactive.isFetching()) {
+            <p>Loading with limit={{ petsLimit() }}...</p>
+          }
+          @if (petsReactive.data(); as reactivePets) {
+            <p class="notice">Showing {{ reactivePets.length }} pets</p>
+            @for (pet of reactivePets; track pet.id) {
+              <p>{{ pet.name }}</p>
+            }
           }
         </section>
 
@@ -202,9 +228,36 @@ import { injectListPets as injectListPetsCustom } from '../api/endpoints-custom-
   ],
 })
 export class App {
-  // Main endpoint (with mocks)
+  // ============================================
+  // REACTIVITY DEMO: Signal-based query params
+  // ============================================
+
+  // Static params - simple usage
   protected readonly pets = injectListPets({ limit: '10' });
-  protected readonly pet = injectShowPetById('1');
+
+  // Reactive params with getter - signal changes trigger re-fetch!
+  protected readonly petsLimit = signal('10');
+  protected readonly petsReactive = injectListPets(() => ({
+    limit: this.petsLimit(),
+  }));
+
+  changePetId() {
+    if (this.petId() === '1') {
+      this.petId.set('2');
+    } else {
+      this.petId.set('1');
+    }
+  }
+
+  // Demo: Change limit - petsReactive will automatically re-fetch
+  incrementLimit() {
+    const current = parseInt(this.petsLimit());
+    this.petsLimit.set(String(current + 5));
+  }
+  // ============================================
+
+  petId = signal('1');
+  protected readonly pet = injectShowPetById(() => this.petId());
   protected readonly createPetMutation = injectCreatePets();
   protected readonly deletePetMutation = injectDeletePet();
   protected readonly updatePetMutation = injectUpdatePet();
@@ -216,7 +269,6 @@ export class App {
     requirednullableString: 'test',
     requirednullableStringTwo: 'dog',
   });
-
   // Custom instance endpoint (custom mutator)
   protected readonly petsCustom = injectListPetsCustom({ limit: '5' });
 

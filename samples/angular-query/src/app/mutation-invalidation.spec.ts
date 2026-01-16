@@ -1,5 +1,5 @@
 import { provideZonelessChangeDetection } from '@angular/core';
-import { provideHttpClient } from '@angular/common/http';
+import { HttpClient, provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -23,6 +23,7 @@ import type { MutationFunctionContext } from '@tanstack/angular-query-experiment
 describe('mutationInvalidates feature', () => {
   let queryClient: QueryClient;
   let httpCtrl: HttpTestingController;
+  let http: HttpClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -42,6 +43,7 @@ describe('mutationInvalidates feature', () => {
     });
 
     httpCtrl = TestBed.inject(HttpTestingController);
+    http = TestBed.inject(HttpClient);
   });
 
   afterEach(() => {
@@ -52,7 +54,7 @@ describe('mutationInvalidates feature', () => {
   describe('getCreatePetsMutationOptions', () => {
     it('should include onSuccess callback that invalidates listPets query', () => {
       const options = TestBed.runInInjectionContext(() =>
-        getCreatePetsMutationOptions(),
+        getCreatePetsMutationOptions(http, queryClient),
       );
 
       expect(options.onSuccess).toBeDefined();
@@ -61,7 +63,7 @@ describe('mutationInvalidates feature', () => {
 
     it('should have mutationFn defined', () => {
       const options = TestBed.runInInjectionContext(() =>
-        getCreatePetsMutationOptions(),
+        getCreatePetsMutationOptions(http, queryClient),
       );
 
       expect(options.mutationFn).toBeDefined();
@@ -73,7 +75,7 @@ describe('mutationInvalidates feature', () => {
       queryClient.setQueryData(queryKey, [{ id: 1, name: 'Existing Pet' }]);
 
       const options = TestBed.runInInjectionContext(() =>
-        getCreatePetsMutationOptions(),
+        getCreatePetsMutationOptions(http, queryClient),
       );
 
       const mockContext: MutationFunctionContext = {
@@ -96,7 +98,7 @@ describe('mutationInvalidates feature', () => {
   describe('getDeletePetMutationOptions', () => {
     it('should include onSuccess callback', () => {
       const options = TestBed.runInInjectionContext(() =>
-        getDeletePetMutationOptions(),
+        getDeletePetMutationOptions(http, queryClient),
       );
 
       expect(options.onSuccess).toBeDefined();
@@ -116,7 +118,7 @@ describe('mutationInvalidates feature', () => {
       });
 
       const options = TestBed.runInInjectionContext(() =>
-        getDeletePetMutationOptions(),
+        getDeletePetMutationOptions(http, queryClient),
       );
 
       const mockContext: MutationFunctionContext = {
@@ -142,7 +144,7 @@ describe('mutationInvalidates feature', () => {
       let receivedVariables: unknown;
 
       const options = TestBed.runInInjectionContext(() =>
-        getDeletePetMutationOptions({
+        getDeletePetMutationOptions(http, queryClient, {
           mutation: {
             onSuccess: (
               _data: void,
@@ -177,7 +179,7 @@ describe('mutationInvalidates feature', () => {
   describe('getUpdatePetMutationOptions', () => {
     it('should include onSuccess callback', () => {
       const options = TestBed.runInInjectionContext(() =>
-        getUpdatePetMutationOptions(),
+        getUpdatePetMutationOptions(http, queryClient),
       );
 
       expect(options.onSuccess).toBeDefined();
@@ -197,7 +199,7 @@ describe('mutationInvalidates feature', () => {
       });
 
       const options = TestBed.runInInjectionContext(() =>
-        getUpdatePetMutationOptions(),
+        getUpdatePetMutationOptions(http, queryClient),
       );
 
       const mockContext: MutationFunctionContext = {
@@ -225,7 +227,7 @@ describe('mutationInvalidates feature', () => {
   describe('getPatchPetMutationOptions', () => {
     it('should include onSuccess callback', () => {
       const options = TestBed.runInInjectionContext(() =>
-        getPatchPetMutationOptions(),
+        getPatchPetMutationOptions(http, queryClient),
       );
 
       expect(options.onSuccess).toBeDefined();
@@ -245,7 +247,7 @@ describe('mutationInvalidates feature', () => {
       });
 
       const options = TestBed.runInInjectionContext(() =>
-        getPatchPetMutationOptions(),
+        getPatchPetMutationOptions(http, queryClient),
       );
 
       const mockContext: MutationFunctionContext = {
@@ -281,7 +283,7 @@ describe('mutationInvalidates feature', () => {
       queryClient.setQueryData(showPetById456, { id: 456, name: 'Pet 456' });
 
       const options = TestBed.runInInjectionContext(() =>
-        getDeletePetMutationOptions(),
+        getDeletePetMutationOptions(http, queryClient),
       );
 
       const mockContext: MutationFunctionContext = {
@@ -312,7 +314,7 @@ describe('mutationInvalidates feature', () => {
       let receivedVariables: unknown;
 
       const options = TestBed.runInInjectionContext(() =>
-        getCreatePetsMutationOptions({
+        getCreatePetsMutationOptions(http, queryClient, {
           mutation: {
             onSuccess: (
               data: void,
