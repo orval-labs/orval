@@ -475,7 +475,9 @@ export const getQueryOptions = ({
     }
 
     return `{ ${
-      isExactOptionalPropertyTypes ? `...(${signalVar} ? { ${signalProp} } : {})` : signalProp
+      isExactOptionalPropertyTypes
+        ? `...(${signalVar} ? { ${signalProp} } : {})`
+        : signalProp
     }, ...${options} }`;
   }
 

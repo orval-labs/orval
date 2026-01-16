@@ -296,7 +296,9 @@ describe('getQueryOptions', () => {
         httpClient: OutputHttpClient.AXIOS,
         hasSignalParam: true,
       });
-      expect(result).toBe('{ ...(querySignal ? { signal: querySignal } : {}), ...axiosOptions }');
+      expect(result).toBe(
+        '{ ...(querySignal ? { signal: querySignal } : {}), ...axiosOptions }',
+      );
     });
   });
 });
