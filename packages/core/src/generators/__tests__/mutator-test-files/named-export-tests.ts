@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars */
+/* oxlint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-unused-vars */
 
 export function fn0Param() {}
 export function fn1Param(param1?: number) {}

@@ -201,7 +201,7 @@ const getHonoHandlers = (
       if (
         validator !== 'hono' &&
         verbOption.response.originalSchema?.['200']?.content?.[
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          // oxlint-disable-next-line @typescript-eslint/no-unsafe-member-access
           'application/json'
         ]
       ) {
@@ -257,7 +257,7 @@ const getZvalidatorImports = (
 
     if (
       !isHonoValidator &&
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      // oxlint-disable-next-line @typescript-eslint/no-unsafe-member-access
       response.originalSchema?.['200']?.content?.['application/json'] !=
         undefined
     ) {

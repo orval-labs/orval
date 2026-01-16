@@ -17,7 +17,7 @@
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "tsc --noEmit src/zValidator.ts && eslint .",
+    "lint": "tsc --noEmit src/zValidator.ts && oxlint .",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
   },

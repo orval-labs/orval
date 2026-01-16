@@ -224,7 +224,7 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
     if (returnTypesToWrite.has(operationName)) {
       // Map.has ensures Map.get will not return undefined, but TS still complains
       // bug https://github.com/microsoft/TypeScript/issues/13086
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      // oxlint-disable-next-line @typescript-eslint/no-non-null-assertion
       const func = returnTypesToWrite.get(operationName)!;
       footer += func(noFunction ? undefined : title) + '\n';
     }

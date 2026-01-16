@@ -201,7 +201,7 @@ export const generateZodValidationSchemaDefinition = (
   const required = rules?.required ?? false;
   const nullable =
     // changing to ?? here changes behavior - so don't
-    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+    // oxlint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     ('nullable' in schema && schema.nullable) ||
     (Array.isArray(schema.type) && schema.type.includes('null'));
   const min = schema.minimum ?? schema.minLength ?? schema.minItems;
@@ -310,7 +310,7 @@ export const generateZodValidationSchemaDefinition = (
 
     if (isDateType) {
       // OpenApiSchemaObject defines default as 'any'
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      // oxlint-disable-next-line @typescript-eslint/no-unsafe-argument
       defaultValue = `new Date("${escape(schema.default)}")`;
     } else if (isObject(schema.default)) {
       const entries = Object.entries(schema.default)
@@ -338,7 +338,7 @@ export const generateZodValidationSchemaDefinition = (
       defaultValue = `{ ${entries} }`;
     } else {
       // OpenApiSchemaObject defines default as 'any'
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      // oxlint-disable-next-line @typescript-eslint/no-unsafe-argument
       const rawStringified = stringify(schema.default);
       defaultValue =
         rawStringified === undefined

@@ -76,7 +76,7 @@ const prep = (s: string, isFill = false, isPascal = false, isUpper = false) => {
     s = low.call(s);
   }
   if (!isFill && !regexps.hole.test(s)) {
-    // eslint-disable-next-line no-var
+    // oxlint-disable-next-line no-var
     var holey = fill(s, ' ');
     if (regexps.hole.test(holey)) {
       s = holey;

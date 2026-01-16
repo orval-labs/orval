@@ -121,7 +121,7 @@ export const generateAngularFooter: ClientFooterBuilder = ({
     if (returnTypesToWrite.has(operationName)) {
       // Map.has ensures Map.get will not return undefined, but TS still complains
       // bug https://github.com/microsoft/TypeScript/issues/13086
-      // eslint-disable-next-line @typescript-eslint/restrict-plus-operands
+      // oxlint-disable-next-line @typescript-eslint/restrict-plus-operands
       footer += returnTypesToWrite.get(operationName) + '\n';
     }
   }
