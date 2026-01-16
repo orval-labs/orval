@@ -20,7 +20,7 @@
   "devDependencies": {
     "@faker-js/faker": "^10.2.0",
     "@sveltejs/adapter-auto": "^2.1.1",
-    "@sveltejs/kit": "^1.30.4",
+    "@sveltejs/kit": "^2.49.5",
     "@typescript-eslint/eslint-plugin": "^8.52.0",
     "@typescript-eslint/parser": "^8.50.1",
     "eslint": "^9.39.2",
