@@ -231,6 +231,15 @@ export async function writeSpecs(
       );
     }
 
+    if (output.operationSchemas) {
+      imports.push(
+        upath.relativeSafe(
+          workspacePath,
+          getFileInfo(output.operationSchemas).dirname,
+        ),
+      );
+    }
+
     if (output.indexFiles) {
       const indexFile = upath.join(workspacePath, '/index.ts');
 
@@ -278,6 +287,9 @@ export async function writeSpecs(
               : output.schemas.path,
           ).dirname,
         ]
+      : []),
+    ...(output.operationSchemas
+      ? [getFileInfo(output.operationSchemas).dirname]
       : []),
     ...implementationPaths,
   ];
