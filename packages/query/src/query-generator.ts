@@ -249,6 +249,21 @@ const generateQueryImplementation = ({
   );
   const queryProps = toObjectString(props, 'implementation');
 
+  // For Angular, allow params to be a getter function for reactive signal support
+  // E.g., injectListPets(() => ({ limit: this.rows() }))
+  const angularQueryPropsDefinitions = toObjectString(
+    props.map((prop) => {
+      // Add getter alternative: T becomes T | (() => T)
+      const getterType = prop.definition.replace(
+        /^(\w+)(\??):\s*(.+)$/,
+        (_, name, optional, type) =>
+          `${name}${optional}: ${type} | (() => ${type.replace(' | undefined', '')}${optional ? ' | undefined' : ''})`,
+      );
+      return { ...prop, definition: getterType };
+    }),
+    'definition',
+  );
+
   const hasInfiniteQueryParam = queryParam && queryParams?.schema.name;
 
   const isAngularHttp =
@@ -283,6 +298,7 @@ const generateQueryImplementation = ({
 
   // For Angular with infinite queries, we need to prefix with http
   // Skip when custom mutator is used - mutator handles HTTP client internally
+  // http is required as first param so no assertion needed
   if (queryParam && isAngularHttp && !mutator) {
     httpFunctionProps = httpFunctionProps
       ? `http, ${httpFunctionProps}`
@@ -367,6 +383,23 @@ const generateQueryImplementation = ({
     isAngularClient: isAngular(outputClient),
   });
 
+  // Separate arguments for getQueryOptions function (includes http: HttpClient param for Angular)
+  const queryArgumentsForOptions = generateQueryArguments({
+    operationName,
+    definitions: '',
+    mutator,
+    isRequestOptions,
+    type,
+    hasSvelteQueryV4,
+    hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
+    queryParams,
+    queryParam,
+    httpClient,
+    isAngularClient: isAngular(outputClient),
+    forQueryOptions: true,
+  });
+
   const queryOptions = getQueryOptions({
     isRequestOptions,
     isExactOptionalPropertyTypes,
@@ -431,10 +464,16 @@ const generateQueryImplementation = ({
       ? `InfiniteData<Awaited<ReturnType<${dataType}>>${infiniteParam}>`
       : `Awaited<ReturnType<${dataType}>>`;
 
-  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${queryProps} ${queryArguments}) => {
+  // For Angular, add http: HttpClient as FIRST param (required, before optional params)
+  // This avoids TS1016 "required param cannot follow optional param"
+  const httpFirstParam =
+    isAngularHttp && (!mutator || mutator.hasSecondArg)
+      ? 'http: HttpClient, '
+      : '';
+
+  const queryOptionsFn = `export const ${queryOptionsFnName} = <TData = ${TData}, TError = ${errorType}>(${httpFirstParam}${queryProps} ${queryArgumentsForOptions}) => {
 
 ${hookOptions}
-${isAngularHttp && (!mutator || mutator.hasSecondArg) ? '  const http = inject(HttpClient);' : ''}
 
   const queryKey =  ${
     queryKeyMutator
@@ -561,22 +600,36 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${
           })),
           'definition',
         )
-      : queryProps
+      : isAngular(outputClient)
+        ? angularQueryPropsDefinitions
+        : queryProps
   } ${hasSvelteQueryV6 ? queryArguments.replace(':', ': () => (') + ')' : queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${
     hasSvelteQueryV6
       ? ''
-      : `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
-          queryProperties ? ',' : ''
-        }${isRequestOptions ? 'options' : 'queryOptions'})`
+      : isAngular(outputClient) && (!mutator || mutator.hasSecondArg)
+        ? `const http = inject(HttpClient);`
+        : isAngular(outputClient)
+          ? ''
+          : `const ${queryOptionsVarName} = ${queryOptionsFnName}(${queryProperties}${
+              queryProperties ? ',' : ''
+            }${isRequestOptions ? 'options' : 'queryOptions'})`
   }
 
   const ${queryResultVarName} = ${camel(
     `${operationPrefix}-${isAngular(outputClient) || hasSvelteQueryV4 ? getQueryTypeForFramework(type) : type}`,
   )}(${
     isAngular(outputClient)
-      ? `() => ${queryOptionsVarName}`
+      ? `() => {${
+          props.length > 0
+            ? `
+    // Resolve params if getter function (for signal reactivity)
+    ${props.map((p) => `const _${p.name} = typeof ${p.name} === 'function' ? ${p.name}() : ${p.name};`).join('\n    ')}`
+            : ''
+        }
+    return ${queryOptionsFnName}(${!mutator || mutator.hasSecondArg ? 'http' : ''}${props.length > 0 ? `${!mutator || mutator.hasSecondArg ? ', ' : ''}${props.map((p) => `_${p.name}`).join(', ')}` : ''}${isRequestOptions ? ', options' : ', queryOptions'});
+  }`
       : hasSvelteQueryV6
         ? `() => ${queryOptionsFnName}(${toObjectString(
             props.map((p) => ({

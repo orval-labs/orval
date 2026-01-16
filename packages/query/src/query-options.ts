@@ -170,6 +170,7 @@ export const generateQueryArguments = ({
   initialData,
   httpClient,
   isAngularClient,
+  forQueryOptions = false,
 }: {
   operationName: string;
   definitions: string;
@@ -184,6 +185,9 @@ export const generateQueryArguments = ({
   initialData?: 'defined' | 'undefined';
   httpClient: OutputHttpClient;
   isAngularClient: boolean;
+  /** When true, include http: HttpClient parameter (for getQueryOptions/getMutationOptions).
+   *  When false, don't include it (for inject* functions which inject internally). */
+  forQueryOptions?: boolean;
 }) => {
   const definition = getQueryOptionsDefinition({
     operationName,
@@ -199,6 +203,10 @@ export const generateQueryArguments = ({
     initialData,
     isAngularClient,
   });
+
+  // Note: For Angular Query, http: HttpClient is added as the FIRST parameter
+  // directly in the query-generator.ts/mutation-generator.ts templates,
+  // not here, so that http comes before any optional params (avoiding TS1016).
 
   if (!isRequestOptions) {
     return `${type ? 'queryOptions' : 'mutationOptions'}${
