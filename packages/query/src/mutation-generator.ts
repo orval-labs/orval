@@ -163,6 +163,20 @@ export const generateMutationHook = async ({
     isAngularClient,
   });
 
+  // Separate arguments for getMutationOptions function (includes http: HttpClient param for Angular)
+  const mutationArgumentsForOptions = generateQueryArguments({
+    operationName,
+    definitions,
+    mutator,
+    isRequestOptions,
+    hasSvelteQueryV4,
+    hasQueryV5,
+    hasQueryV5WithInfiniteQueryOptionsError,
+    httpClient,
+    isAngularClient,
+    forQueryOptions: true,
+  });
+
   const mutationOptionsFnName = camel(
     mutationOptionsMutator || mutator?.isHook
       ? `use-${operationName}-mutationOptions`
@@ -189,12 +203,20 @@ export const generateMutationHook = async ({
   });
   const hasInvalidation = uniqueInvalidates.length > 0 && isAngularClient;
 
+  // For Angular, add http: HttpClient as FIRST param (required, before optional params)
+  // This avoids TS1016 "required param cannot follow optional param"
+  const httpFirstParam =
+    isAngularHttp && (!mutator || mutator.hasSecondArg)
+      ? 'http: HttpClient, '
+      : '';
+
+  // For Angular mutations with invalidation, add queryClient as second required param
+  const queryClientParam = hasInvalidation ? 'queryClient: QueryClient, ' : '';
+
   const mutationOptionsFn = `export const ${mutationOptionsFnName} = <TError = ${errorType},
-    TContext = unknown>(${mutationArguments}): ${mutationOptionFnReturnType} => {
+    TContext = unknown>(${httpFirstParam}${queryClientParam}${mutationArgumentsForOptions}): ${mutationOptionFnReturnType} => {
 
 ${hooksOptionImplementation}
-${isAngularHttp && (!mutator || mutator.hasSecondArg) ? '  const http = inject(HttpClient);' : ''}
-${hasInvalidation ? '  const queryClient = inject(QueryClient);' : ''}
 
       ${
         mutator?.isHook
@@ -290,7 +312,12 @@ ${mutationOptionsFn}
     )} => {
 ${
   isAngular(outputClient)
-    ? `      const ${mutationOptionsVarName} = ${mutationImplementation};
+    ? isAngularHttp && (!mutator || mutator.hasSecondArg)
+      ? `      const http = inject(HttpClient);${hasInvalidation ? '\n      const queryClient = inject(QueryClient);' : ''}
+      const ${mutationOptionsVarName} = ${mutationOptionsFnName}(http${hasInvalidation ? ', queryClient' : ''}${isRequestOptions ? ', options' : ', mutationOptions'});
+
+      return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
+      : `      const ${mutationOptionsVarName} = ${mutationImplementation};
 
       return ${operationPrefix}Mutation(() => ${mutationOptionsVarName});`
     : `      return ${operationPrefix}Mutation(${

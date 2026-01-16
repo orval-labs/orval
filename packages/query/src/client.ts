@@ -613,6 +613,12 @@ export const getMutationRequestArgs = (
   const options =
     httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
 
+  // For Angular mutators with hasSecondArg, pass http (which is injected in inject* fn)
+  // http is required as first param so no assertion needed
+  if (mutator?.hasSecondArg && httpClient === OutputHttpClient.ANGULAR) {
+    return 'http';
+  }
+
   return isRequestOptions
     ? mutator
       ? mutator.hasSecondArg
@@ -639,6 +645,7 @@ export const getHttpFunctionQueryProps = (
 
   // For Angular, prefix with http since request functions take HttpClient as first param
   // Skip when custom mutator is used - mutator handles HTTP client internally
+  // http is required as first param so no assertion needed
   if ((isAngular || httpClient === OutputHttpClient.ANGULAR) && !hasMutator) {
     return result ? `http, ${result}` : 'http';
   }

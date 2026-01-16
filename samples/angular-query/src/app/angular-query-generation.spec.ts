@@ -29,6 +29,7 @@ import {
 
 describe('Angular Query Generation - No Transformer (Native HttpClient)', () => {
   let queryClient: QueryClient;
+  let http: HttpClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -44,6 +45,8 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
         provideTanStackQuery(queryClient),
       ],
     });
+
+    http = TestBed.inject(HttpClient);
   });
 
   afterEach(() => {
@@ -66,9 +69,9 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
   });
 
   it('getListPetsQueryOptions should return options with queryKey and queryFn', () => {
-    // getListPetsQueryOptions now injects http internally, no need to pass it
+    // getListPetsQueryOptions now takes http as first param
     const options = TestBed.runInInjectionContext(() =>
-      getListPetsQueryOptions({ limit: '10' }),
+      getListPetsQueryOptions(http, { limit: '10' }),
     );
 
     expect(options.queryKey).toBeDefined();
@@ -80,6 +83,7 @@ describe('Angular Query Generation - No Transformer (Native HttpClient)', () => 
 describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
   let queryClient: QueryClient;
   let httpCtrl: HttpTestingController;
+  let http: HttpClient;
 
   beforeEach(() => {
     queryClient = new QueryClient({
@@ -94,12 +98,11 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         provideTanStackQuery(queryClient),
-        // No need for CustomHttpService - http is injected in queryOptionsFn
       ],
     });
 
     httpCtrl = TestBed.inject(HttpTestingController);
-    // No need for initCustomAngularInstance - http is now injected internally
+    http = TestBed.inject(HttpClient);
   });
 
   afterEach(() => {
@@ -142,7 +145,7 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
 
   it('getListPetsQueryOptions should return options with queryKey and queryFn', () => {
     const options = TestBed.runInInjectionContext(() =>
-      getListPetsQueryOptionsCustom({ limit: '10' }),
+      getListPetsQueryOptionsCustom(http, { limit: '10' }),
     );
 
     expect(options.queryKey).toBeDefined();
@@ -170,8 +173,9 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
   });
 
   it('queryFn should accept signal and call listPets with it', async () => {
+    // getQueryOptions now takes http as first param, then params
     const options = TestBed.runInInjectionContext(() =>
-      getListPetsQueryOptionsCustom({ limit: '5' }),
+      getListPetsQueryOptionsCustom(http, { limit: '5' }),
     );
 
     const abortController = new AbortController();
@@ -219,9 +223,9 @@ describe('Angular Query Generation - Custom Instance (Custom Mutator)', () => {
     expect(customKey[0]).toBe('/pets');
   });
 
-  it('getListPetsQueryOptionsCustom should not require direct HttpClient injection in generated code', () => {
+  it('getListPetsQueryOptionsCustom requires HttpClient as first param', () => {
     const options = TestBed.runInInjectionContext(() =>
-      getListPetsQueryOptionsCustom(),
+      getListPetsQueryOptionsCustom(http),
     );
 
     expect(options.queryKey).toEqual(['/pets']);
