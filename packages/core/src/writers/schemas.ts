@@ -18,14 +18,14 @@ type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 const OPERATION_TYPE_PATTERNS = [
   /Params$/i, // GetUserParams, ListUsersParams
   /Body$/i, // CreateUserBody, UpdatePostBody
-  /Body(One|Two|Three|Four|Five|Item)$/i, // BodyOne, BodyTwo (union body types)
+  /Body(One|Two|Three|Four|Five|Item)$/, // BodyOne, BodyTwo (union body types, case-sensitive to avoid "Antibody")
   /Parameter$/i, // PageParameter, LimitParameter
   /Query$/i, // GetUserQuery
   /Header$/i, // AuthHeader
   /Response\d*$/i, // GetUser200Response, NotFoundResponse
-  /^\d+$/i, // 200, 201, 404 (status code types)
+  /^\d{3}$/, // 200, 201, 404 (exactly 3-digit status codes)
   /\d{3}(One|Two|Three|Four|Five|Item)$/i, // 200One, 200Two (union response types)
-  /^(get|post|put|patch|delete|head|options)[A-Z].*\d{3}/i, // operation types with status codes (get...200, post...404)
+  /^(get|post|put|patch|delete|head|options)[A-Z].*\d{3}$/, // operation types with status codes (get...200, post...404)
 ];
 
 /**

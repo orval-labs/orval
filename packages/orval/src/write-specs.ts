@@ -115,10 +115,9 @@ export async function writeSpecs(
               schemaPath,
               `/index${fileExtension}`,
             );
-            await fs.appendFile(
-              schemaIndexPath,
-              `export * from '${relativePath}';\n`,
-            );
+            const exportLine = `export * from '${relativePath}';\n`;
+            await fs.ensureFile(schemaIndexPath);
+            await fs.appendFile(schemaIndexPath, exportLine);
           }
         }
       } else {
@@ -194,10 +193,9 @@ export async function writeSpecs(
                 output.schemas.path,
                 `/index${fileExtension}`,
               );
-              await fs.appendFile(
-                schemaIndexPath,
-                `export * from '${relativePath}';\n`,
-              );
+              const exportLine = `export * from '${relativePath}';\n`;
+              await fs.ensureFile(schemaIndexPath);
+              await fs.appendFile(schemaIndexPath, exportLine);
             }
           }
         } else {
