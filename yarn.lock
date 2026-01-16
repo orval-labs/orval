@@ -11586,6 +11586,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"devalue@npm:^5.6.2":
+  version: 5.6.2
+  resolution: "devalue@npm:5.6.2"
+  checksum: 10c0/654f257ec525a2d3f35c941bfbb361148bc65ced060710969fbaa1c45abf1c9d7c4fcb77310bf8d2fb73c34cf60bad10710e7bf5b15643bbc082518ea04cb00b
+  languageName: node
+  linkType: hard
+
 "didyoumean@npm:^1.2.2":
   version: 1.2.2
   resolution: "didyoumean@npm:1.2.2"
@@ -13185,12 +13192,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"esrap@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "esrap@npm:2.1.0"
+"esrap@npm:^2.2.1":
+  version: 2.2.1
+  resolution: "esrap@npm:2.2.1"
   dependencies:
     "@jridgewell/sourcemap-codec": "npm:^1.4.15"
-  checksum: 10c0/42f9f8b49972989a58082dda58c3862689c9c45f3245fd9bfa7e84a00de9cdc422d73621fad1c5d4872c12875869bd770cda80be20ffb1244e6c27b192a3f7b0
+  checksum: 10c0/bd351c19b6827b69c73f86d9e5bb20fa890911c8e9aaa0581e61a38211346498e8bf4a1ac58811e9306ddbb13cd395db89e0b5302702aba121e8aaf880006f68
   languageName: node
   linkType: hard
 
@@ -18581,7 +18588,7 @@ __metadata:
     react: "npm:^18.3.1"
     rimraf: "catalog:"
     rxjs: "npm:~7.8.2"
-    svelte: "npm:^5.43.8"
+    svelte: "npm:^5.46.4"
     swr: "npm:^2.3.6"
     typescript: "catalog:"
     vue: "npm:^3.5.22"
@@ -23009,7 +23016,7 @@ __metadata:
     eslint-plugin-svelte3: "npm:^4.0.0"
     msw: "npm:^2.12.7"
     orval: "workspace:*"
-    svelte: "npm:^5.43.8"
+    svelte: "npm:^5.46.4"
     svelte-check: "npm:^3.8.6"
     tslib: "npm:^2.8.1"
     typescript: "npm:~5.9.3"
@@ -23030,7 +23037,7 @@ __metadata:
     "@tanstack/svelte-query": "npm:^4.41.0"
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
-    svelte: "npm:^5.43.8"
+    svelte: "npm:^5.46.4"
     svelte-check: "npm:^3.8.6"
     tslib: "npm:^2.8.1"
     typescript: "npm:~5.9.3"
@@ -23038,9 +23045,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"svelte@npm:^5.43.8":
-  version: 5.43.8
-  resolution: "svelte@npm:5.43.8"
+"svelte@npm:^5.46.4":
+  version: 5.46.4
+  resolution: "svelte@npm:5.46.4"
   dependencies:
     "@jridgewell/remapping": "npm:^2.3.4"
     "@jridgewell/sourcemap-codec": "npm:^1.5.0"
@@ -23050,13 +23057,14 @@ __metadata:
     aria-query: "npm:^5.3.1"
     axobject-query: "npm:^4.1.0"
     clsx: "npm:^2.1.1"
+    devalue: "npm:^5.6.2"
     esm-env: "npm:^1.2.1"
-    esrap: "npm:^2.1.0"
+    esrap: "npm:^2.2.1"
     is-reference: "npm:^3.0.3"
     locate-character: "npm:^3.0.0"
     magic-string: "npm:^0.30.11"
     zimmerframe: "npm:^1.1.2"
-  checksum: 10c0/dea6a24251e3a00b4f2911b6847e5475973b2ef33e9b12b5c1dd4b31572c61235d0b3fe5fc25d2d7bdeef1eaa5aba707588400339ca5f6014332d9fca8501af6
+  checksum: 10c0/be108e9a0213223ea45967043f774b6448afa615b0f360b3b94d492bc0145854e8930a97a65cea8533234c2cf1f4f664f80b736402fb634fdba4c3eea2e52fd7
   languageName: node
   linkType: hard
 
