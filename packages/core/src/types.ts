@@ -28,6 +28,7 @@ export type NormalizedOutputOptions = {
   workspace?: string;
   target: string;
   schemas?: string | SchemaOptions;
+  operationSchemas?: string;
   namingConvention: NamingConvention;
   fileExtension: string;
   mode: OutputMode;
@@ -215,6 +216,12 @@ export type OutputOptions = {
   workspace?: string;
   target: string;
   schemas?: string | SchemaOptions;
+  /**
+   * Separate path for operation-derived types (params, bodies, responses).
+   * When set, types matching operation patterns (e.g., *Params, *Body) are written here
+   * while regular schema types remain in the `schemas` path.
+   */
+  operationSchemas?: string;
   namingConvention?: NamingConvention;
   fileExtension?: string;
   mode?: OutputMode;
