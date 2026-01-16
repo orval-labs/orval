@@ -227,6 +227,11 @@ const generateQueryImplementation = ({
   useInfinite?: boolean;
   useInvalidate?: boolean;
 }) => {
+  // Check if API has a param named "signal" to avoid conflict with AbortSignal
+  const hasSignalParam = props.some(
+    (prop: GetterProp) => prop.name === 'signal',
+  );
+
   const queryPropDefinitions = toObjectString(props, 'definition');
   const definedInitialDataQueryPropsDefinitions = toObjectString(
     props.map((prop) => {
@@ -412,6 +417,7 @@ const generateQueryImplementation = ({
     mutator,
     hasSignal,
     httpClient,
+    hasSignalParam,
   });
 
   const hookOptions = getHookOptions({
@@ -424,6 +430,7 @@ const generateQueryImplementation = ({
     hasQueryParam:
       !!queryParam && props.some(({ type }) => type === 'queryParam'),
     hasSignal,
+    hasSignalParam,
   });
 
   const queryOptionFnReturnType = getQueryOptionsDefinition({
