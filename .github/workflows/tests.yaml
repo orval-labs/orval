@@ -35,14 +35,7 @@ jobs:
         run: yarn build
       - name: lint
         # not all packages pass linting yet - ongoing work
-        run: |
-          yarn workspace @orval/angular lint
-          yarn workspace @orval/axios lint
-          yarn workspace @orval/fetch lint
-          yarn workspace @orval/hono lint
-          yarn workspace @orval/mcp lint
-          yarn workspace @orval/query lint
-          yarn workspace @orval/swr lint
+        run: yarn oxlint packages/angular packages/axios packages/fetch packages/hono packages/mcp packages/query packages/swr --format=stylish
       - name: samples up to date
         uses: nickcharlton/diff-check@v1.0.0
         with:
