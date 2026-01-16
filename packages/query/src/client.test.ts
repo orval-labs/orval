@@ -147,7 +147,7 @@ describe('getQueryOptions', () => {
   });
 
   describe('with mutator', () => {
-    it('should return separate requestOptions and signal for mutator with hasSecondArg', () => {
+    it('should return http and signal for Angular mutator with hasSecondArg', () => {
       const result = getQueryOptions({
         isRequestOptions: true,
         mutator: mockMutator,
@@ -155,7 +155,8 @@ describe('getQueryOptions', () => {
         hasSignal: true,
         httpClient: OutputHttpClient.ANGULAR,
       });
-      expect(result).toBe('requestOptions, signal');
+      // Angular mutators need HttpClient passed, not requestOptions
+      expect(result).toBe('http, signal');
     });
 
     it('should return separate requestOptions and signal for axios with mutator', () => {
@@ -169,7 +170,7 @@ describe('getQueryOptions', () => {
       expect(result).toBe('requestOptions, signal');
     });
 
-    it('should return just requestOptions when no signal with mutator', () => {
+    it('should return just http when no signal with Angular mutator', () => {
       const result = getQueryOptions({
         isRequestOptions: true,
         mutator: mockMutator,
@@ -177,7 +178,8 @@ describe('getQueryOptions', () => {
         hasSignal: false,
         httpClient: OutputHttpClient.ANGULAR,
       });
-      expect(result).toBe('requestOptions');
+      // Angular mutators need HttpClient passed, not requestOptions
+      expect(result).toBe('http');
     });
 
     it('should return just signal for mutator without hasSecondArg', () => {
