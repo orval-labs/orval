@@ -57,21 +57,21 @@ export function splitSchemasByType(schemas: GeneratorSchema[]): {
 }
 
 /**
- * Fix cross-directory imports in operation schemas that reference regular schemas.
- * When schemas are split into different directories, imports need adjusted relative paths.
+ * Fix cross-directory imports when schemas reference other schemas in a different directory.
+ * Updates import paths to use correct relative paths between directories.
  */
-export function fixCrossDirectoryImports(
-  operationSchemas: GeneratorSchema[],
-  regularSchemaNames: Set<string>,
-  schemaPath: string,
-  operationSchemaPath: string,
+function fixSchemaImports(
+  schemas: GeneratorSchema[],
+  targetSchemaNames: Set<string>,
+  fromPath: string,
+  toPath: string,
   namingConvention: NamingConvention,
 ): void {
-  const relativePath = upath.relativeSafe(operationSchemaPath, schemaPath);
+  const relativePath = upath.relativeSafe(fromPath, toPath);
 
-  for (const schema of operationSchemas) {
+  for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
-      if (regularSchemaNames.has(imp.name)) {
+      if (targetSchemaNames.has(imp.name)) {
         const fileName = conventionName(imp.name, namingConvention);
         return {
           ...imp,
@@ -84,8 +84,26 @@ export function fixCrossDirectoryImports(
 }
 
 /**
- * Fix cross-directory imports in regular schemas that reference operation schemas.
- * When schemas are split into different directories, imports need adjusted relative paths.
+ * Fix imports in operation schemas that reference regular schemas.
+ */
+export function fixCrossDirectoryImports(
+  operationSchemas: GeneratorSchema[],
+  regularSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  fixSchemaImports(
+    operationSchemas,
+    regularSchemaNames,
+    operationSchemaPath,
+    schemaPath,
+    namingConvention,
+  );
+}
+
+/**
+ * Fix imports in regular schemas that reference operation schemas.
  */
 export function fixRegularSchemaImports(
   regularSchemas: GeneratorSchema[],
@@ -94,20 +112,13 @@ export function fixRegularSchemaImports(
   operationSchemaPath: string,
   namingConvention: NamingConvention,
 ): void {
-  const relativePath = upath.relativeSafe(schemaPath, operationSchemaPath);
-
-  for (const schema of regularSchemas) {
-    schema.imports = schema.imports.map((imp) => {
-      if (operationSchemaNames.has(imp.name)) {
-        const fileName = conventionName(imp.name, namingConvention);
-        return {
-          ...imp,
-          importPath: upath.join(relativePath, fileName),
-        };
-      }
-      return imp;
-    });
-  }
+  fixSchemaImports(
+    regularSchemas,
+    operationSchemaNames,
+    schemaPath,
+    operationSchemaPath,
+    namingConvention,
+  );
 }
 
 function getSchemaKey(

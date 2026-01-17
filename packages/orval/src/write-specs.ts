@@ -63,7 +63,11 @@ async function addOperationSchemasReExport(
         : exportLine;
     await fs.outputFile(schemaIndexPath, content);
   } else {
-    await fs.appendFile(schemaIndexPath, exportLine);
+    // Check if export already exists to prevent duplicates on re-runs
+    const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+    if (!existingContent.includes(exportLine.trim())) {
+      await fs.appendFile(schemaIndexPath, exportLine);
+    }
   }
 }
 
