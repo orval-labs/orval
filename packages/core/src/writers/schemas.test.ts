@@ -126,7 +126,7 @@ describe('splitSchemasByType', () => {
   it('should be case-insensitive for pattern matching (except Body)', () => {
     const schemas = [
       createMockSchema('getUserPARAMS'),
-      createMockSchema('createUserBody'), // Body pattern is case-sensitive to avoid "Antibody"
+      createMockSchema('CreateUserBody'), // Body pattern is case-sensitive to avoid "Antibody"
       createMockSchema('User'),
     ];
 
@@ -134,7 +134,7 @@ describe('splitSchemasByType', () => {
 
     expect(result.operationSchemas.map((s) => s.name)).toEqual([
       'getUserPARAMS',
-      'createUserBody',
+      'CreateUserBody',
     ]);
     expect(result.regularSchemas.map((s) => s.name)).toEqual(['User']);
   });

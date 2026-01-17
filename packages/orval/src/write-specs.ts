@@ -51,7 +51,7 @@ async function addOperationSchemasReExport(
   header: string,
 ): Promise<void> {
   const relativePath = upath.relativeSafe(schemaPath, operationSchemasPath);
-  const schemaIndexPath = upath.join(schemaPath, `/index${fileExtension}`);
+  const schemaIndexPath = upath.join(schemaPath, `index${fileExtension}`);
   const exportLine = `export * from '${relativePath}';\n`;
 
   const indexExists = await fs.pathExists(schemaIndexPath);
