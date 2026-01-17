@@ -23,7 +23,7 @@ const OPERATION_TYPE_PATTERNS = [
   /Query$/i, // GetUserQuery
   /Header$/i, // AuthHeader
   /Response\d*$/i, // GetUser200Response, NotFoundResponse
-  /^\d{3}$/, // 200, 201, 404 (exactly 3-digit status codes)
+  /^[1-5]\d{2}$/, // 200, 201, 404 (valid HTTP status codes: 1xx-5xx)
   /\d{3}(One|Two|Three|Four|Five|Item)$/i, // 200One, 200Two (union response types)
   /^(get|post|put|patch|delete|head|options)[A-Z].*\d{3}$/, // operation types with status codes (get...200, post...404)
 ];
