@@ -1,6 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["typescript", "unicorn"],
+  "jsPlugins": ["eslint-plugin-simple-import-sort"],
   "categories": {
     "correctness": "off"
   },
@@ -20,6 +21,8 @@
     "**/dist"
   ],
   "rules": {
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error",
     "constructor-super": "error",
     "for-direction": "error",
     "no-async-promise-executor": "error",
