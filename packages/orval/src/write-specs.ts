@@ -64,8 +64,12 @@ async function addOperationSchemasReExport(
     await fs.outputFile(schemaIndexPath, content);
   } else {
     // Check if export already exists to prevent duplicates on re-runs
+    // Use regex to handle both single and double quotes
     const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
-    if (!existingContent.includes(exportLine.trim())) {
+    const exportPattern = new RegExp(
+      `export\\s*\\*\\s*from\\s*['"]${relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`,
+    );
+    if (!exportPattern.test(existingContent)) {
       await fs.appendFile(schemaIndexPath, exportLine);
     }
   }
