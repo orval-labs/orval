@@ -1,6 +1,7 @@
 import {
   createSuccessMessage,
   fixCrossDirectoryImports,
+  fixRegularSchemaImports,
   getFileInfo,
   getMockFileExtensionByTypeName,
   isString,
@@ -39,6 +40,41 @@ function getHeader(
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 }
 
+/**
+ * Add re-export of operation schemas from the main schemas index file.
+ * Handles the case where the index file doesn't exist (no regular schemas).
+ */
+async function addOperationSchemasReExport(
+  schemaPath: string,
+  operationSchemasPath: string,
+  fileExtension: string,
+  header: string,
+): Promise<void> {
+  const relativePath = upath.relativeSafe(schemaPath, operationSchemasPath);
+  const schemaIndexPath = upath.join(schemaPath, `index${fileExtension}`);
+  const exportLine = `export * from '${relativePath}';\n`;
+
+  const indexExists = await fs.pathExists(schemaIndexPath);
+  if (!indexExists) {
+    // Create index with header if file doesn't exist (no regular schemas case)
+    const content =
+      header && header.trim().length > 0
+        ? `${header}\n${exportLine}`
+        : exportLine;
+    await fs.outputFile(schemaIndexPath, content);
+  } else {
+    // Check if export already exists to prevent duplicates on re-runs
+    // Use regex to handle both single and double quotes
+    const existingContent = await fs.readFile(schemaIndexPath, 'utf8');
+    const exportPattern = new RegExp(
+      `export\\s*\\*\\s*from\\s*['"]${relativePath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`,
+    );
+    if (!exportPattern.test(existingContent)) {
+      await fs.appendFile(schemaIndexPath, exportLine);
+    }
+  }
+}
+
 export async function writeSpecs(
   builder: WriteSpecBuilder,
   workspace: string,
@@ -61,11 +97,19 @@ export async function writeSpecs(
         const { regularSchemas, operationSchemas: opSchemas } =
           splitSchemasByType(schemas);
 
-        // Fix cross-directory imports before writing
+        // Fix cross-directory imports before writing (both directions)
         const regularSchemaNames = new Set(regularSchemas.map((s) => s.name));
+        const operationSchemaNames = new Set(opSchemas.map((s) => s.name));
         fixCrossDirectoryImports(
           opSchemas,
           regularSchemaNames,
+          schemaPath,
+          output.operationSchemas,
+          output.namingConvention,
+        );
+        fixRegularSchemaImports(
+          regularSchemas,
+          operationSchemaNames,
           schemaPath,
           output.operationSchemas,
           output.namingConvention,
@@ -95,6 +139,16 @@ export async function writeSpecs(
             header,
             indexFiles: output.indexFiles,
           });
+
+          // Add re-export from operations in the main schemas index
+          if (output.indexFiles) {
+            await addOperationSchemasReExport(
+              schemaPath,
+              output.operationSchemas,
+              fileExtension,
+              header,
+            );
+          }
         }
       } else {
         await writeSchemas({
@@ -118,11 +172,19 @@ export async function writeSpecs(
           const { regularSchemas, operationSchemas: opSchemas } =
             splitSchemasByType(schemas);
 
-          // Fix cross-directory imports before writing
+          // Fix cross-directory imports before writing (both directions)
           const regularSchemaNames = new Set(regularSchemas.map((s) => s.name));
+          const operationSchemaNames = new Set(opSchemas.map((s) => s.name));
           fixCrossDirectoryImports(
             opSchemas,
             regularSchemaNames,
+            output.schemas.path,
+            output.operationSchemas,
+            output.namingConvention,
+          );
+          fixRegularSchemaImports(
+            regularSchemas,
+            operationSchemaNames,
             output.schemas.path,
             output.operationSchemas,
             output.namingConvention,
@@ -150,6 +212,16 @@ export async function writeSpecs(
               header,
               indexFiles: output.indexFiles,
             });
+
+            // Add re-export from operations in the main schemas index
+            if (output.indexFiles) {
+              await addOperationSchemasReExport(
+                output.schemas.path,
+                output.operationSchemas,
+                fileExtension,
+                header,
+              );
+            }
           }
         } else {
           await writeSchemas({

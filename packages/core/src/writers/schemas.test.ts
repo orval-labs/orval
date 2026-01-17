@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { type GeneratorSchema, NamingConvention } from '../types';
-import { fixCrossDirectoryImports, splitSchemasByType } from './schemas';
+import {
+  fixCrossDirectoryImports,
+  fixRegularSchemaImports,
+  splitSchemasByType,
+} from './schemas';
 
 const createMockSchema = (name: string): GeneratorSchema => ({
   name,
@@ -119,10 +123,10 @@ describe('splitSchemasByType', () => {
     ]);
   });
 
-  it('should be case-insensitive for pattern matching', () => {
+  it('should be case-insensitive for pattern matching (except Body)', () => {
     const schemas = [
       createMockSchema('getUserPARAMS'),
-      createMockSchema('createUserBODY'),
+      createMockSchema('CreateUserBody'), // Body pattern is case-sensitive to avoid "Antibody"
       createMockSchema('User'),
     ];
 
@@ -130,7 +134,7 @@ describe('splitSchemasByType', () => {
 
     expect(result.operationSchemas.map((s) => s.name)).toEqual([
       'getUserPARAMS',
-      'createUserBODY',
+      'CreateUserBody',
     ]);
     expect(result.regularSchemas.map((s) => s.name)).toEqual(['User']);
   });
@@ -173,6 +177,120 @@ describe('splitSchemasByType', () => {
     const result = splitSchemasByType([schema]);
 
     expect(result.operationSchemas[0]).toEqual(schema);
+  });
+
+  it('should classify union body types (BodyOne, BodyTwo) as operation schemas', () => {
+    const schemas = [
+      createMockSchema('PostUserBodyOne'),
+      createMockSchema('PostUserBodyTwo'),
+      createMockSchema('CreateOrderBodyItem'),
+      createMockSchema('UserProfile'),
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      'PostUserBodyOne',
+      'PostUserBodyTwo',
+      'CreateOrderBodyItem',
+    ]);
+    expect(result.regularSchemas.map((s) => s.name)).toEqual(['UserProfile']);
+  });
+
+  it('should classify status code types as operation schemas', () => {
+    const schemas = [
+      createMockSchema('200'),
+      createMockSchema('404'),
+      createMockSchema('500'),
+      createMockSchema('User'),
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      '200',
+      '404',
+      '500',
+    ]);
+    expect(result.regularSchemas.map((s) => s.name)).toEqual(['User']);
+  });
+
+  it('should classify union response types (200One, 200Two) as operation schemas', () => {
+    const schemas = [
+      createMockSchema('GetUser200One'),
+      createMockSchema('GetUser200Two'),
+      createMockSchema('PostOrder404Item'),
+      createMockSchema('UserDto'),
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      'GetUser200One',
+      'GetUser200Two',
+      'PostOrder404Item',
+    ]);
+    expect(result.regularSchemas.map((s) => s.name)).toEqual(['UserDto']);
+  });
+
+  it('should classify HTTP verb + status code patterns as operation schemas', () => {
+    const schemas = [
+      createMockSchema('getApiUsers200'),
+      createMockSchema('postApiOrders201'),
+      createMockSchema('deleteApiItem404'),
+      createMockSchema('ApiClient'),
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      'getApiUsers200',
+      'postApiOrders201',
+      'deleteApiItem404',
+    ]);
+    expect(result.regularSchemas.map((s) => s.name)).toEqual(['ApiClient']);
+  });
+
+  it('should NOT classify PostgreSQL/Postfix domain types as operation schemas', () => {
+    const schemas = [
+      createMockSchema('PostgreSQLDataConnection'),
+      createMockSchema('PostgreSQLConfig'),
+      createMockSchema('PostfixServer'),
+      createMockSchema('GetUserParams'),
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.regularSchemas.map((s) => s.name)).toEqual([
+      'PostgreSQLDataConnection',
+      'PostgreSQLConfig',
+      'PostfixServer',
+    ]);
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      'GetUserParams',
+    ]);
+  });
+
+  it('should NOT classify words ending in "body" as operation schemas', () => {
+    const schemas = [
+      createMockSchema('Antibody'),
+      createMockSchema('Somebody'),
+      createMockSchema('AntibodyTest'),
+      createMockSchema('CreateUserBody'), // This SHOULD be operation schema
+      createMockSchema('BodyOne'), // This SHOULD be operation schema
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.regularSchemas.map((s) => s.name)).toEqual([
+      'Antibody',
+      'Somebody',
+      'AntibodyTest',
+    ]);
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      'CreateUserBody',
+      'BodyOne',
+    ]);
   });
 });
 
@@ -279,6 +397,132 @@ describe('fixCrossDirectoryImports', () => {
     expect(opSchemas[1].imports).toEqual([
       { name: 'Post', importPath: '../post' },
       { name: 'Author' },
+    ]);
+  });
+});
+
+describe('fixRegularSchemaImports', () => {
+  const createSchemaWithImports = (
+    name: string,
+    importNames: string[],
+  ): GeneratorSchema => ({
+    name,
+    model: `export type ${name} = {};`,
+    imports: importNames.map((n) => ({ name: n })),
+    schema: {},
+  });
+
+  it('should fix imports from regular schemas to operation schemas', () => {
+    const regularSchemas = [
+      createSchemaWithImports('PythonExecutionWebRequest', [
+        'Context',
+        'PythonExecutionWebRequestParams',
+      ]),
+    ];
+    const operationSchemaNames = new Set(['PythonExecutionWebRequestParams']);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './models',
+      './models/operations',
+      NamingConvention.CAMEL_CASE,
+    );
+
+    expect(regularSchemas[0].imports).toEqual([
+      { name: 'Context' },
+      {
+        name: 'PythonExecutionWebRequestParams',
+        importPath: 'operations/pythonExecutionWebRequestParams',
+      },
+    ]);
+  });
+
+  it('should handle deeper directory nesting', () => {
+    const regularSchemas = [createSchemaWithImports('User', ['GetUserParams'])];
+    const operationSchemaNames = new Set(['GetUserParams']);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './src/models',
+      './src/models/api/params',
+      NamingConvention.CAMEL_CASE,
+    );
+
+    expect(regularSchemas[0].imports[0].importPath).toBe(
+      'api/params/getUserParams',
+    );
+  });
+
+  it('should respect naming convention', () => {
+    const regularSchemas = [createSchemaWithImports('User', ['GetUserParams'])];
+    const operationSchemaNames = new Set(['GetUserParams']);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './models',
+      './models/operations',
+      NamingConvention.PASCAL_CASE,
+    );
+
+    expect(regularSchemas[0].imports[0].importPath).toBe(
+      'operations/GetUserParams',
+    );
+  });
+
+  it('should not modify imports that are not operation schemas', () => {
+    const regularSchemas = [
+      createSchemaWithImports('User', ['Profile', 'Settings']),
+    ];
+    const operationSchemaNames = new Set(['GetUserParams']);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './models',
+      './models/operations',
+      NamingConvention.CAMEL_CASE,
+    );
+
+    expect(regularSchemas[0].imports).toEqual([
+      { name: 'Profile' },
+      { name: 'Settings' },
+    ]);
+  });
+
+  it('should handle multiple schemas with multiple imports', () => {
+    const regularSchemas = [
+      createSchemaWithImports('ExecutionRequest', [
+        'Context',
+        'ExecutionRequestParams',
+      ]),
+      createSchemaWithImports('BatchRequest', ['User', 'BatchRequestBody']),
+    ];
+    const operationSchemaNames = new Set([
+      'ExecutionRequestParams',
+      'BatchRequestBody',
+    ]);
+
+    fixRegularSchemaImports(
+      regularSchemas,
+      operationSchemaNames,
+      './models',
+      './models/operations',
+      NamingConvention.CAMEL_CASE,
+    );
+
+    expect(regularSchemas[0].imports).toEqual([
+      { name: 'Context' },
+      {
+        name: 'ExecutionRequestParams',
+        importPath: 'operations/executionRequestParams',
+      },
+    ]);
+    expect(regularSchemas[1].imports).toEqual([
+      { name: 'User' },
+      { name: 'BatchRequestBody', importPath: 'operations/batchRequestBody' },
     ]);
   });
 });

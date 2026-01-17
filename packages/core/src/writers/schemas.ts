@@ -17,11 +17,15 @@ type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
  */
 const OPERATION_TYPE_PATTERNS = [
   /Params$/i, // GetUserParams, ListUsersParams
-  /Body$/i, // CreateUserBody, UpdatePostBody
+  /Body$/, // CreateUserBody, UpdatePostBody (case-sensitive to avoid "Antibody")
+  /Body(One|Two|Three|Four|Five|Item)$/, // BodyOne, BodyTwo (union body types)
   /Parameter$/i, // PageParameter, LimitParameter
   /Query$/i, // GetUserQuery
   /Header$/i, // AuthHeader
   /Response\d*$/i, // GetUser200Response, NotFoundResponse
+  /^[1-5]\d{2}$/, // 200, 201, 404 (valid HTTP status codes: 1xx-5xx)
+  /\d{3}(One|Two|Three|Four|Five|Item)$/i, // 200One, 200Two (union response types)
+  /^(get|post|put|patch|delete|head|options)[A-Z].*\d{3}$/, // operation types with status codes (get...200, post...404)
 ];
 
 /**
@@ -53,21 +57,21 @@ export function splitSchemasByType(schemas: GeneratorSchema[]): {
 }
 
 /**
- * Fix cross-directory imports in operation schemas that reference regular schemas.
- * When schemas are split into different directories, imports need adjusted relative paths.
+ * Fix cross-directory imports when schemas reference other schemas in a different directory.
+ * Updates import paths to use correct relative paths between directories.
  */
-export function fixCrossDirectoryImports(
-  operationSchemas: GeneratorSchema[],
-  regularSchemaNames: Set<string>,
-  schemaPath: string,
-  operationSchemaPath: string,
+function fixSchemaImports(
+  schemas: GeneratorSchema[],
+  targetSchemaNames: Set<string>,
+  fromPath: string,
+  toPath: string,
   namingConvention: NamingConvention,
 ): void {
-  const relativePath = upath.relativeSafe(operationSchemaPath, schemaPath);
+  const relativePath = upath.relativeSafe(fromPath, toPath);
 
-  for (const schema of operationSchemas) {
+  for (const schema of schemas) {
     schema.imports = schema.imports.map((imp) => {
-      if (regularSchemaNames.has(imp.name)) {
+      if (targetSchemaNames.has(imp.name)) {
         const fileName = conventionName(imp.name, namingConvention);
         return {
           ...imp,
@@ -77,6 +81,44 @@ export function fixCrossDirectoryImports(
       return imp;
     });
   }
+}
+
+/**
+ * Fix imports in operation schemas that reference regular schemas.
+ */
+export function fixCrossDirectoryImports(
+  operationSchemas: GeneratorSchema[],
+  regularSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  fixSchemaImports(
+    operationSchemas,
+    regularSchemaNames,
+    operationSchemaPath,
+    schemaPath,
+    namingConvention,
+  );
+}
+
+/**
+ * Fix imports in regular schemas that reference operation schemas.
+ */
+export function fixRegularSchemaImports(
+  regularSchemas: GeneratorSchema[],
+  operationSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  fixSchemaImports(
+    regularSchemas,
+    operationSchemaNames,
+    schemaPath,
+    operationSchemaPath,
+    namingConvention,
+  );
 }
 
 function getSchemaKey(
