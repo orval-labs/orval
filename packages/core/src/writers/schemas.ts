@@ -17,8 +17,8 @@ type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
  */
 const OPERATION_TYPE_PATTERNS = [
   /Params$/i, // GetUserParams, ListUsersParams
-  /Body$/i, // CreateUserBody, UpdatePostBody
-  /Body(One|Two|Three|Four|Five|Item)$/, // BodyOne, BodyTwo (union body types, case-sensitive to avoid "Antibody")
+  /Body$/, // CreateUserBody, UpdatePostBody (case-sensitive to avoid "Antibody")
+  /Body(One|Two|Three|Four|Five|Item)$/, // BodyOne, BodyTwo (union body types)
   /Parameter$/i, // PageParameter, LimitParameter
   /Query$/i, // GetUserQuery
   /Header$/i, // AuthHeader

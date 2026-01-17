@@ -123,10 +123,10 @@ describe('splitSchemasByType', () => {
     ]);
   });
 
-  it('should be case-insensitive for pattern matching', () => {
+  it('should be case-insensitive for pattern matching (except Body)', () => {
     const schemas = [
       createMockSchema('getUserPARAMS'),
-      createMockSchema('createUserBODY'),
+      createMockSchema('createUserBody'), // Body pattern is case-sensitive to avoid "Antibody"
       createMockSchema('User'),
     ];
 
@@ -134,7 +134,7 @@ describe('splitSchemasByType', () => {
 
     expect(result.operationSchemas.map((s) => s.name)).toEqual([
       'getUserPARAMS',
-      'createUserBODY',
+      'createUserBody',
     ]);
     expect(result.regularSchemas.map((s) => s.name)).toEqual(['User']);
   });
@@ -268,6 +268,28 @@ describe('splitSchemasByType', () => {
     ]);
     expect(result.operationSchemas.map((s) => s.name)).toEqual([
       'GetUserParams',
+    ]);
+  });
+
+  it('should NOT classify words ending in "body" as operation schemas', () => {
+    const schemas = [
+      createMockSchema('Antibody'),
+      createMockSchema('Somebody'),
+      createMockSchema('AntibodyTest'),
+      createMockSchema('CreateUserBody'), // This SHOULD be operation schema
+      createMockSchema('BodyOne'), // This SHOULD be operation schema
+    ];
+
+    const result = splitSchemasByType(schemas);
+
+    expect(result.regularSchemas.map((s) => s.name)).toEqual([
+      'Antibody',
+      'Somebody',
+      'AntibodyTest',
+    ]);
+    expect(result.operationSchemas.map((s) => s.name)).toEqual([
+      'CreateUserBody',
+      'BodyOne',
     ]);
   });
 });

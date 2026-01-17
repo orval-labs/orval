@@ -40,6 +40,33 @@ function getHeader(
   return Array.isArray(header) ? jsDoc({ description: header }) : header;
 }
 
+/**
+ * Add re-export of operation schemas from the main schemas index file.
+ * Handles the case where the index file doesn't exist (no regular schemas).
+ */
+async function addOperationSchemasReExport(
+  schemaPath: string,
+  operationSchemasPath: string,
+  fileExtension: string,
+  header: string,
+): Promise<void> {
+  const relativePath = upath.relativeSafe(schemaPath, operationSchemasPath);
+  const schemaIndexPath = upath.join(schemaPath, `/index${fileExtension}`);
+  const exportLine = `export * from '${relativePath}';\n`;
+
+  const indexExists = await fs.pathExists(schemaIndexPath);
+  if (!indexExists) {
+    // Create index with header if file doesn't exist (no regular schemas case)
+    const content =
+      header && header.trim().length > 0
+        ? `${header}\n${exportLine}`
+        : exportLine;
+    await fs.outputFile(schemaIndexPath, content);
+  } else {
+    await fs.appendFile(schemaIndexPath, exportLine);
+  }
+}
+
 export async function writeSpecs(
   builder: WriteSpecBuilder,
   workspace: string,
@@ -107,17 +134,12 @@ export async function writeSpecs(
 
           // Add re-export from operations in the main schemas index
           if (output.indexFiles) {
-            const relativePath = upath.relativeSafe(
+            await addOperationSchemasReExport(
               schemaPath,
               output.operationSchemas,
+              fileExtension,
+              header,
             );
-            const schemaIndexPath = upath.join(
-              schemaPath,
-              `/index${fileExtension}`,
-            );
-            const exportLine = `export * from '${relativePath}';\n`;
-            await fs.ensureFile(schemaIndexPath);
-            await fs.appendFile(schemaIndexPath, exportLine);
           }
         }
       } else {
@@ -185,17 +207,12 @@ export async function writeSpecs(
 
             // Add re-export from operations in the main schemas index
             if (output.indexFiles) {
-              const relativePath = upath.relativeSafe(
+              await addOperationSchemasReExport(
                 output.schemas.path,
                 output.operationSchemas,
+                fileExtension,
+                header,
               );
-              const schemaIndexPath = upath.join(
-                output.schemas.path,
-                `/index${fileExtension}`,
-              );
-              const exportLine = `export * from '${relativePath}';\n`;
-              await fs.ensureFile(schemaIndexPath);
-              await fs.appendFile(schemaIndexPath, exportLine);
             }
           }
         } else {
