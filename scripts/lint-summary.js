@@ -16,7 +16,17 @@ process.stdin.on('data', (chunk) => {
 process.stdin.on('end', () => {
   const data = JSON.parse(input);
 
-  const byPkg = {};
+  // Initialize all packages (so clean ones show too)
+  const allPackages = [
+    'angular', 'axios', 'core', 'fetch', 'hono', 
+    'mcp', 'mock', 'orval', 'query', 'solid-start', 'swr', 'zod'
+  ];
+  
+  const byPkg = { root: { errors: 0, warnings: 0 } };
+  for (const pkg of allPackages) {
+    byPkg[pkg] = { errors: 0, warnings: 0 };
+  }
+  
   let totalErrors = 0;
   let totalWarnings = 0;
 
@@ -27,6 +37,7 @@ process.stdin.on('end', () => {
     const match = d.filename.match(/packages\/([^/]+)/);
     const pkg = match ? match[1] : 'root';
 
+    // Initialize if not already (handles unknown packages)
     if (!byPkg[pkg]) {
       byPkg[pkg] = { errors: 0, warnings: 0 };
     }
