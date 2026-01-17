@@ -35,7 +35,7 @@ jobs:
         run: yarn build
       - name: lint
         # not all packages pass linting yet - ongoing work
-        run: yarn oxlint packages/angular packages/axios packages/fetch packages/hono packages/mcp packages/query packages/swr --format=stylish
+        run: yarn oxlint packages/angular packages/axios packages/fetch packages/hono packages/mcp packages/query packages/swr --type-aware --format=github
       - name: samples up to date
         uses: nickcharlton/diff-check@v1.0.0
         with:
