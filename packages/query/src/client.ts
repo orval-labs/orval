@@ -452,13 +452,20 @@ export const getQueryOptions = ({
   isExactOptionalPropertyTypes,
   hasSignal,
   httpClient,
+  hasSignalParam = false,
 }: {
   isRequestOptions: boolean;
   mutator?: GeneratorMutator;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
   httpClient: OutputHttpClient;
+  hasSignalParam?: boolean;
 }) => {
+  // Use querySignal if API has a param named "signal" to avoid conflict
+  const signalVar = hasSignalParam ? 'querySignal' : 'signal';
+  // Only use explicit `signal: querySignal` when there's a naming conflict
+  const signalProp = hasSignalParam ? `signal: ${signalVar}` : 'signal';
+
   if (!mutator && isRequestOptions) {
     const options =
       httpClient === OutputHttpClient.AXIOS ? 'axiosOptions' : 'fetchOptions';
@@ -468,7 +475,9 @@ export const getQueryOptions = ({
     }
 
     return `{ ${
-      isExactOptionalPropertyTypes ? '...(signal ? { signal } : {})' : 'signal'
+      isExactOptionalPropertyTypes
+        ? `...(${signalVar} ? { ${signalProp} } : {})`
+        : signalProp
     }, ...${options} }`;
   }
 
@@ -478,7 +487,7 @@ export const getQueryOptions = ({
     if (!hasSignal) {
       return 'http';
     }
-    return 'http, signal';
+    return `http, ${signalVar}`;
   }
 
   if (mutator?.hasSecondArg && isRequestOptions) {
@@ -490,8 +499,8 @@ export const getQueryOptions = ({
     // Fetch mutators: signal is wrapped in options object
     return httpClient === OutputHttpClient.AXIOS ||
       httpClient === OutputHttpClient.ANGULAR
-      ? 'requestOptions, signal'
-      : '{ signal, ...requestOptions }';
+      ? `requestOptions, ${signalVar}`
+      : `{ ${signalProp}, ...requestOptions }`;
   }
 
   if (hasSignal) {
@@ -500,12 +509,12 @@ export const getQueryOptions = ({
     // Angular without mutator: signal is wrapped (native pattern)
     // Fetch/other: signal is wrapped
     if (httpClient === OutputHttpClient.AXIOS) {
-      return 'signal';
+      return signalVar;
     }
     if (httpClient === OutputHttpClient.ANGULAR && mutator) {
-      return 'signal';
+      return signalVar;
     }
-    return '{ signal }';
+    return `{ ${signalProp} }`;
   }
 
   return '';

@@ -126,23 +126,28 @@ export const generateMutatorReturnType = ({
 export const getQueryFnArguments = ({
   hasQueryParam,
   hasSignal,
+  hasSignalParam = false,
 }: {
   hasQueryParam: boolean;
   hasSignal: boolean;
+  hasSignalParam?: boolean;
 }) => {
   if (!hasQueryParam && !hasSignal) {
     return '';
   }
 
+  // Rename AbortSignal if API has a param named "signal" to avoid conflict
+  const signalDestructure = hasSignalParam ? 'signal: querySignal' : 'signal';
+
   if (hasQueryParam) {
     if (hasSignal) {
-      return '{ signal, pageParam }';
+      return `{ ${signalDestructure}, pageParam }`;
     }
 
     return '{ pageParam }';
   }
 
-  return '{ signal }';
+  return `{ ${signalDestructure} }`;
 };
 
 export const getQueryReturnStatement = ({
