@@ -150,7 +150,7 @@ export default defineConfig({
           {
             domains: ['api.example.com'],
             headers: {
-              'Authorization': 'Bearer YOUR_TOKEN',
+              Authorization: 'Bearer YOUR_TOKEN',
               'X-API-Key': 'your-api-key',
             },
           },
@@ -175,13 +175,13 @@ export default defineConfig({
           {
             domains: ['api.example.com', 'api.prod.example.com'],
             headers: {
-              'Authorization': 'Bearer PROD_TOKEN',
+              Authorization: 'Bearer PROD_TOKEN',
             },
           },
           {
             domains: ['api.dev.example.com'],
             headers: {
-              'Authorization': 'Bearer DEV_TOKEN',
+              Authorization: 'Bearer DEV_TOKEN',
             },
           },
         ],
