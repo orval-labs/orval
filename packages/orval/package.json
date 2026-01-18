@@ -54,7 +54,7 @@
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src --onSuccess 'yarn generate-api'",
-    "lint": "eslint .",
+    "lint": "oxlint .",
     "generate-api": "orval --config ../../samples/react-query/basic/orval.config.ts",
     "test": "vitest",
     "clean": "rimraf .turbo dist",
