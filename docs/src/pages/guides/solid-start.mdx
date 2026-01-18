@@ -41,36 +41,36 @@ export const SwaggerPetstore = {
     const url = queryString ? `/pets?${queryString}` : `/pets`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return response.json() as Promise<Pets>;
-  }, "listPets"),
+  }, 'listPets'),
 
   createPets: action(async (createPetsBody: CreatePetsBody) => {
     const response = await fetch('/pets', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(createPetsBody)
+      body: JSON.stringify(createPetsBody),
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return response.json() as Promise<Pet>;
-  }, "createPets"),
+  }, 'createPets'),
 
   showPetById: query(async (petId: string) => {
     const response = await fetch(`/pets/${petId}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' }
+      headers: { 'Content-Type': 'application/json' },
     });
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     return response.json() as Promise<Pet>;
-  }, "showPetById"),
+  }, 'showPetById'),
 };
 ```
 
@@ -107,15 +107,15 @@ import { revalidate } from '@solidjs/router';
 import { SwaggerPetstore } from './petstore';
 
 // Invalidate a specific pet by ID
-revalidate(SwaggerPetstore.showPetById.keyFor("pet-123"));
+revalidate(SwaggerPetstore.showPetById.keyFor('pet-123'));
 
 // Invalidate all pets
 revalidate(SwaggerPetstore.listPets.key);
 
 // Invalidate multiple specific queries
 revalidate([
-  SwaggerPetstore.showPetById.keyFor("pet-123"),
-  SwaggerPetstore.showPetById.keyFor("pet-456"),
+  SwaggerPetstore.showPetById.keyFor('pet-123'),
+  SwaggerPetstore.showPetById.keyFor('pet-456'),
   SwaggerPetstore.listPets.key,
 ]);
 ```
@@ -141,9 +141,7 @@ function PetDetails(props: { petId: string }) {
       <div>
         <h1>{pet()?.name}</h1>
         <p>ID: {pet()?.id}</p>
-        <button onClick={handleRefresh}>
-          Refresh Pet Data
-        </button>
+        <button onClick={handleRefresh}>Refresh Pet Data</button>
       </div>
     </Suspense>
   );
@@ -186,11 +184,7 @@ function DeletePetButton(props: { petId: string }) {
     // Actions automatically revalidate all active queries on the page
   };
 
-  return (
-    <button onClick={handleDelete}>
-      Delete Pet
-    </button>
-  );
+  return <button onClick={handleDelete}>Delete Pet</button>;
 }
 ```
 
@@ -251,14 +245,11 @@ This will generate code that uses your custom instance with the Fetch API signat
 export const SwaggerPetstore = {
   showPetById: query(async (petId: string) => {
     const url = `/pets/${petId}`;
-    return customInstance<Pet>(
-      url,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
-      }
-    );
-  }, "showPetById"),
+    return customInstance<Pet>(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }, 'showPetById'),
 };
 ```
 
@@ -271,11 +262,11 @@ export const customInstance = async <T>(
   options: RequestInit,
 ): Promise<T> => {
   const response = await fetch(url, options);
-  
+
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  
+
   return response.json();
 };
 ```
@@ -286,16 +277,16 @@ export const customInstance = async <T>(
 
 **If you are using SolidStart, it's highly recommended to use its built-in primitives** (`query()` and `action()` from `@solidjs/router`) instead of Solid Query. These primitives are designed to work seamlessly with SolidStart's server-side rendering, routing, and caching systems.
 
-| Feature | Solid Query | SolidStart |
-|---------|------------|-----------|
-| Package | `@tanstack/solid-query` | `@solidjs/router` (via SolidStart) |
-| Use Case | Standalone Solid apps | SolidStart applications |
-| Query Hook | `createQuery` | `query()` |
-| Mutation Hook | `createMutation` | `action()` |
-| Cache Keys | Manual query key functions | Automatic via `.key` and `.keyFor()` |
-| HTTP Client | Configurable (axios, fetch, etc.) | Native fetch API |
-| Query Options | Full TanStack Query options | Simpler, opinionated options |
-| SSR Integration | Manual configuration | Built-in and automatic |
+| Feature         | Solid Query                       | SolidStart                           |
+| --------------- | --------------------------------- | ------------------------------------ |
+| Package         | `@tanstack/solid-query`           | `@solidjs/router` (via SolidStart)   |
+| Use Case        | Standalone Solid apps             | SolidStart applications              |
+| Query Hook      | `createQuery`                     | `query()`                            |
+| Mutation Hook   | `createMutation`                  | `action()`                           |
+| Cache Keys      | Manual query key functions        | Automatic via `.key` and `.keyFor()` |
+| HTTP Client     | Configurable (axios, fetch, etc.) | Native fetch API                     |
+| Query Options   | Full TanStack Query options       | Simpler, opinionated options         |
+| SSR Integration | Manual configuration              | Built-in and automatic               |
 
 Choose **SolidStart client** when building a SolidStart application. Choose **Solid Query client** only if you're building a standalone SolidJS app without the SolidStart framework and need advanced TanStack Query features like optimistic updates, background refetching, and complex caching strategies.
 

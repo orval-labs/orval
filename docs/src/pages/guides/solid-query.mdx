@@ -48,7 +48,11 @@ export const createShowPetById = <
 >(
   petId: string,
   options?: {
-    query?: CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>;
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >;
     axios?: AxiosRequestConfig;
   },
 ) => {
