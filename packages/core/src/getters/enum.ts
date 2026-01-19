@@ -5,23 +5,31 @@ import {
   NamingConvention,
   type OpenApiSchemaObject,
 } from '../types';
-import { conventionName, isNumeric, sanitize } from '../utils';
+import { conventionName, isNumeric, jsStringEscape, sanitize } from '../utils';
 
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
-  return (
-    schemaObject?.['x-enumNames'] ||
-    schemaObject?.['x-enumnames'] ||
-    schemaObject?.['x-enum-varnames']
-  );
+  const names =
+    schemaObject?.['x-enumNames'] ??
+    schemaObject?.['x-enumnames'] ??
+    schemaObject?.['x-enum-varnames'];
+
+  if (!names) return;
+
+  return (names as string[]).map((name: string) => jsStringEscape(name));
 }
 
 export function getEnumDescriptions(
   schemaObject: OpenApiSchemaObject | undefined,
 ) {
-  return (
-    schemaObject?.['x-enumDescriptions'] ||
-    schemaObject?.['x-enumdescriptions'] ||
-    schemaObject?.['x-enum-descriptions']
+  const descriptions =
+    schemaObject?.['x-enumDescriptions'] ??
+    schemaObject?.['x-enumdescriptions'] ??
+    schemaObject?.['x-enum-descriptions'];
+
+  if (!descriptions) return;
+
+  return (descriptions as string[]).map((description: string) =>
+    jsStringEscape(description),
   );
 }
 
