@@ -8,20 +8,40 @@ import {
 import { conventionName, isNumeric, sanitize } from '../utils';
 
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
-  return (
-    schemaObject?.['x-enumNames'] ||
-    schemaObject?.['x-enumnames'] ||
-    schemaObject?.['x-enum-varnames']
+  const names =
+    schemaObject?.['x-enumNames'] ??
+    schemaObject?.['x-enumnames'] ??
+    schemaObject?.['x-enum-varnames'];
+
+  if (!names) return;
+
+  return (names as string[]).map((name: string) =>
+    sanitize(name, {
+      whitespace: '_',
+      underscore: true,
+      dash: true,
+      special: true,
+    }),
   );
 }
 
 export function getEnumDescriptions(
   schemaObject: OpenApiSchemaObject | undefined,
 ) {
-  return (
-    schemaObject?.['x-enumDescriptions'] ||
-    schemaObject?.['x-enumdescriptions'] ||
-    schemaObject?.['x-enum-descriptions']
+  const descriptions =
+    schemaObject?.['x-enumDescriptions'] ??
+    schemaObject?.['x-enumdescriptions'] ??
+    schemaObject?.['x-enum-descriptions'];
+
+  if (!descriptions) return;
+
+  return (descriptions as string[]).map((description: string) =>
+    sanitize(description, {
+      whitespace: '_',
+      underscore: true,
+      dash: true,
+      special: true,
+    }),
   );
 }
 
