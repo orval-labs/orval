@@ -25,7 +25,9 @@ export function getScalar({
   context,
 }: GetScalarOptions): ScalarValue {
   const nullable =
-    isArray(item.type) && item.type.includes('null') ? ' | null' : '';
+    (isArray(item.type) && item.type.includes('null')) || item.nullable === true
+      ? ' | null'
+      : '';
 
   const enumItems = item.enum?.filter((enumItem) => enumItem !== null);
 

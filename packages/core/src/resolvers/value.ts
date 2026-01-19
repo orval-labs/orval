@@ -46,7 +46,9 @@ export function resolveValue({
     }
 
     const nullable =
-      Array.isArray(schemaObject.type) && schemaObject.type.includes('null')
+      (Array.isArray(schemaObject.type) &&
+        schemaObject.type.includes('null')) ||
+      schemaObject.nullable === true
         ? ' | null'
         : '';
 
