@@ -2,21 +2,31 @@ import { keyword } from 'esutils';
 import type { SchemaObject } from 'openapi3-ts/oas30';
 
 import { EnumGeneration, NamingConvention } from '../types';
-import { conventionName, isNumeric, sanitize } from '../utils';
+import { conventionName, isNumeric, jsStringEscape, sanitize } from '../utils';
 
-export const getEnumNames = (schemaObject: SchemaObject | undefined) => {
-  return (
-    schemaObject?.['x-enumNames'] ||
-    schemaObject?.['x-enumnames'] ||
-    schemaObject?.['x-enum-varnames']
-  );
-};
+export function getEnumNames(schemaObject: SchemaObject | undefined) {
+  const names =
+    schemaObject?.['x-enumNames'] ??
+    schemaObject?.['x-enumnames'] ??
+    schemaObject?.['x-enum-varnames'];
 
-export const getEnumDescriptions = (schemaObject: SchemaObject | undefined) => {
-  return (
-    schemaObject?.['x-enumDescriptions'] ||
-    schemaObject?.['x-enumdescriptions'] ||
-    schemaObject?.['x-enum-descriptions']
+  if (!names) return;
+
+  return (names as string[]).map((name: string) => jsStringEscape(name));
+}
+
+export function getEnumDescriptions(
+  schemaObject: SchemaObject | undefined,
+) {
+  const descriptions =
+    schemaObject?.['x-enumDescriptions'] ??
+    schemaObject?.['x-enumdescriptions'] ??
+    schemaObject?.['x-enum-descriptions'];
+
+  if (!descriptions) return;
+
+  return (descriptions as string[]).map((description: string) =>
+    jsStringEscape(description),
   );
 };
 
