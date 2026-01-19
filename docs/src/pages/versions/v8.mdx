@@ -25,7 +25,7 @@ The entire project has been migrated from CommonJS to ESM.
 
 **Updating configuration files:**
 
-```bash
+```bash showLineNumbers
 # Rename to .mjs extension
 mv orval.config.js orval.config.mjs
 
@@ -35,7 +35,7 @@ mv orval.config.js orval.config.mjs
 
 **If importing Orval programmatically:**
 
-```diff
+```diff showLineNumbers
 - const { generate } = require('orval');
 + import { generate } from 'orval';
 ```

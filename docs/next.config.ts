@@ -5,6 +5,7 @@ import rehypeAutolinkHeadings, {
   type Options as AutolinkOptions,
 } from 'rehype-autolink-headings';
 import rehypeSlug from 'rehype-slug';
+import { rehypePrettyCode } from 'rehype-pretty-code';
 import rehypeUnwrapImages from 'rehype-unwrap-images';
 import remarkEmoji from 'remark-emoji';
 import remarkFrontmatter from 'remark-frontmatter';
@@ -46,6 +47,7 @@ const withMdx = createMDX({
   extension: /\.mdx?$/,
   options: {
     rehypePlugins: [
+      rehypePrettyCode,
       rehypeSlug,
       rehypeUnwrapImages,
       [
