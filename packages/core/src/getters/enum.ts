@@ -5,7 +5,7 @@ import {
   NamingConvention,
   type OpenApiSchemaObject,
 } from '../types';
-import { conventionName, isNumeric, sanitize } from '../utils';
+import { conventionName, isNumeric, jsStringEscape, sanitize } from '../utils';
 
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
   const names =
@@ -15,14 +15,7 @@ export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
 
   if (!names) return;
 
-  return (names as string[]).map((name: string) =>
-    sanitize(name, {
-      whitespace: '_',
-      underscore: true,
-      dash: true,
-      special: true,
-    }),
-  );
+  return (names as string[]).map((name: string) => jsStringEscape(name));
 }
 
 export function getEnumDescriptions(
@@ -36,12 +29,7 @@ export function getEnumDescriptions(
   if (!descriptions) return;
 
   return (descriptions as string[]).map((description: string) =>
-    sanitize(description, {
-      whitespace: '_',
-      underscore: true,
-      dash: true,
-      special: true,
-    }),
+    jsStringEscape(description),
   );
 }
 
