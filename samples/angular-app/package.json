@@ -1,6 +1,6 @@
 {
   "name": "angular-app",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "type": "module",
   "scripts": {
     "ng": "ng",
@@ -32,7 +32,7 @@
     "msw": "^2.12.7",
     "orval": "workspace:*",
     "rimraf": "^6.1.2",
-    "typescript": "~5.8.3",
+    "typescript": "~5.9.3",
     "vitest": "^4.0.16"
   },
   "dependenciesMeta": {

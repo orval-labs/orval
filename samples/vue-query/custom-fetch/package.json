@@ -1,7 +1,7 @@
 {
   "name": "vue-query-custom-fetch",
   "private": true,
-  "version": "8.0.0",
+  "version": "8.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,8 +11,8 @@
     "test": "tsc --noEmit"
   },
   "dependencies": {
-    "@tanstack/vue-query": "^5.92.5",
-    "vue": "^3.5.22"
+    "@tanstack/vue-query": "^5.92.7",
+    "vue": "^3.5.26"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.2.0",

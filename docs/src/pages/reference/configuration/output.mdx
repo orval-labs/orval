@@ -86,6 +86,43 @@ export default defineConfig({
 });
 ```
 
+## operationSchemas
+
+Type: `String`.
+
+Valid values: path to the folder where operation-derived types (params, bodies, responses) are written.
+
+Default Value: `undefined` (all schemas written to `schemas` path).
+
+When set, types matching operation patterns (`*Params`, `*Body`, `*Parameter`, `*Query`, `*Header`, `*Response`) are written to this path instead of the main `schemas` path. This helps organize large API clients by separating auto-generated operation types from core domain models.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: './api/model',
+      operationSchemas: './api/model/params',
+    },
+  },
+});
+```
+
+Result:
+
+```
+api/model/
+├── user.ts           # Domain models
+├── pet.ts
+├── index.ts
+└── params/
+    ├── getUserParams.ts    # Operation types
+    ├── createPetBody.ts
+    ├── listPets200Response.ts
+    └── index.ts
+```
+
 ## fileExtension
 
 Type: `String`.
@@ -1261,6 +1298,48 @@ export const invalidateShowPetById = async (
   return queryClient;
 }
 ```
+
+#### mutationInvalidates
+
+Type: `Array<{ onMutations: string[], invalidates: (string | { query: string, params: string[] })[] }>`.
+
+**Angular Query only.** Declaratively invalidate queries when mutations succeed. Requires `useInvalidate: true`.
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+##### Param-based invalidation
+
+With `{ query: 'showPetById', params: ['petId'] }`, the mutation's variables are used to determine which specific query to invalidate. When `deletePet({ petId: '123' })` succeeds, only `showPetById('123')` is invalidated—not all `showPetById` queries.
+
+See the [Angular Query guide](../../guides/angular-query#automatic-mutation-invalidation-angular-query-only) for more details.
 
 #### useInfiniteQueryParam
 

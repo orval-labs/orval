@@ -1,7 +1,7 @@
 {
   "name": "orval-workspaces",
   "namespace": "@orval",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "license": "MIT",
   "workspaces": [
     "packages/*",
@@ -45,7 +45,7 @@
     "esbuild-plugin-alias": "^0.2.1",
     "eslint": "catalog:",
     "eslint-config-prettier": "^10.1.8",
-    "eslint-config-turbo": "^2.7.1",
+    "eslint-config-turbo": "^2.7.4",
     "eslint-plugin-prettier": "^5.5.4",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "eslint-plugin-unicorn": "^62.0.0",

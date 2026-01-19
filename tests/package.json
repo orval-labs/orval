@@ -1,6 +1,6 @@
 {
   "name": "orval-tests",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "description": "",
   "author": "Victor Bury",
   "license": "ISC",
@@ -34,7 +34,7 @@
     "@modelcontextprotocol/sdk": "1.25.2",
     "@tanstack/react-query": "~5.62.16",
     "@tanstack/svelte-query": "^4.41.0",
-    "@tanstack/vue-query": "^5.92.5",
+    "@tanstack/vue-query": "^5.92.7",
     "@types/react": "18.3.24",
     "axios": "^1.13.2",
     "hono": "^4.11.4",
@@ -45,10 +45,10 @@
     "react": "^18.3.1",
     "rimraf": "catalog:",
     "rxjs": "~7.8.2",
-    "svelte": "^5.43.8",
+    "svelte": "^5.46.4",
     "swr": "^2.3.6",
     "typescript": "catalog:",
-    "vue": "^3.5.22",
+    "vue": "^3.5.26",
     "zod": "^3.25.76"
   }
 }

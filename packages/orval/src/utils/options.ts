@@ -191,6 +191,9 @@ export async function normalizeOptions(
         ? normalizePath(globalOptions.output, process.cwd())
         : normalizePath(outputOptions.target, outputWorkspace),
       schemas: normalizeSchemasOption(outputOptions.schemas, outputWorkspace),
+      operationSchemas: outputOptions.operationSchemas
+        ? normalizePath(outputOptions.operationSchemas, outputWorkspace)
+        : undefined,
       namingConvention:
         outputOptions.namingConvention || NamingConvention.CAMEL_CASE,
       fileExtension: outputOptions.fileExtension || defaultFileExtension,

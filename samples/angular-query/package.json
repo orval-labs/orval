@@ -1,6 +1,6 @@
 {
   "name": "angular-query",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -28,10 +28,10 @@
     "@angular/cli": "catalog:angular",
     "@angular/compiler-cli": "catalog:angular",
     "@faker-js/faker": "^10.2.0",
-    "@testing-library/angular": "16.0.0",
+    "@testing-library/angular": "19.0.0",
     "msw": "^2.12.7",
     "orval": "link:../../packages/orval/dist",
-    "typescript": "~5.8.3",
+    "typescript": "~5.9.3",
     "vitest": "^4.0.16"
   },
   "msw": {

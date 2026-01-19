@@ -242,4 +242,99 @@ describe('getQueryOptions', () => {
       expect(result).toBe('{ signal, ...requestOptions }');
     });
   });
+
+  describe('hasSignalParam (API param named "signal")', () => {
+    it('should rename AbortSignal to querySignal when API has signal param', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.AXIOS,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('{ signal: querySignal, ...axiosOptions }');
+    });
+
+    it('should use querySignal for fetch with signal param conflict', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('{ signal: querySignal, ...fetchOptions }');
+    });
+
+    it('should use querySignal for axios without request options', () => {
+      const result = getQueryOptions({
+        isRequestOptions: false,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.AXIOS,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('querySignal');
+    });
+
+    it('should use querySignal in wrapped form for fetch without request options', () => {
+      const result = getQueryOptions({
+        isRequestOptions: false,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('{ signal: querySignal }');
+    });
+
+    it('should use querySignal with exactOptionalPropertyTypes', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        isExactOptionalPropertyTypes: true,
+        hasSignal: true,
+        httpClient: OutputHttpClient.AXIOS,
+        hasSignalParam: true,
+      });
+      expect(result).toBe(
+        '{ ...(querySignal ? { signal: querySignal } : {}), ...axiosOptions }',
+      );
+    });
+
+    it('should use querySignal for Angular mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.ANGULAR,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('http, querySignal');
+    });
+
+    it('should use querySignal for Axios mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.AXIOS,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('requestOptions, querySignal');
+    });
+
+    it('should use querySignal wrapped for Fetch mutator with hasSecondArg', () => {
+      const result = getQueryOptions({
+        isRequestOptions: true,
+        mutator: mockMutator,
+        isExactOptionalPropertyTypes: false,
+        hasSignal: true,
+        httpClient: OutputHttpClient.FETCH,
+        hasSignalParam: true,
+      });
+      expect(result).toBe('{ signal: querySignal, ...requestOptions }');
+    });
+  });
 });

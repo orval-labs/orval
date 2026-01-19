@@ -1,6 +1,6 @@
 {
   "name": "vue-query-basic",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "type": "module",
   "private": true,
   "scripts": {
@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@faker-js/faker": "^10.2.0",
-    "@tanstack/vue-query": "^5.92.5",
+    "@tanstack/vue-query": "^5.92.7",
     "axios": "^1.13.2",
-    "vue": "^3.5.22"
+    "vue": "^3.5.26"
   },
   "devDependencies": {
     "@testing-library/vue": "^8.1.0",

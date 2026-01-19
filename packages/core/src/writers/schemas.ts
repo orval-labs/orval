@@ -11,6 +11,116 @@ import { conventionName, upath } from '../utils';
 
 type CanonicalInfo = Pick<GeneratorImport, 'importPath' | 'name'>;
 
+/**
+ * Patterns to detect operation-derived types (params, bodies, responses).
+ * These types are auto-generated from OpenAPI operations, not from component schemas.
+ */
+const OPERATION_TYPE_PATTERNS = [
+  /Params$/i, // GetUserParams, ListUsersParams
+  /Body$/, // CreateUserBody, UpdatePostBody (case-sensitive to avoid "Antibody")
+  /Body(One|Two|Three|Four|Five|Item)$/, // BodyOne, BodyTwo (union body types)
+  /Parameter$/i, // PageParameter, LimitParameter
+  /Query$/i, // GetUserQuery
+  /Header$/i, // AuthHeader
+  /Response\d*$/i, // GetUser200Response, NotFoundResponse
+  /^[1-5]\d{2}$/, // 200, 201, 404 (valid HTTP status codes: 1xx-5xx)
+  /\d{3}(One|Two|Three|Four|Five|Item)$/i, // 200One, 200Two (union response types)
+  /^(get|post|put|patch|delete|head|options)[A-Z].*\d{3}$/, // operation types with status codes (get...200, post...404)
+];
+
+/**
+ * Check if a schema name matches operation type patterns.
+ */
+function isOperationType(schemaName: string): boolean {
+  return OPERATION_TYPE_PATTERNS.some((pattern) => pattern.test(schemaName));
+}
+
+/**
+ * Split schemas into regular and operation types.
+ */
+export function splitSchemasByType(schemas: GeneratorSchema[]): {
+  regularSchemas: GeneratorSchema[];
+  operationSchemas: GeneratorSchema[];
+} {
+  const regularSchemas: GeneratorSchema[] = [];
+  const operationSchemas: GeneratorSchema[] = [];
+
+  for (const schema of schemas) {
+    if (isOperationType(schema.name)) {
+      operationSchemas.push(schema);
+    } else {
+      regularSchemas.push(schema);
+    }
+  }
+
+  return { regularSchemas, operationSchemas };
+}
+
+/**
+ * Fix cross-directory imports when schemas reference other schemas in a different directory.
+ * Updates import paths to use correct relative paths between directories.
+ */
+function fixSchemaImports(
+  schemas: GeneratorSchema[],
+  targetSchemaNames: Set<string>,
+  fromPath: string,
+  toPath: string,
+  namingConvention: NamingConvention,
+): void {
+  const relativePath = upath.relativeSafe(fromPath, toPath);
+
+  for (const schema of schemas) {
+    schema.imports = schema.imports.map((imp) => {
+      if (targetSchemaNames.has(imp.name)) {
+        const fileName = conventionName(imp.name, namingConvention);
+        return {
+          ...imp,
+          importPath: upath.join(relativePath, fileName),
+        };
+      }
+      return imp;
+    });
+  }
+}
+
+/**
+ * Fix imports in operation schemas that reference regular schemas.
+ */
+export function fixCrossDirectoryImports(
+  operationSchemas: GeneratorSchema[],
+  regularSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  fixSchemaImports(
+    operationSchemas,
+    regularSchemaNames,
+    operationSchemaPath,
+    schemaPath,
+    namingConvention,
+  );
+}
+
+/**
+ * Fix imports in regular schemas that reference operation schemas.
+ */
+export function fixRegularSchemaImports(
+  regularSchemas: GeneratorSchema[],
+  operationSchemaNames: Set<string>,
+  schemaPath: string,
+  operationSchemaPath: string,
+  namingConvention: NamingConvention,
+): void {
+  fixSchemaImports(
+    regularSchemas,
+    operationSchemaNames,
+    schemaPath,
+    operationSchemaPath,
+    namingConvention,
+  );
+}
+
 function getSchemaKey(
   schemaPath: string,
   schemaName: string,

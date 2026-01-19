@@ -17,6 +17,7 @@ export default defineConfig({
       target: 'src/petstore.ts',
       schemas: 'src/model',
       client: 'angular-query',
+      httpClient: 'angular',
       mock: true,
     },
     input: {
@@ -33,12 +34,14 @@ The Angular Query mode will generate an implementation file with one injectable 
 For example, <a href="https://github.com/orval-labs/orval/blob/master/samples/angular-query/petstore.yaml" target="_blank">this Swagger specification</a> will generate the following:
 
 ```ts
+// Base operation function
 export const showPetById = (
   http: HttpClient,
   petId: string,
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal | null },
 ): Promise<Pet> => {
-  const request$ = http.get<Pet>(`/pets/${petId}`);
+  const url = `/pets/${petId}`;
+  const request$ = http.get<Pet>(url);
   if (options?.signal) {
     return lastValueFrom(
       request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
@@ -47,22 +50,26 @@ export const showPetById = (
   return lastValueFrom(request$);
 };
 
-export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+// Query key factory
+export const getShowPetByIdQueryKey = (petId?: string) => {
+  return [`/pets/${petId}`] as const;
+};
 
+// Query options factory
 export const getShowPetByIdQueryOptions = <
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = unknown,
 >(
+  http: HttpClient,
   petId: string,
   options?: {
     query?: Partial<
       CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
     >;
-    fetch?: { signal?: AbortSignal };
+    fetch?: RequestInit;
   },
 ) => {
   const { query: queryOptions, fetch: fetchOptions } = options ?? {};
-  const http = inject(HttpClient);
 
   const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
 
@@ -82,27 +89,204 @@ export const getShowPetByIdQueryOptions = <
   >;
 };
 
-export const injectShowPetById = <
+// Injectable query function
+export function injectShowPetById<
   TData = Awaited<ReturnType<typeof showPetById>>,
   TError = unknown,
 >(
-  petId: string,
-  options?: {
-    query?: Partial<
-      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
-    >;
-    fetch?: { signal?: AbortSignal };
-  },
-) => {
-  const queryOptions = getShowPetByIdQueryOptions(petId, options);
+  petId: string | (() => string),
+  options?:
+    | {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof showPetById>>,
+            TError,
+            TData
+          >
+        >;
+        fetch?: RequestInit;
+      }
+    | (() => {
+        query?: Partial<
+          CreateQueryOptions<
+            Awaited<ReturnType<typeof showPetById>>,
+            TError,
+            TData
+          >
+        >;
+        fetch?: RequestInit;
+      }),
+): CreateQueryResult<TData, TError> {
+  const http = inject(HttpClient);
 
-  const query = injectQuery(() => queryOptions) as CreateQueryResult<
-    TData,
-    TError
-  >;
+  const query = injectQuery(() => {
+    const _petId = typeof petId === 'function' ? petId() : petId;
+    const _options = typeof options === 'function' ? options() : options;
+    return getShowPetByIdQueryOptions(http, _petId, _options);
+  }) as CreateQueryResult<TData, TError>;
 
   return query;
+}
+```
+
+## Signal Reactivity
+
+The generated `inject*` functions support Angular signals out of the box. Parameters can be passed as **getter functions**, enabling reactive query updates when signals change:
+
+```ts
+@Component({...})
+export class PetDetailComponent {
+  // Signal-based parameter
+  petId = signal('1');
+
+  // Query automatically re-executes when petId() changes
+  pet = injectShowPetById(() => this.petId());
+
+  // Also works with options for dynamic enabled/disabled
+  conditionalPet = injectShowPetById(
+    () => this.petId(),
+    () => ({
+      query: { enabled: this.isEnabled() },
+    }),
+  );
+}
+```
+
+This pattern works for all parameters including query params and options.
+
+## Mutations
+
+For POST, PUT, PATCH, and DELETE operations, Orval generates mutation functions:
+
+```ts
+// Mutation options factory
+export const getCreatePetsMutationOptions = <TError = Error, TContext = unknown>(
+  http: HttpClient,
+  queryClient: QueryClient,
+  options?: {
+    mutation?: CreateMutationOptions<...>;
+    fetch?: RequestInit;
+  },
+) => { ... };
+
+// Injectable mutation function
+export const injectCreatePets = <TError = Error, TContext = unknown>(
+  options?: {...}
+): CreateMutationResult<...> => {
+  const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
+  // ...
+  return injectMutation(() => mutationOptions);
 };
+```
+
+Usage:
+
+```ts
+@Component({...})
+export class CreatePetComponent {
+  createPet = injectCreatePets();
+
+  onSubmit(pet: CreatePetsBody) {
+    this.createPet.mutate({ data: pet });
+  }
+}
+```
+
+## Query Invalidation
+
+When `useInvalidate: true` is set, Orval generates helper functions to invalidate queries:
+
+```ts
+export const invalidateShowPetById = async (
+  queryClient: QueryClient,
+  petId: string,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getShowPetByIdQueryKey(petId) },
+    options,
+  );
+  return queryClient;
+};
+```
+
+### Automatic Mutation Invalidation (Angular Query Only)
+
+The Angular Query client supports declarative, automatic query invalidation when mutations succeed via the `mutationInvalidates` config:
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+    // ...
+  },
+});
+```
+
+This generates an `onSuccess` handler in the mutation options:
+
+```ts
+const onSuccess = (data, variables, onMutateResult, context) => {
+  queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+  queryClient.invalidateQueries({
+    queryKey: getShowPetByIdQueryKey(variables.petId),
+  });
+  mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+};
+```
+
+**Param-based invalidation**: With `{ query: 'showPetById', params: ['petId'] }`, when `deletePet({ petId: '123' })` succeeds, only the query for pet `123` is invalidated—not all `showPetById` queries.
+
+**Usage**: To get automatic invalidation, use the generated `inject*` mutation functions:
+
+```ts
+@Component({
+  template: `
+    <ul>
+      @for (pet of pets.data(); track pet.id) {
+        <li>
+          {{ pet.name }}
+          <button (click)="onDelete(pet.id)">Delete</button>
+        </li>
+      }
+    </ul>
+  `,
+})
+export class PetListComponent {
+  // Query - will be automatically invalidated after mutations
+  pets = injectListPets();
+
+  // Mutation - automatic invalidation is built into the generated options
+  deletePet = injectDeletePet();
+
+  onDelete(petId: string) {
+    // After success, listPets and showPetById(petId) are automatically invalidated
+    this.deletePet.mutate({ petId });
+  }
+}
 ```
 
 ## How to Use Other Queries

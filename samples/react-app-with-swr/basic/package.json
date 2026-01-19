@@ -1,6 +1,6 @@
 {
   "name": "swr-basic",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "private": true,
   "type": "module",
   "dependencies": {
@@ -14,7 +14,7 @@
     "react-dom": "^18.3.1",
     "react-scripts": "^5.0.1",
     "swr": "^2.3.6",
-    "typescript": "~5.8.3"
+    "typescript": "~5.9.3"
   },
   "devDependencies": {
     "orval": "workspace:*"

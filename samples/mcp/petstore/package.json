@@ -1,6 +1,6 @@
 {
   "name": "mcp-petstore",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,6 +16,6 @@
     "@types/node": "^22.18.12",
     "orval": "workspace:*",
     "ts-node": "^10.9.2",
-    "typescript": "~5.8.3"
+    "typescript": "~5.9.3"
   }
 }
