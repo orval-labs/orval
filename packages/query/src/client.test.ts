@@ -1,7 +1,11 @@
 import { OutputHttpClient } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
-import { getHttpFunctionQueryProps, getQueryOptions } from './client';
+import {
+  getHttpFunctionQueryProps,
+  getQueryOptions,
+  getSignalDefinition,
+} from './client';
 
 describe('getHttpFunctionQueryProps', () => {
   describe('without mutator (native Angular)', () => {
@@ -336,5 +340,39 @@ describe('getQueryOptions', () => {
       });
       expect(result).toBe('{ signal: querySignal, ...requestOptions }');
     });
+  });
+});
+
+describe('getSignalDefinition', () => {
+  it('should return signal?: AbortSignal when no conflict', () => {
+    const result = getSignalDefinition({
+      hasSignal: true,
+      hasSignalParam: false,
+    });
+    expect(result).toBe('signal?: AbortSignal\n');
+  });
+
+  it('should return querySignal?: AbortSignal when API has signal param', () => {
+    const result = getSignalDefinition({
+      hasSignal: true,
+      hasSignalParam: true,
+    });
+    expect(result).toBe('querySignal?: AbortSignal\n');
+  });
+
+  it('should return empty string when hasSignal is false', () => {
+    const result = getSignalDefinition({
+      hasSignal: false,
+      hasSignalParam: false,
+    });
+    expect(result).toBe('');
+  });
+
+  it('should return empty string when hasSignal is false even with signal param', () => {
+    const result = getSignalDefinition({
+      hasSignal: false,
+      hasSignalParam: true,
+    });
+    expect(result).toBe('');
   });
 });

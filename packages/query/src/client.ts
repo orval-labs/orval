@@ -425,6 +425,20 @@ export const generateRequestOptionsArguments = ({
   return hasSignal ? 'signal?: AbortSignal\n' : '';
 };
 
+export const getSignalDefinition = ({
+  hasSignal,
+  hasSignalParam = false,
+}: {
+  hasSignal: boolean;
+  hasSignalParam?: boolean;
+}): string => {
+  if (!hasSignal) {
+    return '';
+  }
+  const signalVar = hasSignalParam ? 'querySignal' : 'signal';
+  return `${signalVar}?: AbortSignal\n`;
+};
+
 export const getQueryArgumentsRequestType = (
   httpClient: OutputHttpClient,
   mutator?: GeneratorMutator,
