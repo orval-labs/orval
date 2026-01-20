@@ -433,7 +433,7 @@ describe('fixRegularSchemaImports', () => {
       { name: 'Context' },
       {
         name: 'PythonExecutionWebRequestParams',
-        importPath: 'operations/pythonExecutionWebRequestParams',
+        importPath: './operations/pythonExecutionWebRequestParams',
       },
     ]);
   });
@@ -451,7 +451,7 @@ describe('fixRegularSchemaImports', () => {
     );
 
     expect(regularSchemas[0].imports[0].importPath).toBe(
-      'api/params/getUserParams',
+      './api/params/getUserParams',
     );
   });
 
@@ -468,7 +468,7 @@ describe('fixRegularSchemaImports', () => {
     );
 
     expect(regularSchemas[0].imports[0].importPath).toBe(
-      'operations/GetUserParams',
+      './operations/GetUserParams',
     );
   });
 
@@ -517,12 +517,12 @@ describe('fixRegularSchemaImports', () => {
       { name: 'Context' },
       {
         name: 'ExecutionRequestParams',
-        importPath: 'operations/executionRequestParams',
+        importPath: './operations/executionRequestParams',
       },
     ]);
     expect(regularSchemas[1].imports).toEqual([
       { name: 'User' },
-      { name: 'BatchRequestBody', importPath: 'operations/batchRequestBody' },
+      { name: 'BatchRequestBody', importPath: './operations/batchRequestBody' },
     ]);
   });
 });

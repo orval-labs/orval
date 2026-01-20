@@ -75,7 +75,7 @@ function fixSchemaImports(
         const fileName = conventionName(imp.name, namingConvention);
         return {
           ...imp,
-          importPath: upath.join(relativePath, fileName),
+          importPath: upath.joinSafe(relativePath, fileName),
         };
       }
       return imp;
