@@ -106,6 +106,8 @@ export const generateAngularHttpRequestFunction = (
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
   });
+  // Check if API has a param named "signal" to avoid conflict with AbortSignal
+  const hasSignalParam = props.some((prop) => prop.name === 'signal');
 
   const bodyForm = generateFormDataAndUrlEncodedFunction({
     formData,
@@ -147,7 +149,7 @@ export const generateAngularHttpRequestFunction = (
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${hasSignal ? ' signal?: AbortSignal\n' : ''}) => {
+    } ${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
       ${mutatorConfig},
@@ -270,6 +272,8 @@ export const generateAxiosRequestFunction = (
   const hasSignal = getHasSignal({
     overrideQuerySignal: override.query.signal,
   });
+  // Check if API has a param named "signal" to avoid conflict with AbortSignal
+  const hasSignalParam = _props.some((prop) => prop.name === 'signal');
 
   const isExactOptionalPropertyTypes =
     !!context.output.tsconfig?.compilerOptions?.exactOptionalPropertyTypes;
@@ -325,7 +329,7 @@ export const generateAxiosRequestFunction = (
           isRequestOptions && mutator.hasSecondArg
             ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
-        }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {${bodyForm}
+        }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
@@ -344,7 +348,7 @@ export const generateAxiosRequestFunction = (
           isRequestOptions && mutator.hasSecondArg
             ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<ReturnType<typeof ${mutator.name}>>,`
             : ''
-        }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {${bodyForm}
+        }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {${bodyForm}
         return ${operationName}(
           ${mutatorConfig},
           ${requestOptions});
@@ -359,7 +363,7 @@ export const generateAxiosRequestFunction = (
       isRequestOptions && mutator.hasSecondArg
         ? `options${context.output.optionsParamRequired ? '' : '?'}: SecondParameter<typeof ${mutator.name}>,`
         : ''
-    }${hasSignal ? 'signal?: AbortSignal\n' : ''}) => {
+    }${getSignalDefinition({ hasSignal, hasSignalParam })}) => {
       ${isVue ? vueUnRefParams(props) : ''}
       ${bodyForm}
       return ${mutator.name}<${response.definition.success || 'unknown'}>(
@@ -393,6 +397,7 @@ export const generateAxiosRequestFunction = (
   const optionsArgs = generateRequestOptionsArguments({
     isRequestOptions,
     hasSignal,
+    hasSignalParam,
   });
 
   const queryProps = toObjectString(props, 'implementation');
