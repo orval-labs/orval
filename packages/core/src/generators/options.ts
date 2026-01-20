@@ -44,6 +44,7 @@ interface GenerateAxiosOptions {
   headers?: GeneratorSchema;
   requestOptions?: object | boolean;
   hasSignal: boolean;
+  hasSignalParam?: boolean;
   isVue: boolean;
   isAngular: boolean;
   paramsSerializer?: GeneratorMutator;
@@ -57,12 +58,17 @@ export function generateAxiosOptions({
   headers,
   requestOptions,
   hasSignal,
+  hasSignalParam = false,
   isVue,
   isAngular,
   paramsSerializer,
   paramsSerializerOptions,
 }: GenerateAxiosOptions) {
   const isRequestOptions = requestOptions !== false;
+  // Use querySignal if API has a param named "signal" to avoid conflict
+  const signalVar = hasSignalParam ? 'querySignal' : 'signal';
+  const signalProp = hasSignalParam ? `signal: ${signalVar}` : 'signal';
+
   if (
     !queryParams &&
     !headers &&
@@ -74,8 +80,8 @@ export function generateAxiosOptions({
     }
     if (hasSignal) {
       return isExactOptionalPropertyTypes
-        ? '...(signal ? { signal } : {})'
-        : 'signal';
+        ? `...(${signalVar} ? { ${signalProp} } : {})`
+        : signalProp;
     }
     return '';
   }
@@ -93,8 +99,8 @@ export function generateAxiosOptions({
 
     if (hasSignal) {
       value += isExactOptionalPropertyTypes
-        ? '\n        ...(signal ? { signal } : {}),'
-        : '\n        signal,';
+        ? `\n        ...(${signalVar} ? { ${signalProp} } : {}),`
+        : `\n        ${signalProp},`;
     }
   }
 
@@ -159,6 +165,7 @@ interface GenerateOptionsOptions {
   isAngular?: boolean;
   isExactOptionalPropertyTypes: boolean;
   hasSignal: boolean;
+  hasSignalParam?: boolean;
   isVue?: boolean;
   paramsSerializer?: GeneratorMutator;
   paramsSerializerOptions?: ParamsSerializerOptions;
@@ -177,6 +184,7 @@ export function generateOptions({
   isAngular,
   isExactOptionalPropertyTypes,
   hasSignal,
+  hasSignalParam,
   isVue,
   paramsSerializer,
   paramsSerializerOptions,
@@ -192,6 +200,7 @@ export function generateOptions({
     requestOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    hasSignalParam,
     isVue: isVue ?? false,
     isAngular: isAngular ?? false,
     paramsSerializer,
@@ -271,6 +280,7 @@ interface GenerateMutatorConfigOptions {
   isFormData: boolean;
   isFormUrlEncoded: boolean;
   hasSignal: boolean;
+  hasSignalParam?: boolean;
   isExactOptionalPropertyTypes: boolean;
   isVue?: boolean;
 }
@@ -285,6 +295,7 @@ export function generateMutatorConfig({
   isFormData,
   isFormUrlEncoded,
   hasSignal,
+  hasSignalParam = false,
   isExactOptionalPropertyTypes,
   isVue,
 }: GenerateMutatorConfigOptions) {
@@ -306,12 +317,16 @@ export function generateMutatorConfig({
       ? ',\n      headers'
       : '';
 
+  // Use querySignal if API has a param named "signal" to avoid conflict
+  const signalVar = hasSignalParam ? 'querySignal' : 'signal';
+  const signalProp = hasSignalParam ? `signal: ${signalVar}` : 'signal';
+
   return `{url: \`${route}\`, method: '${verb.toUpperCase()}'${headerOptions}${bodyOptions}${queryParamsOptions}${
     hasSignal
       ? `, ${
           isExactOptionalPropertyTypes
-            ? '...(signal ? { signal }: {})'
-            : 'signal'
+            ? `...(${signalVar} ? { ${signalProp} }: {})`
+            : signalProp
         }`
       : ''
   }\n    }`;

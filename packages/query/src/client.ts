@@ -132,6 +132,7 @@ export const generateAngularHttpRequestFunction = (
       isFormData,
       isFormUrlEncoded,
       hasSignal,
+      hasSignalParam,
       isExactOptionalPropertyTypes,
       isVue: false,
     });
@@ -297,6 +298,7 @@ export const generateAxiosRequestFunction = (
       isFormData,
       isFormUrlEncoded,
       hasSignal,
+      hasSignalParam,
       isExactOptionalPropertyTypes,
       isVue,
     });
@@ -391,6 +393,7 @@ export const generateAxiosRequestFunction = (
     paramsSerializerOptions: override.paramsSerializerOptions,
     isExactOptionalPropertyTypes,
     hasSignal,
+    hasSignalParam,
     isVue: isVue,
   });
 
