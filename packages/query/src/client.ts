@@ -414,15 +414,17 @@ export const generateAxiosRequestFunction = (
 export const generateRequestOptionsArguments = ({
   isRequestOptions,
   hasSignal,
+  hasSignalParam = false,
 }: {
   isRequestOptions: boolean;
   hasSignal: boolean;
+  hasSignalParam?: boolean;
 }) => {
   if (isRequestOptions) {
     return 'options?: AxiosRequestConfig\n';
   }
 
-  return hasSignal ? 'signal?: AbortSignal\n' : '';
+  return getSignalDefinition({ hasSignal, hasSignalParam });
 };
 
 export const getSignalDefinition = ({

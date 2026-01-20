@@ -2,6 +2,7 @@ import { OutputHttpClient } from '@orval/core';
 import { describe, expect, it } from 'vitest';
 
 import {
+  generateRequestOptionsArguments,
   getHttpFunctionQueryProps,
   getQueryOptions,
   getSignalDefinition,
@@ -374,5 +375,25 @@ describe('getSignalDefinition', () => {
       hasSignalParam: true,
     });
     expect(result).toBe('');
+  });
+});
+
+describe('generateRequestOptionsArguments with hasSignalParam', () => {
+  it('should use querySignal when API has signal param', () => {
+    const result = generateRequestOptionsArguments({
+      isRequestOptions: false,
+      hasSignal: true,
+      hasSignalParam: true,
+    });
+    expect(result).toBe('querySignal?: AbortSignal\n');
+  });
+
+  it('should use signal when no conflict', () => {
+    const result = generateRequestOptionsArguments({
+      isRequestOptions: false,
+      hasSignal: true,
+      hasSignalParam: false,
+    });
+    expect(result).toBe('signal?: AbortSignal\n');
   });
 });
