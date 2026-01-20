@@ -224,9 +224,8 @@ export function combineSchemas({
 
   const isAllEnums = resolvedData.isEnum.every(Boolean);
 
-  // For oneOf, we should generate union types instead of const objects
-  // even when all subschemas are enums
-  if (isAllEnums && name && items.length > 1 && separator !== 'oneOf') {
+  // When all subschemas are enums, generate a combined const for runtime values.
+  if (isAllEnums && name && items.length > 1) {
     const newEnum = `export const ${pascal(name)} = ${getCombineEnumValue(resolvedData)}`;
 
     return {
