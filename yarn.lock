@@ -6849,6 +6849,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/query-core@npm:5.90.19":
+  version: 5.90.19
+  resolution: "@tanstack/query-core@npm:5.90.19"
+  checksum: 10c0/f6974064238d94025cd1fb8e9ba6a1ffb90d137e0d3fb6949252e81032ae446e948073ea999a4d11e1b6000df7eeec15cda92b76a264249f091f7543a192e958
+  languageName: node
+  linkType: hard
+
 "@tanstack/query-devtools@npm:5.91.1":
   version: 5.91.1
   resolution: "@tanstack/query-devtools@npm:5.91.1"
@@ -6875,6 +6882,17 @@ __metadata:
   peerDependencies:
     svelte: ">=3 <5"
   checksum: 10c0/9224b55bc20e3e4c00385bc281d5a8ab43b7d6461b51734ee06f51b9eff785393897cfa8ca9007d752df99fe9eae69640ac03b02cc15d0967cb6ec58b9371719
+  languageName: node
+  linkType: hard
+
+"@tanstack/svelte-query@npm:^6.0.17":
+  version: 6.0.17
+  resolution: "@tanstack/svelte-query@npm:6.0.17"
+  dependencies:
+    "@tanstack/query-core": "npm:5.90.19"
+  peerDependencies:
+    svelte: ^5.25.0
+  checksum: 10c0/d1c67a2f58d250d28ccf565c5a9d4d9baaa81dc9b377396f1638fbc4d285fd9731599d85ce0c5a9560eeb71c70df093faf8423994dda5b5599ea136eeb1a66c0
   languageName: node
   linkType: hard
 
@@ -22971,6 +22989,24 @@ __metadata:
     "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
     "@sveltestack/svelte-query": "npm:^1.6.0"
     "@tanstack/svelte-query": "npm:^4.41.0"
+    "@tsconfig/svelte": "npm:^5.0.6"
+    orval: "workspace:*"
+    svelte: "npm:^5.46.4"
+    svelte-check: "npm:^3.8.6"
+    tslib: "npm:^2.8.1"
+    typescript: "npm:~5.9.3"
+    vite: "npm:^7.2.2"
+  languageName: unknown
+  linkType: soft
+
+"svelte-query-v6-custom-fetch@workspace:samples/svelte-query/v6-custom-fetch":
+  version: 0.0.0-use.local
+  resolution: "svelte-query-v6-custom-fetch@workspace:samples/svelte-query/v6-custom-fetch"
+  dependencies:
+    "@faker-js/faker": "npm:^10.2.0"
+    "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
+    "@sveltestack/svelte-query": "npm:^1.6.0"
+    "@tanstack/svelte-query": "npm:^6.0.17"
     "@tsconfig/svelte": "npm:^5.0.6"
     orval: "workspace:*"
     svelte: "npm:^5.46.4"
