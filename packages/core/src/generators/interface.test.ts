@@ -491,4 +491,35 @@ export type ConstEnum = typeof ConstEnumValue;
       'export interface InlineObject {\n  field?: InlineObjectField;\n}\n',
     );
   });
+
+  // Comprehensive test: (a|b) & c & (d|e) & (f|g)
+  // Tests: nested oneOf, nested anyOf, sibling oneOf, different positions
+  it('allOf + union precedence: should wrap all unions in parens', () => {
+    const schema: OpenApiSchemaObject = {
+      allOf: [
+        {
+          oneOf: [
+            { type: 'object', properties: { a: { type: 'string' } } },
+            { type: 'object', properties: { b: { type: 'string' } } },
+          ],
+        },
+        { type: 'object', properties: { c: { type: 'string' } } },
+        {
+          anyOf: [
+            { type: 'object', properties: { d: { type: 'string' } } },
+            { type: 'object', properties: { e: { type: 'string' } } },
+          ],
+        },
+      ],
+      oneOf: [
+        { type: 'object', properties: { f: { type: 'string' } } },
+        { type: 'object', properties: { g: { type: 'string' } } },
+      ],
+    };
+
+    const result = generateInterface({ name: 'Test', context, schema });
+    expect(result[0].model).toBe(
+      'export interface Test ({\n  a?: string;\n} | {\n  b?: string;\n}) & {\n  c?: string;\n} & ({\n  d?: string;\n} | {\n  e?: string;\n}) & ({\n  f?: string;\n} | {\n  g?: string;\n})\n',
+    );
+  });
 });
