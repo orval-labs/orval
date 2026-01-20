@@ -60,7 +60,11 @@ function combineValues({
   }
 
   if (separator === 'allOf') {
-    let resolvedDataValue = resolvedData.values.join(` & `);
+    // Wrap values containing unions in parens to preserve precedence
+    // e.g. allOf: [A, oneOf: [B, C]] should be A & (B | C), not A & B | C
+    let resolvedDataValue = resolvedData.values
+      .map((v) => (v.includes(' | ') ? `(${v})` : v))
+      .join(` & `);
     if (resolvedData.originalSchema.length > 0 && resolvedValue) {
       const discriminatedPropertySchemas = resolvedData.originalSchema.filter(
         (s) =>
@@ -71,8 +75,12 @@ function combineValues({
         resolvedDataValue = `Omit<${resolvedDataValue}, '${discriminatedPropertySchemas.map((s) => s.discriminator?.propertyName).join("' | '")}'>`;
       }
     }
+    // Also wrap resolvedValue if it contains union (sibling pattern: allOf + oneOf at same level)
+    const resolvedValueStr = resolvedValue?.value.includes(' | ')
+      ? `(${resolvedValue.value})`
+      : resolvedValue?.value;
     const joined = `${resolvedDataValue}${
-      resolvedValue ? ` & ${resolvedValue.value}` : ''
+      resolvedValue ? ` & ${resolvedValueStr}` : ''
     }`;
 
     // Parent object may have set required properties that only exist in child
@@ -258,6 +266,17 @@ export function combineSchemas({
       ),
       name,
       context,
+    });
+  } else if (separator === 'allOf' && (schema.oneOf || schema.anyOf)) {
+    // Handle sibling pattern: allOf + oneOf/anyOf at same level
+    // e.g. { allOf: [A], oneOf: [B, C] } should produce A & (B | C)
+    const siblingCombiner = schema.oneOf ? 'oneOf' : 'anyOf';
+    resolvedValue = combineSchemas({
+      schema: { [siblingCombiner]: schema[siblingCombiner] },
+      name,
+      separator: siblingCombiner,
+      context,
+      nullable: '',
     });
   }
 
