@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateAxiosOptions } from './options';
+import { generateAxiosOptions, generateMutatorConfig } from './options';
+import { Verbs } from '../types';
 
 describe('generateAxiosOptions', () => {
   it('should return "...options"', () => {
@@ -206,5 +207,139 @@ describe('generateAxiosOptions', () => {
       paramsSerializerOptions: undefined,
     });
     expect(result).toBe("\n        responseType: 'text',\n    ...options,");
+  });
+
+  describe('hasSignalParam (API param named "signal")', () => {
+    const minimalResponse = {
+      imports: [],
+      definition: { success: 'Pet', errors: 'unknown' },
+      isBlob: false,
+      types: { success: [], errors: [] },
+      contentTypes: ['application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    it('should return "signal: querySignal" when hasSignalParam is true', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: undefined,
+        headers: undefined,
+        requestOptions: false,
+        hasSignal: true,
+        hasSignalParam: true,
+        isVue: false,
+        isAngular: false,
+      });
+      expect(result).toBe('signal: querySignal');
+    });
+
+    it('should return "signal" when hasSignalParam is false', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: false,
+        queryParams: undefined,
+        headers: undefined,
+        requestOptions: false,
+        hasSignal: true,
+        hasSignalParam: false,
+        isVue: false,
+        isAngular: false,
+      });
+      expect(result).toBe('signal');
+    });
+
+    it('should use querySignal in spread form with exactOptionalPropertyTypes', () => {
+      const result = generateAxiosOptions({
+        response: minimalResponse,
+        isExactOptionalPropertyTypes: true,
+        queryParams: undefined,
+        headers: undefined,
+        requestOptions: false,
+        hasSignal: true,
+        hasSignalParam: true,
+        isVue: false,
+        isAngular: false,
+      });
+      expect(result).toBe('...(querySignal ? { signal: querySignal } : {})');
+    });
+  });
+});
+
+describe('generateMutatorConfig', () => {
+  describe('hasSignalParam (API param named "signal")', () => {
+    const minimalBody = {
+      originalSchema: {},
+      definition: '',
+      implementation: 'data',
+      default: false,
+      required: false,
+      formData: undefined,
+      formUrlEncoded: undefined,
+      contentType: 'application/json',
+    };
+
+    const minimalResponse = {
+      imports: [],
+      definition: { success: 'Pet', errors: 'unknown' },
+      isBlob: false,
+      types: { success: [], errors: [] },
+      contentTypes: ['application/json'],
+      schemas: [],
+      originalSchema: {},
+    };
+
+    it('should output "signal: querySignal" when hasSignalParam is true', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: minimalBody,
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: true,
+        hasSignalParam: true,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).toContain('signal: querySignal');
+    });
+
+    it('should output "signal" when hasSignalParam is false', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: minimalBody,
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: true,
+        hasSignalParam: false,
+        isExactOptionalPropertyTypes: false,
+      });
+      expect(result).toContain(', signal');
+      expect(result).not.toContain('querySignal');
+    });
+
+    it('should use querySignal in spread form with exactOptionalPropertyTypes', () => {
+      const result = generateMutatorConfig({
+        route: '/api/test',
+        body: minimalBody,
+        headers: undefined,
+        queryParams: undefined,
+        response: minimalResponse,
+        verb: Verbs.POST,
+        isFormData: false,
+        isFormUrlEncoded: false,
+        hasSignal: true,
+        hasSignalParam: true,
+        isExactOptionalPropertyTypes: true,
+      });
+      expect(result).toContain('...(querySignal ? { signal: querySignal }');
+    });
   });
 });
