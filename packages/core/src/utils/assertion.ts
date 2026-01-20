@@ -12,7 +12,7 @@ import { extname } from './path';
  * @param property
  */
 export function isReference(obj: object): obj is OpenApiReferenceObject {
-  return Object.hasOwn(obj, '$ref');
+  return !isNull(obj) && Object.hasOwn(obj, '$ref');
 }
 
 export function isDirectory(path: string) {
