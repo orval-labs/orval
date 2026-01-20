@@ -13,6 +13,39 @@ export default defineConfig({
       target: '../specifications/petstore.yaml',
     },
   },
+  invalidates: {
+    output: {
+      target: '../generated/react-query/invalidates/endpoints.ts',
+      schemas: '../generated/react-query/invalidates/model',
+      client: 'react-query',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+            {
+              onMutations: ['uploadFile'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
   zodSchemaResponse: {
     output: {
       target: '../generated/react-query/zod-schema-response/endpoints.ts',

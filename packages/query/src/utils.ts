@@ -138,6 +138,9 @@ export const isSolid = (client: OutputClient | OutputClientFunc) =>
 export const isAngular = (client: OutputClient | OutputClientFunc) =>
   OutputClient.ANGULAR_QUERY === client;
 
+export const isReact = (client: OutputClient | OutputClientFunc) =>
+  OutputClient.REACT_QUERY === client;
+
 export const getQueryTypeForFramework = (type: string): string => {
   // Angular Query and Svelte Query don't have suspense variants, map them to regular queries
   switch (type) {

@@ -1303,7 +1303,7 @@ export const invalidateShowPetById = async (
 
 Type: `Array<{ onMutations: string[], invalidates: (string | { query: string, params: string[] })[] }>`.
 
-**Angular Query only.** Declaratively invalidate queries when mutations succeed. Requires `useInvalidate: true`.
+**Angular Query and React Query only.** Declaratively invalidate queries when mutations succeed.
 
 ```js
 import { defineConfig } from 'orval';
@@ -1314,7 +1314,6 @@ export default defineConfig({
       client: 'angular-query',
       override: {
         query: {
-          useInvalidate: true,
           mutationInvalidates: [
             {
               onMutations: ['createPets'],
