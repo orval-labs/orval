@@ -258,4 +258,46 @@ describe('generateSchemasDefinition', () => {
       order.indexOf('AaaCombined'),
     );
   });
+
+  it('should generate combined enum const for oneOf enum refs', () => {
+    const schemas: OpenApiSchemasObject = {
+      Enum1: {
+        type: 'string',
+        enum: ['value1', 'value2'],
+      },
+      Enum2: {
+        type: 'string',
+        enum: ['valueA', 'valueB'],
+      },
+      CombinedEnum: {
+        oneOf: [
+          { $ref: '#/components/schemas/Enum1' },
+          { $ref: '#/components/schemas/Enum2' },
+        ],
+      },
+    };
+
+    const specContext: ContextSpec = {
+      ...context,
+      output: {
+        override: { enumGenerationType: 'const' },
+      },
+      spec: {
+        components: { schemas },
+      },
+    };
+
+    const result = generateSchemasDefinition(schemas, specContext, '');
+    const combinedSchema = result.find(
+      (schema) => schema.name === 'CombinedEnum',
+    );
+
+    expect(combinedSchema).toBeDefined();
+    expect(combinedSchema?.model).toContain('export const CombinedEnum');
+    expect(combinedSchema?.model).toContain('...Enum1');
+    expect(combinedSchema?.model).toContain('...Enum2');
+    expect(combinedSchema?.model).toContain(
+      'export type CombinedEnum = typeof CombinedEnum[keyof typeof CombinedEnum]',
+    );
+  });
 });
