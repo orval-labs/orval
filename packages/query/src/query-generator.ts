@@ -355,6 +355,7 @@ const generateQueryImplementation = ({
     isRequestOptions,
     type,
     hasSvelteQueryV4,
+    hasSvelteQueryV6,
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
@@ -370,6 +371,7 @@ const generateQueryImplementation = ({
     isRequestOptions,
     type,
     hasSvelteQueryV4,
+    hasSvelteQueryV6,
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
@@ -385,6 +387,7 @@ const generateQueryImplementation = ({
     isRequestOptions,
     type,
     hasSvelteQueryV4,
+    hasSvelteQueryV6,
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
@@ -402,6 +405,7 @@ const generateQueryImplementation = ({
     isRequestOptions,
     type,
     hasSvelteQueryV4,
+    hasSvelteQueryV6,
     hasQueryV5,
     hasQueryV5WithInfiniteQueryOptionsError,
     queryParams,
@@ -616,7 +620,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${
       : isAngular(outputClient)
         ? angularQueryPropsDefinitions
         : queryProps
-  } ${hasSvelteQueryV6 ? queryArguments.replace(':', ': () => (') + ')' : queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
+  } ${queryArguments} ${optionalQueryClientArgument} \n ): ${returnType} {
 
   ${
     hasSvelteQueryV6
