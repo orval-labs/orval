@@ -308,15 +308,18 @@ export type CreatePetsMutationError = Error;
 /**
  * @summary Create a pet
  */
-export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBodyItem[] },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): CreateMutationResult<
+export const createCreatePets = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBodyItem[] },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+  queryClient?: QueryClient,
+): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBodyItem[] },

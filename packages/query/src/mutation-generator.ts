@@ -24,7 +24,6 @@ import {
 } from './query-options';
 import { generateMutatorReturnType } from './return-types';
 import { isAngular, isReact, isSolid, isSvelte } from './utils';
-import { isSvelteQueryV6 } from './dependencies';
 
 type NormalizedTarget = {
   query: string;
@@ -298,7 +297,8 @@ ${uniqueInvalidates.map((t) => generateInvalidateCall(t)).join('\n')}
   );
   const optionalQueryClientArgument = hasSvelteQueryV6
     ? ', queryClient?: () => QueryClient'
-    : hasQueryV5 && !isAngular(outputClient)
+    : (hasQueryV5 || (isSvelte(outputClient) && hasInvalidation)) &&
+        !isAngular(outputClient)
       ? ', queryClient?: QueryClient'
       : '';
 
@@ -349,7 +349,7 @@ ${
         hasSvelteQueryV6
           ? `() => ({ ...${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''} })`
           : isSvelte(outputClient)
-            ? `${mutationImplementation}`
+            ? mutationImplementation
             : `${mutationImplementation}${optionalQueryClientArgument ? `, queryClient` : ''}`
       });`
 }
