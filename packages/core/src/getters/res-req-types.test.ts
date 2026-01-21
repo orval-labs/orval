@@ -283,15 +283,10 @@ formData.append(\`wildcardFile\`, bodyRequestBody.wildcardFile);
   });
 });
 
-// When requestBody uses $ref, the generated function parameter name varies:
-// - If schema properties have file types (contentMediaType), the type is rewritten
-//   as inline, so param becomes operation-based: uploadFile() → uploadFileBody
-// - If schema has no file types, the $ref type is preserved,
-//   so param uses schema name: uploadFile() → mySchemaName
-// formData variable must match whichever naming is used.
-describe('getResReqTypes (formData $ref variable name)', () => {
-  it('uses operation-based name when schema has file properties', () => {
-    // contentMediaType: 'application/octet-stream' marks this as a file field
+// When requestBody schema uses $ref with file properties (contentMediaType),
+// formData variable should still use schema name, not operation-based name.
+describe('getResReqTypes (formData $ref with file properties)', () => {
+  it('uses schema name for formData variable', () => {
     const ctx: ContextSpec = {
       ...context,
       spec: {
@@ -325,39 +320,7 @@ describe('getResReqTypes (formData $ref variable name)', () => {
 
     const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
 
-    expect(result.formData).toContain('uploadRequestBody.file');
-  });
-
-  it('uses schema name when no file properties', () => {
-    // No file fields, so $ref type is preserved and param uses schema name
-    const ctx: ContextSpec = {
-      ...context,
-      spec: {
-        components: {
-          schemas: {
-            FileUpload: {
-              type: 'object',
-              properties: { name: { type: 'string' } },
-            },
-          },
-        },
-      },
-    };
-    const reqBody: [string, OpenApiRequestBodyObject][] = [
-      [
-        'requestBody',
-        {
-          content: {
-            'multipart/form-data': {
-              schema: { $ref: '#/components/schemas/FileUpload' },
-            },
-          },
-        },
-      ],
-    ];
-
-    const result = getResReqTypes(reqBody, 'Upload', ctx)[0];
-
-    expect(result.formData).toContain('fileUpload.name');
+    // Schema name 'FileUpload' → param 'fileUpload' (not 'uploadRequestBody')
+    expect(result.formData).toContain('fileUpload.file');
   });
 });

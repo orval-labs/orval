@@ -190,11 +190,23 @@ export function getResReqTypes(
               propName = propName + pascal(getNumberWord(index + 1));
             }
 
+            // When schema is a $ref, use schema name for consistent param naming
+            let effectivePropName = propName;
+            if (mediaType.schema && isReference(mediaType.schema)) {
+              const { imports } = resolveRef<OpenApiSchemaObject>(
+                mediaType.schema,
+                context,
+              );
+              if (imports[0]?.name) {
+                effectivePropName = imports[0].name;
+              }
+            }
+
             const isFormData = formDataContentTypes.has(contentType);
 
             const resolvedValue = getResReqContentTypes({
               mediaType,
-              propName,
+              propName: effectivePropName,
               context,
               isFormData,
               contentType,
@@ -222,7 +234,7 @@ export function getResReqTypes(
             const isFormUrlEncoded =
               formUrlEncodedContentTypes.has(contentType);
 
-            if ((!isFormData && !isFormUrlEncoded) || !propName) {
+            if ((!isFormData && !isFormUrlEncoded) || !effectivePropName) {
               return {
                 ...resolvedValue,
                 imports: resolvedValue.imports,
@@ -234,25 +246,25 @@ export function getResReqTypes(
 
             const formData = isFormData
               ? getSchemaFormDataAndUrlEncoded({
-                  name: propName,
+                  name: effectivePropName,
                   schemaObject: mediaType.schema!,
                   context,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
-                  isRef: !resolvedValue.isRef,
+                  isRef: true,
                   encoding: mediaType.encoding,
                 })
               : undefined;
 
             const formUrlEncoded = isFormUrlEncoded
               ? getSchemaFormDataAndUrlEncoded({
-                  name: propName,
+                  name: effectivePropName,
                   schemaObject: mediaType.schema!,
                   context,
                   isUrlEncoded: true,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
-                  isRef: !resolvedValue.isRef,
+                  isRef: true,
                   encoding: mediaType.encoding,
                 })
               : undefined;
