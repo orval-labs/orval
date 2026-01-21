@@ -163,6 +163,7 @@ export const generateQueryArguments = ({
   isRequestOptions,
   type,
   hasSvelteQueryV4,
+  hasSvelteQueryV6,
   hasQueryV5,
   hasQueryV5WithInfiniteQueryOptionsError,
   queryParams,
@@ -179,6 +180,7 @@ export const generateQueryArguments = ({
   isRequestOptions: boolean;
   type?: QueryType;
   hasSvelteQueryV4: boolean;
+  hasSvelteQueryV6: boolean;
   hasQueryV5: boolean;
   hasQueryV5WithInfiniteQueryOptionsError: boolean;
   queryParams?: GetterQueryParam;
@@ -229,5 +231,5 @@ export const generateQueryArguments = ({
     return `options${isQueryRequired ? '' : '?'}: ${optionsType} | (() => ${optionsType})\n`;
   }
 
-  return `options${isQueryRequired ? '' : '?'}: ${optionsType}\n`;
+  return `options${isQueryRequired ? '' : '?'}: ${hasSvelteQueryV6 && !forQueryOptions ? '() => ' : ''}${optionsType}\n`;
 };

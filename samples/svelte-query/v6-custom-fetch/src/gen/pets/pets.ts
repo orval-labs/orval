@@ -4,7 +4,11 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { createMutation, createQuery } from '@tanstack/svelte-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/svelte-query';
 import type {
   CreateMutationOptions,
   CreateMutationResult,
@@ -12,6 +16,7 @@ import type {
   CreateQueryResult,
   DataTag,
   MutationFunction,
+  MutationFunctionContext,
   QueryClient,
   QueryFunction,
   QueryKey,
@@ -246,15 +251,18 @@ export const createPets = async (
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
->(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBodyItem[] },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): CreateMutationOptions<
+>(
+  queryClient: QueryClient,
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBodyItem[] },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBodyItem[] },
@@ -278,7 +286,17 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, requestOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof createPets>>,
+    variables: { data: CreatePetsBodyItem[] },
+    onMutateResult: TContext,
+    context: MutationFunctionContext,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    mutationOptions?.onSuccess?.(data, variables, onMutateResult, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -291,7 +309,7 @@ export type CreatePetsMutationError = Error;
  * @summary Create a pet
  */
 export const createCreatePets = <TError = Error, TContext = unknown>(
-  options?: {
+  options?: () => {
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof createPets>>,
       TError,
@@ -300,15 +318,19 @@ export const createCreatePets = <TError = Error, TContext = unknown>(
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-  queryClient?: QueryClient,
+  queryClient?: () => QueryClient,
 ): CreateMutationResult<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBodyItem[] },
   TContext
 > => {
+  const backupQueryClient = useQueryClient();
   return createMutation(() => ({
-    ...getCreatePetsMutationOptions(options),
+    ...getCreatePetsMutationOptions(
+      queryClient?.() ?? backupQueryClient,
+      options?.(),
+    ),
     queryClient,
   }));
 };
@@ -400,7 +422,7 @@ export type UpdatePetsMutationError = Error;
  * @summary Update a pet
  */
 export const createUpdatePets = <TError = Error, TContext = unknown>(
-  options?: {
+  options?: () => {
     mutation?: CreateMutationOptions<
       Awaited<ReturnType<typeof updatePets>>,
       TError,
@@ -409,7 +431,7 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(
     >;
     request?: SecondParameter<typeof customFetch>;
   },
-  queryClient?: QueryClient,
+  queryClient?: () => QueryClient,
 ): CreateMutationResult<
   Awaited<ReturnType<typeof updatePets>>,
   TError,
@@ -417,7 +439,7 @@ export const createUpdatePets = <TError = Error, TContext = unknown>(
   TContext
 > => {
   return createMutation(() => ({
-    ...getUpdatePetsMutationOptions(options),
+    ...getUpdatePetsMutationOptions(options?.()),
     queryClient,
   }));
 };

@@ -167,4 +167,37 @@ export default defineConfig({
       },
     },
   },
+  invalidates: {
+    output: {
+      target: '../generated/svelte-query/invalidates/endpoints.ts',
+      schemas: '../generated/svelte-query/invalidates/model',
+      client: 'svelte-query',
+      mock: true,
+      headers: true,
+      override: {
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet', 'patchPet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+            {
+              onMutations: ['uploadFile'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
+      },
+    },
+    input: {
+      target: '../specifications/petstore.yaml',
+    },
+  },
 });

@@ -4,13 +4,18 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { createMutation, createQuery } from '@tanstack/svelte-query';
+import {
+  createMutation,
+  createQuery,
+  useQueryClient,
+} from '@tanstack/svelte-query';
 import type {
   CreateMutationOptions,
   CreateMutationResult,
   CreateQueryOptions,
   CreateQueryResult,
   MutationFunction,
+  QueryClient,
   QueryFunction,
   QueryKey,
 } from '@tanstack/svelte-query';
@@ -247,15 +252,18 @@ export const createPets = async (
 export const getCreatePetsMutationOptions = <
   TError = Error,
   TContext = unknown,
->(options?: {
-  mutation?: CreateMutationOptions<
-    Awaited<ReturnType<typeof createPets>>,
-    TError,
-    { data: CreatePetsBodyItem[] },
-    TContext
-  >;
-  request?: SecondParameter<typeof customFetch>;
-}): CreateMutationOptions<
+>(
+  queryClient: QueryClient,
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBodyItem[] },
+      TContext
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): CreateMutationOptions<
   Awaited<ReturnType<typeof createPets>>,
   TError,
   { data: CreatePetsBodyItem[] },
@@ -279,7 +287,16 @@ export const getCreatePetsMutationOptions = <
     return createPets(data, requestOptions);
   };
 
-  return { mutationFn, ...mutationOptions };
+  const onSuccess = (
+    data: Awaited<ReturnType<typeof createPets>>,
+    variables: { data: CreatePetsBodyItem[] },
+    context: TContext | undefined,
+  ) => {
+    queryClient.invalidateQueries({ queryKey: getListPetsQueryKey() });
+    mutationOptions?.onSuccess?.(data, variables, context);
+  };
+
+  return { mutationFn, onSuccess, ...mutationOptions };
 };
 
 export type CreatePetsMutationResult = NonNullable<
@@ -305,7 +322,10 @@ export const createCreatePets = <TError = Error, TContext = unknown>(options?: {
   { data: CreatePetsBodyItem[] },
   TContext
 > => {
-  return createMutation(getCreatePetsMutationOptions(options));
+  const backupQueryClient = useQueryClient();
+  return createMutation(
+    getCreatePetsMutationOptions(queryClient ?? backupQueryClient, options),
+  );
 };
 /**
  * @summary Update a pet

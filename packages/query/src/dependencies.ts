@@ -40,6 +40,7 @@ const SVELTE_QUERY_DEPENDENCIES_V3: GeneratorDependency[] = [
       { name: 'useQuery', values: true },
       { name: 'useInfiniteQuery', values: true },
       { name: 'useMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'UseQueryOptions' },
       {
         name: 'UseInfiniteQueryOptions',
@@ -62,10 +63,12 @@ const SVELTE_QUERY_DEPENDENCIES: GeneratorDependency[] = [
       { name: 'createQuery', values: true },
       { name: 'createInfiniteQuery', values: true },
       { name: 'createMutation', values: true },
+      { name: 'useQueryClient', values: true },
       { name: 'CreateQueryOptions' },
       {
         name: 'CreateInfiniteQueryOptions',
       },
+      { name: 'MutationFunctionContext' },
       { name: 'CreateMutationOptions' },
       { name: 'QueryFunction' },
       { name: 'MutationFunction' },

@@ -15,6 +15,14 @@ export default defineConfig({
           path: './src/custom-fetch.ts',
           name: 'customFetch',
         },
+        query: {
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+          ],
+        },
       },
     },
     input: {
