@@ -6578,19 +6578,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@sveltejs/vite-plugin-svelte-inspector@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "@sveltejs/vite-plugin-svelte-inspector@npm:2.1.0"
-  dependencies:
-    debug: "npm:^4.3.4"
-  peerDependencies:
-    "@sveltejs/vite-plugin-svelte": ^3.0.0
-    svelte: ^4.0.0 || ^5.0.0-next.0
-    vite: ^5.0.0
-  checksum: 10c0/da2d161691958bcb83d72634bd7d259fa07553af3cf71c2b9959feeccd6a9c58b08495cc5a936f6f0f5deb21aec4ad8b54ef8d9530510d2826548b4d19275b08
-  languageName: node
-  linkType: hard
-
 "@sveltejs/vite-plugin-svelte-inspector@npm:^4.0.1":
   version: 4.0.1
   resolution: "@sveltejs/vite-plugin-svelte-inspector@npm:4.0.1"
@@ -6619,24 +6606,6 @@ __metadata:
     svelte: ^3.54.0 || ^4.0.0 || ^5.0.0-next.0
     vite: ^4.0.0
   checksum: 10c0/613a4ad18a946ddee7b82cae0d892040a9459a5ac5137cbaa91a4b7b67d504409b5dbc02d268136a740b09e42531b7516f80a0f687ca4fe2b0d99e6e483c5d06
-  languageName: node
-  linkType: hard
-
-"@sveltejs/vite-plugin-svelte@npm:^3.1.2":
-  version: 3.1.2
-  resolution: "@sveltejs/vite-plugin-svelte@npm:3.1.2"
-  dependencies:
-    "@sveltejs/vite-plugin-svelte-inspector": "npm:^2.1.0"
-    debug: "npm:^4.3.4"
-    deepmerge: "npm:^4.3.1"
-    kleur: "npm:^4.1.5"
-    magic-string: "npm:^0.30.10"
-    svelte-hmr: "npm:^0.16.0"
-    vitefu: "npm:^0.2.5"
-  peerDependencies:
-    svelte: ^4.0.0 || ^5.0.0-next.0
-    vite: ^5.0.0
-  checksum: 10c0/b15a82fc41ddd7983d7e130bedfc1c292c8a183677b78c5edd683d2f2df6cd2b1316e19958ab8c888031ca5941058f4475a16950ff1428ac7989c0b679987b36
   languageName: node
   linkType: hard
 
@@ -17044,7 +17013,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"magic-string@npm:^0.30.0, magic-string@npm:^0.30.10, magic-string@npm:^0.30.11, magic-string@npm:^0.30.3, magic-string@npm:^0.30.5":
+"magic-string@npm:^0.30.0, magic-string@npm:^0.30.11, magic-string@npm:^0.30.3, magic-string@npm:^0.30.5":
   version: 0.30.19
   resolution: "magic-string@npm:0.30.19"
   dependencies:
@@ -22930,15 +22899,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"svelte-hmr@npm:^0.16.0":
-  version: 0.16.0
-  resolution: "svelte-hmr@npm:0.16.0"
-  peerDependencies:
-    svelte: ^3.19.0 || ^4.0.0
-  checksum: 10c0/242c0775361b5e8e0c19550ce0f8d27f738c31f45684b8a8beb88e2cce931078ffab0a6793002b4879c2637fa698d559020e78cab40756be11341602284ed01e
-  languageName: node
-  linkType: hard
-
 "svelte-preprocess@npm:^5.1.3":
   version: 5.1.4
   resolution: "svelte-preprocess@npm:5.1.4"
@@ -23033,7 +22993,7 @@ __metadata:
   resolution: "svelte-query-v6-custom-fetch@workspace:samples/svelte-query/v6-custom-fetch"
   dependencies:
     "@faker-js/faker": "npm:^10.2.0"
-    "@sveltejs/vite-plugin-svelte": "npm:^3.1.2"
+    "@sveltejs/vite-plugin-svelte": "npm:^5.1.1"
     "@sveltestack/svelte-query": "npm:^1.6.0"
     "@tanstack/svelte-query": "npm:^6.0.17"
     "@tsconfig/svelte": "npm:^5.0.6"
@@ -24723,7 +24683,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"vitefu@npm:^0.2.4, vitefu@npm:^0.2.5":
+"vitefu@npm:^0.2.4":
   version: 0.2.5
   resolution: "vitefu@npm:0.2.5"
   peerDependencies:
