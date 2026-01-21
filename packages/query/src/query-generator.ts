@@ -911,8 +911,11 @@ ${
   queryKeyMutator
     ? ''
     : uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
-        // Path params remain required for valid URL generation
-        // Other params become optional to enable flexible cache invalidation
+        const makeOptionalParam = (impl: string) => {
+          if (impl.includes('=')) return impl;
+          return impl.replace(/^(\w+):\s*/, '$1?: ');
+        };
+
         const queryKeyProps = toObjectString(
           props
             .filter((prop) => prop.type !== GetterPropType.HEADER)
@@ -922,7 +925,7 @@ ${
                 prop.type === GetterPropType.PARAM ||
                 prop.type === GetterPropType.NAMED_PATH_PARAMS
                   ? prop.implementation
-                  : prop.implementation.replace(/^(\w+):\s*/, '$1?: '),
+                  : makeOptionalParam(prop.implementation),
             })),
           'implementation',
         );
