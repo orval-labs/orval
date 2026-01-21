@@ -239,6 +239,7 @@ export function getResReqTypes(
                   context,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
+                  isRef: !resolvedValue.isRef,
                   encoding: mediaType.encoding,
                 })
               : undefined;
@@ -251,6 +252,7 @@ export function getResReqTypes(
                   isUrlEncoded: true,
                   isRequestBodyOptional:
                     'required' in res && res.required === false,
+                  isRef: !resolvedValue.isRef,
                   encoding: mediaType.encoding,
                 })
               : undefined;
