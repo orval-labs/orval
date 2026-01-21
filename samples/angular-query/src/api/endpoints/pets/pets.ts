@@ -421,7 +421,7 @@ export const showPetById = (
   return lastValueFrom(request$);
 };
 
-export const getShowPetByIdQueryKey = (petId?: string, version: number = 1) => {
+export const getShowPetByIdQueryKey = (petId: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}`] as const;
 };
 
@@ -861,7 +861,7 @@ export const showPetText = (
   return lastValueFrom(request$);
 };
 
-export const getShowPetTextQueryKey = (petId?: string, version: number = 1) => {
+export const getShowPetTextQueryKey = (petId: string, version: number = 1) => {
   return [`/v${version}/pets/${petId}/text`] as const;
 };
 
@@ -1097,10 +1097,7 @@ export const downloadFile = (
   return lastValueFrom(request$);
 };
 
-export const getDownloadFileQueryKey = (
-  petId?: number,
-  version: number = 1,
-) => {
+export const getDownloadFileQueryKey = (petId: number, version: number = 1) => {
   return [`/v${version}/pet/${petId}/downloadImage`] as const;
 };
 

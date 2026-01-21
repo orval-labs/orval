@@ -467,7 +467,7 @@ export const showPetById = async (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId?: MaybeRef<string>) => {
+export const getShowPetByIdQueryKey = (petId: MaybeRef<string>) => {
   return ['http:', 'localhost:8000', 'pets', petId] as const;
 };
 

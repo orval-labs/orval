@@ -517,7 +517,7 @@ export const showPetById = async (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId?: string) => {
+export const getShowPetByIdQueryKey = (petId: string) => {
   return [`http://localhost:8000/pets/${petId}`] as const;
 };
 

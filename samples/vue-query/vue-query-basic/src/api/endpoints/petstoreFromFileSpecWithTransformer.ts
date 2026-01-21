@@ -349,14 +349,14 @@ export const showPetById = (
 };
 
 export const getShowPetByIdInfiniteQueryKey = (
-  petId?: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['infinite', 'v', version, 'pets', petId] as const;
 };
 
 export const getShowPetByIdQueryKey = (
-  petId?: MaybeRef<string | undefined | null>,
+  petId: MaybeRef<string | undefined | null>,
   version: MaybeRef<number | undefined | null> = 1,
 ) => {
   return ['v', version, 'pets', petId] as const;

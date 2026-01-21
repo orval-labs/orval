@@ -444,7 +444,7 @@ export const showPetById = async (
   });
 };
 
-export const getShowPetByIdQueryKey = (petId?: string) => {
+export const getShowPetByIdQueryKey = (petId: string) => {
   return [`/pets/${petId}`] as const;
 };
 

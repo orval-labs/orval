@@ -271,7 +271,7 @@ export const showPetById = (petId: string, signal?: AbortSignal) => {
   return customInstance<Pet>({ url: `/pets/${petId}`, method: 'GET', signal });
 };
 
-export const getShowPetByIdQueryKey = (petId?: string) => {
+export const getShowPetByIdQueryKey = (petId: string) => {
   return [`/pets/${petId}`] as const;
 };
 
