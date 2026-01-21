@@ -900,30 +900,6 @@ export const generateQueryHook = async (
         : []),
     ];
 
-    // Convert "param: Type" to "param?: Type" for queryKey functions
-    // to enable cache invalidation without type assertion
-    const makeParamsOptional = (params: string) => {
-      if (!params) return '';
-      // Handle parameters with default values: "param?: Type = value" -> "param: Type = value" (remove optional marker)
-      // Handle regular parameters: "param: Type" -> "param?: Type"
-      return params.replaceAll(
-        /(\w+)(\?)?:\s*([^=,}]*?)\s*(=\s*[^,}]*)?([,}]|$)/g,
-        (
-          _match: string,
-          paramName: string,
-          _optionalMarker: string | undefined,
-          type: string,
-          defaultValue: string | undefined,
-          suffix: string,
-        ) => {
-          if (defaultValue) {
-            return `${paramName}: ${type.trim()}${defaultValue}${suffix}`;
-          }
-          return `${paramName}?: ${type.trim()}${suffix}`;
-        },
-      );
-    };
-
     const uniqueQueryOptionsByKeys = queries.filter(
       (obj, index, self) =>
         index ===
@@ -935,11 +911,23 @@ ${
   queryKeyMutator
     ? ''
     : uniqueQueryOptionsByKeys.reduce((acc, queryOption) => {
-        const queryKeyProps = makeParamsOptional(
-          toObjectString(
-            props.filter((prop) => prop.type !== GetterPropType.HEADER),
-            'implementation',
-          ),
+        const makeOptionalParam = (impl: string) => {
+          if (impl.includes('=')) return impl;
+          return impl.replace(/^(\w+):\s*/, '$1?: ');
+        };
+
+        const queryKeyProps = toObjectString(
+          props
+            .filter((prop) => prop.type !== GetterPropType.HEADER)
+            .map((prop) => ({
+              ...prop,
+              implementation:
+                prop.type === GetterPropType.PARAM ||
+                prop.type === GetterPropType.NAMED_PATH_PARAMS
+                  ? prop.implementation
+                  : makeOptionalParam(prop.implementation),
+            })),
+          'implementation',
         );
 
         const routeString =
