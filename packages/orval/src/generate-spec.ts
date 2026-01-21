@@ -41,6 +41,12 @@ export async function generateSpec(
         getFileInfo(options.output.schemas).dirname,
       );
     }
+    if (options.output.workspace) {
+      await removeFilesAndEmptyFolders(
+        ['**/*', '!**/*.d.ts', ...extraPatterns],
+        options.output.workspace,
+      );
+    }
     log(`${projectName} Cleaning output folder`);
   }
 
