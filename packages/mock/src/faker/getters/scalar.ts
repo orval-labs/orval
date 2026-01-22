@@ -156,11 +156,11 @@ export function getMockScalar({
           'number',
         );
       } else if ('const' in item && typeof item.const === 'string') {
-        value = item.const;
+        value = jsStringEscape(item.const);
       }
 
       return {
-        value: jsStringEscape(value),
+        value,
         enums: item.enum,
         imports: numberImports,
         name: item.name,
@@ -170,10 +170,10 @@ export function getMockScalar({
     case 'boolean': {
       let value = 'faker.datatype.boolean()';
       if ('const' in item && typeof item.const === 'string') {
-        value = item.const;
+        value = jsStringEscape(item.const);
       }
       return {
-        value: jsStringEscape(value),
+        value,
         imports: [],
         name: item.name,
       };
@@ -215,7 +215,7 @@ export function getMockScalar({
 
       if (enums) {
         return {
-          value: value,
+          value,
           imports: resolvedImports,
           name: item.name,
         };
@@ -237,7 +237,7 @@ export function getMockScalar({
           `Array.from({ length: faker.number.int({ ` +
           `min: ${item.minItems ?? mockOptions?.arrayMin}, ` +
           `max: ${item.maxItems ?? mockOptions?.arrayMax} }) ` +
-          `}, (_, i) => i + 1).map(() => (${jsStringEscape(mapValue)}))`,
+          `}, (_, i) => i + 1).map(() => (${mapValue}))`,
         imports: resolvedImports,
         name: item.name,
       };
@@ -259,11 +259,11 @@ export function getMockScalar({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
       } else if ('const' in item) {
-        value = `'${(item as OpenApiSchemaObject).const}'`;
+        value = `'${jsStringEscape((item as OpenApiSchemaObject).const)}'`;
       }
 
       return {
-        value: getNullable(jsStringEscape(value), isNullable),
+        value: getNullable(value, isNullable),
         enums: item.enum,
         name: item.name,
         imports: stringImports,
