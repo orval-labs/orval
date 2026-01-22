@@ -16,9 +16,10 @@ export function generateImportsForBuilder(
       const baseName = i.schemaName || i.name;
       const name = conventionName(baseName, output.namingConvention);
       const suffix = isZodSchemaOutput ? '.zod' : '';
+      const importExtension = output.fileExtension?.replace(/\.ts$/, '') || '';
       return {
         exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
-        dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}`),
+        dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}${importExtension}`),
       };
     });
   } else {
