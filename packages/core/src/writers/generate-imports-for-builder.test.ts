@@ -28,11 +28,7 @@ describe('generateImportsForBuilder', () => {
       const output = createMockOutput({ indexFiles: false });
       const imports = [createMockImport('User'), createMockImport('Pet')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -53,11 +49,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('User'), createMockImport('Pet')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -78,11 +70,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('User'), createMockImport('Pet')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -103,11 +91,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('User')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -124,11 +108,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('UserType', 'User')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -146,11 +126,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('User')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -169,11 +145,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('User'), createMockImport('Pet')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -191,11 +163,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('User')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -215,11 +183,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('userProfile')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {
@@ -237,11 +201,7 @@ describe('generateImportsForBuilder', () => {
       });
       const imports = [createMockImport('UserProfile')];
 
-      const result = generateImportsForBuilder(
-        output,
-        imports,
-        '../models',
-      );
+      const result = generateImportsForBuilder(output, imports, '../models');
 
       expect(result).toEqual([
         {

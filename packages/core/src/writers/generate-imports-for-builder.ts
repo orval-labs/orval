@@ -19,7 +19,10 @@ export function generateImportsForBuilder(
       const importExtension = output.fileExtension?.replace(/\.ts$/, '') || '';
       return {
         exports: isZodSchemaOutput ? [{ ...i, values: true }] : [i],
-        dependency: upath.joinSafe(relativeSchemasPath, `${name}${suffix}${importExtension}`),
+        dependency: upath.joinSafe(
+          relativeSchemasPath,
+          `${name}${suffix}${importExtension}`,
+        ),
       };
     });
   } else {
