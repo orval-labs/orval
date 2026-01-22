@@ -4,144 +4,68 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
+import {
+  faker
+} from '@faker-js/faker';
 
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import {
+  HttpResponse,
+  http
+} from 'msw';
+import type {
+  RequestHandlerOptions
+} from 'msw';
 
-import type { Pet, Pets } from '../models';
+import type {
+  Pet,
+  Pets
+} from '../models';
 
-export const getListPetsResponseMock = (): Pets =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 10 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    '@id': faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    id: faker.number.int({ min: undefined, max: undefined }),
-    name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-    tag: faker.helpers.arrayElement([
-      faker.string.alpha({ length: { min: 10, max: 20 } }),
-      undefined,
-    ]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  }));
 
-export const getCreatePetsResponseMock = (
-  overrideResponse: Partial<Pet> = {},
-): Pet => ({
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  ...overrideResponse,
-});
+export const getListPetsResponseMock = (): Pets => (Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({\'@id\': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int({min: undefined, max: undefined}), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined])})))
 
-export const getShowPetByIdResponseMock = (
-  overrideResponse: Partial<Pet> = {},
-): Pet => ({
-  '@id': faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  id: faker.number.int({ min: undefined, max: undefined }),
-  name: faker.string.alpha({ length: { min: 10, max: 20 } }),
-  tag: faker.helpers.arrayElement([
-    faker.string.alpha({ length: { min: 10, max: 20 } }),
-    undefined,
-  ]),
-  email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-  ...overrideResponse,
-});
+export const getCreatePetsResponseMock = (overrideResponse: Partial< Pet > = {}): Pet => ({'@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int({min: undefined, max: undefined}), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), ...overrideResponse})
 
-export const getListPetsMockHandler = (
-  overrideResponse?:
-    | Pets
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pets> | Pets),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getListPetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    },
-    options,
-  );
-};
+export const getShowPetByIdResponseMock = (overrideResponse: Partial< Pet > = {}): Pet => ({'@id': faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), id: faker.number.int({min: undefined, max: undefined}), name: faker.string.alpha({length: {min: 10, max: 20}}), tag: faker.helpers.arrayElement([faker.string.alpha({length: {min: 10, max: 20}}), undefined]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), ...overrideResponse})
 
-export const getCreatePetsMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/pets',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getCreatePetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    },
-    options,
-  );
-};
 
-export const getShowPetByIdMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/pets/:petId',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getShowPetByIdResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    },
-    options,
-  );
-};
+export const getListPetsMockHandler = (overrideResponse?: Pets | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pets> | Pets), options?: RequestHandlerOptions) => {
+  return http.get('*/pets', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListPetsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getCreatePetsMockHandler = (overrideResponse?: Pet | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<Pet> | Pet), options?: RequestHandlerOptions) => {
+  return http.post('*/pets', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getCreatePetsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getShowPetByIdMockHandler = (overrideResponse?: Pet | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pet> | Pet), options?: RequestHandlerOptions) => {
+  return http.get('*/pets/:petId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getShowPetByIdResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
 export const getSwaggerPetstoreMock = () => [
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
-  getShowPetByIdMockHandler(),
-];
+  getShowPetByIdMockHandler()
+]

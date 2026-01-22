@@ -3,6 +3,7 @@ import {
   EnumGeneration,
   escape,
   type GeneratorImport,
+  jsStringEscape,
   mergeDeep,
   type MockOptions,
   type OpenApiSchemaObject,
@@ -159,7 +160,7 @@ export function getMockScalar({
       }
 
       return {
-        value,
+        value: jsStringEscape(value),
         enums: item.enum,
         imports: numberImports,
         name: item.name,
@@ -172,7 +173,7 @@ export function getMockScalar({
         value = item.const;
       }
       return {
-        value,
+        value: jsStringEscape(value),
         imports: [],
         name: item.name,
       };
@@ -214,7 +215,7 @@ export function getMockScalar({
 
       if (enums) {
         return {
-          value,
+          value: value,
           imports: resolvedImports,
           name: item.name,
         };
@@ -236,7 +237,7 @@ export function getMockScalar({
           `Array.from({ length: faker.number.int({ ` +
           `min: ${item.minItems ?? mockOptions?.arrayMin}, ` +
           `max: ${item.maxItems ?? mockOptions?.arrayMax} }) ` +
-          `}, (_, i) => i + 1).map(() => (${mapValue}))`,
+          `}, (_, i) => i + 1).map(() => (${jsStringEscape(mapValue)}))`,
         imports: resolvedImports,
         name: item.name,
       };
@@ -262,7 +263,7 @@ export function getMockScalar({
       }
 
       return {
-        value: getNullable(value, isNullable),
+        value: getNullable(jsStringEscape(value), isNullable),
         enums: item.enum,
         name: item.name,
         imports: stringImports,

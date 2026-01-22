@@ -4,182 +4,87 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import { faker } from '@faker-js/faker';
+import {
+  faker
+} from '@faker-js/faker';
 
-import { HttpResponse, http } from 'msw';
-import type { RequestHandlerOptions } from 'msw';
+import {
+  HttpResponse,
+  http
+} from 'msw';
+import type {
+  RequestHandlerOptions
+} from 'msw';
 
-import type { Pet, PetsArray, PetsNestedArray } from '../model';
+import type {
+  Pet,
+  PetsArray,
+  PetsNestedArray
+} from '../model';
 
-export const getListPetsResponseMock = (): PetsArray =>
-  Array.from(
-    { length: faker.number.int({ min: 1, max: 20 }) },
-    (_, i) => i + 1,
-  ).map(() => ({
-    id: (() => faker.number.int({ min: 1, max: 99999 }))(),
-    name: (() => faker.person.lastName())(),
-    age: faker.helpers.arrayElement([
-      faker.number.int({ min: 0, max: 30 }),
-      undefined,
-    ]),
-    tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]),
-    email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-    callingCode: faker.helpers.arrayElement([
-      faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-      undefined,
-    ]),
-    country: faker.helpers.arrayElement([
-      faker.helpers.arrayElement([
-        "People's Republic of China",
-        'Uruguay',
-      ] as const),
-      undefined,
-    ]),
-  }));
 
-export const getListPetsNestedArrayResponseMock = (
-  overrideResponse: Partial<PetsNestedArray> = {},
-): PetsNestedArray => ({
-  data: faker.helpers.arrayElement([
-    Array.from(
-      { length: faker.number.int({ min: 1, max: 10 }) },
-      (_, i) => i + 1,
-    ).map(() => ({
-      id: faker.number.int({ min: undefined, max: undefined }),
-      name: (() => faker.person.lastName())(),
-      age: faker.helpers.arrayElement([
-        faker.number.int({ min: 0, max: 30 }),
-        undefined,
-      ]),
-      tag: faker.helpers.arrayElement([
-        (() => faker.person.lastName())(),
-        null,
-      ]),
-      email: faker.helpers.arrayElement([faker.internet.email(), undefined]),
-      callingCode: faker.helpers.arrayElement([
-        faker.helpers.arrayElement(['+33', '+420', '+33'] as const),
-        undefined,
-      ]),
-      country: faker.helpers.arrayElement([
-        faker.helpers.arrayElement([
-          "People's Republic of China",
-          'Uruguay',
-        ] as const),
-        undefined,
-      ]),
-    })),
-    undefined,
-  ]),
-  ...overrideResponse,
-});
+export const getListPetsResponseMock = (): PetsArray => (Array.from({ length: faker.number.int({ min: 1, max: 20 }) }, (_, i) => i + 1).map(() => ({id: (() => faker.number.int({ min: 1, max: 99999 }))(), name: (() => faker.person.lastName())(), age: faker.helpers.arrayElement([faker.number.int({min: 0, max: 30}), undefined]), tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement([\\\'+33\\\',\\\'+420\\\',\\\'+33\\\'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement([\\\'People\\\\\\\'s Republic of China\\\',\\\'Uruguay\\\'] as const), undefined])})))
 
-export const getShowPetByIdResponseMock = () =>
-  (() => ({
-    id: faker.number.int({ min: 1, max: 99 }),
-    name: faker.person.firstName(),
-    tag: faker.helpers.arrayElement([faker.word.sample(), undefined]),
-  }))();
+export const getListPetsNestedArrayResponseMock = (overrideResponse: Partial< PetsNestedArray > = {}): PetsNestedArray => ({data: faker.helpers.arrayElement([Array.from({ length: faker.number.int({ min: 1, max: 10 }) }, (_, i) => i + 1).map(() => ({id: faker.number.int({min: undefined, max: undefined}), name: (() => faker.person.lastName())(), age: faker.helpers.arrayElement([faker.number.int({min: 0, max: 30}), undefined]), tag: faker.helpers.arrayElement([(() => faker.person.lastName())(), null]), email: faker.helpers.arrayElement([faker.internet.email(), undefined]), callingCode: faker.helpers.arrayElement([faker.helpers.arrayElement([\\\'+33\\\',\\\'+420\\\',\\\'+33\\\'] as const), undefined]), country: faker.helpers.arrayElement([faker.helpers.arrayElement([\\\'People\\\\\\\'s Republic of China\\\',\\\'Uruguay\\\'] as const), undefined])})), undefined]), ...overrideResponse})
 
-export const getListPetsMockHandler = (
-  overrideResponse?:
-    | PetsArray
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<PetsArray> | PetsArray),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/v:version/pets',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getListPetsResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    },
-    options,
-  );
-};
+export const getShowPetByIdResponseMock = () => ((() => ({
+                id: faker.number.int({ min: 1, max: 99 }),
+                name: faker.person.firstName(),
+                tag: faker.helpers.arrayElement([
+                faker.word.sample(),
+                undefined]
+                )
+              }))())
 
-export const getCreatePetsMockHandler = (
-  overrideResponse?:
-    | void
-    | ((
-        info: Parameters<Parameters<typeof http.post>[1]>[0],
-      ) => Promise<void> | void),
-  options?: RequestHandlerOptions,
-) => {
-  return http.post(
-    '*/v:version/pets',
-    async (info) => {
-      if (typeof overrideResponse === 'function') {
-        await overrideResponse(info);
-      }
-      return new HttpResponse(null, { status: 201 });
-    },
-    options,
-  );
-};
 
-export const getListPetsNestedArrayMockHandler = (
-  overrideResponse?:
-    | PetsNestedArray
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<PetsNestedArray> | PetsNestedArray),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/v:version/pets-nested-array',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getListPetsNestedArrayResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    },
-    options,
-  );
-};
+export const getListPetsMockHandler = (overrideResponse?: PetsArray | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PetsArray> | PetsArray), options?: RequestHandlerOptions) => {
+  return http.get('*/v:version/pets', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListPetsResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
 
-export const getShowPetByIdMockHandler = (
-  overrideResponse?:
-    | Pet
-    | ((
-        info: Parameters<Parameters<typeof http.get>[1]>[0],
-      ) => Promise<Pet> | Pet),
-  options?: RequestHandlerOptions,
-) => {
-  return http.get(
-    '*/v:version/pets/:petId',
-    async (info) => {
-      return new HttpResponse(
-        JSON.stringify(
-          overrideResponse !== undefined
-            ? typeof overrideResponse === 'function'
-              ? await overrideResponse(info)
-              : overrideResponse
-            : getShowPetByIdResponseMock(),
-        ),
-        { status: 200, headers: { 'Content-Type': 'application/json' } },
-      );
-    },
-    options,
-  );
-};
+export const getCreatePetsMockHandler = (overrideResponse?: void | ((info: Parameters<Parameters<typeof http.post>[1]>[0]) => Promise<void> | void), options?: RequestHandlerOptions) => {
+  return http.post('*/v:version/pets', async (info) => {
+  if (typeof overrideResponse === 'function') {await overrideResponse(info); }
+    return new HttpResponse(null,
+      { status: 201,
+        
+      })
+  }, options)
+}
+
+export const getListPetsNestedArrayMockHandler = (overrideResponse?: PetsNestedArray | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<PetsNestedArray> | PetsNestedArray), options?: RequestHandlerOptions) => {
+  return http.get('*/v:version/pets-nested-array', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getListPetsNestedArrayResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
+
+export const getShowPetByIdMockHandler = (overrideResponse?: Pet | ((info: Parameters<Parameters<typeof http.get>[1]>[0]) => Promise<Pet> | Pet), options?: RequestHandlerOptions) => {
+  return http.get('*/v:version/pets/:petId', async (info) => {
+  
+    return new HttpResponse(JSON.stringify(overrideResponse !== undefined
+    ? (typeof overrideResponse === "function" ? await overrideResponse(info) : overrideResponse)
+    : getShowPetByIdResponseMock()),
+      { status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+  }, options)
+}
 export const getSwaggerPetstoreMock = () => [
   getListPetsMockHandler(),
   getCreatePetsMockHandler(),
   getListPetsNestedArrayMockHandler(),
-  getShowPetByIdMockHandler(),
-];
+  getShowPetByIdMockHandler()
+]
