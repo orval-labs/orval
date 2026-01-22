@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -28,7 +28,7 @@ jobs:
         run: corepack enable
 
       - name: Cache Yarn dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .yarn/cache
           key: yarn-${{ hashFiles('**/yarn.lock') }}
@@ -45,6 +45,20 @@ jobs:
         run: |
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set npmAuthToken ${{ secrets.NPM_TOKEN }}
+
+      - name: Fail if unsafe lifecycle scripts exist
+        run: |
+          echo "Checking for unsafe lifecycle scripts in workspaces..."
+          for pkg in packages/*/package.json; do
+            if [ -f "$pkg" ]; then
+              if jq -e '.scripts // {} | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg" > /dev/null; then
+                echo "! Unsafe lifecycle script found in $pkg"
+                jq '.scripts // {} | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg"
+                exit 1
+              fi
+            fi
+          done
+          echo "No unsafe lifecycle scripts detected."
 
       - name: Publish workspaces to npm
         run: yarn workspaces foreach --all --no-private -v npm publish --access public --tolerate-republish
