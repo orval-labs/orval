@@ -3139,6 +3139,50 @@ export default defineConfig({
 });
 ```
 
+### useNullForOptional
+
+Type: `Boolean`
+
+Valid Values: `true` or `false`.
+
+Default Value: `false`.
+
+When enabled, optional properties will be typed as `T | null` instead of just `T`. This is useful for JSON:API compatibility where `null` is used to explicitly indicate "no value".
+
+```js
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useNullForOptional: true,
+      },
+    },
+  },
+});
+```
+
+Result when `useNullForOptional` is `false` (default):
+
+```ts
+export interface Pet {
+  id: number;
+  name?: string;
+  tag?: string;
+}
+```
+
+Result when `useNullForOptional` is `true`:
+
+```ts
+export interface Pet {
+  id: number;
+  name?: string | null;
+  tag?: string | null;
+}
+```
+
 #### jsDoc
 
 ##### filter
