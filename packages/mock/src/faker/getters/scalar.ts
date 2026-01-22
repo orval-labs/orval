@@ -2,6 +2,7 @@ import {
   type ContextSpecs,
   EnumGeneration,
   escape,
+  jsStringEscape,
   type GeneratorImport,
   isReference,
   isRootKey,
@@ -154,7 +155,7 @@ export const getMockScalar = ({
           'number',
         );
       } else if ('const' in item) {
-        value = '' + (item as SchemaObject31).const;
+        value = '' + jsStringEscape((item as SchemaObject31).const);
       }
 
       return {
@@ -168,7 +169,7 @@ export const getMockScalar = ({
     case 'boolean': {
       let value = 'faker.datatype.boolean()';
       if ('const' in item) {
-        value = '' + (item as SchemaObject31).const;
+        value = '' + jsStringEscape((item as SchemaObject31).const);
       }
       return {
         value,
@@ -257,7 +258,7 @@ export const getMockScalar = ({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
       } else if ('const' in item) {
-        value = `'${(item as SchemaObject31).const}'`;
+        value = `'${jsStringEscape((item as SchemaObject31).const)}'`;
       }
 
       return {
