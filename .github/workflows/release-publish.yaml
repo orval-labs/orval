@@ -51,9 +51,9 @@ jobs:
           echo "Checking for unsafe lifecycle scripts in workspaces..."
           for pkg in packages/*/package.json; do
             if [ -f "$pkg" ]; then
-              if jq -e '.scripts | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg" > /dev/null; then
+              if jq -e '.scripts // {} | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg" > /dev/null; then
                 echo "! Unsafe lifecycle script found in $pkg"
-                jq '.scripts | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg"
+                jq '.scripts // {} | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg"
                 exit 1
               fi
             fi
