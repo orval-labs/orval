@@ -257,7 +257,7 @@ export const getMockScalar = ({
       } else if (item.pattern) {
         value = `faker.helpers.fromRegExp('${item.pattern}')`;
       } else if ('const' in item) {
-        value = `'${JSON.stringify((item as SchemaObject31).const)}'`;
+        value = JSON.stringify((item as SchemaObject31).const);
       }
 
       return {
