@@ -59,7 +59,7 @@ jobs:
             fi
           done
           echo "No unsafe lifecycle scripts detected."
-      
+
       - name: Publish workspaces to npm
         run: yarn workspaces foreach --all --no-private -v npm publish --access public --tolerate-republish
 
