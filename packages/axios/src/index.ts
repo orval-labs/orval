@@ -28,6 +28,7 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
         values: true,
         syntheticDefaultImport: true,
       },
+      { name: 'AxiosInstance' },
       { name: 'AxiosRequestConfig' },
       { name: 'AxiosResponse' },
     ],
@@ -176,7 +177,7 @@ const generateAxiosImplementation = (
   }>>(\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
   } ): Promise<TData> => {${bodyForm}
-    return axios${
+    return axiosInstance${
       isSyntheticDefaultImportsAllowed ? '' : '.default'
     }.${verb}(${options});
   }
@@ -193,13 +194,13 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
   isRequestOptions,
   isMutator,
   noFunction,
+  isGlobalMutator,
 }) => `
 ${
   isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
-}
-  ${noFunction ? '' : `export const ${title} = () => {\n`}`;
+}${noFunction && !isGlobalMutator ? 'const axiosInstance = axios;\n\n' : ''}  ${noFunction ? '' : `export const ${title} = (axiosInstance: AxiosInstance = axios) => {\n`}`;
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
