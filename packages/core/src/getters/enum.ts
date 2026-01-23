@@ -246,10 +246,7 @@ const isSpreadableEnumRef = (
   if (!schema?.enum || !refName) return false;
   if (!getEnumUnionFromSchema(schema)) return false;
   const type = schema.type;
-  if (
-    type === 'boolean' ||
-    (Array.isArray(type) && type.includes('boolean'))
-  ) {
+  if (type === 'boolean' || (Array.isArray(type) && type.includes('boolean'))) {
     return false;
   }
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(refName);
