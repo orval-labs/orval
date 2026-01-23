@@ -105,7 +105,7 @@ function Home() {
     <HomeLayout {...baseOptions()}>
       <div className="min-h-screen">
         {/* Hero Section */}
-        <section className="relative overflow-hidden">
+        <section className="relative overflow-visible">
           {/* Gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a2e] via-[#16082a] to-[#0d0518] -z-10" />
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#6F40C9]/20 rounded-full blur-3xl -z-10" />
@@ -117,7 +117,19 @@ function Home() {
           </div>
 
           <div className="max-w-6xl mx-auto px-4 py-24 md:py-32">
-            <div className="text-center">
+            <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-16">
+              {/* Logo */}
+              <div className="relative flex-shrink-0 hidden lg:block">
+                <div className="absolute inset-0 bg-gradient-to-r from-[#6F40C9] to-[#F79D53] opacity-20 blur-3xl rounded-full scale-110" />
+                <img
+                  src="/images/emblem.svg"
+                  alt="Orval"
+                  className="relative w-[280px] h-[280px] xl:w-[350px] xl:h-[350px]"
+                />
+              </div>
+
+              {/* Content */}
+              <div className="text-center lg:text-left">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6F40C9]/10 border border-[#6F40C9]/20 text-[#6F40C9] text-sm mb-6">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#6F40C9] opacity-75"></span>
@@ -134,12 +146,12 @@ function Home() {
                 </span>
               </h1>
 
-              <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+              <p className="text-lg md:text-xl text-gray-400 max-w-2xl lg:mx-0 mx-auto mb-10">
                 Transform your OpenAPI specs into type-safe clients, mocks, and
                 validators. Stop writing boilerplate. Start shipping features.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center mb-12">
                 <Link
                   to="/docs/$"
                   params={{ _splat: '' }}
@@ -183,6 +195,7 @@ function Home() {
                 </button>
               </div>
             </div>
+          </div>
           </div>
         </section>
 
