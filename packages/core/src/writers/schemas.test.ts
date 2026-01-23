@@ -608,8 +608,7 @@ describe('writeSchemas indexFiles', () => {
       const indexPath = path.join(schemaPath, 'index.ts');
       const content = await fs.readFile(indexPath, 'utf8');
 
-      const matches =
-        content.match(/export \* from '.\/userDto';/g) ?? [];
+      const matches = content.match(/export \* from '.\/userDto';/g) ?? [];
       expect(matches).toHaveLength(1);
     } finally {
       await fs.remove(tempDir);
