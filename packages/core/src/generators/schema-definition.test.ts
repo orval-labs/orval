@@ -300,4 +300,68 @@ describe('generateSchemasDefinition', () => {
       'export type CombinedEnum = typeof CombinedEnum[keyof typeof CombinedEnum]',
     );
   });
+
+  it('should avoid invalid spreads for nullable or boolean oneOf enums', () => {
+    const schemas: OpenApiSchemasObject = {
+      NumberEnum: {
+        type: 'integer',
+        enum: [1, 2, 3],
+      },
+      BooleanEnum: {
+        type: 'boolean',
+        enum: [true, false],
+      },
+      NumberEnumNullable: {
+        nullable: true,
+        type: 'number',
+        enum: [1.5, 2.5, 3.5],
+      },
+      NumberEnumNotNull: {
+        type: 'number',
+        enum: [100.1, 200.2],
+      },
+      MixedBooleanNumberEnum: {
+        oneOf: [
+          { $ref: '#/components/schemas/NumberEnum' },
+          { $ref: '#/components/schemas/BooleanEnum' },
+        ],
+      },
+      MixedNumberEnum: {
+        oneOf: [
+          { $ref: '#/components/schemas/NumberEnumNullable' },
+          { $ref: '#/components/schemas/NumberEnumNotNull' },
+        ],
+      },
+    };
+
+    const specContext: ContextSpec = {
+      ...context,
+      output: {
+        override: { enumGenerationType: 'const' },
+      },
+      spec: {
+        components: { schemas },
+      },
+    };
+
+    const result = generateSchemasDefinition(schemas, specContext, '');
+    const mixedBooleanSchema = result.find(
+      (schema) => schema.name === 'MixedBooleanNumberEnum',
+    );
+    const mixedNumberSchema = result.find(
+      (schema) => schema.name === 'MixedNumberEnum',
+    );
+
+    expect(mixedBooleanSchema?.model).toContain(
+      'export const MixedBooleanNumberEnum',
+    );
+    expect(mixedBooleanSchema?.model).not.toContain('...BooleanEnum');
+    expect(mixedNumberSchema?.model).toContain('export const MixedNumberEnum');
+    expect(mixedNumberSchema?.model).not.toContain(
+      '...NumberEnumNullable | null',
+    );
+    expect(mixedNumberSchema?.model).toContain(
+      'export type MixedNumberEnum = typeof MixedNumberEnum[keyof typeof MixedNumberEnum] | null;',
+    );
+  });
 });

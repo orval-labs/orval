@@ -5,7 +5,14 @@ import {
   NamingConvention,
   type OpenApiSchemaObject,
 } from '../types';
-import { conventionName, isNumeric, jsStringEscape, sanitize } from '../utils';
+import {
+  conventionName,
+  escape,
+  isNumeric,
+  isString,
+  jsStringEscape,
+  sanitize,
+} from '../utils';
 
 export function getEnumNames(schemaObject: OpenApiSchemaObject | undefined) {
   const names =
@@ -206,3 +213,113 @@ const toNumberKey = (value: string) => {
 const getUnion = (value: string, enumName: string) => {
   return `export type ${enumName} = ${value};`;
 };
+
+type CombinedEnumInput = {
+  value: string;
+  isRef: boolean;
+  schema: OpenApiSchemaObject | undefined;
+};
+
+type CombinedEnumValue = {
+  value: string;
+  valueImports: string[];
+  hasNull: boolean;
+};
+
+export function getEnumUnionFromSchema(
+  schema: OpenApiSchemaObject | undefined,
+) {
+  if (!schema?.enum) return '';
+  return schema.enum
+    .filter((val) => val !== null)
+    .map((val) => (isString(val) ? `'${escape(val)}'` : `${val}`))
+    .join(' | ');
+}
+
+const stripNullUnion = (value: string) =>
+  value.replace(/\s*\|\s*null/g, '').trim();
+
+const isSpreadableEnumRef = (
+  schema: OpenApiSchemaObject | undefined,
+  refName: string,
+) => {
+  if (!schema?.enum || !refName) return false;
+  if (!getEnumUnionFromSchema(schema)) return false;
+  const type = schema.type;
+  if (
+    type === 'boolean' ||
+    (Array.isArray(type) && type.includes('boolean'))
+  ) {
+    return false;
+  }
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(refName);
+};
+
+const buildInlineEnum = (
+  schema: OpenApiSchemaObject | undefined,
+  enumValue?: string,
+) => {
+  const names = getEnumNames(schema);
+  const descriptions = getEnumDescriptions(schema);
+  const unionValue = enumValue ?? getEnumUnionFromSchema(schema);
+  return getEnumImplementation(unionValue, names, descriptions);
+};
+
+export function getCombinedEnumValue(
+  inputs: CombinedEnumInput[],
+): CombinedEnumValue {
+  const valueImports: string[] = [];
+  const hasNull = inputs.some((input) => {
+    if (input.value.includes('| null')) return true;
+    const schema = input.schema;
+    if (!schema) return false;
+    if (schema.nullable === true) return true;
+    if (Array.isArray(schema.type) && schema.type.includes('null')) return true;
+    return schema.enum?.includes(null) ?? false;
+  });
+
+  const addValueImport = (name: string) => {
+    if (!valueImports.includes(name)) {
+      valueImports.push(name);
+    }
+  };
+
+  if (inputs.length === 1) {
+    const input = inputs[0];
+    if (input.isRef) {
+      const refName = stripNullUnion(input.value);
+      if (isSpreadableEnumRef(input.schema, refName)) {
+        addValueImport(refName);
+        return { value: refName, valueImports, hasNull };
+      }
+      return {
+        value: `{${buildInlineEnum(input.schema)}} as const`,
+        valueImports,
+        hasNull,
+      };
+    }
+
+    return {
+      value: `{${buildInlineEnum(input.schema, stripNullUnion(input.value))}} as const`,
+      valueImports,
+      hasNull,
+    };
+  }
+
+  const enums = inputs
+    .map((input) => {
+      if (input.isRef) {
+        const refName = stripNullUnion(input.value);
+        if (isSpreadableEnumRef(input.schema, refName)) {
+          addValueImport(refName);
+          return `...${refName},`;
+        }
+        return buildInlineEnum(input.schema);
+      }
+
+      return buildInlineEnum(input.schema, stripNullUnion(input.value));
+    })
+    .join('');
+
+  return { value: `{${enums}} as const`, valueImports, hasNull };
+}
