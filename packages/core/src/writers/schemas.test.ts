@@ -577,4 +577,42 @@ describe('writeSchemas indexFiles', () => {
       await fs.remove(tempDir);
     }
   });
+
+  it('does not duplicate exports when the same schema name is written multiple times', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-index-dup-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [createMockSchema('UserDto')],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// first run',
+        indexFiles: true,
+      });
+
+      await writeSchemas({
+        schemaPath,
+        schemas: [createMockSchema('UserDto')],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// second run',
+        indexFiles: true,
+      });
+
+      const indexPath = path.join(schemaPath, 'index.ts');
+      const content = await fs.readFile(indexPath, 'utf8');
+
+      const matches =
+        content.match(/export \* from '.\/userDto';/g) ?? [];
+      expect(matches).toHaveLength(1);
+    } finally {
+      await fs.remove(tempDir);
+    }
+  });
 });
