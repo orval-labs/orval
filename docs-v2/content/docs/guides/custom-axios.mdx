@@ -1,0 +1,105 @@
+---
+title: Custom Axios Instance
+description: Configure a custom Axios instance
+---
+
+Set up a custom Axios instance with interceptors, base URL, and other configurations.
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+  },
+});
+```
+
+## Custom Instance Implementation
+
+```ts title="custom-instance.ts"
+import Axios, { AxiosRequestConfig, AxiosError } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({
+  baseURL: '<BACKEND URL>', // use your own URL or environment variable
+});
+
+// Add a second `options` argument to pass extra options to each query
+export const customInstance = <T>(
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
+): Promise<T> => {
+  const promise = AXIOS_INSTANCE({
+    ...config,
+    ...options,
+  }).then(({ data }) => data);
+
+  return promise;
+};
+
+// Override the return error type for react-query and swr
+export type ErrorType<Error> = AxiosError<Error>;
+
+// Standard body type
+export type BodyType<BodyData> = BodyData;
+
+// Or wrap the body type if processing data before sending
+// export type BodyType<BodyData> = CamelCase<BodyData>;
+```
+
+## Adding Interceptors
+
+```ts title="custom-instance.ts"
+import Axios, { AxiosRequestConfig, AxiosError } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({
+  baseURL: process.env.API_URL,
+});
+
+// Request interceptor for auth
+AXIOS_INSTANCE.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
+
+// Response interceptor for error handling
+AXIOS_INSTANCE.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Handle unauthorized
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
+
+export const customInstance = <T>(
+  config: AxiosRequestConfig,
+  options?: AxiosRequestConfig,
+): Promise<T> => {
+  return AXIOS_INSTANCE({
+    ...config,
+    ...options,
+  }).then(({ data }) => data);
+};
+
+export type ErrorType<Error> = AxiosError<Error>;
+export type BodyType<BodyData> = BodyData;
+```

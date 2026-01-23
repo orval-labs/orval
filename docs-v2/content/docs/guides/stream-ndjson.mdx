@@ -1,0 +1,142 @@
+---
+title: Stream NDJSON
+description: Type-safe streaming with Newline Delimited JSON
+---
+
+Orval generates type-safe code for [NDJSON](https://en.wikipedia.org/wiki/JSON_streaming#Newline-delimited_JSON) streaming responses, commonly used for large datasets.
+
+## OpenAPI Schema
+
+```yaml
+openapi: 3.1.0
+info:
+  version: 1.0.0
+  title: Stream
+paths:
+  /stream:
+    get:
+      operationId: stream
+      description: Stream results
+      responses:
+        '200':
+          content:
+            application/x-ndjson:
+              schema:
+                $ref: '#/components/schemas/StreamEntry'
+components:
+  schemas:
+    StreamEntry:
+      type: object
+      properties:
+        foo:
+          type: number
+        bar:
+          type: string
+```
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './stream.yaml',
+    },
+    output: {
+      client: 'fetch',
+      target: 'src/endpoints.ts',
+      schemas: 'src/model',
+    },
+  },
+});
+```
+
+## Generated Output
+
+```ts
+interface TypedResponse<T> extends Response {
+  json(): Promise<T>;
+}
+
+export type streamResponse200 = {
+  stream: TypedResponse<StreamEntry>;
+  status: 200;
+};
+
+export const stream = async (
+  options?: RequestInit,
+): Promise<streamResponse> => {
+  const stream = await fetch(getStreamUrl(), {
+    ...options,
+    method: 'GET',
+    headers: { Accept: 'application/x-ndjson', ...options?.headers },
+  });
+
+  return {
+    status: stream.status,
+    stream,
+    headers: stream.headers,
+  } as streamResponse;
+};
+```
+
+## Reading the Stream
+
+Orval provides type safety; implement stream parsing yourself:
+
+```ts
+export const readStream = <T extends object>(
+  response: Response & { json(): Promise<T> },
+  processLine: (value: T) => void,
+): Promise<void> => {
+  if (!response.body) return Promise.resolve();
+
+  const stream = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  const loop = (): Promise<void> =>
+    stream.read().then(({ done, value }) => {
+      if (done) {
+        if (buffer.length > 0) processLine(JSON.parse(buffer));
+        return;
+      }
+
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split(/\r?\n/);
+      buffer = parts.pop() ?? '';
+
+      for (const part of parts.filter(Boolean)) {
+        processLine(JSON.parse(part) as T);
+      }
+
+      return loop();
+    });
+
+  return loop();
+};
+```
+
+## Usage Example
+
+```ts
+export const getResults = async (): Promise<StreamEntry[]> => {
+  const results: StreamEntry[] = [];
+
+  const response = await stream();
+  if (response.status !== 200) return results;
+
+  await readStream(response.stream, (obj) => {
+    // obj is typed as StreamEntry
+    results.push(obj);
+  });
+
+  return results;
+};
+```
+
+<Callout type="info">
+NDJSON streaming is only supported with the Fetch client.
+</Callout>

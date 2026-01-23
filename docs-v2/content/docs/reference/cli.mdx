@@ -1,0 +1,95 @@
+---
+title: CLI
+description: Command line interface reference
+---
+
+Generate type-safe clients from OpenAPI specifications.
+
+## Basic Usage
+
+```bash
+orval
+```
+
+By default, Orval searches for an `orval.config.js` file.
+
+## Options
+
+### --input, -i
+
+Path or URL to your OpenAPI specification:
+
+```bash
+orval --input ./petstore.yaml
+```
+
+### --output, -o
+
+Output path for generated files:
+
+```bash
+orval --output ./api/endpoints/petstoreFromFileSpec.ts
+```
+
+### --config, -c
+
+Path to your Orval config:
+
+```bash
+orval --config ./api/orval.config.js
+```
+
+### --project, -p
+
+Focus on specific projects in your config:
+
+```bash
+orval --project petstore
+orval --project dogstore catstore
+```
+
+### --watch, -w
+
+Watch files and regenerate on changes:
+
+```bash
+orval --watch
+orval --watch ./src
+```
+
+### --clean
+
+Clean generated files:
+
+```bash
+orval --clean
+orval --clean ./src
+```
+
+<Callout type="warn">
+This cleans all output target and schemas folders.
+</Callout>
+
+### --prettier
+
+Format generated files with Prettier:
+
+```bash
+orval --prettier
+```
+
+### --biome
+
+Format generated files with [Biome](https://biomejs.dev/):
+
+```bash
+orval --biome
+```
+
+### --tsconfig
+
+Specify the path to your tsconfig:
+
+```bash
+orval --tsconfig ./src/tsconfig.json
+```

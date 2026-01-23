@@ -6,7 +6,8 @@
   "workspaces": [
     "packages/*",
     "samples/**",
-    "tests"
+    "tests",
+    "docs-v2"
   ],
   "private": true,
   "packageManager": "yarn@4.11.0",
@@ -58,5 +59,9 @@
     "typescript": "catalog:",
     "typescript-eslint": "^8.50.1",
     "vitest": "catalog:"
+  },
+  "volta": {
+    "node": "24.13.0",
+    "yarn": "4.12.0"
   }
 }

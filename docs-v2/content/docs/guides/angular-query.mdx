@@ -1,0 +1,273 @@
+---
+title: Angular Query
+description: Generate TanStack Query for Angular
+---
+
+Generate [TanStack Query for Angular](https://tanstack.com/query/latest/docs/framework/angular/overview) injectable functions from your OpenAPI specification.
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/petstore.ts',
+      schemas: 'src/model',
+      client: 'angular-query',
+      httpClient: 'angular',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates injectable query functions using Angular's native `HttpClient`:
+
+```ts
+// Base operation function
+export const showPetById = (
+  http: HttpClient,
+  petId: string,
+  options?: { signal?: AbortSignal | null },
+): Promise<Pet> => {
+  const url = `/pets/${petId}`;
+  const request$ = http.get<Pet>(url);
+  if (options?.signal) {
+    return lastValueFrom(
+      request$.pipe(takeUntil(fromEvent(options.signal, 'abort'))),
+    );
+  }
+  return lastValueFrom(request$);
+};
+
+// Query key factory
+export const getShowPetByIdQueryKey = (petId?: string) =>
+  [`/pets/${petId}`] as const;
+
+// Injectable query function
+export function injectShowPetById<TData = Pet, TError = unknown>(
+  petId: string | (() => string),
+  options?: { query?: Partial<CreateQueryOptions<Pet, TError, TData>> },
+): CreateQueryResult<TData, TError> {
+  const http = inject(HttpClient);
+  const query = injectQuery(() => {
+    const _petId = typeof petId === 'function' ? petId() : petId;
+    return getShowPetByIdQueryOptions(http, _petId, options);
+  });
+  return query;
+}
+```
+
+## Signal Reactivity
+
+Parameters support Angular signals via getter functions:
+
+```ts
+@Component({...})
+export class PetDetailComponent {
+  petId = signal('1');
+
+  // Query re-executes when petId() changes
+  pet = injectShowPetById(() => this.petId());
+
+  // Dynamic enabled/disabled
+  conditionalPet = injectShowPetById(
+    () => this.petId(),
+    () => ({ query: { enabled: this.isEnabled() } }),
+  );
+}
+```
+
+## Mutations
+
+For POST, PUT, PATCH, DELETE operations, Orval generates mutation options factories and injectable mutation functions:
+
+```ts
+// Mutation options factory
+export const getCreatePetsMutationOptions = <TError = Error, TContext = unknown>(
+  http: HttpClient,
+  queryClient: QueryClient,
+  options?: {
+    mutation?: CreateMutationOptions<
+      Awaited<ReturnType<typeof createPets>>,
+      TError,
+      { data: CreatePetsBody },
+      TContext
+    >;
+    fetch?: RequestInit;
+  },
+) => {
+  const mutationKey = ['createPets'];
+  const mutationFn = async (props: { data: CreatePetsBody }) => {
+    return createPets(http, props.data, options?.fetch);
+  };
+
+  return { mutationKey, mutationFn, ...options?.mutation };
+};
+
+// Injectable mutation function
+export const injectCreatePets = <TError = Error, TContext = unknown>(
+  options?: {
+    mutation?: CreateMutationOptions<...>;
+    fetch?: RequestInit;
+  },
+): CreateMutationResult<...> => {
+  const http = inject(HttpClient);
+  const queryClient = inject(QueryClient);
+  const mutationOptions = getCreatePetsMutationOptions(http, queryClient, options);
+  return injectMutation(() => mutationOptions);
+};
+```
+
+Usage:
+
+```ts
+@Component({...})
+export class CreatePetComponent {
+  createPet = injectCreatePets();
+
+  onSubmit(pet: CreatePetsBody) {
+    this.createPet.mutate({ data: pet });
+  }
+}
+```
+
+## Query Invalidation
+
+When `useInvalidate: true` is set, Orval generates helper functions to invalidate queries:
+
+```ts
+export const invalidateShowPetById = async (
+  queryClient: QueryClient,
+  petId: string,
+  options?: InvalidateOptions,
+): Promise<QueryClient> => {
+  await queryClient.invalidateQueries(
+    { queryKey: getShowPetByIdQueryKey(petId) },
+    options,
+  );
+  return queryClient;
+};
+```
+
+## Automatic Mutation Invalidation
+
+Configure automatic invalidation when mutations succeed:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'angular-query',
+      override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+Usage:
+
+```ts
+@Component({
+  template: `
+    <ul>
+      @for (pet of pets.data(); track pet.id) {
+        <li>{{ pet.name }} <button (click)="onDelete(pet.id)">Delete</button></li>
+      }
+    </ul>
+  `,
+})
+export class PetListComponent {
+  pets = injectListPets();
+  deletePet = injectDeletePet();
+
+  onDelete(petId: string) {
+    // listPets and showPetById(petId) are automatically invalidated
+    this.deletePet.mutate({ petId });
+  }
+}
+```
+
+## Query Options
+
+Configure infinite queries and default options:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+## Per-Operation Configuration
+
+You can override the `query` options for a single operation or tag:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              useInfinite: true,
+              useInfiniteQueryParam: 'cursor',
+              options: {
+                staleTime: 60000,
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+## Full Example
+
+See the [Angular Query sample](https://github.com/orval-labs/orval/tree/master/samples/angular-query) on GitHub.

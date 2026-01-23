@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+@theme {
+  /* Orval brand colors */
+  --color-orval-purple: #6F40C9;
+  --color-orval-purple-light: #9333ea;
+  --color-orval-orange: #F79D53;
+  --color-orval-orange-light: #fb923c;
+
+  /* Override Fumadocs primary with Orval purple */
+  --color-fd-primary: #6F40C9;
+  --color-fd-primary-foreground: #ffffff;
+}
+
+/* Dark mode overrides for Orval brand */
+.dark {
+  --color-fd-primary: #9333ea;
+  --color-fd-primary-foreground: #ffffff;
+  --color-fd-background: hsl(270, 20%, 4%);
+  --color-fd-muted: hsl(270, 15%, 10%);
+  --color-fd-card: hsl(270, 15%, 7%);
+  --color-fd-border: hsla(270, 20%, 20%, 40%);
+  --color-fd-accent: hsla(270, 30%, 30%, 40%);
+}

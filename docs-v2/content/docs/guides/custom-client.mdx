@@ -1,0 +1,119 @@
+---
+title: Custom HTTP Client
+description: Configure a custom HTTP client with mutators
+---
+
+Create a custom HTTP client using the mutator configuration option.
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+  },
+});
+```
+
+## Custom Instance Implementation
+
+```ts title="custom-instance.ts"
+const baseURL = '<BACKEND URL>'; // use your own URL or environment variable
+
+export const customInstance = async <T>(
+  url: string,
+  {
+    method,
+    params,
+    body,
+  }: {
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+    params?: any;
+    body?: BodyType<unknown>;
+    responseType?: string;
+  },
+): Promise<T> => {
+  let targetUrl = `${baseURL}${url}`;
+
+  if (params) {
+    targetUrl += '?' + new URLSearchParams(params);
+  }
+
+  const response = await fetch(targetUrl, {
+    method,
+    body,
+  });
+
+  return response.json();
+};
+
+export default customInstance;
+
+// Override the return error type for react-query and swr
+export type ErrorType<Error> = AxiosError<Error>;
+
+// Wrap the body type if needed (e.g., for case transformation)
+export type BodyType<BodyData> = CamelCase<BodyData>;
+```
+
+## Angular HTTP Client
+
+For Angular, configure a mutator for the HttpClient:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        mutator: 'src/api/mutator/response-type.ts',
+      },
+    },
+  },
+});
+```
+
+```ts title="response-type.ts"
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+const responseType = <Result>(
+  {
+    url,
+    method,
+    params,
+    data,
+  }: {
+    url: string;
+    method: string;
+    params?: any;
+    data?: any;
+    headers?: any;
+  },
+  http: HttpClient,
+): Observable<Result> =>
+  http.request<Result>(method, url, {
+    params,
+    body: data,
+    responseType: 'json',
+  });
+
+export default responseType;
+```
+
+## Full Examples
+
+- [Next.js with Fetch](https://github.com/orval-labs/orval/tree/master/samples/next-app-with-fetch)
+- [Angular App](https://github.com/orval-labs/orval/tree/master/samples/angular-app)
