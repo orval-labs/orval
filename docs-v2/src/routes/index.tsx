@@ -103,9 +103,9 @@ function Home() {
 
   return (
     <HomeLayout {...baseOptions()}>
-      <div className="min-h-screen">
+      <div className="min-h-screen overflow-x-hidden">
         {/* Hero Section */}
-        <section className="relative overflow-visible">
+        <section className="relative overflow-hidden">
           {/* Gradient background */}
           <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a2e] via-[#16082a] to-[#0d0518] -z-10" />
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#6F40C9]/20 rounded-full blur-3xl -z-10" />
@@ -200,8 +200,8 @@ function Home() {
         </section>
 
         {/* Code Transform Section */}
-        <section className="py-20 bg-[#0d0518]">
-          <div className="max-w-6xl mx-auto px-4">
+        <section className="py-20 bg-[#0d0518] overflow-hidden">
+          <div className="max-w-6xl mx-auto px-4 overflow-hidden">
             <div className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 From Spec to Code in Seconds
@@ -214,21 +214,21 @@ function Home() {
 
             <div className="grid md:grid-cols-2 gap-4 md:gap-8 pt-4">
               {/* Input */}
-              <div className="relative">
+              <div className="relative min-w-0">
                 <div className="absolute -top-3 left-4 px-3 py-1 bg-[#6F40C9] text-white text-xs font-medium rounded z-10">
                   petstore.yaml
                 </div>
-                <div className="rounded-xl bg-black/60 border border-white/10 overflow-hidden [&_pre]:!bg-transparent [&_pre]:!p-4 [&_pre]:!m-0">
+                <div className="rounded-xl bg-black/60 border border-white/10 overflow-x-auto [&_pre]:!bg-transparent [&_pre]:!p-4 [&_pre]:!m-0 [&_pre]:!text-sm [&_pre]:!leading-relaxed">
                   <DynamicCodeBlock lang="yaml" code={inputCode} />
                 </div>
               </div>
 
               {/* Output */}
-              <div className="relative">
+              <div className="relative min-w-0">
                 <div className="absolute -top-3 left-4 px-3 py-1 bg-[#F79D53] text-white text-xs font-medium rounded z-10">
                   petstore.ts
                 </div>
-                <div className="rounded-xl bg-black/60 border border-white/10 overflow-hidden [&_pre]:!bg-transparent [&_pre]:!p-4 [&_pre]:!m-0">
+                <div className="rounded-xl bg-black/60 border border-white/10 overflow-x-auto [&_pre]:!bg-transparent [&_pre]:!p-4 [&_pre]:!m-0 [&_pre]:!text-sm [&_pre]:!leading-relaxed">
                   <DynamicCodeBlock lang="typescript" code={outputCode} />
                 </div>
               </div>
