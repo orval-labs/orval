@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router';
 import { DynamicCodeBlock } from 'fumadocs-ui/components/dynamic-codeblock';
 import { HomeLayout } from 'fumadocs-ui/layouts/home';
 
+import { ParticleNetwork } from '@/components/particle-network';
 import { baseOptions } from '@/lib/layout.shared';
 import { getSponsors } from '@/lib/sponsors';
 
@@ -109,6 +110,11 @@ function Home() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a2e] via-[#16082a] to-[#0d0518] -z-10" />
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#6F40C9]/20 rounded-full blur-3xl -z-10" />
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#F79D53]/10 rounded-full blur-3xl -z-10" />
+
+          {/* Interactive particle network */}
+          <div className="absolute inset-0 -z-5">
+            <ParticleNetwork className="w-full h-full" particleCount={100} />
+          </div>
 
           <div className="max-w-6xl mx-auto px-4 py-24 md:py-32">
             <div className="text-center">
