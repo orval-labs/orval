@@ -7,7 +7,12 @@ Install Orval as a dev dependency in your project.
 
 ## Package Managers
 
-<Tabs items={["npm", "yarn", "pnpm", "bun"]}>
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bun add -d orval
+```
+  </Tab>
   <Tab value="npm">
 ```bash
 npm install orval -D
@@ -23,28 +28,61 @@ yarn add orval -D
 pnpm add orval -D
 ```
   </Tab>
-  <Tab value="bun">
-```bash
-bun add orval -D
-```
-  </Tab>
 </Tabs>
 
 ## Global Installation
 
 You can also install Orval globally:
 
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bun add -g orval
+```
+  </Tab>
+  <Tab value="npm">
 ```bash
 npm install orval -g
 ```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn global add orval
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm add orval -g
+```
+  </Tab>
+</Tabs>
 
 ## Verify Installation
 
 After installation, verify that Orval is installed correctly:
 
+<Tabs items={["bun", "npm", "yarn", "pnpm"]}>
+  <Tab value="bun">
+```bash
+bunx orval --version
+```
+  </Tab>
+  <Tab value="npm">
 ```bash
 npx orval --version
 ```
+  </Tab>
+  <Tab value="yarn">
+```bash
+yarn orval --version
+```
+  </Tab>
+  <Tab value="pnpm">
+```bash
+pnpm orval --version
+```
+  </Tab>
+</Tabs>
 
 ## Next Steps
 

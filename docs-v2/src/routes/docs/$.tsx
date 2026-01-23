@@ -10,6 +10,7 @@ import {
   DocsTitle,
 } from 'fumadocs-ui/layouts/docs/page';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import { Suspense } from 'react';
 
 import { baseOptions } from '@/lib/layout.shared';
@@ -55,6 +56,8 @@ const clientLoader = browserCollections.docs.createClientLoader({
           <MDX
             components={{
               ...defaultMdxComponents,
+              Tab,
+              Tabs,
             }}
           />
         </DocsBody>
