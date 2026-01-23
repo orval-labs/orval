@@ -200,11 +200,17 @@ export function getObject({
 
         const propValue = needsValueImport ? alias : (constLiteral ?? alias);
 
+        const finalPropValue = isRequired
+          ? propValue
+          : context.output.override.useNullForOptional === true
+            ? `${propValue} | null`
+            : propValue;
+
         acc.value += `\n  ${doc ? `${doc}  ` : ''}${
           isReadOnly && !context.output.override.suppressReadonlyModifier
             ? 'readonly '
             : ''
-        }${getKey(key)}${isRequired ? '' : '?'}: ${propValue};`;
+        }${getKey(key)}${isRequired ? '' : '?'}: ${finalPropValue};`;
         acc.schemas.push(...resolvedValue.schemas);
         acc.dependencies.push(...resolvedValue.dependencies);
 
