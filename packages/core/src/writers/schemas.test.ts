@@ -555,7 +555,10 @@ describe('writeSchemas indexFiles', () => {
 
       await writeSchemas({
         schemaPath,
-        schemas: [createMockSchema('UserDto'), createMockSchema('UserListResponse')],
+        schemas: [
+          createMockSchema('UserDto'),
+          createMockSchema('UserListResponse'),
+        ],
         target: 'src/api',
         namingConvention: NamingConvention.CAMEL_CASE,
         fileExtension: '.ts',
