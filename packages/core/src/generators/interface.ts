@@ -26,6 +26,8 @@ export function generateInterface({
     context,
   });
   const isEmptyObject = scalar.value === '{}';
+  const shouldUseTypeAlias =
+    context?.output.override?.useTypeOverInterfaces || scalar.useTypeAlias;
 
   let model = '';
 
@@ -36,10 +38,7 @@ export function generateInterface({
       '// eslint-disable-next-line @typescript-eslint/no-empty-interface\n';
   }
 
-  if (
-    scalar.type === 'object' &&
-    !context?.output.override?.useTypeOverInterfaces
-  ) {
+  if (scalar.type === 'object' && !shouldUseTypeAlias) {
     if (
       scalar.type === 'object' &&
       schema.properties &&
