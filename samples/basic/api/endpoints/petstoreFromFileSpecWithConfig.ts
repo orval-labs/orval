@@ -4,7 +4,6 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 export type PetCallingCode =
@@ -86,7 +85,7 @@ export const listPets = <TData = AxiosResponse<PetsArray>>(
   params?: ListPetsParams,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/pets`, {
+  return axiosInstance.get(`/pets`, {
     ...options,
     params: { ...params, ...options?.params },
   });
@@ -99,7 +98,7 @@ export const createPets = <TData = AxiosResponse<void>>(
   createPetsBody: CreatePetsBody,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.post(`/pets`, createPetsBody, options);
+  return axiosInstance.post(`/pets`, createPetsBody, options);
 };
 
 /**
@@ -109,7 +108,7 @@ export const listPetsNestedArray = <TData = AxiosResponse<PetsNestedArray>>(
   params?: ListPetsNestedArrayParams,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/pets-nested-array`, {
+  return axiosInstance.get(`/pets-nested-array`, {
     ...options,
     params: { ...params, ...options?.params },
   });
@@ -122,7 +121,7 @@ export const showPetById = <TData = AxiosResponse<Pet>>(
   petId: string,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/pets/${petId}`, options);
+  return axiosInstance.get(`/pets/${petId}`, options);
 };
 
 export type ListPetsResult = AxiosResponse<PetsArray>;

@@ -4,7 +4,6 @@
  * Swagger Petstore
  * OpenAPI spec version: 1.0.0
  */
-import axios from 'axios';
 import type { AxiosRequestConfig, AxiosResponse } from 'axios';
 
 import type {
@@ -40,7 +39,7 @@ export const createPets = <TData = AxiosResponse<void>>(
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.post(`/v${version}/pets`, createPetsBody, options);
+  return axiosInstance.post(`/v${version}/pets`, createPetsBody, options);
 };
 
 /**
@@ -51,7 +50,7 @@ export const listPetsNestedArray = <TData = AxiosResponse<PetsNestedArray>>(
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/v${version}/pets-nested-array`, {
+  return axiosInstance.get(`/v${version}/pets-nested-array`, {
     ...options,
     params: { ...params, ...options?.params },
   });
@@ -65,7 +64,7 @@ export const showPetById = <TData = AxiosResponse<Pet>>(
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/v${version}/pets/${petId}`, options);
+  return axiosInstance.get(`/v${version}/pets/${petId}`, options);
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
