@@ -12,5 +12,12 @@
 	"main": "@tanstack/react-start/server-entry",
 	"observability": {
 		"enabled": true
-	}
+	},
+	"services": [
+		{
+			"binding": "ORVAL_PLAYGROUND",
+			"service": "orval-playground",
+			"remote": true
+		}
+	]
 }

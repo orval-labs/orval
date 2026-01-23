@@ -16,8 +16,11 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@tanstack/react-query": "^5.90.20",
     "@tanstack/react-router": "1.147.1",
     "@tanstack/react-router-devtools": "1.147.1",
+    "@tanstack/react-router-ssr-query": "^1.154.14",
     "@tanstack/react-start": "1.147.1",
     "fumadocs-core": "16.4.7",
     "fumadocs-mdx": "14.2.6",
@@ -26,6 +29,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "tailwind-merge": "^3.4.0",
+    "use-debounce": "^10.1.0",
     "vite": "^7.3.1"
   },
   "devDependencies": {

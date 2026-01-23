@@ -28,6 +28,10 @@ export function baseOptions(): BaseLayoutProps {
         active: 'nested-url',
       },
       {
+        text: 'Playground',
+        url: '/playground',
+      },
+      {
         text: 'GitHub',
         url: siteConfig.repoUrl,
         external: true,

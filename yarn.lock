@@ -5076,6 +5076,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@monaco-editor/loader@npm:^1.5.0":
+  version: 1.7.0
+  resolution: "@monaco-editor/loader@npm:1.7.0"
+  dependencies:
+    state-local: "npm:^1.0.6"
+  checksum: 10c0/1fd3579cb09b669493cf553dfc0723a93483140a44353ce9a739827edfa7b2c6541b254024d15c48176ece749ef666b6d16cce6cf0e4396c7fa1c5a48012d08a
+  languageName: node
+  linkType: hard
+
+"@monaco-editor/react@npm:^4.7.0":
+  version: 4.7.0
+  resolution: "@monaco-editor/react@npm:4.7.0"
+  dependencies:
+    "@monaco-editor/loader": "npm:^1.5.0"
+  peerDependencies:
+    monaco-editor: ">= 0.25.0 < 1"
+    react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+    react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 10c0/a4e91c6eda1a71f5fd23871bd801de435490ccbc43934d23cba65cefe2be7e9d02c9a57c4ef80fc9fe99e4d4deea51e5db19cb4e0ecf3f51818dda0eb9cdbf12
+  languageName: node
+  linkType: hard
+
 "@msgpackr-extract/msgpackr-extract-darwin-arm64@npm:3.0.3":
   version: 3.0.3
   resolution: "@msgpackr-extract/msgpackr-extract-darwin-arm64@npm:3.0.3"
@@ -8055,10 +8077,28 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@tanstack/query-core@npm:5.90.20":
+  version: 5.90.20
+  resolution: "@tanstack/query-core@npm:5.90.20"
+  checksum: 10c0/70637dfcecd5ed9d810629aa27f1632af8a4bcd083e75cf29408d058c32f8234704a3231ec280e2c4016ea0485b16124fdf70ab97793b5a7b670f43f7659e9fe
+  languageName: node
+  linkType: hard
+
 "@tanstack/query-devtools@npm:5.91.1":
   version: 5.91.1
   resolution: "@tanstack/query-devtools@npm:5.91.1"
   checksum: 10c0/856d85d249fd46a9f191a345f4446dcfb11a6b48d664f18f5bf480d0802fde5089ca7ae39e26e3445256a13f12f9b77b8639c33ad26c9d1e4b4c56a00fdb9b8c
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-query@npm:^5.90.20":
+  version: 5.90.20
+  resolution: "@tanstack/react-query@npm:5.90.20"
+  dependencies:
+    "@tanstack/query-core": "npm:5.90.20"
+  peerDependencies:
+    react: ^18 || ^19
+  checksum: 10c0/a8da6455d02ec769afc9ad528ec7b576d0becedfb5349e32592b9991a3c71a162f7115c054116d0101b55a473c689c06f8b03a7f56a9904f4329f75370e5a3f4
   languageName: node
   linkType: hard
 
@@ -8087,6 +8127,21 @@ __metadata:
     "@tanstack/router-core":
       optional: true
   checksum: 10c0/b23e4619434428f886a47593e392ca7d1345131956c916d79538c15500ed4856c264429b013df88f46587488fbb4f2ca4ff4210181cad10c4cd384106782af1b
+  languageName: node
+  linkType: hard
+
+"@tanstack/react-router-ssr-query@npm:^1.154.14":
+  version: 1.154.14
+  resolution: "@tanstack/react-router-ssr-query@npm:1.154.14"
+  dependencies:
+    "@tanstack/router-ssr-query-core": "npm:1.154.14"
+  peerDependencies:
+    "@tanstack/query-core": ">=5.90.0"
+    "@tanstack/react-query": ">=5.90.0"
+    "@tanstack/react-router": ">=1.127.0"
+    react: ">=18.0.0 || >=19.0.0"
+    react-dom: ">=18.0.0 || >=19.0.0"
+  checksum: 10c0/9488de84947c31254990bfa55c8de930ae016ef9ab0acfa24f55c8a6433ce61d486500e933dbf84bf6375e85b53ab633357016d72aaa3f0111103af879166b19
   languageName: node
   linkType: hard
 
@@ -8257,6 +8312,16 @@ __metadata:
     webpack:
       optional: true
   checksum: 10c0/be066009bbf27d59fbeb175ea364c9e4eb6548bd7afa449527e2d4bbc4a33d5648d28b683c6fb41d712c4665aa307bf62efa9bee0a245d43b0ec60e3109ee7a7
+  languageName: node
+  linkType: hard
+
+"@tanstack/router-ssr-query-core@npm:1.154.14":
+  version: 1.154.14
+  resolution: "@tanstack/router-ssr-query-core@npm:1.154.14"
+  peerDependencies:
+    "@tanstack/query-core": ">=5.90.0"
+    "@tanstack/router-core": ">=1.127.0"
+  checksum: 10c0/827ff18bd413a378879537d55f700db39aa8e93fcfba5f9c831ff8de9dff2e0bf283a060d36f42c85fb8d2890eab3758024cd92ad658c05e69241270d38c0d18
   languageName: node
   linkType: hard
 
@@ -13353,9 +13418,12 @@ __metadata:
   dependencies:
     "@biomejs/biome": "npm:^2.3.11"
     "@cloudflare/vite-plugin": "npm:^1.21.2"
+    "@monaco-editor/react": "npm:^4.7.0"
     "@tailwindcss/vite": "npm:^4.1.18"
+    "@tanstack/react-query": "npm:^5.90.20"
     "@tanstack/react-router": "npm:1.147.1"
     "@tanstack/react-router-devtools": "npm:1.147.1"
+    "@tanstack/react-router-ssr-query": "npm:^1.154.14"
     "@tanstack/react-start": "npm:1.147.1"
     "@types/mdx": "npm:^2.0.13"
     "@types/node": "npm:^25.0.5"
@@ -13371,6 +13439,7 @@ __metadata:
     tailwind-merge: "npm:^3.4.0"
     tailwindcss: "npm:^4.1.18"
     typescript: "npm:^5.9.3"
+    use-debounce: "npm:^10.1.0"
     vite: "npm:^7.3.1"
     vite-tsconfig-paths: "npm:^6.0.4"
     wrangler: "npm:^4.46.0"
@@ -25918,6 +25987,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"state-local@npm:^1.0.6":
+  version: 1.0.7
+  resolution: "state-local@npm:1.0.7"
+  checksum: 10c0/8dc7daeac71844452fafb514a6d6b6f40d7e2b33df398309ea1c7b3948d6110c57f112b7196500a10c54fdde40291488c52c875575670fb5c819602deca48bd9
+  languageName: node
+  linkType: hard
+
 "static-eval@npm:2.0.2":
   version: 2.0.2
   resolution: "static-eval@npm:2.0.2"
@@ -28155,6 +28231,15 @@ __metadata:
     "@types/react":
       optional: true
   checksum: 10c0/f887488c6e6075cdad4962979da1714b217bcb1ee009a9e57ce9a844bcfc4c3a99e93983dfc2e5af9e0913824d24e730090ff255e902c516dcb58d2d3837e01c
+  languageName: node
+  linkType: hard
+
+"use-debounce@npm:^10.1.0":
+  version: 10.1.0
+  resolution: "use-debounce@npm:10.1.0"
+  peerDependencies:
+    react: "*"
+  checksum: 10c0/1d2c9ab71be283f7ea9f9c78f3574aeb6ff6fbcb18a9c5daf7f633521a8978f14d190016d39fd773227e40e9929e223677bb311343dadf33ee0763ef24bff510
   languageName: node
   linkType: hard
 
