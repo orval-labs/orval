@@ -44,6 +44,19 @@ function getIndexSignatureKey(item: OpenApiSchemaObject): string {
   return 'string';
 }
 
+function getPropertyNamesRecordType(
+  item: OpenApiSchemaObject,
+  valueType: string,
+): string | undefined {
+  const enumValues = getPropertyNamesEnum(item);
+  if (!enumValues || enumValues.length === 0) {
+    return undefined;
+  }
+
+  const keyType = enumValues.map((val) => `'${val}'`).join(' | ');
+  return `Partial<Record<${keyType}, ${valueType}>>`;
+}
+
 interface GetObjectOptions {
   item: OpenApiSchemaObject;
   name?: string;
@@ -216,16 +229,34 @@ export function getObject({
 
         if (arr.length - 1 === index) {
           if (item.additionalProperties) {
-            const keyType = getIndexSignatureKey(item);
             if (isBoolean(item.additionalProperties)) {
-              acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
+              const recordType = getPropertyNamesRecordType(item, 'unknown');
+              if (recordType) {
+                acc.value += '\n}';
+                acc.value += ` & ${recordType}`;
+                acc.useTypeAlias = true;
+              } else {
+                const keyType = getIndexSignatureKey(item);
+                acc.value += `\n  [key: ${keyType}]: unknown;\n }`;
+              }
             } else {
               const resolvedValue = resolveValue({
                 schema: item.additionalProperties,
                 name,
                 context,
               });
-              acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
+              const recordType = getPropertyNamesRecordType(
+                item,
+                resolvedValue.value,
+              );
+              if (recordType) {
+                acc.value += '\n}';
+                acc.value += ` & ${recordType}`;
+                acc.useTypeAlias = true;
+              } else {
+                const keyType = getIndexSignatureKey(item);
+                acc.value += `\n  [key: ${keyType}]: ${resolvedValue.value};\n}`;
+              }
               acc.dependencies.push(...resolvedValue.dependencies);
             }
           } else {
@@ -246,6 +277,7 @@ export function getObject({
         isRef: false,
         schema: {},
         hasReadonlyProps: false,
+        useTypeAlias: false,
         dependencies: [],
         example: item.example,
         examples: resolveExampleRefs(item.examples, context),
@@ -254,8 +286,22 @@ export function getObject({
   }
 
   if (item.additionalProperties) {
-    const keyType = getIndexSignatureKey(item);
     if (isBoolean(item.additionalProperties)) {
+      const recordType = getPropertyNamesRecordType(item, 'unknown');
+      if (recordType) {
+        return {
+          value: recordType + nullable,
+          imports: [],
+          schemas: [],
+          isEnum: false,
+          type: 'object',
+          isRef: false,
+          hasReadonlyProps: item.readOnly || false,
+          useTypeAlias: true,
+          dependencies: [],
+        };
+      }
+      const keyType = getIndexSignatureKey(item);
       return {
         value: `{ [key: ${keyType}]: unknown }` + nullable,
         imports: [],
@@ -264,6 +310,7 @@ export function getObject({
         type: 'object',
         isRef: false,
         hasReadonlyProps: item.readOnly || false,
+        useTypeAlias: false,
         dependencies: [],
       };
     }
@@ -272,6 +319,21 @@ export function getObject({
       name,
       context,
     });
+    const recordType = getPropertyNamesRecordType(item, resolvedValue.value);
+    if (recordType) {
+      return {
+        value: recordType + nullable,
+        imports: resolvedValue.imports ?? [],
+        schemas: resolvedValue.schemas ?? [],
+        isEnum: false,
+        type: 'object',
+        isRef: false,
+        hasReadonlyProps: resolvedValue.hasReadonlyProps,
+        useTypeAlias: true,
+        dependencies: resolvedValue.dependencies,
+      };
+    }
+    const keyType = getIndexSignatureKey(item);
     return {
       value: `{[key: ${keyType}]: ${resolvedValue.value}}` + nullable,
       imports: resolvedValue.imports ?? [],
@@ -280,6 +342,7 @@ export function getObject({
       type: 'object',
       isRef: false,
       hasReadonlyProps: resolvedValue.hasReadonlyProps,
+      useTypeAlias: false,
       dependencies: resolvedValue.dependencies,
     };
   }
@@ -300,6 +363,20 @@ export function getObject({
 
   const keyType =
     item.type === 'object' ? getIndexSignatureKey(item) : 'string';
+  const recordType = getPropertyNamesRecordType(item, 'unknown');
+  if (item.type === 'object' && recordType) {
+    return {
+      value: recordType + nullable,
+      imports: [],
+      schemas: [],
+      isEnum: false,
+      type: 'object',
+      isRef: false,
+      hasReadonlyProps: item.readOnly || false,
+      useTypeAlias: true,
+      dependencies: [],
+    };
+  }
   return {
     value:
       (item.type === 'object' ? `{ [key: ${keyType}]: unknown }` : 'unknown') +
@@ -310,6 +387,7 @@ export function getObject({
     type: 'object',
     isRef: false,
     hasReadonlyProps: item.readOnly || false,
+    useTypeAlias: false,
     dependencies: [],
   };
 }

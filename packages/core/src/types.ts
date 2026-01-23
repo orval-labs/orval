@@ -1137,6 +1137,7 @@ export const SchemaType = {
 
 export type ScalarValue = {
   value: string;
+  useTypeAlias?: boolean;
   isEnum: boolean;
   hasReadonlyProps: boolean;
   type: SchemaType;
