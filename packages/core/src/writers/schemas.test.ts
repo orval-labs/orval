@@ -1,3 +1,7 @@
+import os from 'node:os';
+import path from 'node:path';
+
+import fs from 'fs-extra';
 import { describe, expect, it } from 'vitest';
 
 import { type GeneratorSchema, NamingConvention } from '../types';
@@ -5,6 +9,7 @@ import {
   fixCrossDirectoryImports,
   fixRegularSchemaImports,
   splitSchemasByType,
+  writeSchemas,
 } from './schemas';
 
 const createMockSchema = (name: string): GeneratorSchema => ({
@@ -524,5 +529,49 @@ describe('fixRegularSchemaImports', () => {
       { name: 'User' },
       { name: 'BatchRequestBody', importPath: './operations/batchRequestBody' },
     ]);
+  });
+});
+
+describe('writeSchemas indexFiles', () => {
+  it('merges index exports across multiple runs in the same schema path', async () => {
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), 'orval-schema-index-'),
+    );
+    const schemaPath = path.join(tempDir, 'schemas');
+
+    try {
+      await writeSchemas({
+        schemaPath,
+        schemas: [
+          createMockSchema('CreateUserRequest'),
+          createMockSchema('CreateUserResponse'),
+        ],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// command api',
+        indexFiles: true,
+      });
+
+      await writeSchemas({
+        schemaPath,
+        schemas: [createMockSchema('UserDto'), createMockSchema('UserListResponse')],
+        target: 'src/api',
+        namingConvention: NamingConvention.CAMEL_CASE,
+        fileExtension: '.ts',
+        header: '// query api',
+        indexFiles: true,
+      });
+
+      const indexPath = path.join(schemaPath, 'index.ts');
+      const content = await fs.readFile(indexPath, 'utf8');
+
+      expect(content).toContain("export * from './createUserRequest';");
+      expect(content).toContain("export * from './createUserResponse';");
+      expect(content).toContain("export * from './userDto';");
+      expect(content).toContain("export * from './userListResponse';");
+    } finally {
+      await fs.remove(tempDir);
+    }
   });
 });
