@@ -146,7 +146,7 @@ function Home() {
                 </span>
               </h1>
 
-              <p className="text-lg md:text-xl text-gray-400 max-w-2xl lg:mx-0 mx-auto mb-10">
+              <p className="text-lg md:text-xl text-gray-200 font-light max-w-2xl lg:mx-0 mx-auto mb-10" style={{ fontFamily: 'Outfit, sans-serif' }}>
                 Transform your OpenAPI specs into type-safe clients, mocks, and
                 validators. Stop writing boilerplate. Start shipping features.
               </p>

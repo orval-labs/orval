@@ -44,6 +44,10 @@ export const Route = createRootRoute({
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'icon', href: '/images/favicon.svg', type: 'image/svg+xml' },
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap',
+      },
     ],
   }),
   component: RootComponent,
