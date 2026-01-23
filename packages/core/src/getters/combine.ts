@@ -3,6 +3,7 @@ import { unique } from 'remeda';
 import { resolveExampleRefs, resolveObject } from '../resolvers';
 import {
   type ContextSpec,
+  EnumGeneration,
   type GeneratorImport,
   type GeneratorSchema,
   type OpenApiSchemaObject,
@@ -10,11 +11,7 @@ import {
   SchemaType,
 } from '../types';
 import { getNumberWord, isSchema, pascal } from '../utils';
-import {
-  getEnumDescriptions,
-  getEnumImplementation,
-  getEnumNames,
-} from './enum';
+import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getScalar } from './scalar';
 
@@ -149,7 +146,7 @@ export function combineSchemas({
 }): ScalarValue {
   const items = schema[separator] ?? [];
 
-  const resolvedData = items.reduce<CombinedData>(
+  const resolvedData: CombinedData[] = items.reduce<CombinedData>(
     (acc, subSchema) => {
       // aliasCombinedTypes (v7 compat): create intermediate types like ResponseAnyOf
       // v8 default: propName stays undefined so combined types are inlined directly
@@ -223,14 +220,33 @@ export function combineSchemas({
   );
 
   const isAllEnums = resolvedData.isEnum.every(Boolean);
+  const isAvailableToGenerateCombinedEnum =
+    isAllEnums &&
+    name &&
+    items.length > 1 &&
+    context.output.override.enumGenerationType !== EnumGeneration.UNION;
 
-  // For oneOf, we should generate union types instead of const objects
-  // even when all subschemas are enums
-  if (isAllEnums && name && items.length > 1 && separator !== 'oneOf') {
-    const newEnum = `export const ${pascal(name)} = ${getCombineEnumValue(resolvedData)}`;
+  // Only generate a combined const when enum values exist at runtime.
+  if (isAvailableToGenerateCombinedEnum) {
+    const {
+      value: combinedEnumValue,
+      valueImports,
+      hasNull,
+    } = getCombinedEnumValue(
+      resolvedData.values.map((value, index) => ({
+        value,
+        isRef: resolvedData.isRef[index],
+        schema: resolvedData.originalSchema[index],
+      })),
+    );
+    const newEnum = `export const ${pascal(name)} = ${combinedEnumValue}`;
+    const valueImportSet = new Set(valueImports);
+    const enumNullSuffix =
+      hasNull && !nullable.includes('null') ? ' | null' : '';
+    const typeSuffix = `${nullable}${enumNullSuffix}`;
 
     return {
-      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}] ${nullable}`,
+      value: `typeof ${pascal(name)}[keyof typeof ${pascal(name)}]${typeSuffix}`,
       imports: [
         {
           name: pascal(name),
@@ -239,10 +255,14 @@ export function combineSchemas({
       schemas: [
         ...resolvedData.schemas,
         {
-          imports: resolvedData.imports.map<GeneratorImport>((toImport) => ({
-            ...toImport,
-            values: true,
-          })),
+          imports: resolvedData.imports
+            .filter((toImport) =>
+              valueImportSet.has(toImport.alias ?? toImport.name),
+            )
+            .map<GeneratorImport>((toImport) => ({
+              ...toImport,
+              values: true,
+            })),
           model: newEnum,
           name: name,
         },
@@ -309,32 +329,3 @@ export function combineSchemas({
     examples: resolveExampleRefs(schema.examples, context),
   };
 }
-
-const getCombineEnumValue = ({
-  values,
-  isRef,
-  originalSchema,
-}: CombinedData) => {
-  if (values.length === 1) {
-    if (isRef[0]) {
-      return values[0];
-    }
-
-    return `{${getEnumImplementation(values[0])}} as const`;
-  }
-
-  const enums = values
-    .map((e, i) => {
-      if (isRef[i]) {
-        return `...${e},`;
-      }
-
-      const names = getEnumNames(originalSchema[i]);
-      const descriptions = getEnumDescriptions(originalSchema[i]);
-
-      return getEnumImplementation(e, names, descriptions);
-    })
-    .join('');
-
-  return `{${enums}} as const`;
-};
