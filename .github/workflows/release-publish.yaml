@@ -46,6 +46,20 @@ jobs:
           yarn config set npmRegistryServer "https://registry.npmjs.org"
           yarn config set npmAuthToken ${{ secrets.NPM_TOKEN }}
 
+      - name: Fail if unsafe lifecycle scripts exist
+        run: |
+          echo "Checking for unsafe lifecycle scripts in workspaces..."
+          for pkg in packages/*/package.json; do
+            if [ -f "$pkg" ]; then
+              if jq -e '.scripts // {} | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg" > /dev/null; then
+                echo "! Unsafe lifecycle script found in $pkg"
+                jq '.scripts // {} | to_entries[] | select(.key | test("^(prepack|prepare|prepublish|prepublishOnly|postinstall)$"))' "$pkg"
+                exit 1
+              fi
+            fi
+          done
+          echo "No unsafe lifecycle scripts detected."
+
       - name: Publish workspaces to npm
         run: yarn workspaces foreach --all --no-private -v npm publish --access public --tolerate-republish
 
