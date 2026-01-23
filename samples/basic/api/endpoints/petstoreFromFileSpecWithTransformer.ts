@@ -21,6 +21,8 @@ import type { RequestHandlerOptions } from 'msw';
 import type { Pet, PetsArray, PetsNestedArray } from '../model';
 
 import listPetsMutator from '../mutator/response-type';
+const axiosInstance = axios;
+
 /**
  * @summary List all pets
  */
@@ -40,7 +42,7 @@ export const createPets = <TData = AxiosResponse<void>>(
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.post(`/v${version}/pets`, createPetsBody, options);
+  return axiosInstance.post(`/v${version}/pets`, createPetsBody, options);
 };
 
 /**
@@ -51,7 +53,7 @@ export const listPetsNestedArray = <TData = AxiosResponse<PetsNestedArray>>(
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/v${version}/pets-nested-array`, {
+  return axiosInstance.get(`/v${version}/pets-nested-array`, {
     ...options,
     params: { ...params, ...options?.params },
   });
@@ -65,7 +67,7 @@ export const showPetById = <TData = AxiosResponse<Pet>>(
   version: number = 1,
   options?: AxiosRequestConfig,
 ): Promise<TData> => {
-  return axios.get(`/v${version}/pets/${petId}`, options);
+  return axiosInstance.get(`/v${version}/pets/${petId}`, options);
 };
 
 type AwaitedInput<T> = PromiseLike<T> | T;
