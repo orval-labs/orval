@@ -9,8 +9,9 @@
   },
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "next build --webpack && yarn sitemap",
+    "build": "next build --webpack && yarn sitemap && yarn llms",
     "start": "next start",
+    "llms": "node ./scripts/build-llms.js",
     "sitemap": "node ./scripts/build-sitemap.js"
   },
   "dependencies": {

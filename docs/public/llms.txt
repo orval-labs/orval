@@ -1,0 +1,54 @@
+# Orval
+
+> Orval generates type-safe TypeScript clients, types, and mocks from OpenAPI v3 or Swagger v2 specs.
+
+Orval provides a CLI and programmatic API to generate clients and schemas. It supports multiple HTTP clients and integrations (fetch, axios, React Query, SWR, MSW, Zod, and more). Use the docs below for usage, configuration, and integrations.
+
+## Getting Started
+
+- [Overview](https://orval.dev/overview)
+- [Installation](https://orval.dev/installation)
+- [Quick Start](https://orval.dev/quick-start)
+
+## Guides
+
+- [Custom Base URL](https://orval.dev/guides/set-base-url)
+- [Custom HTTP Client](https://orval.dev/guides/custom-client)
+- [Custom Axios Instance](https://orval.dev/guides/custom-axios)
+- [Basics](https://orval.dev/guides/basics)
+- [Fetch Client](https://orval.dev/guides/fetch-client)
+- [Fetch API](https://orval.dev/guides/fetch)
+- [React Query](https://orval.dev/guides/react-query)
+- [Svelte Query](https://orval.dev/guides/svelte-query)
+- [Solid Query](https://orval.dev/guides/solid-query)
+- [SolidStart](https://orval.dev/guides/solid-start)
+- [Vue Query](https://orval.dev/guides/vue-query)
+- [Angular](https://orval.dev/guides/angular)
+- [Angular Query](https://orval.dev/guides/angular-query)
+- [SWR](https://orval.dev/guides/swr)
+- [MSW](https://orval.dev/guides/msw)
+- [Zod](https://orval.dev/guides/zod)
+- [Client with Zod](https://orval.dev/guides/client-with-zod)
+- [Hono](https://orval.dev/guides/hono)
+- [Enum Names](https://orval.dev/guides/enums)
+- [MCP Server](https://orval.dev/guides/mcp)
+- [Stream NDJSON](https://orval.dev/guides/stream-ndjson)
+
+## API Reference
+
+- [Configuration: Overview](https://orval.dev/reference/configuration/overview)
+- [Configuration: Input](https://orval.dev/reference/configuration/input)
+- [Configuration: Output](https://orval.dev/reference/configuration/output)
+- [Configuration: Hooks](https://orval.dev/reference/configuration/hooks)
+- [Configuration: Full Example](https://orval.dev/reference/configuration/full-example)
+- [CLI](https://orval.dev/reference/cli)
+- [Integration](https://orval.dev/reference/integration)
+
+## Versions
+
+- [v8](https://orval.dev/versions/v8)
+
+## Optional
+
+- [GitHub Repository](https://github.com/orval-labs/orval)
+- [Discord](https://discord.gg/6fC2sjDU7w)
