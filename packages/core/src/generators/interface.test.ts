@@ -268,7 +268,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const want: GeneratorSchema[] = [
       {
         name: 'MyObject',
-        model: `export interface MyObject {[key: 'foo' | 'bar']: string}\n`,
+        model: `export type MyObject = Partial<Record<'foo' | 'bar', string>>;\n`,
         imports: [],
         dependencies: [],
         schema,
@@ -295,7 +295,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const want: GeneratorSchema[] = [
       {
         name: 'MyObject',
-        model: `export interface MyObject { [key: 'key1' | 'key2' | 'key3']: unknown }\n`,
+        model: `export type MyObject = Partial<Record<'key1' | 'key2' | 'key3', unknown>>;\n`,
         imports: [],
         dependencies: [],
         schema,
@@ -324,7 +324,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const want: GeneratorSchema[] = [
       {
         name: 'MyObject',
-        model: `export interface MyObject {[key: 'id' | 'name']: number}\n`,
+        model: `export type MyObject = Partial<Record<'id' | 'name', number>>;\n`,
         imports: [],
         dependencies: [],
         schema,
@@ -389,7 +389,9 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(got).toHaveLength(1);
     expect(got[0].name).toBe('MyObject');
     expect(got[0].model).toContain('existingProp: string');
-    expect(got[0].model).toContain("[key: 'allowed' | 'values']: number");
+    expect(got[0].model).toContain(
+      "} & Partial<Record<'allowed' | 'values', number>>",
+    );
   });
 
   it.each([
