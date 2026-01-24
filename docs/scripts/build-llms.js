@@ -100,5 +100,3 @@ const content = [INTRO, ...sections, optionalSection]
   .trimEnd();
 
 await writeFile(OUTPUT_PATH, `${content}\n`, 'utf8');
-
-console.log(`Wrote ${OUTPUT_PATH}`);
