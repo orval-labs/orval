@@ -7,12 +7,7 @@ const BASE_URL = process.env.LLMS_BASE_URL ?? 'https://orval.dev';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DOCS_ROOT = path.resolve(__dirname, '..');
-const MANIFEST_PATH = path.join(
-  DOCS_ROOT,
-  'src',
-  'manifests',
-  'manifest.json',
-);
+const MANIFEST_PATH = path.join(DOCS_ROOT, 'src', 'manifests', 'manifest.json');
 const SITE_CONFIG_PATH = path.join(DOCS_ROOT, 'src', 'siteConfig.ts');
 const OUTPUT_PATH = path.join(DOCS_ROOT, 'public', 'llms.txt');
 
