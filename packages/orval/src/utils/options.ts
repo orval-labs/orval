@@ -206,7 +206,6 @@ export async function normalizeOptions(
         ((outputOptions.client ?? client) === OutputClient.ANGULAR_QUERY
           ? OutputHttpClient.ANGULAR
           : OutputHttpClient.FETCH),
-      httpClientInjection: outputOptions.httpClientInjection ?? false,
       mode: normalizeOutputMode(outputOptions.mode ?? mode),
       mock,
       clean: outputOptions.clean ?? clean ?? false,

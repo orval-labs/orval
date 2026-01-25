@@ -35,18 +35,6 @@ const AXIOS_DEPENDENCIES: GeneratorDependency[] = [
   },
 ];
 
-// Type-only imports for factory mode (no runtime axios import needed)
-const AXIOS_FACTORY_DEPENDENCIES: GeneratorDependency[] = [
-  {
-    exports: [
-      { name: 'AxiosInstance' },
-      { name: 'AxiosRequestConfig' },
-      { name: 'AxiosResponse' },
-    ],
-    dependency: 'axios',
-  },
-];
-
 const PARAMS_SERIALIZER_DEPENDENCIES: GeneratorDependency[] = [
   {
     exports: [
@@ -71,14 +59,20 @@ export const getAxiosDependencies: ClientDependenciesBuilder = (
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
 ];
 
-// Factory mode always needs AxiosInstance type for function signature
-// When there's no mutator, also include AxiosRequestConfig and AxiosResponse
+// Factory mode needs axios default import (for optional parameter default value)
+// plus AxiosInstance type for the parameter type
 export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
   hasGlobalMutator,
   hasParamsSerializerOptions: boolean,
 ) => [
   {
     exports: [
+      {
+        name: 'axios',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
       { name: 'AxiosInstance' },
       ...(hasGlobalMutator
         ? []
@@ -202,10 +196,10 @@ const generateAxiosImplementation = (
       }>`,
   );
 
-  // In factory mode, axios is a parameter (AxiosInstance), so no .default needed
+  // In factory mode, use the axiosInstance parameter
   // In functions mode with global import, .default may be needed based on tsconfig
   const axiosRef = isFactoryMode
-    ? 'axios'
+    ? 'axiosInstance'
     : `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
 
   return `const ${operationName} = <TData = AxiosResponse<${
@@ -223,33 +217,29 @@ export const generateAxiosTitle: ClientTitleBuilder = (title) => {
   return `get${pascal(sanTitle)}`;
 };
 
-// Header for factory mode - axios is injected as parameter
+// Header for factory mode - axios is optional parameter with default value
 export const generateAxiosHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
   isMutator,
   noFunction,
-}) => `
-${
-  isRequestOptions && isMutator
-    ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
-    : ''
-}
-  ${noFunction ? '' : `export const ${title} = (axios: AxiosInstance) => {\n`}`;
+  output,
+}) => {
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    output?.tsconfig,
+  );
+  const axiosDefault = isSyntheticDefaultImportsAllowed
+    ? 'axios'
+    : 'axios.default';
 
-// Header for non-injection mode - uses global axios import
-export const generateAxiosHeaderNoInjection: ClientHeaderBuilder = ({
-  title,
-  isRequestOptions,
-  isMutator,
-  noFunction,
-}) => `
+  return `
 ${
   isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${noFunction ? '' : `export const ${title} = () => {\n`}`;
+  ${noFunction ? '' : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
+};
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
@@ -298,22 +288,9 @@ export const generateAxios = (
   return { implementation, imports };
 };
 
-// Factory mode generator - axios is injected as parameter
+// Factory mode generator - axios is optional parameter
 export const generateAxiosFactory: ClientBuilder = (verbOptions, options) => {
   const { implementation, imports } = generateAxios(verbOptions, options, true);
-  return { implementation, imports };
-};
-
-// Non-injection mode generator - uses global axios import
-export const generateAxiosNoInjection: ClientBuilder = (
-  verbOptions,
-  options,
-) => {
-  const { implementation, imports } = generateAxios(
-    verbOptions,
-    options,
-    false,
-  );
   return { implementation, imports };
 };
 
@@ -326,20 +303,11 @@ export const generateAxiosFunctions: ClientBuilder = (verbOptions, options) => {
   };
 };
 
-// axios client with factory pattern (axios injected as parameter)
+// axios client with factory pattern (axios as optional parameter)
 const axiosClientBuilder: ClientGeneratorsBuilder = {
   client: generateAxiosFactory,
   header: generateAxiosHeader,
   dependencies: getAxiosFactoryDependencies,
-  footer: generateAxiosFooter,
-  title: generateAxiosTitle,
-};
-
-// axios client without injection (uses global axios import, original behavior)
-const axiosClientNoInjectionBuilder: ClientGeneratorsBuilder = {
-  client: generateAxiosNoInjection,
-  header: generateAxiosHeaderNoInjection,
-  dependencies: getAxiosDependencies,
   footer: generateAxiosFooter,
   title: generateAxiosTitle,
 };
@@ -354,26 +322,15 @@ const axiosFunctionsClientBuilder: ClientGeneratorsBuilder = {
 
 export type AxiosBuilderOptions = {
   type?: 'axios' | 'axios-functions';
-  httpClientInjection?: boolean;
 };
 
 export const builder =
-  ({
-    type = 'axios-functions',
-    httpClientInjection = false,
-  }: AxiosBuilderOptions = {}) =>
+  ({ type = 'axios-functions' }: AxiosBuilderOptions = {}) =>
   () => {
     if (type === 'axios-functions') {
       return axiosFunctionsClientBuilder;
     }
-
-    // For 'axios' type, check httpClientInjection option
-    if (httpClientInjection) {
-      return axiosClientBuilder;
-    }
-
-    // Default: no injection (original axios behavior)
-    return axiosClientNoInjectionBuilder;
+    return axiosClientBuilder;
   };
 
 export default builder;

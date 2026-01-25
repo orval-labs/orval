@@ -37,10 +37,7 @@ const getGeneratorClient = (
   output: NormalizedOutputOptions,
 ) => {
   const GENERATOR_CLIENT: GeneratorClients = {
-    axios: axios({
-      type: 'axios',
-      httpClientInjection: output.httpClientInjection,
-    })(),
+    axios: axios({ type: 'axios' })(),
     'axios-functions': axios({ type: 'axios-functions' })(),
     angular: angular()(),
     'angular-query': query({ output, type: 'angular-query' })(),
