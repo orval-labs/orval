@@ -1129,6 +1129,29 @@ Create intermediate type aliases for `anyOf`/`oneOf`/`allOf`.
 
 Suppress `readonly` modifier on properties.
 
+### useNullForOptional
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Type optional properties as `T | null` instead of just `T`. Useful for JSON:API compatibility where `null` explicitly indicates "no value".
+
+```ts
+// Default (false)
+export interface Pet {
+  id: number;
+  name?: string;
+  tag?: string;
+}
+
+// With useNullForOptional: true
+export interface Pet {
+  id: number;
+  name?: string | null;
+  tag?: string | null;
+}
+```
+
 ---
 
 ## Other Options
