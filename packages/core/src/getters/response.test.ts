@@ -113,4 +113,78 @@ describe('getResponse', () => {
       expect(result.types.errors).toHaveLength(0);
     });
   });
+
+  describe('duplicate union types', () => {
+    it('should dedupe success types when multiple status codes reference the same schema', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Updated resource',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Pet' },
+            },
+          },
+        },
+        '201': {
+          description: 'Created resource',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Pet' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'createPets',
+        context: context as any,
+      });
+
+      expect(result.definition.success).toBe('Pet');
+    });
+
+    it('should dedupe error types when multiple error codes reference the same schema', () => {
+      const responses: OpenApiResponsesObject = {
+        '200': {
+          description: 'Success',
+          content: {
+            'application/json': { schema: { type: 'string' } },
+          },
+        },
+        '400': {
+          description: 'Bad request',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+            },
+          },
+        },
+        '401': {
+          description: 'Unauthorized',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+            },
+          },
+        },
+        '404': {
+          description: 'Not found',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/Error' },
+            },
+          },
+        },
+      };
+
+      const result = getResponse({
+        responses,
+        operationName: 'listPets',
+        context: context as any,
+      });
+
+      expect(result.definition.errors).toBe('Error');
+    });
+  });
 });
