@@ -1,6 +1,6 @@
 import Editor from '@monaco-editor/react';
 import { AlertCircle, Check, Copy } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import type { GenerateOutput } from '@/lib/playground/types';
 
@@ -19,6 +19,16 @@ export const OutputPanel = ({
 }: OutputPanelProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (!output?.length) {
+      setActiveIndex(0);
+      return;
+    }
+    if (activeIndex >= output.length) {
+      setActiveIndex(output.length - 1);
+    }
+  }, [output, activeIndex]);
 
   const activeFile = output?.[activeIndex];
   const content = error || activeFile?.content || '';
