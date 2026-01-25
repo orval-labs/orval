@@ -130,72 +130,76 @@ function Home() {
 
               {/* Content */}
               <div className="text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6F40C9]/10 border border-[#6F40C9]/20 text-[#6F40C9] text-sm mb-6">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#6F40C9] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#6F40C9]"></span>
-                </span>
-                v8 is now available
-              </div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#6F40C9]/10 border border-[#6F40C9]/20 text-[#6F40C9] text-sm mb-6">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#6F40C9] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#6F40C9]"></span>
+                  </span>
+                  v8 is now available
+                </div>
 
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
-                <span className="text-white">OpenAPI to</span>
-                <br />
-                <span className="bg-gradient-to-r from-[#6F40C9] via-[#9B6DD7] to-[#F79D53] bg-clip-text text-transparent">
-                  TypeScript Magic
-                </span>
-              </h1>
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6">
+                  <span className="text-white">OpenAPI to</span>
+                  <br />
+                  <span className="bg-gradient-to-r from-[#6F40C9] via-[#9B6DD7] to-[#F79D53] bg-clip-text text-transparent">
+                    TypeScript Magic
+                  </span>
+                </h1>
 
-              <p className="text-lg md:text-xl text-gray-200 font-light max-w-2xl lg:mx-0 mx-auto mb-10" style={{ fontFamily: 'Outfit, sans-serif' }}>
-                Transform your OpenAPI specs into type-safe clients, mocks, and
-                validators. Stop writing boilerplate. Start shipping features.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center mb-12">
-                <Link
-                  to="/docs/$"
-                  params={{ _splat: '' }}
-                  className="px-8 py-4 rounded-lg bg-gradient-to-r from-[#6F40C9] to-[#8B5AC9] text-white font-medium text-lg hover:opacity-90 transition-opacity shadow-lg shadow-[#6F40C9]/25"
+                <p
+                  className="text-lg md:text-xl text-gray-200 font-light max-w-2xl lg:mx-0 mx-auto mb-10"
+                  style={{ fontFamily: 'Outfit, sans-serif' }}
                 >
-                  Get Started
-                </Link>
-                <a
-                  href="https://github.com/orval-labs/orval"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-8 py-4 rounded-lg bg-white/5 border border-white/10 text-white font-medium text-lg hover:bg-white/10 transition-colors"
-                >
-                  View on GitHub
-                </a>
-              </div>
+                  Transform your OpenAPI specs into type-safe clients, mocks,
+                  and validators. Stop writing boilerplate. Start shipping
+                  features.
+                </p>
 
-              {/* Install command */}
-              <div className="inline-flex items-center gap-3 px-6 py-3 rounded-lg bg-black/40 border border-white/10 font-mono text-sm">
-                <span className="text-gray-500">$</span>
-                <span className="text-gray-300">bun add -d orval</span>
-                <button
-                  className="text-gray-500 hover:text-white transition-colors"
-                  onClick={() =>
-                    navigator.clipboard.writeText('bun add -d orval')
-                  }
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start items-center mb-12">
+                  <Link
+                    to="/docs/$"
+                    params={{ _splat: '' }}
+                    className="px-8 py-4 rounded-lg bg-gradient-to-r from-[#6F40C9] to-[#8B5AC9] text-white font-medium text-lg hover:opacity-90 transition-opacity shadow-lg shadow-[#6F40C9]/25"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                    />
-                  </svg>
-                </button>
+                    Get Started
+                  </Link>
+                  <a
+                    href="https://github.com/orval-labs/orval"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-8 py-4 rounded-lg bg-white/5 border border-white/10 text-white font-medium text-lg hover:bg-white/10 transition-colors"
+                  >
+                    View on GitHub
+                  </a>
+                </div>
+
+                {/* Install command */}
+                <div className="inline-flex items-center gap-3 px-6 py-3 rounded-lg bg-black/40 border border-white/10 font-mono text-sm">
+                  <span className="text-gray-500">$</span>
+                  <span className="text-gray-300">bun add -d orval</span>
+                  <button
+                    className="text-gray-500 hover:text-white transition-colors"
+                    onClick={() =>
+                      navigator.clipboard.writeText('bun add -d orval')
+                    }
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
           </div>
         </section>
 

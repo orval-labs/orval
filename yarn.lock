@@ -13145,6 +13145,18 @@ __metadata:
   languageName: node
   linkType: hard
 
+"dedent@npm:^1.7.1":
+  version: 1.7.1
+  resolution: "dedent@npm:1.7.1"
+  peerDependencies:
+    babel-plugin-macros: ^3.1.0
+  peerDependenciesMeta:
+    babel-plugin-macros:
+      optional: true
+  checksum: 10c0/ae29ec1c5bd5216c698c9f23acaa5b720260fd4cef3c8b5af887eb5f8c9e6fdd5fed8668767437b4efea35e2991bd798987717633411a1734807c28255769b78
+  languageName: node
+  linkType: hard
+
 "deep-equal@npm:^2.0.5":
   version: 2.2.3
   resolution: "deep-equal@npm:2.2.3"
@@ -13430,6 +13442,7 @@ __metadata:
     "@types/react": "npm:^19.2.8"
     "@types/react-dom": "npm:^19.2.3"
     "@vitejs/plugin-react": "npm:^5.1.2"
+    dedent: "npm:^1.7.1"
     fumadocs-core: "npm:16.4.7"
     fumadocs-mdx: "npm:14.2.6"
     fumadocs-ui: "npm:16.4.7"

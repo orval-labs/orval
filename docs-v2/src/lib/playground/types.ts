@@ -18,5 +18,5 @@ export interface Example {
 
 export interface ExampleCategory {
   label: string;
-  options: Array<Example & { selectId: string }>;
+  options: (Example & { selectId: string })[];
 }

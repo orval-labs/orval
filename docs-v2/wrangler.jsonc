@@ -3,21 +3,15 @@
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
 {
-	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "orval-docs",
-	"compatibility_date": "2025-01-23",
-	"compatibility_flags": [
-		"nodejs_compat"
-	],
-	"main": "@tanstack/react-start/server-entry",
-	"observability": {
-		"enabled": true
-	},
-	"services": [
-		{
-			"binding": "ORVAL_PLAYGROUND",
-			"service": "orval-playground",
-			"remote": true
-		}
-	]
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "orval-docs",
+  "compatibility_date": "2025-01-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "services": [
+    {
+      "binding": "ORVAL_PLAYGROUND",
+      "service": "orval-playground",
+    },
+  ],
 }

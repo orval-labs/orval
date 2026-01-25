@@ -1,8 +1,7 @@
-'use client';
-
 import Editor from '@monaco-editor/react';
-import { Copy, Check, AlertCircle } from 'lucide-react';
+import { AlertCircle, Check, Copy } from 'lucide-react';
 import { useState } from 'react';
+
 import type { GenerateOutput } from '@/lib/playground/types';
 
 interface OutputPanelProps {
@@ -12,7 +11,12 @@ interface OutputPanelProps {
   height?: string;
 }
 
-export const OutputPanel = ({ output, error, isLoading, height = '400px' }: OutputPanelProps) => {
+export const OutputPanel = ({
+  output,
+  error,
+  isLoading,
+  height = '400px',
+}: OutputPanelProps) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [copied, setCopied] = useState(false);
 
@@ -23,7 +27,9 @@ export const OutputPanel = ({ output, error, isLoading, height = '400px' }: Outp
     if (!content || error) return;
     await navigator.clipboard.writeText(content);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setTimeout(() => {
+      setCopied(false);
+    }, 2000);
   };
 
   const getFilename = (path: string) => {
@@ -41,7 +47,9 @@ export const OutputPanel = ({ output, error, isLoading, height = '400px' }: Outp
               <button
                 key={file.filename}
                 type="button"
-                onClick={() => setActiveIndex(index)}
+                onClick={() => {
+                  setActiveIndex(index);
+                }}
                 className={`px-4 py-2 text-sm font-medium transition-colors whitespace-nowrap ${
                   index === activeIndex
                     ? 'text-white bg-[#6F40C9]/20 border-b-2 border-[#6F40C9]'
@@ -52,7 +60,9 @@ export const OutputPanel = ({ output, error, isLoading, height = '400px' }: Outp
               </button>
             ))
           ) : (
-            <span className="px-4 py-2 text-sm font-medium text-gray-400">Output</span>
+            <span className="px-4 py-2 text-sm font-medium text-gray-400">
+              Output
+            </span>
           )}
         </div>
 
@@ -64,7 +74,11 @@ export const OutputPanel = ({ output, error, isLoading, height = '400px' }: Outp
             className="flex items-center gap-1.5 px-3 py-1.5 mr-2 text-xs text-gray-400 hover:text-white transition-colors"
             title="Copy to clipboard"
           >
-            {copied ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? (
+              <Check className="w-3.5 h-3.5 text-green-500" />
+            ) : (
+              <Copy className="w-3.5 h-3.5" />
+            )}
             {copied ? 'Copied!' : 'Copy'}
           </button>
         )}
@@ -86,8 +100,12 @@ export const OutputPanel = ({ output, error, isLoading, height = '400px' }: Outp
             <div className="flex items-start gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-red-400">Generation Error</p>
-                <p className="mt-1 text-sm text-red-300/80 whitespace-pre-wrap">{error}</p>
+                <p className="text-sm font-medium text-red-400">
+                  Generation Error
+                </p>
+                <p className="mt-1 text-sm text-red-300/80 whitespace-pre-wrap">
+                  {error}
+                </p>
               </div>
             </div>
           </div>
@@ -110,7 +128,9 @@ export const OutputPanel = ({ output, error, isLoading, height = '400px' }: Outp
             }}
             loading={
               <div className="flex items-center justify-center h-full bg-black/60">
-                <div className="animate-pulse text-gray-500">Loading editor...</div>
+                <div className="animate-pulse text-gray-500">
+                  Loading editor...
+                </div>
               </div>
             }
           />

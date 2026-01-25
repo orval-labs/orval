@@ -27,10 +27,12 @@ function PlaygroundPage() {
         <div className="max-w-7xl mx-auto px-4 py-12">
           {/* Header */}
           <div className="text-center mb-12">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Playground</h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              Playground
+            </h1>
             <p className="text-lg text-gray-400 max-w-2xl mx-auto">
-              Try Orval in your browser. Edit the OpenAPI schema and configuration to see the
-              generated TypeScript code in real-time.
+              Try Orval in your browser. Edit the OpenAPI schema and
+              configuration to see the generated TypeScript code in real-time.
             </p>
           </div>
 

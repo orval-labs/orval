@@ -1,5 +1,3 @@
-'use client';
-
 import Editor from '@monaco-editor/react';
 
 interface EditorPanelProps {
@@ -44,7 +42,9 @@ export const EditorPanel = ({
           }}
           loading={
             <div className="flex items-center justify-center h-full bg-black/60">
-              <div className="animate-pulse text-gray-500">Loading editor...</div>
+              <div className="animate-pulse text-gray-500">
+                Loading editor...
+              </div>
             </div>
           }
         />
