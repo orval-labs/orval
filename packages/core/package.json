@@ -19,7 +19,7 @@
   "scripts": {
     "build": "tsdown --config-loader unrun",
     "dev": "tsdown --config-loader unrun --watch src",
-    "lint": "eslint .",
+    "lint": "oxlint .",
     "test": "vitest",
     "clean": "rimraf .turbo dist",
     "nuke": "rimraf .turbo dist node_modules"
