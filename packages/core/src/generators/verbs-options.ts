@@ -63,7 +63,7 @@ export async function generateVerbOptions({
     summary,
   } = operation;
   const operationId = getOperationId(operation, route, verb);
-  const overrideOperation = output.override.operations[operation.operationId!];
+  const overrideOperation = output.override.operations[operationId];
   const overrideTag = Object.entries(
     output.override.tags,
   ).reduce<NormalizedOperationOptions>(
