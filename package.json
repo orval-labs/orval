@@ -7,7 +7,7 @@
     "packages/*",
     "samples/**",
     "tests",
-    "docs-v2"
+    "docs"
   ],
   "private": true,
   "packageManager": "yarn@4.11.0",

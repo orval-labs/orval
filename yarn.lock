@@ -13424,9 +13424,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"docs-v2@workspace:docs-v2":
+"docs@workspace:docs":
   version: 0.0.0-use.local
-  resolution: "docs-v2@workspace:docs-v2"
+  resolution: "docs@workspace:docs"
   dependencies:
     "@biomejs/biome": "npm:^2.3.11"
     "@cloudflare/vite-plugin": "npm:^1.21.2"
