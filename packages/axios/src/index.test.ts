@@ -82,12 +82,21 @@ describe('getAxiosFactoryDependencies (axios factory mode)', () => {
 });
 
 describe('generateAxiosHeader', () => {
+  const mockOutput = {
+    tsconfig: {
+      compilerOptions: {
+        allowSyntheticDefaultImports: true,
+      },
+    },
+  } as never;
+
   it('should generate factory function with optional axios parameter when noFunction is false', () => {
     const header = generateAxiosHeader({
       title: 'getPetsApi',
       isRequestOptions: true,
       isMutator: false,
       noFunction: false,
+      output: mockOutput,
     });
 
     expect(header).toContain(
@@ -101,6 +110,7 @@ describe('generateAxiosHeader', () => {
       isRequestOptions: true,
       isMutator: false,
       noFunction: true,
+      output: mockOutput,
     });
 
     expect(header).not.toContain('export const getPetsApi');
@@ -113,6 +123,7 @@ describe('generateAxiosHeader', () => {
       isRequestOptions: true,
       isMutator: true,
       noFunction: false,
+      output: mockOutput,
     });
 
     expect(header).toContain('type SecondParameter<T extends (...args: never)');

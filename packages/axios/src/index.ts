@@ -226,7 +226,7 @@ export const generateAxiosHeader: ClientHeaderBuilder = ({
   output,
 }) => {
   const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
-    output?.tsconfig,
+    output.tsconfig,
   );
   const axiosDefault = isSyntheticDefaultImportsAllowed
     ? 'axios'
