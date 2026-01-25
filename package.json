@@ -6,8 +6,7 @@
   "workspaces": [
     "packages/*",
     "samples/**",
-    "tests",
-    "docs"
+    "tests"
   ],
   "private": true,
   "packageManager": "yarn@4.11.0",
