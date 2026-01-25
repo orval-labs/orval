@@ -269,6 +269,36 @@ describe('loadPackageJson - catalog resolution', () => {
 
       expect(result?.dependencies?.react).toBe('^18.0.0');
     });
+
+    it('should use package.json catalogs over .yarnrc.yml catalogs', async () => {
+      const mockPkg = {
+        dependencies: {
+          react: 'catalog:',
+        },
+      };
+
+      vi.mocked(findUp).mockImplementation(async (name) => {
+        if (name === 'pnpm-workspace.yaml') return undefined;
+        if (name === 'package.json') return '/workspace/package.json';
+        if (name === '.yarnrc.yml') return '/workspace/.yarnrc.yml';
+        if (Array.isArray(name) && name.includes('package.json'))
+          return '/workspace/packages/app/package.json';
+        return undefined;
+      });
+
+      vi.mocked(dynamicImport).mockResolvedValue(mockPkg);
+      vi.mocked(fs.readJson).mockResolvedValue({
+        catalog: { react: '^19.0.0' },
+      });
+      vi.mocked(fs.readFile).mockResolvedValue('' as any);
+      vi.mocked(yaml.load).mockReturnValue({
+        catalog: { react: '^18.0.0' },
+      });
+
+      const result = await loadPackageJson();
+
+      expect(result?.dependencies?.react).toBe('^19.0.0');
+    });
   });
 
   describe('edge cases', () => {

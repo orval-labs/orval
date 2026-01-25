@@ -55,10 +55,14 @@ const loadPnpmWorkspaceCatalog = async (
 ): Promise<CatalogData | undefined> => {
   const filePath = await findUp('pnpm-workspace.yaml', { cwd: workspace });
   if (!filePath) return undefined;
-  const file = await fs.readFile(filePath, 'utf8');
-  const data = yaml.load(file) as Record<string, any>;
-  if (!data.catalog && !data.catalogs) return undefined;
-  return { catalog: data.catalog, catalogs: data.catalogs };
+  try {
+    const file = await fs.readFile(filePath, 'utf8');
+    const data = yaml.load(file) as Record<string, any> | undefined;
+    if (!data?.catalog && !data?.catalogs) return undefined;
+    return { catalog: data.catalog, catalogs: data.catalogs };
+  } catch {
+    return undefined;
+  }
 };
 
 const loadPackageJsonCatalog = async (
@@ -66,9 +70,13 @@ const loadPackageJsonCatalog = async (
 ): Promise<CatalogData | undefined> => {
   const filePath = await findUp('package.json', { cwd: workspace });
   if (!filePath) return undefined;
-  const pkg = await fs.readJson(filePath);
-  if (!pkg.catalog && !pkg.catalogs) return undefined;
-  return { catalog: pkg.catalog, catalogs: pkg.catalogs };
+  try {
+    const pkg = await fs.readJson(filePath);
+    if (!pkg?.catalog && !pkg?.catalogs) return undefined;
+    return { catalog: pkg.catalog, catalogs: pkg.catalogs };
+  } catch {
+    return undefined;
+  }
 };
 
 const loadYarnrcCatalog = async (
@@ -76,10 +84,14 @@ const loadYarnrcCatalog = async (
 ): Promise<CatalogData | undefined> => {
   const filePath = await findUp('.yarnrc.yml', { cwd: workspace });
   if (!filePath) return undefined;
-  const file = await fs.readFile(filePath, 'utf8');
-  const data = yaml.load(file) as Record<string, any>;
-  if (!data.catalog && !data.catalogs) return undefined;
-  return { catalog: data.catalog, catalogs: data.catalogs };
+  try {
+    const file = await fs.readFile(filePath, 'utf8');
+    const data = yaml.load(file) as Record<string, any> | undefined;
+    if (!data?.catalog && !data?.catalogs) return undefined;
+    return { catalog: data.catalog, catalogs: data.catalogs };
+  } catch {
+    return undefined;
+  }
 };
 
 const maybeReplaceCatalog = async (
