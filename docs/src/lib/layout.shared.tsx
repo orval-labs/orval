@@ -7,8 +7,7 @@ export const siteConfig = {
   repoUrl: 'https://github.com/orval-labs/orval',
   discordUrl: 'https://discord.gg/6fC2sjDU7w',
   openCollectiveUrl: 'https://opencollective.com/orval',
-  editUrl:
-    'https://github.com/orval-labs/orval/edit/master/docs-v2/content/docs',
+  editUrl: 'https://github.com/orval-labs/orval/edit/master/docs/content/docs',
 };
 
 export function baseOptions(): BaseLayoutProps {
