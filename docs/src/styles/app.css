@@ -4,13 +4,13 @@
 
 @theme {
   /* Orval brand colors */
-  --color-orval-purple: #6F40C9;
+  --color-orval-purple: #6f40c9;
   --color-orval-purple-light: #9333ea;
-  --color-orval-orange: #F79D53;
+  --color-orval-orange: #f79d53;
   --color-orval-orange-light: #fb923c;
 
   /* Override Fumadocs primary with Orval purple */
-  --color-fd-primary: #6F40C9;
+  --color-fd-primary: #6f40c9;
   --color-fd-primary-foreground: #ffffff;
 }
 

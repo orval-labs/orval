@@ -12,6 +12,7 @@
     {
       "binding": "ORVAL_PLAYGROUND",
       "service": "orval-playground",
+      "remote": true,
     },
   ],
 }
