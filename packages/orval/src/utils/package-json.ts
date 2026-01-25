@@ -1,6 +1,6 @@
 import { dynamicImport, isString, log, type PackageJson } from '@orval/core';
 import chalk from 'chalk';
-import { findUp } from 'find-up';
+import { findUp, findUpMultiple } from 'find-up';
 import fs from 'fs-extra';
 import yaml from 'js-yaml';
 
@@ -68,15 +68,19 @@ const loadPnpmWorkspaceCatalog = async (
 const loadPackageJsonCatalog = async (
   workspace: string,
 ): Promise<CatalogData | undefined> => {
-  const filePath = await findUp('package.json', { cwd: workspace });
-  if (!filePath) return undefined;
-  try {
-    const pkg = await fs.readJson(filePath);
-    if (!pkg?.catalog && !pkg?.catalogs) return undefined;
-    return { catalog: pkg.catalog, catalogs: pkg.catalogs };
-  } catch {
-    return undefined;
+  const filePaths = await findUpMultiple('package.json', { cwd: workspace });
+
+  for (const filePath of filePaths) {
+    try {
+      const pkg = await fs.readJson(filePath);
+      if (pkg?.catalog || pkg?.catalogs) {
+        return { catalog: pkg.catalog, catalogs: pkg.catalogs };
+      }
+    } catch {
+      // Continue to next file
+    }
   }
+  return undefined;
 };
 
 const loadYarnrcCatalog = async (
