@@ -404,8 +404,24 @@ export async function writeSchemas({
       const uniqueSchemaNames = [...conventionNamesSet];
 
       // Create export statements
-      const exports = uniqueSchemaNames
+      const currentExports = uniqueSchemaNames
         .map((schemaName) => `export * from './${schemaName}${ext}';`)
+        .toSorted((a, b) => a.localeCompare(b));
+
+      const existingContent = await fs.readFile(schemaFilePath, 'utf8');
+      const existingExports =
+        existingContent
+          .match(/export\s+\*\s+from\s+['"][^'"]+['"]/g)
+          ?.map((statement) => {
+            const match = statement.match(
+              /export\s+\*\s+from\s+['"]([^'"]+)['"]/,
+            );
+            if (!match) return undefined;
+            return `export * from '${match[1]}';`;
+          })
+          .filter((statement): statement is string => Boolean(statement)) ?? [];
+
+      const exports = [...new Set([...existingExports, ...currentExports])]
         .toSorted((a, b) => a.localeCompare(b))
         .join('\n');
 

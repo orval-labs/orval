@@ -268,7 +268,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const want: GeneratorSchema[] = [
       {
         name: 'MyObject',
-        model: `export interface MyObject {[key: 'foo' | 'bar']: string}\n`,
+        model: `export type MyObject = Partial<Record<'foo' | 'bar', string>>;\n`,
         imports: [],
         dependencies: [],
         schema,
@@ -295,7 +295,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const want: GeneratorSchema[] = [
       {
         name: 'MyObject',
-        model: `export interface MyObject { [key: 'key1' | 'key2' | 'key3']: unknown }\n`,
+        model: `export type MyObject = Partial<Record<'key1' | 'key2' | 'key3', unknown>>;\n`,
         imports: [],
         dependencies: [],
         schema,
@@ -324,7 +324,7 @@ export type ConstEnum = typeof ConstEnumValue;
     const want: GeneratorSchema[] = [
       {
         name: 'MyObject',
-        model: `export interface MyObject {[key: 'id' | 'name']: number}\n`,
+        model: `export type MyObject = Partial<Record<'id' | 'name', number>>;\n`,
         imports: [],
         dependencies: [],
         schema,
@@ -389,7 +389,9 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(got).toHaveLength(1);
     expect(got[0].name).toBe('MyObject');
     expect(got[0].model).toContain('existingProp: string');
-    expect(got[0].model).toContain("[key: 'allowed' | 'values']: number");
+    expect(got[0].model).toContain(
+      "} & Partial<Record<'allowed' | 'values', number>>",
+    );
   });
 
   it.each([
@@ -521,5 +523,35 @@ export type ConstEnum = typeof ConstEnumValue;
     expect(result[0].model).toBe(
       'export interface Test ({\n  a?: string;\n} | {\n  b?: string;\n}) & {\n  c?: string;\n} & ({\n  d?: string;\n} | {\n  e?: string;\n}) & ({\n  f?: string;\n} | {\n  g?: string;\n})\n',
     );
+  });
+
+  describe('duplicate union types', () => {
+    it('should not produce duplicate null in nullable object types', () => {
+      const schema: OpenApiSchemaObject = {
+        type: ['object', 'null'] as any,
+      };
+
+      const result = generateInterface({
+        name: 'NullableObject',
+        context,
+        schema,
+      });
+
+      expect(result[0].model).not.toContain('null | null');
+    });
+
+    it('should not produce duplicate types in oneOf/anyOf', () => {
+      const schema: OpenApiSchemaObject = {
+        oneOf: [{ type: 'string' }, { type: 'string' }, { type: 'number' }],
+      };
+
+      const result = generateInterface({
+        name: 'DuplicateUnion',
+        context,
+        schema,
+      });
+
+      expect(result[0].model).not.toContain('string | string');
+    });
   });
 });

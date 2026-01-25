@@ -5,6 +5,7 @@ import type {
   OverrideOutputContentType,
   ResReqTypesValue,
 } from '../types';
+import { dedupeUnionType } from '../utils';
 import { getResReqTypes } from './res-req-types';
 
 interface GetResponseOptions {
@@ -81,10 +82,14 @@ export function getResponse({
     { success: [], errors: [] },
   );
 
-  const success = groupedByStatus.success
-    .map(({ value, formData }) => (formData ? 'Blob' : value))
-    .join(' | ');
-  const errors = groupedByStatus.errors.map(({ value }) => value).join(' | ');
+  const success = dedupeUnionType(
+    groupedByStatus.success
+      .map(({ value, formData }) => (formData ? 'Blob' : value))
+      .join(' | '),
+  );
+  const errors = dedupeUnionType(
+    groupedByStatus.errors.map(({ value }) => value).join(' | '),
+  );
 
   const defaultType = filteredTypes.find(({ key }) => key === 'default')?.value;
 
