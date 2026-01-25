@@ -6,6 +6,8 @@ import yaml from 'js-yaml';
 
 import { normalizePath } from './options';
 
+type CatalogData = Pick<PackageJson, 'catalog' | 'catalogs'>;
+
 export const loadPackageJson = async (
   packageJson?: string,
   workspace = process.cwd(),
@@ -40,71 +42,107 @@ export const loadPackageJson = async (
 const isPackageJson = (obj: any): obj is PackageJson =>
   typeof obj === 'object' && obj !== null;
 
+const hasCatalogReferences = (pkg: PackageJson): boolean => {
+  return [
+    ...Object.entries(pkg.dependencies ?? {}),
+    ...Object.entries(pkg.devDependencies ?? {}),
+    ...Object.entries(pkg.peerDependencies ?? {}),
+  ].some(([, value]) => isString(value) && value.startsWith('catalog:'));
+};
+
+const loadPnpmWorkspaceCatalog = async (
+  workspace: string,
+): Promise<CatalogData | undefined> => {
+  const filePath = await findUp('pnpm-workspace.yaml', { cwd: workspace });
+  if (!filePath) return undefined;
+  const file = await fs.readFile(filePath, 'utf8');
+  const data = yaml.load(file) as Record<string, any>;
+  if (!data.catalog && !data.catalogs) return undefined;
+  return { catalog: data.catalog, catalogs: data.catalogs };
+};
+
+const loadPackageJsonCatalog = async (
+  workspace: string,
+): Promise<CatalogData | undefined> => {
+  const filePath = await findUp('package.json', { cwd: workspace });
+  if (!filePath) return undefined;
+  const pkg = await fs.readJson(filePath);
+  if (!pkg.catalog && !pkg.catalogs) return undefined;
+  return { catalog: pkg.catalog, catalogs: pkg.catalogs };
+};
+
+const loadYarnrcCatalog = async (
+  workspace: string,
+): Promise<CatalogData | undefined> => {
+  const filePath = await findUp('.yarnrc.yml', { cwd: workspace });
+  if (!filePath) return undefined;
+  const file = await fs.readFile(filePath, 'utf8');
+  const data = yaml.load(file) as Record<string, any>;
+  if (!data.catalog && !data.catalogs) return undefined;
+  return { catalog: data.catalog, catalogs: data.catalogs };
+};
+
 const maybeReplaceCatalog = async (
   pkg: PackageJson,
   workspace: string,
 ): Promise<PackageJson> => {
-  if (
-    ![
-      ...Object.entries(pkg.dependencies ?? {}),
-      ...Object.entries(pkg.devDependencies ?? {}),
-      ...Object.entries(pkg.peerDependencies ?? {}),
-    ].some(([, value]) => isString(value) && value.startsWith('catalog:'))
-  ) {
+  if (!hasCatalogReferences(pkg)) {
     return pkg;
   }
 
-  const filePath = await findUp('pnpm-workspace.yaml', { cwd: workspace });
-  if (!filePath) {
+  const catalogData =
+    (await loadPnpmWorkspaceCatalog(workspace)) ??
+    (await loadPackageJsonCatalog(workspace)) ??
+    (await loadYarnrcCatalog(workspace));
+
+  if (!catalogData) {
     log(
-      `⚠️  ${chalk.yellow('package.json contains pnpm catalog: in dependencies, but no pnpm-workspace.yaml was found.')}`,
+      `⚠️  ${chalk.yellow('package.json contains catalog: references, but no catalog source was found (checked: pnpm-workspace.yaml, package.json, .yarnrc.yml).')}`,
     );
     return pkg;
   }
-  const file = await fs.readFile(filePath, 'utf8');
 
-  const pnpmWorkspaceFile = yaml.load(file) as Record<string, any>;
-  performSubstitution(pkg.dependencies, pnpmWorkspaceFile);
-  performSubstitution(pkg.devDependencies, pnpmWorkspaceFile);
-  performSubstitution(pkg.peerDependencies, pnpmWorkspaceFile);
+  performSubstitution(pkg.dependencies, catalogData);
+  performSubstitution(pkg.devDependencies, catalogData);
+  performSubstitution(pkg.peerDependencies, catalogData);
 
   return pkg;
 };
 
 const performSubstitution = (
   dependencies: Record<string, string> | undefined,
-  pnpmWorkspaceFile: Record<string, any>,
+  catalogData: CatalogData,
 ) => {
   if (!dependencies) return;
   for (const [packageName, version] of Object.entries(dependencies)) {
     if (version === 'catalog:' || version === 'catalog:default') {
-      if (!pnpmWorkspaceFile.catalog) {
+      if (!catalogData.catalog) {
         log(
-          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, catalog: substitution for the package '${packageName}' failed as there were no default catalog.`)}`,
+          `⚠️  ${chalk.yellow(`catalog: substitution for the package '${packageName}' failed as there is no default catalog.`)}`,
         );
         continue;
       }
-      const sub = pnpmWorkspaceFile.catalog[packageName];
+      const sub = catalogData.catalog[packageName];
       if (!sub) {
         log(
-          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, catalog: substitution for the package '${packageName}' failed as there were no matching package in the default catalog.`)}`,
+          `⚠️  ${chalk.yellow(`catalog: substitution for the package '${packageName}' failed as there is no matching package in the default catalog.`)}`,
         );
         continue;
       }
       dependencies[packageName] = sub;
     } else if (version.startsWith('catalog:')) {
       const catalogName = version.slice('catalog:'.length);
-      const catalog = pnpmWorkspaceFile.catalogs?.[catalogName];
+      const catalog = catalogData.catalogs?.[catalogName];
       if (!catalog) {
         log(
-          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(pnpmWorkspaceFile.catalogs ?? {}).join(', ')})`)}`,
+          `⚠️  ${chalk.yellow(`'${version}' substitution for the package '${packageName}' failed as there is no matching catalog named '${catalogName}'. (available named catalogs are: ${Object.keys(catalogData.catalogs ?? {}).join(', ')})`)}`,
         );
         continue;
       }
       const sub = catalog[packageName];
       if (!sub) {
         log(
-          `⚠️  ${chalk.yellow(`when reading from pnpm-workspace.yaml, '${version}' substitution for the package '${packageName}' failed as there were no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`)}`,
+          `⚠️  ${chalk.yellow(`'${version}' substitution for the package '${packageName}' failed as there is no package in the catalog named '${catalogName}'. (packages in the catalog are: ${Object.keys(catalog).join(', ')})`)}`,
         );
         continue;
       }
