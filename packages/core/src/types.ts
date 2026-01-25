@@ -36,6 +36,7 @@ export type NormalizedOutputOptions = {
   override: NormalizedOverrideOutput;
   client: OutputClient | OutputClientFunc;
   httpClient: OutputHttpClient;
+  httpClientInjection: boolean;
   clean: boolean | string[];
   docs: boolean | OutputDocsOptions;
   prettier: boolean;
@@ -235,6 +236,7 @@ export type OutputOptions = {
   override?: OverrideOutput;
   client?: OutputClient | OutputClientFunc;
   httpClient?: OutputHttpClient;
+  httpClientInjection?: boolean;
   clean?: boolean | string[];
   docs?: boolean | OutputDocsOptions;
   prettier?: boolean;
@@ -1000,6 +1002,7 @@ export type ClientDependenciesBuilder = (
   httpClient?: OutputHttpClient,
   hasTagsMutator?: boolean,
   override?: NormalizedOverrideOutput,
+  httpClientInjection?: boolean,
 ) => GeneratorDependency[];
 
 export type ClientMockGeneratorImplementation = {
