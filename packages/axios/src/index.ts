@@ -59,6 +59,30 @@ export const getAxiosDependencies: ClientDependenciesBuilder = (
   ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
 ];
 
+// Factory mode needs axios default import (for optional parameter default value)
+// plus AxiosInstance type for the parameter type
+export const getAxiosFactoryDependencies: ClientDependenciesBuilder = (
+  hasGlobalMutator,
+  hasParamsSerializerOptions: boolean,
+) => [
+  {
+    exports: [
+      {
+        name: 'axios',
+        default: true,
+        values: true,
+        syntheticDefaultImport: true,
+      },
+      { name: 'AxiosInstance' },
+      ...(hasGlobalMutator
+        ? []
+        : [{ name: 'AxiosRequestConfig' }, { name: 'AxiosResponse' }]),
+    ],
+    dependency: 'axios',
+  },
+  ...(hasParamsSerializerOptions ? PARAMS_SERIALIZER_DEPENDENCIES : []),
+];
+
 const generateAxiosImplementation = (
   {
     headers,
@@ -75,6 +99,7 @@ const generateAxiosImplementation = (
     paramsSerializer,
   }: GeneratorVerbOptions,
   { route, context }: GeneratorOptions,
+  isFactoryMode = false,
 ) => {
   const isRequestOptions = override.requestOptions !== false;
   const isFormData = !override.formData.disabled;
@@ -171,14 +196,20 @@ const generateAxiosImplementation = (
       }>`,
   );
 
+  // In factory mode, use the axiosInstance parameter
+  // In functions mode with global import, .default may be needed based on tsconfig
+  const axiosRef = isFactoryMode
+    ? 'axiosInstance'
+    : `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
+
   return `const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
-    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
+    isRequestOptions
+      ? `options${context.output.optionsParamRequired ? '' : '?'}: AxiosRequestConfig\n`
+      : ''
   } ): Promise<TData> => {${bodyForm}
-    return axios${
-      isSyntheticDefaultImportsAllowed ? '' : '.default'
-    }.${verb}(${options});
+    return ${axiosRef}.${verb}(${options});
   }
 `;
 };
@@ -188,18 +219,29 @@ export const generateAxiosTitle: ClientTitleBuilder = (title) => {
   return `get${pascal(sanTitle)}`;
 };
 
+// Header for factory mode - axios is optional parameter with default value
 export const generateAxiosHeader: ClientHeaderBuilder = ({
   title,
   isRequestOptions,
   isMutator,
   noFunction,
-}) => `
+  output,
+}) => {
+  const isSyntheticDefaultImportsAllowed = isSyntheticDefaultImportsAllow(
+    output.tsconfig,
+  );
+  const axiosDefault = isSyntheticDefaultImportsAllowed
+    ? 'axios'
+    : 'axios.default';
+
+  return `
 ${
   isRequestOptions && isMutator
     ? `type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];\n\n`
     : ''
 }
-  ${noFunction ? '' : `export const ${title} = () => {\n`}`;
+  ${noFunction ? '' : `export const ${title} = (axiosInstance: AxiosInstance = ${axiosDefault}) => {\n`}`;
+};
 
 export const generateAxiosFooter: ClientFooterBuilder = ({
   operationNames,
@@ -236,10 +278,21 @@ export const generateAxiosFooter: ClientFooterBuilder = ({
 export const generateAxios = (
   verbOptions: GeneratorVerbOptions,
   options: GeneratorOptions,
+  isFactoryMode = false,
 ) => {
   const imports = generateVerbImports(verbOptions);
-  const implementation = generateAxiosImplementation(verbOptions, options);
+  const implementation = generateAxiosImplementation(
+    verbOptions,
+    options,
+    isFactoryMode,
+  );
 
+  return { implementation, imports };
+};
+
+// Factory mode generator - axios is optional parameter
+export const generateAxiosFactory: ClientBuilder = (verbOptions, options) => {
+  const { implementation, imports } = generateAxios(verbOptions, options, true);
   return { implementation, imports };
 };
 
@@ -252,10 +305,11 @@ export const generateAxiosFunctions: ClientBuilder = (verbOptions, options) => {
   };
 };
 
+// axios client with factory pattern (axios as optional parameter)
 const axiosClientBuilder: ClientGeneratorsBuilder = {
-  client: generateAxios,
+  client: generateAxiosFactory,
   header: generateAxiosHeader,
-  dependencies: getAxiosDependencies,
+  dependencies: getAxiosFactoryDependencies,
   footer: generateAxiosFooter,
   title: generateAxiosTitle,
 };
@@ -268,14 +322,17 @@ const axiosFunctionsClientBuilder: ClientGeneratorsBuilder = {
   title: generateAxiosTitle,
 };
 
-const builders: Record<'axios' | 'axios-functions', ClientGeneratorsBuilder> = {
-  axios: axiosClientBuilder,
-  'axios-functions': axiosFunctionsClientBuilder,
+export type AxiosBuilderOptions = {
+  type?: 'axios' | 'axios-functions';
 };
 
 export const builder =
-  ({ type = 'axios-functions' }: { type?: 'axios' | 'axios-functions' } = {}) =>
-  () =>
-    builders[type];
+  ({ type = 'axios-functions' }: AxiosBuilderOptions = {}) =>
+  () => {
+    if (type === 'axios-functions') {
+      return axiosFunctionsClientBuilder;
+    }
+    return axiosClientBuilder;
+  };
 
 export default builder;

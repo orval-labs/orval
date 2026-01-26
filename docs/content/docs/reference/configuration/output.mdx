@@ -39,6 +39,26 @@ export default defineConfig({
 
 You can also provide a function to create a custom client generator.
 
+### axios client
+
+The `axios` client generates a factory function with an optional axios instance parameter for dependency injection:
+
+```typescript
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+export const getPetsApi = (axiosInstance: AxiosInstance = axios) => ({
+  listPets: (params?: ListPetsParams) =>
+    axiosInstance.get<Pet[]>('/pets', { params }),
+});
+```
+
+You can inject your own axios instance for testing or custom configuration:
+
+```typescript
+const customAxios = axios.create({ baseURL: 'https://api.example.com' });
+const api = getPetsApi(customAxios);
+```
+
 ## httpClient
 
 **Type:** `'fetch' | 'axios'`
@@ -1175,7 +1195,7 @@ Enable URL encoding of path/query parameters.
 **Type:** `Boolean`
 **Default:** `false`
 
-Make the `options` parameter required.
+Make the `options` parameter required. Since the `options` parameter appears last in the parameter-set, any preceding parameters will also be required.
 
 ### propertySortOrder
 

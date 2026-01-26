@@ -28,10 +28,10 @@ export function getProps({
 }: GetPropsOptions): GetterProps {
   const bodyProp = {
     name: body.implementation,
-    definition: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
-    implementation: `${body.implementation}${body.isOptional ? '?' : ''}: ${body.definition}`,
+    definition: `${body.implementation}${body.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${body.definition}`,
+    implementation: `${body.implementation}${body.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${body.definition}`,
     default: false,
-    required: !body.isOptional,
+    required: !body.isOptional || context.output.optionsParamRequired,
     type: GetterPropType.BODY,
   };
 
@@ -41,21 +41,24 @@ export function getProps({
     implementation: getQueryParamDefinition(queryParams, context),
     default: false,
     required: isUndefined(queryParams?.isOptional)
-      ? !context.output.allParamsOptional
-      : !queryParams?.isOptional && !context.output.allParamsOptional,
+      ? !context.output.allParamsOptional || context.output.optionsParamRequired
+      : (!queryParams?.isOptional && !context.output.allParamsOptional) ||
+        context.output.optionsParamRequired,
     type: GetterPropType.QUERY_PARAM,
   };
 
   const headersProp = {
     name: 'headers',
-    definition: `headers${headers?.isOptional ? '?' : ''}: ${
+    definition: `headers${headers?.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${
       headers?.schema.name
     }`,
-    implementation: `headers${headers?.isOptional ? '?' : ''}: ${
+    implementation: `headers${headers?.isOptional && !context.output.optionsParamRequired ? '?' : ''}: ${
       headers?.schema.name
     }`,
     default: false,
-    required: isUndefined(headers?.isOptional) ? false : !headers?.isOptional,
+    required: isUndefined(headers?.isOptional)
+      ? false
+      : !headers?.isOptional || context.output.optionsParamRequired,
     type: GetterPropType.HEADER,
   };
 
@@ -70,7 +73,9 @@ export function getProps({
       .map((property) => property.definition)
       .join(',\n    ')},\n }`;
 
-    const isOptional = params.every((param) => param.default);
+    const isOptional =
+      context.output.optionsParamRequired ||
+      params.every((param) => param.default);
 
     const implementation = `{ ${params
       .map((property) =>
@@ -127,5 +132,5 @@ function getQueryParamDefinition(
   if (OutputClient.ANGULAR === context.output.client) {
     paramType = `DeepNonNullable<${paramType}>`;
   }
-  return `params${queryParams?.isOptional || context.output.allParamsOptional ? '?' : ''}: ${paramType}`;
+  return `params${(queryParams?.isOptional || context.output.allParamsOptional) && !context.output.optionsParamRequired ? '?' : ''}: ${paramType}`;
 }
