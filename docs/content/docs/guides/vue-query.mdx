@@ -1,0 +1,132 @@
+---
+title: Vue Query
+description: Generate type-safe Vue Query composables from OpenAPI
+---
+
+Generate fully typed [TanStack Query for Vue](https://tanstack.com/query/latest/docs/vue/overview) composables from your OpenAPI specification.
+
+## Configuration
+
+Set the `client` option to `vue-query`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'vue-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates one composable per path in your OpenAPI specification. For example, [this specification](https://github.com/orval-labs/orval/blob/master/samples/vue-query/petstore.yaml) generates:
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const useShowPetById = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
+    queryKey,
+    queryFn,
+    { enabled: !!petId, ...queryOptions },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
+
+## Infinite Queries
+
+Generate `useInfiniteQuery` composables:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'vue-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Per-Operation Overrides
+
+Override query options for specific operations:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'vue-query',
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              useInfinite: true,
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Full Example
+
+See the [complete Vue Query example](https://github.com/orval-labs/orval/tree/master/samples/vue-query) on GitHub.

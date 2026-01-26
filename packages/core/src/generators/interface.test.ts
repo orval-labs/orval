@@ -524,4 +524,34 @@ export type ConstEnum = typeof ConstEnumValue;
       'export interface Test ({\n  a?: string;\n} | {\n  b?: string;\n}) & {\n  c?: string;\n} & ({\n  d?: string;\n} | {\n  e?: string;\n}) & ({\n  f?: string;\n} | {\n  g?: string;\n})\n',
     );
   });
+
+  describe('duplicate union types', () => {
+    it('should not produce duplicate null in nullable object types', () => {
+      const schema: OpenApiSchemaObject = {
+        type: ['object', 'null'] as any,
+      };
+
+      const result = generateInterface({
+        name: 'NullableObject',
+        context,
+        schema,
+      });
+
+      expect(result[0].model).not.toContain('null | null');
+    });
+
+    it('should not produce duplicate types in oneOf/anyOf', () => {
+      const schema: OpenApiSchemaObject = {
+        oneOf: [{ type: 'string' }, { type: 'string' }, { type: 'number' }],
+      };
+
+      const result = generateInterface({
+        name: 'DuplicateUnion',
+        context,
+        schema,
+      });
+
+      expect(result[0].model).not.toContain('string | string');
+    });
+  });
 });

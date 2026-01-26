@@ -10,7 +10,7 @@ import {
   type ScalarValue,
   SchemaType,
 } from '../types';
-import { getNumberWord, isSchema, pascal } from '../utils';
+import { dedupeUnionType, getNumberWord, isSchema, pascal } from '../utils';
 import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
 import { getScalar } from './scalar';
@@ -308,7 +308,7 @@ export function combineSchemas({
   });
 
   return {
-    value: value + nullable,
+    value: dedupeUnionType(value + nullable),
     imports: resolvedValue
       ? [...resolvedData.imports, ...resolvedValue.imports]
       : resolvedData.imports,

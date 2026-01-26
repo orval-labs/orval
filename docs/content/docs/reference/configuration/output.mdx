@@ -1,0 +1,1507 @@
+---
+title: Output
+description: Output configuration options
+---
+
+## target
+
+**Type:** `String`
+
+Output path for generated files.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+    },
+  },
+});
+```
+
+## client
+
+**Type:** `String | Function`
+**Default:** `'axios-functions'`
+**Options:** `angular`, `axios`, `axios-functions`, `react-query`, `svelte-query`, `vue-query`, `swr`, `zod`, `hono`, `fetch`, `mcp`
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+    },
+  },
+});
+```
+
+You can also provide a function to create a custom client generator.
+
+### axios client
+
+The `axios` client generates a factory function with an optional axios instance parameter for dependency injection:
+
+```typescript
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+
+export const getPetsApi = (axiosInstance: AxiosInstance = axios) => ({
+  listPets: (params?: ListPetsParams) =>
+    axiosInstance.get<Pet[]>('/pets', { params }),
+});
+```
+
+You can inject your own axios instance for testing or custom configuration:
+
+```typescript
+const customAxios = axios.create({ baseURL: 'https://api.example.com' });
+const api = getPetsApi(customAxios);
+```
+
+## httpClient
+
+**Type:** `'fetch' | 'axios'`
+**Default:** `'fetch'`
+
+HTTP client used for `swr`, `react-query`, `vue-query`, and `svelte-query` clients.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'swr',
+      httpClient: 'axios',
+    },
+  },
+});
+```
+
+## schemas
+
+**Type:** `String`
+**Default:** Same as `target`
+
+Output path for generated model types.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: './api/model',
+    },
+  },
+});
+```
+
+## operationSchemas
+
+**Type:** `String`
+
+Separate path for operation-derived types (params, bodies, responses).
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      schemas: './api/model',
+      operationSchemas: './api/model/params',
+    },
+  },
+});
+```
+
+## fileExtension
+
+**Type:** `String`
+**Default:** `.ts`
+
+Customize file extension for generated files:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'split',
+      target: './gen/endpoints',
+      schemas: './gen/model',
+      fileExtension: '.gen.ts',
+    },
+  },
+});
+```
+
+Result:
+
+```
+src/gen/
+├── endpoints
+│   └── swaggerPetstore.gen.ts
+└── model
+    ├── listPetsParams.ts
+    └── pets.ts
+```
+
+## namingConvention
+
+**Type:** `'camelCase' | 'PascalCase' | 'snake_case' | 'kebab-case'`
+**Default:** `'camelCase'`
+
+Naming convention for generated **files**:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      namingConvention: 'PascalCase',
+      mode: 'split',
+      target: './gen/endpoints',
+    },
+  },
+});
+```
+
+## workspace
+
+**Type:** `String`
+
+Base folder for all generated files. Creates an `index.ts` with exports:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      workspace: 'src/',
+      target: './petstore.ts',
+    },
+  },
+});
+```
+
+## mode
+
+**Type:** `'single' | 'split' | 'tags' | 'tags-split'`
+**Default:** `'single'`
+
+### single
+
+Everything in one file.
+
+### split
+
+Separate files for implementation, schemas, and mocks:
+
+```
+my-app/src/
+├── petstore.schemas.ts
+├── petstore.msw.ts
+└── petstore.ts
+```
+
+### tags
+
+One file per OpenAPI tag:
+
+```
+my-app/src/
+├── pets.ts
+└── petstore.schemas.ts
+```
+
+### tags-split
+
+Folder per tag with split files:
+
+```
+my-app/src/
+├── petstore.schemas.ts
+└── pets/
+    ├── petstore.msw.ts
+    └── petstore.ts
+```
+
+## baseUrl
+
+**Type:** `String | Object`
+**Default:** `''`
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: 'https://api.example.com',
+    },
+  },
+});
+```
+
+### getBaseUrlFromSpecification
+
+Read URL from the OpenAPI `servers` field:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
+    },
+  },
+});
+```
+
+### index
+
+**Type:** `Number`
+
+Select which server URL index to use (when `getBaseUrlFromSpecification: true`):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        index: 1, // Use second server URL
+      },
+    },
+  },
+});
+```
+
+## mock
+
+**Type:** `Boolean | Object | Function`
+**Default:** `false`
+
+Generate MSW mocks with Faker.js:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: true,
+    },
+  },
+});
+```
+
+### Mock Options
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mock: {
+        type: 'msw',
+        delay: 1000,
+        useExamples: false,
+        generateEachHttpStatus: false,
+        baseUrl: '/api',
+        locale: 'en',
+      },
+    },
+  },
+});
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `type` | `'msw'` | `'msw'` | Mock type |
+| `delay` | `Number \| Function \| false` | `false` | Response delay in ms |
+| `delayFunctionLazyExecute` | `Boolean` | `false` | Execute delay function at runtime |
+| `useExamples` | `Boolean` | `false` | Use OpenAPI examples |
+| `generateEachHttpStatus` | `Boolean` | `false` | Generate mocks for all status codes |
+| `baseUrl` | `String` | `''` | Base URL for handlers |
+| `locale` | `String` | `'en'` | Faker.js locale |
+
+## indexFiles
+
+**Type:** `Boolean`
+**Default:** `true`
+
+Generate `index.ts` files for schemas.
+
+## indexMockFiles
+
+**Type:** `Boolean`
+**Default:** `false`
+
+When `true` and `mode` is `tags-split`, creates an `index.msw.ts` with all mock exports:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      mock: {
+        indexMockFiles: true,
+      },
+    },
+  },
+});
+```
+
+## docs
+
+**Type:** `Boolean | Object`
+**Default:** `false`
+
+Generate API docs using [TypeDoc](https://typedoc.org/):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      docs: true,
+      // or with config
+      docs: {
+        configPath: './typedoc.config.mjs',
+      },
+    },
+  },
+});
+```
+
+## clean
+
+**Type:** `Boolean | String[]`
+**Default:** `false`
+
+Clean generated files before regenerating.
+
+## prettier
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Run Prettier on generated files.
+
+## biome
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Run Biome lint and format on generated files.
+
+## headers
+
+**Type:** `Boolean`
+
+Enable generation of headers.
+
+## tsconfig
+
+**Type:** `String | Object`
+
+Custom TypeScript configuration path or inline config:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      tsconfig: './tsconfig.json',
+      // or inline
+      tsconfig: {
+        compilerOptions: {
+          target: 'ES2020',
+        },
+      },
+    },
+  },
+});
+```
+
+## packageJson
+
+**Type:** `String`
+
+Path to your `package.json` (usually auto-detected).
+
+---
+
+## override
+
+### transformer
+
+**Type:** `String | Function`
+
+Transform the generated output:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        transformer: 'src/yourfunction.js',
+      },
+    },
+  },
+});
+```
+
+### mutator
+
+**Type:** `String | Object`
+
+Custom HTTP client implementation:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mutator: {
+          path: './api/mutator/custom-instance.ts',
+          name: 'customInstance',
+        },
+      },
+    },
+  },
+});
+```
+
+Example implementation:
+
+```ts title="custom-instance.ts"
+import Axios, { AxiosRequestConfig } from 'axios';
+
+export const AXIOS_INSTANCE = Axios.create({ baseURL: '' });
+
+export const customInstance = <T>(config: AxiosRequestConfig): Promise<T> => {
+  return AXIOS_INSTANCE({ ...config }).then(({ data }) => data);
+};
+
+export type ErrorType<Error> = AxiosError<Error>;
+export type BodyType<BodyData> = BodyData;
+```
+
+### title
+
+**Type:** `String | Function`
+
+Customize the API service title (only for `axios` and `angular` clients):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        title: (title) => `${title}Api`,
+      },
+    },
+  },
+});
+```
+
+### namingConvention (property keys)
+
+**Type:** `Object`
+
+Change naming convention for **property keys** (not files):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        namingConvention: {
+          enum: 'PascalCase', // camelCase, PascalCase, snake_case, kebab-case
+        },
+      },
+    },
+  },
+});
+```
+
+### header
+
+**Type:** `Boolean | Function`
+**Default:** `true`
+
+Customize or disable the generated file header:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        header: (info) => [
+          `Generated by Orval`,
+          `Do not edit manually.`,
+          ...(info.title ? [info.title] : []),
+        ],
+      },
+    },
+  },
+});
+```
+
+---
+
+## override.query
+
+TanStack Query options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useQuery: true,
+          useMutation: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          usePrefetch: true,
+          useInvalidate: true,
+          signal: true,
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### useQuery
+
+**Type:** `Boolean`
+
+Generate `useQuery` hooks.
+
+### useMutation
+
+**Type:** `Boolean`
+
+Generate `useMutation` hooks for non-GET operations.
+
+### useInfinite
+
+**Type:** `Boolean`
+
+Generate `useInfiniteQuery` hooks.
+
+### useInfiniteQueryParam
+
+**Type:** `String`
+
+Query parameter name for infinite queries.
+
+### usePrefetch
+
+**Type:** `Boolean`
+
+Generate prefetch functions for SSR.
+
+### useInvalidate
+
+**Type:** `Boolean`
+
+Generate query invalidation helpers.
+
+### mutationInvalidates
+
+**Type:** `Array`
+
+Automatically invalidate queries on mutation success (Angular Query & React Query only):
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        query: {
+          useInvalidate: true,
+          mutationInvalidates: [
+            {
+              onMutations: ['createPets'],
+              invalidates: ['listPets'],
+            },
+            {
+              onMutations: ['deletePet', 'updatePet'],
+              invalidates: [
+                'listPets',
+                { query: 'showPetById', params: ['petId'] },
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+});
+```
+
+### signal
+
+**Type:** `Boolean`
+
+Include abort signal in queries.
+
+### queryKey / queryOptions / mutationOptions
+
+**Type:** `String | Object`
+
+Custom query/mutation key or options functions.
+
+### shouldExportMutatorHooks
+
+**Type:** `Boolean`
+**Default:** `true`
+
+Export mutator hooks.
+
+### shouldExportQueryKey
+
+**Type:** `Boolean`
+**Default:** `true`
+
+Export query keys.
+
+### shouldSplitQueryKey
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Generate query keys as arrays instead of strings.
+
+### useOperationIdAsQueryKey
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Use operation ID instead of route path for query keys.
+
+### version
+
+**Type:** `Number`
+**Default:** Detected from package.json
+
+Force a specific version for generated hooks.
+
+---
+
+## override.swr
+
+SWR options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        swr: {
+          useInfinite: true,
+          useSuspense: true,
+          generateErrorTypes: false,
+          swrOptions: {
+            dedupingInterval: 10000,
+          },
+          swrMutationOptions: {
+            revalidate: true,
+          },
+          swrInfiniteOptions: {
+            initialSize: 10,
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### useInfinite
+
+**Type:** `Boolean`
+
+Generate `useSWRInfinite` hooks.
+
+### useSWRMutationForGet
+
+**Type:** `Boolean`
+
+Generate `useSWRMutation` for GET requests.
+
+### useSuspense
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Generate Suspense-compatible hooks.
+
+### generateErrorTypes
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Generate custom error type aliases.
+
+### swrOptions / swrMutationOptions / swrInfiniteOptions
+
+**Type:** `Object`
+
+Override SWR hook options.
+
+---
+
+## override.zod
+
+Zod schema generation options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        zod: {
+          strict: {
+            response: true,
+            query: true,
+            param: true,
+            header: true,
+            body: true,
+          },
+          coerce: {
+            query: ['string', 'number', 'boolean'],
+          },
+          generate: {
+            param: true,
+            body: true,
+            response: true,
+            query: true,
+            header: true,
+          },
+          generateEachHttpStatus: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### strict
+
+**Type:** `Object`
+
+Enable strict mode for schemas.
+
+### coerce
+
+**Type:** `Object`
+
+Enable [coercion](https://zod.dev/api?id=coercion) for specified types.
+
+### generate
+
+**Type:** `Object`
+
+Control which schemas are generated.
+
+### preprocess
+
+**Type:** `Object`
+
+Add preprocess functions to schemas.
+
+### dateTimeOptions / timeOptions
+
+**Type:** `Object`
+
+Configure Zod datetime/time validation options.
+
+---
+
+## override.angular
+
+Angular client options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        angular: {
+          provideIn: 'root', // 'root' | 'any' | '' | false
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## override.hono
+
+Hono server options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+          validatorOutputPath: 'src/validator.ts',
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+});
+```
+
+### handlers
+
+**Type:** `String`
+
+Changes output path for Hono handlers.
+
+### validatorOutputPath
+
+**Type:** `String`
+
+Changes the validator output path.
+
+### compositeRoute
+
+**Type:** `String`
+
+Generate a combined routes file.
+
+---
+
+## override.fetch
+
+Fetch client options:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+          forceSuccessResponse: true,
+        },
+      },
+    },
+  },
+});
+```
+
+### includeHttpResponseReturnType
+
+**Type:** `Boolean`
+**Default:** `true`
+
+Include HTTP status in return type. Set to `false` to return data directly.
+
+### forceSuccessResponse
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Throw on error responses instead of returning them.
+
+### jsonReviver
+
+**Type:** `String | Object`
+
+Custom JSON reviver function (useful for date parsing).
+
+---
+
+## override.mock
+
+Mock generation overrides:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        mock: {
+          properties: {
+            '/tag|name/': 'jon',
+            email: () => faker.internet.email(),
+          },
+          format: {
+            email: () => faker.internet.email(),
+            iban: () => faker.finance.iban(),
+          },
+          required: true,
+          delay: 500,
+          arrayMin: 1,
+          arrayMax: 10,
+          stringMin: 10,
+          stringMax: 20,
+          numberMin: 0,
+          numberMax: 100,
+        },
+      },
+    },
+  },
+});
+```
+
+### properties
+
+Override mock values per property path or regex.
+
+### format
+
+Provide custom generators for OpenAPI `format` values.
+
+### required
+
+**Type:** `Boolean`
+
+Make all properties required in mocks.
+
+### delay
+
+**Type:** `Number | Function | false`
+**Default:** `false`
+
+Response delay in milliseconds. Set to `false` to remove delay.
+
+### fractionDigits
+
+**Type:** `Number`
+**Default:** `2`
+
+Number of decimal places for floating-point numbers.
+
+### Array/String/Number Min/Max
+
+Control generated data bounds (`arrayMin`, `arrayMax`, `stringMin`, `stringMax`, `numberMin`, `numberMax`).
+
+### useExamples
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Use `example` property from OpenAPI specification for mock generation.
+
+### baseUrl
+
+**Type:** `String`
+
+Base URL for mock handlers.
+
+---
+
+## override.operations
+
+Override by operation ID:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        operations: {
+          listPets: {
+            mutator: 'src/response-type.js',
+            query: {
+              useQuery: true,
+              useInfinite: false,
+            },
+            mock: {
+              data: () => ({ id: 1, name: 'Buddy' }),
+            },
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## override.tags
+
+Override by OpenAPI tag (same options as `operations`).
+
+---
+
+## override.operationName
+
+**Type:** `Function`
+
+Custom function to override generated operation names:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        operationName: (operation, route, verb) => {
+          return `custom_${operation.operationId}`;
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## override.components
+
+Add suffixes to generated model names:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        components: {
+          schemas: { suffix: 'DTO' },
+          responses: { suffix: 'Response' },
+          parameters: { suffix: 'Params' },
+          requestBodies: { suffix: 'Bodies' },
+        },
+      },
+    },
+  },
+});
+```
+
+---
+
+## Type Generation Options
+
+### useDates
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Convert `date`/`datetime` to JavaScript `Date` objects.
+
+### useBigInt
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Convert `int64`/`uint64` to `BigInt`.
+
+### useTypeOverInterfaces
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Use TypeScript `type` instead of `interface`.
+
+### useNamedParameters
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Use named parameters object instead of positional arguments.
+
+### useDeprecatedOperations
+
+**Type:** `Boolean`
+**Default:** `true`
+
+Include deprecated operations.
+
+### enumGenerationType
+
+**Type:** `'const' | 'enum' | 'union'`
+**Default:** `'const'`
+
+How to generate enums:
+
+```ts
+// 'const' (default)
+export const Example = { foo: 'foo', bar: 'bar' } as const;
+export type Example = (typeof Example)[keyof typeof Example];
+
+// 'enum'
+export enum Example { foo = 'foo', bar = 'bar' }
+
+// 'union'
+export type Example = 'foo' | 'bar';
+```
+
+### aliasCombinedTypes
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Create intermediate type aliases for `anyOf`/`oneOf`/`allOf`.
+
+### suppressReadonlyModifier
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Suppress `readonly` modifier on properties.
+
+### useNullForOptional
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Type optional properties as `T | null` instead of just `T`. Useful for JSON:API compatibility where `null` explicitly indicates "no value".
+
+```ts
+// Default (false)
+export interface Pet {
+  id: number;
+  name?: string;
+  tag?: string;
+}
+
+// With useNullForOptional: true
+export interface Pet {
+  id: number;
+  name?: string | null;
+  tag?: string | null;
+}
+```
+
+---
+
+## Other Options
+
+### allParamsOptional
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Make all parameters optional except path parameters.
+
+### urlEncodeParameters
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Enable URL encoding of path/query parameters.
+
+### optionsParamRequired
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Make the `options` parameter required. Since the `options` parameter appears last in the parameter-set, any preceding parameters will also be required.
+
+### propertySortOrder
+
+**Type:** `'Alphabetical' | 'Specification'`
+**Default:** `'Specification'`
+
+How to sort properties in generated types.
+
+### contentType
+
+Filter content types:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        contentType: {
+          include: ['application/json'],
+          exclude: ['application/xml'],
+        },
+      },
+    },
+  },
+});
+```
+
+### formData
+
+**Type:** `Boolean | String | Object`
+
+Customize form data generation. If an object is provided, specify `path`, `name`, and optionally `default: true` for default export.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          path: './api/mutator/custom-form-data-fn.ts',
+          name: 'customFormDataFn',
+          // default: true
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-form-data-fn.ts"
+export const customFormDataFn = <Body>(body: Body): FormData => {
+  const formData = new FormData();
+  // Custom implementation
+  Object.entries(body as Record<string, any>).forEach(([key, value]) => {
+    if (value !== undefined) {
+      formData.append(key, value);
+    }
+  });
+  return formData;
+};
+```
+
+#### arrayHandling
+
+**Type:** `'serialize' | 'serialize-with-brackets' | 'explode'`
+**Default:** `'serialize'`
+
+Specifies how FormData handles arrays:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formData: {
+          arrayHandling: 'serialize-with-brackets',
+        },
+      },
+    },
+  },
+});
+```
+
+- `serialize`: `formData.append('items', JSON.stringify(value))`
+- `serialize-with-brackets`: `formData.append('items[]', JSON.stringify(value))`
+- `explode`: Expands nested objects with indexed keys
+
+### formUrlEncoded
+
+**Type:** `Boolean | String | Object`
+
+Customize form URL encoded data generation:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        formUrlEncoded: {
+          path: './api/mutator/custom-form-url-encoded-fn.ts',
+          name: 'customFormUrlEncodedFn',
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-form-url-encoded-fn.ts"
+export const customFormUrlEncodedFn = <Body>(body: Body): URLSearchParams => {
+  const params = new URLSearchParams();
+  Object.entries(body as Record<string, any>).forEach(([key, value]) => {
+    if (value !== undefined) {
+      params.append(key, String(value));
+    }
+  });
+  return params;
+};
+```
+
+### paramsSerializer
+
+**Type:** `String | Object`
+
+> **Note:** Only valid when using Axios or Angular.
+
+Custom parameter serializer for query parameters:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsSerializer: {
+          path: './api/mutator/custom-params-serializer-fn.ts',
+          name: 'customParamsSerializerFn',
+        },
+      },
+    },
+  },
+});
+```
+
+```ts title="custom-params-serializer-fn.ts"
+export const customParamsSerializerFn = (
+  params: Record<string, any>,
+): string => {
+  return Object.entries(params)
+    .filter(([_, v]) => v !== undefined)
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join('&');
+};
+```
+
+### paramsSerializerOptions
+
+**Type:** `Object`
+
+> **Note:** Only valid when using Axios or Angular. Only used when `paramsSerializer` is not defined.
+
+Use `qs` library for parameter serialization:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        paramsSerializerOptions: {
+          qs: {
+            arrayFormat: 'repeat',
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+### useDates
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Convert OpenAPI `date` or `datetime` to JavaScript `Date` objects instead of `string`.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useDates: true,
+      },
+    },
+  },
+});
+```
+
+> **Important:** You must provide an Axios converter to convert serialized date strings to `Date` objects. This option only affects the TypeScript definition.
+
+```ts title="axios-instance.ts"
+import axios from 'axios';
+
+const client = axios.create({ baseURL: '' });
+
+client.interceptors.response.use((originalResponse) => {
+  handleDates(originalResponse.data);
+  return originalResponse;
+});
+
+export default client;
+
+const isoDateFormat =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d*)?(?:[-+]\d{2}:?\d{2}|Z)?$/;
+
+function isIsoDateString(value: any): boolean {
+  return value && typeof value === 'string' && isoDateFormat.test(value);
+}
+
+export function handleDates(body: any) {
+  if (body === null || body === undefined || typeof body !== 'object')
+    return body;
+
+  for (const key of Object.keys(body)) {
+    const value = body[key];
+    if (isIsoDateString(value)) {
+      body[key] = new Date(value); // default JS conversion
+      // body[key] = parseISO(value); // date-fns conversion
+      // body[key] = luxon.DateTime.fromISO(value); // Luxon conversion
+    } else if (typeof value === 'object') {
+      handleDates(value);
+    }
+  }
+}
+```
+
+> If using `fetch` client with `useDates: true`, query parameters of type Date are stringified using `toISOString()`.
+
+### useBigInt
+
+**Type:** `Boolean`
+**Default:** `false`
+
+Convert OpenAPI `int64` and `uint64` format to JavaScript `BigInt` objects instead of `number`.
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        useBigInt: true,
+      },
+    },
+  },
+});
+```
+
+### requestOptions
+
+**Type:** `Object | Boolean`
+
+Configure or remove request options. Set to `false` to remove entirely.
+
+### jsDoc.filter
+
+**Type:** `Function`
+
+Customize JSDoc generation by filtering and transforming schema entries:
+
+```ts title="orval.config.ts"
+export default defineConfig({
+  petstore: {
+    output: {
+      override: {
+        jsDoc: {
+          filter: (schema) => {
+            const allowlist = [
+              'type', 'format', 'maxLength', 'minLength',
+              'description', 'minimum', 'maximum', 'pattern',
+              'nullable', 'enum',
+            ];
+            return Object.entries(schema || {})
+              .filter(([key]) => allowlist.includes(key))
+              .map(([key, value]) => ({ key, value }))
+              .sort((a, b) => a.key.length - b.key.length);
+          },
+        },
+      },
+    },
+  },
+});
+```
+
+Result:
+
+```ts
+export interface Pet {
+  /**
+   * @type integer
+   * @format int64
+   */
+  id: number;
+  /**
+   * @type string
+   * @description Name of pet
+   */
+  name: string;
+}
+```
+

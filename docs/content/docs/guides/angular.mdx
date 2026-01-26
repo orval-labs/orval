@@ -1,0 +1,74 @@
+---
+title: Angular
+description: Generate Angular services with HttpClient from OpenAPI
+---
+
+Generate fully typed Angular services using HttpClient from your OpenAPI specification.
+
+## Configuration
+
+Set the `client` option to `angular`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'angular',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+The Angular client generates two classes:
+
+1. **Abstract class** — Contains the service definition
+2. **Service class** — Contains the implementation
+
+Add the service to your module's providers to use it:
+
+```ts title="app.module.ts"
+import { PetstoreService } from './api/petstore';
+
+@NgModule({
+  providers: [PetstoreService],
+})
+export class AppModule {}
+```
+
+## Setting the Backend URL
+
+Use an HTTP interceptor to automatically add the API base URL:
+
+```ts title="api.interceptor.ts"
+import { Injectable } from '@angular/core';
+import {
+  HttpInterceptor,
+  HttpRequest,
+  HttpHandler,
+} from '@angular/common/http';
+
+@Injectable()
+export class ApiInterceptor implements HttpInterceptor {
+  intercept(req: HttpRequest<any>, next: HttpHandler) {
+    const apiReq = req.clone({
+      url: `https://api.example.com${req.url}`,
+    });
+    return next.handle(apiReq);
+  }
+}
+```
+
+## Full Example
+
+See the [complete Angular example](https://github.com/orval-labs/orval/tree/master/samples/angular-app) on GitHub.

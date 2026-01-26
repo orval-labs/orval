@@ -1,0 +1,98 @@
+---
+title: Client with Zod
+description: Combine Zod validation with HTTP clients
+---
+
+Use Zod schemas alongside your SWR or TanStack Query client for runtime validation.
+
+## Configuration
+
+Generate both the HTTP client and Zod schemas:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  // HTTP client generation
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'swr',
+      target: 'src/api/endpoints',
+      schemas: 'src/api/models',
+      mock: true,
+    },
+  },
+  // Zod schema generation
+  petstoreZod: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'zod',
+      target: 'src/api/endpoints',
+      fileExtension: '.zod.ts',
+    },
+  },
+});
+```
+
+<Callout type="info">
+Use `fileExtension: '.zod.ts'` to avoid filename conflicts with the HTTP client files.
+</Callout>
+
+## Generated Files
+
+```
+src/api/
+├── endpoints/
+│   └── pets/
+│       ├── pets.ts       # SWR hooks
+│       ├── pets.msw.ts   # MSW mocks
+│       └── pets.zod.ts   # Zod schemas
+└── models/
+    └── ...
+```
+
+## Usage
+
+```tsx
+import { useListPets, useCreatePets } from './api/endpoints/pets/pets';
+import { createPetsBodyItem } from './api/endpoints/pets/pets.zod';
+
+function App() {
+  const { data } = useListPets();
+  const { trigger } = useCreatePets();
+
+  const createPet = async () => {
+    const pet = { name: 'Buddy', tag: 'dog' };
+
+    try {
+      // Validate before sending
+      const validatedPet = createPetsBodyItem.parse(pet);
+      await trigger([validatedPet]);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        console.error('Validation failed:', error.errors);
+      }
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={createPet}>Create Pet</button>
+      {data?.map((pet) => (
+        <div key={pet.id}>{pet.name}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+## Full Example
+
+See the [complete SWR with Zod example](https://github.com/orval-labs/orval/tree/master/samples/swr-with-zod) on GitHub.

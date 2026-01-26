@@ -1,26 +1,14 @@
-<p align="center">
-  <img src="../logo/orval-logo-horizontal.svg?raw=true" width="500" height="160" alt="orval - Restfull Client Generator" />
-</p>
+# docs-v2
 
-This is source code to orval.dev. It is forked from the [Formik](https://formik.org) docs and is built with:
+This is a Tanstack Start application generated with
+[Create Fumadocs](https://github.com/fuma-nama/fumadocs).
 
-- Next.js
-- MDX
-- Tailwind
-- Algolia
+Run development server:
 
-## Running locally
-
-```sh
-yarn install
+```bash
+npm run dev
+# or
+pnpm dev
+# or
+yarn dev
 ```
-
-If you want to setup algolia. Just add a `.env` file with the following content:
-
-```
-NEXT_PUBLIC_ALGOLIA_APP_ID=<YOUR APP ID>
-NEXT_PUBLIC_ALGOLIA_API_KEY=<YOUR API KEY>
-NEXT_PUBLIC_ALGOLIA_INDEX_NAME=<YOUR INDEX NAME>
-```
-
-Now it will work. Run `yarn dev` to get going.

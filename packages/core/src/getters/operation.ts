@@ -1,12 +1,12 @@
 import { type OpenApiOperationObject, Verbs } from '../types';
-import { pascal, sanitize } from '../utils';
+import { isString, pascal, sanitize } from '../utils';
 
 export function getOperationId(
   operation: OpenApiOperationObject,
   route: string,
   verb: Verbs,
 ): string {
-  if (operation.operationId) {
+  if (isString(operation.operationId)) {
     return operation.operationId;
   }
 

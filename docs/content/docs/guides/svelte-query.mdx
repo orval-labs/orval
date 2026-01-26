@@ -1,0 +1,104 @@
+---
+title: Svelte Query
+description: Generate type-safe Svelte Query stores from OpenAPI
+---
+
+Generate fully typed [TanStack Query for Svelte](https://tanstack.com/query/latest/docs/svelte/overview) stores from your OpenAPI specification.
+
+## Configuration
+
+Set the `client` option to `svelte-query`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'svelte-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates one custom store per path in your OpenAPI specification. For example, [this specification](https://github.com/orval-labs/orval/blob/master/samples/svelte-query/petstore.yaml) generates:
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const useShowPetById = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
+    queryKey,
+    queryFn,
+    { enabled: !!petId, ...queryOptions },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
+
+## Infinite Queries
+
+Generate infinite query stores:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'svelte-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Full Example
+
+See the [complete Svelte Query example](https://github.com/orval-labs/orval/tree/master/samples/svelte-query) on GitHub.

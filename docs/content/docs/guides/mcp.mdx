@@ -1,0 +1,81 @@
+---
+title: MCP Server
+description: Generate Model Context Protocol servers from OpenAPI
+---
+
+Generate [Model Context Protocol (MCP)](https://modelcontextprotocol.io/introduction) servers from your OpenAPI specification for AI agent integration.
+
+## Overview
+
+MCP servers relay API clients to AI agents, eliminating the need to wait for third-party implementations. Create MCP servers for any service with an OpenAPI specification and use them with AI agents like Claude, Cline, and others.
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'single',
+      client: 'mcp',
+      baseUrl: 'https://petstore3.swagger.io/api/v3',
+      target: 'src/handlers.ts',
+      schemas: 'src/http-schemas',
+    },
+  },
+});
+```
+
+<Callout type="info">
+The `mcp` client currently only works in `single` mode.
+</Callout>
+
+## Generated Structure
+
+```
+src/
+├── http-schemas/
+│   ├── createPetsBodyItem.ts
+│   ├── error.ts
+│   ├── index.ts
+│   └── pet.ts
+├── handlers.ts        # Handler functions returning MCP format
+├── http-client.ts     # Generated fetch client
+├── server.ts          # MCP tools and server configuration
+└── tool-schemas.zod.ts # Zod schemas for tool inputs
+```
+
+## Usage
+
+### 1. Build Docker Image
+
+```bash
+docker build ./ -t mcp-petstore
+```
+
+### 2. Configure AI Agent
+
+For Cline:
+
+```json
+{
+  "mcpServers": {
+    "petstore": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "mcp-petstore"],
+      "disabled": false,
+      "alwaysAllow": []
+    }
+  }
+}
+```
+
+This allows your AI agent to interact with the API through the MCP protocol.
+
+## Full Example
+
+See the [MCP Petstore sample](https://github.com/orval-labs/orval/tree/master/samples/mcp/petstore) on GitHub.

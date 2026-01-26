@@ -251,3 +251,13 @@ export function jsStringEscape(input: string) {
     }
   });
 }
+
+/**
+ * Deduplicates a TypeScript union type string.
+ * Handles types like "A | B | B" → "A | B" and "null | null" → "null".
+ */
+export function dedupeUnionType(unionType: string): string {
+  const parts = unionType.split('|').map((part) => part.trim());
+  const unique = [...new Set(parts)];
+  return unique.join(' | ');
+}

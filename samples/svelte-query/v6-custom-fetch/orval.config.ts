@@ -16,6 +16,7 @@ export default defineConfig({
           name: 'customFetch',
         },
         query: {
+          usePrefetch: true,
           mutationInvalidates: [
             {
               onMutations: ['createPets'],
