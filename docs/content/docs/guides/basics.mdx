@@ -1,0 +1,57 @@
+---
+title: Basics
+description: Learn the fundamentals of configuring Orval
+---
+
+Start by generating or defining an OpenAPI specification (example [petstore.yaml](https://github.com/orval-labs/orval/blob/master/samples/basic/petstore.yaml)).
+
+Then create a file `orval.config.ts` at the root of your project.
+
+## Basic Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'single',
+      target: './src/petstore.ts',
+      schemas: './src/model',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Output Options
+
+The output options configure how and where you want to write the generated code.
+
+| Option | Description |
+| --- | --- |
+| `mode` | Specifies how files are generated. Default: `single` (one file with everything) |
+| `target` | Specifies where the generated file(s) will be written |
+| `schemas` | Specifies where the models will be written |
+| `client` | Specifies the HTTP client to generate (`axios`, `react-query`, `vue-query`, etc.) |
+| `mock` | Generates mocks with MSW. See the [MSW guide](/docs/guides/msw) |
+
+## Input Options
+
+The input options configure the imported specification and any optional overrides.
+
+| Option | Description |
+| --- | --- |
+| `target` | Path or URL to the OpenAPI specification file |
+| `override.transformer` | Transform the specification (e.g., add a parameter to every request) |
+
+## Next Steps
+
+<Cards>
+  <Card title="Configuration Reference" href="/docs/reference/configuration" description="See all available options" />
+  <Card title="React Query" href="/docs/guides/react-query" description="Generate React Query hooks" />
+  <Card title="MSW Mocking" href="/docs/guides/msw" description="Generate API mocks" />
+</Cards>

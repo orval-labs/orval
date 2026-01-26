@@ -1,0 +1,38 @@
+---
+title: Overview
+description: Generate type-safe TypeScript clients from OpenAPI specifications
+icon: Rocket
+---
+
+Orval generates **type-safe TypeScript clients** from any valid OpenAPI v3 or Swagger v2 specification, either in YAML or JSON formats.
+
+## Why Orval?
+
+Developers often use OpenAPI/Swagger as a contract between frontend and backend. Before Orval, tools like [Swagger Editor](https://editor.swagger.io) or [Swagger Codegen](https://swagger.io/tools/swagger-codegen) did the job. But that's not enough for modern development needs. Enter Orval.
+
+### Main Goals
+
+- **Generate TypeScript models** — Full type safety for your API responses and requests
+- **Generate HTTP request functions** — Ready-to-use functions with proper typing
+- **Generate mocks with [MSW](https://mswjs.io/)** — Test your frontend without a backend
+
+## Supported Clients
+
+The default generated clients use [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API). You can configure any client (e.g. axios) depending on your project needs.
+
+<Cards>
+  <Card title="React Query" href="/docs/guides/react-query" />
+  <Card title="Vue Query" href="/docs/guides/vue-query" />
+  <Card title="Svelte Query" href="/docs/guides/svelte-query" />
+  <Card title="Solid Query" href="/docs/guides/solid-query" />
+  <Card title="Angular" href="/docs/guides/angular" />
+  <Card title="SWR" href="/docs/guides/swr" />
+</Cards>
+
+## Getting Started
+
+<Cards>
+  <Card title="Installation" href="/docs/installation" description="Install Orval in your project" />
+  <Card title="Quick Start" href="/docs/quick-start" description="Generate your first client in seconds" />
+  <Card title="Configuration" href="/docs/reference/configuration" description="Learn about all configuration options" />
+</Cards>

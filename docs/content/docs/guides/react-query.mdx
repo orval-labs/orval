@@ -1,0 +1,133 @@
+---
+title: React Query
+description: Generate type-safe React Query hooks from OpenAPI
+---
+
+Generate fully typed [TanStack Query](https://tanstack.com/query) hooks from your OpenAPI specification.
+
+## Configuration
+
+Set the `client` option to `react-query`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'react-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates one custom hook per path in your OpenAPI specification. For example, [this specification](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic/petstore.yaml) generates:
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const useShowPetById = <
+  TData = AsyncReturnType<typeof showPetById>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: UseQueryOptions<AsyncReturnType<typeof showPetById>, TError, TData>;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = useQuery<AsyncReturnType<typeof queryFn>, TError, TData>(
+    queryKey,
+    queryFn,
+    { enabled: !!petId, ...queryOptions },
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
+
+## Infinite Queries
+
+Generate `useInfiniteQuery` hooks alongside regular queries:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Per-Operation Overrides
+
+Override query options for specific operations:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'react-query',
+      override: {
+        operations: {
+          listPets: {
+            query: {
+              useInfinite: true,
+              useInfiniteQueryParam: 'cursor',
+            },
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Full Example
+
+See the [complete React Query example](https://github.com/orval-labs/orval/blob/master/samples/react-query/basic) on GitHub.

@@ -1,0 +1,51 @@
+---
+title: Enum Names
+description: Generate named enums from OpenAPI extensions
+---
+
+Use OpenAPI extensions to generate enums with meaningful names instead of numeric values.
+
+## OpenAPI Schema
+
+```yaml
+openapi: '3.1.0'
+info:
+  version: 1.0.0
+  title: Swagger Petstore
+components:
+  schemas:
+    MyObject:
+      type: object
+      properties:
+        myEnum:
+          type: number
+          enum:
+            - 1
+            - 2
+            - 3
+            - 4
+          x-enumNames:
+            - One
+            - Two
+            - Three
+            - Four
+```
+
+## Generated Output
+
+```ts
+export const MyEnum = {
+  One: 1,
+  Two: 2,
+  Three: 3,
+  Four: 4,
+} as const;
+```
+
+## Supported Extensions
+
+Orval recognizes these extensions for enum names:
+
+- `x-enumNames`
+- `x-enumnames`
+- `x-enum-varnames`

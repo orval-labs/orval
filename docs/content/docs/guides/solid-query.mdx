@@ -1,0 +1,125 @@
+---
+title: Solid Query
+description: Generate type-safe Solid Query primitives from OpenAPI
+---
+
+Generate fully typed [TanStack Query for Solid](https://tanstack.com/query/latest/docs/solid/overview) primitives from your OpenAPI specification.
+
+## Configuration
+
+Set the `client` option to `solid-query`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'tags-split',
+      target: 'src/api/petstore.ts',
+      schemas: 'src/api/model',
+      client: 'solid-query',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates one primitive per path using `@tanstack/solid-query`. For example:
+
+```ts
+export const showPetById = (
+  petId: string,
+  options?: AxiosRequestConfig,
+): Promise<AxiosResponse<Pet>> => {
+  return axios.get(`/pets/${petId}`, options);
+};
+
+export const getShowPetByIdQueryKey = (petId: string) => [`/pets/${petId}`];
+
+export const createShowPetById = <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  petId: string,
+  options?: {
+    query?: CreateQueryOptions<
+      Awaited<ReturnType<typeof showPetById>>,
+      TError,
+      TData
+    >;
+    axios?: AxiosRequestConfig;
+  },
+) => {
+  const { query: queryOptions, axios: axiosOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getShowPetByIdQueryKey(petId);
+  const queryFn = () => showPetById(petId, axiosOptions);
+
+  const query = createQuery<Awaited<ReturnType<typeof queryFn>>, TError, TData>(
+    () => ({
+      queryKey,
+      queryFn,
+      enabled: !!petId,
+      ...queryOptions,
+    }),
+  );
+
+  return {
+    queryKey,
+    ...query,
+  };
+};
+```
+
+## Key Differences from React Query
+
+Solid Query uses the `create` prefix instead of `use`:
+
+- `createQuery` instead of `useQuery`
+- `createMutation` instead of `useMutation`
+- `createInfiniteQuery` instead of `useInfiniteQuery`
+
+The generated primitives follow SolidJS conventions and work seamlessly with Solid's reactivity system.
+
+## Infinite Queries
+
+Generate infinite query primitives:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'solid-query',
+      override: {
+        query: {
+          useQuery: true,
+          useInfinite: true,
+          useInfiniteQueryParam: 'nextId',
+          options: {
+            staleTime: 10000,
+          },
+        },
+      },
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## SolidStart vs Solid Query
+
+If you're using SolidStart, consider using the [SolidStart client](/docs/guides/solid-start) instead, which uses native Solid Router primitives (`query()` and `action()`) for better SSR integration.
+
+## Full Example
+
+See the [complete Solid Query example](https://github.com/orval-labs/orval/tree/master/samples/solid-query) on GitHub.

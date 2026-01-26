@@ -1,0 +1,146 @@
+---
+title: Hono
+description: Generate Hono server templates from OpenAPI
+---
+
+Generate [Hono](https://hono.dev/) server templates with full validation from your OpenAPI specification.
+
+## Configuration
+
+Set the `client` option to `hono`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'split',
+      client: 'hono',
+      target: 'src/petstore.ts',
+      override: {
+        hono: {
+          handlers: 'src/handlers',
+        },
+      },
+    },
+  },
+});
+```
+
+## Generated Files
+
+```
+src/
+├── handlers/
+│   ├── createPets.ts
+│   ├── listPets.ts
+│   ├── showPetById.ts
+│   └── updatePets.ts
+├── petstore.ts           # Hono app with routes
+├── petstore.context.ts   # Type-safe context
+├── petstore.schemas.ts   # Request/response schemas
+├── petstore.validator.ts # Hono validator
+└── petstore.zod.ts       # Zod schemas
+```
+
+## Handler Template
+
+Orval generates handler templates with built-in validation:
+
+```ts title="src/handlers/listPets.ts"
+import { createFactory } from 'hono/factory';
+import { zValidator } from '../petstore.validator';
+import { ListPetsContext } from '../petstore.context';
+import { listPetsQueryParams, listPetsResponse } from '../petstore.zod';
+
+const factory = createFactory();
+
+export const listPetsHandlers = factory.createHandlers(
+  zValidator('query', listPetsQueryParams),
+  zValidator('response', listPetsResponse),
+  async (c: ListPetsContext) => {
+    // Implement your logic here
+  },
+);
+```
+
+## Implementing Handlers
+
+Add your business logic to the generated handlers:
+
+```ts title="src/handlers/listPets.ts"
+export const listPetsHandlers = factory.createHandlers(
+  zValidator('query', listPetsQueryParams),
+  zValidator('response', listPetsResponse),
+  async (c: ListPetsContext) => {
+    return c.json([
+      { id: 1, name: 'Buddy' },
+      { id: 2, name: 'Max' },
+    ]);
+  },
+);
+```
+
+## Running the Server
+
+```bash
+wrangler dev src/petstore.ts
+curl http://localhost:8787/pets
+# => [{"id":1,"name":"Buddy"},{"id":2,"name":"Max"}]
+```
+
+## Composite Routes (tags-split)
+
+For larger APIs, use `tags-split` mode with composite routes:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: {
+      target: './petstore.yaml',
+    },
+    output: {
+      mode: 'tags-split',
+      client: 'hono',
+      target: 'src/endpoints',
+      schemas: 'src/schemas',
+      override: {
+        hono: {
+          compositeRoute: 'src/routes.ts',
+        },
+      },
+    },
+  },
+});
+```
+
+This generates a combined routes file:
+
+```ts title="src/routes.ts"
+import { Hono } from 'hono';
+import {
+  listPetsHandlers,
+  createPetsHandlers,
+  showPetByIdHandlers,
+} from './endpoints/pets/pets.handlers';
+
+const app = new Hono();
+
+app.get('/pets', ...listPetsHandlers);
+app.post('/pets', ...createPetsHandlers);
+app.get('/pets/:petId', ...showPetByIdHandlers);
+
+export default app;
+```
+
+## Full Examples
+
+- [Basic Hono with Zod](https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-zod)
+- [Hono with Fetch Client](https://github.com/orval-labs/orval/tree/master/samples/hono/hono-with-fetch-client)
+- [Composite Routes](https://github.com/orval-labs/orval/tree/master/samples/hono/composite-routes-with-tags-split)
