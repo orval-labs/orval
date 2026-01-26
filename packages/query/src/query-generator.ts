@@ -582,7 +582,7 @@ export function ${queryHookName}<TData = ${TData}, TError = ${errorType}>(\n ${q
     queryProps,
     dataType,
     errorType,
-    queryArguments,
+    queryArguments: queryArgumentsForOptions,
     queryOptionsVarName,
     queryOptionsFnName,
     queryProperties,
