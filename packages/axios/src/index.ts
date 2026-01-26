@@ -205,7 +205,9 @@ const generateAxiosImplementation = (
   return `const ${operationName} = <TData = AxiosResponse<${
     response.definition.success || 'unknown'
   }>>(\n    ${toObjectString(props, 'implementation')} ${
-    isRequestOptions ? `options?: AxiosRequestConfig\n` : ''
+    isRequestOptions
+      ? `options${context.output.optionsParamRequired ? '' : '?'}: AxiosRequestConfig\n`
+      : ''
   } ): Promise<TData> => {${bodyForm}
     return ${axiosRef}.${verb}(${options});
   }
