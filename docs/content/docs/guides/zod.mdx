@@ -1,0 +1,78 @@
+---
+title: Zod
+description: Generate Zod schemas from OpenAPI
+---
+
+Generate [Zod](https://zod.dev/) schemas from your OpenAPI specification for runtime validation.
+
+## Configuration
+
+Set the `client` option to `zod`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'zod',
+      mode: 'single',
+      target: './src/api/schemas',
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates a Zod schema for each model in your OpenAPI specification:
+
+```ts
+export const createPetsBody = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  tag: zod.string().optional(),
+});
+```
+
+## Usage
+
+### Parsing Data
+
+```ts
+import { createPetsBody } from './src/api/schemas';
+
+const pet = { id: 1, name: 'Buddy', tag: 'dog' };
+const parsedPet = createPetsBody.parse(pet);
+// => { id: 1, name: "Buddy", tag: "dog" }
+```
+
+### Type Inference
+
+```ts
+import type { z } from 'zod';
+import { createPetsBody } from './src/api/schemas';
+
+type Pet = z.infer<typeof createPetsBody>;
+
+const pet: Pet = { id: 1, name: 'Buddy', tag: 'dog' };
+```
+
+### Safe Parsing
+
+```ts
+const result = createPetsBody.safeParse(unknownData);
+
+if (result.success) {
+  console.log(result.data);
+} else {
+  console.error(result.error);
+}
+```
+
+## Combining with HTTP Clients
+
+See the [Client with Zod](/docs/guides/client-with-zod) guide for using Zod schemas with React Query, SWR, or other HTTP clients.

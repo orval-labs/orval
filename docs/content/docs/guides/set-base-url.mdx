@@ -1,0 +1,135 @@
+---
+title: Custom Base URL
+description: Configure base URLs for your API clients
+---
+
+Set a custom base URL for each OpenAPI specification, or use the `servers` field from the spec.
+
+## Configuration
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+      baseUrl: '/api/v2',
+      // or full URL:
+      // baseUrl: 'https://petstore.swagger.io/v2',
+    },
+  },
+});
+```
+
+## From OpenAPI Specification
+
+Use the `servers` field from your OpenAPI spec:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      target: 'src/petstore.ts',
+      baseUrl: {
+        getBaseUrlFromSpecification: true,
+        variables: {
+          environment: 'api.dev',
+        },
+      },
+    },
+  },
+});
+```
+
+## HTTP Client Configuration
+
+### Axios
+
+Set a default baseURL:
+
+```ts
+axios.defaults.baseURL = '<BACKEND URL>';
+```
+
+Or use an interceptor:
+
+```ts
+axios.interceptors.request.use((config) => ({
+  ...config,
+  baseURL: '<BACKEND URL>',
+}));
+```
+
+Or create a [custom Axios instance](/docs/guides/custom-axios):
+
+```ts
+const AXIOS_INSTANCE = axios.create({ baseURL: '<BACKEND URL>' });
+```
+
+### Fetch Client
+
+Create a custom fetch wrapper:
+
+```ts
+const getUrl = (contextUrl: string): string => {
+  const url = new URL(contextUrl);
+  const baseUrl =
+    process.env.NODE_ENV === 'production'
+      ? 'productionBaseUrl'
+      : 'http://localhost:3000';
+
+  return new URL(`${baseUrl}${url.pathname}${url.search}`).toString();
+};
+
+export const customFetch = async <T>(
+  url: string,
+  options: RequestInit,
+): Promise<T> => {
+  const response = await fetch(getUrl(url), options);
+  const data = await response.json();
+  return { status: response.status, data } as T;
+};
+```
+
+See the [complete example](https://github.com/orval-labs/orval/blob/master/samples/next-app-with-fetch/custom-fetch.ts).
+
+### Angular HTTP Client
+
+Use an interceptor:
+
+```ts
+import { Injectable } from '@angular/core';
+import {
+  HttpEvent,
+  HttpInterceptor,
+  HttpHandler,
+  HttpRequest,
+} from '@angular/common/http';
+import { Observable } from 'rxjs/Observable';
+
+@Injectable()
+export class APIInterceptor implements HttpInterceptor {
+  intercept(
+    req: HttpRequest<any>,
+    next: HttpHandler,
+  ): Observable<HttpEvent<any>> {
+    const apiReq = req.clone({ url: `<BACKEND URL>/${req.url}` });
+    return next.handle(apiReq);
+  }
+}
+```
+
+Register in your module:
+
+```ts
+providers: [
+  {
+    provide: HTTP_INTERCEPTORS,
+    useClass: APIInterceptor,
+    multi: true,
+  },
+];
+```

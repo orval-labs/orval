@@ -1,0 +1,31 @@
+{
+  "title": "Guides",
+  "pages": [
+    "basics",
+    "---HTTP Clients---",
+    "fetch",
+    "fetch-client",
+    "custom-client",
+    "custom-axios",
+    "set-base-url",
+    "---Data Fetching---",
+    "react-query",
+    "vue-query",
+    "svelte-query",
+    "solid-query",
+    "angular-query",
+    "swr",
+    "---Frameworks---",
+    "angular",
+    "solid-start",
+    "hono",
+    "---Validation & Mocking---",
+    "zod",
+    "client-with-zod",
+    "msw",
+    "---Advanced---",
+    "enums",
+    "stream-ndjson",
+    "mcp"
+  ]
+}

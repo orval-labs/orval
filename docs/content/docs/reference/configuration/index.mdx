@@ -1,0 +1,47 @@
+---
+title: Configuration
+description: Overview of Orval configuration options
+---
+
+Configure Orval using an `orval.config.(js|mjs|ts)` file at the root of your project.
+
+## Configuration Categories
+
+| Category | Description |
+|----------|-------------|
+| **Input** | Path to the specification, or a configuration object for transforming the specification before generation |
+| **Output** | Output path and configuration for what is generated and how |
+| **Hooks** | Scripts to run on certain events |
+
+## Basic Example
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: './petstore.ts',
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
+  },
+});
+```
+
+## Multiple Specifications
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    input: './petstore.yaml',
+    output: './src/api/petstore.ts',
+  },
+  users: {
+    input: './users.yaml',
+    output: './src/api/users.ts',
+  },
+});
+```

@@ -1,0 +1,168 @@
+---
+title: MSW
+description: Generate Mock Service Worker handlers from OpenAPI
+---
+
+Generate [MSW (Mock Service Worker)](https://mswjs.io/) handlers from your OpenAPI specification to mock your API during development and testing.
+
+## Configuration
+
+Set the `mock` option to `true`:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      mode: 'single',
+      target: './src/api/petstore.ts',
+      schemas: './src/api/model',
+      mock: true,
+    },
+    input: {
+      target: './petstore.yaml',
+    },
+  },
+});
+```
+
+## Generated Output
+
+Orval generates three types of functions:
+
+### 1. Mock Data Generators
+
+Functions that return mocked values using [Faker.js](https://fakerjs.dev/):
+
+```ts
+import { faker } from '@faker-js/faker';
+
+export const getShowPetByIdResponseMock = (
+  overrideResponse: Partial<Pet> = {},
+): Pet => ({
+  id: faker.number.int({ min: undefined, max: undefined }),
+  name: faker.string.alpha(20),
+  tag: faker.string.alpha(20),
+  ...overrideResponse,
+});
+```
+
+Override values as needed:
+
+```ts
+const pet = getShowPetByIdResponseMock({ name: 'Buddy' });
+// => { id: 7272122785202176, name: "Buddy", tag: "..." }
+```
+
+### 2. Request Handlers
+
+Functions that bind mock data to MSW handlers:
+
+```ts
+import { HttpResponse, delay, http } from 'msw';
+
+export const getShowPetByIdMockHandler = (
+  overrideResponse?: Pet | ((info) => Promise<Pet> | Pet),
+) => {
+  return http.get('*/pets/:petId', async (info) => {
+    await delay(1000);
+    return new HttpResponse(
+      JSON.stringify(
+        overrideResponse !== undefined
+          ? typeof overrideResponse === 'function'
+            ? await overrideResponse(info)
+            : overrideResponse
+          : getShowPetByIdResponseMock(),
+      ),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  });
+};
+```
+
+### 3. Aggregated Handlers
+
+Functions that combine all handlers for easy setup:
+
+```ts
+export const getPetsMock = () => [
+  getListPetsMockHandler(),
+  getCreatePetsMockHandler(),
+  getShowPetByIdMockHandler(),
+];
+```
+
+## Usage
+
+### Basic Setup
+
+```ts
+import { getPetsMock } from './api/petstore.msw';
+import { setupServer } from 'msw/node';
+
+const server = setupServer(...getPetsMock());
+
+beforeAll(() => server.listen());
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+```
+
+### Custom Response
+
+```ts
+const showPetByIdMockHandler = getShowPetByIdMockHandler({
+  id: 1,
+  name: 'Custom Pet',
+  tag: 'custom',
+});
+```
+
+### Dynamic Response
+
+Pass a function for dynamic responses based on request data:
+
+```ts
+getShowPetByIdMockHandler(async (info) => {
+  const petId = info.params.petId;
+  return { id: Number(petId), name: `Pet ${petId}`, tag: 'dynamic' };
+});
+```
+
+### Testing with Vitest
+
+```ts
+import { expect, vi } from 'vitest';
+import { getShowPetByIdMockHandler, getShowPetByIdResponseMock } from './api/petstore.msw';
+
+const mockFn = vi.fn();
+
+const handlers = [
+  getShowPetByIdMockHandler(async (info) => {
+    mockFn(info.params.petId);
+    return getShowPetByIdResponseMock();
+  }),
+];
+
+// ... run test
+
+expect(mockFn).toHaveBeenCalledWith('123');
+```
+
+## Dynamic Imports
+
+Enable `indexMockFiles` to dynamically import all handlers:
+
+```ts
+// node.ts
+import * as mocks from './endpoints/index.msw';
+import { setupServer } from 'msw/node';
+
+const handlers = Object.entries(mocks).flatMap(([, getMock]) => getMock());
+const server = setupServer(...handlers);
+
+export { server };
+```

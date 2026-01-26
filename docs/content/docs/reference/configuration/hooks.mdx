@@ -1,0 +1,41 @@
+---
+title: Hooks
+description: Run scripts on generation events
+---
+
+## afterAllFilesWrite
+
+**Type:** `String | String[] | Function | Object`
+
+Runs after Orval writes generated files. File paths are passed as arguments.
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    hooks: {
+      afterAllFilesWrite: 'prettier --write',
+    },
+  },
+});
+```
+
+### Disable File Injection
+
+To prevent Orval from injecting generated files into the command:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    hooks: {
+      afterAllFilesWrite: {
+        command: 'prettier --write .',
+        injectGeneratedDirsAndFiles: false,
+      },
+    },
+  },
+});
+```

@@ -1,0 +1,119 @@
+---
+title: Fetch Client
+description: Configure Fetch as HTTP client for SWR and TanStack Query
+---
+
+The Fetch API is the default HTTP client for `swr`, `react-query`, and other query library clients.
+
+## Generated Output
+
+When using SWR or TanStack Query, Orval generates fetch-based functions with hooks:
+
+```ts
+export type listPetsResponse = {
+  data: Pets | BadRequest;
+  status: number;
+};
+
+export const getListPetsUrl = (params?: ListPetsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value === null) {
+      normalizedParams.append(key, 'null');
+    } else if (value !== undefined) {
+      normalizedParams.append(key, value.toString());
+    }
+  });
+
+  return normalizedParams.size
+    ? `http://localhost:8000/pets?${normalizedParams.toString()}`
+    : `http://localhost:8000/pets`;
+};
+
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+): Promise<listPetsResponse> => {
+  const res = await fetch(getListPetsUrl(params), {
+    ...options,
+    method: 'GET',
+  });
+  const data: Pets =
+    [204, 205, 304].includes(res.status) || !res.body ? {} : await res.json();
+
+  return { status: res.status, data };
+};
+
+export const useListPets = <TError = Promise<Pets | Error>>(
+  params?: ListPetsParams,
+  options?: {
+    swr?: SWRConfiguration<Awaited<ReturnType<typeof listPets>>, TError>;
+    fetch?: RequestInit;
+  },
+) => {
+  // ... hook implementation
+};
+```
+
+## Simplified Return Type
+
+By default, the fetch response includes HTTP status, requiring `data.data` access. To return the defined type directly:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      // ...
+      override: {
+        fetch: {
+          includeHttpResponseReturnType: false,
+        },
+      },
+    },
+  },
+});
+```
+
+This changes the return type:
+
+```diff
+- export type listPetsResponse = {
+-   data: Pets | BadRequest;
+-   status: number;
+- };
+
+export const listPets = async (
+  params?: ListPetsParams,
+  options?: RequestInit,
+- ): Promise<listPetsResponse> => {
++ ): Promise<Pet> => {
+  // ...
+-  return { status: res.status, data };
++  return data;
+};
+```
+
+## Custom Fetch Client
+
+Use a mutator for custom fetch implementations:
+
+```ts title="orval.config.ts"
+import { defineConfig } from 'orval';
+
+export default defineConfig({
+  petstore: {
+    output: {
+      client: 'swr',
+      override: {
+        mutator: {
+          path: './src/mutator.ts',
+          name: 'customFetch',
+        },
+      },
+    },
+  },
+});
+```

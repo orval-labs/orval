@@ -1,0 +1,161 @@
+---
+title: Programmatic API
+description: Use Orval programmatically in your build scripts
+---
+
+Integrate Orval code generation into your build processes, scripts, or tools.
+
+## Basic Usage
+
+```ts
+import orval from 'orval';
+
+// Generate using a config file path
+await orval('./orval.config.js');
+
+// Generate using current directory's orval config
+await orval();
+```
+
+Or use the named export:
+
+```ts
+import { generate } from 'orval';
+
+await generate('./orval.config.js');
+```
+
+## Direct Configuration
+
+Pass a configuration object directly:
+
+```ts
+import { generate, type Options } from 'orval';
+
+const config: Options = {
+  input: {
+    target: './api-spec.yaml',
+  },
+  output: {
+    target: './src/api.ts',
+    client: 'axios',
+  },
+};
+
+await generate(config);
+```
+
+## Global Options Override
+
+Override config settings with global options. See the [GlobalOptions interface](https://github.com/orval-labs/orval/blob/master/packages/core/src/types.ts#L718) for all available options.
+
+```ts
+import { generate, type GlobalOptions } from 'orval';
+
+const globalOptions: GlobalOptions = {
+  // File watching
+  watch: true, // Enable watch mode (boolean)
+  // watch: './specs/**/*.yaml',        // Watch specific file pattern (string)
+  // watch: ['./specs/*.yaml'],         // Watch multiple patterns (string[])
+
+  // Output control
+  clean: true, // Clean all output directories (boolean)
+  // clean: ['./src/api', './types'],   // Clean specific directories (string[])
+  output: './src/generated', // Override output directory
+
+  // Code formatting
+  prettier: true, // Format with Prettier
+  biome: true, // Format with Biome
+
+  // HTTP client configuration
+  client: 'fetch', // Override HTTP client
+  httpClient: 'fetch', // HTTP implementation: 'axios' | 'fetch'
+
+  // Generation mode
+  mode: 'split', // Output mode: 'single' | 'split' | 'tags' | 'tags-split'
+
+  // Mock data generation
+  mock: true, // Enable mock data generation
+  // mock: { type: 'msw', delay: 1000 },  // Configure mock options
+
+  // TypeScript configuration
+  tsconfig: './tsconfig.json', // Custom tsconfig path
+  // tsconfig: { compilerOptions: {...} },  // Inline tsconfig
+
+  // Package configuration
+  packageJson: './package.json',
+  input: './api-spec.yaml',
+};
+
+await generate('./orval.config.js', process.cwd(), globalOptions);
+```
+
+## Custom Workspace
+
+Specify a custom workspace directory:
+
+```ts
+import { generate } from 'orval';
+
+const workspace = '/path/to/your/project';
+await generate('./orval.config.js', workspace);
+```
+
+## Function Signature
+
+```ts
+function generate(
+  optionsExport?: string | OptionsExport,
+  workspace?: string,
+  options?: GlobalOptions,
+): Promise<void>;
+```
+
+**Parameters:**
+- `optionsExport`: Path to config file or configuration object
+- `workspace`: Working directory (defaults to `process.cwd()`)
+- `options`: Global options to override config settings
+
+## Watch Mode
+
+```ts
+import { generate } from 'orval';
+
+// Enable watch mode
+await generate('./orval.config.js', process.cwd(), {
+  watch: true,
+});
+
+// Watch specific files/directories
+await generate('./orval.config.js', process.cwd(), {
+  watch: ['./specs/*.yaml', './src/custom-types.ts'],
+});
+```
+
+## Build Scripts Integration
+
+```json title="package.json"
+{
+  "scripts": {
+    "generate": "node scripts/generate-api.js",
+    "dev": "npm run generate && next dev",
+    "build": "npm run generate && next build"
+  }
+}
+```
+
+```js title="scripts/generate-api.js"
+const { generate } = require('orval');
+
+async function main() {
+  try {
+    await generate();
+    console.log('API client generated successfully');
+  } catch (error) {
+    console.error('Failed to generate API client:', error);
+    process.exit(1);
+  }
+}
+
+main();
+```

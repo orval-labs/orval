@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy Docs
 on:
   push:
     branches:
@@ -6,8 +6,8 @@ on:
     paths:
       - 'docs/**'
 jobs:
-  push-to-vercel:
-    name: Push to Vercel
+  deploy-to-cloudflare:
+    name: Deploy to Cloudflare
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -17,15 +17,14 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 22
-          # https://github.com/actions/setup-node/issues/1357
-          package-manager-cache: false
-      - name: Install Vercel CLI
-        run: |
-          npm install -g vercel
-      - name: Deploy to Vercel
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Install dependencies
+        working-directory: docs
+        run: yarn install --immutable
+      - name: Deploy
+        working-directory: docs
         env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-        run: |
-          vercel --prod --token="$VERCEL_TOKEN" -f
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: yarn deploy
