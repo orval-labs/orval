@@ -3369,7 +3369,8 @@ Type: `Boolean`
 Valid Values: `true` or `false`.
 
 Default Value: `false`.
-Use this property to make the second `options` parameter required (such as when using a custom Axios instance)
+Use this property to make the second `options` parameter required (such as when using a custom Axios instance).
+Note: this will make any positional parameters preceding the options parameter required.
 
 ```js
 import { defineConfig } from 'orval';
