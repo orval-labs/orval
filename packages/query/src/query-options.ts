@@ -188,8 +188,7 @@ export const generateQueryArguments = ({
   initialData?: 'defined' | 'undefined';
   httpClient: OutputHttpClient;
   isAngularClient: boolean;
-  /** When true, include http: HttpClient parameter (for getQueryOptions/getMutationOptions).
-   *  When false, don't include it (for inject* functions which inject internally). */
+  /** When true, don't make options an Accessor for svelte-query v6 */
   forQueryOptions?: boolean;
   /** When true, wrap options type in getter alternative for Angular reactive support. */
   forAngularInject?: boolean;

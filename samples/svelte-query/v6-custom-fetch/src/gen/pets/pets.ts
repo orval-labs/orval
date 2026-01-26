@@ -209,6 +209,29 @@ export function createListPets<
 }
 
 /**
+ * @summary List all pets
+ */
+export const prefetchListPetsQuery = async <
+  TData = Awaited<ReturnType<typeof listPets>>,
+  TError = unknown,
+>(
+  queryClient: QueryClient,
+  params?: ListPetsParams,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof listPets>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getListPetsQueryOptions(params, options);
+
+  await queryClient.prefetchQuery(queryOptions);
+
+  return queryClient;
+};
+
+/**
  * @summary Create a pet
  */
 export type createPetsResponse200 = {
@@ -550,3 +573,26 @@ export function createShowPetById<
 
   return query;
 }
+
+/**
+ * @summary Info for a specific pet
+ */
+export const prefetchShowPetByIdQuery = async <
+  TData = Awaited<ReturnType<typeof showPetById>>,
+  TError = Error,
+>(
+  queryClient: QueryClient,
+  petId: string,
+  options?: {
+    query?: Partial<
+      CreateQueryOptions<Awaited<ReturnType<typeof showPetById>>, TError, TData>
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): Promise<QueryClient> => {
+  const queryOptions = getShowPetByIdQueryOptions(petId, options);
+
+  await queryClient.prefetchQuery(queryOptions);
+
+  return queryClient;
+};
