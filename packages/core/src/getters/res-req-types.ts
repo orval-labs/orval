@@ -502,6 +502,7 @@ function resolveFormDataRootObject({
       context,
     );
 
+    // Handle top-level string properties with file types
     const fileType = getFormDataFieldFileType(
       resolvedSchema,
       encoding?.[key]?.contentType,
@@ -517,6 +518,32 @@ function resolveFormDataRootObject({
         ...scalar,
         value: fileType === 'binary' ? 'Blob' : 'Blob | string',
       };
+      continue;
+    }
+
+    // Handle arrays of files
+    if (resolvedSchema.type === 'array' && resolvedSchema.items) {
+      const { schema: itemsSchema } = resolveRef<OpenApiSchemaObject>(
+        resolvedSchema.items,
+        context,
+      );
+
+      // Precedence: encoding.contentType > items.contentMediaType
+      const effectiveContentType =
+        encoding?.[key]?.contentType ?? itemsSchema.contentMediaType;
+
+      if (effectiveContentType) {
+        const isBinary = isBinaryContentType(effectiveContentType);
+        const scalar = getScalar({
+          item: resolvedSchema,
+          name: propName,
+          context,
+        });
+        propertyOverrides[key] = {
+          ...scalar,
+          value: isBinary ? 'Blob[]' : '(Blob | string)[]',
+        };
+      }
     }
   }
 

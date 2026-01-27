@@ -24,6 +24,12 @@ const context: ContextSpec = {
     override: {
       formData: { arrayHandling: 'serialize', disabled: false },
       enumGenerationType: 'const',
+      components: {
+        schemas: { suffix: '', itemSuffix: 'Item' },
+        responses: { suffix: '' },
+        parameters: { suffix: '' },
+        requestBodies: { suffix: 'RequestBody' },
+      },
     },
   },
   target: 'spec',
@@ -322,5 +328,41 @@ describe('getResReqTypes (formData $ref with file properties)', () => {
 
     // Schema name 'FileUpload' → param 'fileUpload' (not 'uploadRequestBody')
     expect(result.formData).toContain('fileUpload.file');
+  });
+});
+
+describe('getResReqTypes (formData array of files)', () => {
+  it('should generate Blob[] for array items with contentMediaType', () => {
+    const reqBody: [string, OpenApiRequestBodyObject][] = [
+      [
+        'requestBody',
+        {
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  photos: {
+                    type: 'array',
+                    items: {
+                      type: 'string',
+                      contentMediaType: 'application/octet-stream',
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    ];
+
+    const result = getResReqTypes(reqBody, 'PostPhotos', context)[0];
+    const schema = result.schemas.find(
+      (s) => s.name === 'PostPhotosRequestBody',
+    );
+
+    expect(schema).toBeDefined();
+    expect(schema?.model).toContain('photos?: Blob[]');
   });
 });
