@@ -5,7 +5,8 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "llms": "node scripts/build-llms.js",
+    "build": "yarn run llms && vite build",
     "start": "node .output/server/index.mjs",
     "types:check": "fumadocs-mdx && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
