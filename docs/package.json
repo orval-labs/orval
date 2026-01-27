@@ -5,7 +5,7 @@
   "sideEffects": false,
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "yarn llms && vite build",
     "start": "node .output/server/index.mjs",
     "types:check": "fumadocs-mdx && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
@@ -13,7 +13,8 @@
     "format": "biome format --write",
     "deploy": "yarn build && wrangler deploy",
     "preview": "yarn build && vite preview",
-    "cf-typegen": "wrangler types"
+    "cf-typegen": "wrangler types",
+    "llms": "node scripts/build-llms.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",

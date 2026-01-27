@@ -1,0 +1,74 @@
+# Documentation
+
+# Orval Documentation
+
+[Orval Website](https://orval.dev)
+
+## Overview
+
+- [Overview](https://orval.dev/docs): Generate type-safe TypeScript clients from OpenAPI specifications
+- [Installation](https://orval.dev/docs/installation): Install Orval in your project
+- [Quick Start](https://orval.dev/docs/quick-start): Generate your first type-safe API client in seconds
+
+## Getting Started
+
+- [Basics](https://orval.dev/docs/guides/basics): Learn the fundamentals of configuring Orval
+
+## HTTP Clients
+
+- [Fetch](https://orval.dev/docs/guides/fetch): Generate Fetch API clients from OpenAPI
+- [Fetch Client](https://orval.dev/docs/guides/fetch-client): Configure Fetch as HTTP client for SWR and TanStack Query
+- [Custom HTTP Client](https://orval.dev/docs/guides/custom-client): Configure a custom HTTP client with mutators
+- [Custom Axios Instance](https://orval.dev/docs/guides/custom-axios): Configure a custom Axios instance
+- [Custom Base URL](https://orval.dev/docs/guides/set-base-url): Configure base URLs for your API clients
+
+## Data Fetching
+
+- [React Query](https://orval.dev/docs/guides/react-query): Generate type-safe React Query hooks from OpenAPI
+- [Vue Query](https://orval.dev/docs/guides/vue-query): Generate type-safe Vue Query composables from OpenAPI
+- [Svelte Query](https://orval.dev/docs/guides/svelte-query): Generate type-safe Svelte Query stores from OpenAPI
+- [Solid Query](https://orval.dev/docs/guides/solid-query): Generate type-safe Solid Query primitives from OpenAPI
+- [Angular Query](https://orval.dev/docs/guides/angular-query): Generate TanStack Query for Angular
+- [SWR](https://orval.dev/docs/guides/swr): Generate type-safe SWR hooks from OpenAPI
+
+## Frameworks
+
+- [Angular](https://orval.dev/docs/guides/angular): Generate Angular services with HttpClient from OpenAPI
+- [SolidStart](https://orval.dev/docs/guides/solid-start): Generate type-safe SolidStart primitives from OpenAPI
+- [Hono](https://orval.dev/docs/guides/hono): Generate Hono server templates from OpenAPI
+
+## Validation & Mocking
+
+- [Zod](https://orval.dev/docs/guides/zod): Generate Zod schemas from OpenAPI
+- [Client with Zod](https://orval.dev/docs/guides/client-with-zod): Combine Zod validation with HTTP clients
+- [MSW](https://orval.dev/docs/guides/msw): Generate Mock Service Worker handlers from OpenAPI
+
+## Advanced
+
+- [Enum Names](https://orval.dev/docs/guides/enums): Generate named enums from OpenAPI extensions
+- [Stream NDJSON](https://orval.dev/docs/guides/stream-ndjson): Type-safe streaming with Newline Delimited JSON
+- [MCP Server](https://orval.dev/docs/guides/mcp): Generate Model Context Protocol servers from OpenAPI
+
+## Guides
+
+- [CLI](https://orval.dev/docs/reference/cli): Command line interface reference
+- [Programmatic API](https://orval.dev/docs/reference/integration): Use Orval programmatically in your build scripts
+- [Configuration](https://orval.dev/docs/reference/configuration): Overview of Orval configuration options
+- [Input](https://orval.dev/docs/reference/configuration/input): Input configuration options
+- [Output](https://orval.dev/docs/reference/configuration/output): Output configuration options
+- [Hooks](https://orval.dev/docs/reference/configuration/hooks): Run scripts on generation events
+- [Full Example](https://orval.dev/docs/reference/configuration/full-example): Complete configuration example
+
+## Reference
+
+- [Upgrading to v8](https://orval.dev/docs/versions/v8): Migration guide for Orval v8
+
+## Playground
+
+- [Playground - Orval](https://orval.dev/playground): Try Orval in your browser. Generate type-safe TypeScript clients from OpenAPI specifications instantly.
+
+## Optional
+
+- [GitHub Repository](https://github.com/orval-labs/orval)
+- [Discord](https://discord.gg/6fC2sjDU7w)
+- [Sponsor](https://opencollective.com/orval)
