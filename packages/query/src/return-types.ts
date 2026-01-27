@@ -43,7 +43,7 @@ export const generateQueryReturnType = ({
           isMutatorHook
             ? `ReturnType<typeof use${pascal(operationName)}Hook>`
             : `typeof ${operationName}`
-        }>>, TError, TData, QueryKey> & { queryKey: QueryKey} }`;
+        }>>, TError, TData, QueryKey> & { queryKey: QueryKey }`;
       }
 
       return `Create${pascal(
@@ -54,7 +54,7 @@ export const generateQueryReturnType = ({
       if (!hasVueQueryV4) {
         return ` UseQueryReturnType<TData, TError, Use${pascal(
           type,
-        )}Result<TData, TError>> & { queryKey: QueryKey} }`;
+        )}Result<TData, TError>> & { queryKey: QueryKey }`;
       }
 
       if (type !== QueryType.INFINITE && type !== QueryType.SUSPENSE_INFINITE) {
