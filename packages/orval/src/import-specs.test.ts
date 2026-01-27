@@ -131,12 +131,12 @@ describe('optionsParamRequired', () => {
     const expectedImplementation = `/**
  * @summary Single endpoint with optional inputs
  */
-export const handleResource = <TData = AxiosResponse<void>>(
+export const handleResource = (
     workspaceId: string,
     id: string,
     handleResourceBody?: HandleResourceBody,
     params?: HandleResourceParams, options?: AxiosRequestConfig
- ): Promise<TData> => {
+ ): Promise<AxiosResponse<void>> => {
     return axios.post(
       \`/\${workspaceId}/resource/\${id}\`,
       handleResourceBody,{
@@ -200,12 +200,12 @@ export const handleResource = <TData = AxiosResponse<void>>(
     const expectedImplementation = `/**
  * @summary Single endpoint with optional inputs
  */
-export const handleResource = <TData = AxiosResponse<void>>(
+export const handleResource = (
     workspaceId: string,
     id: string,
     handleResourceBody: HandleResourceBody,
     params: HandleResourceParams, options: AxiosRequestConfig
- ): Promise<TData> => {
+ ): Promise<AxiosResponse<void>> => {
     return axios.post(
       \`/\${workspaceId}/resource/\${id}\`,
       handleResourceBody,{

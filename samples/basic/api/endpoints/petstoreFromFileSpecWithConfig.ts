@@ -82,10 +82,10 @@ export type ListPetsNestedArrayParams = {
 /**
  * @summary List all pets
  */
-export const listPets = <TData = AxiosResponse<PetsArray>>(
+export const listPets = (
   params?: ListPetsParams,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<PetsArray>> => {
   return axios.get(`/pets`, {
     ...options,
     params: { ...params, ...options?.params },
@@ -95,20 +95,20 @@ export const listPets = <TData = AxiosResponse<PetsArray>>(
 /**
  * @summary Create a pet
  */
-export const createPets = <TData = AxiosResponse<void>>(
+export const createPets = (
   createPetsBody: CreatePetsBody,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<void>> => {
   return axios.post(`/pets`, createPetsBody, options);
 };
 
 /**
  * @summary List all pets as nested array
  */
-export const listPetsNestedArray = <TData = AxiosResponse<PetsNestedArray>>(
+export const listPetsNestedArray = (
   params?: ListPetsNestedArrayParams,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<PetsNestedArray>> => {
   return axios.get(`/pets-nested-array`, {
     ...options,
     params: { ...params, ...options?.params },
@@ -118,10 +118,10 @@ export const listPetsNestedArray = <TData = AxiosResponse<PetsNestedArray>>(
 /**
  * @summary Info for a specific pet
  */
-export const showPetById = <TData = AxiosResponse<Pet>>(
+export const showPetById = (
   petId: string,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);
 };
 

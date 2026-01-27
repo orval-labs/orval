@@ -35,10 +35,10 @@ export type CreatePetsBody = {
 /**
  * @summary List all pets
  */
-export const listPets = <TData = AxiosResponse<Pets>>(
+export const listPets = (
   params?: ListPetsParams,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<Pets>> => {
   return axios.get(`/pets`, {
     ...options,
     params: { ...params, ...options?.params },
@@ -48,20 +48,20 @@ export const listPets = <TData = AxiosResponse<Pets>>(
 /**
  * @summary Create a pet
  */
-export const createPets = <TData = AxiosResponse<void>>(
+export const createPets = (
   createPetsBody: CreatePetsBody,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<void>> => {
   return axios.post(`/pets`, createPetsBody, options);
 };
 
 /**
  * @summary Info for a specific pet
  */
-export const showPetById = <TData = AxiosResponse<Pet>>(
+export const showPetById = (
   petId: string,
   options?: AxiosRequestConfig,
-): Promise<TData> => {
+): Promise<AxiosResponse<Pet>> => {
   return axios.get(`/pets/${petId}`, options);
 };
 
