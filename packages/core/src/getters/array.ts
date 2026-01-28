@@ -7,11 +7,13 @@ import type {
   ScalarValue,
 } from '../types';
 import { compareVersions } from '../utils';
+import type { FormDataContext } from './object';
 
 interface GetArrayOptions {
   schema: OpenApiSchemaObject;
   name?: string;
   context: ContextSpec;
+  formDataContext?: FormDataContext;
 }
 
 /**
@@ -23,6 +25,7 @@ export function getArray({
   schema,
   name,
   context,
+  formDataContext,
 }: GetArrayOptions): ScalarValue {
   const schema31 = schema as OpenApiSchemaObject;
   if (schema31.prefixItems) {
@@ -66,6 +69,7 @@ export function getArray({
       schema: schema.items,
       propName: name + context.output.override.components.schemas.itemSuffix,
       context,
+      formDataContext,
     });
     return {
       value: `${

@@ -1,6 +1,7 @@
 export * from './assertion';
 export * from './async-reduce';
 export * from './case';
+export * from './content-type';
 export * from './compare-version';
 export * from './debug';
 export * from './deep-non-nullable';
