@@ -46,13 +46,14 @@ export function isBinaryContentType(contentType: string): boolean {
 }
 
 /**
- * Determine if a form-data root field should be treated as binary or text file
- * based on encoding.contentType or contentMediaType.
+ * Determine if a form-data field should be treated as a file (binary or text).
+ *
+ * Precedence (per OAS 3.1): encoding.contentType > schema.contentMediaType
  *
  * Returns:
- * - 'binary': field is a binary file (Blob in types)
- * - 'text': field is a text file that can accept string (Blob | string in types)
- * - undefined: no override, use standard resolution
+ * - 'binary': binary file (Blob)
+ * - 'text': text file (Blob | string)
+ * - undefined: not a file, use standard string resolution
  */
 export function getFormDataFieldFileType(
   resolvedSchema: OpenApiSchemaObject,
