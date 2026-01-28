@@ -1,7 +1,7 @@
 import { keyword } from 'esutils';
 import { uniqueBy } from 'remeda';
 
-import { createTypeAliasIfNeeded, resolveObject } from '../resolvers/object';
+import { resolveObject } from '../resolvers/object';
 import { resolveExampleRefs, resolveRef } from '../resolvers/ref';
 import {
   type ContextSpec,
@@ -14,7 +14,6 @@ import {
   type OpenApiResponseObject,
   type OpenApiSchemaObject,
   type ResReqTypesValue,
-  type ScalarValue,
 } from '../types';
 import { camel } from '../utils';
 import { isReference } from '../utils/assertion';
@@ -25,7 +24,6 @@ import {
 } from '../utils/content-type';
 import { getNumberWord } from '../utils/string';
 import type { FormDataContext } from './object';
-import { getObject } from './object';
 
 const formDataContentTypes = new Set(['multipart/form-data']);
 
@@ -52,24 +50,20 @@ function getResReqContentTypes({
     return;
   }
 
-  // For form-data, use special handling with file type context
-  if (isFormData) {
-    return resolveFormDataRootObject({
-      schemaOrRef: mediaType.schema,
-      propName,
-      context,
-      encoding: mediaType.encoding,
-    });
-  }
+  // For form-data, pass context that tracks encoding for file type detection
+  const formDataContext: FormDataContext | undefined = isFormData
+    ? { atPart: false, encoding: mediaType.encoding ?? {} }
+    : undefined;
 
   const resolvedObject = resolveObject({
     schema: mediaType.schema,
     propName,
     context,
+    formDataContext,
   });
 
   // Media key has highest precedence: binary media key → Blob (overrides schema)
-  if (isBinaryContentType(contentType)) {
+  if (!isFormData && isBinaryContentType(contentType)) {
     return {
       ...resolvedObject,
       value: 'Blob',
@@ -394,48 +388,6 @@ export function getDefaultContentType(contentTypes: string[]): string {
 
   // Default to first
   return contentTypes[0];
-}
-
-/**
- * Resolve form-data root object with file type handling via context.
- */
-function resolveFormDataRootObject({
-  schemaOrRef,
-  propName,
-  context,
-  encoding,
-}: {
-  schemaOrRef: OpenApiSchemaObject | OpenApiReferenceObject;
-  propName?: string;
-  context: ContextSpec;
-  encoding?: Record<string, OpenApiEncodingObject>;
-}): ScalarValue {
-  const { schema } = resolveRef<OpenApiSchemaObject>(schemaOrRef, context);
-
-  // Create form-data context with atPart: false
-  // This will be transitioned to atPart: true when getObject iterates properties
-  const formDataContext: FormDataContext = {
-    atPart: false,
-    encoding: encoding ?? {},
-  };
-
-  const result = getObject({
-    item: schema,
-    name: propName,
-    context,
-    nullable: '', // multipart/form-data has no native null representation
-    formDataContext,
-  });
-
-  // Wrap in type alias if needed (same contract as resolveObject)
-  const resolverValue = { ...result, originalSchema: schema };
-  return (
-    createTypeAliasIfNeeded({
-      resolvedValue: resolverValue,
-      propName,
-      context,
-    }) ?? result
-  );
 }
 
 interface GetFormDataAdditionalImportsOptions {
