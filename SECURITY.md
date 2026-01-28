@@ -22,7 +22,7 @@ If you discover a security vulnerability in Orval, **please do not open a public
 ### How to Report
 
 - Report security issues via **GitHub Security Advisories**:  
-  https://github.com/orval/orval/security/advisories
+  https://github.com/orval-labs/orval/security/advisories
 - Alternatively, you may contact the maintainers privately via email if listed in the repository.
 
 ### What to Include
