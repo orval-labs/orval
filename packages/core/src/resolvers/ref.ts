@@ -96,8 +96,15 @@ function getSchema<
 
   let currentSchema = schemaByRefPaths ? schemaByRefPaths : context.spec;
 
+  // Handle OpenAPI 3.0 nullable property
   if ('nullable' in schema) {
     currentSchema = { ...currentSchema, nullable: schema.nullable };
+  }
+
+  // Handle OpenAPI 3.1 type array (e.g., type: ["object", "null"])
+  // This preserves nullable information when using direct $ref with types array
+  if ('type' in schema && Array.isArray(schema.type)) {
+    currentSchema = { ...currentSchema, type: schema.type };
   }
 
   return {
