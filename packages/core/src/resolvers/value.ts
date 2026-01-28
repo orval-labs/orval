@@ -1,4 +1,5 @@
 import { getScalar } from '../getters';
+import type { FormDataContext } from '../getters/object';
 import type {
   ContextSpec,
   OpenApiReferenceObject,
@@ -13,12 +14,14 @@ interface ResolveValueOptions {
   schema: OpenApiSchemaObject | OpenApiReferenceObject;
   name?: string;
   context: ContextSpec;
+  formDataContext?: FormDataContext;
 }
 
 export function resolveValue({
   schema,
   name,
   context,
+  formDataContext,
 }: ResolveValueOptions): ResolverValue {
   if (isReference(schema)) {
     const { schema: schemaObject, imports } = resolveRef<OpenApiSchemaObject>(
@@ -70,7 +73,12 @@ export function resolveValue({
     };
   }
 
-  const scalar = getScalar({ item: schema, name, context });
+  const scalar = getScalar({
+    item: schema,
+    name,
+    context,
+    formDataContext,
+  });
 
   return {
     ...scalar,

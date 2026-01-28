@@ -3,14 +3,17 @@ import { isArray } from 'remeda';
 import { resolveExampleRefs } from '../resolvers';
 import type { ContextSpec, OpenApiSchemaObject, ScalarValue } from '../types';
 import { escape, isString } from '../utils';
+import { getFormDataFieldFileType } from '../utils/content-type';
 import { getArray } from './array';
 import { combineSchemas } from './combine';
+import type { FormDataContext } from './object';
 import { getObject } from './object';
 
 interface GetScalarOptions {
   item: OpenApiSchemaObject;
   name?: string;
   context: ContextSpec;
+  formDataContext?: FormDataContext;
 }
 
 /**
@@ -23,6 +26,7 @@ export function getScalar({
   item,
   name,
   context,
+  formDataContext,
 }: GetScalarOptions): ScalarValue {
   const nullable =
     (isArray(item.type) && item.type.includes('null')) || item.nullable === true
@@ -107,6 +111,7 @@ export function getScalar({
         schema: item,
         name,
         context,
+        formDataContext,
       });
       return {
         value: value + nullable,
@@ -132,6 +137,14 @@ export function getScalar({
 
       if (item.format === 'binary') {
         value = 'Blob';
+      } else if (formDataContext?.atPart) {
+        const fileType = getFormDataFieldFileType(
+          item,
+          formDataContext.partContentType,
+        );
+        if (fileType) {
+          value = fileType === 'binary' ? 'Blob' : 'Blob | string';
+        }
       }
 
       if (
@@ -214,11 +227,21 @@ export function getScalar({
         };
       }
 
+      // Determine if we should pass form-data context:
+      // - atPart: false → always pass (navigating to properties)
+      // - atPart: true + combiner → pass (combiner members are still the same part)
+      // - atPart: true + plain object → don't pass (nested properties are JSON)
+      const hasCombiners = item.allOf || item.anyOf || item.oneOf;
+      const shouldPassContext =
+        formDataContext?.atPart === false ||
+        (formDataContext?.atPart && hasCombiners);
+
       const { value, ...rest } = getObject({
         item,
         name,
         context,
         nullable,
+        formDataContext: shouldPassContext ? formDataContext : undefined,
       });
       return { value: value, ...rest };
     }

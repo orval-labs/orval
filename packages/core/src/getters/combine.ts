@@ -13,6 +13,7 @@ import {
 import { dedupeUnionType, getNumberWord, isSchema, pascal } from '../utils';
 import { getCombinedEnumValue } from './enum';
 import { getAliasedImports, getImportAliasForRefOrValue } from './imports';
+import type { FormDataContext } from './object';
 import { getScalar } from './scalar';
 
 type CombinedData = {
@@ -137,12 +138,14 @@ export function combineSchemas({
   separator,
   context,
   nullable,
+  formDataContext,
 }: {
   name?: string;
   schema: OpenApiSchemaObject;
   separator: Separator;
   context: ContextSpec;
   nullable: string;
+  formDataContext?: FormDataContext;
 }): ScalarValue {
   const items = schema[separator] ?? [];
 
@@ -167,6 +170,7 @@ export function combineSchemas({
         propName,
         combined: true,
         context,
+        formDataContext,
       });
 
       const aliasedImports = getAliasedImports({
