@@ -202,13 +202,11 @@ const generateAxiosImplementation = (
     ? 'axiosInstance'
     : `axios${isSyntheticDefaultImportsAllowed ? '' : '.default'}`;
 
-  return `const ${operationName} = <TData = AxiosResponse<${
-    response.definition.success || 'unknown'
-  }>>(\n    ${toObjectString(props, 'implementation')} ${
+  return `const ${operationName} = (\n    ${toObjectString(props, 'implementation')} ${
     isRequestOptions
       ? `options${context.output.optionsParamRequired ? '' : '?'}: AxiosRequestConfig\n`
       : ''
-  } ): Promise<TData> => {${bodyForm}
+  } ): Promise<AxiosResponse<${response.definition.success || 'unknown'}>> => {${bodyForm}
     return ${axiosRef}.${verb}(${options});
   }
 `;
